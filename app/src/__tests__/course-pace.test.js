@@ -13,7 +13,7 @@
 //      read but never tested, or passed before it was ever read, must not
 //      close a course — the second case is already its own figure (DR-1386).
 import { describe, it, expect } from 'vitest';
-import { standing, pace, courseStanding, doneAt, masteredAt, MIN_FOR_PACE, isPass, examsOwed, mostStudied, growthOpportunities, courseAwards, crownCount } from '../lib/course-pace.js';
+import { standing, pace, courseStanding, doneAt, masteredAt, MIN_FOR_PACE, isPass, examsOwed, mostStudied, growthOpportunities, courseAwards, crownCount, studiedLessons, lessonsToGrow, chronologicalIds, bestPctOf } from '../lib/course-pace.js';
 
 const DAY = 86400000;
 const T0 = Date.UTC(2026, 9, 1, 12, 0, 0);
@@ -281,5 +281,35 @@ describe('courses earn crowns: the crown at 100%, the crown, or the book, the hi
     expect(s.coursesUnderstood).toBe(1);
     expect(courseAwards(standing([], ids))).toEqual([]);
     expect(crownCount(standing([], ids))).toBe(0);
+  });
+});
+
+// THE LESSONS BEHIND A ROW (DR-1481): a course's figures and the list it opens onto are one reading, so they can never disagree.
+describe('each course row carries the very lessons its figures count, oldest first', () => {
+  const ids = { ll: ['ll3-c', 'll1-a', 'll10-j', 'll2-b'] };
+  const recs = [
+    rec('ll', 'll3-c', T0, [[T0, 100]]),
+    rec('ll', 'll1-a', T0, [[T0, 60], [T0 + DAY, 80]]),
+    rec('ll', 'll10-j', null, [[T0, 40]]),
+    rec('ll', 'll2-b', T0),
+  ];
+  it('studied = read or tested, in number order; to grow = exactly those short of 100%; lengths equal the figures', () => {
+    const c = standing(recs, ids).courses[0];
+    const studied = studiedLessons(c, ids.ll);
+    expect(studied.map((l) => l.id)).toEqual(['ll1-a', 'll2-b', 'll3-c', 'll10-j']);
+    expect(studied.map((l) => l.n)).toEqual([1, 2, 3, 10]);
+    expect(studied.length).toBe(c.studied);
+    const grow = lessonsToGrow(c, ids.ll);
+    expect(grow.map((l) => l.id)).toEqual(['ll1-a', 'll2-b', 'll10-j']);
+    expect(grow.length).toBe(c.grow);
+    expect(grow.map((l) => l.bestPct)).toEqual([80, null, 40]);
+  });
+  it('a given order wins; ids with no numbers keep the course order', () => {
+    expect(chronologicalIds(['x', 'y', 'z'], ['z', 'x', 'y'])).toEqual(['z', 'x', 'y']);
+    expect(chronologicalIds(['hl-w3-b', 'hl-w1-a'])).toEqual(['hl-w3-b', 'hl-w1-a']);
+  });
+  it('the best score is the highest attempt, and none when nothing was scored', () => {
+    expect(bestPctOf(rec('ll', 'll1-a', T0, [[T0, 60], [T0 + DAY, 80], [T0 + 2 * DAY, 70]]))).toBe(80);
+    expect(bestPctOf(rec('ll', 'll2-b', T0))).toBeNull();
   });
 });

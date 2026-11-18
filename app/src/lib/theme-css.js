@@ -67,6 +67,7 @@ export const THEME_CSS = `
 [data-theme="anchor"]{--form-surface:#FFFFFF;--form-ink:#1B1F24;--form-line:#D3D7DD;--form-hint:#555D66;color-scheme:light}
 [data-theme="bedrock"]{--form-surface:#FDFBF7;--form-ink:#211C16;--form-line:#DBD2C2;--form-hint:#5D5346;color-scheme:light}
 [data-theme="midnight"]{--form-surface:#0A0A0A;--form-ink:#E5E5E5;--form-line:#2A2A2A;--form-hint:#7C7C7C;color-scheme:dark}
+[data-theme="night"]{--form-surface:#1E1213;--form-ink:#F6ECE9;--form-line:#4F2C2C;--form-hint:#D8B9B2;color-scheme:dark}
 
 input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="image"]),
 select,
@@ -607,6 +608,139 @@ input::placeholder,textarea::placeholder{color:var(--form-hint)}
 /* #666666 measured 3.45:1 on the #0A0A0A field — below AA. #7C7C7C is 4.74:1
    and still reads as a hint rather than as typed text (2026-08-28). */
 [data-theme="midnight"] input::placeholder,[data-theme="midnight"] textarea::placeholder{color:#7C7C7C}
+
+/* ===================================================================
+   THEME: NIGHT — The Love Corner by night: black into deep red, gold on
+   it, white words (Darrell 2026-11-13, his second picture: "This one
+   instead with the red colors"; DR-1483). The remap table is Midnight's
+   whole table with the house's values, so every token Midnight covers
+   is covered here: page #120909, card #241617, deep-red fill #8E2217,
+   ink #F6ECE9 (17.1:1 on the page, 14.3:1 on the card), muted #D8B9B2
+   (10.2:1 / 8.5:1), gold accent #E4B93E (9.6:1 / 8.0:1; as a FILL it
+   carries ink #1A1012, never white). The cream Love Corner (above)
+   stays one tap away (DR-0524); the door opens in this one.
+   =================================================================== */
+[data-theme="night"]{color:#F6ECE9;background-color:#120909}
+[data-theme="night"] .bg-\\[\\#FAF8F4\\]{background-color:#120909!important}
+[data-theme="night"] .bg-white{background-color:#241617!important}
+[data-theme="night"] .bg-\\[\\#1A1815\\]{background-color:#8E2217!important}
+[data-theme="night"] .bg-\\[\\#E8E4DC\\]{background-color:#2E1B1C!important}
+[data-theme="night"] .text-\\[\\#1A1815\\]{color:#F6ECE9!important}
+[data-theme="night"] .text-\\[\\#FAF8F4\\]{color:#F6ECE9!important}
+[data-theme="night"] .text-\\[\\#5A5751\\]{color:#D8B9B2!important}
+[data-theme="night"] .text-\\[\\#B85838\\]{color:#E4B93E!important}
+[data-theme="night"] .text-\\[\\#5A6E3D\\]{color:#9BE2B0!important}
+[data-theme="night"] .text-\\[\\#6B665E\\]{color:#D8B9B2!important}
+[data-theme="night"] .text-\\[\\#2F5D50\\]{color:#9BE2B0!important}
+[data-theme="night"] .text-\\[\\#9B2C1E\\]{color:#FFB3A7!important}
+[data-theme="night"] .text-\\[\\#B23A2E\\]{color:#FFB3A7!important}
+[data-theme="night"] .text-\\[\\#8A6510\\]{color:#F2CF6B!important}
+[data-theme="night"] .text-\\[\\#8C2F2F\\]{color:#FFB3A7!important}
+[data-theme="night"] .bg-\\[\\#F2EFE9\\]{background-color:#2E1B1C!important}
+[data-theme="night"] .bg-\\[\\#E4EED6\\]{background-color:#1F2A1F!important}
+[data-theme="night"] .bg-\\[\\#F0EDE6\\]{background-color:#4F2C2C!important}
+[data-theme="night"] .border-\\[\\#1A1815\\]{border-color:#5A3434!important}
+[data-theme="night"] .border-\\[\\#E8E4DC\\]{border-color:#4F2C2C!important}
+[data-theme="night"] .border-\\[\\#B85838\\]{border-color:#E4B93E!important}
+[data-theme="night"] .border-\\[\\#5A6E3D\\]{border-color:#9BE2B0!important}
+[data-theme="night"] .bg-\\[\\#B85838\\]{background-color:#CFA63C!important}
+[data-theme="night"] .bg-\\[\\#5A6E3D\\]{background-color:#9BE2B0!important}
+[data-theme="night"] .text-\\[\\#2A5A8E\\]{color:#9CC4F5!important}
+[data-theme="night"] .border-\\[\\#2A5A8E\\]{border-color:#9CC4F5!important}
+[data-theme="night"] .bg-\\[\\#2A5A8E\\]{background-color:#2563EB!important}
+[data-theme="night"] .border-\\[\\#5A5751\\]{border-color:#D8B9B2!important}
+[data-theme="night"] .bg-\\[\\#5A5751\\]{background-color:#5A3434!important}
+[data-theme="night"] .bg-\\[\\#5A6E3D\\].text-white{color:#1A1815!important}
+[data-theme="night"] .bg-\\[\\#B85838\\].text-white{color:#1A1815!important}
+[data-theme="night"] .text-\\[\\#7A1F1F\\]{color:#FFB3A7!important}
+[data-theme="night"] .text-\\[\\#7F1D1D\\]{color:#FFB3A7!important}
+[data-theme="night"] .text-\\[\\#991B1B\\]{color:#FFB3A7!important}
+[data-theme="night"] .text-\\[\\#9A3412\\]{color:#FFB3A7!important}
+[data-theme="night"] .text-\\[\\#DC2626\\]{color:#FFB3A7!important}
+[data-theme="night"] .text-\\[\\#9B2C2C\\]{color:#FFB3A7!important}
+[data-theme="night"] .text-\\[\\#15803D\\]{color:#9BE2B0!important}
+[data-theme="night"] .text-\\[\\#166534\\]{color:#9BE2B0!important}
+[data-theme="night"] .text-\\[\\#3F5226\\]{color:#9BE2B0!important}
+[data-theme="night"] .text-\\[\\#3F5A2A\\]{color:#9BE2B0!important}
+[data-theme="night"] .text-\\[\\#216E39\\]{color:#9BE2B0!important}
+[data-theme="night"] .text-\\[\\#2F6B3A\\]{color:#9BE2B0!important}
+[data-theme="night"] .text-\\[\\#16A34A\\]{color:#9BE2B0!important}
+[data-theme="night"] .text-\\[\\#3F7A4F\\]{color:#9BE2B0!important}
+[data-theme="night"] .text-\\[\\#8A6E1F\\]{color:#F2CF6B!important}
+[data-theme="night"] .text-\\[\\#8B6F47\\]{color:#F2CF6B!important}
+[data-theme="night"] .text-\\[\\#B45309\\]{color:#F2CF6B!important}
+[data-theme="night"] .text-\\[\\#5A4A2E\\]{color:#F2CF6B!important}
+[data-theme="night"] .text-\\[\\#946A00\\]{color:#F2CF6B!important}
+[data-theme="night"] .text-\\[\\#1F6FEB\\]{color:#9CC4F5!important}
+[data-theme="night"] .text-\\[\\#7A5A8E\\]{color:#D3C4FF!important}
+[data-theme="night"] .bg-\\[\\#F2F4EC\\]{background-color:#1C2A1F!important}
+[data-theme="night"] .bg-\\[\\#F2F5EC\\]{background-color:#1C2A1F!important}
+[data-theme="night"] .bg-\\[\\#F0F4EA\\]{background-color:#1C2A1F!important}
+[data-theme="night"] .bg-\\[\\#FDE7DC\\]{background-color:#30181A!important}
+[data-theme="night"] .bg-\\[\\#FBEFEA\\]{background-color:#30181A!important}
+[data-theme="night"] .bg-\\[\\#FEE2E2\\]{background-color:#30181A!important}
+[data-theme="night"] .bg-\\[\\#FBF2F2\\]{background-color:#30181A!important}
+[data-theme="night"] .bg-\\[\\#FAF1EC\\]{background-color:#30181A!important}
+[data-theme="night"] .bg-\\[\\#FBF7EC\\]{background-color:#2E2416!important}
+[data-theme="night"] .bg-\\[\\#EFE9DF\\]{background-color:#2A1C1A!important}
+[data-theme="night"] .bg-\\[\\#F0ECE4\\]{background-color:#2A1C1A!important}
+[data-theme="night"] .bg-\\[\\#F4F2EE\\]{background-color:#2A1C1A!important}
+[data-theme="night"] .bg-\\[\\#FCFBF8\\]{background-color:#2A1C1A!important}
+[data-theme="night"] .hover\\:bg-\\[\\#1A1815\\]:hover{background-color:#4F2C2C!important;color:#F6ECE9!important}
+[data-theme="night"] .hover\\:bg-\\[\\#FAF8F4\\]:hover{background-color:#4F2C2C!important}
+[data-theme="night"] .hover\\:text-\\[\\#1A1815\\]:hover{color:#F6ECE9!important}
+[data-theme="night"] .hover\\:bg-white:hover{background-color:#4F2C2C!important}
+[data-theme="night"] .hover\\:bg-\\[\\#E8E4DC\\]:hover{background-color:#4F2C2C!important}
+[data-theme="night"] .hover\\:bg-\\[\\#F0ECE4\\]:hover{background-color:#4F2C2C!important}
+[data-theme="night"] .hover\\:bg-\\[\\#F0EDE6\\]:hover{background-color:#4F2C2C!important}
+[data-theme="night"] .hover\\:bg-\\[\\#F2F4EC\\]:hover{background-color:#1C2A1F!important}
+[data-theme="night"] .hover\\:bg-\\[\\#E4EED6\\]:hover{background-color:#1C2A1F!important}
+[data-theme="night"] .hover\\:bg-\\[\\#FAF1EC\\]:hover{background-color:#30181A!important}
+[data-theme="night"] .text-\\[\\#1A1D1B\\]{color:#F6ECE9!important}
+[data-theme="night"] .text-\\[\\#5E5A52\\]{color:#D8B9B2!important}
+[data-theme="night"] .text-\\[\\#1F3A2E\\]{color:#9BE2B0!important}
+[data-theme="night"] .text-\\[\\#1B2A4A\\]{color:#9CC4F5!important}
+[data-theme="night"] .text-\\[\\#9E4A2A\\]{color:#E4B93E!important}
+[data-theme="night"] .text-\\[\\#2F6B4F\\]{color:#9BE2B0!important}
+[data-theme="night"] .text-\\[\\#8A6510\\]{color:#F2CF6B!important}
+[data-theme="night"] .text-\\[\\#F6F1E7\\]{color:#F6ECE9!important}
+[data-theme="night"] .bg-\\[\\#F6F1E7\\]{background-color:#120909!important}
+[data-theme="night"] .bg-\\[\\#FFFDF9\\]{background-color:#241617!important}
+[data-theme="night"] .bg-\\[\\#EDE5D5\\]{background-color:#2E1B1C!important}
+[data-theme="night"] .bg-\\[\\#1F3A2E\\]{background-color:#0F1A14!important}
+[data-theme="night"] .bg-\\[\\#1B2A4A\\]{background-color:#16213A!important}
+[data-theme="night"] .bg-\\[\\#2B2F2D\\]{background-color:#8E2217!important}
+[data-theme="night"] .bg-\\[\\#9E4A2A\\]{background-color:#CFA63C!important}
+[data-theme="night"] .bg-\\[\\#9E4A2A\\].text-white{color:#1A1815!important}
+[data-theme="night"] .bg-\\[\\#2F6B4F\\]{background-color:#9BE2B0!important}
+[data-theme="night"] .bg-\\[\\#2F6B4F\\].text-white{color:#1A1815!important}
+[data-theme="night"] .bg-\\[\\#C9A227\\]{background-color:#F2CF6B!important}
+[data-theme="night"] .bg-\\[\\#1C3F38\\]{background-color:#0F1A14!important}
+[data-theme="night"] .bg-\\[\\#8A6510\\]{background-color:#3A2E0E!important}
+[data-theme="night"] .bg-\\[\\#3A2A4A\\]{background-color:#1E1528!important}
+[data-theme="night"] .text-\\[\\#F0D58A\\]{color:#F2CF6B!important}
+[data-theme="night"] .bg-\\[\\#1A1D1B\\]{background-color:#120909!important}
+[data-theme="night"] .text-\\[\\#C9A227\\]{color:#F2CF6B!important}
+[data-theme="night"] .border-\\[\\#DED5C3\\]{border-color:#4F2C2C!important}
+[data-theme="night"] .border-\\[\\#1F3A2E\\]{border-color:#9BE2B0!important}
+[data-theme="night"] .border-\\[\\#1B2A4A\\]{border-color:#9CC4F5!important}
+[data-theme="night"] .border-\\[\\#9E4A2A\\]{border-color:#E4B93E!important}
+[data-theme="night"] .border-\\[\\#C9A227\\]{border-color:#F2CF6B!important}
+[data-theme="night"] .hover\\:bg-\\[\\#EDE5D5\\]:hover{background-color:#4F2C2C!important}
+[data-theme="night"] .hover\\:bg-\\[\\#FFFDF9\\]:hover{background-color:#4F2C2C!important}
+[data-theme="night"] .hover\\:bg-\\[\\#DED5C3\\]:hover{background-color:#4F2C2C!important}
+[data-theme="night"] .poe-selected{background-color:#F6ECE9!important;color:#0A0A0A!important;border-color:#F6ECE9!important}
+[data-theme="night"] input,[data-theme="night"] textarea,[data-theme="night"] select{color:#F6ECE9;background-color:#0A0A0A!important;border-color:#4F2C2C!important}
+[data-theme="night"] input::placeholder,[data-theme="night"] textarea::placeholder{color:#7C7C7C}
+
+[data-theme="night"] .bg-\\[\\#E4B93E\\]{background-color:#CFA63C!important}
+[data-theme="night"] .text-\\[\\#8A7E5D\\]{color:#E6CC8F!important}
+[data-theme="night"] .chrome-dock[data-in-reader="false"]{background-color:#0E0708!important;border-color:#4F2C2C!important}
+[data-theme="night"] .chrome-dock[data-in-reader="false"] .poe-dock-btn:not(.poe-dock-menu *){background-color:transparent!important;border-color:transparent!important;color:#F6ECE9!important}
+[data-theme="night"] .chrome-dock[data-in-reader="false"] .poe-dock-btn:not(.poe-dock-menu *):hover{border-color:#E4B93E!important}
+[data-theme="night"] .chrome-dock[data-in-reader="false"] .poe-dock-btn-on:not(.poe-dock-menu *){background-color:#C03222!important;border-color:#E4B93E!important;color:#FFFFFF!important}
+[data-theme="night"] .chrome-dock[data-in-reader="false"] .poe-dock-btn:not(.poe-dock-menu *) .poe-dock-accent{color:#E4B93E!important}
+[data-theme="night"] .poe-selected{background-color:#C03222!important;color:#FFFFFF!important;border-color:#E4B93E!important}
 `;
 
 // The theme swatch registry (was inline in the monolith header). Key order is
@@ -625,6 +759,7 @@ export const THEMES = [
   // default when it shows initially" asked for, without moving the family's.
   { key: 'heritage', color: '#F6F1E7', border: '#1F3A2E', label: 'Heritage · forest & gold' },
   { key: 'lovecorner', color: '#FFF8F7', border: '#C03222', label: 'The Love Corner · red & white' },
+  { key: 'night',      color: '#120909', border: '#E4B93E', label: 'The Love Corner · night (red, black & gold)' },
   // TLC Therapy Solutions' own finish rides third (DR-1156): the TLC door
   // opens in it by its own fallback (TLC_DEFAULT_THEME), the same shape as the
   // church's; the family app's first-run theme is untouched.
@@ -658,7 +793,10 @@ export const DEFAULT_THEME = 'heritage';
 // wrong reading of both. The family app keeps Heritage; the Love Corner door
 // opens in the Love Corner's red; every palette stays one tap away on both
 // (DR-0524 — a device that chose keeps its choice).
-export const CHURCH_DEFAULT_THEME = 'lovecorner';
+// THE DOOR OPENS BY NIGHT (DR-1483; Darrell 2026-11-13, "Go" on the dark
+// screens): black into deep red, gold on it. The cream 'lovecorner' stays in
+// the picker one tap away; a device that chose keeps its choice (DR-0524).
+export const CHURCH_DEFAULT_THEME = 'night';
 
 // THE TLC DOOR OPENS IN TLC'S OWN COLORS (DR-1156). Darrell, 2026-10-21, with
 // the reference on screen: warm ivory and cream, deep forest green for the

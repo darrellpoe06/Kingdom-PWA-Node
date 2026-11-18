@@ -891,6 +891,21 @@
       "notes": "Wall 1.92h measured from the session's first tool call (23:05 UTC) to this ledger line (00:00 UTC 2026-11-07); the committed span d0befabdab..3835440bee is 7m14s and covers only the commits, so it would understate the build. Token use not instrumented; honest estimate about 2.0M, read-heavy - the 5.5MB course file region, seven gate and helper modules, the KJV corpus for 40 verses, three rounds of measure-and-repair on the band ladder. The 40h without-AI estimate is for the same artifact at the same standard: about 90,000 characters of teaching prose across five reader registers, 40 verses fetched and pinned verbatim, a 55-case proven-to-catch gate, a record and a session note. The local full vitest run spent roughly 35 minutes queued behind two sibling runs on the machine's two-slot memory brake; that wait is in the wall figure but is not compute this build used. Three faults in my own work were caught by my own gate rather than by reading: a British spelling in anchor.theme prose, the bare phrase 'the teacher' in a child-band school illustration, and a quiz distractor naming Bishop Gwin for a send that names nobody - the exact DR-0719 fault sov70 and sov71 had already recorded."
     },
     {
+      "id": "past-services-play-2026-11-13",
+      "date": "2026-11-13",
+      "task": "Past services play: the Worship row's Past sermons panel lists the channel's recordings and a tap plays one (DR-1506)",
+      "drs": [
+        "DR-1506"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.4,
+      "estimateWithoutAiHours": 5,
+      "notes": "Darrell 2026-11-13 from the live door; five cases proven to catch"
+    },
+    {
       "id": "the-lesson-lane-says-why-it-is-asleep",
       "date": "2026-11-10",
       "task": "Give two dormant lanes a voice: the lesson-mail watcher says what its dormancy costs, and the email door reports mail-password presence before the tailnet gate",
@@ -1287,6 +1302,21 @@
       "wallClockHours": 0.6,
       "estimateWithoutAiHours": 10,
       "notes": "Darrell: Fix the dates; research their standards so we have a reason to have the ones we have"
+    },
+    {
+      "id": "shell-dock-home-order-2026-11-13",
+      "date": "2026-11-13",
+      "task": "Phase C of the Love Corner shell redesign: the seven-tab church bar measured at 360 and 390 px, the home publishing its open section so Watch and Events light, the homepage in the picture's order with the Customize strip, the pair and the trio, Giving Book's locked surface",
+      "drs": [
+        "DR-1484"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.8,
+      "estimateWithoutAiHours": 12,
+      "notes": "No token meter in this session; tokens and cost are null. PR number recorded after push."
     },
     {
       "id": "dr-1411-ll299-read-with-the-heart",
@@ -2012,6 +2042,23 @@
       "notes": "No token meter in this session; tokens and cost are null."
     },
     {
+      "id": "shell-header-night-2026-11-13",
+      "date": "2026-11-13",
+      "task": "Phases A and B of the Love Corner shell redesign: the door's one compact header, the profile menu, the All Features sheet with search, Personalize My App, and the Night theme as the door's default, measured on the built app",
+      "drs": [
+        "DR-1483"
+      ],
+      "prs": [
+        2672
+      ],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.3,
+      "estimateWithoutAiHours": 24,
+      "notes": "No token meter in this session; tokens and cost are null."
+    },
+    {
       "id": "sov77-prove-all-things",
       "date": "2026-11-12",
       "task": "Sovereign A.I. week 77 from the oldest uncaptured emailed teaching: Word-first lesson in four age bands, verse generator, pinned gate, decision record",
@@ -2331,6 +2378,21 @@
       "notes": "Gmail thread 1a1d0d054cd67ed2, forwarded 2026-11-12T17:31Z, built 2026-11-13 after the scheduled intake missed it. 45 anchor references, 162 quoted spans, every verse filled from app/public/bible/kjv by scripts/sov81-fill.mjs and none typed. www.itbrew.com, www.copyright.gov and www.php.net refused (403 CONNECT), the law firm's newsroom ENOTFOUND; named in every teaching place with re-review 2026-11-27. Our own record measured: IP register 24 rows (11 human, 13 mixed, 0 generated); 1,895 of 2,980 commits on main carry a co-author line."
     },
     {
+      "id": "record-lists-open-to-their-lessons",
+      "date": "2026-11-13",
+      "task": "The class record's Most studied and Most opportunities lists became closed folds per course, titled, opening onto their lessons oldest first, each one tap to its lesson",
+      "drs": [
+        "DR-1481"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.9,
+      "estimateWithoutAiHours": 10,
+      "notes": "LearnersPanel CourseLessons fold; course-pace studiedLessons/lessonsToGrow from the same standing loop; ChurchLearn openLessonFromList shared with the Latest list. Measured in Chrome at 360 and 412px, Normal and A44: no overflow, taps 44px or more. 9 new tests fail on the old panel; 3 mutations caught."
+    },
+    {
       "id": "ll310-the-hidden-life-and-the-empty-chair",
       "date": "2026-11-13",
       "task": "L310 The Hidden Life and the Empty Chair, from the newsletters Darrell forwarded under one word, Lesson; all four age bands, 16-case gate with six dangers proven to catch",
@@ -2374,6 +2436,516 @@
       "wallClockHours": 1.5,
       "estimateWithoutAiHours": 40,
       "notes": "Gmail thread 1a1885689c5c2ffc, forwarded 2026-10-29T18:38Z (1:38 PM CDT), built 2026-11-13 from the intake backlog. Preview only: blog.bytebytego.com and bytebytego.substack.com refused (403 CONNECT), nothing attributed to the article, re-review 2026-11-27. 43 anchor references, 161 quoted spans, every verse filled from app/public/bible/kjv by scripts/sov82-fill.mjs and none typed. Our own data movement measured and pinned against its source files: 37 postgres_changes listener files, signal-then-read messages with a 15s heartbeat, 5-min Inbound poll, site checker ~67 min measured, ten unpublished tables (June), push_outbox."
+    },
+    {
+      "id": "sov83-that-they-may-continue-many-days",
+      "date": "2026-11-13",
+      "task": "Sovereign A.I. week 83 built from one word over a forwarded Level Up Coding issue (ACID Clearly Explained), all four age bands, 36-case gate",
+      "drs": [
+        "DR-1489"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.3,
+      "estimateWithoutAiHours": 40,
+      "notes": "Gmail thread 1a18cd240a3a03eb, forwarded 2026-10-30T12:54Z (7:54 AM Central), built 2026-11-13 draining the intake backlog. Whole article in the email. 40 anchor references, 158 quoted spans, every verse filled from app/public/bible/kjv by scripts/sov83-fill.mjs and none typed. Our house traced to code: payments ledger CHECK and UNIQUE, the two-step payment (not atomic, finished by retry), the exam rule in the wall, the learner record off the phone, a latent workshop-seat oversell and the reservation referee that two spellings of week 82 got past (this build yielded to 83). www.postgresql.org refused (403 CONNECT); live tables not reached, the hosted project is the mirror. re-review 2026-11-27."
+    },
+    {
+      "id": "dr-1498-reader-quote",
+      "date": "2026-11-13",
+      "task": "The reader never switches voice at a quote: closing marks stay with their sentence, chips inline, one failed piece stood in alone",
+      "drs": [
+        "DR-1498"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.5,
+      "estimateWithoutAiHours": 12,
+      "notes": "Traced to the sentence cut and the chip stops making a wordless NAS piece that handed the rest to the phone; tests proven against origin/main; books fold summary skipped in the mixed case (L140)."
+    },
+    {
+      "id": "a-door-lands-on-what-it-names",
+      "date": "2026-11-13",
+      "task": "The Love Corner hero's Watch button changed the section correctly and never moved the reader to it, so the player stayed below the fold and the button read as dead; a requested section now arrives, on all three roads",
+      "drs": [
+        "DR-1499"
+      ],
+      "prs": [],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.8,
+      "estimateWithoutAiHours": 4,
+      "notes": "Traced on the live component before changing anything (DR-0061): the wiring was sound and the existing render test passed green the whole time the defect was live, because it asserts the section CHANGES, not that the reader arrives. Auditing every door rather than only the one he pressed (DR-0219) found two more roads with the same defect: a launch target's mount, which never touches the subscriber, and a handled request that was kept and replayed on the next mount. Each of the three mechanisms is proven to catch by its own named cases, and a section the viewer taps on the strip is deliberately not scrolled, so the fix cannot become the defect."
+    },
+    {
+      "id": "ll311-every-man-presseth-into-it",
+      "date": "2026-11-13",
+      "task": "L311 Every Man Presseth Into It, from the video on Matthew 11:12 Darrell sent with his summary under one word, Lesson; all four age bands, 16-case gate with five checks proven to catch",
+      "drs": [
+        "DR-1488"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.5,
+      "estimateWithoutAiHours": 32,
+      "notes": "Reserved L311 and DR-1488 on origin. The video was not reachable (www.youtube.com does not resolve in this session), so the lesson is taught from his summary and the Word; Strong's G971 and Josephus not read back (lexicon host does not resolve); re-review 2026-11-27. 183 quoted spans filled from app/public/bible/kjv by fill-verses.mjs, none typed."
+    },
+    {
+      "id": "ll313-children-are-a-heritage-when-the-school-closes-the-house",
+      "date": "2026-11-13",
+      "task": "L313 Children Are a Heritage, When the School Closes, the House Still Teaches, from the 1440 Daily Digest Darrell forwarded under one word, Lesson; all four age bands, 15-case gate with four dangers proven to catch",
+      "drs": [
+        "DR-1491"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1,
+      "estimateWithoutAiHours": 30,
+      "notes": "Gmail thread 1a1c5c715c76307d, forwarded 2026-11-10T14:04Z (8:04 AM Central), built 2026-11-13 from the intake backlog. One item of the digest taught (school closures); Congress, the Holmes teaser and the other briefs left out, Nvidia already L310. Reserved L313 and DR-1491 on origin (L311, L312 held by other sessions). 104 quoted spans filled from app/public/bible/kjv by fill-verses.mjs, none typed. The analysis and research 1440 cites were not read; figures reported, re-review 2026-11-27."
+    },
+    {
+      "id": "ll314-will-my-work-live-on",
+      "date": "2026-11-13",
+      "task": "L314 Will My Work Live On: one Living Lesson from the Big Think Lucas Museum essay Darrell forwarded under one word, Lessons",
+      "drs": [
+        "DR-1492"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.25,
+      "estimateWithoutAiHours": 14,
+      "notes": "Essay read whole from the forward; bigthink.com refused (proxy 403), figures stay reported, re-review 2026-11-27. 127 spans over 60 refs, all filled from the corpus. 14-case gate, four dangers proven to catch. Second teaching in the essay (the crowd as judge of greatness) left as a candidate."
+    },
+    {
+      "id": "ll315-of-one-blood",
+      "date": "2026-11-13",
+      "task": "L315 Of One Blood: Living Lesson from Darrell's video under one word, Lesson (purity-of-blood laws and racism), Word first, history tiered",
+      "drs": [
+        "DR-1493"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.2,
+      "estimateWithoutAiHours": 10,
+      "notes": "Subagent build; history confirmed via search results naming sources; britannica.com, en.wikipedia.org and kbwolf.sites.pomona.edu did not resolve from the sandbox"
+    },
+    {
+      "id": "lesson-ll316-riches-make-themselves-wings",
+      "date": "2026-11-13",
+      "task": "L316 Riches Make Themselves Wings: one Living Lesson from The Daily Upside forward (thread 1a1b29c5388a3be0)",
+      "drs": [
+        "DR-1495"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.8,
+      "estimateWithoutAiHours": 6,
+      "notes": "Backlog build; Word first, figures tiered as the newsletter reported them; 104 quoted spans; 15-case gate"
+    },
+    {
+      "id": "ll317-who-judges-greatness",
+      "date": "2026-11-13",
+      "task": "L317 Who Judges Greatness: the second Living Lesson from the Big Think Lucas Museum essay Darrell forwarded under one word, Lessons",
+      "drs": [
+        "DR-1505"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.25,
+      "estimateWithoutAiHours": 14,
+      "notes": "Gmail thread 1a1c68295f781bbb, forwarded 2026-11-10T17:30Z (11:30 AM CST); second teaching, the first is L314 (DR-1492), 1 shared verse. Essay read whole from the forward; bigthink.com refused (proxy 403), the writer's claims stay reported, re-review 2026-11-27. 129 spans over 47 refs, all filled from the corpus. 14-case gate, four dangers proven to catch, PoeTech facts pinned by file and line."
+    },
+    {
+      "id": "ll310-the-third-forward",
+      "date": "2026-11-13",
+      "task": "L310 folds in the third forward Darrell sent under one word, Lesson (Morning Brew, 2026-11-10), now read: the admission's timing, the 4.3% fall, no clear succession plan, and a new Too big to replace section in all four bands; provenance test proven to catch an unread claim",
+      "drs": [
+        "DR-1487"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.6,
+      "estimateWithoutAiHours": 8,
+      "notes": "Gmail thread 1a1c5c35c2357a0f, forwarded 2026-11-10T14:01Z (08:01 Central), read 2026-11-13 ahead of DR-1480's re-review 2026-11-27. 7 quoted spans (Proverbs 16:18, Proverbs 27:1) filled from app/public/bible/kjv by fill-verses.mjs, none typed. Analyst read only as Morning Brew reported him, not named; the newsletter's political aside left out."
+    },
+    {
+      "id": "keep-the-mans-voice-on-wifi",
+      "date": "2026-11-13",
+      "task": "Keep the Piper man's voice on the phone automatically on an unmetered connection, so a NAS hiccup reads on in the same man's voice",
+      "drs": [
+        "DR-1494"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.6,
+      "estimateWithoutAiHours": 6,
+      "notes": "Closes DR-1254's open condition. Unmetered = navigator.connection type wifi/ethernet and no Save-Data; absent is metered. Found deviceVoiceReady hollow (cached is an always-truthy object), so DR-1482's keep button never showed; fixed per voice. 9 cases, 2 fail on origin/main, 5 mutations caught."
+    },
+    {
+      "id": "the-app-says-a-new-version-is-ready",
+      "date": "2026-11-13",
+      "task": "A newer version waiting on a reading is said in one line; a tap stops the reading and loads it",
+      "drs": [
+        "DR-1503"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.6,
+      "estimateWithoutAiHours": 6,
+      "notes": "Follow-up to PR 2688 (found 2026-11-13). sw-update deferred the reload while a reading played and told nobody. New lib/update-while-reading.js offers one line per build through the existing UpdatePrompt toast; the live-build timer no longer reloads mid-reading. use-read-aloud net zero (useReadingHold). 9 cases, 5 proven to catch against origin/main."
+    },
+    {
+      "id": "the-waiting-log-says-what-kind-of-work-waits",
+      "date": "2026-11-16",
+      "task": "The lesson lane's rolling log carries the shape of the waiting queue, not only its count",
+      "drs": [
+        "DR-1507"
+      ],
+      "prs": [],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.9,
+      "estimateWithoutAiHours": 5,
+      "notes": "Run 43956538893 was the first firing where the second road answered (tailnet shut, census read over the public road). It measured six facts; the log carried one. The census's own lines now ride the entry, header stripped. The never-a-body set gains one name, backed by a new check on served-lesson-queue.py rather than a comment. 6 green, executing the step's own shell against the real stdout; both mechanisms and the producer check proven to catch."
+    },
+    {
+      "id": "pre-way-service-audit-new-date",
+      "date": "2026-11-16",
+      "task": "The pre-Way service audit's expired ceiling gets a new date with the why it was owed",
+      "drs": [
+        "DR-1510"
+      ],
+      "prs": [],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.2,
+      "estimateWithoutAiHours": 1,
+      "notes": "AUDIT_BY passed 2026-11-15; red on a clean tree, and main's last CI predated the ceiling, so the next PR to run would have gone red for an unrelated reason. The list is down to two, both with structural whys (supabase's compose converge the systemd reader cannot count; ytzero has no health route). Date moved to 2026-12-15, sized to the reader change; nothing struck, nothing exempted."
+    },
+    {
+      "id": "which-teachings-wait-by-name",
+      "date": "2026-11-17",
+      "task": "The public road names the waiting lesson rows, so the lane can act without the tailnet key",
+      "drs": [
+        "DR-1511"
+      ],
+      "prs": [],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.1,
+      "estimateWithoutAiHours": 7,
+      "notes": "Darrell challenged the claim that the queue was blocked on his key. It was not: services-sync pulls main to the NAS every ~15 min and DR-1269's replay-on-clock applies merged migrations on the NAS's own clock. My 'verified no self-pull loop' had come from grepping loop names, not reading services-sync.sh. The census now writes a waiting list and 0326 publishes it, rebuilt from a whitelist in SQL so a tag carrying a member's name cannot pass. Applied against a real PostgreSQL 16 with a name and a body planted in the payload: all dropped, and anon was refused the table by name."
+    },
+    {
+      "id": "ll318-let-peter-answer",
+      "date": "2026-11-17",
+      "task": "L318: the question about Peter, answered by Peter, from a video sent through the app's research door",
+      "drs": [
+        "DR-1512"
+      ],
+      "prs": [],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.4,
+      "estimateWithoutAiHours": 10,
+      "notes": "Built Word-first rather than as a rebuttal (DR-0098): Acts 4:11, 1 Peter 2:4-7 and 1 Peter 5:1 let Peter answer the question about himself. Both halves of Matthew 16 read, the confession and the rebuke. 113 quotations filled from app/public/bible/kjv, none typed. Matthew 16:23 quoted from 'thou art an offence' onward so the KJV's capitalised adversary is neither altered nor reproduced, and the shared adversary gate was not weakened. Gate 9/9; ladder child 1.0 < youth 5.3 < teen 16.8 < senior 18.5. The video was unreachable from the sandbox and is named unwatched."
+    },
+    {
+      "id": "keyless-eye-not-gated-on-a-key",
+      "date": "2026-11-17",
+      "task": "A keyless outside-in witness no longer waits on a dead network key",
+      "drs": [
+        "DR-1513"
+      ],
+      "prs": [],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.4,
+      "estimateWithoutAiHours": 3,
+      "notes": "Found by reading nas-health.yml end to end during the Ways review rather than trusting its summary. Its outside-in probe of poetech.us is pure curl over the public internet, and it had been placed after the step that exits 1 on a dead TS_AUTHKEY, so from 2026-11-04 a dead network key silently took the team's keyless eye with it. Moved ahead of the join with its if removed; the ssh steps keep their gate, so nothing gains reach. My own first claim that the step was pure curl came from grepping 85 of its 143 lines, and the new test caught ssh and tailscale inside it before I saw both hits were in my comment prose - the conclusion held, the method did not."
+    },
+    {
+      "id": "builder-says-whether-it-is-running",
+      "date": "2026-11-17",
+      "task": "The public road says whether the NAS lesson builder is running, not only that builds failed",
+      "drs": [
+        "DR-1514"
+      ],
+      "prs": [],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.5,
+      "estimateWithoutAiHours": 4,
+      "notes": "Three of the six rows named by 0326 had failed on the NAS builder, whose state was reachable only over ssh behind the dead key. The census runs on the box and reads the unit's systemd word, .code.sha, the locks directory and status.json locally with no key; 0327 publishes them, rebuilt key by key so the SQL refuses independently of the Python. Proven on a real PostgreSQL 16 against a hostile builder block: an error string quoting a member, a last_row_body, a prose sha, a lock named for a row and a stray secret were all dropped, the systemd sentence read unknown rather than inactive, and anon was still refused the table by name."
+    },
+    {
+      "id": "why-a-row-still-waits",
+      "date": "2026-11-17",
+      "task": "The public road says why each teaching still waits and how many tries it has had",
+      "drs": [
+        "DR-1515"
+      ],
+      "prs": [],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.6,
+      "estimateWithoutAiHours": 4,
+      "notes": "0327's own first answer produced the question: the builder read active, building nothing, record fresh, while three teachings had waited five days. lesson_builder.eligibility() shows that past MAX_ATTEMPTS a row is left for the hourly Routine on purpose, so the handoff works and the receiver was blocked on the dead key. The census now publishes a five-word verdict and an attempt count per row, with the threshold deliberately NOT copied because it belongs to the builder's environment. Two latent holes in the vocabulary guard were found by actually breaking it: a word could be dropped from k_whys or k_stalls and nothing failed, because the check asked whether a literal appeared anywhere in the file and never read the STALLS constant at all. The guard now proves membership in the named array for every vocabulary."
+    },
+    {
+      "id": "members-teaching-waits-for-governor",
+      "date": "2026-11-17",
+      "task": "A member's teaching reads as awaiting the Governor rather than as the builder neglecting it",
+      "drs": [
+        "DR-1516"
+      ],
+      "prs": [],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.4,
+      "estimateWithoutAiHours": 3,
+      "notes": "DR-1515's own first live answer corrected it inside the hour. Four rows read ready while the builder was active and building nothing, which reads as the builder neglecting four teachings. The cause was a branch of eligibility() I had not mirrored: a row whose created_by is not one of Darrell's two accounts is never built without lesson-approved, because a member's words are the Governor's to release. The account ids are compared on the box and one word is published, so no id rides the public road. The same read also corrected my own account of the failures: MAX_ATTEMPTS is 2 and the counts were 1, 1 and 2, so only one of the three had been handed to the hourly Routine, not all three as I had said an hour earlier."
+    },
+    {
+      "id": "census-says-which-code-wrote-it",
+      "date": "2026-11-17",
+      "task": "A verdict on the public road can be read, because the census names the code that produced it",
+      "drs": [
+        "DR-1517"
+      ],
+      "prs": [],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.4,
+      "estimateWithoutAiHours": 3,
+      "notes": "0329 shipped the owner check and the very next read returned four rows reading ready, which was consistent with two different worlds: the new code running and those four being Darrell's own, or the old code still on the box and the owner check not yet in play. The census reaches the NAS by the services-sync pull, so its version is always a question, and the receipt published the builder's code sha and never its own. That is the DR-0076 section 8 failure from the other side - not a count read as zero but a verdict read without knowing what computed it, which is easier to miss because the field looks authoritative. The mirror HEAD now travels beside the builder's sha at a different depth, absent rather than faked when git answers prose, and the reader says the unknown out loud. Proven on a real PostgreSQL 16: a real sha published verbatim and a planted sha of 'fatal: not a git repository (Mary Smith)' came back absent with the name nowhere in the receipt."
+    },
+    {
+      "id": "head-read-without-git",
+      "date": "2026-11-17",
+      "task": "The census can actually name its own code, because HEAD is read from files rather than through git",
+      "drs": [
+        "DR-1518"
+      ],
+      "prs": [],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.3,
+      "estimateWithoutAiHours": 2,
+      "notes": "DR-1517 shipped census_code_sha as git rev-parse and the field never arrived: 59 minutes and about four services-sync cycles after merge, two separate reads still printed that the census did not name its own code. Not a pull delay - DR-1511's census change had appeared 16 minutes after its merge, one cycle, so code refresh works and this one call was failing. Every likely cause is a property of the subprocess rather than the question: git off the PATH of whichever user the clock runs the census as, or git refusing a mirror it does not own with fatal detected dubious ownership, which the shape test correctly turned into unknown instead of publishing a sentence. The files answer the same question with no PATH, no ownership check and no subprocess: .git/HEAD, the ref file, and packed-refs. A test harness that raises if git is called proves the files come first rather than merely being preferred. The cause on the NAS is explicitly NOT confirmed - the sandbox cannot reach the box - so what is claimed is only that the subprocess form never answered while a file read cannot fail for any of those reasons."
+    },
+    {
+      "id": "a-row-with-no-words-says-so",
+      "date": "2026-11-17",
+      "task": "The last branch of the builder's eligibility is mirrored, so a ready verdict can be trusted",
+      "drs": [
+        "DR-1519"
+      ],
+      "prs": [],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.5,
+      "estimateWithoutAiHours": 3,
+      "notes": "DR-1516 left eligibility()'s no-words branch unmirrored on the stated grounds that testing it would require reading the body. That premise was wrong, the fourth such correction in one night: PostgREST answers has-this-row-any-words as a filter returning only ids, which already ride this road, so no body is read even to be measured. My first design was a generated body_length column, a schema change on the table holding people's teachings, for an answer a where clause gives for free. Also caught in the act: 0331 was first generated from 0329 by hand and would have silently deleted 0330's code_sha, the exact failure every header in this series warns about, made while writing the warning - the generator now derives the definition in force from disk and both shas were verified present after regeneration. The budget brake in the census header was corrected from one read to two rather than left stale."
+    },
+    {
+      "id": "kids-zone-games-and-child-mode",
+      "date": "2026-11-13",
+      "task": "Kids Zone Phases D and E: the audit, the illustrated proposal (six screens, a parametric SVG cast of Black children and teens), and the pure Word Builder and Who Am I? engines over the hosted KJV with Ari's child-mode flag finally read; surfaces held for approval",
+      "drs": [
+        "DR-1508"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.5,
+      "estimateWithoutAiHours": 24,
+      "notes": "Audit first (DR-0061): the Youth Zone, its tests, the course bands and the in-flight Phase C PR, so the new files stay out of index.css and the shell. The ages conflict (Kids 6-10 reading a 3-6 course; the youth band unused) and two painted numbers on the approved screen were surfaced before drawing. The visual build waits on Darrell's own gate; what does not depend on it shipped proven."
+    },
+    {
+      "id": "the-coloring-page-is-a-picture",
+      "date": "2026-11-13",
+      "task": "The lesson coloring page redrawn as a coloring-book page: frame, bubble title, dotted trace verse and words, a composed scene of the lesson's pieces; one element list for both renderers; 309 sheets measured in Chromium",
+      "drs": [
+        "DR-1509"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.8,
+      "estimateWithoutAiHours": 6,
+      "notes": "Darrell sent a live sheet and asked for better. The derivation was untouched; only the drawing changed. The reviewed-shapes gate did its job (it refused the new paths until they were rendered and looked at), and the width gate held; the bold title face needed 28px of slack, found by measuring every sheet in Chromium, not by the model."
+    },
+    {
+      "id": "kids-zone-v1-launch-pass",
+      "date": "2026-11-17",
+      "task": "Kids Zone v1 launch pass: the approved reference stands in on every surface with no visible placeholder, the Theater poster and tap-to-play, the badge shelf and quiz in the kids' world, nine screens measured at three phone widths, previews of the running app",
+      "drs": [
+        "DR-1520"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.2,
+      "estimateWithoutAiHours": 12,
+      "notes": "The quiz's light-on-cream text came from the night theme's utility remap inside .kz; pinned by class in kids-zone.css, measured before and after."
+    },
+    {
+      "id": "reading-stars-plan",
+      "date": "2026-11-17",
+      "task": "Reading Stars: the Kids Zone literacy development plan for the phase after the v1 launch, with the effort-and-improvement rule, the five skills, the shelf and celebrations, the badge connection, and the proven-to-catch tests each phase ships with",
+      "drs": [
+        "DR-1521"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.3,
+      "estimateWithoutAiHours": 4,
+      "notes": ""
+    },
+    {
+      "id": "builder-readiness-state",
+      "date": "2026-11-17",
+      "task": "The builder says why it is not ready: publish readiness state on the keyless census road by identity against a four-value allowlist, refused again independently in SQL, so an hourly heartbeat beside frozen attempt counts can be told apart from a builder refusing on eligibility",
+      "drs": [
+        "DR-1522"
+      ],
+      "prs": [],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.7,
+      "estimateWithoutAiHours": 6,
+      "notes": "The field DR-1514 withheld as free text. Safe because the match is identity against four literals the census owns, not a shape: a shape is satisfied by error_from_mary_smith, which is how a name reaches a public endpoint. Proven on a real PostgreSQL 16.15 and five ways proven-to-catch."
+    },
+    {
+      "id": "which-writer-is-missing",
+      "date": "2026-11-17",
+      "task": "Which writer is missing: publish readiness per-writer kind/ok/configured on the keyless census road by rebuilding each entry from three fields, so a lapsed sign-in can be told from a writer nobody configured without reaching the box",
+      "drs": [
+        "DR-1524"
+      ],
+      "prs": [],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.6,
+      "estimateWithoutAiHours": 5,
+      "notes": "The entry is rebuilt, never filtered: readiness() carries why (a probe's own words) and writer (a name from lesson-writers.json), and a filter keeps what it forgot to remove. Proven on a real PostgreSQL 16.15 with a member's name planted in writer. DR-1514's closed set refused the field until it was declared."
+    },
+    {
+      "id": "jonah-great-fish-plan",
+      "date": "2026-11-17",
+      "task": "Jonah and the Great Fish: the review of the existing Theater, storybook, games, memory verse, map and badges, the gaps found (the map does not light from storybook rows; YouTube-only Theater; no Jonah in the games), and the four-step plan with what Claude builds now and the illustrations, narration and video still to produce with their specs and hand-over",
+      "drs": [
+        "DR-1523"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.4,
+      "estimateWithoutAiHours": 6,
+      "notes": ""
+    },
+    {
+      "id": "jonah-j1-build",
+      "date": "2026-11-17",
+      "task": "Jonah and the Great Fish J1: the storybook's page turn, swipe, arrow keys, Read to me and sentence highlight; Put the story in order; the five-stop trail lit from rows with the next stop unlocked and the rest locked; three adventure badges from rows; the Theater's file road with poster and captions beside YouTube; the storybooks' verses in Word Builder and the memory verse game; records from every stop; the caption script generated from the KJV; the live walk extended; 31 new tests proven to catch",
+      "drs": [
+        "DR-1523"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.2,
+      "estimateWithoutAiHours": 24,
+      "notes": ""
+    },
+    {
+      "id": "second-road-open",
+      "date": "2026-11-18",
+      "task": "Ways finding: the TS_AUTHKEY was never the blocker. One LAN SSH read of status.json gave more than a night of census instrumentation, and the fix was one lapsed claude sign-in",
+      "drs": [
+        "DR-1526"
+      ],
+      "prs": [],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.2,
+      "estimateWithoutAiHours": 1,
+      "notes": "Darrell: we didnt need it?!!!!!! Road 1 dead was reported as THE blocker while road 2, his own SSH, was open the whole time. The instrumentation keeps its value; the order was wrong."
+    },
+    {
+      "id": "teens-night-skin-and-asset-versions",
+      "date": "2026-11-18",
+      "task": "The Teens lesson's white-on-white cards and the earlier children on screen: .tz overrides for every light kids card with a stylesheet gate proven to catch, kids asset URLs versioned by the build sha, the live walk comparing served bytes with the checkout, the lesson readable step by step or scrolled and remembered on the device",
+      "drs": [
+        "DR-1529"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.6,
+      "estimateWithoutAiHours": 8,
+      "notes": ""
+    },
+    {
+      "id": "delete-says-so",
+      "date": "2026-11-18",
+      "task": "The Word: a draft would not delete. Fixed two independent silent-failure defects - a DELETE that removed zero rows reporting success, and deleting the deduped representative instead of the duplicate group",
+      "drs": [
+        "DR-1528"
+      ],
+      "prs": [],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.4,
+      "estimateWithoutAiHours": 3,
+      "notes": "PostgREST returns no error when RLS refuses a DELETE. Which of the two causes Darrell hit is unestablished: he declined the database query, so both were fixed."
     },
     {
       "id": "sov84-the-body-hath-many-members",

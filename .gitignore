@@ -142,3 +142,5 @@ notebooklm-bundle/pdf/
 # Door journeys (DR-0934): screenshots and the PostgREST binary, never committed
 e2e-shots/
 .e2e/
+live-kids-walk/
+live-still/

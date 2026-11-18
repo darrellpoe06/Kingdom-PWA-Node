@@ -148,6 +148,10 @@ Safe to Spend compared against the verified figures. `scripts/money-census.sh`
 and `scripts/money-records-read.sql` are unused and can be deleted. No live
 records changed by this thread.
 
+## Phase 1 of the 2026-11-16 brief (2026-11-17; PRs #2704-#2707, all on hold)
+
+Christina's 14-task brief, plan, approved decisions, per-PR change logs and the morning report: `docs/99-session-notes/2026-11-17-fos-money-assessment-and-plan.md`. Stacked PRs, merge in order: #2704 (1.1 income: every deposit named, unconfirmed income never counted as cash), #2705 (1.2 bills: store purchases are spending, no invented due dates, six bill groups; `lib/money-dates.js`, `lib/bill-classes.js` split out of the engine), #2706 (1.3a import: `lib/snapshot-rows.js`, signs never guessed, hold holds), #2707 (1.3b review: `lib/intake-row-review.js`, per-row add/leave out/category). Next: Phase 1.4 (outstanding checks, reimbursement links, pending vs posted, document links) needs additive DB columns and waits for database access, a confirmed backup and a tested migration.
+
 ## References
 
 - PR #2532, PR #2537 (merged). This handoff: branch `ccr-055dea31-qi5vfm`.

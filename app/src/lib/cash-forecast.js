@@ -76,6 +76,8 @@ export function cashForecast(data, opts = {}) {
   const accounts = (data?.accounts || []).filter((a) => a && a.id && CASH_TYPES.includes(a.type) && !a.inLegal && !a.treatAsDebt);
   const rows = new Map();
   const unattributed = [];
+  const unconfirmedIncome = {};
+  for (const h of HORIZONS) unconfirmedIncome[h] = 0;
   const entities = opts.visibleEntities || data?.entities || [];
 
   for (const pocket of pockets) {
@@ -128,6 +130,12 @@ export function cashForecast(data, opts = {}) {
       }
     };
     for (const it of pocket.items || []) place(it, Number(it.amount) || 0, isEstimate(it));
+    // Unconfirmed expected income is NOT in the projected balances (the engine
+    // does not count it as cash, Christina 2026-11-16); it is totalled per
+    // horizon so the screen can say what is left out.
+    for (const it of pocket.unconfirmedIncomeItems || []) {
+      for (const h of HORIZONS) if (it.date <= horizon[h]) unconfirmedIncome[h] = round2(unconfirmedIncome[h] + (Number(it.amount) || 0));
+    }
     // The engine's undated reserves accrue from day 1 (day 0 accrues nothing),
     // exactly as its timeline does: living, tax set-aside and planned savings.
     const m = pocket.monthly || {};
@@ -175,6 +183,7 @@ export function cashForecast(data, opts = {}) {
     rows: list,
     totals,
     engineAt,
+    unconfirmedIncome,
     reasons: (result.confidence && result.confidence.reasons) || [],
   };
 }

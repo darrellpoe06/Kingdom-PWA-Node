@@ -91,7 +91,7 @@ describe('the 30 / 60 / 90-day cash forecast (PROVEN TO CATCH)', () => {
     let p = f.rows.find((r) => r.id === 'a-7206');
     expect(p.confirmed30).toBe(-750 - 750 - 60); // the Visa minimum has its due day on file
     expect(p.estimated30).toBe(0);
-    delete d.accounts.find((a) => a.id === 'a-cc').dueDay; // no due day: the 1st is assumed
+    delete d.accounts.find((a) => a.id === 'a-cc').dueDay; // no due day: one minimum reserved from today, no date invented (Phase 1.2)
     f = cashForecast(d, { currentDate: NOV11, scope: 'consolidated' });
     p = f.rows.find((r) => r.id === 'a-7206');
     expect(p.confirmed30).toBe(-750 - 750);

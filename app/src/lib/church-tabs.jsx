@@ -235,13 +235,19 @@ export function churchTabGroups(pairs = []) {
 }
 
 /**
- * The phone's bottom bar on the church door (the brief's §10 "clean mobile
- * bottom navigation bar"): Home, Watch, Word, with Give and More already on
- * the bar (ChromeDock). Each opens a sub-tab the shell mounts; Watch opens the
- * Church home on its Worship section (lib/church-home-section.js).
+ * The phone's bottom bar on the church door, seven tabs as Darrell's picture
+ * drew them (DR-1484): Home · Watch · Bible · Events · Give · Ministries ·
+ * Institute. Each opens a sub-tab the shell mounts; Watch and Events open
+ * the Church home on a section (lib/church-home-section.js); Give is the
+ * existing ChurchGiveDockButton in its place. Every other tab rides the
+ * header's All Features sheet (DR-1483), so the bar carries no More.
  */
 export const CHURCH_BOTTOM_NAV = Object.freeze([
   { key: 'church-home', churchView: 'home', section: null, icon: 'home', words: 'Home' },
   { key: 'church-watch', churchView: 'home', section: 'worship', icon: 'monitor', words: 'Watch' },
-  { key: 'church-word', churchView: 'pulpit', section: null, icon: 'bookOpen', words: 'Word' },
+  { key: 'church-bible', churchView: 'scripture', section: null, icon: 'book', words: 'Bible' },
+  { key: 'church-events', churchView: 'home', section: 'times', icon: 'calendar', words: 'Events' },
+  { key: 'church-give', give: true, icon: 'heart', words: 'Give' },
+  { key: 'church-ministries', churchView: 'ministries', section: null, icon: 'users', words: 'Ministries' },
+  { key: 'church-institute', churchView: 'institute', section: null, icon: 'landmark', words: 'Institute' },
 ]);

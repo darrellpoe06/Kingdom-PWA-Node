@@ -21,7 +21,7 @@
 import React, { useEffect, useState } from 'react';
 import { aggregateLearnerRecords, examAttemptsByLesson, rowToRecord, COMPETENCY_BANDS, RECORD_VERSION_IDS } from '../lib/learner-records.js';
 import { testIntegrityKpis } from '../lib/test-integrity.js';
-import { courseStanding, examsOwed, mostStudied, growthOpportunities, courseAwards, crownCount } from '../lib/course-pace.js';
+import { courseStanding, examsOwed, mostStudied, growthOpportunities, courseAwards, crownCount, studiedLessons, lessonsToGrow } from '../lib/course-pace.js';
 import { CROWN_VERSES } from '../lib/course-crowns.js';
 import UnderstoodGoals from './UnderstoodGoals.jsx';
 import RecordFreshness from './RecordFreshness.jsx';
@@ -153,13 +153,83 @@ function Figure({ label, value, hint, mark = null }) {
   );
 }
 
+/** A course by its catalog title; its key only when the catalog has no title for it (DR-1481). */
+function courseName(courseKey, courseTitleOf) {
+  if (courseKey === 'unplaced') return 'Not placed in a course';
+  return (typeof courseTitleOf === 'function' && courseTitleOf(courseKey)) || courseKey;
+}
+
+// ONE COURSE, FOLDED, OPENING ONTO ITS LESSONS (DR-1481). The fold's own line is the course and its figures; inside, the
+// lessons those figures count, oldest first, each one tap to its lesson through Learn's own list-opening door (the one the
+// Lessons and Latest lists use). The count on the fold is the length of the list inside it, by construction and by test.
+function CourseLessons({ rank, courseKey, title, figures, lessons, kind, titleOf, onOpenLesson, onOpenCourse }) {
+  const canOpen = typeof onOpenLesson === 'function';
+  return (
+    <li className="min-w-0" data-testid="record-course-row" data-course-key={courseKey} data-count={lessons.length}>
+      <details className="border border-[#E8E4DC] bg-white" data-testid="record-course-lessons">
+        <summary className="cursor-pointer min-h-[44px] px-2 py-2 [overflow-wrap:anywhere] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#5A6E3D]" data-testid="record-course-summary">
+          <span>{rank}. </span>
+          <span style={{ fontFamily: '"Fraunces", serif' }} data-testid="record-course-title">{title}</span>
+          <span>: {figures}</span>
+        </summary>
+        <div className="px-2 pb-2">
+          {typeof onOpenCourse === 'function' ? (
+            <button
+              type="button"
+              onClick={() => onOpenCourse(courseKey)}
+              data-testid="record-course-open"
+              className="mb-1 text-left underline underline-offset-2 text-[#1A1815] min-h-[44px] [overflow-wrap:anywhere] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#5A6E3D]"
+            >
+              Open the course: {title}
+            </button>
+          ) : null}
+          {lessons.length ? (
+            <ol className="space-y-0.5" aria-label={kind === 'grow' ? `Lessons of ${title} still to take to 100%, oldest first` : `Lessons of ${title} studied, oldest first`}>
+              {lessons.map((l) => {
+                const name = (typeof titleOf === 'function' && titleOf(l.id, courseKey)) || l.id;
+                const label = `${l.numbered ? `L${l.n}` : l.n}. ${name}`;
+                const scored = l.bestPct !== null && l.bestPct !== undefined;
+                const marks = kind === 'grow'
+                  ? (scored ? `best ${l.bestPct}%` : 'read; exam not taken yet')
+                  : [
+                    l.read ? 'read' : 'not read yet',
+                    l.tested ? `tested${l.tries ? ` ${l.tries} ${l.tries === 1 ? 'time' : 'times'}` : ''}` : 'not tested yet',
+                    scored ? `best ${l.bestPct}%` : null,
+                  ].filter(Boolean).join(' · ');
+                return (
+                  <li key={l.id} className="min-w-0" data-testid="record-course-lesson" data-lesson-id={l.id} data-read={l.read ? 'yes' : 'no'}>
+                    {canOpen ? (
+                      <button
+                        type="button"
+                        onClick={() => onOpenLesson(courseKey, l.id)}
+                        className="w-full text-left min-h-[44px] py-1 [overflow-wrap:anywhere] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#5A6E3D]"
+                      >
+                        <span className="underline underline-offset-2 text-[#1A1815]">{label}</span>
+                        <span className="text-[#5A5751]">{' — '}{marks}</span>
+                      </button>
+                    ) : (
+                      <span className="[overflow-wrap:anywhere]">{label}<span className="text-[#5A5751]">{' — '}{marks}</span></span>
+                    )}
+                  </li>
+                );
+              })}
+            </ol>
+          ) : (
+            <p className="text-[#5A5751]">No lesson of this course is read or tested on the record yet.</p>
+          )}
+        </div>
+      </details>
+    </li>
+  );
+}
+
 // HOW THE EXAMS WERE TAKEN, KEPT APART FROM WHAT THEY SCORED (DR-1386). Darrell
 // 2026-11-10: "some kpi's that fit noticing when a human roll a test", "test
 // taking and grading are separate and both should mean more", "reading and
 // comprehension as the main goal", and "No Condemnation.. evaluation". Each
 // attempt on the record is placed against the lesson's place on the record
 // (read or marked done), so the figures are a mirror, never a verdict.
-function TakenAndGraded({ rows = [], userId, courseLessonIds = null }) {
+function TakenAndGraded({ rows = [], userId, courseLessonIds = null, courseLessonOrder = null, courseTitleOf = null, titleOf = null, onOpenLesson = null, onOpenCourse = null }) {
   const mine = rows.map(rowToRecord).filter((r) => r.userId === userId);
   // DR-1439: ONE reading of the record, the same one "Where you stand" uses, so the
   // two can never disagree. Without the catalog's ids, the record's own lessons.
@@ -185,27 +255,54 @@ function TakenAndGraded({ rows = [], userId, courseLessonIds = null }) {
         <Figure mark="book" label="Times tested" value={s.tries} hint="Every try is study. Understanding comes by repetition, and repetition is rigor." />
         <Figure mark="target" label="Tries to first pass" value={k.triesToFirstPass === null ? 'No pass yet' : k.triesToFirstPass} hint="Across the lessons passed." />
       </div>
+      {/* EACH COURSE OPENS ONTO ITS LESSONS (DR-1481; Darrell 2026-11-13, reading at Big Print, rendered for meaning): a
+          folded row per course, named by its title, its figures on the fold, and inside it the very lessons those figures
+          count, oldest first, each one tap to its lesson. Folded by default, so the record stays short. */}
       {mostStudied(s).length > 0 && (
         <div className="mt-2" data-testid="most-studied">
           <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">Most studied</div>
-          <ol className="text-xs text-[#1A1815] space-y-0.5 list-decimal list-inside">
-            {mostStudied(s).map((c) => (
-              <li key={c.courseKey} className="[overflow-wrap:anywhere]">
-                {c.courseKey}: tested {c.tries} {c.tries === 1 ? 'time' : 'times'}, {c.read} of {c.total} read
-              </li>
-            ))}
+          <ol className="text-xs text-[#1A1815] space-y-1 list-none">
+            {mostStudied(s).map((c, i) => {
+              const list = studiedLessons(c, ids[c.courseKey], courseLessonOrder && courseLessonOrder[c.courseKey]);
+              return (
+                <CourseLessons
+                  key={c.courseKey}
+                  rank={i + 1}
+                  courseKey={c.courseKey}
+                  title={courseName(c.courseKey, courseTitleOf)}
+                  figures={`tested ${c.tries} ${c.tries === 1 ? 'time' : 'times'}, ${c.read} of ${c.total} read, ${list.length} ${list.length === 1 ? 'lesson' : 'lessons'} studied`}
+                  lessons={list}
+                  kind="studied"
+                  titleOf={titleOf}
+                  onOpenLesson={onOpenLesson}
+                  onOpenCourse={onOpenCourse}
+                />
+              );
+            })}
           </ol>
         </div>
       )}
       {growthOpportunities(s).length > 0 && (
         <div className="mt-2" data-testid="growth-opportunities">
           <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">Most opportunities to grow understanding</div>
-          <ol className="text-xs text-[#1A1815] space-y-0.5 list-decimal list-inside">
-            {growthOpportunities(s).map((c) => (
-              <li key={c.courseKey} className="[overflow-wrap:anywhere]">
-                {c.courseKey}: {c.grow} studied {c.grow === 1 ? 'lesson' : 'lessons'} still to take to 100%
-              </li>
-            ))}
+          <ol className="text-xs text-[#1A1815] space-y-1 list-none">
+            {growthOpportunities(s).map((c, i) => {
+              const list = lessonsToGrow(c, ids[c.courseKey], courseLessonOrder && courseLessonOrder[c.courseKey]);
+              return (
+                <CourseLessons
+                  key={c.courseKey}
+                  rank={i + 1}
+                  courseKey={c.courseKey}
+                  title={courseName(c.courseKey, courseTitleOf)}
+                  figures={`${list.length} studied ${list.length === 1 ? 'lesson' : 'lessons'} still to take to 100%`}
+                  lessons={list}
+                  kind="grow"
+                  titleOf={titleOf}
+                  onOpenLesson={onOpenLesson}
+                  onOpenCourse={onOpenCourse}
+                />
+              );
+            })}
           </ol>
         </div>
       )}
@@ -231,7 +328,7 @@ function idsFromRecords(records) {
 // at 100% rides beside it rather than inside it (DR-1386 keeps them apart).
 // The date is this learner's own measured rate or it is not shown at all: a
 // projection with no basis is a painted number (DR-0061 / P15).
-function StandingAndPace({ rows = [], userId, courseLessonIds }) {
+function StandingAndPace({ rows = [], userId, courseLessonIds, courseTitleOf = null }) {
   if (!courseLessonIds || !Object.keys(courseLessonIds).length) return null;
   const mine = rows.map(rowToRecord).filter((r) => r.userId === userId);
   const s = courseStanding(mine, courseLessonIds);
@@ -256,7 +353,7 @@ function StandingAndPace({ rows = [], userId, courseLessonIds }) {
             {courseAwards(s).map((a) => (
               <li key={a.courseKey} className="inline-flex items-center gap-1 border border-[#C9A227] px-2 py-1 text-xs text-[#1A1815] [overflow-wrap:anywhere]" title={a.kind === 'book' ? a.label : `${a.label}. “${CROWN_VERSES[a.kind].text}” (${CROWN_VERSES[a.kind].ref}, KJV)`} data-award={a.award} data-kind={a.kind}>
                 <RecordMark name={a.award} size={1.1} />
-                <span>{a.courseKey}</span>
+                <span>{courseName(a.courseKey, courseTitleOf)}</span>
                 {a.kind === 'crownFull' ? <span className="text-[0.625rem] text-[#5A5751] font-semibold">100%</span> : null}
                 <span className="sr-only">: {a.label}</span>
               </li>
@@ -364,7 +461,7 @@ function NotYetRead({ ids, readIds, courseKey, titleOf, onReadAgain }) {
   );
 }
 
-function LearnerCard({ learner, mine, showWho, rows = [], titleOf, onRetake, onReadAgain, courseLessonIds = null, contacts = null, household = null }) {
+function LearnerCard({ learner, mine, showWho, rows = [], titleOf, onRetake, onReadAgain, courseLessonIds = null, courseLessonOrder = null, courseTitleOf = null, onOpenLesson = null, onOpenCourse = null, contacts = null, household = null }) {
   const who = learnerIdentity(learner, { contacts, mine, household });
   const unknownCompletion = (learner.courses || []).some((c) => c.completionPct === null);
   // DR-1434: each course says how many of its exams are passed, from the same
@@ -433,8 +530,8 @@ function LearnerCard({ learner, mine, showWho, rows = [], titleOf, onRetake, onR
           hint={learner.bestQuizPct === null ? 'Answer a lesson’s exam and the score lands here.' : `best ${pct(learner.bestQuizPct)}`}
         />
       </div>
-      <TakenAndGraded rows={rows} userId={learner.userId} courseLessonIds={courseLessonIds} />
-      <StandingAndPace rows={rows} userId={learner.userId} courseLessonIds={courseLessonIds} />
+      <TakenAndGraded rows={rows} userId={learner.userId} courseLessonIds={courseLessonIds} courseLessonOrder={courseLessonOrder} courseTitleOf={courseTitleOf} titleOf={titleOf} onOpenLesson={onOpenLesson} onOpenCourse={onOpenCourse} />
+      <StandingAndPace rows={rows} userId={learner.userId} courseLessonIds={courseLessonIds} courseTitleOf={courseTitleOf} />
 
       {learner.courses?.length ? (
         <>
@@ -446,7 +543,7 @@ function LearnerCard({ learner, mine, showWho, rows = [], titleOf, onRetake, onR
             {learner.courses.map((c) => (
               <li key={c.courseKey} className="py-2 min-w-0" data-testid="learner-course" data-course-key={c.courseKey}>
                 <div className="text-sm text-[#1A1815] [overflow-wrap:anywhere]" style={{ fontFamily: '"Fraunces", serif' }}>
-                  {c.courseKey === 'unplaced' ? 'Not placed in a course' : c.courseKey}
+                  {courseName(c.courseKey, courseTitleOf)}
                 </div>
                 <dl className="flex flex-wrap gap-x-4 gap-y-1 text-xs mt-0.5">
                   <CoursePair label="Read" value={`${c.lessonsRead}${c.courseLessons ? ` of ${c.courseLessons}` : ''}`} />
@@ -503,6 +600,10 @@ export default function LearnersPanel({
   titleOf = null,        // (lessonId, courseKey) => title, from the mounted catalog
   onRetake = null,       // (courseKey, lessonId) => opens the lesson at its exam
   onReadAgain = null,    // (courseKey, lessonId) => opens the reading from the top
+  onOpenLesson = null,   // (courseKey, lessonId) => opens the lesson, the way Learn's lesson lists do (DR-1481)
+  onOpenCourse = null,   // (courseKey) => opens the course's lessons (DR-1481)
+  courseTitleOf = null,  // (courseKey) => the course's catalog title (DR-1481)
+  courseLessonOrder = null, // { [courseKey]: [lessonId, ...] } oldest first, as the Lessons list numbers them (DR-1481)
 }) {
   const nameOf = typeof titleOf === 'function' ? titleOf : () => null;
   const [whoId, setWhoId] = useState(null);
@@ -590,7 +691,7 @@ export default function LearnersPanel({
 
       <ul className="space-y-3">
         {shown ? (
-          <LearnerCard key={shown.userId} contacts={contacts} household={household} learner={shown} mine={shown.userId === currentUserId} showWho={showWho || shown.userId !== currentUserId} rows={rows} titleOf={nameOf} onRetake={shown.userId === currentUserId ? onRetake : null} onReadAgain={shown.userId === currentUserId ? onReadAgain : null} courseLessonIds={courseLessonIds} />
+          <LearnerCard key={shown.userId} contacts={contacts} household={household} learner={shown} mine={shown.userId === currentUserId} showWho={showWho || shown.userId !== currentUserId} rows={rows} titleOf={nameOf} onRetake={shown.userId === currentUserId ? onRetake : null} onReadAgain={shown.userId === currentUserId ? onReadAgain : null} courseLessonIds={courseLessonIds} courseLessonOrder={courseLessonOrder} courseTitleOf={courseTitleOf} onOpenLesson={onOpenLesson} onOpenCourse={onOpenCourse} />
         ) : null}
       </ul>
 
