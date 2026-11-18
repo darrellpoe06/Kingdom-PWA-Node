@@ -121,7 +121,12 @@ export default function PortfolioTab({
     <section className="bg-white border border-[#E8E4DC] p-3 sm:p-4 mb-3" data-testid="portfolio-tab">
       <div className="flex items-baseline justify-between gap-3 mb-2">
         <h3 className="text-[0.625rem] uppercase tracking-[0.25em] font-semibold text-[#2F5D50]">Every door at once</h3>
-        <button type="button" onClick={read} data-testid="portfolio-refresh" className="text-[0.625rem] uppercase tracking-wider underline text-[#5A5751]">
+        <button
+          type="button"
+          onClick={read}
+          data-testid="portfolio-refresh"
+          className="text-[0.625rem] uppercase tracking-wider underline text-[#5A5751] focus:outline focus:outline-2 focus:outline-[#2F5D50]"
+        >
           {state.status === 'refreshing' || state.status === 'loading' ? 'Reading…' : 'Refresh'}
         </button>
       </div>
@@ -134,7 +139,7 @@ export default function PortfolioTab({
       {state.status === 'failed' && (
         <p className="text-xs text-[#1A1815]" style={serif} role="status" data-testid="portfolio-failed">
           The work orders, messages and payments did not come back ({state.reason}). Nothing below is a count of zero.{' '}
-          <button type="button" className="underline" onClick={read}>
+          <button type="button" className="underline focus:outline focus:outline-2 focus:outline-[#2F5D50]" onClick={read}>
             Try again
           </button>
         </p>
@@ -200,7 +205,7 @@ export default function PortfolioTab({
                           type="button"
                           disabled={r.untied}
                           onClick={() => go(r.id, r.openCount ? 'board' : 'history')}
-                          className="text-sm text-left text-[#1A1815] underline decoration-[#E8E4DC] underline-offset-4 disabled:no-underline"
+                          className="text-sm text-left text-[#1A1815] underline decoration-[#E8E4DC] underline-offset-4 disabled:no-underline focus:outline focus:outline-2 focus:outline-[#2F5D50]"
                           style={serif}
                         >
                           {r.label}
@@ -236,7 +241,7 @@ export default function PortfolioTab({
                           type="button"
                           disabled={r.untied}
                           onClick={() => go(r.id, 'board')}
-                          className="block w-full text-left text-xs text-[#1A1815] mt-1"
+                          className="block w-full text-left text-xs text-[#1A1815] mt-1 focus:outline focus:outline-2 focus:outline-[#2F5D50]"
                           style={serif}
                         >
                           <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Top work · {r.open[0].status} · </span>
@@ -248,7 +253,7 @@ export default function PortfolioTab({
                           type="button"
                           disabled={r.untied}
                           onClick={() => go(r.id, 'thread')}
-                          className="block w-full text-left text-xs text-[#1A1815] mt-1"
+                          className="block w-full text-left text-xs text-[#1A1815] mt-1 focus:outline focus:outline-2 focus:outline-[#2F5D50]"
                           style={serif}
                           data-testid="portfolio-row-message"
                         >
@@ -263,7 +268,7 @@ export default function PortfolioTab({
                           type="button"
                           disabled={r.untied}
                           onClick={() => go(r.id, 'rent')}
-                          className="block w-full text-left text-xs text-[#5A5751] mt-1"
+                          className="block w-full text-left text-xs text-[#5A5751] mt-1 focus:outline focus:outline-2 focus:outline-[#2F5D50]"
                           style={serif}
                         >
                           Last payment {money(r.lastPayment.amount)} · {r.lastPayment.status} ·{' '}
@@ -286,7 +291,13 @@ export default function PortfolioTab({
               <ul data-testid="portfolio-open-work">
                 {openWork.map((w) => (
                   <li key={w.id} className="border-b border-[#F0EDE6] py-2">
-                    <button type="button" disabled={w.doorId === UNTIED} onClick={() => go(w.doorId, 'board')} className="block w-full text-left" style={serif}>
+                    <button
+                      type="button"
+                      disabled={w.doorId === UNTIED}
+                      onClick={() => go(w.doorId, 'board')}
+                      className="block w-full text-left focus:outline focus:outline-2 focus:outline-[#2F5D50]"
+                      style={serif}
+                    >
                       <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">
                         {w.doorLabel} · {w.priority || 'normal'} · {w.status} · in {agoLabel(w.created_at, clock)}
                         {w.assigned_to_label ? ` · ${w.assigned_to_label}` : ''}
@@ -313,7 +324,7 @@ export default function PortfolioTab({
                       type="button"
                       disabled={i.doorId === UNTIED}
                       onClick={() => go(i.doorId, i.kind === 'message' ? 'thread' : 'board')}
-                      className="block w-full text-left"
+                      className="block w-full text-left focus:outline focus:outline-2 focus:outline-[#2F5D50]"
                       style={serif}
                     >
                       <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">
