@@ -246,3 +246,85 @@ question it answers is now smaller. If the next census says
 are fine and the box needs a credential**. If it says `ready`, the refusal is in
 `eligibility()` and those four bodies are whitespace. Either way the next read
 answers it without a key.
+
+## 8. The answer, and the layer after it (DR-1524)
+
+**2026-11-17T23:25:22Z, census code `d64cf1e3fac`:**
+
+    state: waiting on a writer
+    It is NOT working the queue: readiness() refuses for want of a writer it
+    can reach, so the builder returns before it ever reads a row.
+
+Withheld fields went 4 → 3, exactly as one new field riding predicts. Six
+records had each asked a better question about the ROWS; the answer was that
+the rows were never the problem. **Darrell's seven teachings are real, eligible
+and his own, and the builder had never looked at one of them.**
+
+### The chain that delivered it, every link keyless
+
+| step | evidence |
+|---|---|
+| merge | `d258b27d375` (#2718), record + 0332 present by exact commit |
+| deploy | `Deploy (Cloudflare Pages)` success on that exact sha (DR-0107) |
+| hosted DB | `applied=1 skipped=330 failed=0` |
+| sovereign DB | **`##[error]NAS unreachable`** — the reach-in failed on the dead key |
+| the actual proof | `migration-receipt: newest 0332…, 0 not applied`, written **23:15:25** |
+
+I read that `##[error]` as "the NAS never got it" and said so. Wrong: it is only
+the optional hurry-up. The step after it reads the live database's **own**
+receipt over `poetech.us/sb` with the anon key and waits up to 25 minutes for
+the NAS's 15-minute clock — and it confirmed 0332. DR-1269/DR-1398 handled a
+dead key exactly as designed; I had mistaken a hurry-up for the verdict.
+
+Also retired an assumption: the sandbox genuinely **cannot** reach poetech.us
+(`CONNECT tunnel failed, response 403`), so the runner really is the only eye.
+
+### What `state` still could not say, and why it mattered enough to build
+
+One word covers three writers. It cannot tell **none configured** from **one
+configured and failing** — and those are different jobs for a person: a setup,
+or a single login. `readiness()` knows per writer, but its entry carries `why`
+(the probe's own words — live: *"claude at /usr/local/bin/claude but NOT signed
+in"*) and `writer` (a **name** out of `lesson-writers.json`).
+
+So DR-1524 **rebuilds** each entry from `kind`/`ok`/`configured` rather than
+filtering one. A filter keeps whatever it did not think to remove; proven by
+swapping the rebuild for a pass-through, which leaked all three writer names,
+the `/usr/local/bin` path and the Anthropic text at once.
+
+The reader now ends on the sentence a person can act on:
+
+    The writer to fix is CONFIGURED AND FAILING: cli-local. It was set up and
+    has stopped answering -- for a `claude` CLI that is almost always a sign-in
+    that lapsed, which is one login on the box, not a setup.
+    Also never configured (optional, not the fix): api, cli-ssh.
+
+That is a FIXTURE on a real PostgreSQL 16.15, not the live answer — the live
+one needs 0333 on the NAS.
+
+### Four more things caught me, and three were my own gates
+
+1. **DR-1514's closed set refused the new field** until it was declared. That is
+   the whole value of a closed set, and the widening is now deliberate.
+2. **The `never a body` guard** refused one sentence of DR-1522's prose, comments
+   included. I changed the prose, not the guard — and then my *fix's own comment*
+   named the guard it was explaining and was refused for the same word.
+3. **A time-bomb I wrote an hour earlier.** DR-1522's reader fixture hardcoded a
+   census stamp; it passed when written and went red once real time crossed an
+   hour, because the reader rightly calls a census older than the NAS's
+   15-minute clock stale. Fixtures are relative to now.
+4. **Ruff's suggested fix would have broken the NAS.** UP017 wanted
+   `datetime.UTC`; the repo's own `# noqa: UP017 -- the NAS runs Python 3.8`
+   says why that is wrong. `ruff --fix` here would have shipped a crash.
+
+### Needs Darrell — one value, and now a named one
+
+Still only this: whichever writer the next census names. If it says
+**`cli-local`, configured and failing**, it is one `claude` login on the box —
+and the code's own words are the instruction: *"run `claude` once on that
+machine and sign in."* A Claude sign-in is a value only he can mint, so that
+one is legitimately his hand (Drive-Don't-Delegate exception 2). If instead
+nothing is configured, it is a setup and I will bring the plan.
+
+Not claimed: 0333 is not on the NAS yet, and WHICH writer is still unknown.
+`re-review: 2026-11-24`.

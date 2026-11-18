@@ -2858,6 +2858,21 @@
       "notes": "The field DR-1514 withheld as free text. Safe because the match is identity against four literals the census owns, not a shape: a shape is satisfied by error_from_mary_smith, which is how a name reaches a public endpoint. Proven on a real PostgreSQL 16.15 and five ways proven-to-catch."
     },
     {
+      "id": "which-writer-is-missing",
+      "date": "2026-11-17",
+      "task": "Which writer is missing: publish readiness per-writer kind/ok/configured on the keyless census road by rebuilding each entry from three fields, so a lapsed sign-in can be told from a writer nobody configured without reaching the box",
+      "drs": [
+        "DR-1524"
+      ],
+      "prs": [],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.6,
+      "estimateWithoutAiHours": 5,
+      "notes": "The entry is rebuilt, never filtered: readiness() carries why (a probe's own words) and writer (a name from lesson-writers.json), and a filter keeps what it forgot to remove. Proven on a real PostgreSQL 16.15 with a member's name planted in writer. DR-1514's closed set refused the field until it was declared."
+    },
+    {
       "id": "jonah-great-fish-plan",
       "date": "2026-11-17",
       "task": "Jonah and the Great Fish: the review of the existing Theater, storybook, games, memory verse, map and badges, the gaps found (the map does not light from storybook rows; YouTube-only Theater; no Jonah in the games), and the four-step plan with what Claude builds now and the illustrations, narration and video still to produce with their specs and hand-over",
