@@ -6,7 +6,7 @@
 // every fourth word is blanked by the week's seed; badges derive from the
 // learner's real rows and signed out none is earned. They moved out of
 // YouthZone.jsx so the Kids and Teens zones can mount them without a cycle.
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import UiIcon from '../UiIcon.jsx';
 import { verseText } from '../../lib/bible-kjv.js';
 import { fetchLearnerRecords } from '../../lib/learner-records-sync.js';
@@ -15,10 +15,11 @@ import { blankWords, matchesBlank, badgesFor, encouragement } from '../../lib/yo
 const FOCUS = 'focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]';
 
 /** The memory verse game: the verse's real words, every fourth one blanked. */
-export function MemoryVerseGame({ verseRef, seed = 0, load = verseText }) {
+export function MemoryVerseGame({ verseRef, seed = 0, load = verseText, onSuccess = null }) {
   const [text, setText] = useState(null); // null = loading, '' = could not load
   const [answers, setAnswers] = useState({});
   const [checked, setChecked] = useState(false);
+  const told = useRef(null); // J1 (DR-1523): every word right is told once per verse, so the trail can light
   useEffect(() => {
     let alive = true;
     setText(null);
@@ -39,6 +40,13 @@ export function MemoryVerseGame({ verseRef, seed = 0, load = verseText }) {
   const tokens = useMemo(() => (text ? blankWords(text, seed) : []), [text, seed]);
   const blanks = tokens.filter((t) => t.blank);
   const right = blanks.filter((t, i) => matchesBlank(answers[i], t.answer)).length;
+  const allRight = checked && blanks.length > 0 && right === blanks.length;
+  useEffect(() => {
+    if (allRight && onSuccess && told.current !== verseRef) {
+      told.current = verseRef;
+      onSuccess(verseRef);
+    }
+  }, [allRight, onSuccess, verseRef]);
   if (text === null)
     return (
       <p className="lc-small" data-testid="memory-loading">
