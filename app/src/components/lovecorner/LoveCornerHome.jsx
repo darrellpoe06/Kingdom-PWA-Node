@@ -37,6 +37,7 @@ import { CHURCH_MINISTRIES } from '../../lib/church-ministries.js';
 import { INSTITUTE_META } from '../../lib/church-institute.js';
 import { motionBehavior } from '../../lib/gentle-motion.js';
 import { isChurchDoorContext } from '../../lib/church-own-door.js';
+import ChurchOfficeBoard, { useChurchSite } from './ChurchOfficeBoard.jsx';
 
 const BASE = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.BASE_URL) || '/';
 const KEY_ART = `${BASE}lovecorner/kids/bible-adventures-key-art.jpg`;
@@ -82,9 +83,12 @@ export default function LoveCornerHome({ church = null, setChurchView = null, si
   const at = useMemo(() => now || new Date(), [now]);
   const status = useMemo(() => liveStatus(c.services || [], at), [c.services, at]);
   const next = useMemo(() => nextService(c.services || [], at), [c.services, at]);
+  // What the office published on the church's own website (DR-1550), read
+  // through the same-origin relay; null until it is read, null when it is not.
+  const office = useChurchSite(c.site);
   const cards = useMemo(
-    () => featureCards({ services: c.services || [], announcedEvents: c.announcedEvents || [], now: at }),
-    [c.services, c.announcedEvents, at]
+    () => featureCards({ services: c.services || [], announcedEvents: c.announcedEvents || [], office, now: at }),
+    [c.services, c.announcedEvents, office, at]
   );
   const week = useMemo(() => weekStrip(c.services || [], at), [c.services, at]);
   const today = useMemo(() => todayLine(c.services || [], at), [c.services, at]);
@@ -333,6 +337,9 @@ export default function LoveCornerHome({ church = null, setChurchView = null, si
           ))}
         </div>
       </div>
+
+      {/* FROM THE CHURCH OFFICE: the calendar, the letter, the flyers it published (DR-1550) */}
+      <ChurchOfficeBoard digest={office} />
 
       {/* THIS WEEK */}
       <section className="lc-sec" aria-labelledby="lc-wk-h">

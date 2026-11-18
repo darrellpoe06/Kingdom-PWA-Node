@@ -282,6 +282,21 @@
       "notes": "Shared window with D13's push."
     },
     {
+      "id": "church-website-read-into-the-app",
+      "date": "2026-11-18",
+      "task": "The church website read into the app: the office's calendar, letter and flyers through a same-origin relay; the board on the door and the Times tab",
+      "drs": [
+        "DR-1550"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.9,
+      "estimateWithoutAiHours": 10,
+      "notes": "Built on three runner probes of the site's real markup; 21 tests; the live read is the re-review."
+    },
+    {
       "id": "sov67-what-cannot-be-patched",
       "date": "2026-11-05",
       "task": "Lesson sov67: the removing of those things that are made (another session's work, ledgered at the first merge after DR-1347)",

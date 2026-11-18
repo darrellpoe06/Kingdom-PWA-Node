@@ -36,6 +36,7 @@ import { motionBehavior } from '../lib/gentle-motion.js';
 import LoveCornerHome from './lovecorner/LoveCornerHome.jsx';
 import { subscribeChurchHomeSection, takePendingChurchHomeSection, publishChurchHomeSection } from '../lib/church-home-section.js';
 import { ChurchGivingChannels } from './ChurchGiving.jsx';
+import ChurchOfficeBoard, { useChurchSite } from './lovecorner/ChurchOfficeBoard.jsx';
 
 // serviceDate — a feed's ISO `published` as a short calendar date; '' when it
 // cannot be read, so a recording with no date still lists by its title.
@@ -175,6 +176,8 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
   // resolve the SAME record from one source (Reality-Trace P15/P16). Behavior
   // is unchanged from the inline logic this replaced.
   const c = resolveChurch(church);
+  // The office's own calendar, letter and flyers from the church website (DR-1550).
+  const office = useChurchSite(c.site);
   const showingDefaultHome = c.isDefaultHome === true;
   const fieldCls = 'w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]';
   const labelCls = 'text-[0.5625rem] uppercase tracking-wider text-[#5A5751]';
@@ -963,6 +966,8 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
       icon: 'calendar',
       render: () => (
         <>
+      {/* FROM THE CHURCH OFFICE (DR-1550): the month's calendar, the letter, the flyers */}
+      <ChurchOfficeBoard digest={office} />
       {/* SERVICE TIMES + SAVE TO CALENDAR */}
       {(c.services || []).length > 0 && (
         <section aria-labelledby="svc-h">
