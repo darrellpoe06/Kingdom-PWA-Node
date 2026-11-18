@@ -468,6 +468,46 @@ export function deriveDebts(data, asOf = new Date()) {
       needsTerms: !(rate > 0 && minPayment > 0),
     });
   }
+  // 3. LOANS ENTERED AS BILLS (FOS Money Phase 2, gap X1). A confirmed bill
+  //    that carries a remaining balance is money owed: the six First State
+  //    Bank loans were entered this way, with balance, rate and last four on
+  //    the bill, and never reached the Debts tab. One record per debt: a bill
+  //    is skipped when the same debt is already listed (its own debt account,
+  //    an account with the same last four, or the rental mortgage it pays when
+  //    that mortgage carries a balance), and two bills for one loan count once.
+  //    The bill's amount is its monthly payment; its due date and reservation
+  //    stay with the bill (Safe-to-Spend reserves the bill, never this row).
+  const last4 = (v) => { const d = String(v || '').replace(/\D/g, ''); return d.length >= 4 ? d.slice(-4) : ''; };
+  const acctLast4 = (a) => last4(a.fragment || a.last4 || a.mask) || ((String(a.name || '').match(/(?:^|\D)(\d{4})(?!\d)/g) || []).slice(-1)[0] || '').replace(/\D/g, '');
+  const listedAccounts = new Set(out.filter((d) => d.source === 'account').map((d) => d.accountId));
+  const listedLast4 = new Set((data?.accounts || []).filter((a) => listedAccounts.has(a.id)).map(acctLast4).filter(Boolean));
+  const rentalsWithMortgage = new Set(out.filter((d) => d.source === 'rental').map((d) => d.rentalId));
+  const seenLoans = new Set();
+  for (const o of (data?.recurringObligations || [])) {
+    if (!o || o.enabled === false) continue;
+    const bal = Number(o.balance);
+    if (!(bal > 0.01)) continue;
+    if (o.accountId && listedAccounts.has(o.accountId)) continue;
+    const l4 = last4(o.accountLast4);
+    if (l4 && listedLast4.has(l4)) continue;
+    const mortgageOf = o.linkedMortgageId || (o.isMortgage ? o.rentalId : null);
+    if (mortgageOf && rentalsWithMortgage.has(mortgageOf)) continue;
+    const loanKey = l4 ? `${String(o.lender || '').trim().toLowerCase()}|${l4}` : `id|${o.id}`;
+    if (seenLoans.has(loanKey)) continue;
+    seenLoans.add(loanKey);
+    const rate = Number(o.rate) || 0;
+    const monthly = String(o.frequency || 'monthly') === 'monthly' ? Number(o.amount) || 0 : 0;
+    out.push({
+      id: `debt-bill-${o.id}`, name: String(o.name || '').trim() || 'Loan',
+      balance: round2(bal), rate, rateSource: rate > 0 ? 'manual' : 'none', rateKnown: rate > 0,
+      minPayment: round2(monthly), entityId: o.entityId ?? null,
+      rentalId: o.rentalId || null, obligationId: o.id || null, lender: o.lender || null, accountLast4: l4 || null,
+      pastDue: Number(o.pastDue) > 0 ? round2(Number(o.pastDue)) : null,
+      dataRate: null, rateMin: null, creditLimit: null, highestBalance: null, utilization: null, availableCredit: null,
+      debtType: mortgageOf ? 'mortgage' : 'loan', source: 'bill', leaveAlone: o.leaveAlone === true,
+      needsTerms: !(rate > 0 && monthly > 0),
+    });
+  }
   return out;
 }
 

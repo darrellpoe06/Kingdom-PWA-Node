@@ -347,6 +347,13 @@ function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSno
                       <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{d.name}</span>
                       {d.flag && <span className="text-[0.625rem] uppercase tracking-wider text-[#B85838] font-medium ml-2">⚠ {d.flag}</span>}
                       {d.leaveAlone && <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] ml-2">Leave alone</span>}
+                      {/* A loan entered as a bill: its balance, rate and payment
+                          live on the bill, so that is where they are changed. */}
+                      {d.source === 'bill' && (
+                        <div className="text-[0.5625rem] text-[#5A5751] mt-0.5" data-testid="debt-from-bill" style={{ fontFamily: '"Fraunces", serif' }}>
+                          From the bill{d.accountLast4 ? ` · ending ${d.accountLast4}` : ''} · change it on Bills{d.pastDue ? ` · ${fmt(d.pastDue)} past due` : ''}
+                        </div>
+                      )}
                       {/* The card's own context, shown only where a real figure
                           exists: how much of the limit is used, and the progress
                           already made down from its peak. Both are arithmetic on
