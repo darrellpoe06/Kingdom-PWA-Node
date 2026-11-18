@@ -37,7 +37,10 @@ const round2 = (n) => Math.round(n * 100) / 100;
 export function isTransferTxn(t) {
   if (!t) return false;
   if (t.isTransfer === true) return true;
-  return String(t.category || '').toLowerCase() === 'transfer';
+  const c = String(t.category || '').toLowerCase();
+  // Money held for someone else and passed along is a movement, like a transfer:
+  // never income, spending, or the family's own giving (Christina 2026-11-18).
+  return c === 'transfer' || c === 'held-for-others';
 }
 
 // A balance-adjustment row is the ledger form of a MANUAL balance entry

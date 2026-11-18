@@ -44,7 +44,7 @@ export function matchAccount(navKey, accounts) {
 
 const ALLOWED_CATEGORY = new Set([
   'salary', 'rental-income', 'transfer', 'groceries', 'fuel', 'utilities',
-  'dining', 'medical', 'vehicle', 'household', 'tithes', 'charitable', 'business',
+  'dining', 'medical', 'vehicle', 'household', 'tithes', 'charitable', 'business', 'held-for-others',
   'professional', 'insurance', 'subscription', 'debt-payment', 'other',
 ]);
 
