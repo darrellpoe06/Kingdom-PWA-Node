@@ -26,7 +26,6 @@ generically. No name, lender, account, amount, rate or date appears anywhere.
   against a lower cost. L322 names those lessons and does not reteach them.
 - **Provenance:** documented, the offer and its disclosure as the intake session
   generalized them; the lender's full terms were not opened (named in `UNCHECKED`).
-- **107 quotations**, all filled from `app/public/bible/kjv`; none typed by hand.
 
 ## Decision
 
@@ -43,18 +42,19 @@ generically. No name, lender, account, amount, rate or date appears anywhere.
 
 ## Impact
 
-L322 joins the catalog on 2026-11-18 by auto-discovery. A reader meets the
-Word on debt offers without a lender named, a figure from anyone's account, or
-a recommendation to take or refuse a product.
+L322 joins the catalog by auto-discovery: the Word on debt offers, with no lender,
+no one's figures, and no advice to take or refuse a product.
 
 ## Verification
 
 - L322 gate **10/10**: five-span spine in all five texts, quotations verbatim,
   Yahweh in our voice, talk-together in every place, band shares at or above
   the floor, a rising ladder, and a privacy check that no percent, dollar sign
-  or APR figure reaches the lesson.
+  or APR figure reaches the lesson; 107 quotations, all filled from the corpus.
 - **Caught, not claimed:** first runs failed the quotation floor (47 of 100),
   the senior children direction, the child and youth shares, and a lowercased
-  verse opening (Proverbs 21:5). Each fixed and re-run.
+  verse opening (Proverbs 21:5); the wider run then caught surety used before
+  its plain meaning, bands not naming the title, and a missing trust-but-verify
+  note. Each fixed; 354 related suites and lint re-run.
 
 `re-review: 2026-12-18`: read the gate counts on main; keep the lesson free of particulars.
