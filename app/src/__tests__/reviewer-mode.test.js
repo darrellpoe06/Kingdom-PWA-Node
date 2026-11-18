@@ -221,7 +221,9 @@ const SHELL_WIRING = [
   // the family-PII Imported gate treats a reviewer like a demo/outside state
   'isAnyDemoMode: isAnyDemoMode || reviewerMode',
   // boot data is the public user sample, never this device's saved steward blob
-  "(isPublicHost() || reviewerMode) ? DEMO_DATA_FAMILY_OF_4",
+  // (lib/demo-seed-choice.js; a reviewer/public boot is a SAMPLE, never SEED —
+  // behavior pinned in demo-seed-choice.test.js)
+  "personas: DEMO_DATA_BY_PERSONA, isPublic: isPublicHost(), reviewerMode,",
   'if (isPublicHost() || reviewerMode) {',
   // signed-in hydration: a reviewer is a fresh user — EMPTY_WORLD, never SEED
   'if (reviewerMode) { setData(EMPTY_WORLD); setAuthHydrated(true); return; }',

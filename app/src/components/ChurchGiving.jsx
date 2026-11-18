@@ -454,6 +454,51 @@ function MyGivingRecord() {
   );
 }
 
+/**
+ * THE CHURCH'S GIVING CHANNELS, ANYWHERE THEY ARE NAMED (Darrell 2026-11-18:
+ * "The giving sections should be populated with the links and QR codes... not
+ * linked to the site"). The same cards the Give popup shows — one tap opens
+ * the channel, the QR is for a second device — so no surface in the app ever
+ * sends a parishioner to the website to find out HOW to give. DR-1540.
+ */
+export function ChurchGivingChannels({ church: churchIn, compact = false }) {
+  const door = useChurchProfile();
+  const profileFacts = door.status === 'ready' && door.profile ? door.profile.profile : null;
+  const church = mergeChurchRecord(churchIn || {}, profileFacts);
+  const giving = resolveChurchGiving({ church, slug: door.status === 'ready' ? door.slug : null, profile: door.status === 'ready' ? door.profile : null });
+  return (
+    <div data-testid="giving-channels" data-giving-channels={giving.source}>
+      {giving.source === 'none' && (
+        <p className="text-sm text-[#1A1815] border border-[#E8E4DC] bg-[#FAF8F4] p-3 mb-3 leading-relaxed" data-giving-channels-empty>
+          {giving.line}
+        </p>
+      )}
+      <div className={`grid grid-cols-1 ${compact ? '' : 'sm:grid-cols-2'} gap-2 mb-2`}>
+        {giving.channels.map((ch) => (
+          <a
+            key={ch.id}
+            href={ch.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-3 border-2 border-[#5A6E3D] bg-[#FAF8F4] p-3 min-h-[64px] hover:bg-white focus:outline focus:outline-2 focus:outline-[#1A1815]"
+            data-testid={`giving-channel-${ch.id}`}
+          >
+            <span className="shrink-0 bg-white p-1 border border-[#E8E4DC]" aria-hidden="true">
+              <QRCodeSVG value={ch.url} size={52} />
+            </span>
+            <span className="min-w-0">
+              <span className="block text-sm font-semibold text-[#1A1815]">{ch.label}</span>
+              <span className="block text-[0.6875rem] text-[#5A6E3D] break-all">{ch.display}</span>
+              <span className="block text-[0.6875rem] text-[#5A5751] leading-snug">{ch.how}</span>
+            </span>
+          </a>
+        ))}
+      </div>
+      {giving.source !== 'none' && <p className="text-[0.6875rem] text-[#5A5751] leading-relaxed" data-giving-provenance>{giving.line}</p>}
+    </div>
+  );
+}
+
 export function ChurchGivePanel({ church: churchIn, onClose }) {
   const panelRef = useRef(null);
   // WHOSE channels (0297, DR-1066). The church's own profile row — written by

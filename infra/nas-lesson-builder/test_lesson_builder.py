@@ -2129,3 +2129,67 @@ class BishopGwinMessageTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TheQuotationGateNamesTheSpan(unittest.TestCase):
+    """DR-1552. MEASURED live 2026-11-18 16:08 (run 44344...): this gate refused
+    FOUR of the seven teachings that had waited six days, every one of them on
+    `span-without-reference` and no other branch -- and all it told the writer
+    was "7 quoted spans, 4 with a reference". A count is not actionable:
+    previous_failures() feeds these lines into the next attempt, which could not
+    know WHICH span to fix. The verse gate has always quoted the offending text
+    back; this is the same courtesy, in the same shape."""
+
+    def bands(self, text):
+        return {"levels": {b: text for b in gates.FULL_BANDS}}
+
+    def test_the_span_with_no_reference_is_NAMED_not_only_counted(self):
+        r = gates.quotation_gate(self.bands(
+            'He said "In the beginning was the Word" (John 1:1), then a '
+            '"settled thing", then "we build it anyway".'))
+        self.assertFalse(r["passed"])
+        first = r["problems"][0]
+        self.assertIn("3 quoted spans, 1 with a reference", first)
+        self.assertIn('no reference after: "settled thing"; "we build it anyway"', first)
+
+    def test_a_REFERENCED_span_is_never_named_as_the_offender(self):
+        r = gates.quotation_gate(self.bands(
+            'Only "In the beginning was the Word" (John 1:1) and a bare "aside".'))
+        self.assertNotIn("In the beginning", r["problems"][0])
+        self.assertIn('no reference after: "aside"', r["problems"][0])
+
+    def test_PROVEN_TO_CATCH_the_findall_tuple_bug(self):
+        # SPAN_WITH_REFERENCE has four groups, so findall yields TUPLES. Building
+        # the referenced set from findall instead of finditer+group(1) makes
+        # every span look unreferenced -- so a clean draft would be told its
+        # own Scripture has no reference. Pinned against that exact mistake.
+        import re as _re
+        t = 'Only "In the beginning was the Word" (John 1:1) here.'
+        wrong = set(gates.SPAN_WITH_REFERENCE.findall(t))
+        right = {m.group(1) for m in gates.SPAN_WITH_REFERENCE.finditer(t)}
+        self.assertNotIn("In the beginning was the Word", wrong)
+        self.assertIn("In the beginning was the Word", right)
+        self.assertTrue(_re.search(r"\(John 1:1\)", t))
+        # And the gate itself must pass this draft.
+        self.assertTrue(gates.quotation_gate(self.bands(t))["passed"])
+
+    def test_a_clean_draft_still_passes_and_says_nothing(self):
+        r = gates.quotation_gate(self.bands(
+            'Only "In the beginning was the Word" (John 1:1).'))
+        self.assertTrue(r["passed"])
+        self.assertEqual(r["problems"], [])
+
+    def test_the_named_spans_are_capped_and_cut_so_a_draft_cannot_be_recited(self):
+        long_span = "x" * 200
+        r = gates.quotation_gate(self.bands(
+            " ".join('a "{}{}" there.'.format(long_span, i) for i in range(9))))
+        p = r["problems"][0]
+        self.assertLessEqual(p.count('"'), 12, "at most five spans are named")
+        self.assertNotIn("x" * 70, p, "each named span is cut")
+
+    def test_the_OPENING_is_unchanged_so_the_census_still_classifies_it(self):
+        # lesson-queue-census.py's PROBLEM_KINDS matches `quoted spans,`; if this
+        # message is re-worded at the front, the public receipt silently stops
+        # naming this kind and reads `other` again.
+        r = gates.quotation_gate(self.bands('a "bare" one and nothing else.'))
+        self.assertIn("quoted spans,", r["problems"][0])

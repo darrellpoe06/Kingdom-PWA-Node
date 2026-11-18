@@ -506,7 +506,11 @@ body:has(.fixed.inset-0.z-50) .chrome-dock {
 .lc-brand-t b{display:block;font-family:var(--lc-display);font-weight:700;font-size:1rem}
 .lc-brand-t span{font-size:.7rem;opacity:.88}
 .lc-acct{margin-left:auto;min-height:38px;padding:0 .75rem;border-radius:999px;border:1.5px solid rgba(255,255,255,.55);background:rgba(255,255,255,.08);color:var(--lc-white);font-size:.8rem;font-weight:700;white-space:nowrap;cursor:pointer}
-.lc-hero{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.875rem;align-items:center;margin-top:1rem}
+.lc-hero{display:flex;flex-wrap:wrap;gap:.875rem;align-items:center;margin-top:1rem}
+.lc-hero>div{flex:1 1 14rem;min-width:0}
+.lc-hero>.lc-bishop{flex:0 0 auto}
+/* Words read at every size (DR-1539): a column of words is never narrower than the words need. Column counts come from a minimum width in rem, so when the reader grows the text the columns collapse instead of squeezing the words; a word that fits nowhere wraps instead of being cut. */
+.lc-home{overflow-wrap:anywhere}
 .lc-h1{font-family:var(--lc-display);font-weight:700;font-size:1.625rem;line-height:1.08;letter-spacing:-.01em;margin:0;text-wrap:balance}
 .lc-h1 em{font-style:italic;font-weight:500;color:var(--lc-gold)}
 .lc-h2{font-family:var(--lc-display);font-weight:700;font-size:1.1875rem;line-height:1.15;margin:0;color:var(--lc-ink)}
@@ -541,8 +545,8 @@ body:has(.fixed.inset-0.z-50) .chrome-dock {
 .lc-sec{padding:0 .125rem}
 .lc-sec-h{display:flex;align-items:baseline;justify-content:space-between;gap:.625rem;margin-bottom:.625rem;flex-wrap:wrap}
 .lc-link{background:none;border:0;padding:0 .25rem;min-height:36px;font-size:.85rem;font-weight:700;color:var(--lc-red);cursor:pointer}
-.lc-quick{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.625rem}
-@media (min-width:640px){.lc-quick{grid-template-columns:repeat(8,minmax(0,1fr))}}
+.lc-quick{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,5.5rem),1fr));gap:.625rem}
+@media (min-width:640px){.lc-quick{grid-template-columns:repeat(auto-fit,minmax(min(100%,6.5rem),1fr))}}
 .lc-q{display:flex;flex-direction:column;align-items:center;gap:.4rem;background:var(--lc-paper);border:1px solid var(--lc-line);border-radius:1rem;padding:.75rem .25rem .625rem;min-height:84px;color:var(--lc-ink);cursor:pointer;font-size:.75rem;font-weight:700;text-align:center;line-height:1.15}
 .lc-q-ic{width:40px;height:40px;border-radius:.75rem;background:var(--lc-red-tint);display:grid;place-items:center;color:var(--lc-red)}
 .lc-q-gold{background:var(--lc-gold-tint);color:var(--lc-gold-ink)}
@@ -553,8 +557,8 @@ body:has(.fixed.inset-0.z-50) .chrome-dock {
 .lc-day-today{background:var(--lc-red);color:var(--lc-white);border-color:var(--lc-red)}
 .lc-card{background:var(--lc-paper);border:1px solid var(--lc-line);border-radius:1.125rem;padding:.875rem 1rem;min-width:0}
 .lc-lz{background:linear-gradient(160deg,var(--lc-red-tint),var(--lc-paper));border:1px solid var(--lc-line);border-radius:1.125rem;padding:.875rem 1rem}
-.lc-tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.5rem;margin-top:.625rem}
-@media (min-width:640px){.lc-tiles{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.lc-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,9rem),1fr));gap:.5rem;margin-top:.625rem}
+@media (min-width:640px){.lc-tiles{grid-template-columns:repeat(auto-fit,minmax(min(100%,9rem),1fr))}}
 .lc-tile{background:var(--lc-paper);border:1px solid var(--lc-line);border-radius:.875rem;padding:.625rem .75rem;font-size:.78rem;line-height:1.3;min-height:56px;display:flex;flex-direction:column;justify-content:center;gap:.125rem;text-align:left;color:var(--lc-ink);cursor:default}
 button.lc-tile{cursor:pointer}
 .lc-tile b{font-weight:700;font-size:.82rem}
@@ -568,8 +572,8 @@ button.lc-tile{cursor:pointer}
 .lc-door b{font-size:.875rem}
 .lc-door small{font-size:.72rem;opacity:.9}
 .lc-door-gold{background:var(--lc-gold);color:var(--lc-black);border-color:var(--lc-gold)}
-.lc-mins{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.5rem}
-@media (min-width:640px){.lc-mins{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.lc-mins{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,8.5rem),1fr));gap:.5rem}
+@media (min-width:640px){.lc-mins{grid-template-columns:repeat(auto-fit,minmax(min(100%,8.5rem),1fr))}}
 .lc-min{background:var(--lc-paper);border:1px solid var(--lc-line);border-radius:.875rem;padding:.7rem .75rem;min-height:88px;display:flex;flex-direction:column;gap:.25rem;text-align:left;color:var(--lc-ink);cursor:pointer}
 .lc-min b{font-size:.85rem;line-height:1.15}
 .lc-min small{font-size:.72rem;color:var(--lc-muted);line-height:1.3}
@@ -665,11 +669,14 @@ button.lc-tile{cursor:pointer}
 [data-theme="night"] .lch-eyebrow{color:var(--lc-gold)}
 .lch-tag{font-family:var(--lc-display);font-style:italic;font-size:.76rem;color:var(--lc-gold-ink);line-height:1.05}
 .lch-right{display:flex;align-items:center;gap:.4rem;flex:0 0 auto}
+.lch-aa{font-family:var(--lc-display);font-weight:700;font-size:15px;letter-spacing:-.02em;line-height:1}
 .lch-bell button{min-width:40px;min-height:40px;border-radius:9999px}
 .lch-avatar{width:40px;height:40px;border-radius:50%;padding:0;border:0;background:none;box-shadow:0 0 0 2px var(--lc-paper),0 0 0 4px var(--lc-gold);cursor:pointer;display:grid;place-items:center;overflow:hidden}
 .lch-signin{min-height:40px;padding:0 .875rem;border-radius:9999px;background:var(--lc-red);color:#fff;font-weight:700;font-size:.82rem;border:0;cursor:pointer;white-space:nowrap}
 /* the narrowest phones (≤359px): the name alone beside the logo, so the bar stays one line (the probe's 320px case) */
 @media (max-width:359px){.lch-eyebrow,.lch-tag{display:none}.lch-name{font-size:.9rem;overflow:hidden;text-overflow:ellipsis}.lch-signin{padding:0 .6rem;font-size:.76rem}.lch-bar{gap:.375rem;padding-left:.5rem;padding-right:.5rem}}
+/* A phone's header holds the name, the tagline and four controls (menu, Aa, search, the bell) under the 80px cap (DR-1540, measured 2026-11-18: 60px at 360/390/412 with this; 88 to 128px without it). The church's name line rides the hero and the door below. */
+@media (max-width:479px){.lch-eyebrow{display:none}.lch-ic{width:36px;height:36px}.lch-right{gap:.3rem}.lch-signin{padding:0 .6rem;font-size:.76rem}.lch-aa{font-size:13px}}
 .lch-strip{border-top:1px solid var(--lc-line)}
 .lch-strip-tab{padding:.5rem .75rem;white-space:nowrap;border-bottom:2px solid transparent;color:var(--lc-muted);font-weight:600;font-size:.85rem;background:none;border-top:0;border-left:0;border-right:0;min-height:40px;cursor:pointer}
 .lch-strip-tab-on{color:var(--lc-ink);border-bottom-color:var(--lc-red)}
@@ -730,7 +737,8 @@ button.lc-tile{cursor:pointer}
    eight doors on a phone, the Customize strip, the paired cards, the trio. */
 .lc-place{font-family:var(--lc-display);font-size:.98rem;line-height:1.3;margin:.5rem 0 0;color:#fff}
 .lc-place b{color:var(--lc-gold);font-weight:600}
-@media (max-width:639px){.lc-quick{display:flex;overflow-x:auto;gap:.5rem;padding-bottom:.25rem;scrollbar-width:none;margin-right:-.75rem;padding-right:.75rem}.lc-quick::-webkit-scrollbar{display:none}.lc-q{flex:0 0 78px}}
+@media (max-width:639px){.lc-bishop{flex-direction:row;width:auto;max-width:100%;gap:.75rem;text-align:left}.lc-bishop figcaption{text-align:left}.lc-bishop .lc-bishop-ph{width:4.5rem;height:4.5rem}}
+@media (max-width:639px){.lc-quick{display:flex;overflow-x:auto;gap:.5rem;padding-bottom:.25rem;scrollbar-width:none;margin-right:-.75rem;padding-right:.75rem}.lc-quick::-webkit-scrollbar{display:none}.lc-q{flex:0 0 auto;min-width:5rem;max-width:9rem}}
 .lc-cust{display:flex;align-items:center;gap:.5rem;width:100%;min-height:50px;padding:0 .75rem;border-radius:.875rem;background:#fff;border:1px solid var(--lc-line);color:#1A1012;cursor:pointer;text-align:left;font-size:.9rem}
 .lc-cust b{flex:1 1 auto;min-width:0;color:var(--lc-red)}
 .lc-cust-dots{display:flex;gap:.25rem}.lc-cust-dots i{width:16px;height:16px;border-radius:50%;display:block;border:1px solid rgba(0,0,0,.15)}
@@ -751,7 +759,7 @@ button.lc-tile{cursor:pointer}
 .lc-adv-h{margin:0;font-family:var(--lc-display);font-weight:700;font-size:1.15rem;line-height:1.15;color:var(--lc-gold)}
 .lc-adv-p{margin:0;font-size:.84rem;line-height:1.4;color:var(--lc-white);opacity:.92}
 .lc-adv-go{margin-top:.25rem;width:100%;font-size:1rem;min-height:52px}
-@media (min-width:720px){.lc-adv{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);align-items:center}.lc-adv-go{width:auto}}
+@media (min-width:720px){.lc-adv{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,16rem),1fr));align-items:center}.lc-adv-go{width:auto}}
 
 .lc-trio{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.5rem}
 .lc-trio-card{display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-end;gap:.15rem;min-height:118px;padding:.625rem;border-radius:.875rem;background:var(--lc-paper);border:1px solid var(--lc-line);color:var(--lc-ink);text-align:left;cursor:pointer}
@@ -935,3 +943,18 @@ html[data-reader-rails="sides"] header[data-read-skip] {
   padding-left: calc(calc(min(6.5rem, (100vw - 32rem) / 2) * var(--ts-chrome-scale, 1)) + 1.5rem) !important;
   padding-right: calc(calc(min(6.5rem, (100vw - 32rem) / 2) * var(--ts-chrome-scale, 1)) + 1.5rem) !important;
 }
+/* The church office board (DR-1550): the month's calendar, the letter, the flyers, as the office published them. */
+.lc-office{margin-top:.875rem}
+.lc-office .lc-sec-h{align-items:baseline;flex-wrap:wrap;gap:.25rem .75rem}
+.lc-office-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,16rem),1fr));gap:.75rem;margin-top:.625rem}
+.lc-office-fig{margin:0;min-width:0;background:var(--lc-paper,#fff);border:1px solid var(--lc-line,#e6e0d6);border-radius:1rem;overflow:hidden}
+.lc-office-pic{display:block;width:100%;padding:0;border:0;background:#fff;cursor:zoom-in}
+.lc-office-pic img{display:block;width:100%;height:auto;max-height:70vh;object-fit:contain;background:#fff}
+.lc-office-cap{padding:.5rem .75rem;font-size:.8rem;color:var(--lc-muted,#5a5751)}
+.lc-office-events{margin-top:.75rem}
+.lc-office-strip{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(min(100%,14rem),18rem);gap:.625rem;overflow-x:auto;padding-bottom:.25rem;scroll-snap-type:x proximity}
+.lc-office-strip .lc-office-fig{scroll-snap-align:start}
+.lc-office-strip .lc-office-pic img{max-height:22rem}
+.lc-office-full{position:fixed;inset:0;z-index:80;background:rgba(0,0,0,.92);overflow:auto;padding:3.25rem .5rem 1rem;-webkit-overflow-scrolling:touch}
+.lc-office-full img{display:block;max-width:100%;height:auto;margin:0 auto;background:#fff}
+.lc-office-close{position:fixed;top:.625rem;right:.625rem;min-height:44px;padding:0 .875rem;border-radius:.75rem;border:0;background:#fff;color:#1A1815;font-weight:700;cursor:pointer}

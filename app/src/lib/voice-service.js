@@ -135,6 +135,18 @@ export function resetVoiceServiceHealthForTests() { health = 'unknown'; healthAt
 /** Configured AND not known to be down — the readiness a reader should trust. */
 export function isVoiceServiceAnswering() { return isVoiceServiceReady() && health !== 'down'; }
 
+// WHOSE ANSWER IT IS (DR-1555, measured 2026-11-18 by voice-health run
+// 44325812074): with no /voice mount on the Funnel, GET /voice/health came back
+// 200 { ok: true, go2rtc: "1.9.14", streams: 65, ... }: the CAMERA forwarder's
+// health, read as "the voice is up". A bare ok:true is not the voice's word.
+// The tower's studio says clone: true (infra/voice-studio/server.py); the
+// NAS's own clone names its engine (nas_clone_server.py). Anything else is
+// somebody else talking.
+export function isVoiceAnswer(body) {
+  if (!body || typeof body !== 'object' || body.ok !== true) return false;
+  return body.clone === true || (typeof body.engine === 'string' && body.engine.trim() !== '');
+}
+
 /**
  * Ask the sovereign studio whether it answers. Cached for HEALTH_CACHE_MS so a
  * page of reads costs one probe; `force` re-asks now. Never throws.
@@ -159,7 +171,7 @@ export async function probeVoiceService({ timeoutMs = HEALTH_TIMEOUT_MS, force =
     if (res && res.ok && typeof res.json === 'function') {
       try { body = await res.json(); } catch (_) { body = null; }
     }
-    health = res && res.ok && body && body.ok === true ? 'up' : 'down';
+    health = res && res.ok && isVoiceAnswer(body) ? 'up' : 'down';
     engine = health === 'up' && body && typeof body.engine === 'string' ? body.engine : '';
   } catch (_) {
     health = 'down';

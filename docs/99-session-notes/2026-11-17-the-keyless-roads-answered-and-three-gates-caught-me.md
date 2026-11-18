@@ -520,3 +520,208 @@ or missing store exits non-zero saying *"which is not 'no failures'"* — DR-007
 is his to read, and the six rows' cause is still unnamed. Four consecutive
 reads (05:12, 06:09, 07:09, 08:09) were otherwise identical: 7 waiting, 0
 building, the handoff stable.
+
+---
+
+## 12. "Fix it!!!!!! So we don't need anything!!!!!!!" — and the answer was on the box (DR-1542)
+
+**Six consecutive reads, 05:12 → 13:10, every one the same:** 7 waiting, 0
+building, `Failed because -- other: 6, transient: 1`, the oldest teaching
+passing 6 d 0 h. 0334 told me *which site* refused — and for six rows said
+`other`, which is the honest word for "not one of the two that retry
+themselves" and tells a person nothing about what to do.
+
+At 13:10 a peer session relayed Darrell's own words from ~12:28Z, about every
+item parked on his hand: **"Fix it!!!!!! So we don't need anything!!!!!!! For
+all of these.... obviously!!!!!"**
+
+That reverses the call I had made two hours earlier. I had looked at exactly
+this and decided to leave it to road 2, citing DR-1526. I was reading DR-1526
+as "don't instrument" when what it actually records is an ORDER: don't
+instrument *instead of* asking. The direct read now exists — it is DR-1537 —
+so building the keyless field is no longer the premature move. It is the
+remaining one.
+
+### What was already on the box, unread
+
+Two artifacts the census can open locally, with no key and no ssh:
+
+1. **`versions/<build_id>.json`**, written by `lesson_builder._store` at
+   `:1251`, carries `gate_results` — so the NAMES of the gates that refused
+   are right there.
+2. **The crashed build's own reason tag** opens with its exception class name,
+   because `:1029` writes `"{}: {}".format(type(e).__name__, e)`. That is the
+   one site 0334 publishes as `other` precisely because the opening is a class
+   name and not a fixed literal.
+
+### Why these may ride when prose may not
+
+A gate's name is a fixed word, listed in `GATE_NAMES` and in `k_gates`. The
+exception name is matched against **the interpreter's own `BaseException`
+subclasses** — an allowlist this repository does not write and therefore cannot
+let drift from Python. `Mary` is not an exception class; neither is
+`MarySmith`, nor `mary_smith`. All three are refused, and that is a case.
+
+The lookup is a **dict**, not a set, so what gets published is this file's own
+string and never the bytes that came off the row — the same discipline 0333
+keeps with `k_kinds[array_position(...)]`.
+
+And a fault's TEXT is read on neither side. The verse gate's faults quote both
+the draft and the verse; the same record holds `body` and `prompt_text`. A case
+plants markers in all three and asserts none reaches the census.
+
+### The thing I am most likely to be wrong about
+
+**The six rows may have no stored records at all.** `_store` is not called on
+every failure path — a build that crashed at `:1029` before storing leaves
+nothing. If so, the next read says `cause not stored` for those six, which is
+the honest answer and not a regression: absent is unread, never "no cause"
+(DR-0076 §8). DR-1537's diagnostic is then still the read that answers it, and
+the exception name may yet come from the reason tag alone.
+
+Nothing here is measured live. `re-review: 2026-11-25`.
+
+---
+
+## 13. Six days of `other: 6`, answered in one read — and the answer was not a credential (DR-1551)
+
+**0335's first live read, 14:11Z, run 44320331578, census code f444ab511df7:**
+
+```
+65241324 | research-inbox | build-failed/transient | gates refused: quotation | rate-limited after 4
+29d2c703 | research-inbox | build-failed/other     | crashed: RuntimeError   | failed after 2
+7a79db92 | research-inbox | build-failed/other     | crashed: RuntimeError   | failed after 2
+825019ca | research-inbox | build-failed/other     | gates refused: quotation | crashed: RuntimeError
+2e7ef925 | research-inbox | build-failed/other     | gates refused: verse
+f60ed2a5 | research-inbox | build-failed/other     | gates refused: quotation+verse+voice
+c671009b | research-inbox | build-failed/other     | gates refused: quotation+verse
+```
+
+Six days. One read. **And the thing I had been chasing since 05:12 was never a
+credential at all** — not the dead Tailscale key, not the lapsed sign-in. It is
+the drafts: `quotation` refused four of seven, `verse` three, `voice` one, and
+three builds crashed with `RuntimeError`. The `:1029` hypothesis DR-1534
+published as its limit is confirmed, and the class is named.
+
+### The next wrong turn I nearly took
+
+`MAX_ATTEMPTS = 2` and five rows sit at exactly `failed after 2`, so the
+obvious move is to raise the budget. I checked the premise first (DR-0076 §5)
+and it does not support that:
+
+- `lesson_writer.py:85-90, 116` **already states** every quotation rule to the
+  writer — every double-quoted span is Scripture and carries its reference, no
+  ellipsis inside a quotation, straight quotes, no record id, no percentage.
+- `previous_failures` (`lesson_builder.py:814`) **does** read the earlier
+  build's stored gate results and feed those lines into the next prompt.
+
+So these rows failed on attempt 2 **with the first attempt's feedback in hand**,
+against rules the prompt had already stated. A third attempt is a guess, not a
+fix.
+
+### Why the gate name still was not enough
+
+`quotation_gate` refuses five different things, and they call for OPPOSITE work:
+
+| what refused | whose work |
+|---|---|
+| a double-quoted span with no reference | the writer's prompt — or the gate itself |
+| an ellipsis inside a quotation | the writer, learnable |
+| curly double quotes | the writer, mechanical |
+| a recited `DR-####` | the writer, mechanical |
+| a stated percentage | the writer, mechanical |
+
+The first line is the one that matters: a model writing teaching prose will
+double-quote a phrase of the teacher's for emphasis, and the gate reads every
+double-quoted span as Scripture. If that is what is firing, the fix is not more
+attempts and not a better prompt — **it is a decision about how a lesson may
+quote its own teacher, and that is Darrell's call, not mine.** One word tells
+that apart from a mis-quoted verse. The gate's name cannot.
+
+So 0336 publishes the KIND: eleven of them, five from the quotation gate, three
+from voice, three from verse.
+
+### The one that required care
+
+`lesson_gates.py:279` and `:282` interpolate a NAME into their problem strings
+— "capitalises Satan", "writes yahweh in lower case". So the prose is **matched**
+and the census's own kind word is **published**: `capitalises-the-adversary`,
+`lowercases-His-Name`. A case plants both and asserts the receipt carries the
+kinds and neither name, nor any fragment of the prose.
+
+I also caught myself writing `lowercases-a-name-of-god` as a kind token. In our
+own authored voice that lower-cases a Name of Yahweh, which the typographic rule
+forbids — and it would have ridden a public endpoint. Renamed before it shipped.
+
+### What is still unknown
+
+`kinds` is **unioned across a row's builds**, so it cannot yet say whether the
+same problem repeated on attempt 2 or a different one appeared. That is exactly
+the question that decides whether a third attempt would help. Named here rather
+than guessed at. `re-review: 2026-11-25`.
+
+---
+
+## 14. The same problem every time, and the writer was told a number (DR-1552)
+
+**0336's first live read, 16:08Z, census code 3615515d78e2** — the merged SHA,
+so the box had it within half an hour:
+
+```
+65241324 | gates refused: quotation             | because: span-without-reference
+825019ca | gates refused: quotation             | because: span-without-reference | crashed: RuntimeError
+2e7ef925 | gates refused: verse                 | because: not-the-verse
+f60ed2a5 | gates refused: quotation+verse+voice | because: generic-God-not-Yahweh+not-the-verse+span-without-reference
+c671009b | gates refused: quotation+verse       | because: not-the-verse+span-without-reference
+```
+
+**One problem, four rows.** Every quotation refusal is `span-without-reference`
+and nothing else — no ellipsis, no curly quote, no percentage, no record id.
+All three verse refusals are `not-the-verse`. That is not variance across seven
+teachings; it is one repeated behaviour, which is the first thing worth knowing
+about a six-day stall.
+
+### What the writer was actually told
+
+```
+levels.child: 7 quoted spans, 4 with a reference
+```
+
+A count. And `previous_failures` (`lesson_builder.py:814`) feeds exactly that
+line into the next attempt — so attempt 2 was asked to fix something it had no
+way to locate, against a rule `lesson_writer.py:85-90` had already stated to
+it. **That is why raising MAX_ATTEMPTS was never the fix**, and why checking the
+premise first (DR-0076 §5) was worth the ten minutes it cost.
+
+The verse gate has done this correctly from the start — `'(John 1:1) was quoted
+as "X" but the verse reads: Y'`. The quotation gate was the one withholding it.
+Now it names the spans: at most five, each cut to 60 characters, after an
+opening left deliberately unchanged because the census classifies the line by
+matching `quoted spans,`.
+
+### The bug I nearly shipped inside the fix
+
+`SPAN_WITH_REFERENCE` has four capture groups, so `findall` returns **tuples**.
+Building the referenced set from `findall` and testing `span not in referenced`
+is true of every span — a perfectly clean draft would be told its own Scripture
+carries no reference. `finditer` + `group(1)` is the only correct read. Caught
+on the first run against a one-span fixture, and pinned by a case that asserts
+the clean draft passes.
+
+### And a gap in yesterday's hour, found by the gate I added for it
+
+DR-1551 shipped `PROBLEM_KINDS` with no drift case, while `FAILURE_SITES` has
+had one since DR-1534. So re-wording a gate message would have silently stopped
+classifying it and the receipt would have gone back to naming only the gate —
+with nothing red. The case exists now, and **it failed on its first run**, on
+`the generic "God" in our own voice`: the gate's source escapes those quotes, so
+the source holds `\"god\"` while the runtime string holds `"god"`. The matcher
+was right; the test was comparing against the wrong thing. It strips escapes.
+
+### What this does not do
+
+Nothing about what the gate ACCEPTS has changed. Whether a lesson may
+double-quote its own teacher without a Scripture reference is a decision about
+how a lesson is written, and it stays Darrell's. And the seven rows are past
+their attempt budget, so this reaches the NEXT teaching and rebuilds none of
+them. `re-review: 2026-11-25`.
