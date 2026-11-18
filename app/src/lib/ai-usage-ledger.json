@@ -331,6 +331,21 @@
       "notes": "One squash commit 17:40:55Z, merged 17:53:17Z: only the commit-to-merge span is measurable. Estimate entered by the Ways session for 10 files, +333/-47, not the authoring session's own."
     },
     {
+      "id": "sov92-the-voice-is-jacobs-voice",
+      "date": "2026-11-18",
+      "task": "Sovereign A.I. week 92 from one word over a forwarded IT Brew issue, Cheating the system: Word first on Genesis 27:22 and Ephesians 6:6, CheatBench taught as reported (honest work, honeypot, three kinds of cheating) with no rate and no ranking, four hand-written bands, every verse generator-filled from the KJV, and the house examined by its own files (test skips, the run-alone rule, the 25th ceiling raise, the verse fill).",
+      "drs": [
+        "DR-1559"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.5,
+      "estimateWithoutAiHours": 14,
+      "notes": "No token meter in this session; tokens and cost are null. arxiv.org did not resolve from this sandbox, so the paper was never read; secondary reports conflict on rates and release date, so none is printed. Whether any agent here has weakened a check is not measured; re-review 2026-12-02."
+    },
+    {
       "id": "a-proof-of-a-removed-refusal",
       "date": "2026-11-05",
       "task": "Five stale proofs of a removed refusal re-pointed (another session's work, ledgered at merge)",
@@ -1895,6 +1910,21 @@
       "wallClockHours": 1.2,
       "estimateWithoutAiHours": 12,
       "notes": "Video https://youtu.be/g_gRHW4SJtI sent with one word, Lesson; not watched (no YouTube from this session), built from his summary and said so in every band. Hany Farid and Estonia's AI Leap checked by web search; Karmen Kisel, India and cheating figures not checked and listed. 80 spans filled from the KJV corpus. The gate caught the teen band inverting the ladder (2.77 under youth 3.72); rejoined by hand to 5.42."
+    },
+    {
+      "id": "sov91-know-the-state-of-thy-flocks",
+      "date": "2026-11-18",
+      "task": "Sovereign A.I. week 91 from one word over a forwarded ByteByteGo excerpt of Evals for AI Engineers (Shankar and Husain): Word first on Proverbs 27:23 and Lamentations 3:40, the three gulfs and the analyze-measure-improve cycle taught in our words, four hand-written bands, every verse generator-filled from the KJV, and the NAS lesson builder's own week read against the book (six silent days, four of seven on one problem, a rule already given, a count with no place, the checker checked).",
+      "drs": [
+        "DR-1553"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.5,
+      "estimateWithoutAiHours": 14,
+      "notes": "No token meter in this session; tokens and cost are null. oreilly.com, arxiv.org and the newsletter's site gave no answer from this sandbox, so the book stays the newsletter's report. Whether naming the span lowers the builder's failure rate is not measured; re-review 2026-11-25."
     },
     {
       "id": "sov75",
