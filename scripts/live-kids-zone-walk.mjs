@@ -6,7 +6,8 @@
 // the team's eye. This drives the runner's Chromium to the production door at
 // a phone width, opens the Youth tab, and walks the Kids Zone v1 (DR-1520)
 // the way a child does: the home, the Theater, the games grid, a storybook
-// page, the Word builder, Who am I?, the badges and the map, the Grown-ups
+// page, the Word builder, Who am I?, Put the story in order, the badges, the
+// trail and the map, the Grown-ups
 // page, the Teens door, then back to the church's own Home tab. At every
 // stop it asserts what a user would see (the approved guides' images really
 // loaded, no developer placeholder text, the Word on the page), takes a
@@ -168,14 +169,28 @@ await stop('who-am-i', async () => {
   return `clue ${clue.trim().length} chars; names=${names}`;
 });
 
+await stop('story-order', async () => {
+  await click('kids-back');
+  await click('kids-tab-games');
+  await click('tile-order');
+  await page.waitForSelector('[data-testid="story-order"]', { timeout: 15000 });
+  const cards = await page.locator('[data-testid^="order-card-"]').count();
+  await page.locator('[data-testid^="order-card-"]').first().click();
+  const placed = await page.locator('[data-testid="story-order"]').getAttribute('data-placed');
+  if (cards !== 8 || placed !== '1') throw new Error(`cards=${cards} placed=${placed}`);
+  return `cards=${cards} placedOne=${placed}`;
+});
+
 await stop('badges-map', async () => {
   await click('kids-back');
   await click('kids-tab-badges');
   await page.waitForSelector('[data-testid="badge-shelf"]', { timeout: 15000 });
   const badges = await page.locator('[data-testid^="badge-"]').count();
   const map = await page.locator('[data-testid="adventure-map"] svg circle').count();
-  if (badges < 6 || map < 8) throw new Error(`badges=${badges} mapStops=${map}`);
-  return `badges=${badges} mapStops=${map}`;
+  const stops = await page.locator('[data-testid^="stop-jonah-"]').count();
+  const next = await page.locator('[data-testid="trail-jonah"]').getAttribute('data-next');
+  if (badges < 9 || map < 8 || stops !== 5) throw new Error(`badges=${badges} mapStops=${map} trailStops=${stops}`);
+  return `badges=${badges} mapStops=${map} trailStops=${stops} next=${next}`;
 });
 
 await stop('grown-ups', async () => {

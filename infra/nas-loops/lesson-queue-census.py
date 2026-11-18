@@ -105,7 +105,8 @@ BUILDER_UNIT = "poetech-lesson-builder"
 SERVICE_WORDS = ("active", "inactive", "failed", "activating", "deactivating", "reloading")
 # Keys of status.json that may be published AT ALL, and only when their value
 # passes the shape test below. A key outside this set is counted, never named.
-STATUS_KEYS = ("at", "ok", "attempts", "built", "failed", "skipped", "cycle_seconds", "state")
+STATUS_KEYS = ("at", "ok", "attempts", "built", "failed", "skipped", "cycle_seconds", "state",
+               "writers")
 # A git sha and an ISO stamp are STRUCTURE, not prose: neither can carry a
 # sentence, which is why these two are the only strings allowed through.
 HEX_SHA = re.compile(r"^[0-9a-f]{7,40}$")
@@ -120,6 +121,20 @@ ISO_AT = re.compile(r"^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}")
 # the road are chosen here, never passed through from the builder. Anything else
 # -- a new state, a reworded one, a hostile one -- is withheld and counted.
 BUILDER_STATES = ("ready", "waiting on a writer", "waiting on a push credential", "stopped")
+# WHICH writer, by the same allowlist discipline (DR-1524). `state` says no
+# writer is reachable; it cannot say whether NONE IS CONFIGURED (nothing was
+# ever set up) or one is configured and FAILING (a lapsed sign-in) -- and those
+# are different jobs for a person. readiness() already answers it per writer,
+# but its entry is {writer, kind, family, primary, ok, why, configured} and two
+# of those must NEVER ride: `why` is a probe's own words (`claude --version exit
+# 1: <stderr>`), and `writer` is a NAME out of lesson-writers.json, which a
+# person could have called anything. So only `kind`, `ok` and `configured` are
+# published -- the adapter kinds below are every `kind` in lesson_writer.py,
+# matched by identity exactly as BUILDER_STATES is, and the two flags are
+# booleans. An entry whose kind is not one of these is counted, never named.
+WRITER_KINDS = ("api", "base", "cli-local", "cli-ssh", "codex-cli", "command",
+                "gemini-api", "gemini-cli", "ollama", "openai", "openai-api")
+WRITER_FLAGS = ("ok", "configured")
 
 
 def rest(url, key, method, path, body=None, extra_headers=None):
@@ -325,6 +340,38 @@ def _service_word(run):
     return word if word in SERVICE_WORDS else "unknown"
 
 
+def _writer_entries(raw):
+    """(kept, lost) for readiness()'s `writers` list -- kind, ok, configured only.
+
+    `kind` rides by IDENTITY against WRITER_KINDS and what is published is the
+    census's OWN constant, the same discipline `state` uses. `ok` and
+    `configured` ride only as real booleans. Every other field of the entry is
+    dropped WITHOUT being examined, because the dangerous ones are prose.
+
+    An entry that keeps nothing at all is counted in `lost`: a short list must
+    never read as a complete one (DR-0076 section 8).
+    """
+    if not isinstance(raw, list):
+        return [], 1
+    kept, lost = [], 0
+    for item in raw:
+        if not isinstance(item, dict):
+            lost += 1
+            continue
+        match = [k for k in WRITER_KINDS if k == item.get("kind")]
+        if not match:
+            # Without the kind the entry says nothing a reader can act on, and
+            # a kind we do not recognise is exactly the case to withhold.
+            lost += 1
+            continue
+        entry = {"kind": match[0]}
+        for flag in WRITER_FLAGS:
+            if isinstance(item.get(flag), bool):
+                entry[flag] = item[flag]
+        kept.append(entry)
+    return kept, lost
+
+
 def _status_fields(raw):
     """The publishable fields of status.json: whitelisted keys, shape-tested values.
 
@@ -350,6 +397,21 @@ def _status_fields(raw):
                 fields[k] = match[0]
             else:
                 dropped += 1
+        elif k == "writers":
+            # REBUILT ENTRY BY ENTRY, never passed through (DR-1524). Each kept
+            # entry is a NEW dict holding at most three fields, so no sibling key
+            # of readiness()'s entry -- `why`, `writer`, `family` -- can ride by
+            # accident, now or when that entry grows a field.
+            #
+            # It is written HERE, inside `status`, because that is where
+            # status.json puts it -- and the receipt publishes it one level UP,
+            # at builder.writers, beside `service` and `building`. That hoist
+            # lives in migration 0333 and is deliberate; both depths are pinned
+            # by tests so neither drifts quietly.
+            kept, lost = _writer_entries(v)
+            if kept:
+                fields[k] = kept
+            dropped += lost
         elif isinstance(v, bool) or (isinstance(v, int) and -1 <= v <= 100000):
             fields[k] = v
         elif k == "at" and isinstance(v, str) and ISO_AT.match(v):

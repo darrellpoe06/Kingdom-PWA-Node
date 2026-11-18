@@ -925,11 +925,19 @@ class TheReaderSaysWhichCauseTheStatePointsAt(unittest.TestCase):
         s.loader.exec_module(cls.rd)
 
     def receipt(self, state=None, **status):
-        st = {"at": "2026-11-17T21:51:31Z", "attempts": 4}
+        # RELATIVE TO NOW, never a fixed stamp. A first draft hardcoded the real
+        # 22:11 census time; it passed when written and went red an hour later,
+        # because the reader correctly calls a census older than the NAS's
+        # 15-minute clock STALE and stops before the builder lines. A test whose
+        # result depends on the wall clock is a test that fails in someone
+        # else's morning.
+        now = datetime.now(timezone.utc)  # noqa: UP017 -- the NAS runs Python 3.8
+        fresh = now.strftime("%Y-%m-%dT%H:%M:%SZ")
+        st = {"at": fresh, "attempts": 4}
         st.update(status)
         if state is not None:
             st["state"] = state
-        return {"seen": True, "at": "2026-11-17T22:11:08Z", "total": 7,
+        return {"seen": True, "at": fresh, "total": 7,
                 "waiting": [{"id": "c671009b-04ee-4482-b5ef-921cb7f50d67",
                              "created_at": "2026-11-17T03:32:12Z", "road": "research-inbox",
                              "shape": "plain", "why": "ready"}],
@@ -937,9 +945,15 @@ class TheReaderSaysWhichCauseTheStatePointsAt(unittest.TestCase):
                             "read": {"code_sha": True, "building": True, "status": True},
                             "status": st}}
 
+    # The receipt is stamped 22:11:08Z; judged by the wall clock it went stale
+    # fifteen minutes after it was written and every verdict below collapsed
+    # into "UNKNOWN, a stale count". The reader takes `now`, so the clock is
+    # frozen a minute after the stamp and the verdicts are about the STATE.
+    NOW = datetime(2026, 11, 17, 22, 12, 8, tzinfo=timezone.utc)
+
     def said(self, state=None, **kw):
         # judge() returns (code, read, count, lines); the lines are the surface.
-        return "\n".join(self.rd.judge(self.receipt(state, **kw), "ok")[3])
+        return "\n".join(self.rd.judge(self.receipt(state, **kw), "ok", now=self.NOW)[3])
 
     def test_waiting_on_a_writer_says_the_box_is_the_problem_not_the_words(self):
         out = self.said("waiting on a writer")
@@ -982,7 +996,7 @@ class TheReaderSaysWhichCauseTheStatePointsAt(unittest.TestCase):
         # same thing is noise on the surface that matters most.
         r = self.receipt(None)
         r["builder"]["read"]["status"] = False
-        out = "\n".join(self.rd.judge(r, "ok")[3])
+        out = "\n".join(self.rd.judge(r, "ok", now=self.NOW)[3])
         self.assertIn("its own record: unread", out)
         self.assertNotIn("neither readiness nor eligibility is ruled out", out)
 
@@ -996,6 +1010,185 @@ class TheReaderSaysWhichCauseTheStatePointsAt(unittest.TestCase):
             {"at": "2026-11-17T21:51:31Z", "state": "waiting on a writer for Mary Smith"})
         self.assertNotIn("state", fields)
         self.assertEqual(dropped, 1)
-        out = "\n".join(self.rd.judge(self.receipt(), "ok")[3])  # no state at all
+        out = "\n".join(self.rd.judge(self.receipt(), "ok", now=self.NOW)[3])  # no state at all
         self.assertNotIn("Mary", out)
         self.assertIn("UNKNOWN", out)
+
+
+class WhichWriterIsMissing(unittest.TestCase):
+    """DR-1524. 2026-11-17T23:25:22Z the census answered `state: waiting on a
+    writer` -- the teachings were fine and the box was the problem. But `state`
+    cannot say whether NO writer is configured (nothing was ever set up) or one
+    is configured and FAILING (a lapsed sign-in), and those are different jobs.
+    readiness() answers it per writer; the entry just carries two fields that
+    must never ride -- `why` is a probe's own words, `writer` is a name out of
+    lesson-writers.json that a person could have set to anything."""
+
+    def real(self):
+        """The live readiness payload, shape for shape -- a method, not a class
+        attribute, so no case can mutate the list another case reads."""
+        return [
+            {"writer": "claude on the NAS", "kind": "cli-local", "family": "claude", "primary": True,
+             "ok": False, "why": "claude at /usr/local/bin/claude but NOT signed in: run `claude` once",
+             "configured": True},
+            {"writer": "Mary Smith's laptop", "kind": "cli-ssh", "family": "claude", "primary": False,
+             "ok": False, "why": "not configured: no target (user@host where claude is signed in)",
+             "configured": False},
+            {"writer": "anthropic", "kind": "api", "family": "claude", "primary": False,
+             "ok": False, "why": "not configured: no Anthropic API key on the NAS (optional writer)",
+             "configured": False},
+        ]
+
+    def test_it_publishes_kind_ok_and_configured_AND_NOTHING_ELSE(self):
+        kept, lost = qc._writer_entries(self.real())
+        self.assertEqual(lost, 0)
+        self.assertEqual(kept, [
+            {"kind": "cli-local", "ok": False, "configured": True},
+            {"kind": "cli-ssh", "ok": False, "configured": False},
+            {"kind": "api", "ok": False, "configured": False},
+        ])
+        # Exactly the three keys, per entry, on every entry.
+        for e in kept:
+            self.assertEqual(set(e), {"kind", "ok", "configured"})
+
+    def test_PROVEN_TO_CATCH_no_name_and_no_probe_words_survive(self):
+        """The two fields this record exists to keep OFF the road.
+
+        `why` carried a filesystem path and an instruction; `writer` carried a
+        person's name. Neither may appear anywhere in what is published."""
+        kept, _ = qc._writer_entries(self.real())
+        blob = json.dumps(kept)
+        for secret in ("Mary", "Smith", "laptop", "signed in", "/usr/local/bin",
+                       "Anthropic", "API key", "not configured", "user@host", "anthropic"):
+            self.assertNotIn(secret, blob, secret)
+
+    def test_the_answer_a_reader_needs_is_actually_readable(self):
+        # This is the whole point: configured-but-failing vs never-configured.
+        kept, _ = qc._writer_entries(self.real())
+        failing = [e["kind"] for e in kept if e.get("configured") and not e.get("ok")]
+        absent = [e["kind"] for e in kept if not e.get("configured")]
+        self.assertEqual(failing, ["cli-local"], "a configured writer that is failing")
+        self.assertEqual(absent, ["cli-ssh", "api"], "writers nobody set up")
+
+    def test_an_unknown_kind_is_counted_never_named(self):
+        kept, lost = qc._writer_entries([{"kind": "a-new-adapter", "ok": True, "configured": True}])
+        self.assertEqual(kept, [])
+        self.assertEqual(lost, 1)
+
+    def test_a_kind_that_merely_LOOKS_right_cannot_ride(self):
+        for hostile in ("cli-local ", "CLI-LOCAL", "cli_local", "cli-local; Mary Smith",
+                        "api\n", None, 7, True, ["api"]):
+            kept, lost = qc._writer_entries([{"kind": hostile, "ok": True, "configured": True}])
+            self.assertEqual(kept, [], repr(hostile))
+            self.assertEqual(lost, 1, repr(hostile))
+
+    def test_what_is_published_is_the_censuss_OWN_constant(self):
+        class Sneaky(str):
+            secret = "Mary Smith"
+
+        kept, _ = qc._writer_entries([{"kind": Sneaky("api"), "ok": True, "configured": True}])
+        self.assertIs(kept[0]["kind"], qc.WRITER_KINDS[0])
+        self.assertNotIsInstance(kept[0]["kind"], Sneaky)
+
+    def test_a_non_boolean_flag_is_dropped_not_coerced(self):
+        # "ok": "yes" must not become True -- a truthy string is not a probe result.
+        kept, lost = qc._writer_entries([{"kind": "api", "ok": "yes", "configured": 1}])
+        self.assertEqual(kept, [{"kind": "api"}])
+        self.assertEqual(lost, 0, "the entry still said which kind, so nothing was lost")
+
+    def test_a_non_list_writers_value_is_withheld_and_counted(self):
+        for junk in (None, {}, "cli-local", 7):
+            kept, lost = qc._writer_entries(junk)
+            self.assertEqual(kept, [], repr(junk))
+            self.assertEqual(lost, 1, repr(junk))
+
+    def test_it_rides_through_status_fields_beside_state(self):
+        f, dropped = qc._status_fields(
+            {"at": "2026-11-17T23:06:34Z", "state": "waiting on a writer", "writers": self.real(),
+             "reachable": ["something"], "push_credential": "present at /volume1/x"})
+        self.assertEqual(f["state"], "waiting on a writer")
+        self.assertEqual([e["kind"] for e in f["writers"]], ["cli-local", "cli-ssh", "api"])
+        self.assertEqual(dropped, 2, "reachable and push_credential are still withheld")
+        self.assertNotIn("volume1", json.dumps(f))
+
+    def test_the_kinds_match_lesson_writer_py_EXACTLY(self):
+        """Parsed, not grepped -- the same lesson as BUILDER_STATES' drift test."""
+        src = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                           "nas-lesson-builder", "lesson_writer.py")
+        with open(src, encoding="utf-8") as fh:
+            tree = ast.parse(fh.read())
+        found = set()
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.ClassDef):
+                continue
+            for stmt in node.body:
+                if not isinstance(stmt, ast.Assign):
+                    continue
+                for t in stmt.targets:
+                    if (isinstance(t, ast.Name) and t.id == "kind"
+                            and isinstance(stmt.value, ast.Constant)
+                            and isinstance(stmt.value.value, str)):
+                        found.add(stmt.value.value)
+        self.assertTrue(found, "no writer kind found -- did lesson_writer.py move?")
+        self.assertEqual(found - set(qc.WRITER_KINDS), set(),
+                         "lesson_writer.py has an adapter kind WRITER_KINDS does not list")
+        self.assertEqual(set(qc.WRITER_KINDS) - found, set(),
+                         "WRITER_KINDS lists a kind lesson_writer.py cannot produce")
+
+
+class TheReaderNamesTheWriterToFix(unittest.TestCase):
+    """DR-1524. The field is only worth publishing if the reader turns it into
+    the one sentence a person can act on: a lapsed login is ONE login; nothing
+    configured is a setup. Those are different jobs."""
+
+    @classmethod
+    def setUpClass(cls):
+        s = importlib.util.spec_from_file_location(
+            "served_lesson_queue2", os.path.join(_ROOT, "scripts", "served-lesson-queue.py"))
+        cls.rd = importlib.util.module_from_spec(s)
+        s.loader.exec_module(cls.rd)
+
+    def said(self, writers, state="waiting on a writer"):
+        now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")  # noqa: UP017
+        r = {"seen": True, "at": now, "total": 7, "waiting": [],
+             "builder": {"service": "active", "building": 0,
+                         "read": {"code_sha": True, "building": True, "status": True},
+                         "status": {"at": now, "state": state}}}
+        if writers is not None:
+            r["builder"]["writers"] = writers
+        return "\n".join(self.rd.judge(r, "ok")[3])
+
+    def test_a_configured_but_failing_writer_is_named_as_ONE_LOGIN(self):
+        out = self.said([{"kind": "cli-local", "ok": False, "configured": True},
+                         {"kind": "api", "ok": False, "configured": False}])
+        self.assertIn("CONFIGURED AND FAILING: cli-local", out)
+        self.assertIn("one login on the box, not a setup", out)
+        self.assertIn("Also never configured (optional, not the fix): api", out)
+
+    def test_nothing_configured_reads_as_a_SETUP_not_a_login(self):
+        out = self.said([{"kind": "cli-local", "ok": False, "configured": False},
+                         {"kind": "api", "ok": False, "configured": False}])
+        self.assertIn("NO writer is configured", out)
+        self.assertIn("this is a setup and not a lapsed login", out)
+        self.assertNotIn("CONFIGURED AND FAILING", out)
+
+    def test_an_ABSENT_writers_list_says_UNKNOWN_and_guesses_nothing(self):
+        out = self.said(None)
+        self.assertIn("WHICH writer is unknown", out)
+        for wrong in ("CONFIGURED AND FAILING", "NO writer is configured"):
+            self.assertNotIn(wrong, out)
+
+    def test_it_says_nothing_about_writers_when_the_state_is_not_about_one(self):
+        out = self.said([{"kind": "cli-local", "ok": True, "configured": True}], state="ready")
+        self.assertIn("Readiness is NOT the cause", out)
+        for wrong in ("CONFIGURED AND FAILING", "WHICH writer is unknown",
+                      "NO writer is configured"):
+            self.assertNotIn(wrong, out)
+
+    def test_a_push_credential_state_still_names_the_writers(self):
+        # Both not-ready states benefit: a reader fixing the credential should
+        # still see whether a writer is also missing.
+        out = self.said([{"kind": "cli-local", "ok": False, "configured": True}],
+                        state="waiting on a push credential")
+        self.assertIn("a push credential", out)
+        self.assertIn("CONFIGURED AND FAILING: cli-local", out)
