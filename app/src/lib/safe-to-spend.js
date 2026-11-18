@@ -377,6 +377,7 @@ export function obligationEvents(data, sc, start, end, settings = {}, opts = {})
   let assumedDebtTiming = 0;
   for (const dbt of deriveDebts(data, asOf)) {
     if (!inScope(sc, dbt.entityId)) continue;
+    if (dbt.source === 'bill') continue; // a loan entered as a bill: the bill itself reserves the payment
     if (seenPayees.has(payeeKey(dbt.name || ''))) continue; // the obligation already carries it
     if (dbt.source === 'rental' && linkedMortgages.has(dbt.rentalId)) continue; // a confirmed bill already carries it
     if (scheduledKeys.has(payeeKey(dbt.name || ''))) continue; // a scheduled row already carries it

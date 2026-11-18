@@ -218,6 +218,17 @@ Phase 1.3b (next): per-row approve / reject / edit / category on the card, learn
 
 `lib/intake-row-review.js` (new): every imported row can be added or left out and given a category before Approve; categories are suggested from the family's own rules first, then the built-in rules (spending categories only). `commitDoc` now writes the reviewed rows. Found and fixed: Approve used to re-read the raw extraction and wrote a row the person had left out; the built-in rules file every Zelle as "transfer", which the engine treats as never a payment, so they no longer suggest it. Tests: `money-import-review.test.jsx` (9).
 
+## 4g. Phase 2a Loans entered as bills reach Debts (2026-11-18)
+
+Gap X1, the part that needs no database change. Approved by Christina 2026-11-18 ("continue preparing the next phase of financial integration").
+
+- **What changed:** `deriveDebts` (`app/src/lib/financial-engineering.js`) now also lists a confirmed bill that carries a remaining balance (`recurringObligations[].balance`) as a debt: balance, rate, monthly payment, lender, last four, past-due amount, entity. The six First State Bank loans were entered this way and never reached the Debts tab.
+- **One record per debt:** the bill is skipped when the same loan is already listed: its own debt account, an account with the same last four, or the rental mortgage it pays when that mortgage has a balance. Two bills for one loan (same lender and last four) count once.
+- **Safe-to-Spend does not move:** the bill already reserves the payment, so Safe-to-Spend never adds a "minimum" for a bill-sourced debt. The case that needs this: a Poe Properties loan paid from the personal account (the bill marks itself counted only in the paying pocket).
+- **Debts screen:** the row says "From the bill · ending 5312 · change it on Bills" and shows the past-due amount; it offers no editor, because its numbers live on the bill.
+- **Not in this slice:** the hand-kept `data.debts` list (empty in real use); transaction ↔ debt links on approve; document links and the change history (both need the additive migration, held under D-5).
+- **Tests:** `money-loan-bills-in-debts.test.js` (9) and `money-loan-bills-in-debts-screen.test.jsx` (1). Proven to catch: with the Safe-to-Spend guard removed, the cross-pocket case fails.
+
 ## 6. Morning report (overnight 2026-11-17)
 
 ### Pull requests (all labeled `hold`; nothing merged or deployed)
