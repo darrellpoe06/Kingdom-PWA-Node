@@ -1356,3 +1356,175 @@ class TheReaderNamesTheJobEachClassAsksFor(unittest.TestCase):
         out = self.said({"no-writer": 0, "gates": 2})
         self.assertNotIn("0 x no-writer", out)
         self.assertIn("2 x gates", out)
+
+
+class TheBoxNamesTheCauseItself(unittest.TestCase):
+    """0335. 0334 said WHICH SITE refused and answered `other: 6` for six rows
+    over six consecutive reads, the oldest waiting 6 d. DR-1537 built the direct
+    read and left it on Darrell's ssh; his answer that afternoon was that a step
+    waiting on his hand IS the defect. So the box writes the cause on the
+    receipt it already publishes: gate NAMES from its own stored records, and
+    the exception CLASS NAME of an unhandled crash. Vocabulary, never prose."""
+
+    def failed(self, reason, rid="r1"):
+        return {"id": rid, "source": "research-inbox", "created_at": "2026-11-12T12:17:12Z",
+                "tags": ["lesson", "build-failed", "build-reason:" + reason]}
+
+    def store(self, recs):
+        d = tempfile.mkdtemp()
+        os.makedirs(os.path.join(d, "versions"))
+        for i, r in enumerate(recs):
+            with open(os.path.join(d, "versions", f"b-{i}.json"), "w", encoding="utf-8") as fh:
+                json.dump(r, fh)
+        return d
+
+    # -- the exception name ------------------------------------------------
+    def test_an_unhandled_crash_is_named_by_its_exception_class(self):
+        for name in ("CalledProcessError", "ValueError", "TimeoutExpired", "OSError"):
+            row = self.failed(f"{name}: something went wrong in a draft")
+            self.assertEqual(qc.exception_of(row), name, name)
+
+    def test_the_allowlist_is_the_INTERPRETERS_own_and_not_a_list_this_file_keeps(self):
+        # Every BaseException subclass builtins names must be in it, so it
+        # cannot drift from Python itself.
+        import builtins
+        for n in dir(builtins):
+            obj = getattr(builtins, n, None)
+            if isinstance(obj, type) and issubclass(obj, BaseException):
+                self.assertIn(n, qc.EXCEPTION_NAMES, n)
+
+    def test_PROVEN_TO_CATCH_a_name_that_is_not_an_exception_class(self):
+        # The whole safety of this field: a shape such as ^[A-Za-z_]\w*$ is
+        # satisfied by a person's name. Identity against the interpreter is not.
+        for hostile in ("Mary", "MarySmith", "Smith", "mary_smith", "Darrell",
+                        "no", "the"):
+            self.assertIsNone(qc.exception_of(self.failed(f"{hostile}: a teaching")), hostile)
+
+    def test_a_KNOWN_SITE_reason_yields_no_exception_name(self):
+        # Builder prose opens with spaces before its colon; nothing to name.
+        self.assertIsNone(qc.exception_of(self.failed("no writer reachable: cli-local")))
+        self.assertIsNone(qc.exception_of(self.failed("local tests failed: 1 failed")))
+
+    def test_the_published_name_is_the_ALLOWLISTS_OWN_string(self):
+        row = self.failed("ValueError: x")
+        got = qc.exception_of(row)
+        self.assertIs(got, qc.EXCEPTION_NAMES["ValueError"],
+                      "the row's own bytes must never be what rides")
+
+    # -- the gate names ---------------------------------------------------
+    def test_the_gates_that_did_not_pass_are_read_from_the_boxs_own_records(self):
+        d = self.store([[{"teaching_row_id": "r1", "gate_results": {
+            "verse": {"passed": False, "faults": [{"quoted": "MARKER_DRAFT"}]},
+            "quotation": {"passed": True, "problems": ["41 of 120"]},
+            "depth": {"passed": True}}}]])
+        got = qc.stored_gates(d)
+        self.assertEqual(sorted(got["r1"]), ["quotation", "verse"])
+
+    def test_a_gate_that_PASSED_with_no_faults_is_not_named(self):
+        d = self.store([[{"teaching_row_id": "r1", "gate_results": {
+            "verse": {"passed": True}, "depth": {"passed": True}}}]])
+        self.assertEqual(qc.stored_gates(d), {})
+
+    def test_PROVEN_TO_CATCH_a_faults_text_or_a_body_reaching_the_census(self):
+        d = self.store([[{"teaching_row_id": "r1",
+                          "body": {"title": "MARKER_DRAFT"},
+                          "prompt_text": "MARKER_PROMPT the teaching",
+                          "gate_results": {"verse": {"passed": False,
+                                                     "faults": [{"quoted": "MARKER_FAULT"}]}}}]])
+        c = qc.census_of([self.failed("ValueError: MARKER_MESSAGE")],
+                         gates=qc.stored_gates(d))
+        blob = json.dumps(c)
+        for leak in ("MARKER_DRAFT", "MARKER_PROMPT", "MARKER_FAULT",
+                     "MARKER_MESSAGE", "build-reason"):
+            self.assertNotIn(leak, blob, leak)
+        self.assertEqual(c["waiting"][0]["gates"], ["verse"])
+        self.assertEqual(c["waiting"][0]["exception"], "ValueError")
+
+    def test_an_UNKNOWN_gate_name_is_dropped_rather_than_relayed(self):
+        d = self.store([[{"teaching_row_id": "r1", "gate_results": {
+            "a_gate_named_for_mary_smith": {"passed": False}}}]])
+        self.assertEqual(qc.stored_gates(d), {})
+
+    def test_an_unreadable_or_missing_store_is_EMPTY_and_never_no_failures(self):
+        self.assertEqual(qc.stored_gates(os.path.join(tempfile.mkdtemp(), "nowhere")), {})
+        d = tempfile.mkdtemp()
+        os.makedirs(os.path.join(d, "versions"))
+        with open(os.path.join(d, "versions", "bad.json"), "w", encoding="utf-8") as fh:
+            fh.write("{not json")
+        self.assertEqual(qc.stored_gates(d), {})
+
+    def test_a_row_the_caller_did_not_look_up_carries_NO_cause_key(self):
+        # Absent is unread, never "no gate failed" (DR-0076 section 8).
+        c = qc.census_of([self.failed("no writer reachable: x")])
+        self.assertNotIn("gates", c["waiting"][0])
+        self.assertNotIn("exception", c["waiting"][0])
+
+    def test_the_cause_rides_only_on_a_BUILD_FAILED_row(self):
+        plain = {"id": "r1", "source": "research-inbox",
+                 "created_at": "2026-11-12T12:17:12Z", "tags": ["lesson"]}
+        c = qc.census_of([plain], gates={"r1": ["verse"]})
+        self.assertNotIn("gates", c["waiting"][0])
+
+    def test_the_SQL_refuses_the_same_two_vocabularies_independently(self):
+        import glob
+
+        def read(path):
+            with open(path, "r", encoding="utf-8") as fh:
+                return fh.read()
+
+        auto = os.path.join(_ROOT, "infra", "supabase", "migrations-auto")
+        newest = max(p for p in glob.glob(os.path.join(auto, "*.sql"))
+                     if "lesson_queue_receipt" in read(p))
+        sql = read(newest)
+        for decl, want, label in (
+            ("k_gates", set(qc.GATE_NAMES), "gate name"),
+            ("k_excs", set(qc.EXCEPTION_NAMES), "exception name"),
+        ):
+            m = re.search(decl + r"\s+text\[\]\s*:=\s*ARRAY\[(.*?)\];", sql, re.DOTALL)
+            self.assertTrue(m, f"{decl} is not declared in {os.path.basename(newest)}")
+            have = set(re.findall(r"'([A-Za-z_][A-Za-z0-9_]*)'", m.group(1)))
+            missing = want - have
+            self.assertEqual(
+                missing, set(),
+                f"{label}(s) the census can publish and {os.path.basename(newest)} "
+                f"would drop on the public road: {sorted(missing)}")
+
+
+class TheReaderPrintsTheCause(unittest.TestCase):
+    """0335. The field is only worth publishing if the reader turns it into the
+    sentence a person acts on -- and says plainly when nothing was stored."""
+
+    @classmethod
+    def setUpClass(cls):
+        s = importlib.util.spec_from_file_location(
+            "served_lesson_queue4", os.path.join(_ROOT, "scripts", "served-lesson-queue.py"))
+        cls.rd = importlib.util.module_from_spec(s)
+        s.loader.exec_module(cls.rd)
+
+    def said(self, **row):
+        now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")  # noqa: UP017 -- the NAS runs Python 3.8
+        r = {"seen": True, "at": now, "total": 1,
+             "waiting": [dict({"id": "29d2c703-6692-44aa-88d2-c347bea1ae3c",
+                               "created_at": "2026-11-12T12:17:12Z",
+                               "source": "research-inbox", "shape": "build-failed",
+                               "stall": "other", "why": "failed", "attempts": 2}, **row)]}
+        return "\n".join(self.rd.judge(r, "ok")[3])
+
+    def test_the_gates_that_refused_are_printed(self):
+        out = self.said(gates=["verse", "quotation"])
+        self.assertIn("gates refused: verse+quotation", out)
+
+    def test_a_crash_is_printed_by_its_exception_class(self):
+        self.assertIn("crashed: CalledProcessError", self.said(exception="CalledProcessError"))
+
+    def test_NOTHING_STORED_is_said_plainly_rather_than_read_as_a_clean_build(self):
+        out = self.said()
+        self.assertIn("cause not stored", out)
+
+    def test_a_row_with_a_cause_does_not_also_say_nothing_was_stored(self):
+        self.assertNotIn("cause not stored", self.said(gates=["verse"]))
+        self.assertNotIn("cause not stored", self.said(exception="ValueError"))
+
+    def test_a_row_that_did_not_FAIL_is_never_asked_for_a_cause(self):
+        out = self.said(shape="plain", stall=None, why="ready")
+        self.assertNotIn("cause not stored", out)
