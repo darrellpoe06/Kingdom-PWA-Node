@@ -8,7 +8,16 @@ import { buildDemoPersonas, DEMO_PERSONA_META } from '../lib/demo-data.js';
 
 const SEED = { __seed: true, meta: {}, pressureMappings: {} };
 const personas = buildDemoPersonas(SEED);
-const base = { personas, seed: SEED, isDemoMode: false, demoPersona: null, isPublic: false, reviewerMode: false, isPickerMode: false, isFirstTimeLanding: false };
+const base = {
+  personas,
+  seed: SEED,
+  isDemoMode: false,
+  demoPersona: null,
+  isPublic: false,
+  reviewerMode: false,
+  isPickerMode: false,
+  isFirstTimeLanding: false,
+};
 
 describe('pickInitialSeed', () => {
   it.each(Object.keys(DEMO_PERSONA_META))('public host + ?demo=%s boots that persona, not family-of-4', (key) => {
@@ -21,7 +30,7 @@ describe('pickInitialSeed', () => {
     expect(pickInitialSeed({ ...base, isPublic: true })).toBe(personas['family-of-4']);
   });
 
-  it('reviewer mode never boots SEED (the steward\'s own world)', () => {
+  it("reviewer mode never boots SEED (the steward's own world)", () => {
     expect(pickInitialSeed({ ...base, reviewerMode: true })).toBe(personas['family-of-4']);
     expect(pickInitialSeed({ ...base, reviewerMode: true, isDemoMode: true, demoPersona: 'landlord' })).toBe(personas.landlord);
   });
@@ -46,9 +55,14 @@ describe('every persona is the same anonymized sample class as family-of-4', () 
     const keys = new Set();
     Object.values(personas).forEach((d) => Object.keys(d).forEach((k) => keys.add(k)));
     const markedSeed = { meta: {}, pressureMappings: {} };
-    keys.forEach((k) => { if (!(k in markedSeed)) markedSeed[k] = marker; });
+    keys.forEach((k) => {
+      if (!(k in markedSeed)) markedSeed[k] = marker;
+    });
     const marked = buildDemoPersonas(markedSeed);
-    const passthrough = (d) => Object.keys(d).filter((k) => d[k] === marker).sort();
+    const passthrough = (d) =>
+      Object.keys(d)
+        .filter((k) => d[k] === marker)
+        .sort();
     const f4 = passthrough(marked['family-of-4']);
     for (const [key, d] of Object.entries(marked)) {
       expect({ key, leaked: passthrough(d).filter((k) => !f4.includes(k)) }).toEqual({ key, leaked: [] });

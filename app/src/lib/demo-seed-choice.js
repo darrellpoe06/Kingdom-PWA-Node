@@ -19,16 +19,7 @@
 //   4. Private trusted host (NAS/LAN/dev)        → SEED_DATA.
 // =============================================================================
 
-export function pickInitialSeed({
-  isDemoMode,
-  demoPersona,
-  personas,
-  isPublic,
-  reviewerMode,
-  isPickerMode,
-  isFirstTimeLanding,
-  seed,
-}) {
+export function pickInitialSeed({ isDemoMode, demoPersona, personas, isPublic, reviewerMode, isPickerMode, isFirstTimeLanding, seed }) {
   const familyOf4 = personas && personas['family-of-4'];
   const chosen = isDemoMode && demoPersona && personas ? personas[demoPersona] : undefined;
   if (chosen) return chosen;

@@ -10,9 +10,11 @@ import { buildAppReview, REVIEW_DIMENSIONS } from '../lib/ari-app-review.js';
 describe('every registered page promise holds on the real tree', () => {
   const { results, retractedHits } = checkSurfaceClaims();
   for (const r of results) {
-    it(`${r.surface} · ${r.id} — "${r.text}"`, () => { expect(r.ok, r.text).toBe(true); });
+    it(`${r.surface} · ${r.id} — "${r.text}"`, () => {
+      expect(r.ok, r.text).toBe(true);
+    });
   }
-  it('no retracted (not-yet-built) promise is back in any page\'s copy', () => {
+  it("no retracted (not-yet-built) promise is back in any page's copy", () => {
     expect(retractedHits).toEqual([]);
   });
   it('the registry is not vacuous', () => {
@@ -38,14 +40,14 @@ describe('proven to catch (DR-0076: a gate that always passes is a lie)', () => 
     delete t.receipt;
     expect(checkSurfaceClaims(ctx).results.find((x) => x.id === 'sep-receipts').ok).toBe(false);
   });
-  it('a retracted phrase put back in a page\'s copy is caught', () => {
+  it("a retracted phrase put back in a page's copy is caught", () => {
     const reg = SURFACE_CLAIMS.map((s) => ({ ...s, copy: () => [...s.copy(), 'Capex reserve auto-funded.'] }));
     expect(checkSurfaceClaims(claimsContext(), reg).retractedHits.map((h) => h.why)).toContain('capex reserve funding not built');
   });
 });
 
 describe('Ari reports it in-app: the "Promise truth" dimension', () => {
-  it('is one of Ari\'s review dimensions and clean on the real tree', () => {
+  it("is one of Ari's review dimensions and clean on the real tree", () => {
     expect(REVIEW_DIMENSIONS.map(([k]) => k)).toContain('claims');
     const review = buildAppReview({}, 0);
     const dim = review.dimensions.find((d) => d.key === 'claims');
