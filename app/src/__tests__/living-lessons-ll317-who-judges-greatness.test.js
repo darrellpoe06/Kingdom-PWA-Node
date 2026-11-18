@@ -67,8 +67,8 @@ export const CODE_CLAIMS = [
   { cite: 'app/src/lib/lessons-walked.js, lines 14 and 15', file: 'src/lib/lessons-walked.js', line: 15, says: 'usage_events records the tab, not the lesson' },
   { cite: 'app/src/lib/learn-organize.js, lines 196 to 221', file: 'src/lib/learn-organize.js', line: 196, says: 'export function sortCourses' },
   { cite: 'app/src/lib/youth-zone.js, line 22', file: 'src/lib/youth-zone.js', line: 22, says: 'there is no leaderboard, by design' },
-  { cite: 'app/src/components/Pulpit.jsx, lines 351 and 356', file: 'src/components/Pulpit.jsx', line: 351, says: "['viewed', 'Most viewed']" },
-  { cite: 'app/src/components/Pulpit.jsx, lines 351 and 356', file: 'src/components/Pulpit.jsx', line: 356, says: "useState('newest')" },
+  { cite: 'app/src/components/Pulpit.jsx, lines 352 and 357', file: 'src/components/Pulpit.jsx', line: 352, says: "['viewed', 'Most viewed']" },
+  { cite: 'app/src/components/Pulpit.jsx, lines 352 and 357', file: 'src/components/Pulpit.jsx', line: 357, says: "useState('newest')" },
   { cite: 'app/src/lib/lesson-share-record.js, lines 5 to 21', file: 'src/lib/lesson-share-record.js', line: 14, says: 'lesson_share_opens' },
   { cite: 'app/src/lib/lesson-share-record.js, lines 5 to 21', file: 'src/lib/lesson-share-record.js', line: 21, says: 'with their open counts' },
 ];
