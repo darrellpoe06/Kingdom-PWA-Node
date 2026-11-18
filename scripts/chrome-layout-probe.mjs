@@ -198,6 +198,8 @@ let lessonChromeFailuresBefore = 0;
 let lessonChromeMeasured = 0;
 let deviceFailuresBefore = 0;
 let deviceMeasured = 0;
+let wordsFailuresBefore = 0;
+let wordsMeasured = 0;
 // COVERAGE, counted — not assumed (DR-0323). This probe reported `exit 0` on
 // 2026-09-03 having measured only 8 of its 11 views: no failure was raised, so
 // the run read as a clean pass while a third of the surfaces — including the
@@ -1465,6 +1467,102 @@ try {
   }
   if (deviceMeasured !== DEVICE_CASES.length) fail(`coverage: ${deviceMeasured}/${DEVICE_CASES.length} device cases measured`);
 
+  // ---------------------------------------------------------------------------
+  // WORDS READ AT EVERY SIZE pass (DR-1539). Darrell 2026-11-18, three phone
+  // and Fold screenshots: the welcome paragraph one word per line beside the
+  // pastor's card, "Ministries" running into "Events" on the quick tiles,
+  // three cards across a phone with "Ministri" and "Upcomir" cut off. "Words
+  // are squeezed on a normal cell phone... fix it and the evaluation of this
+  // as a process... should be done so it's always good." Every earlier pass
+  // measured the chrome and the lesson; none measured the WORDS of the
+  // church door at the sizes a reader actually picks. Three invariants, on
+  // the Love Corner door, at phone / tablet / Fold widths, at Normal, Larger
+  // and Big Print:
+  //  W1. NO SQUEEZED PROSE — a block of 6+ words that wraps to 3+ lines at
+  //      fewer than 2.5 words a line while its column is narrower than 60%
+  //      of the content width. (Big text on a small phone wraps short on
+  //      purpose; a column that is narrow while there was room is the fault.)
+  //  W2. NO WORD CUT OFF — no text runs past an ancestor that hides overflow
+  //      (screen-reader-only text and scroll rows excepted).
+  //  W3. NO LABELS COLLIDING — no two tiles' label glyph boxes overlap.
+  // Selftest: the hero's text column is forced to 12px and the quick tiles to
+  // 40px; W1 and W3 (or W2) must trip.
+  wordsFailuresBefore = failures;
+  const WORDS_WIDTHS = [360, 412, 768, 1800];
+  const WORDS_SIZES = ['normal', 'largest', 'bigprint'];
+  for (const width of WORDS_WIDTHS) for (const size of WORDS_SIZES) {
+    const page = await browser.newPage({ viewport: { width, height: 900 } });
+    await page.addInitScript((k) => { try { localStorage.setItem('poe-text-size', k); localStorage.setItem('poe-header-collapsed', '0'); } catch { /* private mode */ } }, size);
+    // The Love Corner door, the way the congregation opens it (poetech.us/lovecorner/app).
+    await page.goto(`${origin}${BASE}/?view=church&lovecorner=1`, { waitUntil: 'networkidle', timeout: CHROME_IDLE_CAP_MS }).catch(() => {});
+    await page.waitForSelector('.lc-hero', { timeout: 20000 }).catch(() => {});
+    if (SELFTEST && width === 360) {
+      await page.addStyleTag({ content: '.lc-hero > div:first-child { flex: 0 0 12px !important; max-width: 12px !important } .lc-q { flex: 0 0 40px !important; width: 40px !important; min-width: 0 !important; max-width: 40px !important }' });
+      await page.evaluate(() => new Promise((r) => setTimeout(r, 100)));
+    }
+    const m = await page.evaluate(() => {
+      const out = { squeezed: [], clipped: [], colliding: [], hero: !!document.querySelector('.lc-hero'), size: document.documentElement.getAttribute('data-text-size') };
+      const root = document.querySelector('main') || document.body;
+      const content = root.getBoundingClientRect().width || innerWidth;
+      const vis = (el) => { const r = el.getBoundingClientRect(); const cs = getComputedStyle(el); return r.width > 0 && r.height > 0 && cs.visibility !== 'hidden' && cs.display !== 'none'; };
+      const lines = (el) => { const cs = getComputedStyle(el); const lh = parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.3; return Math.max(1, Math.round(el.getBoundingClientRect().height / lh)); };
+      for (const el of root.querySelectorAll('p, h1, h2, h3, figcaption, li')) {
+        if (!vis(el) || el.children.length > 3 || el.closest('.sr-only')) continue;
+        const words = (el.textContent || '').trim().split(/\s+/).filter(Boolean).length;
+        if (words < 6) continue;
+        const n = lines(el);
+        const w = el.getBoundingClientRect().width;
+        if (n >= 3 && words / n < 2.5 && w < content * 0.6) out.squeezed.push(`${(el.className || el.tagName).toString().slice(0, 24)} "${el.textContent.trim().slice(0, 24)}" ${words} words on ${n} lines in ${Math.round(w)}px of ${Math.round(content)}px`);
+      }
+      const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+      const seen = new Set();
+      let node;
+      while ((node = walker.nextNode())) {
+        if (!node.textContent.trim()) continue;
+        const el = node.parentElement;
+        if (!el || !vis(el) || el.closest('.sr-only')) continue;
+        const range = document.createRange(); range.selectNodeContents(node);
+        const rr = range.getBoundingClientRect();
+        if (rr.width === 0) continue;
+        let a = el;
+        while (a && a !== root) {
+          const cs = getComputedStyle(a);
+          const clipsX = /hidden|clip/.test(cs.overflowX) || /hidden|clip/.test(cs.overflow);
+          const scrolls = /auto|scroll/.test(cs.overflowX);
+          if (clipsX || scrolls) {
+            const ar = a.getBoundingClientRect();
+            if (clipsX && (rr.right > ar.right + 2 || rr.left < ar.left - 2)) {
+              const k = el.textContent.trim().slice(0, 24);
+              if (!seen.has(k)) { seen.add(k); out.clipped.push(`"${k}" runs ${Math.round(Math.max(rr.right - ar.right, ar.left - rr.left))}px past ${(a.className || a.tagName).toString().slice(0, 24)}`); }
+            }
+            break;
+          }
+          a = a.parentElement;
+        }
+      }
+      const tiles = [...root.querySelectorAll('.lc-q, .lc-tile, .lc-min, .lc-feat')].filter(vis);
+      const labelRect = (t) => { const w = document.createTreeWalker(t, NodeFilter.SHOW_TEXT); let n, best = null; while ((n = w.nextNode())) { if (!n.textContent.trim()) continue; const r = document.createRange(); r.selectNodeContents(n); const b = r.getBoundingClientRect(); if (b.width > 0 && (!best || b.width > best.width)) best = b; } return best; };
+      const rects = tiles.map((t) => ({ t, r: labelRect(t) })).filter((x) => x.r);
+      for (let i = 0; i < rects.length; i += 1) for (let j = i + 1; j < rects.length; j += 1) {
+        const ra = rects[i].r, rb = rects[j].r;
+        const x = Math.min(ra.right, rb.right) - Math.max(ra.left, rb.left), y = Math.min(ra.bottom, rb.bottom) - Math.max(ra.top, rb.top);
+        if (x > 3 && y > 3) out.colliding.push(`"${rects[i].t.textContent.trim().slice(0, 14)}" x "${rects[j].t.textContent.trim().slice(0, 14)}" (${Math.round(x)}x${Math.round(y)}px)`);
+      }
+      return out;
+    });
+    await page.close();
+    const where = `words ${size}@${width}px`;
+    if (!m.hero) { fail(`${where}: the church door never rendered`); continue; }
+    if (m.size !== size) { fail(`${where}: data-text-size="${m.size}" — the size never applied, nothing was measured`); continue; }
+    const before = failures;
+    wordsMeasured += 1;
+    for (const x of m.squeezed) fail(`${where}: squeezed prose — ${x}`);
+    for (const x of m.clipped) fail(`${where}: a word is cut off — ${x}`);
+    for (const x of m.colliding) fail(`${where}: labels collide — ${x}`);
+    if (failures === before) console.log(`words ok  ${where} — no squeezed prose, no word cut off, no labels colliding`);
+  }
+  if (wordsMeasured !== WORDS_WIDTHS.length * WORDS_SIZES.length) fail(`coverage: ${wordsMeasured}/${WORDS_WIDTHS.length * WORDS_SIZES.length} words cases measured`);
+
   await browser.close();
 
 
@@ -1481,7 +1579,9 @@ if (SELFTEST) {
   const readerTripped = lessonChromeFailuresBefore - readerFailuresBefore;
   const lessonChromeTripped = deviceFailuresBefore - lessonChromeFailuresBefore;
   // The device pass (DR-0678/DR-0679): the subtab row hidden must trip.
-  const deviceTripped = failures - deviceFailuresBefore;
+  const deviceTripped = wordsFailuresBefore - deviceFailuresBefore;
+  // The words pass (DR-1539): the hero column at 12px and 40px tiles must trip.
+  const wordsTripped = failures - wordsFailuresBefore;
   const lessonTripped = tsFailuresBefore - lessonFailuresBefore;
   const chromeTripped = lessonFailuresBefore;
   // The lesson pass now trips SEVEN ways: width-short, boxed control, a wall of
@@ -1489,11 +1589,11 @@ if (SELFTEST) {
   // with the text, and floaters on the comfort bar (DR-0438).
   // The lesson-chrome pass (DR-0816) must trip BOTH ways: the block grown and
   // the title's type grown.
-  if (failures > 0 && chromeTripped > 0 && lessonTripped >= 7 && tsTripped >= 2 && readerTripped >= 1 && lessonChromeTripped >= 2 && deviceTripped >= 1) {
-    console.log(`SELFTEST-BREAK OK — the probe CAN fail (${failures} tripped: ${chromeTripped} chrome, ${lessonTripped} lesson, ${tsTripped} textscale, ${readerTripped} reader, ${lessonChromeTripped} lesson-chrome, ${deviceTripped} device)`);
+  if (failures > 0 && chromeTripped > 0 && lessonTripped >= 7 && tsTripped >= 2 && readerTripped >= 1 && lessonChromeTripped >= 2 && deviceTripped >= 1 && wordsTripped >= 2) {
+    console.log(`SELFTEST-BREAK OK — the probe CAN fail (${failures} tripped: ${chromeTripped} chrome, ${lessonTripped} lesson, ${tsTripped} textscale, ${readerTripped} reader, ${lessonChromeTripped} lesson-chrome, ${deviceTripped} device, ${wordsTripped} words)`);
     process.exit(0);
   }
-  console.error(`SELFTEST-BREAK FAILED — a deliberate break tripped nothing (chrome: ${chromeTripped}, lesson: ${lessonTripped}, textscale: ${tsTripped}, reader: ${readerTripped}, lesson-chrome: ${lessonChromeTripped}, device: ${deviceTripped}); the probe is theater`);
+  console.error(`SELFTEST-BREAK FAILED — a deliberate break tripped nothing (chrome: ${chromeTripped}, lesson: ${lessonTripped}, textscale: ${tsTripped}, reader: ${readerTripped}, lesson-chrome: ${lessonChromeTripped}, device: ${deviceTripped}, words: ${wordsTripped}); the probe is theater`);
   process.exit(1);
 }
 // The coverage assertion. A short run is a FAILED run, however clean its
@@ -1509,7 +1609,7 @@ if (measured !== expectedChrome) {
   console.error(`COVERAGE FAIL — measured ${lessonMeasured} of ${expectedLesson} lesson widths. A lesson that never rendered is not a pass.`);
   failures += 1;
 } else {
-  console.log(`coverage ok  ${measured}/${expectedChrome} chrome cases, ${lessonMeasured}/${expectedLesson} lesson cases, ${tsMeasured} text-scale cases, ${readerMeasured} reader cases, ${lessonChromeMeasured} lesson-chrome cases, ${deviceMeasured} device cases measured.`);
+  console.log(`coverage ok  ${measured}/${expectedChrome} chrome cases, ${lessonMeasured}/${expectedLesson} lesson cases, ${tsMeasured} text-scale cases, ${readerMeasured} reader cases, ${lessonChromeMeasured} lesson-chrome cases, ${deviceMeasured} device cases, ${wordsMeasured} words cases measured.`);
 }
 
 process.exit(failures > 0 ? 1 : 0);

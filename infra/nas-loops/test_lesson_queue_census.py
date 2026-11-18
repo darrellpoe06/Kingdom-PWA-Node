@@ -1418,7 +1418,7 @@ class TheBoxNamesTheCauseItself(unittest.TestCase):
             "quotation": {"passed": True, "problems": ["41 of 120"]},
             "depth": {"passed": True}}}]])
         got = qc.stored_gates(d)
-        self.assertEqual(sorted(got["r1"]), ["quotation", "verse"])
+        self.assertEqual(sorted(got["r1"]["gates"]), ["quotation", "verse"])
 
     def test_a_gate_that_PASSED_with_no_faults_is_not_named(self):
         d = self.store([[{"teaching_row_id": "r1", "gate_results": {
@@ -1528,3 +1528,153 @@ class TheReaderPrintsTheCause(unittest.TestCase):
     def test_a_row_that_did_not_FAIL_is_never_asked_for_a_cause(self):
         out = self.said(shape="plain", stall=None, why="ready")
         self.assertNotIn("cause not stored", out)
+
+
+class WhichProblemNotOnlyWhichGate(unittest.TestCase):
+    """0336. 0335's first live read named the gate -- `quotation` on four of
+    seven waiting teachings -- and still did not decide the fix, because that
+    gate refuses five different things that call for opposite work."""
+
+    def store(self, gate_results, rid="r1"):
+        d = tempfile.mkdtemp()
+        os.makedirs(os.path.join(d, "versions"))
+        with open(os.path.join(d, "versions", "b-1.json"), "w", encoding="utf-8") as fh:
+            json.dump([{"teaching_row_id": rid, "gate_results": gate_results}], fh)
+        return d
+
+    def kinds(self, gate_results, rid="r1"):
+        return qc.stored_gates(self.store(gate_results, rid)).get(rid, {}).get("kinds", [])
+
+    def test_each_of_the_quotation_gates_five_refusals_has_its_own_kind(self):
+        for problem, want in (
+            ("adult: 7 quoted spans, 4 with a reference", "span-without-reference"),
+            ("teen: an ellipsis inside a quotation", "ellipsis"),
+            ("child: curly double quotation marks (straight quotes only)", "curly-quotes"),
+            ("adult: recites a record id at the reader", "record-id"),
+            ("senior: states a percentage", "percentage"),
+        ):
+            self.assertEqual(
+                self.kinds({"quotation": {"passed": False, "problems": [problem]}}),
+                [want], problem)
+
+    def test_the_voice_gates_three_refusals_each_have_their_own_kind(self):
+        for problem, want in (
+            ('adult: the generic "God" in our own voice (say Yahweh)', "generic-God-not-Yahweh"),
+            ("adult: capitalises Satan", "capitalises-the-adversary"),
+            ("senior: writes yahweh in lower case", "lowercases-His-Name"),
+        ):
+            self.assertEqual(
+                self.kinds({"voice": {"passed": False, "problems": [problem]}}),
+                [want], problem)
+
+    def test_the_verse_gates_own_vocabulary_rides_by_identity(self):
+        for kind in qc.VERSE_FAULT_KINDS:
+            self.assertEqual(
+                self.kinds({"verse": {"passed": False,
+                                      "faults": [{"kind": kind, "ref": "John 1:1"}]}}),
+                [kind], kind)
+
+    def test_PROVEN_TO_CATCH_a_NAME_inside_a_problem_string_reaching_the_receipt(self):
+        # lesson_gates.py:279 and :282 interpolate a name into their problem
+        # strings. The kind must ride and the name must not -- which is the
+        # whole reason the prose is matched rather than published.
+        d = self.store({"voice": {"passed": False, "problems": [
+            "adult: capitalises Satan", "senior: writes yahweh in lower case"]},
+            "quotation": {"passed": False, "problems": ["adult: 7 quoted spans, 4 with a reference"]}})
+        c = qc.census_of([{"id": "r1", "source": "research-inbox",
+                           "created_at": "2026-11-12T12:17:12Z",
+                           "tags": ["lesson", "build-failed"]}],
+                         gates=qc.stored_gates(d))
+        blob = json.dumps(c)
+        self.assertIn("capitalises-the-adversary", blob)
+        self.assertIn("lowercases-His-Name", blob)
+        for leak in ("Satan", "satan", "yahweh", "quoted spans", "lower case", "adult:"):
+            self.assertNotIn(leak, blob, leak)
+
+    def test_an_unrecognised_problem_string_yields_NO_kind_rather_than_a_guess(self):
+        self.assertEqual(
+            self.kinds({"depth": {"passed": False, "problems": [
+                "adult: something nobody has written a kind for yet"]}}),
+            [])
+
+    def test_a_row_with_no_record_carries_no_kinds_key_at_all(self):
+        c = qc.census_of([{"id": "r1", "source": "research-inbox",
+                           "created_at": "2026-11-12T12:17:12Z",
+                           "tags": ["lesson", "build-failed"]}])
+        self.assertNotIn("kinds", c["waiting"][0])
+
+    def test_the_SQL_publishes_every_kind_the_census_can_assign(self):
+        import glob
+
+        def read(path):
+            with open(path, "r", encoding="utf-8") as fh:
+                return fh.read()
+
+        auto = os.path.join(_ROOT, "infra", "supabase", "migrations-auto")
+        newest = max(p for p in glob.glob(os.path.join(auto, "*.sql"))
+                     if "lesson_queue_receipt" in read(p))
+        m = re.search(r"k_faults\s+text\[\]\s*:=\s*ARRAY\[(.*?)\];", read(newest), re.DOTALL)
+        self.assertTrue(m, f"k_faults is not declared in {os.path.basename(newest)}")
+        have = set(re.findall(r"'([A-Za-z-]+)'", m.group(1)))
+        self.assertEqual(
+            set(qc.PROBLEM_CLASSES) - have, set(),
+            f"a kind the census can publish and {os.path.basename(newest)} would drop")
+
+
+class TheProblemKindsDoNotDriftFromTheGates(unittest.TestCase):
+    """The gap 0336 shipped with (found 2026-11-18, same day): FAILURE_SITES has
+    a drift case and PROBLEM_KINDS did not, so re-wording a gate's message would
+    silently stop classifying it and the receipt would read the gate name with
+    no kind -- back to where 0335 left it, without anything going red."""
+
+    def gate_source(self):
+        """The gates' source, lowercased, with backslash escapes removed.
+
+        The escaping matters and this test found it on its first run: the voice
+        gate writes `"{}: the generic \\"God\\" in our own voice (say Yahweh)"`,
+        so the SOURCE contains `\\"god\\"` while the string the gate actually
+        produces at runtime contains `"god"` -- which is what PROBLEM_KINDS
+        matches, correctly. Comparing against the raw source would fail a
+        matcher that works, so the escapes come out first.
+        """
+        with open(os.path.join(_ROOT, "infra", "nas-lesson-builder",
+                               "lesson_gates.py"), encoding="utf-8") as fh:
+            return fh.read().lower().replace("\\", "")
+
+    def test_every_opening_is_prose_a_gate_actually_writes(self):
+        src = self.gate_source()
+        for opening, kind in qc.PROBLEM_KINDS:
+            self.assertTrue(opening in src,
+                            f"no gate message contains {opening!r}, so the kind "
+                            f"{kind!r} can never be assigned; was it re-worded?")
+
+    def test_every_verse_fault_kind_is_one_the_verse_gate_emits(self):
+        src = self.gate_source()
+        for kind in qc.VERSE_FAULT_KINDS:
+            self.assertTrue(f'"kind": "{kind}"' in src,
+                            f"the verse gate does not emit {kind!r}")
+
+    def test_PROVEN_TO_CATCH_a_reworded_gate_message(self):
+        src = self.gate_source()
+        self.assertNotIn("the number of quoted spans does not match", src,
+                         "this is the re-wording the case above would catch")
+
+    def test_the_SPAN_TEXT_the_gate_now_names_never_reaches_the_receipt(self):
+        # The quotation gate names the unreferenced spans so the next attempt
+        # can fix them (DR-1552). That text is the DRAFT. The census matches the
+        # line and publishes its own kind; the span must not ride.
+        d = tempfile.mkdtemp()
+        os.makedirs(os.path.join(d, "versions"))
+        with open(os.path.join(d, "versions", "b-1.json"), "w", encoding="utf-8") as fh:
+            json.dump([{"teaching_row_id": "r1", "gate_results": {"quotation": {
+                "passed": False,
+                "problems": [('levels.child: 3 quoted spans, 1 with a reference '
+                              '-- no reference after: "MARKER_SPAN"; "MARKER_TWO"')]}}}], fh)
+        c = qc.census_of([{"id": "r1", "source": "research-inbox",
+                           "created_at": "2026-11-12T12:17:12Z",
+                           "tags": ["lesson", "build-failed"]}],
+                         gates=qc.stored_gates(d))
+        blob = json.dumps(c)
+        self.assertIn("span-without-reference", blob)
+        for leak in ("MARKER_SPAN", "MARKER_TWO", "no reference after", "levels.child"):
+            self.assertNotIn(leak, blob, leak)

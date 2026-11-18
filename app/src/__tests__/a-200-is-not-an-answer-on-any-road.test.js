@@ -219,8 +219,13 @@ describe('the probes still say YES to their own server', () => {
     expect(await checkMediaService()).toBe('ready');
   });
 
-  it('probeVoiceService: up on the studio\'s own { ok: true }', async () => {
-    globalThis.fetch = async () => ({ ok: true, status: 200, json: async () => ({ ok: true }) });
+  it('probeVoiceService: up on the studio\'s own { ok: true, clone: true } and the NAS clone\'s { ok: true, engine }', async () => {
+    // server.py's health() and nas_clone_server.py's /health, read from the
+    // producers. A bare { ok: true } is not enough since DR-1555: the camera
+    // forwarder says that too.
+    globalThis.fetch = async () => ({ ok: true, status: 200, json: async () => ({ ok: true, clone: true, model: 'xtts_v2' }) });
+    expect(await probeVoiceService({ force: true })).toBe('up');
+    globalThis.fetch = async () => ({ ok: true, status: 200, json: async () => ({ ok: true, engine: 'nas-clone', studio: 'unreachable' }) });
     expect(await probeVoiceService({ force: true })).toBe('up');
   });
 
