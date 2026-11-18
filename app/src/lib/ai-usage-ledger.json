@@ -2363,6 +2363,21 @@
       "notes": "Reserved L309 and DR-1479 on origin with new-lesson.mjs and claim-decision-number through intermittent 503s. 157 verses filled from app/public/bible/kjv by fill-verses.mjs, none typed. Every personal detail of the source emails withheld; the second thread was not read back (session permission check), re-review 2026-11-27."
     },
     {
+      "id": "sov84-the-body-hath-many-members",
+      "date": "2026-11-13",
+      "task": "Sovereign A.I. week 84 from one forwarded newsletter and one typed word",
+      "drs": [
+        "DR-1497"
+      ],
+      "prs": [],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.9,
+      "estimateWithoutAiHours": 26,
+      "notes": "One lesson, four bands, 168 quoted spans generator-filled from the KJV corpus, a 33-case proven-to-catch test, and the verification pass that found a shared expert the article never mentions. Three primary hosts refused; raw.githubusercontent.com and gh code search opened."
+    },
+    {
       "id": "sov81-what-hast-thou-that-thou-didst-not-receive",
       "date": "2026-11-13",
       "task": "Sovereign A.I. week 81 built from one word over a forwarded IT Brew issue (Copyright, copyleft), all four age bands, 31-case gate",
@@ -2946,6 +2961,21 @@
       "wallClockHours": 0.4,
       "estimateWithoutAiHours": 3,
       "notes": "PostgREST returns no error when RLS refuses a DELETE. Which of the two causes Darrell hit is unestablished: he declined the database query, so both were fixed."
+    },
+    {
+      "id": "theater-plays-today-and-movie-maker",
+      "date": "2026-11-18",
+      "task": "The Theater plays today: PLAY on every unpublished adventure runs the storybook as a read-aloud show inside the Theater (autoStart), writes its record and lights the trail; the movie-maker cuts a Bible Adventure episode with ffmpeg from the folder (landed scenes or interim art, narration or silence, the KJV and captions burned in, poster, timed WebVTT, an honest sidecar); a draft Jonah cut proven; the live walk presses PLAY",
+      "drs": [
+        "DR-1531"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.7,
+      "estimateWithoutAiHours": 14,
+      "notes": ""
     },
     {
       "id": "ll319-what-the-trust-could-not-keep",

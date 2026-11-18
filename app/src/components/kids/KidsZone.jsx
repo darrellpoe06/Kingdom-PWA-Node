@@ -360,6 +360,14 @@ export default function KidsZone({
       <Theater
         church={c}
         onOpenStorybook={(id) => open('adventure', `story:${id}`)}
+        storybook={{
+          door,
+          signedIn,
+          loadVerse,
+          saveRecord,
+          onDone: (id, r) => r && r.result && !r.result.error && !r.result.skipped && countDone(r.record),
+          onLearnVerse: (b) => open('games', `memory:${b.id}`),
+        }}
         onWatched={(ep) => recordDone(activityRecord({ lessonId: `episode-${ep.id}`, courseKey: TRAIL_COURSES.watch, passed: true, pct: 100 }))}
         shotList={shotList}
       />

@@ -3054,7 +3054,7 @@ export default function PoeFinancialSystem() {
       recordHistoryEvent({ recordKind: 'transaction', recordId: t.id, action: 'update', before: t, after: { ...t, category } });
     }
     return changed.length;
-  }; publishLedgerEditor({ updateTransaction, recategorizePayee, demo: isAnyDemoMode, transactions: data.transactions || [] }); // every surface edits through these two (lib/ledger-edit.js, DR-0710)
+  }; publishLedgerEditor({ updateTransaction, recategorizePayee, learnPayeeRule: (desc, cat) => { const k = payeeKey(desc); if (k && cat) setData(d => ({ ...d, categoryRules: { ...(d.categoryRules || {}), [k]: cat } })); }, demo: isAnyDemoMode, transactions: data.transactions || [] }); // every surface edits through these two (lib/ledger-edit.js, DR-0710)
   const deleteTransaction = (idOrIds) => {
     // Accepts ONE id or an ARRAY. The dedupe removes THOUSANDS at once; firing that
     // many single cloud deletes floods the ~6-connection cap + rate limit so most

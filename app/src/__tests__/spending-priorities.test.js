@@ -22,9 +22,12 @@ const daysAgo = (n) => new Date(NOW - n * 24 * 60 * 60 * 1000).toISOString();
 
 describe('the priority tiers stand where they were declared', () => {
   it('giving is COVENANT — never in the low tier', () => {
-    expect(PRIORITY_TIERS.covenant).toEqual(['charitable']);
+    // Tithes / Church Giving is its own category (Christina 2026-11-17); both are covenant.
+    expect(PRIORITY_TIERS.covenant).toEqual(['tithes', 'charitable']);
     expect(PRIORITY_TIERS.low).not.toContain('charitable');
+    expect(PRIORITY_TIERS.low).not.toContain('tithes');
     expect(tierOfCategory('charitable')).toBe('covenant');
+    expect(tierOfCategory('tithes')).toBe('covenant');
   });
   it('uncategorized is UNKNOWN, not low; money movement is no tier at all', () => {
     expect(tierOfCategory('other')).toBe('unknown');

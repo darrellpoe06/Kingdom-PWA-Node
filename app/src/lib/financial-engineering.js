@@ -29,6 +29,7 @@
 
 import { deriveApr, debtPayoffInsight, looksLikeDebtAccount, linkedDebtPaymentStats, estimatePayoff } from './debt-payments.js';
 import { balanceCheckpoint } from './imported-view.js';
+import { outstandingAt, outstandingSum } from './outstanding-checks.js';
 
 const MONTHS_ABBR = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -117,7 +118,7 @@ export function deriveAccountBalances(data, asOf = new Date()) {
     // tomorrow was being subtracted from a verified balance tonight.
     const day = /^\d{4}-\d{2}-\d{2}/.test(String(t.date)) ? String(t.date).slice(0, 10) : localDay(d);
     const cleared = day <= asOfDay;
-    (rowsByAccount[t.accountId] ||= []).push({ day, amount: Number(t.amount) || 0, cleared });
+    (rowsByAccount[t.accountId] ||= []).push({ day, amount: Number(t.amount) || 0, cleared, outstanding: t.outstanding, clearedOn: t.clearedOn });
     if (!cleared) continue; // only settled history
     clearedByAccount[t.accountId] = (clearedByAccount[t.accountId] || 0) + (Number(t.amount) || 0);
   }
@@ -139,10 +140,12 @@ function balanceFromCheckpoints(cps, rows, asOfDay) {
   const before = cps.filter((c) => c.day <= asOfDay);
   if (before.length) {
     const cp = before[before.length - 1]; // latest on or before asOf; ties: last recorded wins
-    return cp.balance + rows.reduce((s, r) => (r.day > cp.day && r.cleared ? s + r.amount : s), 0);
+    // A check written on or before the checkpoint that the bank had not taken
+    // by then is outside the bank's figure: the family has spent it (outstanding-checks.js).
+    return cp.balance + outstandingSum(rows, cp.day) + rows.reduce((s, r) => (r.day > cp.day && r.cleared ? s + r.amount : s), 0);
   }
   const cp = cps[0]; // asOf is before every checkpoint: count back from the earliest
-  return cp.balance - rows.reduce((s, r) => (r.day > asOfDay && r.day <= cp.day ? s + r.amount : s), 0);
+  return cp.balance + outstandingSum(rows, cp.day) - rows.reduce((s, r) => (r.day > asOfDay && r.day <= cp.day ? s + r.amount : s), 0);
 }
 
 // Every account that has a verified checkpoint, with its latest one on or before
@@ -199,15 +202,18 @@ export function balanceTrace(data, accountId, asOf = new Date()) {
     if (isNaN(d.getTime())) continue;
     const day = /^\d{4}-\d{2}-\d{2}/.test(String(t.date)) ? String(t.date).slice(0, 10) : localDay(d);
     if (day > asOfDay) continue;
-    rows.push({ id: t.id, day, amount: round2(Number(t.amount) || 0), description: t.description || '', category: t.category || null, pending: !!t.pending, source: t.source || null });
+    rows.push({ id: t.id, day, amount: round2(Number(t.amount) || 0), description: t.description || '', category: t.category || null, pending: !!t.pending, source: t.source || null, outstanding: t.outstanding, clearedOn: t.clearedOn });
   }
   cps.sort((x, y) => x.day.localeCompare(y.day));
   const cp = cps.length ? cps[cps.length - 1] : null;
   const since = (cp ? rows.filter((r) => r.day > cp.day) : rows).sort((a, b) => a.day.localeCompare(b.day) || String(a.id).localeCompare(String(b.id)));
   const sumSince = round2(since.reduce((s, r) => s + r.amount, 0));
+  // Written before the check, not yet taken by the bank: named, and counted.
+  const outstanding = cp ? outstandingAt(rows, cp.day) : [];
+  const sumOutstanding = round2(outstanding.reduce((s, r) => s + r.amount, 0));
   const anchor = cp ? null : round2(acct && acct.openingBalance != null ? acct.openingBalance : (acct && acct.balance) || 0);
-  const balance = round2((cp ? cp.balance : anchor) + sumSince);
-  return { accountId, checkpoint: cp, anchor, rowsSince: since, sumSince, balance, asOf: asOfDay };
+  const balance = round2((cp ? cp.balance : anchor) + sumOutstanding + sumSince);
+  return { accountId, checkpoint: cp, anchor, outstanding, sumOutstanding, rowsSince: since, sumSince, balance, asOf: asOfDay };
 }
 
 // -----------------------------------------------------------------------------
