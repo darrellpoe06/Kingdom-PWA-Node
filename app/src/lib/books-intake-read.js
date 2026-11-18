@@ -18,7 +18,7 @@
 //      never leaves the phone; only the reading engine is downloaded).
 // Both are injectable, so the routing is proven in tests at the boundary.
 // =============================================================================
-import { statementFileToCsv, parseStatementText, isSpreadsheetFile, isOfxFile, findStatementHeader, parseCsvLine } from './statement-import.js';
+import { statementFileToCsv, parseStatementText, isSpreadsheetFile, isOfxFile, findStatementHeader, parseCsvLine, detectDelimiter } from './statement-import.js';
 
 export const NAS_OCR_PATH = 'books/ocr';
 export const NAS_OCR_TIMEOUT_MS = 20000;
@@ -170,7 +170,7 @@ export async function readAnyFile(file, deps = {}) {
     const isOfx = /<OFX>|<STMTTRN>/i.test(text);
     const h = !isOfx && lines.length ? findStatementHeader(lines) : null;
     const headerSignature = isOfx ? 'ofx'
-      : (h && h.headerRow != null ? parseCsvLine(lines[h.headerRow]) : []).map((c) => c.toLowerCase()).join('|');
+      : (h && h.headerRow != null ? parseCsvLine(lines[h.headerRow], detectDelimiter(lines)) : []).map((c) => c.toLowerCase()).join('|');
     const rows = (parsed.rows || []).filter((r) => r.ok !== false);
     const rec = parsed.reconciliation || null;
     return {

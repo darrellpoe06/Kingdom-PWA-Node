@@ -1,0 +1,71 @@
+// A Chase download saved as tab-separated values (.tsv) reads exactly like the
+// same rows as CSV (Christina 2026-11-18: "Can I upload my Chase 7206 TSV file
+// directly?"). Before this, every line was one comma-less cell, so every row
+// was rejected as "unreadable date" (reported, never silently dropped).
+import { describe, it, expect, vi } from 'vitest';
+import { parseDelimitedToRows, detectDelimiter, parseCsvLine } from '../lib/statement-import.js';
+import { memoryStore } from '../lib/books-intake-store.js';
+import { intakeFiles } from '../lib/books-intake-pipeline.js';
+
+vi.mock('../lib/books-intake-cloud.js', () => ({ keepOriginalInCloud: async () => ({ ok: false, reason: 'test' }) }));
+
+// Chase checking download columns, her rows.
+const HEADER = ['Details', 'Posting Date', 'Description', 'Amount', 'Type', 'Balance', 'Check or Slip #'];
+const ROWS = [
+  ['DEBIT', '11/16/2026', 'Zelle payment to TLC', '-75.00', 'QUICKPAY_DEBIT', '3941.72', ''],
+  ['CREDIT', '11/16/2026', 'ATM CASH DEPOSIT', '1000.00', 'ATM', '4497.99', ''],
+  ['DEBIT', '11/15/2026', 'Zelle payment to TLC', '-837.00', 'QUICKPAY_DEBIT', '6890.57', ''],
+  ['CREDIT', '11/15/2026', 'Transfer from GMR ...3800', '55.00', 'ACH_CREDIT', '8529.13', ''],
+  ['CREDIT', '11/15/2026', 'Cash App from Darrell', '1450.00', 'ACH_CREDIT', '8474.13', ''],
+  ['CREDIT', '11/15/2026', 'Transfer from Chase 3322', '2201.00', 'ACCT_XFER', '7024.13', ''],
+];
+const tsv = [HEADER, ...ROWS].map((r) => r.join('\t')).join('\n');
+const csv = [HEADER, ...ROWS].map((r) => r.join(',')).join('\n');
+const read = (rows) => rows.map((r) => [r.date, r.description, r.amount, r.balance]);
+
+describe('a Chase TSV reads like the same rows as CSV', () => {
+  it('every row is read, with its signed amount and Chase balance; nothing rejected', () => {
+    const t = parseDelimitedToRows(tsv);
+    expect(t.errors).toEqual([]);
+    expect(t.rejected || []).toEqual([]);
+    expect(read(t.rows)).toEqual([
+      ['2026-11-16', 'Zelle payment to TLC', -75, 3941.72],
+      ['2026-11-16', 'ATM CASH DEPOSIT', 1000, 4497.99],
+      ['2026-11-15', 'Zelle payment to TLC', -837, 6890.57],
+      ['2026-11-15', 'Transfer from GMR ...3800', 55, 8529.13],
+      ['2026-11-15', 'Cash App from Darrell', 1450, 8474.13],
+      ['2026-11-15', 'Transfer from Chase 3322', 2201, 7024.13],
+    ]);
+  });
+  it('the same rows as CSV read identically (CSV unchanged)', () => {
+    expect(read(parseDelimitedToRows(csv).rows)).toEqual(read(parseDelimitedToRows(tsv).rows));
+  });
+  it('the separator is detected per file; a quoted comma stays inside its cell', () => {
+    expect(detectDelimiter(tsv.split('\n'))).toBe('\t');
+    expect(detectDelimiter(csv.split('\n'))).toBe(',');
+    expect(parseCsvLine('a\t"b, c"\td', '\t')).toEqual(['a', 'b, c', 'd']);
+    const quoted = parseDelimitedToRows(['Posting Date,Description,Amount', '11/15/2026,"Store, Inc",-5.00'].join('\n'));
+    expect(read(quoted.rows)).toEqual([['2026-11-15', 'Store, Inc', -5, undefined]]);
+  });
+});
+
+describe('uploaded through the Books upload, a .tsv becomes a transactions download for Chase 7206', () => {
+  it('reads all six rows and matches the account', async () => {
+    const store = memoryStore();
+    const known = {
+      accounts: [{ id: 'a-7206', name: 'Chase 7206', fragment: '7206', type: 'checking', entityId: 'e-personal', balance: 0 }],
+      entities: [{ id: 'e-personal', name: 'Personal', type: 'personal' }],
+      transactions: [],
+    };
+    const file = {
+      name: 'Chase7206_Activity_20261117.tsv',
+      type: 'text/tab-separated-values',
+      size: tsv.length,
+      text: async () => tsv,
+      arrayBuffer: async () => new TextEncoder().encode(tsv).buffer,
+    };
+    const [doc] = await intakeFiles([file], { store, hint: 'overview', known });
+    expect(doc.extraction.doc_type).toBe('transactions-export');
+    expect(doc.extraction.line_items.map((r) => r.amount)).toEqual([-75, 1000, -837, 55, 1450, 2201]);
+  });
+});
