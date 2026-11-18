@@ -1,0 +1,41 @@
+# church-site-probe — what the church's public website publishes, read from a
+# GitHub runner (the cloud sandbox has no route to it) and printed to the log,
+# so the announcements-and-events sync (Darrell 2026-11-18, DR-1540) is built
+# on what the site actually publishes. Read-only; nothing is written.
+name: Church site probe (read-only)
+on:
+  workflow_dispatch:
+    inputs:
+      site:
+        description: The site to read
+        default: https://www.thechurchofthelivinggod.com
+        required: true
+permissions: {}
+concurrency:
+  group: church-site-probe
+  cancel-in-progress: false
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Read the home page, its links, headings and any feed or API it offers
+        env:
+          SITE: ${{ github.event.inputs.site }}
+        run: |
+          set -u
+          ua="Mozilla/5.0 (compatible; PoeTechProbe/1.0; +https://poetech.us)"
+          get() { curl -sS -L --max-time 30 -A "$ua" -o "$2" -w "%{http_code} %{content_type} %{size_download}B %{url_effective}\n" "$1" || echo "curl failed: $1"; }
+          echo "== HOME =="; get "$SITE/" home.html
+          echo "-- headings --"; grep -oiE '<h[1-3][^>]*>[^<]{1,120}' home.html | sed -E 's/<[^>]+>//' | head -40
+          echo "-- feeds / APIs declared in <head> --"; grep -oiE '<link[^>]+(rss|atom|json|api)[^>]*>' home.html | head -10
+          echo "-- generator --"; grep -oiE '<meta name="generator"[^>]*>' home.html | head -2
+          echo "-- internal links (unique, first 80) --"; grep -oiE 'href="(https?://(www\.)?thechurchofthelivinggod\.com)?/[^"#?]*' home.html | sed -E 's/^href="//' | sort -u | head -80
+          echo "-- words that name announcements or events --"; grep -oiE '[^<>]{0,60}(announcement|upcoming|event|calendar|bulletin|news|service times|schedule)[^<>]{0,60}' home.html | head -30
+          echo "== CANDIDATE PAGES =="
+          for p in /events /events.html /calendar /calendar.html /announcements /announcements.html /news /news.html /bulletin /blog /feed /rss.xml /feed.xml /sitemap.xml /wp-json/wp/v2/posts?per_page=3 /wp-json/tribe/events/v1/events?per_page=3 /_api/ /api/; do
+            printf "%s -> " "$p"; get "$SITE$p" page.out; head -c 300 page.out | tr '\n' ' ' | sed -E 's/<[^>]+>/ /g' | tr -s ' ' | cut -c1-300; echo
+          done
+          echo "== EVENT-LIKE TEXT ON THE HOME PAGE (dates near words) =="
+          sed -E 's/<[^>]+>/\n/g' home.html | grep -iE '(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]* [0-9]{1,2}|[0-9]{1,2}/[0-9]{1,2}/20[0-9]{2}|[0-9]{1,2}:[0-9]{2} ?(am|pm)' | sed -E 's/^\s+//' | grep -v '^$' | head -40
+          echo "== ROBOTS =="; get "$SITE/robots.txt" robots.txt; head -20 robots.txt

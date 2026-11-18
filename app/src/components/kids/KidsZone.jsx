@@ -166,6 +166,8 @@ export default function KidsZone({
   const seed = weekIndex(at);
   const [tab, setTab] = useState('adventure');
   const [sub, setSub] = useState(null); // 'lesson' | 'memory' | 'memory:<book>' | 'trivia' | 'builder' | 'whoami' | 'whoami:<Hero>' | 'story:<id>' | 'order:<id>'
+  const [ariDraft, setAriDraft] = useState(''); // the Ask Ari card's words
+  const [ariQuestion, setAriQuestion] = useState(''); // handed to the lesson, asked once
   const [records, setRecords] = useState([]);
   const open = (t, s = null) => {
     setTab(t);
@@ -231,6 +233,7 @@ export default function KidsZone({
         ask={ask}
         onBack={back}
         shotList={shotList}
+        firstQuestion={ariQuestion}
       />
     );
   else if (sub === 'memory' || (sub && sub.startsWith('memory:'))) {
@@ -599,13 +602,42 @@ export default function KidsZone({
             ))}
           </ul>
         </div>
-        <div className="kz-ari">
+        {/* ASK ARI, RIGHT HERE (Darrell 2026-11-18: "How do they ask Ari? No
+            options?! We're advertising it!"). The card is the door: a child
+            types the question here, the week's lesson opens with Ari already
+            answering it. Ari still talks only about the lesson, and a grown-up
+            can read everything said. */}
+        <form
+          className="kz-ari"
+          data-testid="ask-ari-card"
+          onSubmit={(e) => {
+            e.preventDefault();
+            const q = ariDraft.trim();
+            if (!q) return;
+            setAriQuestion(q);
+            setAriDraft('');
+            setSub('lesson');
+          }}
+        >
           <AriStar />
           <p>
-            <small>ASK ARI · your lesson helper</small>Stuck on a word? Ask me inside any lesson. I only talk about the lesson, and a grown-up can always see
-            what we said.
+            <small>ASK ARI · your lesson helper</small>Stuck on a word? Ask me about this week's lesson. I only talk about the lesson, and a grown-up can always
+            see what we said.
           </p>
-        </div>
+          <span className="kz-ari-ask">
+            <input
+              value={ariDraft}
+              onChange={(e) => setAriDraft(e.target.value)}
+              placeholder="Ask Ari…"
+              aria-label="Ask Ari about this week's lesson"
+              maxLength={300}
+              data-testid="ask-ari-input"
+            />
+            <button type="submit" className={`kz-act violet ${KZ_FOCUS}`} disabled={!ariDraft.trim()} data-testid="ask-ari-go">
+              Ask
+            </button>
+          </span>
+        </form>
         {door !== 'little' && setDoor && (
           <button type="button" className={`kz-lil ${KZ_FOCUS}`} onClick={() => setDoor('little')} data-testid="door-little-card">
             <GuideFace who="girl" />

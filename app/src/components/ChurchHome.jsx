@@ -35,6 +35,7 @@ import AuthModal from './AuthModal.jsx';
 import { motionBehavior } from '../lib/gentle-motion.js';
 import LoveCornerHome from './lovecorner/LoveCornerHome.jsx';
 import { subscribeChurchHomeSection, takePendingChurchHomeSection, publishChurchHomeSection } from '../lib/church-home-section.js';
+import { ChurchGivingChannels } from './ChurchGiving.jsx';
 
 // serviceDate — a feed's ISO `published` as a short calendar date; '' when it
 // cannot be read, so a recording with no date still lists by its title.
@@ -872,16 +873,17 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
         <>
       {/* GIVE + PARISH LIFE */}
       <section aria-labelledby="give-h" className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {c.links?.give && (
-          <div className="bg-white border-2 border-[#B85838] p-4">
-            <h3 id="give-h" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-1">Tithes · Offering · Gifts</h3>
-            <p className="text-sm leading-relaxed text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>Giving runs on the church's own website, where the giving options are published — no payment data passes through this app.</p>
+        <div className="bg-white border-2 border-[#B85838] p-4" data-testid="give-tab-channels">
+          <h3 id="give-h" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-1">Tithes · Offering · Gifts</h3>
+          {/* THE CHANNELS, HERE (Darrell 2026-11-18, DR-1540): the church's own giving links and QR codes, the same cards the Give popup shows, never a send-off to the website. No payment data passes through this app. */}
+          <p className="text-sm leading-relaxed text-[#5A5751] mb-3" style={{ fontFamily: '"Fraunces", serif' }}>Give through the church's own channels. One tap opens the channel on this phone; the QR code is for a second device. No payment data passes through this app.</p>
+          <ChurchGivingChannels church={c} compact />
+          {c.links?.giversCreed && (
             <div className="flex gap-2 mt-3 flex-wrap">
-              <a href={c.links.give} target="_blank" rel="noopener noreferrer" className="text-xs uppercase tracking-wider px-3 py-2 bg-[#1A1815] text-white hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">Give →</a>
-              {c.links.giversCreed && <a href={c.links.giversCreed} target="_blank" rel="noopener noreferrer" className="text-xs uppercase tracking-wider px-3 py-2 border border-[#1A1815] hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]">Givers Creed</a>}
+              <a href={c.links.giversCreed} target="_blank" rel="noopener noreferrer" className="text-xs uppercase tracking-wider px-3 py-2 border border-[#1A1815] hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]">Givers Creed</a>
             </div>
-          </div>
-        )}
+          )}
+        </div>
         <div className="bg-white border border-[#1A1815] p-4">
           <h3 className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold mb-1">Parish Life</h3>
           {Array.isArray(c.announcedEvents) && c.announcedEvents.length > 0 && (

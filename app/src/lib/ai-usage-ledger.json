@@ -350,6 +350,21 @@
       "notes": "Measured first commit 17:54:54Z to merge 19:17:20Z on claude/there-shall-be-none-in-the-field (8 commits); the authoring before the first commit is not on the record. Estimate entered by the Ways session for a 1,151-line lesson with 31 gate cases, not the authoring session's own."
     },
     {
+      "id": "app-does-what-it-advertises",
+      "date": "2026-11-18",
+      "task": "The app does what it advertises: an Aa text-size button on every screen in the Love Corner header; the church's giving channels with QR codes in the Give & Serve panel (one shared component with the Give popup); the Ask Ari card asks and opens the week's lesson with Ari answering; three tests",
+      "drs": [
+        "DR-1540"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.9,
+      "estimateWithoutAiHours": 8,
+      "notes": ""
+    },
+    {
       "id": "subprocess-budget-tie-and-its-gate",
       "date": "2026-11-05",
       "task": "The subprocess budget tie: fixed in three cases across two test files, gated repo-wide, and the gate's own blind spot closed",
@@ -1024,6 +1039,21 @@
       "wallClockHours": 0.75,
       "estimateWithoutAiHours": 8,
       "notes": "Spoken the same day; built the same session."
+    },
+    {
+      "id": "words-read-at-every-size",
+      "date": "2026-11-18",
+      "task": "Words read at every size: the Love Corner grids collapse with the text (hero flex-wrap, auto-fit grids, overflow-wrap anywhere); the layout probe gains a WORDS READ pass (church door, 4 widths x 3 sizes: squeezed prose, cut-off words, colliding labels) with a self-test",
+      "drs": [
+        "DR-1539"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.2,
+      "estimateWithoutAiHours": 8,
+      "notes": ""
     },
     {
       "id": "dr-1390-lesson",
