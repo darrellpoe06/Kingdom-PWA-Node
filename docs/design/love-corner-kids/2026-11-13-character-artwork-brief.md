@@ -24,13 +24,13 @@ git push origin ccr-117befe9-n9u0iz
 
 The registry (`app/src/lib/kids/guides.js`, `SHOT_LIST`) names every file below; its test proves each registered file is on disk, and a surface shows a labeled slot for any shot that has not landed.
 
-## 2. The character bible (from the reference)
+## 2. The character bible (the approved pair, 2026-11-17)
 
-**The girl.** About nine. Deep warm brown skin. Long box braids past the shoulders, parted at the crown, with a big red satin bow on top; small gold hoop earrings. Bright, wide eyes; open, dimpled smile. Red hoodie with white-and-black stripes on the sleeve cuffs. In the reference she leans on her hand over an open Bible.
+**The girl.** About nine. Deep warm brown skin. Box braids gathered up into a high top bun, with pink and white beads on the braids; small stud earrings. Bright, wide eyes; an open, dimpled smile. A red hoodie over a white tee, a black backpack; in her reference she holds her Bible to her chest.
 
-**The boy.** About ten. Warm brown skin, a shade lighter than the girl's. Short curly twists on top with a clean fade at the sides. Warm, easy smile, bright eyes. Black hoodie with red lining and red drawstrings, a white T-shirt under it. In the reference his arms are folded on the table over the open Bible.
+**The boy.** About ten. Warm brown skin. Short curly twists on top with a clean fade at the sides. A warm, easy smile, bright eyes. A blue hoodie under a tan utility vest, a backpack; in his reference his arms are folded.
 
-**Continuity notes for the generator.** Keep the bow, the hoops, the hoodies and the hairlines identical in every image. Eye shape and smile are the identity; do not re-style them. Ages do not change between images.
+**Continuity notes for the generator.** The reference set is in `app/public/lovecorner/kids/` (`guide-girl.png`, `guide-boy.png`, the two `-face.png` files, `guides-pair.png`, `bible-adventures-key-art.jpg`). Keep the bun and its beads, the twists and the fade, the hoodies, the vest and the backpacks identical in every image. Eye shape and smile are the identity; do not re-style them. Ages do not change between images. No third child stands in for either; the third child is not approved for Jonah.
 
 ## 3. The images, surface by surface
 

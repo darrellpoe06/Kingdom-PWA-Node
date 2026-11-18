@@ -15,7 +15,7 @@
 import React, { useState } from 'react';
 import { resolveChurch } from '../../lib/resolve-church.js';
 import { worshipPlayerSrc } from '../../lib/church-live.js';
-import { EPISODES, nowShowing, shelfLabel, watchable } from '../../lib/kids/theater.js';
+import { EPISODES, nowShowing, shelfLabel, watchable, mediaKind } from '../../lib/kids/theater.js';
 import { Shot, ShotSlot, GuideBubble, KidsIcon, kidsAsset, isLanded, KZ_FOCUS } from './GuideArt.jsx';
 import { KIDS_BRAND } from '../../lib/kids/guides.js';
 
@@ -130,13 +130,33 @@ export default function Theater({ church = null, episodes = EPISODES, onOpenStor
             data-status={e.status}
           >
             <span className="kz-shelf-thumb">
-              <Shot id={`${e.storybook}-3`} alt="" list={shotList} fallback={<ShotSlot id={`${e.storybook}-3`} className="" what="" />} />
+              {e.poster ? (
+                <img src={episodeFileSrc(e.poster)} alt="" data-testid={`episode-${e.id}-poster`} />
+              ) : (
+                <Shot id={`${e.storybook}-3`} alt="" list={shotList} fallback={<ShotSlot id={`${e.storybook}-3`} className="" what="" />} />
+              )}
             </span>
             <div style={{ minWidth: 0, flex: 1 }}>
               <b style={{ display: 'block', fontSize: '.86rem', fontWeight: 900 }}>{e.title}</b>
               <small className="kz-sub kz-sub-line">{e.scripture}</small>
             </div>
-            {watchable(e) ? (
+            {watchable(e) && mediaKind(e.source) === 'file' ? (
+              <button
+                type="button"
+                className={`kz-play red ${KZ_FOCUS}`}
+                style={{ marginTop: 0 }}
+                onClick={() => {
+                  setPlaying(true);
+                  if (typeof document !== 'undefined') {
+                    const el = document.querySelector('[data-testid="theater"]');
+                    if (el && el.scrollIntoView) el.scrollIntoView({ block: 'start', behavior: 'smooth' });
+                  }
+                }}
+                data-testid={`episode-${e.id}-watch`}
+              >
+                WATCH
+              </button>
+            ) : watchable(e) ? (
               <a href={e.source} target="_blank" rel="noopener noreferrer" className={`kz-play red ${KZ_FOCUS}`} style={{ marginTop: 0 }}>
                 WATCH
               </a>

@@ -21,10 +21,33 @@
 // a labeled slot for a shot whose render has not landed, never a drawn
 // stand-in and never a generated face.
 //
-// Pure: no React, no I/O. Paths are served from the app's public root, which
+// Pure: no React, no I/O (the landed manifest is a JSON import, written at
+// build time). Paths are served from the app's public root, which
 // the Love Corner door serves under /lovecorner/ as well (DR-0258), so they
 // are resolved through assetUrl() with the same BASE the Bible loader uses.
+import landed from './landed.json';
+
 export const KIDS_ASSET_DIR = 'lovecorner/kids/';
+
+/**
+ * What is on disk under the kids folder (app/src/lib/kids/landed.json, written
+ * by scripts/kids-landed-manifest.mjs before every build; DR-1527). A render,
+ * a recording or an episode is taken the moment its file is there, with no
+ * code change: the registry below reads this, never a hand-kept status.
+ */
+export const LANDED = Object.freeze(landed);
+const IMAGE_EXTS = ['png', 'jpg', 'jpeg', 'webp'];
+
+/** True when the kids folder carries this file (by its path under the folder). */
+export function onDisk(file, manifest = LANDED) {
+  return !!(manifest && manifest.files && manifest.files[String(file)]);
+}
+
+/** The image file a shot's render landed as (png first, then jpg/jpeg/webp), or null. */
+export function landedFile(id, manifest = LANDED) {
+  for (const ext of IMAGE_EXTS) if (onDisk(`${id}.${ext}`, manifest)) return `${id}.${ext}`;
+  return null;
+}
 
 /** The two guides. Names come from Darrell with the reference; until then the keys are the roles. */
 export const GUIDES = Object.freeze({
@@ -69,14 +92,14 @@ export function assetUrl(file, base = '/') {
  * The character artwork collection: every render the screens need from the
  * reference's pipeline, one row per image, the ids being the file names
  * (docs/design/love-corner-kids/2026-11-13-character-artwork-brief.md holds
- * each one's full description). `status` is 'needed' until the file lands
- * in public/lovecorner/kids and the row says 'landed'; a surface renders a
- * labeled slot for a needed shot. Every scene is a true Bible scene told as
+ * each one's full description). `status` is 'landed' the moment the file is
+ * in public/lovecorner/kids (the landed manifest, DR-1527), else 'needed',
+ * and a surface shows the interim art for a needed shot. Every scene is a true Bible scene told as
  * the text tells it: no magic, no fantasy device, miracles as the acts of
  * Yahweh. kids-guides-assets.test.js proves each id is described in the brief
  * and each landed file is on disk.
  */
-const shot = (id, kind, surface, status = 'needed') => ({ id, kind, surface, status });
+const shot = (id, kind, surface) => ({ id, kind, surface, status: landedFile(id) ? 'landed' : 'needed' });
 export const SHOT_LIST = Object.freeze([
   // the home
   shot('home-hero', 'scene', 'Kids home hero'),

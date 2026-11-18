@@ -16,20 +16,31 @@
 // from the reader's own segment index (lib/tts.js segments deterministically,
 // so the page maps index to sentence without the engine handing text back).
 // The last page offers the book's memory verse to the memory verse game.
+//
+// J2 (DR-1527): a page whose RECORDING is on disk (lib/kids/narration.js,
+// from the landed manifest) plays the recording instead of the device
+// reader: Hear this page and Read to me play it, pause and resume hold it,
+// its end turns the page, and the sentence being read follows the
+// recording's cues (or an estimate until the cues are timed). The device
+// reader remains the road for every page with no recording yet.
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { verseText } from '../../lib/bible-kjv.js';
 import { useTextToSpeech, segmentText } from '../../lib/tts.js';
 import { storybookById, gradeStoryAnswer, storyProgress } from '../../lib/kids/storybooks.js';
+import { narrationFor, narrationSentences, estimateCues, sentenceAt } from '../../lib/kids/narration.js';
+import { LANDED } from '../../lib/kids/guides.js';
 import { coloringPage, coloringBooklet, coloringSvg } from '../../lib/coloring-page.js';
 import { saveLearnerRecord } from '../../lib/learner-records-sync.js';
 import { printDocument, downloadText, sheetFileName } from '../ColoringSheet.jsx';
-import { Shot, ShotSlot, GuideBubble, KidsIcon, KZ_FOCUS } from './GuideArt.jsx';
+import { Shot, ShotSlot, GuideBubble, KidsIcon, kidsAsset, KZ_FOCUS } from './GuideArt.jsx';
 
 export const STORYBOOK_COURSE_KEY = 'kids-storybooks';
 /** How long a page takes to turn; the class comes off the book after it. */
 export const TURN_MS = 420;
 /** A horizontal swipe shorter than this is a tap, not a page turn. */
 export const SWIPE_PX = 48;
+/** A device reading that ends sooner than this produced no audio: Read to me stops rather than racing on in silence. */
+export const MIN_READ_MS = 400;
 
 /** The record a finished storybook writes: one row per book, like a lesson. */
 export function storybookRecord(book, { passed, pct, at = new Date().toISOString() } = {}) {
@@ -75,6 +86,74 @@ function Sentences({ text, on = -1, testId }) {
   );
 }
 
+const defaultAudio = (src) => new Audio(src);
+
+/**
+ * A page's recording as an element the page controls: status, the second it
+ * is at, its length, and how many times it has ended. A new source is a new
+ * element; leaving the page stops it.
+ */
+function useRecording(src, createAudio) {
+  const [st, setSt] = useState({ status: 'idle', t: 0, duration: 0, ended: 0, failed: false });
+  const ref = useRef(null);
+  useEffect(() => {
+    // A new element starts idle; the ended count stays monotonic across elements,
+    // so a page turn never reads as another ending.
+    setSt((s) => ({ status: 'idle', t: 0, duration: 0, ended: s.ended, failed: false }));
+    if (!src) return undefined;
+    const a = createAudio(src);
+    ref.current = a;
+    try {
+      a.preload = 'metadata';
+    } catch {
+      /* a fake element */
+    }
+    // A listener speaks only while its element is the page's: a page turn
+    // replaces the element, and the old one's last events (its pause, fired
+    // late by the browser) must not touch the new one's state.
+    const on = (type, f) =>
+      a.addEventListener(type, () => {
+        if (ref.current === a) f();
+      });
+    on('play', () => setSt((s) => ({ ...s, status: 'playing', failed: false })));
+    on('pause', () => setSt((s) => (s.status === 'playing' ? { ...s, status: 'paused' } : s)));
+    on('ended', () => setSt((s) => ({ ...s, status: 'idle', t: 0, ended: s.ended + 1 })));
+    on('timeupdate', () => setSt((s) => ({ ...s, t: Number(a.currentTime) || 0, duration: Number(a.duration) || s.duration })));
+    on('loadedmetadata', () => setSt((s) => ({ ...s, duration: Number(a.duration) || 0 })));
+    on('error', () => setSt((s) => ({ ...s, status: 'idle', failed: true })));
+    return () => {
+      try {
+        a.pause();
+      } catch {
+        /* nothing to stop */
+      }
+      ref.current = null;
+    };
+  }, [src, createAudio]);
+  return {
+    ...st,
+    play: () => {
+      const a = ref.current;
+      if (!a) return;
+      const p = a.play && a.play();
+      if (p && typeof p.catch === 'function') p.catch(() => setSt((s) => ({ ...s, status: 'idle', failed: true })));
+    },
+    pause: () => ref.current && ref.current.pause && ref.current.pause(),
+    stop: () => {
+      const a = ref.current;
+      if (a) {
+        try {
+          a.pause();
+          a.currentTime = 0;
+        } catch {
+          /* a fake element */
+        }
+      }
+      setSt((s) => ({ ...s, status: 'idle', t: 0 }));
+    },
+  };
+}
+
 export default function Storybook({
   bookId,
   door = 'kids',
@@ -86,6 +165,9 @@ export default function Storybook({
   onLearnVerse = null,
   shotList = undefined,
   useTts = useTextToSpeech,
+  manifest = LANDED,
+  cueTable = undefined,
+  createAudio = defaultAudio,
 }) {
   const book = useMemo(() => storybookById(bookId), [bookId]);
   const [index, setIndex] = useState(0);
@@ -94,8 +176,12 @@ export default function Storybook({
   const [picks, setPicks] = useState({});
   const [saved, setSaved] = useState(null);
   const [auto, setAuto] = useState(false); // Read to me: verse, caption, next page, on its own
-  const phase = useRef(null); // what the reader is reading for Read to me: 'verse' | 'caption' | null
+  const phase = useRef(null); // what the device reader is reading for Read to me: 'verse' | 'caption' | null
   const wasReading = useRef(false);
+  const startedFor = useRef(-1); // the page whose recording Read to me has started
+  const endedSeen = useRef(0);
+  const speakAt = useRef(0); // when the device reader was last asked to read for Read to me
+  const [quiet, setQuiet] = useState(false); // the device reader went silent under Read to me
   const touch = useRef(null);
   const turnTimer = useRef(null);
   const tts = useTts();
@@ -137,14 +223,23 @@ export default function Storybook({
   const text = page ? texts[page.ref] : '';
   const loading = page && text === undefined;
   const progress = storyProgress(book, index);
-  const reading = !!(tts && tts.isReading);
-  const supported = !!(tts && tts.supported);
+
+  // The page's recording, when it is on disk; else the device reader.
+  const rec = useMemo(() => (book && page ? narrationFor(book.id, index, manifest, cueTable) : null), [book, page, index, manifest, cueTable]);
+  const recSrc = rec ? kidsAsset(rec.file) : null;
+  const audio = useRecording(recSrc, createAudio);
+  const recorded = !!rec;
+  const ttsReading = !!(tts && tts.isReading);
+  const reading = recorded ? audio.status !== 'idle' : ttsReading;
+  const paused = recorded ? audio.status === 'paused' : !!(tts && tts.isPaused);
+  const supported = recorded || !!(tts && tts.supported);
 
   /** Turn to a page with the flip; nothing past the questions, nothing before the first. */
   const go = (to, dir) => {
     const target = Math.max(0, Math.min(pages, to));
     if (target === index) return;
     if (tts && tts.isReading) tts.stop();
+    if (recorded) audio.stop();
     phase.current = null;
     setTurn(dir || (target > index ? 'next' : 'prev'));
     setIndex(target);
@@ -154,10 +249,12 @@ export default function Storybook({
   const next = () => go(index + 1, 'next');
   const prev = () => (index === 0 ? onBack && onBack() : go(index - 1, 'prev'));
 
-  // Read to me: when the reader falls quiet after the verse, read the caption;
-  // after the caption, turn the page; the page's own effect reads the next verse.
+  // Read to me on the device reader: when it falls quiet after the verse, read
+  // the caption; after the caption, turn the page; the page's own effect reads
+  // the next verse.
   useEffect(() => {
-    if (reading) {
+    if (recorded) return;
+    if (ttsReading) {
       wasReading.current = true;
       return;
     }
@@ -167,8 +264,18 @@ export default function Storybook({
       phase.current = null;
       return;
     }
+    if (tts.failed || Date.now() - speakAt.current < MIN_READ_MS) {
+      // The reader produced no audio (no voice on this device, blocked, or an
+      // engine that "ends" at once): Read to me stops here and says so rather
+      // than racing silently through the book.
+      phase.current = null;
+      setAuto(false);
+      setQuiet(true);
+      return;
+    }
     if (phase.current === 'verse' && page) {
       phase.current = 'caption';
+      speakAt.current = Date.now();
       tts.speak(page.caption);
     } else if (phase.current === 'caption') {
       phase.current = null;
@@ -176,25 +283,50 @@ export default function Storybook({
       else setAuto(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reading, auto]);
+  }, [ttsReading, auto, recorded]);
   useEffect(() => {
     if (!auto) return;
     if (!page) {
       setAuto(false);
       return;
     }
-    if (text && !reading && phase.current === null) {
+    if (recorded) {
+      if (audio.status === 'idle' && startedFor.current !== index) {
+        startedFor.current = index;
+        audio.play();
+      }
+      return;
+    }
+    if (text && !ttsReading && phase.current === null) {
       phase.current = 'verse';
+      speakAt.current = Date.now();
       tts.speak(text);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [auto, index, text]);
+  }, [auto, index, text, recorded, audio.status]);
+  // Read to me on a recording: its end turns the page.
+  useEffect(() => {
+    if (audio.ended === endedSeen.current) return;
+    endedSeen.current = audio.ended;
+    if (!auto || !recorded) return;
+    if (index < pages - 1) go(index + 1, 'next');
+    else setAuto(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [audio.ended]);
 
   if (!book) return <p className="lc-notice">That storybook is not on the shelf.</p>;
 
   const hear = (words) => {
-    if (!supported || !words) return;
+    if (!words) return;
     setAuto(false);
+    if (recorded && words === text) {
+      startedFor.current = -1;
+      phase.current = null;
+      audio.stop();
+      audio.play();
+      return;
+    }
+    if (!(tts && tts.supported)) return;
     phase.current = 'verse';
     tts.speak(words);
   };
@@ -203,12 +335,26 @@ export default function Storybook({
     if (auto) {
       setAuto(false);
       phase.current = null;
-      tts.stop();
+      startedFor.current = -1;
+      if (recorded) audio.stop();
+      else tts.stop();
       return;
     }
     phase.current = null;
-    if (tts.isReading) tts.stop();
+    startedFor.current = -1;
+    setQuiet(false);
+    if (tts && tts.isReading) tts.stop();
+    if (recorded) audio.stop();
     setAuto(true);
+  };
+  const pauseOrResume = () => {
+    if (recorded) {
+      if (audio.status === 'paused') audio.play();
+      else audio.pause();
+      return;
+    }
+    if (tts.isPaused) tts.resume();
+    else tts.pause();
   };
   const color = () => {
     if (!page || !text) return;
@@ -242,27 +388,48 @@ export default function Storybook({
     }
   };
 
-  const verseOn = reading && phase.current !== 'caption' ? tts.segmentIndex || 0 : -1;
-  const captionOn = reading && phase.current === 'caption' ? tts.segmentIndex || 0 : -1;
+  // Which sentence is lit: from the recording's cues (or an estimate), or the device reader's segment.
+  let verseOn = -1;
+  let captionOn = -1;
+  if (recorded && page) {
+    if (reading) {
+      const s = narrationSentences(text, page.caption);
+      const cues = rec.cues && rec.cues.length === s.all.length ? rec.cues : estimateCues(s.all, audio.duration);
+      const i = sentenceAt(cues, audio.t);
+      if (i >= 0 && i < s.verse.length) verseOn = i;
+      else if (i >= s.verse.length) captionOn = i - s.verse.length;
+    }
+  } else if (ttsReading) {
+    if (phase.current !== 'caption') verseOn = tts.segmentIndex || 0;
+    else captionOn = tts.segmentIndex || 0;
+  }
 
   const allRight = book.questions.every((q, i) => picks[i] != null && gradeStoryAnswer(q, picks[i]).right);
   const finish = async () => {
     const pct = Math.round((book.questions.filter((q, i) => picks[i] != null && gradeStoryAnswer(q, picks[i]).right).length / book.questions.length) * 100);
-    const rec = storybookRecord(book, { passed: allRight, pct });
+    const rec2 = storybookRecord(book, { passed: allRight, pct });
     let result = { skipped: 'signed-out' };
     if (signedIn) {
       try {
-        result = await saveRecord(rec);
+        result = await saveRecord(rec2);
       } catch (e) {
         result = { error: e };
       }
     }
     setSaved(result);
-    if (onDone) onDone(book.id, { passed: allRight, pct, result, record: rec });
+    if (onDone) onDone(book.id, { passed: allRight, pct, result, record: rec2 });
   };
 
   return (
-    <div className="kz-story" data-testid="storybook" data-book={book.id} data-page={index} data-auto={auto ? 'true' : 'false'}>
+    <div
+      className="kz-story"
+      data-testid="storybook"
+      data-book={book.id}
+      data-page={index}
+      data-auto={auto ? 'true' : 'false'}
+      data-narration={page ? (recorded ? 'recorded' : 'device') : ''}
+      data-cues={recorded ? (rec.cues ? 'timed' : 'estimated') : ''}
+    >
       {page ? (
         <>
           <div
@@ -290,7 +457,7 @@ export default function Storybook({
                 <span aria-live="polite" data-testid="storybook-pn">
                   PAGE {index + 1} OF {pages}
                 </span>
-                <span>{auto ? 'READING TO YOU' : 'READ-ALONG'}</span>
+                <span data-testid="storybook-mode">{auto ? 'READING TO YOU' : recorded ? 'NARRATED' : 'READ-ALONG'}</span>
               </div>
               {loading && (
                 <p className="lc-small" data-testid="storybook-loading">
@@ -335,16 +502,20 @@ export default function Storybook({
           </div>
           {auto && supported && (
             <div className="kz-actions" data-testid="storybook-reader-bar">
-              <button
-                type="button"
-                className={`kz-act plain ${KZ_FOCUS}`}
-                onClick={() => (tts.isPaused ? tts.resume() : tts.pause())}
-                aria-pressed={!!tts.isPaused}
-                data-testid="storybook-pause"
-              >
-                {tts.isPaused ? '▶ Keep reading' : '❚❚ Pause'}
+              <button type="button" className={`kz-act plain ${KZ_FOCUS}`} onClick={pauseOrResume} aria-pressed={paused} data-testid="storybook-pause">
+                {paused ? '▶ Keep reading' : '❚❚ Pause'}
               </button>
             </div>
+          )}
+          {quiet && !auto && (
+            <p className="lc-notice" role="status" data-testid="storybook-reader-quiet">
+              The device reader went quiet, so Read to me stopped here. Tap Hear this page to try again, or choose a voice in Settings.
+            </p>
+          )}
+          {recorded && audio.failed && (
+            <p className="lc-notice" role="status" data-testid="storybook-narration-failed">
+              The recording could not play just now. Tap again, or use the device reader from the Scripture tab.
+            </p>
           )}
           <div className="kz-dots" aria-hidden="true">
             {book.pages.map((p, i) => (

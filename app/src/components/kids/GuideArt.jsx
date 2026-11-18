@@ -12,7 +12,7 @@
 //     coming and names the render (P15: a surface never goes blank).
 // No name is shown for a guide until Darrell gives one (GUIDES[who].name).
 import React from 'react';
-import { GUIDES, KIDS_BRAND, SHOT_LIST, assetUrl, interimFor } from '../../lib/kids/guides.js';
+import { GUIDES, KIDS_BRAND, SHOT_LIST, assetUrl, interimFor, landedFile } from '../../lib/kids/guides.js';
 
 const BASE = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.BASE_URL) || '/';
 
@@ -32,7 +32,7 @@ export function kidsAsset(file) {
 
 /** A render by shot id when it has landed, else the honest fallback the caller chooses. */
 export function Shot({ id, alt = '', className = '', fallback = null, list = SHOT_LIST }) {
-  if (isLanded(id, list)) return <img className={`kz-shot ${className}`} src={kidsAsset(`${id}.png`)} alt={alt} data-shot={id} />;
+  if (isLanded(id, list)) return <img className={`kz-shot ${className}`} src={kidsAsset(landedFile(id) || `${id}.png`)} alt={alt} data-shot={id} />;
   return fallback;
 }
 

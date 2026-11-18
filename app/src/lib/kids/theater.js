@@ -22,6 +22,8 @@
 // `episode-<id>` record the trail and the Front Row badge read.
 // Pure: no React, no I/O.
 
+import { LANDED } from './guides.js';
+
 export const EPISODE_STATUSES = Object.freeze(['planned', 'in-production', 'published']);
 
 const ep = (id, title, scripture, storybook, status, source = null, extra = {}) => ({
@@ -35,12 +37,47 @@ const ep = (id, title, scripture, storybook, status, source = null, extra = {}) 
   captions: extra.captions || null,
 });
 
-/** The Love Corner Bible Adventures, the original series. */
-export const EPISODES = Object.freeze([
+/** The series as planned: every episode starts `planned`; the files decide the rest. */
+export const SERIES = Object.freeze([
   ep('jonah', 'Jonah and the Great Fish', 'Jonah 1–3', 'jonah', 'planned'),
   ep('noah', 'Noah and the Door Yahweh Shut', 'Genesis 6–9', 'noah', 'planned'),
   ep('david', 'David and the Giant', '1 Samuel 17', 'david', 'planned'),
 ]);
+
+/** The files an episode is made of, under the kids folder (the production brief names them). */
+export const EPISODE_FILES = Object.freeze({
+  video: (id) => [`episodes/${id}.mp4`, `episodes/${id}.webm`],
+  poster: (id) => [`episodes/${id}-poster.jpg`, `episodes/${id}-poster.png`],
+  captions: (id) => [`episodes/${id}.en.vtt`],
+});
+
+/**
+ * The series as the files make it (DR-1527): a video on disk publishes the
+ * episode with that source; a poster with no video reads in production (the
+ * poster shows, nothing claims to play); captions ride when their file is
+ * there. Nothing is published by hand and nothing by a tap.
+ */
+export function episodesFrom(manifest, series = SERIES) {
+  const has = (f) => !!(manifest && manifest.files && manifest.files[f]);
+  return series.map((e) => {
+    const video = EPISODE_FILES.video(e.id).find(has) || null;
+    const poster = EPISODE_FILES.poster(e.id).find(has) || null;
+    const captions = video ? EPISODE_FILES.captions(e.id).find(has) || null : null;
+    if (video)
+      return {
+        ...e,
+        status: 'published',
+        source: `lovecorner/kids/${video}`,
+        poster: poster ? `lovecorner/kids/${poster}` : null,
+        captions: captions ? `lovecorner/kids/${captions}` : null,
+      };
+    if (poster) return { ...e, status: 'in-production', source: null, poster: `lovecorner/kids/${poster}`, captions: null };
+    return e;
+  });
+}
+
+/** The Love Corner Bible Adventures, the original series, as the kids folder has it today. */
+export const EPISODES = Object.freeze(episodesFrom(LANDED));
 
 /** A URL the app may play: the church's own channel, or a published episode's YouTube source. */
 const PLAYABLE = /^https:\/\/(www\.)?(youtube\.com|youtu\.be)\//;

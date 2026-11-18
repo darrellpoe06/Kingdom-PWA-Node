@@ -67,13 +67,13 @@ git status
 
 `jonah-1.png` through `jonah-8.png`, 16:9, at least 1600 × 900, PNG or JPEG, the two approved children present as witnesses exactly as the artwork brief describes each scene (`2026-11-13-character-artwork-brief.md`, §3d): the dock at Joppa; the ship in the wind; the great fish the LORD prepared, calm and strong, never a monster; Jonah praying inside the fish (no guides on this page); the fish setting Jonah on dry sand; the gate of Nineveh; the people in sackcloth with the king; morning over the spared city. Same faces, hair, skin and wardrobe as the five approved images; no magic, no occult sign, no gore.
 
-### 4b. Audio narration (8 to 11 files)
+### 4b. Audio narration (8 files)
 
-One recording per page, `jonah-p1.m4a` through `jonah-p8.m4a` (AAC or MP3, mono, 44.1 kHz, about 128 kbps, under 1 MB each): the reader reads the KJV verse exactly as printed on the page, a short pause, then the guide's caption exactly as printed. Optional: `jonah-q1.m4a` to `jonah-q3.m4a` for the three questions. A quiet room, the same reader for all eight, a second of silence at each end. Claude writes the manifest and the captions; sentence timings are optional (the reader's own highlighting carries the page without them).
+One recording per page under `narration/`, `jonah-p1.m4a` through `jonah-p8.m4a` (AAC or MP3, mono, 44.1 kHz, about 128 kbps, under 1 MB each): the reader reads the KJV verse exactly as printed on the page, a short pause, then the guide's caption exactly as printed. Optional: `jonah-q1.m4a` to `jonah-q3.m4a` for the three questions. A quiet room, the same reader for all eight, a second of silence at each end. Claude writes the manifest and the captions; sentence timings are optional (the reader's own highlighting carries the page without them).
 
 ### 4c. Animated video (1 file, plus one still)
 
-`jonah.mp4`: 16:9, 1080p, H.264 video with AAC audio, 5 to 8 minutes, with a `jonah-poster.jpg` key frame. **Where it lives:** the app is served from Cloudflare Pages, whose documented per-file limit is 25 MiB, so a finished episode does not go in the repository. Two roads, both already in the architecture: the NAS serving the file through the same-origin transport (the sovereign road, Caddy-served like the tax feature), or an unlisted YouTube upload (already supported by the Theater today). The plan builds for both; Darrell names which when the video exists.
+`episodes/jonah.mp4`: 16:9, 1080p, H.264 video with AAC audio, 5 to 8 minutes, with an `episodes/jonah-poster.jpg` key frame. **Where it lives:** the app is served from Cloudflare Pages, whose documented per-file limit is 25 MiB, so a finished episode does not go in the repository. Two roads, both already in the architecture: the NAS serving the file through the same-origin transport (the sovereign road, Caddy-served like the tax feature), or an unlisted YouTube upload (already supported by the Theater today). The plan builds for both; Darrell names which when the video exists.
 
 ## 5. What does not change
 
@@ -82,6 +82,10 @@ Every game, lesson, quiz, the Grown-Ups tab, Teens Zone, the church home, the re
 ## 5a. J1 as built (2026-11-17, same day)
 
 Shipped in the same PR as this plan, every piece of §3 J1: `lib/kids/trail.js` (the five stops, lit from rows, next/locked/soon, the tap rule), `components/kids/AdventureTrail.jsx` (the trail on the Badges tab, Jonah in full and the other books compact, and the next stop on the Kids home), `components/kids/StoryOrder.jsx` (Put the story in order, a tile on the Games grid), the storybook's page turn, swipe, arrow keys, Read to me, sentence highlight and Learn the verse, the Theater's `<video>` road with poster and captions beside YouTube, the storybooks' verses in Word Builder and the memory verse game, three badges from rows, and records written by the order game, the memory game, Who am I? and the file player. The caption script for the episode is `jonah-episode-captions.en.vtt` beside this plan, generated from the in-repo KJV, timed as a draft. The live walk gained the order game and the trail as stops.
+
+## 5b. J2 as built (2026-11-18): the folder publishes (DR-1527)
+
+The exact deliverables, with the KJV per page and the narration script, are in `2026-11-18-jonah-production-brief.md` beside this plan. `scripts/kids-landed-manifest.mjs` writes what is in the kids folder to `app/src/lib/kids/landed.json` before every build; the registry derives from it: a scene file lands its page, a recording under `narration/` narrates its page (played by Hear this page and Read to me, with cued or estimated sentence highlighting), a poster under `episodes/` reads IN PRODUCTION, a video there publishes the episode into the Theater's own player with captions. Nothing is published by a status string.
 
 ## 6. Verification each step carries
 

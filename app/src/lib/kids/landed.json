@@ -1,0 +1,37 @@
+{
+  "folder": "app/public/lovecorner/kids",
+  "files": {
+    "bible-adventures-key-art.jpg": {
+      "kind": "image",
+      "bytes": 269132
+    },
+    "bible-open.png": {
+      "kind": "image",
+      "bytes": 596340
+    },
+    "guide-boy-face.png": {
+      "kind": "image",
+      "bytes": 532115
+    },
+    "guide-boy.png": {
+      "kind": "image",
+      "bytes": 967985
+    },
+    "guide-girl-face.png": {
+      "kind": "image",
+      "bytes": 435965
+    },
+    "guide-girl.png": {
+      "kind": "image",
+      "bytes": 1397249
+    },
+    "guides-pair.png": {
+      "kind": "image",
+      "bytes": 1788935
+    },
+    "logo.png": {
+      "kind": "image",
+      "bytes": 555878
+    }
+  }
+}
