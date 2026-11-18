@@ -213,6 +213,27 @@ describe('the receipt cannot carry a person’s words out of the house', () => {
     const stateClause = mig.match(/k = 'state'[\s\S]{0,200}?\)\)\)/);
     expect(stateClause, "the migration's state clause was not found").toBeTruthy();
     expect(stateClause[0], 'state must not be matched by a regex').not.toMatch(/~/);
+
+    // WHICH writer (0333, DR-1524). Same allowlist discipline, and the two
+    // fields that must never ride are asserted absent from the rebuild.
+    const kindsBlock = census.match(/^WRITER_KINDS = \(([^)]*)\)/m);
+    expect(kindsBlock, 'WRITER_KINDS could not be read from the census').toBeTruthy();
+    const kinds = [...kindsBlock[1].matchAll(/"([a-z][a-z-]*)"/g)].map((m) => m[1]);
+    expect(kinds.length, 'WRITER_KINDS parsed empty — the parse is wrong, not the migration')
+      .toBeGreaterThan(5);
+    for (const k of kinds) inList('k_kinds', k, 'writer kind');
+    // The receipt REBUILDS each entry from three fields. `why` is a probe's own
+    // words and `writer` is a name out of lesson-writers.json: if the migration
+    // ever named either inside the writers rebuild, prose could ride.
+    const rebuild = mig.match(/'writers',[\s\S]*?AS q\)/);
+    expect(rebuild, "the migration's writers rebuild was not found").toBeTruthy();
+    for (const never of ["'why'", "'writer'", "'family'", "'primary'"]) {
+      expect(rebuild[0], `${never} must never appear in the writers rebuild`).not.toContain(never);
+    }
+    // Only these three keys are built, and the kind by identity, never a shape.
+    expect(rebuild[0]).toMatch(/array_position\(k_kinds, w ->> 'kind'\)/);
+    expect(rebuild[0], 'the writer kind must not be matched by a regex').not.toMatch(/~/);
+    expect([...rebuild[0].matchAll(/'(kind|ok|configured)',/g)].length).toBe(3);
   });
 
   it('the public key’s role may call it and nothing more', () => {

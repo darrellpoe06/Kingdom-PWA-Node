@@ -25,10 +25,13 @@ import { KidsLogo, GuidesPair, GuideFace, GuideBubble, Shot, ShotSlot, AriStar, 
 import { GUIDES } from '../../lib/kids/guides.js';
 import KidsAdventure from './KidsAdventure.jsx';
 import Storybook from './Storybook.jsx';
+import StoryOrder from './StoryOrder.jsx';
+import AdventureTrail from './AdventureTrail.jsx';
 import Theater from './Theater.jsx';
 import WordBuilder from './WordBuilder.jsx';
 import WhoAmI from './WhoAmI.jsx';
 import GrownUps, { moduleFor } from './GrownUps.jsx';
+import { activityRecord, TRAIL_COURSES, trailProgress } from '../../lib/kids/trail.js';
 
 export const KIDS_TABS = Object.freeze([
   { id: 'adventure', label: 'ADVENTURE', icon: 'map' },
@@ -162,13 +165,33 @@ export default function KidsZone({
   const verse = weeklyVerse(door, at);
   const seed = weekIndex(at);
   const [tab, setTab] = useState('adventure');
-  const [sub, setSub] = useState(null); // 'lesson' | 'memory' | 'trivia' | 'builder' | 'whoami' | 'story:<id>'
+  const [sub, setSub] = useState(null); // 'lesson' | 'memory' | 'memory:<book>' | 'trivia' | 'builder' | 'whoami' | 'whoami:<Hero>' | 'story:<id>' | 'order:<id>'
   const [records, setRecords] = useState([]);
   const open = (t, s = null) => {
     setTab(t);
     setSub(s);
   };
   const back = () => setSub(null);
+  /** A trail stop's `open` value routed to its tab (J1, DR-1523). */
+  const route = (where) => {
+    if (where === 'theater') return open('theater');
+    return open('games', where);
+  };
+  /** A finished activity's record: saved when signed in, and counted here at once so the trail lights without a refetch. */
+  const recordDone = async (rec) => {
+    if (!signedIn || !rec) return { skipped: 'signed-out' };
+    let result;
+    try {
+      result = await saveRecord(rec);
+    } catch (e) {
+      result = { error: e };
+    }
+    if (result && !result.error && !result.skipped) setRecords((r) => [...r, rec]);
+    return result;
+  };
+  const countDone = (rec) => {
+    if (signedIn && rec) setRecords((r) => [...r, rec]);
+  };
   useEffect(() => {
     let alive = true;
     if (!signedIn) {
@@ -192,6 +215,8 @@ export default function KidsZone({
   const total = (pick && pick.courseKey === 'little-learners' ? LITTLE_LEARNERS_MODULES : LIVING_LESSONS_MODULES).length;
   const read = records.map(normalizeRecord).filter((r) => r.completedAt && r.courseKey === (pick && pick.courseKey)).length;
   const pct = signedIn && total ? Math.round((read / total) * 100) : 0;
+  const trail = trailProgress(STORYBOOKS[0], signedIn ? records : []);
+  const trailNext = trail.next >= 0 ? trail.stops[trail.next] : null;
 
   let body;
   if (sub === 'lesson')
@@ -208,14 +233,62 @@ export default function KidsZone({
         shotList={shotList}
       />
     );
-  else if (sub === 'memory')
+  else if (sub === 'memory' || (sub && sub.startsWith('memory:'))) {
+    const picked = sub.startsWith('memory:') ? STORYBOOKS.find((b) => b.id === sub.slice(7)) || null : null;
+    const ref = picked ? picked.memory : verse ? verse.ref : '';
     body = (
-      <section className="kz-panel" aria-labelledby="kz-mem-h" data-testid="memory-section">
-        <h3 id="kz-mem-h">This week's verse: {verse ? verse.ref : ''}</h3>
+      <section className="kz-panel" aria-labelledby="kz-mem-h" data-testid="memory-section" data-verse={ref}>
+        <h3 id="kz-mem-h">{picked ? `${picked.title}: ${picked.memory}` : `This week's verse: ${ref}`}</h3>
+        <div className="kz-chips" role="tablist" aria-label="Which verse">
+          <button
+            type="button"
+            role="tab"
+            className={`kz-chip ${KZ_FOCUS}`}
+            aria-selected={!picked}
+            onClick={() => setSub('memory')}
+            data-testid="memory-pick-week"
+          >
+            This week
+          </button>
+          {STORYBOOKS.filter((b) => b.memory).map((b) => (
+            <button
+              key={b.id}
+              type="button"
+              role="tab"
+              className={`kz-chip ${KZ_FOCUS}`}
+              aria-selected={!!picked && picked.id === b.id}
+              onClick={() => setSub(`memory:${b.id}`)}
+              data-testid={`memory-pick-${b.id}`}
+            >
+              {b.hero}
+            </button>
+          ))}
+        </div>
         <GuideBubble who="girl" shot="girl-shh-listen" list={shotList}>
           Read it, say it, then fill in the missing words from memory.
         </GuideBubble>
-        {verse && <MemoryVerseGame verseRef={verse.ref} seed={seed} load={loadVerse} />}
+        {ref && (
+          <MemoryVerseGame
+            key={ref}
+            verseRef={ref}
+            seed={seed}
+            load={loadVerse}
+            onSuccess={(r) =>
+              recordDone(
+                activityRecord({
+                  lessonId: picked
+                    ? `memory-${picked.id}`
+                    : `memory-week-${String(r)
+                        .toLowerCase()
+                        .replace(/[^a-z0-9]+/g, '-')}`,
+                  courseKey: TRAIL_COURSES.verse,
+                  passed: true,
+                  pct: 100,
+                })
+              )
+            }
+          />
+        )}
         <div className="kz-actions">
           <button type="button" className={`kz-act plain ${KZ_FOCUS}`} onClick={back}>
             ◀ Back to games
@@ -223,7 +296,7 @@ export default function KidsZone({
         </div>
       </section>
     );
-  else if (sub === 'trivia')
+  } else if (sub === 'trivia')
     body = (
       <section className="kz-panel" data-testid="trivia-section">
         <GuideBubble who="boy" shot="boy-explain" list={shotList}>
@@ -238,20 +311,59 @@ export default function KidsZone({
       </section>
     );
   else if (sub === 'builder') body = <WordBuilder door={door} now={at} loadVerse={loadVerse} onBack={back} shotList={shotList} />;
-  else if (sub === 'whoami')
+  else if (sub === 'whoami' || (sub && sub.startsWith('whoami:')))
     body = (
       <WhoAmI
+        key={sub}
         door={door}
         now={at}
         loadVerse={loadVerse}
         onBack={back}
         onOpenScripture={setChurchView ? () => setChurchView('scripture') : null}
         shotList={shotList}
+        hero={sub.startsWith('whoami:') ? sub.slice(7) : null}
+        onSolved={(person) =>
+          recordDone(activityRecord({ lessonId: `whoami-${String(person.name).toLowerCase()}`, courseKey: TRAIL_COURSES.hero, passed: true, pct: 100 }))
+        }
       />
     );
   else if (sub && sub.startsWith('story:'))
-    body = <Storybook bookId={sub.slice(6)} door={door} signedIn={signedIn} loadVerse={loadVerse} saveRecord={saveRecord} onBack={back} shotList={shotList} />;
-  else if (tab === 'theater') body = <Theater church={c} onOpenStorybook={(id) => open('adventure', `story:${id}`)} shotList={shotList} />;
+    body = (
+      <Storybook
+        bookId={sub.slice(6)}
+        door={door}
+        signedIn={signedIn}
+        loadVerse={loadVerse}
+        saveRecord={saveRecord}
+        onBack={back}
+        onDone={(id, r) => r && r.result && !r.result.error && !r.result.skipped && countDone(r.record)}
+        onLearnVerse={(b) => open('games', `memory:${b.id}`)}
+        shotList={shotList}
+      />
+    );
+  else if (sub && sub.startsWith('order:'))
+    body = (
+      <StoryOrder
+        key={sub}
+        bookId={sub.slice(6)}
+        seed={seed}
+        signedIn={signedIn}
+        saveRecord={saveRecord}
+        onPick={(id) => setSub(`order:${id}`)}
+        onBack={back}
+        onDone={(id, r) => r && r.result && !r.result.error && !r.result.skipped && countDone(r.record)}
+        shotList={shotList}
+      />
+    );
+  else if (tab === 'theater')
+    body = (
+      <Theater
+        church={c}
+        onOpenStorybook={(id) => open('adventure', `story:${id}`)}
+        onWatched={(ep) => recordDone(activityRecord({ lessonId: `episode-${ep.id}`, courseKey: TRAIL_COURSES.watch, passed: true, pct: 100 }))}
+        shotList={shotList}
+      />
+    );
   else if (tab === 'games')
     body = (
       <div className="kz-grid" data-testid="games-grid">
@@ -295,6 +407,16 @@ export default function KidsZone({
           testId="tile-whoami"
           list={shotList}
         />
+        <Tile
+          cls="k3"
+          title="Put the story in order"
+          sub="Jonah · Noah · David · what happened first?"
+          shot="boy-map"
+          what="the boy with the map"
+          onClick={() => setSub('order:jonah')}
+          testId="tile-order"
+          list={shotList}
+        />
         {STORYBOOKS.map((b) => (
           <Tile
             key={b.id}
@@ -326,6 +448,9 @@ export default function KidsZone({
             fallback={<ShotSlot id="pair-celebrate" className="kz-art" what="your guides cheering" />}
           />
         </div>
+        {STORYBOOKS.map((b, i) => (
+          <AdventureTrail key={b.id} book={b} records={records} signedIn={signedIn} onOpen={route} compact={i > 0} />
+        ))}
         <BadgeShelf signedIn={signedIn} fetchRecords={fetchRecords} now={at} />
         <AdventureMap pick={pick} records={records} signedIn={signedIn} />
       </>
@@ -349,6 +474,15 @@ export default function KidsZone({
               <i style={{ width: `${pct}%` }} />
             </div>
           </div>
+          {trailNext && (
+            <button type="button" className={`kz-next ${KZ_FOCUS}`} onClick={() => route(trailNext.open)} data-testid="home-trail-next">
+              <span>
+                <small>{STORYBOOKS[0].title} · your next stop</small>
+                <b>{trailNext.title} ▶</b>
+              </span>
+              <GuideFace who="boy" />
+            </button>
+          )}
         </div>
         <div className="kz-guides" data-testid="meet-guides">
           <Shot id="girl-wave" alt="Your guide" className="kz-face lg" list={shotList} fallback={<GuideFace who="girl" size="lg" />} />
