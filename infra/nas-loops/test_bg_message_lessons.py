@@ -162,12 +162,12 @@ class ConfigTest(unittest.TestCase):
 class MirrorToHosted(unittest.TestCase):
     """DR-1543: his words reach the hosted copy a cloud session can read."""
 
-    T = [
+    T = (
         {"video_id": "a", "text": "words a", "words": 2, "source": "whisper-nas"},
         {"video_id": "b", "text": "words b", "words": 2},
         {"video_id": "c", "text": "", "words": 0},
         {"video_id": "d", "text": "x", "words": 1, "error": "IpBlocked"},
-    ]
+    )
 
     def test_only_missing_transcripts_with_words_are_copied(self):
         rows = bg.mirror_rows(self.T, {"b"}, "inst-1")
