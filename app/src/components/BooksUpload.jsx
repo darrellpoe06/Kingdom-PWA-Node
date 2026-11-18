@@ -28,6 +28,7 @@ import { buildTimeline } from '../lib/books-intake-reconcile.js';
 import { reportBooksUploadCount } from './BooksUploadButton.jsx';
 import { resolveBridgeBearer } from '../lib/bridge-auth.js';
 import { getLedgerEditor, learnImportRules } from '../lib/ledger-edit.js';
+import { recheckScreenshotImports } from '../lib/screenshot-import-recheck.js';
 
 const MONO = { fontFamily: '"JetBrains Mono", monospace' };
 const SERIF = { fontFamily: '"Fraunces", serif' };
@@ -161,7 +162,8 @@ function SnapshotRows({ doc, x, onDecide, busy }) {
             <li key={`${r.date || r.openDate}-${r.description}-${i}`} className="flex gap-2" data-testid="intake-snapshot-row">
               <span className="w-[5.5rem] shrink-0 text-[#5A5751]">{r.date || (r.openDate ? `${r.openDate} · day needed` : 'day needed')}</span>
               <span className="flex-1 min-w-0 break-words text-[#1A1815]">{r.description}{r.pending ? ' · pending' : ''}{r.category === 'transfer' ? ' · transfer' : r.category === 'debt-payment' ? ' · debt payment' : ''}</span>
-              <span className={`shrink-0 ${r.signUnknown ? 'text-[#8B6F47]' : 'text-[#1A1815]'}`}>{r.signUnknown ? `${money(Math.abs(r.amount))} · in or out?` : `${r.amount < 0 ? '\u2212' : '+'}${money(Math.abs(r.amount))}`}</span>
+              <span className={`shrink-0 ${r.signUnknown || r.amountUnclear ? 'text-[#8B6F47]' : 'text-[#1A1815]'}`}>{r.amountUnclear ? 'amount unclear' : r.signUnknown ? `${money(Math.abs(r.amount))} · in or out?` : `${r.amount < 0 ? '\u2212' : '+'}${money(Math.abs(r.amount))}`}</span>
+              <RowFigures r={r} />
             </li>
           ))}
         </ul>
@@ -182,14 +184,30 @@ function SnapshotRows({ doc, x, onDecide, busy }) {
         {statuses.map((s) => {
           const r = s.row;
           const dup = s.status === 'duplicate';
+          const held = s.status === 'pending-posted';
           return (
-            <li key={s.index} className={`flex flex-wrap items-center gap-2 ${s.status === 'excluded' ? 'opacity-60' : ''}`} data-testid="intake-snapshot-row" data-status={s.status}>
+            <li key={s.index} className={`flex flex-wrap items-center gap-2 ${s.status === 'excluded' || held ? 'opacity-60' : ''}`} data-testid="intake-snapshot-row" data-status={s.status}>
               <label className="flex items-center gap-1 min-h-[36px]">
-                <input type="checkbox" checked={s.status === 'new'} disabled={!can || dup} onChange={(e) => onDecide(doc, { [s.index]: e.target.checked ? { exclude: false, category: (doc.rowDecisions || {})[s.index]?.category } : { exclude: true } })} aria-label={`Add ${r.description}`} data-testid={`intake-row-add-${s.index}`} />
+                <input type="checkbox" checked={s.status === 'new'} disabled={!can || dup} onChange={(e) => onDecide(doc, { [s.index]: e.target.checked ? { exclude: false, category: (doc.rowDecisions || {})[s.index]?.category, ...(held ? { addAnyway: true } : {}) } : { exclude: true } })} aria-label={`Add ${r.description}`} data-testid={`intake-row-add-${s.index}`} />
                 <span className="w-[5.5rem] shrink-0 text-[#5A5751]">{r.date}</span>
               </label>
               <span className="flex-1 min-w-[8rem] break-words text-[#1A1815]">{r.description}{r.pending ? ' \u00b7 pending' : ''}{dup ? ' \u00b7 already in the books' : ''}</span>
               <span className="shrink-0 text-[#1A1815]">{`${r.amount < 0 ? '\u2212' : '+'}${money(Math.abs(r.amount))}`}</span>
+              <RowFigures r={r} />
+              {s.pendingMatch && (
+                <span className="w-full pl-6 text-[0.625rem] text-[#8B6F47]" data-testid={`intake-row-pending-match-${s.index}`}>
+                  {held
+                    ? `Likely the posted copy of the pending ${s.pendingMatch.description} on ${s.pendingMatch.date} already in the books. Not added, so it is not counted twice; tick it if it is a separate charge.`
+                    : s.pendingMatch.strength === 'same'
+                      ? `The same transaction as the pending one on ${s.pendingMatch.date}.`
+                      : `Same amount as the pending ${s.pendingMatch.description} on ${s.pendingMatch.date}. Added; untick it if it is the same charge.`}
+                </span>
+              )}
+              {r.categoryConflict && (
+                <span className="w-full pl-6 text-[0.625rem] text-[#8B6F47]" data-testid={`intake-row-category-conflict-${s.index}`}>
+                  {`Read as a transfer between your accounts; your rule for this payee says ${categoryLabel(r.categoryConflict)}. Choose which below.`}
+                </span>
+              )}
               <label className="w-full flex items-center gap-1 pl-6 text-[#5A5751]">
                 <span>Category</span>
                 <select value={r.category || 'other'} disabled={!can || dup || s.status === 'excluded'} onChange={(e) => onDecide(doc, { [s.index]: { category: e.target.value } })} aria-label={`Category for ${r.description}`} data-testid={`intake-row-category-${s.index}`} className="min-h-[36px] px-1 border border-[#E8E4DC] bg-white text-[#1A1815]">
@@ -201,6 +219,71 @@ function SnapshotRows({ doc, x, onDecide, busy }) {
           );
         })}
       </ul>
+      <UnclearRows list={x.preview_items} />
+    </div>
+  );
+}
+
+// What the screen printed for a row, beside the amount taken: the bank's
+// running balance after it, and where the sign came from. A running balance
+// read as the amount (Christina 2026-11-18, Chase 7206) is visible here.
+function RowFigures({ r }) {
+  if (r.runningBalance == null && !r.amountUnclear) return null;
+  const printed = (r.printed || []).map((v) => `${v < 0 ? '\u2212' : ''}${money(Math.abs(v))}`).join(' and ');
+  return (
+    <span className="w-full pl-6 text-[0.625rem] text-[#5A5751]" data-testid="intake-row-figures">
+      {r.amountUnclear
+        ? `The screen printed ${printed || 'no clear amount'}; which is the amount could not be told from the balance. Not added; enter it by hand or upload a clearer copy.`
+        : `Bank balance after: ${money(r.runningBalance)}${r.signFrom === 'balance' ? ' \u00b7 in or out read from the balance' : ''}`}
+    </span>
+  );
+}
+
+// Rows the screen showed but whose amount was not clear: listed, never added.
+function UnclearRows({ list }) {
+  const unclear = (list || []).filter((r) => r && r.amountUnclear);
+  if (!unclear.length) return null;
+  return (
+    <ul className="mt-1 space-y-1" style={MONO} data-testid="intake-unclear-rows">
+      {unclear.map((r, i) => (
+        <li key={`${r.description}-${i}`} className="flex flex-wrap gap-2 text-[#8B6F47]" data-testid="intake-unclear-row">
+          <span className="w-[5.5rem] shrink-0">{r.date || r.openDate || 'day needed'}</span>
+          <span className="flex-1 min-w-[8rem] break-words">{r.description}{" \u00b7 not added: amount unclear"}</span>
+          <RowFigures r={r} />
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+// Screenshots already added, re-read with the corrected reader (2026-11-18:
+// Chase running balances were read as amounts). Lists what differs; changes
+// nothing. A correction is made by the person, row by row, in Transactions.
+function PastScreenshotCheck({ docs, transactions }) {
+  const res = useMemo(() => recheckScreenshotImports(docs, transactions), [docs, transactions]);
+  if (!res.findings.length && !res.notCheckable) return null;
+  const sign = (n) => (n == null ? '\u2014' : `${n < 0 ? '\u2212' : '+'}${money(Math.abs(n))}`);
+  return (
+    <div className="border border-[#B85838] bg-[#FAF8F4] p-2 text-[0.6875rem] text-[#1A1815]" role="status" data-testid="past-screenshot-check">
+      <p className="font-medium">
+        {res.findings.length
+          ? `${res.findings.length} row${res.findings.length === 1 ? '' : 's'} from screenshots already added ${res.findings.length === 1 ? 'reads' : 'read'} differently with the corrected reader. Nothing has been changed.`
+          : 'No differences found in the screenshots this device can re-read.'}
+      </p>
+      {res.findings.length > 0 && (
+        <ul className="mt-1 space-y-0.5" style={MONO}>
+          {res.findings.map((f, i) => (
+            <li key={`${f.docId}-${i}`} data-testid="past-screenshot-finding" data-kind={f.kind}>
+              {`${f.date} \u00b7 ${f.description}: in the books ${sign(f.written)}; `}
+              {f.kind === 'amount-wrong'
+                ? `the screen says ${sign(f.correct)}${f.runningBalance != null ? ` (bank balance after: ${money(f.runningBalance)})` : ''}`
+                : `the screen's amount is not clear (printed ${(f.printed || []).map((v) => money(Math.abs(v))).join(' and ') || 'nothing clear'})`}
+            </li>
+          ))}
+        </ul>
+      )}
+      {res.notCheckable > 0 && <p className="mt-1 text-[#5A5751]">{`${res.notCheckable} screenshot${res.notCheckable === 1 ? ' was' : 's were'} added on another device and cannot be re-read here; open this on that device to check ${res.notCheckable === 1 ? 'it' : 'them'}.`}</p>}
+      {res.findings.length > 0 && <p className="mt-1 text-[#5A5751]">Correct each row in Transactions (edit its amount) or remove it there. Nothing changes until you do.</p>}
     </div>
   );
 }
@@ -302,6 +385,7 @@ export default function BooksUpload({ hint = null, data = {}, debts = [], demo =
             Statements, downloads, bills, receipts, pay stubs, tax papers, a photo of any of them. Every file is kept the moment you choose it. What we are sure of moves on; what we are not sure of waits for your answer, and nothing unsure is added to the books.
           </p>
           {hinted && <p className="text-[0.6875rem] text-[#5A5751]">{hinted}</p>}
+          <PastScreenshotCheck docs={docs} transactions={known.transactions} />
           <div className="flex flex-wrap gap-2">
             <button type="button" onClick={() => inputRef.current && inputRef.current.click()} disabled={!!busy}
               className="inline-flex items-center gap-2 text-xs uppercase tracking-wider px-4 min-h-[44px] border-2 border-[#1A1815] bg-[#1A1815] text-white hover:bg-[#B85838] hover:border-[#B85838] disabled:opacity-50">

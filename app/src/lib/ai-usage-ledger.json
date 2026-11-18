@@ -1822,6 +1822,21 @@
       "notes": "Runner tailnet key expired 2026-11-04; every research-inbox run failed at the join. Same SQL via live-sql local mode."
     },
     {
+      "id": "ledger-adds-off-the-tail",
+      "date": "2026-11-18",
+      "task": "The ledger adds off the tail: --add places an entry at a slot read from its id, never in the last 40, so waiting lesson PRs stop conflicting with every landing",
+      "drs": [
+        "DR-1536"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.6,
+      "estimateWithoutAiHours": 4,
+      "notes": "Proven with git merge-file in ledger-adds-off-the-tail.test.js: two tail appends conflict; two placed entries merge cleanly with both kept. Found while landing sov84, pm19 and sov85-88 on 2026-11-18."
+    },
+    {
       "id": "reviewer-lens-promise",
       "date": "2026-11-12",
       "task": "The reviewer lens cannot promise more than it hides: one registry generates every lens description, the work-order board and the payments ledger honour it, a gate holds the sentence equal to the surfaces",
@@ -2468,6 +2483,36 @@
       "notes": "Reserved L310 and DR-1480 on origin; L309 was already held by another session. GitHub returned 503 on reservation pushes for several minutes; retried with backoff. 130 quoted spans filled from app/public/bible/kjv by fill-verses.mjs, none typed. News read from the two 2026-11-13 newsletters only; NYT and Reuters reports not read; the 2026-11-10 Morning Brew forward (thread 1a1c5c35c2357a0f) was not read in this build, re-review 2026-11-27."
     },
     {
+      "id": "sov86-all-the-works-of-this-pattern",
+      "date": "2026-11-13",
+      "task": "Sovereign A.I. week 86 built from one word over a forwarded TLDR digest (2026-11-06): the maker behind the tool, disclosed; all four age bands, 38-case gate",
+      "drs": [
+        "DR-1502"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.5,
+      "estimateWithoutAiHours": 40,
+      "notes": "Gmail thread 1a1b29d09bf45870, forwarded 2026-11-06T20:46Z (2:46 PM CST), built 2026-11-13 from the intake backlog. One item of fourteen taken (profile summary of the maker's founding philosophies); the IPO lead already taught in sov78/sov79. Disclosure in every teaching place: the app is built with that maker's tool. Profile not read (dnyuz.com ENOTFOUND); reported only, re-review 2026-11-27. Held behind sov84 and sov85."
+    },
+    {
+      "id": "sov87-cleanse-thou-me-from-secret-faults",
+      "date": "2026-11-13",
+      "task": "Sovereign A.I. week 87 built from one word over a forwarded IT Brew issue (Site unseen), all four age bands, 44-case gate",
+      "drs": [
+        "DR-1501"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.2,
+      "estimateWithoutAiHours": 40,
+      "notes": "Gmail thread 1a1c24a55626cb1c, forwarded 2026-11-09T21:50Z (3:50 PM CST), built 2026-11-13 draining the intake backlog. One teaching, one lesson: sov81 already taught the PHP fix known and not applied, so this week teaches the lead story's fault nobody saw and the keepers nobody owned, naming week 81 and gated against re-quoting its frame. 31 anchor references, 128 quoted spans, every verse filled from app/public/bible/kjv by scripts/sov87-fill.mjs and none typed. House measured: 11+17 packages named, 578 installed, 161 with funding, 0 PHP files, 5 of 11 single-maintainer on the registry 2026-11-13, first audit 21 known. www.itbrew.com and www.php.net refused (403 CONNECT). HELD_IN_FLIGHT 84-86. re-review 2026-11-27."
+    },
+    {
       "id": "reader-keeps-the-voice-you-chose",
       "date": "2026-11-13",
       "task": "The reader keeps the chosen voice through a NAS hand-off and a rebuilt voice list, skips the end-of-lesson books list, and names what blocks my voice",
@@ -2481,6 +2526,21 @@
       "wallClockHours": 1.5,
       "estimateWithoutAiHours": 16,
       "notes": "Root cause traced to the onFallback hand-off speaking an unmatched-gender phone voice and a speak-time URI miss setting no voice. New suite 13 cases, 9 fail on origin/main. My voice blocked: tower studio unarmed (arm run 36796584904) and CI tailnet key invalid (run 43310501087)."
+    },
+    {
+      "id": "sov88-every-man-by-his-own-standard",
+      "date": "2026-11-13",
+      "task": "Sovereign A.I. week 88 built from one word over a forwarded ByteByteGo issue (EP232, six orchestration frameworks), all four age bands, 40-case gate",
+      "drs": [
+        "DR-1504"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.6,
+      "estimateWithoutAiHours": 40,
+      "notes": "Gmail thread 1a1b6e6085128724, forwarded 2026-11-09T13:29Z (7:29 AM Central), built 2026-11-13 draining the intake backlog. Six one-line framework descriptions whole in the email, taught as reported and unranked; the diagram was an image and blog.bytebytego.com refused (403 CONNECT), re-review 2026-11-27. 35 anchor references, 136 quoted spans, every verse filled from app/public/bible/kjv by scripts/sov88-fill.mjs and none typed. Our build measured: DR-0077 lanes, reserve-ref KINDS dr/ll only, capacity-budget live (room 3, wanted 4), HELD_IN_FLIGHT [84,85,86,87], github-ops classifyLane blind to the ledgers, and the landing train at 17:10 UTC (7 of 14 PRs opened that day dirty; ai-usage-ledger.json in 6 of the 7). Hours lost not measured."
     },
     {
       "id": "sov82-how-beautiful-are-the-feet",
@@ -3070,6 +3130,36 @@
       "wallClockHours": 0.9,
       "estimateWithoutAiHours": 8,
       "notes": "Verified the events through search (resignation, his own admission, the GRAT terminations) before writing; page fetches refused by the network allowlist, named in UNCHECKED. The unconfirmed per-share price was dropped and the unproven espionage allegation gated out. 131 quotations filled from the corpus; gate 15/15; ladder child 1.4 < youth 3.5 < teen 4.8 < senior 8.6."
+    },
+    {
+      "id": "which-failure-site-refused-the-build",
+      "date": "2026-11-18",
+      "task": "The keyless lesson-queue receipt names WHICH failure site refused a build (no-writer, gates, tests, no-push-token, catalog, budget, crashed) instead of 'other: 6', by identity against lesson_builder's own authored openings; migration 0334 refuses independently; the reader prints the job each class asks for; and why_of now treats both self-healing classes alike",
+      "drs": [
+        "DR-1534"
+      ],
+      "prs": [],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.6,
+      "estimateWithoutAiHours": 6,
+      "notes": "Found while reading the 05:12Z census on the hourly intake tick: six of seven waiting rows classed 'other', the oldest 5 d 16 h. Proven to catch in two independent gates; the JS gate previously could not see a site class at all. Nothing measured live yet -- the NAS re-classes on its own 15-minute census."
+    },
+    {
+      "id": "ask-the-box-with-a-tool-not-a-one-liner",
+      "date": "2026-11-18",
+      "task": "A committed read-only diagnostic on the NAS (why_the_builds_failed.py) for the six waiting rows whose failure site 0334 could not name: row id, writer, error to a stated cut and the NAMES of the gates that did not pass, never the drafted lesson, the prompt or a fault's text",
+      "drs": [
+        "DR-1537"
+      ],
+      "prs": [],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.5,
+      "estimateWithoutAiHours": 4,
+      "notes": "DR-1534's first live read named the limit rather than the cause. Refused the fifth-receipt move DR-1526 recorded as wrong and built the direct read for road 2 instead. Proven to catch a printed draft; 10 cases, wired into ci.yml. Not run on the NAS -- only Darrell's own ssh can."
     },
     {
       "id": "jonah-j2-landed-manifest",

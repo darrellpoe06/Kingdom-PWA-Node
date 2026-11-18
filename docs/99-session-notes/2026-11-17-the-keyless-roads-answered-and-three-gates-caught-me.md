@@ -378,3 +378,145 @@ key was still the blocker for that witness.
 Eight identical `re-review: 2026-11-24` dates would have re-asked settled
 questions. The dates stay in the records (append-only), and this table is what
 the sweep reads first. **Only DR-1519 and DR-1524 still carry real questions.**
+
+---
+
+## 10. The ninth read said `other: 6` — and that is where the series stopped being about the key (DR-1534)
+
+**Measured 2026-11-18 05:12Z, run 44242079320.** The hourly intake tick fired
+at 05:04. The tailnet step failed five times over 200 seconds
+(`invalid key: API key does not exist` — the key is still dead; the incident
+entry on #2517 last moved 7.0 h ago), the keyless road answered as designed,
+and the queue read exactly as it had at 04:08: **7 waiting, 0 building,
+attempts 4,2,2,2,2,2,2** — every row past its tries, the handoff stable.
+
+Nothing to report, by the routine's own closing line. So I read the rest of
+what the census said, which is where the real finding was:
+
+```
+By shape -- build-failed: 7.
+Failed because -- other: 6, transient: 1.
+The oldest has waited 5 d 16 h.
+The builder -- service: active; building now: 0; state: ready
+```
+
+### The series had been asking the wrong half of the question
+
+DR-1514 → DR-1524 each added a field about **the builder's readiness**, and by
+DR-1524 that question was closed: a lapsed `claude` sign-in, which Darrell
+fixed from his laptop at 00:52. The builder then went `ready`, attempted every
+row — **and every build failed.** Readiness was never the thing that would
+build a lesson. `other: 6` is.
+
+And `other` is not a cause. It means "not one of the two classes that retry
+themselves". Six teachings, five days old, and the one word the road could give
+a reader sends nobody anywhere — while a missing writer, a draft the gates
+refuse, a red test and a missing push token are four different hands.
+
+### What it cost to find, and what made it cheap
+
+The builder **already names its site every time**, in its own authored prose,
+at every place that composes a failure: `lesson_builder.py:487, 1055, 1135,
+1147, 1506, 2641, 2643` and `lesson_gates.py:471`. Eight openings. The census
+was reading none of them — it tested two prefixes and gave up.
+
+One site genuinely resists this: `:1029` tags an unexpected crash
+`<ExceptionType>: <message>`, whose opening is a class name, not a literal.
+That one stays `other`, published as the limit rather than discovered later,
+and the durable fix for it is a class word at the **source** — which reaches
+only failures built after it ships, and so could not have re-classed the six
+rows waiting right now. That ordering is why 0334 went first and the source
+change is queued behind it.
+
+### Two gates, and one of them could not have caught this before today
+
+`the-queue-is-readable-without-the-key` already cross-checks the census's
+vocabulary against the migration's allowlists — and it reads `STALLS`, which
+does not hold the site classes, plus `returnsOf('stall_of')`, whose literal
+returns are only `'other'` because the function returns a variable. So a site
+class absent from `k_stalls` would have been dropped on the public road and
+read as nothing at all, silently. The gate now reads `FAILURE_SITES` too, and
+dropping `no-writer` from 0334 fails it by name.
+
+The drift risk is the other way round: a prefix match rots the moment the
+builder re-words a message. A case reads both builder files and fails if any
+literal is no longer prose the builder writes — proven by re-wording one.
+
+### The second wrong answer, found while reading rather than while failing
+
+`why_of` asked `stall_of(row) == "rate-limited"`. But
+`lesson_builder.rate_limited()` treats `transient` **identically** and allows
+`MAX_ATTEMPTS + RATE_LIMIT_RETRIES` tries. A `transient` row at 2 attempts
+therefore read `failed` with `attempts: 2`, and a reader comparing against
+MAX_ATTEMPTS=2 would call exhausted a row the builder would still offer twice
+more. Nothing was failing; the answer was simply wrong, and only reading both
+sides against each other showed it. Corrected in the same change.
+
+### What is NOT claimed
+
+Nothing here is measured live. Until the NAS pulls this census on its own
+15-minute clock the six rows still read `other`, and the first real test of
+0334 is the next read after it lands. `re-review: 2026-11-25`.
+
+---
+
+## 11. The instrument worked, and then told me to stop building instruments (DR-1537)
+
+**0334's first live read, 07:09Z, run 44256161123, census code `ab7672790dfc`**
+— main's own code, so the NAS had pulled it:
+
+```
+Failed because -- other: 6, transient: 1.
+  1 x transient -- a passing moment (the CLI's sign-in refresh raced), waited
+                   out by the builder itself -- nothing for a person
+  6 x other -- its reason matches no site this road knows: the builder's log on
+               the box is the next read, and a new site name is the fix
+  65241324-... | research-inbox | build-failed/transient | rate-limited after 4
+```
+
+Three things proved themselves on live data, within eleven minutes of the
+deploy landing:
+
+1. **The class carries its job.** Each line now says what it asks of a person.
+2. **DR-1534's second correction is visible.** `65241324` reads `rate-limited
+   after 4`; every read before it said `failed after 4`. That is `why_of`
+   treating `transient` as self-healing, which is what the builder does.
+3. **The six matched nothing.** On the new code. Which leaves `:1029`'s
+   `<ExceptionType>: <message>` crash — the limit 0334 published rather than
+   hid — as the standing hypothesis, and it is still a hypothesis.
+
+### The move I did not make, and why that is the finding
+
+A fifth receipt could narrow this without anyone's hand: the opening of a
+`:1029` reason is a single token before its colon, where every builder literal
+has spaces, so the census could test that on the box and publish one more
+constant word. It would have worked. **DR-1526, written nine hours earlier,
+says that is the wrong move** — building a receipt to infer what a direct read
+states outright. The roads in order are the runner (key dead since 11-04),
+Darrell's own ssh, his hand. Road 2 answers it outright.
+
+So the build was the TOOL FOR ROAD 2, not another receipt:
+`infra/nas-lesson-builder/why_the_builds_failed.py`, reading the records
+`_store` already writes at `lesson_builder.py:1251`. One path, no quoting:
+
+```
+ssh dpoe@192.168.1.26 "python3 /volume1/PoeTech/repos/Kingdom-PWA-Node/infra/nas-lesson-builder/why_the_builds_failed.py"
+```
+
+### What it may print, and what it may never
+
+Those records hold `body` — the drafted lesson — and `prompt_text`, which
+quotes the teaching. So the diagnostic prints the row id, the writer, the
+elapsed time, `error` to a stated cut, and the **names** of the gates that did
+not pass with their fault **counts**. Not a fault's text: the verse gate's
+faults quote both the draft and the verse. `--faults` exists for a person
+reading their own box on purpose and its help says so in those words.
+
+Proven to catch: a version that prints `body` fails the marker case. An empty
+or missing store exits non-zero saying *"which is not 'no failures'"* — DR-0076
+§8 on the diagnostic itself.
+
+**Not claimed:** it has not been run. Only Darrell's ssh can run it, the output
+is his to read, and the six rows' cause is still unnamed. Four consecutive
+reads (05:12, 06:09, 07:09, 08:09) were otherwise identical: 7 waiting, 0
+building, the handoff stable.

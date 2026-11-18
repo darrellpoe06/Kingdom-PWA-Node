@@ -229,10 +229,50 @@ def shape_of(row):
 # person's words -- so the rest is not read here and never leaves the house.
 # A class name is a tag shape, which is what this file is permitted to emit.
 STALLS = ("rate-limited", "transient")
+# A CLASS THAT HEALS ITSELF. lesson_builder.rate_limited() reads BOTH of the
+# above off the front of the tag and waits the row out with
+# MAX_ATTEMPTS + RATE_LIMIT_RETRIES tries, not MAX_ATTEMPTS. Measured here
+# 2026-11-18: why_of() asked only for 'rate-limited', so a `transient` row read
+# `failed` with 2 attempts and a reader comparing against MAX_ATTEMPTS=2 would
+# have called exhausted a row the builder would still offer twice more.
+SELF_HEALING = STALLS
+
+# WHICH FAILURE SITE, BY IDENTITY AGAINST THE BUILDER'S OWN PROSE (2026-11-18).
+# MEASURED on run 44242079320: `Failed because -- other: 6, transient: 1`.
+# Six teachings, five days old, and `other` names nothing -- it says only "not
+# one of the two that retry themselves", which is where 0322 left the reader:
+# knowing a person is wanted and not what for. A missing writer, a draft the
+# gates refuse, a red test and a missing push token are four different jobs.
+#
+# WHY A PREFIX MATCH IS SAFE HERE WHEN A SHAPE IS NOT. The pairs below are
+# lesson_builder's OWN authored openings, at every site that composes a
+# BuildFailed or a _run_job failure. What is published is the right-hand word --
+# this file's own constant -- so the row's string never rides even when it
+# matches, and the tail (which can quote a gate error carrying a person's words)
+# is not read at all. A shape such as ^[a-z- ]+$ would be satisfied by
+# `no words from mary smith`; byte-identity with a literal below is not.
+#
+# ITS LIMIT, PUBLISHED RATHER THAN DISCOVERED: lesson_builder.py:1029 tags an
+# unexpected crash as `<ExceptionType>: <message>`, whose opening is a class
+# name and not a fixed literal, so such a row stays `other`. Naming it wants a
+# class word at the SOURCE (reason_tag), which is a builder change and reaches
+# only failures after it ships -- it cannot re-class the six already tagged.
+FAILURE_SITES = (
+    ("no writer reachable", "no-writer"),
+    ("no version passed every gate", "gates"),
+    ("the gates failed on the committed object", "gates"),
+    ("local tests failed", "tests"),
+    ("no github token at", "no-push-token"),
+    ("bible-study-session.js has no", "catalog"),
+    ("budget:", "budget"),
+    ("the build process crashed (exit", "crashed"),
+)
+SITE_CLASSES = tuple(sorted({cls for _, cls in FAILURE_SITES}))
 
 
 def stall_of(row):
-    """For a build-failed row: 'rate-limited', 'transient' or 'other'."""
+    """For a build-failed row: a word from STALLS, one from SITE_CLASSES, or
+    'other' when its reason matches no site this file knows."""
     tags = row.get("tags") or []
     tags = tags if isinstance(tags, list) else []
     for t in tags:
@@ -241,6 +281,9 @@ def stall_of(row):
         why = t[len("build-reason:"):].strip().lower()
         for cls in STALLS:
             if why.startswith(cls):
+                return cls
+        for opening, cls in FAILURE_SITES:
+            if why.startswith(opening):
                 return cls
         return "other"
     return "other"
@@ -322,7 +365,12 @@ def why_of(row, empty_ids=()):
     if any(isinstance(x, str) and x.startswith("build:deferred@") for x in tags):
         return "deferred"
     if attempts_of(row):
-        return "rate-limited" if stall_of(row) == "rate-limited" else "failed"
+        # BOTH self-healing classes, not just the one named 'rate-limited'
+        # (corrected 2026-11-18). eligibility() refuses such a row with
+        # "rate-limited {n} times", in those words, for a `transient` failure
+        # too -- so this is the builder's own vocabulary, and asking only for
+        # 'rate-limited' here under-reported a row that still had tries left.
+        return "rate-limited" if stall_of(row) in SELF_HEALING else "failed"
     return "ready"
 
 

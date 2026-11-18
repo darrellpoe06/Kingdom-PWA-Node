@@ -173,6 +173,21 @@ describe('the receipt cannot carry a person’s words out of the house', () => {
     for (const s of stalls) inList('k_stalls', s, 'by_stall class');
     for (const s of returnsOf('stall_of')) inList('k_stalls', s, 'by_stall fallback');
 
+    // WHICH FAILURE SITE (0334). The seven site classes live in FAILURE_SITES,
+    // not in STALLS, and `stall_of` returns them through a variable — so
+    // neither check above can see them, and a site the migration cannot say
+    // would be dropped on the public road and read as nothing at all. The
+    // class is the SECOND string of each pair; the first is the builder's own
+    // prose and is never published, so it is deliberately not checked here.
+    const sitesBlock = census.match(/^FAILURE_SITES = \(([\s\S]*?)^\)/m);
+    expect(sitesBlock, 'FAILURE_SITES could not be read from the census').toBeTruthy();
+    const siteClasses = [...sitesBlock[1].matchAll(/,\s*"([a-z-]+)"\),/g)].map((m) => m[1]);
+    expect(
+      siteClasses.length,
+      'FAILURE_SITES parsed empty — the parse is wrong, not the migration'
+    ).toBeGreaterThan(5);
+    for (const s of siteClasses) inList('k_stalls', s, 'failure site class');
+
     // The builder's service word (0327): systemd's vocabulary plus the census's
     // own fallback. A word the migration cannot say would be dropped silently.
     const svcBlock = census.match(/^SERVICE_WORDS = \(([^)]*)\)/m);
