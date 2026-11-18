@@ -162,7 +162,8 @@ describe('the walk: the shared editor is on every surface that shows a payee or 
 
   it('the shell publishes the SAME two functions it hands the Tx tab', () => {
     const shell = readFileSync(join(HERE, '..', 'poe-financial-mvp-v28.jsx'), 'utf8');
-    expect(shell).toMatch(/publishLedgerEditor\(\{ updateTransaction, recategorizePayee, demo: isAnyDemoMode, transactions: data\.transactions \|\| \[\] \}\)/);
+    // Phase 1.4 (2026-11-17): a rule-only learnPayeeRule rides the same line (money-import-learns-rules.test.jsx).
+    expect(shell).toMatch(/publishLedgerEditor\(\{ updateTransaction, recategorizePayee, (learnPayeeRule: [^\n]*?, )?demo: isAnyDemoMode, transactions: data\.transactions \|\| \[\] \}\)/);
     expect(shell).toMatch(/<BooksTransactions [^\n]*updateTransaction=\{updateTransaction\}[^\n]*recategorizePayee=\{recategorizePayee\}/);
   });
 });

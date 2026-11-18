@@ -1,6 +1,6 @@
 # The Love Corner shell redesign: audit, preservation checklist, three previews
 
-Date: 2026-11-13. Branch: `ccr-91fb688d-spyn2g`. Status: **audit and previews delivered; no file under `app/src` changed; waiting on Darrell's approval of the three screens (brief, Phase 10).**
+Date: 2026-11-13. Branch: `ccr-91fb688d-spyn2g`. Status: **approved ("Go", 2026-11-13). Phases A and B built as DR-1483: the header, the profile menu, the All Features sheet, Personalize My App and the Night theme. Phase C built as DR-1484: the seven-tab bar, the homepage in the picture's order, the two dock findings fixed. Phases D–F follow.**
 
 Previews: `docs/design/love-corner-shell/2026-11-13-shell-previews.html` (artifact https://claude.ai/artifact/8ai6La7jakepWyYNe3MbSe) and the stills `2026-11-13-preview-screen-{1-home,1b-profile-menu,2-personalize,3-kids-zone}.png` beside it. The current top of the app, measured, is `2026-11-13-current-top-390.png`.
 
@@ -146,3 +146,9 @@ Run the current suite (lint + 4 vitest shards + gates) on every PR. Add: header 
 ## 9. Decision requested
 
 Approve Screens 1, 1b, 2 and 3 as drawn, or say what to change. Nothing under `app/src` moves until then.
+
+## 10. Handoff (written 2026-11-13, mid-lane, in case this session ends)
+
+- **PR #2672** (branch `ccr-91fb688d-spyn2g`, head `b0f303032`): Phases A+B (DR-1483) plus the four CI fixes (the layout probe measures the new header; the theme-list test counts Night; the 320 px header rule; the live-still workflow). Auto-merge (squash) is armed. **Remaining:** wait for CI green → it squash-merges → confirm a `Deploy (Cloudflare Pages)` run on the merged SHA prints BOOT OK → dispatch `site-health.yml` on main and read `verdict=UP` with the served build = main → dispatch `live-homepage-still.yml` on main and download its `live-still` artifact for the production screenshot → write the verification line into DR-1483.
+- **Branch `phase-c-wip`** (pushed; head `709d4088b`): Phase C (DR-1484: the seven-tab bar, the homepage in the picture's order, the dock fixes). **Remaining:** after #2672 merges, `git reset --hard origin/main` on `ccr-91fb688d-spyn2g`, cherry-pick `d9ba672e2` and `b959b1b22` from `phase-c-wip` (the other commits there are already in #2672), run `node scripts/resolve-ledger-conflicts.mjs` if the ledger files conflict, push, let the lane open the PR, then the same deploy proof; DR-1484's INDEX row and ledger line are in that commit.
+- **Not started:** Phase D (Kids Zone shell, true ages, Ari child mode), E (Word builder, Who am I?), F (comfort pass).

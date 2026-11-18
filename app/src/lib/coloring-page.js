@@ -86,21 +86,29 @@ export function traceableWords(text, limit = 5) {
 }
 
 /**
- * The symbol library — plain shapes a child can color, each keyed to words a
- * lesson might use. Paths are deliberately simple: thick outlines, big areas,
- * nothing a crayon cannot stay inside.
+ * The picture library — line-art pieces a child can color, each keyed to the
+ * words a lesson might use and each drawn inside a 100×100 box with several
+ * closed regions, so a crayon has rooms to fill, not one outline to admire.
+ *
+ * `place` tells the scene where a piece belongs: in the `sky` (stars, the sun,
+ * a dove) or on the `ground` (a lamb, a tree, a house, the cross on its hill,
+ * an open Bible on the grass). The scene draws hills, a sun and clouds around
+ * them so the page is a picture, not a row of icons (Darrell, 2026-11-13: "We
+ * can do way better than this"). No faces are drawn on anything: the two
+ * guides' line-art for coloring is a render of the approved reference (the
+ * artwork brief), never a drawing here.
  */
 export const SYMBOLS = [
-  { id: 'lamb', words: ['lamb', 'sheep', 'shepherd', 'flock'], d: 'M24 62 a20 15 0 1 0 40 0 a20 15 0 1 0 -40 0 Z M64 52 a11 11 0 1 0 22 0 a11 11 0 1 0 -22 0 Z M28 54 a7 7 0 0 1 12 -5 a7 7 0 0 1 12 0 a7 7 0 0 1 10 5 M66 44 a6 4 0 1 0 9 -4 M79 49 a1.6 1.6 0 1 1 0.1 0 M34 76 l0 10 M52 76 l0 10' },
-  { id: 'crown', words: ['king', 'crown', 'reign', 'throne', 'kingdom'], d: 'M14 70 L22 32 L36 54 L50 28 L64 54 L78 32 L86 70 Z M14 70 L86 70' },
-  { id: 'bread', words: ['bread', 'loaf', 'loaves', 'feed', 'food', 'eat'], d: 'M18 64 a32 22 0 0 1 64 0 Z M18 64 l0 10 a32 10 0 0 0 64 0 l0 -10 M38 48 l0 12 M58 48 l0 12' },
-  { id: 'water', words: ['water', 'well', 'river', 'sea', 'thirst', 'drink'], d: 'M12 50 q12 -12 24 0 q12 12 24 0 q12 -12 24 0 M12 68 q12 -12 24 0 q12 12 24 0 q12 -12 24 0' },
-  { id: 'lamp', words: ['lamp', 'light', 'shine', 'candle', 'dark'], d: 'M36 86 l28 0 l0 -34 l-28 0 Z M32 52 l36 0 M50 52 l0 -6 M50 46 c-9 -7 -3 -18 0 -22 c3 4 9 15 0 22 Z M32 30 l-8 -5 M68 30 l8 -5' },
-  { id: 'tree', words: ['tree', 'fruit', 'root', 'branch', 'vine', 'seed', 'grow'], d: 'M44 82 l12 0 l0 -22 l-12 0 Z M50 60 a22 20 0 1 1 0.1 0 M50 60 l0 -22 M50 46 l-10 -8 M50 50 l10 -8' },
-  { id: 'house', words: ['house', 'home', 'build', 'door', 'family', 'temple'], d: 'M16 54 L50 26 L84 54 M24 54 l0 32 l52 0 l0 -32 M42 86 l0 -20 l16 0 l0 20' },
-  { id: 'heart', words: ['heart', 'love', 'kind', 'mercy', 'care'], d: 'M50 84 C18 62 20 34 36 32 C44 31 50 38 50 44 C50 38 56 31 64 32 C80 34 82 62 50 84 Z' },
-  { id: 'star', words: ['star', 'night', 'sky', 'heaven', 'glory'], d: 'M50 20 L59 44 L84 44 L64 58 L72 82 L50 68 L28 82 L36 58 L16 44 L41 44 Z' },
-  { id: 'fish', words: ['fish', 'fishes', 'net', 'boat', 'catch'], d: 'M14 56 C30 34 62 34 76 56 C62 78 30 78 14 56 Z M76 56 l12 -12 l0 24 Z M30 50 a3 3 0 1 1 0.1 0' },
+  { id: 'lamb', place: 'ground', words: ['lamb', 'sheep', 'shepherd', 'flock'], d: 'M20 62 c-6 -10 4 -20 12 -16 c2 -10 16 -12 20 -4 c8 -8 22 -2 20 8 c10 2 10 16 2 20 c2 10 -12 14 -18 8 c-6 8 -22 6 -24 -2 c-10 2 -16 -8 -12 -14 Z M66 48 a12 12 0 1 0 0.1 0 M59 42 q-7 -3 -5 -9 q5 1 7 6 M73 42 q7 -3 5 -9 q-5 1 -7 6 M69 46 a1.5 1.5 0 1 0 0.1 0 M30 78 l0 14 M42 78 l0 14 M54 78 l0 14 M64 76 l0 14 M20 58 q-8 -4 -6 -12' },
+  { id: 'crown', place: 'ground', words: ['king', 'crown', 'reign', 'throne', 'kingdom'], d: 'M14 72 L20 34 L36 54 L50 24 L64 54 L80 34 L86 72 Z M14 72 L86 72 M14 84 L86 84 M14 72 L14 84 M86 72 L86 84 M50 62 a6 6 0 1 0 0.1 0 M30 64 a5 5 0 1 0 0.1 0 M70 64 a5 5 0 1 0 0.1 0 M50 24 a5.5 5.5 0 1 0 0.1 0 M20 34 a5.5 5.5 0 1 0 0.1 0 M80 34 a5.5 5.5 0 1 0 0.1 0 M26 78 l48 0' },
+  { id: 'bread', place: 'ground', words: ['bread', 'loaf', 'loaves', 'feed', 'food', 'eat'], d: 'M18 62 l8 28 l48 0 l8 -28 Z M18 62 l64 0 M26 70 l48 0 M30 80 l40 0 M24 60 a14 10 0 0 1 28 0 M48 60 a14 10 0 0 1 28 0 M36 50 a14 10 0 0 1 28 0 M30 62 a20 24 0 0 1 40 0' },
+  { id: 'water', place: 'ground', words: ['water', 'well', 'river', 'sea', 'thirst', 'drink'], d: 'M6 54 q12 -10 24 0 t24 0 t24 0 t24 0 M6 70 q12 -10 24 0 t24 0 t24 0 t24 0 M6 86 q12 -10 24 0 t24 0 t24 0 t24 0 M30 48 l40 0 l-8 12 l-24 0 Z M50 48 l0 -22 M50 26 l18 10 l-18 4 Z' },
+  { id: 'lamp', place: 'ground', words: ['lamp', 'light', 'shine', 'candle', 'dark'], d: 'M30 78 l40 0 l0 12 l-40 0 Z M24 64 a26 14 0 0 0 52 0 Z M50 64 l0 -8 M50 56 c-10 -8 -4 -22 0 -26 c4 4 10 18 0 26 Z M44 44 c-2 -4 2 -8 6 -10 M20 48 l-8 -4 M80 48 l8 -4 M50 24 l0 -6 M38 30 l-4 -4 M62 30 l4 -4' },
+  { id: 'tree', place: 'ground', words: ['tree', 'fruit', 'root', 'branch', 'vine', 'seed', 'grow'], d: 'M44 92 l12 0 l0 -28 l-12 0 Z M50 64 c-16 0 -28 -8 -26 -22 c-8 -6 -2 -22 10 -20 c0 -12 18 -16 24 -6 c10 -8 26 0 22 12 c10 4 8 22 -6 22 c0 10 -14 16 -24 14 Z M36 36 a3 3 0 1 0 0.1 0 M58 30 a3 3 0 1 0 0.1 0 M62 50 a3 3 0 1 0 0.1 0 M40 54 a3 3 0 1 0 0.1 0 M44 92 l-8 4 M56 92 l8 4' },
+  { id: 'house', place: 'ground', words: ['house', 'home', 'build', 'door', 'family', 'temple'], d: 'M14 54 L50 22 L86 54 M22 50 l0 40 l56 0 l0 -40 M42 90 l0 -22 l16 0 l0 22 M28 60 l12 0 l0 12 l-12 0 Z M60 60 l12 0 l0 12 l-12 0 Z M66 36 l0 -10 l8 0 l0 17 M34 66 l0 -6 M28 66 l12 0 M66 66 l0 -6 M60 66 l12 0 M54 80 a2 2 0 1 0 0.1 0' },
+  { id: 'heart', place: 'ground', words: ['heart', 'love', 'kind', 'mercy', 'care'], d: 'M50 86 C16 62 20 32 36 30 C44 29 50 36 50 42 C50 36 56 29 64 30 C80 32 84 62 50 86 Z M50 74 C30 60 32 44 40 42 C45 41 50 46 50 50 C50 46 55 41 60 42 C68 44 70 60 50 74 Z M50 18 l0 -8 M30 24 l-6 -6 M70 24 l6 -6' },
+  { id: 'star', place: 'sky', words: ['star', 'night', 'sky', 'heaven', 'glory'], d: 'M50 14 L59 40 L86 40 L64 56 L72 82 L50 66 L28 82 L36 56 L14 40 L41 40 Z M50 34 l4 10 l10 0 l-8 6 l3 10 l-9 -6 l-9 6 l3 -10 l-8 -6 l10 0 Z M14 18 l3 6 l6 0 l-5 4 l2 6 l-6 -4 l-6 4 l2 -6 l-5 -4 l6 0 Z M84 86 l2 5 l5 0 l-4 3 l2 5 l-5 -3 l-5 3 l2 -5 l-4 -3 l5 0 Z' },
+  { id: 'fish', place: 'ground', words: ['fish', 'fishes', 'net', 'boat', 'catch'], d: 'M10 46 C26 24 58 24 72 46 C58 68 26 68 10 46 Z M72 46 l14 -12 l0 24 Z M26 40 a3 3 0 1 1 0.1 0 M36 36 q10 18 0 22 M48 34 q10 22 0 26 M40 72 C52 60 70 60 80 72 C70 84 52 84 40 72 Z M80 72 l10 -8 l0 16 Z M50 68 a2 2 0 1 1 0.1 0 M14 20 a3 3 0 1 0 0.1 0 M22 12 a2 2 0 1 0 0.1 0' },
   // An OPEN palm — four fingers of near-even height under a gentle arch.
   //
   // The first path drew a fist with one finger standing far above the rest.
@@ -108,12 +116,12 @@ export const SYMBOLS = [
   // the 236 children's sheets, because 'give', 'help', 'hold' and 'work' are
   // ordinary words. Nobody had looked at it. Every finger is now present and
   // within ten units of its neighbours, so the shape cannot read that way.
-  { id: 'hand', words: ['hand', 'give', 'help', 'hold', 'work'], d: 'M26 78 l0 -22 a8 8 0 0 1 8 -8 l38 0 a8 8 0 0 1 8 8 l0 22 a10 10 0 0 1 -10 10 l-34 0 a10 10 0 0 1 -10 -10 Z M30 50 l0 -20 a5 5 0 0 1 10 0 l0 20 M42 50 l0 -24 a5 5 0 0 1 10 0 l0 24 M54 50 l0 -26 a5 5 0 0 1 10 0 l0 26 M66 50 l0 -16 a5 5 0 0 1 10 0 l0 16 M26 62 l-9 5 a6 6 0 0 0 7 10 l5 -3' },
-  { id: 'book', words: ['book', 'word', 'read', 'scroll', 'bible', 'write'], d: 'M14 28 l32 6 l0 46 l-32 -6 Z M86 28 l-32 6 l0 46 l32 -6 Z M50 34 l0 46' },
-  { id: 'sun', words: ['sun', 'day', 'morning', 'bright', 'warm'], d: 'M50 50 m-18 0 a18 18 0 1 0 36 0 a18 18 0 1 0 -36 0 M50 18 l0 -10 M50 92 l0 -10 M18 50 l-10 0 M92 50 l10 0 M27 27 l-7 -7 M73 27 l7 -7 M27 73 l-7 7 M73 73 l7 7' },
-  { id: 'bird', words: ['bird', 'wing', 'fly', 'sparrow', 'eagle', 'dove'], d: 'M28 62 a22 18 0 1 0 44 0 a22 18 0 1 0 -44 0 Z M62 42 a12 12 0 1 0 24 0 a12 12 0 1 0 -24 0 Z M86 42 l10 4 l-10 4 Z M78 38 a2 2 0 1 1 0.1 0 M38 58 a14 10 0 0 1 24 4 a14 10 0 0 1 -24 -4 Z M28 62 l-16 -8 l2 16 Z M44 79 l0 9 M58 79 l0 9' },
-  { id: 'door', words: ['door', 'gate', 'enter', 'open', 'way', 'path'], d: 'M26 86 l0 -56 a24 24 0 0 1 48 0 l0 56 Z M64 58 a3 3 0 1 1 0.1 0' },
-  { id: 'cross', words: ['cross', 'jesus', 'saviour', 'blood', 'christ'], d: 'M42 90 l16 0 l0 -52 l20 0 l0 -14 l-20 0 l0 -14 l-16 0 l0 14 l-20 0 l0 14 l20 0 Z' },
+  { id: 'hand', place: 'ground', words: ['hand', 'give', 'help', 'hold', 'work'], d: 'M26 78 l0 -22 a8 8 0 0 1 8 -8 l38 0 a8 8 0 0 1 8 8 l0 22 a10 10 0 0 1 -10 10 l-34 0 a10 10 0 0 1 -10 -10 Z M30 50 l0 -20 a5 5 0 0 1 10 0 l0 20 M42 50 l0 -24 a5 5 0 0 1 10 0 l0 24 M54 50 l0 -26 a5 5 0 0 1 10 0 l0 26 M66 50 l0 -16 a5 5 0 0 1 10 0 l0 16 M26 62 l-9 5 a6 6 0 0 0 7 10 l5 -3' },
+  { id: 'book', place: 'ground', words: ['book', 'word', 'read', 'scroll', 'bible', 'write'], d: 'M12 30 C26 24 40 26 50 34 L50 82 C40 74 26 72 12 78 Z M88 30 C74 24 60 26 50 34 L50 82 C60 74 74 72 88 78 Z M20 40 c10 -2 18 0 24 4 M20 50 c10 -2 18 0 24 4 M20 60 c10 -2 18 0 24 4 M56 44 c6 -4 14 -6 24 -4 M56 54 c6 -4 14 -6 24 -4 M56 64 c6 -4 14 -6 24 -4 M64 82 l0 12 l6 -4 l6 4 l0 -12' },
+  { id: 'sun', place: 'sky', words: ['sun', 'day', 'morning', 'bright', 'warm'], d: 'M50 50 m-16 0 a16 16 0 1 0 32 0 a16 16 0 1 0 -32 0 M50 22 l0 -12 M50 90 l0 -12 M22 50 l-12 0 M90 50 l-12 0 M30 30 l-8 -8 M78 30 l8 -8 M30 70 l-8 8 M78 70 l8 8' },
+  { id: 'bird', place: 'sky', words: ['bird', 'wing', 'fly', 'sparrow', 'eagle', 'dove'], d: 'M26 60 a22 16 0 1 0 44 0 a22 16 0 1 0 -44 0 Z M64 42 a11 11 0 1 0 22 0 a11 11 0 1 0 -22 0 Z M86 42 l10 4 l-10 4 Z M78 38 a2 2 0 1 1 0.1 0 M36 56 c6 -18 26 -22 34 -8 c-10 10 -24 12 -34 8 Z M26 60 l-18 -10 l4 18 Z M44 76 l0 10 M56 76 l0 10 M50 62 q-10 2 -16 -2' },
+  { id: 'door', place: 'ground', words: ['door', 'gate', 'enter', 'open', 'way', 'path'], d: 'M24 90 l0 -58 a26 26 0 0 1 52 0 l0 58 Z M50 32 l0 58 M60 62 a3 3 0 1 1 0.1 0 M40 62 a3 3 0 1 1 0.1 0 M14 90 l72 0 M18 96 l64 0 M30 46 a20 20 0 0 1 40 0' },
+  { id: 'cross', place: 'ground', words: ['cross', 'jesus', 'saviour', 'blood', 'christ'], d: 'M42 84 l16 0 l0 -44 l18 0 l0 -14 l-18 0 l0 -14 l-16 0 l0 14 l-18 0 l0 14 l18 0 Z M6 96 Q50 70 94 96 M30 20 l-6 -8 M70 20 l6 -8 M22 34 l-10 -4 M78 34 l10 -4 M50 8 l0 -6' },
 ];
 
 /** The symbols this lesson's own words call for, most-mentioned first. */
@@ -182,9 +190,10 @@ const esc = (s) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').
 
 /**
  * Glyph advance as a fraction of font size. Georgia's lowercase prose averages
- * near 0.50em; this is deliberately set HIGHER so the estimate can only ever
- * over-state a line's width, never under-state it. A sheet that wraps one word
- * early is fine; a sheet that runs off the paper is not.
+ * near 0.50em and the rounded bold the title wears now near 0.56em; this is
+ * set HIGHER than both so the estimate can only ever over-state a line's
+ * width, never under-state it. A sheet that wraps one word early is fine; a
+ * sheet that runs off the paper is not.
  *
  * It is an estimate, not a browser measurement — this file is pure and has no
  * renderer. The sheets were measured once for real with Chromium getBBox (see
@@ -195,6 +204,10 @@ export const EM = 0.58;
 /** The paper, and the ink area inside it. US Letter at 96dpi. */
 export const SHEET = { width: 792, height: 1024, margin: 70 };
 export const USABLE = SHEET.width - 2 * SHEET.margin;
+
+/** The faces the sheet is set in: a rounded bold for the title and the words, Georgia for the verse. */
+export const TITLE_FONT = "'Arial Rounded MT Bold', 'Nunito', 'Arial Black', Arial, sans-serif";
+export const VERSE_FONT = 'Georgia, serif';
 
 /** The estimated rendered width of a line, in user units. */
 export function lineWidth(text, size) {
@@ -248,85 +261,207 @@ export function verseLines(verse, perLine = 5) {
   return out;
 }
 
-/** Every text run on the sheet, with the box it occupies. The layout, in data. */
+// A small star for the frame's corners, drawn around (0,0).
+const CORNER_STAR = 'M0 -11 L3 -4 L11 -3 L5 2 L7 10 L0 6 L-7 10 L-5 2 L-11 -3 L-3 -4 Z';
+// A cloud, drawn around (0,0), about 90 wide.
+const CLOUD = 'M-40 10 a12 12 0 0 1 4 -23 a16 16 0 0 1 30 -8 a14 14 0 0 1 26 6 a11 11 0 0 1 10 25 Z';
+// A flower and a tuft of grass, drawn with their base at (0,0).
+const FLOWER = 'M0 0 l0 -18 M0 -26 a5 5 0 1 0 0.1 0 M-9 -31 a5 5 0 1 0 0.1 0 M9 -31 a5 5 0 1 0 0.1 0 M-9 -21 a5 5 0 1 0 0.1 0 M9 -21 a5 5 0 1 0 0.1 0 M0 -26 a3 3 0 1 0 0.1 0 M0 -10 q8 -2 10 -8';
+const GRASS = 'M-10 0 q2 -10 -2 -16 M-4 0 q0 -12 4 -18 M4 0 q4 -10 0 -16 M10 0 q4 -8 2 -14';
+// A far-off bird, two wing strokes, drawn around (0,0).
+const BIRD = 'M-14 0 q7 -10 14 0 q7 -10 14 0';
+
+/**
+ * The picture: hills, a sun and clouds, and the lesson's own pieces placed in
+ * the sky or on the ground. Returns drawable elements for a box.
+ */
+export function sceneElements(symbols, { x, y, w, h }) {
+  const els = [];
+  const bottom = y + h;
+  const sky = symbols.filter((s) => s.place === 'sky');
+  const ground = symbols.filter((s) => s.place !== 'sky');
+  const hillTop = bottom - Math.round(h * 0.36);
+  // Two overlapping hills.
+  els.push({ t: 'path', d: `M${x} ${bottom} L${x} ${hillTop + h * 0.08} Q${x + w * 0.32} ${hillTop - h * 0.16} ${x + w * 0.62} ${hillTop + h * 0.04} L${x + w * 0.62} ${bottom} Z`, sw: 2.5 });
+  els.push({ t: 'path', d: `M${x + w * 0.4} ${bottom} Q${x + w * 0.72} ${hillTop - h * 0.2} ${x + w} ${hillTop + h * 0.02} L${x + w} ${bottom} Z`, sw: 2.5, fill: '#fff' });
+  // A path winding to the horizon, and grass and flowers at the foot.
+  els.push({ t: 'path', d: `M${x + w * 0.1} ${bottom} Q${x + w * 0.3} ${bottom - h * 0.1} ${x + w * 0.5} ${hillTop + h * 0.06}`, sw: 2, dash: '7 6' });
+  els.push({ t: 'path', d: FLOWER, sw: 2, transform: `translate(${x + w * 0.08},${bottom - 2})` });
+  els.push({ t: 'path', d: FLOWER, sw: 2, transform: `translate(${x + w * 0.92},${bottom - 2}) scale(0.85)` });
+  els.push({ t: 'path', d: GRASS, sw: 2, transform: `translate(${x + w * 0.3},${bottom - 2})` });
+  els.push({ t: 'path', d: GRASS, sw: 2, transform: `translate(${x + w * 0.74},${bottom - 2})` });
+  // The sun in the corner unless the lesson's own sun is in the sky, and two clouds.
+  if (!sky.some((s) => s.id === 'sun')) {
+    const r = Math.round(Math.min(44, h * 0.14));
+    const sx = x + r + 14, sy = y + r + 10;
+    els.push({ t: 'path', d: `M${sx} ${sy} m-${r} 0 a${r} ${r} 0 1 0 ${2 * r} 0 a${r} ${r} 0 1 0 -${2 * r} 0`, sw: 2.5 });
+    for (let i = 0; i < 8; i += 1) {
+      const a = (i * Math.PI) / 4;
+      els.push({ t: 'line', x1: sx + Math.cos(a) * (r + 8), y1: sy + Math.sin(a) * (r + 8), x2: sx + Math.cos(a) * (r + 20), y2: sy + Math.sin(a) * (r + 20), sw: 2.5 });
+    }
+  }
+  if (!sky.length) {
+    els.push({ t: 'path', d: BIRD, sw: 2, transform: `translate(${x + w * 0.46},${y + 30})` });
+    els.push({ t: 'path', d: BIRD, sw: 2, transform: `translate(${x + w * 0.54},${y + 52}) scale(0.7)` });
+  }
+  els.push({ t: 'path', d: CLOUD, sw: 2.2, transform: `translate(${x + w * 0.66},${y + 44})` });
+  els.push({ t: 'path', d: CLOUD, sw: 2.2, transform: `translate(${x + w * 0.86},${y + 70}) scale(0.7)` });
+  // Ground pieces stand on the hills, spread across the width, as big as the room allows.
+  if (ground.length) {
+    const n = ground.length;
+    const cell = w / n;
+    const scale = Math.max(0.9, Math.min((cell - 20) / 100, (h * 0.62) / 100));
+    const span = scale * 100;
+    ground.forEach((s, i) => {
+      const gx = x + cell * i + (cell - span) / 2;
+      const gy = bottom - span - h * 0.04;
+      els.push({ t: 'path', d: s.d, sw: 2.5, fill: '#fff', transform: `translate(${Math.round(gx)},${Math.round(gy)}) scale(${scale.toFixed(3)})`, id: s.id });
+    });
+  }
+  // Sky pieces hang in the upper band.
+  if (sky.length) {
+    const n = sky.length;
+    const cell = w * 0.5 / n;
+    const scale = Math.max(0.6, Math.min((cell - 16) / 100, (h * 0.32) / 100));
+    const span = scale * 100;
+    sky.forEach((s, i) => {
+      const gx = x + w * 0.28 + cell * i + (cell - span) / 2;
+      const gy = y + 6;
+      els.push({ t: 'path', d: s.d, sw: 2.5, fill: '#fff', transform: `translate(${Math.round(gx)},${Math.round(gy)}) scale(${scale.toFixed(3)})`, id: s.id });
+    });
+  }
+  return els;
+}
+
+/** Every text run on the sheet, with the box it occupies, and the picture's box. The layout, in data. */
 export function sheetLayout(page) {
   if (!page) return null;
   const { margin } = SHEET;
   const mid = SHEET.width / 2;
-  const title = fitLines(page.title, { maxLines: 4 });
+  // The title wears a bold rounded face that runs a little wider than the
+  // model's Georgia-tuned advance; it is fitted to 28px less than the ink area
+  // so the real render (measured in Chromium across all 309 sheets) stays
+  // inside it. The gate still measures the runs against the full ink area.
+  const title = fitLines(page.title, { maxLines: 4, width: USABLE - 28 });
   const verse = fitLines(page.verse, { maxLines: 6, sizes: [34, 30, 26, 22, 18] });
 
   const runs = [];
   let y = margin + title.size;
+  const titleTop = y - title.size;
   for (const l of title.lines) {
-    runs.push({ role: 'title', text: l, x: mid, y, size: title.size, anchor: 'middle', outline: true, weight: 1.5 });
+    runs.push({ role: 'title', text: l, x: mid, y, size: title.size, anchor: 'middle', outline: true, weight: 2.6 });
     y += title.size * 1.18;
   }
+  const titleBottom = y - title.size * 1.18 + title.size * 0.34;
   if (page.ref) {
-    y += 14;
+    y += 22;
     runs.push({ role: 'ref', text: page.ref, x: mid, y, size: 22, anchor: 'middle', outline: false });
     y += 22;
   }
   if (verse.lines.length) {
-    y += 20;
+    y += 16;
     for (const l of verse.lines) {
       y += verse.size;
-      runs.push({ role: 'verse', text: l, x: mid, y, size: verse.size, anchor: 'middle', outline: true, weight: 1 });
-      y += verse.size * 0.34;
+      runs.push({ role: 'verse', text: l, x: mid, y, size: verse.size, anchor: 'middle', outline: true, weight: 1.2, trace: true });
+      y += verse.size * 0.4;
     }
   }
 
-  // The symbols FILL the room left between the words above them and the
-  // tracing row — they do not huddle at the top of it.
-  //
-  // The first cut capped the row height at 170 and the scale at 1.5, and the
-  // rendered sheet came back with four small shapes in the upper third and a
-  // dead white half below them. On a COLORING page the picture is the product,
-  // so the shapes take the whole of whatever room the words leave, bounded
-  // only by the column width and by each other.
-  const traceY = 900;
+  // The picture FILLS the room left between the words above it and the
+  // tracing row — it does not huddle at the top of it. On a COLORING page the
+  // picture is the product.
+  const traceY = 880;
   const top = Math.ceil(y + 24);
-  const rows = Math.ceil(page.symbols.length / 2) || 1;
-  const cols = Math.min(2, page.symbols.length) || 1;
-  const room = Math.max(0, traceY - 30 - top);
-  const rowH = Math.floor(room / rows);
-  const colW = Math.floor((SHEET.width - 2 * margin) / cols);
-  // Paths are drawn inside a 100×100 box; leave a little air on every side.
-  const scale = Math.max(0.8, Math.min((rowH - 16) / 100, (colW - 24) / 100));
-  const span = Math.round(scale * 100);
-  const gutter = Math.floor((SHEET.width - cols * span) / (cols + 1));
-  const symbols = page.symbols.map((s, i) => ({
-    id: s.id,
-    d: s.d,
-    x: gutter + (i % cols) * (span + gutter),
-    y: top + Math.floor(i / cols) * rowH + Math.floor((rowH - span) / 2),
-    scale: Number(scale.toFixed(3)),
-  }));
+  const room = Math.max(120, traceY - 36 - top);
+  const scene = { x: margin, y: top, w: SHEET.width - 2 * margin, h: room };
+  const symbols = page.symbols.map((s) => ({ id: s.id, d: s.d, place: s.place || 'ground' }));
 
-  return { runs, symbols, traceY, titleSize: title.size, verseSize: verse.size, contentBottom: top + rows * rowH };
+  return {
+    runs,
+    symbols,
+    scene,
+    titleBox: { x: margin - 16, y: titleTop - 10, w: SHEET.width - 2 * margin + 32, h: titleBottom - titleTop + 20 },
+    traceY,
+    titleSize: title.size,
+    verseSize: verse.size,
+    contentBottom: top + room,
+  };
 }
 
 /**
- * The page as a printable SVG string — outlines only, nothing filled, so every
- * stroke is something to color. US Letter at 96dpi.
+ * Everything drawn on the sheet, in order, as plain data: rects, paths, lines
+ * and text runs. Both renderers (the printable string and the React sheet)
+ * read this one list, so they cannot drift apart.
+ */
+export function sheetElements(page) {
+  const lay = sheetLayout(page);
+  if (!lay) return [];
+  const { margin, width, height } = SHEET;
+  const els = [];
+  // The page and its frame.
+  els.push({ t: 'rect', x: 0, y: 0, w: width, h: height, fill: '#fff', sw: 0 });
+  els.push({ t: 'rect', x: 20, y: 20, w: width - 40, h: height - 40, rx: 18, sw: 3 });
+  els.push({ t: 'rect', x: 32, y: 32, w: width - 64, h: height - 64, rx: 12, sw: 1.5, dash: '6 6' });
+  for (const [cx, cy] of [[40, 40], [width - 40, 40], [40, height - 40], [width - 40, height - 40]]) {
+    els.push({ t: 'path', d: CORNER_STAR, sw: 1.8, transform: `translate(${cx},${cy})` });
+  }
+  // A name line for the child.
+  els.push({ t: 'text', text: 'Name:', x: width - margin - 220, y: 58, size: 15, family: VERSE_FONT, fill: '#000' });
+  els.push({ t: 'line', x1: width - margin - 160, y1: 60, x2: width - margin, y2: 60, sw: 1.2, dash: '3 3' });
+  // The title's banner, then the runs.
+  els.push({ t: 'rect', x: lay.titleBox.x, y: lay.titleBox.y, w: lay.titleBox.w, h: lay.titleBox.h, rx: 16, sw: 2.2 });
+  for (const r of lay.runs) {
+    if (r.role === 'title') {
+      els.push({ t: 'text', text: r.text, x: r.x, y: Math.round(r.y), size: r.size, anchor: 'middle', family: TITLE_FONT, weight: 900, fill: 'none', stroke: '#000', sw: r.weight, spacing: 1, paintOrder: 'stroke' });
+    } else if (r.role === 'ref') {
+      els.push({ t: 'text', text: r.text, x: r.x, y: Math.round(r.y), size: r.size, anchor: 'middle', family: VERSE_FONT, weight: 700, fill: '#000' });
+    } else {
+      // The verse is traced: dotted letters on a dashed writing line.
+      els.push({ t: 'line', x1: margin, y1: Math.round(r.y) + 5, x2: width - margin, y2: Math.round(r.y) + 5, sw: 0.8, dash: '2 4' });
+      els.push({ t: 'text', text: r.text, x: r.x, y: Math.round(r.y), size: r.size, anchor: 'middle', family: VERSE_FONT, fill: 'none', stroke: '#000', sw: r.weight, dash: '3 2.5' });
+    }
+  }
+  // The picture.
+  for (const e of sceneElements(lay.symbols, lay.scene)) els.push(e);
+  // The words to trace, each in its own box on a writing line.
+  els.push({ t: 'text', text: 'Trace the words:', x: margin, y: lay.traceY, size: 18, family: VERSE_FONT, weight: 700, fill: '#000' });
+  const boxW = 118, gap = 15;
+  page.words.forEach((w, i) => {
+    const bx = margin + (i % 5) * (boxW + gap);
+    const by = lay.traceY + 12;
+    els.push({ t: 'rect', x: bx, y: by, w: boxW, h: 60, rx: 10, sw: 1.8 });
+    els.push({ t: 'line', x1: bx + 10, y1: by + 44, x2: bx + boxW - 10, y2: by + 44, sw: 0.8, dash: '2 4' });
+    els.push({ t: 'text', text: w, x: bx + boxW / 2, y: by + 42, size: 28, anchor: 'middle', family: TITLE_FONT, weight: 900, fill: 'none', stroke: '#000', sw: 1.1, dash: '3 2.5' });
+  });
+  els.push({ t: 'text', text: 'Color it in while a grown-up reads the lesson to you.', x: width / 2, y: 976, size: 16, anchor: 'middle', family: VERSE_FONT, fill: '#000' });
+  return els;
+}
+
+/** One element as SVG markup. Every run is escaped; nothing from a lesson is markup. */
+function elementSvg(e) {
+  const stroke = (sw) => (sw ? ` stroke="#000" stroke-width="${sw}" stroke-linejoin="round" stroke-linecap="round"` : '');
+  const dash = e.dash ? ` stroke-dasharray="${e.dash}"` : '';
+  if (e.t === 'rect') return `<rect x="${e.x}" y="${e.y}" width="${e.w}" height="${e.h}"${e.rx ? ` rx="${e.rx}"` : ''} fill="${e.fill || 'none'}"${stroke(e.sw)}${dash}/>`;
+  if (e.t === 'line') return `<line x1="${r1(e.x1)}" y1="${r1(e.y1)}" x2="${r1(e.x2)}" y2="${r1(e.y2)}"${stroke(e.sw)}${dash}/>`;
+  if (e.t === 'path') return `<path d="${e.d}" fill="${e.fill || 'none'}"${stroke(e.sw)}${dash}${e.transform ? ` transform="${e.transform}"` : ''}/>`;
+  if (e.t === 'text') {
+    return `<text x="${r1(e.x)}" y="${e.y}"${e.anchor === 'middle' ? ' text-anchor="middle"' : ''} font-family="${e.family}" font-size="${e.size}"`
+      + (e.weight ? ` font-weight="${e.weight}"` : '') + (e.spacing ? ` letter-spacing="${e.spacing}"` : '') + (e.paintOrder ? ` paint-order="${e.paintOrder}"` : '')
+      + ` fill="${e.fill || 'none'}"` + (e.stroke ? ` stroke="${e.stroke}" stroke-width="${e.sw}" stroke-linejoin="round"` : '') + dash
+      + `>${esc(e.text)}</text>`;
+  }
+  return '';
+}
+const r1 = (n) => Math.round(Number(n) * 10) / 10;
+
+/**
+ * The page as a printable SVG string — outlines only, nothing filled but the
+ * paper itself, so every stroke is something to color. US Letter at 96dpi.
  */
 export function coloringSvg(page) {
   if (!page) return '';
-  const lay = sheetLayout(page);
-  const { margin } = SHEET;
-  const text = (r) => `<text x="${r.x}" y="${Math.round(r.y)}" ${r.anchor === 'middle' ? 'text-anchor="middle" ' : ''}`
-    + `font-family="Georgia, serif" font-size="${r.size}" `
-    + (r.outline ? `fill="none" stroke="#000" stroke-width="${r.weight}"` : 'fill="#000"')
-    + `>${esc(r.text)}</text>`;
-  const sym = lay.symbols.map((s) => `<g transform="translate(${s.x},${s.y}) scale(${s.scale})" fill="none" stroke="#000" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"><path d="${s.d}"/></g>`).join('');
-  const trace = page.words.map((w, i) => `<text x="${margin + (i % 5) * 130}" y="${lay.traceY + 34}" font-family="Georgia, serif" font-size="30" fill="none" stroke="#000" stroke-width="1">${esc(w)}</text>`).join('');
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${SHEET.width}" height="${SHEET.height}" viewBox="0 0 ${SHEET.width} ${SHEET.height}" role="img" aria-label="${esc(page.title)} — a coloring page">`
-    + `<rect x="0" y="0" width="${SHEET.width}" height="${SHEET.height}" fill="#fff"/>`
-    + lay.runs.map(text).join('')
-    + sym
-    + `<text x="${margin}" y="${lay.traceY}" font-family="Georgia, serif" font-size="20" fill="#000">Trace the words:</text>`
-    + trace
-    + `<text x="${SHEET.width / 2}" y="990" text-anchor="middle" font-family="Georgia, serif" font-size="16" fill="#000">Color it in while a grown-up reads the lesson to you.</text>`
+    + sheetElements(page).map(elementSvg).join('')
     + '</svg>';
 }
 

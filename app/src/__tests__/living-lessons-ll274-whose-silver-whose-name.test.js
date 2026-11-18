@@ -153,6 +153,12 @@ const FREE_CHAPTERS = [
   '2 Samuel 16', '2 Samuel 19', 'Jeremiah 26', 'Job 29',
 ];
 const CONFESSION_CHAPTERS = ['John 1', 'Titus 2'];
+// Verses a LATER sibling also stands on, named with the lesson and where it
+// lands (DR-1317: a verse is never spent; DR-1323: no lesson gate claims a verse
+// for itself). Named rather than silently allowed, so a new share shows in a diff.
+//   2 Samuel 18:18, ll314: Absalom's pillar as the name a man raised for himself;
+//   ll274 teaches it as whose name finishes on a trust. Two landings, one verse.
+const SHARED_BY_LATER_SIBLINGS = { '2 Samuel 18:18': 'll314-will-my-work-live-on' };
 
 // The spine, pinned by literal text so a later edit cannot quietly soften it.
 // Every one was fetched from the corpus on disk before it was written.
@@ -371,14 +377,15 @@ describe('the ground was measured BOTH ways, and the two censuses disagree', () 
     // still reds this case, which is the proof below.
     const spentVerses = anchorVerses();
     const mine = String(L.anchor.ref).split(';').map((s) => s.trim()).filter(Boolean);
-    const collisions = mine.filter((r) => FREE_CHAPTERS.includes(chapterOf(r)) && spentVerses.has(r));
+    const collisions = mine.filter((r) => FREE_CHAPTERS.includes(chapterOf(r)) && spentVerses.has(r)
+      && !SHARED_BY_LATER_SIBLINGS[r]);
     expect(collisions, `a sibling anchors a verse this lesson stands on:\n${collisions.join('\n')}`)
       .toEqual([]);
     // The chapter census still has to be real, or the check above is vacuous
     // against an empty set (DR-0076 §3) — and the one chapter a sibling now
     // shares is named, so a NEW chapter joining that set is visible in a diff.
     const spentChapters = anchorChapters();
-    expect(FREE_CHAPTERS.filter((c) => spentChapters.has(c))).toEqual(['Deuteronomy 23']);
+    expect(FREE_CHAPTERS.filter((c) => spentChapters.has(c))).toEqual(['2 Samuel 18', 'Deuteronomy 23']);
   });
 
   it('and FREE at prose level too, which is the check an anchor census cannot make', () => {
@@ -386,7 +393,21 @@ describe('the ground was measured BOTH ways, and the two censuses disagree', () 
     const refs = String(L.anchor.ref).split(';').map((s) => s.trim())
       .filter((r) => !CONFESSION_CHAPTERS.includes(chapterOf(r)));
     expect(refs.length).toBeGreaterThan(40);
-    expect(refs.filter((r) => prose.includes(r))).toEqual([]);
+    // CORRECTED 2026-11-13 on DR-1323 ("no lesson gate claims a verse for
+    // itself"), the same correction the anchor case above took on DR-1317. This
+    // case measured the ground FREE when ll274 was built; held forever, it
+    // would refuse every later lesson that teaches from one of these verses.
+    // A later sibling that shares a verse is named here, with the lesson that
+    // shares it and where it lands, so a NEW share is visible in a diff rather
+    // than silently allowed: ll314 teaches Absalom's pillar (2 Samuel 18:18) as
+    // the name a man raised for himself, where ll274 teaches it as whose name
+    // finishes on a trust. Two landings, one verse.
+    expect(refs.filter((r) => prose.includes(r) && !SHARED_BY_LATER_SIBLINGS[r])).toEqual([]);
+    for (const [ref, id] of Object.entries(SHARED_BY_LATER_SIBLINGS)) {
+      const sib = LIVING_LESSONS_MODULES.find((m) => m.id === id);
+      expect(sib, `${id} is not a module: stale share`).toBeTruthy();
+      expect([...strings(sib)].join('\n').includes(ref), `${id} no longer cites ${ref}: remove the share`).toBe(true);
+    }
   });
 
   it('THE NEW CHECK: a prose-built verse that is FREE at anchor level is caught, which the anchor census cannot do', () => {

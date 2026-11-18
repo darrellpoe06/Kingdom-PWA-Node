@@ -53,13 +53,15 @@
 // Tests: src/__tests__/safe-to-spend.test.js.
 // =============================================================================
 
-import { deriveAccountBalances, deriveDebts, freqToMonths, latestCheckpoints, checkpointHistory } from './financial-engineering.js';
+import { deriveAccountBalances, deriveDebts, latestCheckpoints, checkpointHistory } from './financial-engineering.js';
+import { round2, isoDay, parseDay, addDays, addMonthsClamped, daysBetween, expandOccurrences } from './money-dates.js';
 import { isTransferTxn, isBalanceAdjustment } from './imported-view.js';
 import { detectRecurring, payeeKey } from './recurring-payments.js';
 import { cleanName, suggestBills, isOwnAccountTransfer } from './bill-review.js';
+import { MERCHANT_CATEGORIES, SUBSCRIPTION_CATEGORIES, payeeCategory, BILL_CLASSES, billClassOf } from './bill-classes.js';
+export { MERCHANT_CATEGORIES, SUBSCRIPTION_CATEGORIES, payeeCategory, isMerchantPurchase, BILL_CLASSES, BILL_CLASS_LABEL, billClassOf } from './bill-classes.js';
 import { isSampleSalary, isSampleOutflows, isSampleHousehold } from './sample-markers.js';
 
-const DAY_MS = 24 * 60 * 60 * 1000;
 const DAYS_PER_MONTH = 365.25 / 12;
 
 export const SPENDABLE_TYPES = ['checking', 'savings', 'cash'];
@@ -85,88 +87,10 @@ const COVERED_BY_DATED_ITEMS = new Set(['debtService', 'rentalMortgages']);
 const PERSONAL_BUCKETS = new Set(['household', 'charitableGiving']);
 const PROPERTY_BUCKETS = new Set(['propertyUtilities']);
 
-export function round2(x) { return Math.round((Number(x) || 0) * 100) / 100; }
-
-// ── dates (local-day arithmetic; 'YYYY-MM-DD' in, 'YYYY-MM-DD' out) ─────────
-export function isoDay(d) {
-  const x = d instanceof Date ? d : new Date(d);
-  if (isNaN(x.getTime())) return null;
-  const y = x.getFullYear();
-  const m = String(x.getMonth() + 1).padStart(2, '0');
-  const day = String(x.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-}
-export function parseDay(iso) {
-  if (!iso) return null;
-  const s = String(iso);
-  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if (!m) { const d = new Date(s); return isNaN(d.getTime()) ? null : new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
-  return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
-}
-export function addDays(date, n) { const d = new Date(date.getFullYear(), date.getMonth(), date.getDate()); d.setDate(d.getDate() + n); return d; }
-export function addMonthsClamped(date, n, dayOfMonth) {
-  const y = date.getFullYear(); const m = date.getMonth() + n;
-  const last = new Date(y, m + 1, 0).getDate();
-  return new Date(y, m, Math.min(dayOfMonth || date.getDate(), last));
-}
-export function daysBetween(a, b) { return Math.round((b.getTime() - a.getTime()) / DAY_MS); }
-
-// ── twice a month: two FIXED days of the month (DEFECT-2, 2026-10-29) ─────────
-// "Twice a month (1st & 15th)" used to step the anchor + 15, so pay on the 1st
-// landed its second payday on the 16th. A semimonthly schedule is two days of
-// the month, not a fifteen-day stride: anchored on the 1st or the 15th it is the
-// 1st & 15th; on the 28th or later it is the 15th & the last day; any other day
-// d is d & d+14 (or d-14 & d past the 14th). Clamped to the month's last day.
-export function semimonthlyDays(anchorDay) {
-  const d = Number(anchorDay) || 1;
-  if (d === 1 || d === 15) return [1, 15];
-  if (d >= 28) return [15, 31];
-  return d <= 14 ? [d, d + 14] : [d - 14, d];
-}
-function semimonthlyAt(first, i) {
-  const [a, b] = semimonthlyDays(first.getDate());
-  // the i-th payday at or after `first`, walking month by month through the two days
-  const out = [];
-  let y = first.getFullYear(); let m = first.getMonth();
-  while (out.length <= i) {
-    const last = new Date(y, m + 1, 0).getDate();
-    for (const day of [a, b]) {
-      const at = new Date(y, m, Math.min(day, last));
-      if (at >= first && !out.some((x) => x.getTime() === at.getTime())) out.push(at);
-    }
-    m += 1; if (m > 11) { m = 0; y += 1; }
-  }
-  return out[i];
-}
-
-// ── occurrences of a cadence inside [start, end], rolling forward from `first`
-// (this is the roll-forward the Tx Upcoming view never had: a next-due date in
-// the past advances to its next occurrence instead of dropping out) ──────────
-export function expandOccurrences(first, frequency, start, end, maxGuard = 400) {
-  const out = [];
-  let due = first instanceof Date ? first : parseDay(first);
-  if (!due || isNaN(due.getTime())) return out;
-  const anchorDay = due.getDate();
-  const step = (d, i) => {
-    switch (frequency) {
-      case 'weekly': return addDays(due, 7 * i);
-      case 'biweekly': return addDays(due, 14 * i);
-      case 'semimonthly': return semimonthlyAt(due, i);
-      default: {
-        const months = freqToMonths(frequency) || (frequency === 'monthly' ? 1 : 0);
-        if (!months) return null;
-        return addMonthsClamped(d, months * i, anchorDay);
-      }
-    }
-  };
-  for (let i = 0; i < maxGuard; i++) {
-    const at = step(due, i);
-    if (!at) break;
-    if (at > end) break;
-    if (at >= start) out.push(at);
-  }
-  return out;
-}
+// Money arithmetic and local-day dates live in money-dates.js (split out
+// 2026-11-17 to keep this engine under its file budget); re-exported here so
+// every importer keeps reading them from safe-to-spend.js.
+export { round2, isoDay, parseDay, addDays, addMonthsClamped, daysBetween, semimonthlyDays, expandOccurrences } from './money-dates.js';
 
 // ── scope ────────────────────────────────────────────────────────────────────
 export function resolveScope(data, scope = 'personal', visibleEntities = null) {
@@ -202,6 +126,14 @@ export function incomeEvents(data, sc, start, end, settings = {}, asOf = start) 
   const salaries = (data?.inflows?.salaries || []).filter((s) => inScope(sc, s.entityId));
   const txns = data?.transactions || [];
   const accountEntity = new Map((data?.accounts || []).map((a) => [a.id, a.entityId ?? null]));
+  // The account a rhythm's deposits actually landed in (its latest one), so
+  // every projected deposit names where the money arrives.
+  const txById = new Map(txns.filter((t) => t && t.id != null).map((t) => [t.id, t]));
+  const depositAccount = (g) => {
+    if (!g || !Array.isArray(g.txIds)) return null;
+    const rows = g.txIds.map((id) => txById.get(id)).filter(Boolean).sort((a, b) => String(a.date).localeCompare(String(b.date)));
+    return rows.length ? rows[rows.length - 1].accountId || null : null;
+  };
   // Inferred pay rhythms from real deposits (category salary, or a payroll-looking description).
   const payrollRows = txns.filter((t) => t && Number(t.amount) > 0 && !isTransferTxn(t) && !isBalanceAdjustment(t)
     && (String(t.category || '') === 'salary' || /payroll|salary|direct ?dep|paycheck/i.test(String(t.description || '')))
@@ -227,7 +159,7 @@ export function incomeEvents(data, sc, start, end, settings = {}, asOf = start) 
       const first = parseDay(sched.nextDate);
       const per = sched.amount != null ? Number(sched.amount) : perPaycheck(amount, sched.frequency);
       for (const at of expandOccurrences(first, sched.frequency, start, end)) {
-        events.push({ date: isoDay(at), amount: round2(per), label: `${s.source || 'Salary'} (${s.who || ''})`.trim(), kind: 'income', source: 'schedule', inferred: false, entityId: s.entityId ?? null });
+        events.push({ date: isoDay(at), amount: round2(per), label: `${s.source || 'Salary'} (${s.who || ''})`.trim(), kind: 'income', source: 'schedule', inferred: false, status: 'confirmed', statusNote: 'pay schedule you entered', frequency: sched.frequency, salaryId: s.id, accountId: s.accountId || depositAccount(own) || null, entityId: s.entityId ?? null });
       }
       continue;
     }
@@ -240,8 +172,13 @@ export function incomeEvents(data, sc, start, end, settings = {}, asOf = start) 
       let next = new Date(match.nextExpected.getFullYear(), match.nextExpected.getMonth(), match.nextExpected.getDate());
       let guard = 0;
       while (next < start && guard++ < 60) next = addDays(next, match.cadenceDays);
-      for (const at of expandOccurrences(next, cadenceToFrequency(match.cadence), start, end)) {
-        events.push({ date: isoDay(at), amount: round2(match.amount), label: `${s.source || 'Salary'} (${s.who || ''})`.trim(), kind: 'income', source: 'inferred', inferred: true, entityId: s.entityId ?? null });
+      const freq = cadenceToFrequency(match.cadence);
+      const dates = expandOccurrences(next, freq, start, end);
+      // What a "Confirm" tap saves as this salary's pay schedule: the rhythm the
+      // deposits show, never a figure the family did not see first.
+      const confirm = dates.length ? { salaryId: s.id, frequency: freq, nextDate: isoDay(dates[0]), amount: round2(match.amount) } : null;
+      for (const at of dates) {
+        events.push({ date: isoDay(at), amount: round2(match.amount), label: `${s.source || 'Salary'} (${s.who || ''})`.trim(), kind: 'income', source: 'inferred', inferred: true, status: 'inferred', statusNote: `pay dates inferred from ${match.count} deposits (${match.cadenceLabel}); not confirmed`, frequency: freq, salaryId: s.id, accountId: s.accountId || depositAccount(match) || null, confirm, entityId: s.entityId ?? null });
       }
       assumptions.push(`${s.source || 'Salary'}: pay dates inferred from ${match.count} deposits (${match.cadenceLabel}); set the pay schedule in Money → Settings to confirm.`);
       continue;
@@ -260,8 +197,10 @@ export function incomeEvents(data, sc, start, end, settings = {}, asOf = start) 
     let guard = 0;
     while (next < start && guard++ < 60) next = addDays(next, g.cadenceDays);
     const payer = cleanName(g.label || '') || 'Paycheck';
-    for (const at of expandOccurrences(next, cadenceToFrequency(g.cadence), start, end)) {
-      events.push({ date: isoDay(at), amount: round2(g.amount), label: `Paycheck · ${payer}`, kind: 'income', source: 'inferred', inferred: true, entityId: null });
+    const freq = cadenceToFrequency(g.cadence);
+    const acct = depositAccount(g);
+    for (const at of expandOccurrences(next, freq, start, end)) {
+      events.push({ date: isoDay(at), amount: round2(g.amount), label: `Paycheck · ${payer}`, kind: 'income', source: 'inferred', inferred: true, status: 'inferred', statusNote: `seen in ${g.count} deposits (${g.cadenceLabel}); not tied to an income source, not confirmed`, frequency: freq, salaryId: null, accountId: acct, entityId: acct ? (accountEntity.get(acct) ?? null) : null });
     }
     assumptions.push(`Paycheck from ${payer}: about $${Math.round(g.amount).toLocaleString()} ${g.cadenceLabel}, seen in ${g.count} deposits; not confirmed. Set its pay dates in Money → Settings.`);
   }
@@ -276,7 +215,7 @@ export function incomeEvents(data, sc, start, end, settings = {}, asOf = start) 
     const anchor = new Date(start.getFullYear(), start.getMonth(), Math.min(rentDay, new Date(start.getFullYear(), start.getMonth() + 1, 0).getDate()));
     const first = anchor < start ? addMonthsClamped(anchor, 1, rentDay) : anchor;
     for (const at of expandOccurrences(first, 'monthly', start, end)) {
-      events.push({ date: isoDay(at), amount: round2(collected), label: `Rent · ${r.name || r.address || 'door'}`, kind: 'income', source: 'rental', inferred: !settings.rentDueDay, entityId: r.entityId ?? null });
+      events.push({ date: isoDay(at), amount: round2(collected), label: `Rent · ${r.name || r.address || 'door'}`, kind: 'income', source: 'rental', inferred: !settings.rentDueDay, status: settings.rentDueDay ? 'confirmed' : 'date-assumed', statusNote: settings.rentDueDay ? `rent on file, due day ${rentDay}` : 'rent on file; the day it lands is assumed (the 1st)', frequency: 'monthly', rentalId: r.id, accountId: r.accountId || null, entityId: r.entityId ?? null });
     }
   }
   if (!settings.rentDueDay && events.some((e) => e.source === 'rental')) assumptions.push('Rent is assumed to land on the 1st; set the rent due day in Money → Settings.');
@@ -297,6 +236,32 @@ function cadenceToFrequency(cadence) {
 }
 
 // ── dated outflows ───────────────────────────────────────────────────────────
+// Future-dated ledger rows on spendable accounts in scope: payments and
+// deposits the family typed into the register ahead of time. One reader for
+// the day-by-day walk (obligationEvents step 2) and the income windows
+// (comingUp), so a scheduled deposit is never in one and missing from the
+// other. A typed deposit is CONFIRMED income: the family entered it.
+// Money moving between the family's own accounts is never income or spend:
+// a pending Cash App transfer landing in Chase is the rent that already
+// arrived in Cash App (Darrell 2026-11-05: "Never count the same money
+// twice"), so it is skipped here like a flagged transfer.
+export function scheduledLedgerEvents(data, sc, asOf, start, end) {
+  const out = [];
+  const accountsById = new Map((data?.accounts || []).map((a) => [a.id, a]));
+  for (const t of (data?.transactions || [])) {
+    if (!t || !t.date) continue;
+    const d = parseDay(t.date); if (!d || d <= asOf || d < start || d > end) continue;
+    const acct = accountsById.get(t.accountId);
+    if (!acct || !SPENDABLE_TYPES.includes(acct.type) || acct.inLegal || acct.treatAsDebt) continue;
+    if (!inScope(sc, acct.entityId)) continue;
+    if (isTransferTxn(t) || isBalanceAdjustment(t) || isOwnAccountTransfer(t.description || '')) continue;
+    const amt = Number(t.amount) || 0; if (!amt) continue;
+    const base = { date: isoDay(d), amount: round2(amt), label: t.description || 'Scheduled', kind: amt > 0 ? 'income' : 'scheduled', category: t.category || null, source: 'ledger', refId: t.id, entityId: acct.entityId ?? null, accountId: t.accountId, assumed: false };
+    out.push(amt > 0 ? { ...base, inferred: false, status: 'confirmed', statusNote: 'scheduled in your register', frequency: 'once' } : base);
+  }
+  return out;
+}
+
 export function obligationEvents(data, sc, start, end, settings = {}, opts = {}) {
   const asOf = opts.asOf || start;
   const events = [];
@@ -397,20 +362,9 @@ export function obligationEvents(data, sc, start, end, settings = {}, opts = {})
 
   // 2) Future-dated ledger rows on spendable accounts in scope (scheduled by hand).
   const scheduledKeys = new Set();
-  for (const t of (data?.transactions || [])) {
-    if (!t || !t.date) continue;
-    const d = parseDay(t.date); if (!d || d <= asOf || d < start || d > end) continue;
-    const acct = accountsById.get(t.accountId);
-    if (!acct || !SPENDABLE_TYPES.includes(acct.type) || acct.inLegal || acct.treatAsDebt) continue;
-    if (!inScope(sc, acct.entityId)) continue;
-    // Money moving between the family's own accounts is never income or spend:
-    // a pending Cash App transfer landing in Chase is the rent that already
-    // arrived in Cash App (Darrell 2026-11-05: "Never count the same money
-    // twice"), so it is skipped here like a flagged transfer.
-    if (isTransferTxn(t) || isBalanceAdjustment(t) || isOwnAccountTransfer(t.description || '')) continue;
-    const amt = Number(t.amount) || 0; if (!amt) continue;
-    scheduledKeys.add(payeeKey(t.description || ''));
-    events.push({ date: isoDay(d), amount: round2(amt), label: t.description || 'Scheduled', kind: amt > 0 ? 'income' : 'scheduled', category: t.category || null, source: 'ledger', refId: t.id, entityId: acct.entityId ?? null, accountId: t.accountId, assumed: false });
+  for (const ev of scheduledLedgerEvents(data, sc, asOf, start, end)) {
+    scheduledKeys.add(payeeKey(ev.label || ''));
+    events.push(ev);
   }
 
   // 3) Minimum debt payments + mortgage P&I/escrow, once each. A mortgage
@@ -418,7 +372,8 @@ export function obligationEvents(data, sc, start, end, settings = {}, opts = {})
   //    linkedMortgageId) is that bill and is not walked again here.
   const linkedMortgages = new Set((data?.recurringObligations || []).filter((o) => o && o.enabled !== false && o.linkedMortgageId).map((o) => o.linkedMortgageId));
   const debtDueDays = settings.debtDueDays || {};
-  const mortgageDay = Number(settings.mortgageDueDay) || 1;
+  const dateNeeded = [];
+  const notBills = [];
   let assumedDebtTiming = 0;
   for (const dbt of deriveDebts(data, asOf)) {
     if (!inScope(sc, dbt.entityId)) continue;
@@ -426,23 +381,42 @@ export function obligationEvents(data, sc, start, end, settings = {}, opts = {})
     if (dbt.source === 'rental' && linkedMortgages.has(dbt.rentalId)) continue; // a confirmed bill already carries it
     if (scheduledKeys.has(payeeKey(dbt.name || ''))) continue; // a scheduled row already carries it
     const min = Number(dbt.minPayment) || 0; if (min <= 0) continue;
-    let day; let assumed = false;
-    if (dbt.source === 'rental') { day = mortgageDay; assumed = !settings.mortgageDueDay; }
-    else {
-      const acct = accountsById.get(dbt.accountId);
-      day = Number(debtDueDays[dbt.id]) || Number(acct && acct.dueDay) || 0;
-      if (!day) { day = 1; assumed = true; assumedDebtTiming += 1; }
-    }
+    // NO INVENTED DUE DATE (Christina 2026-11-16: "Do not assign all credit
+    // cards a December 1 due date unless that is their actual confirmed due
+    // date"; approved 2026-11-17: "Debts without confirmed due dates should
+    // appear under 'Due date needed' ... without assigning fictional dates").
+    // A debt with no due day on file (and a rental mortgage when no mortgage
+    // due day is set) keeps its known minimum in the plan: one payment per
+    // month is reserved from TODAY (the earliest it could be owed), marked
+    // dateUnknown with no due date, never shown as due on a day.
+    const acct = dbt.source === 'rental' ? null : accountsById.get(dbt.accountId);
+    const day = dbt.source === 'rental' ? (Number(settings.mortgageDueDay) || 0) : (Number(debtDueDays[dbt.id]) || Number(acct && acct.dueDay) || 0);
     const amount = dbt.source === 'rental'
       ? min + (Number((data?.inflows?.rentals || []).find((r) => r.id === dbt.rentalId)?.mortgage?.escrow) || 0)
       : min;
+    const label = dbt.source === 'rental' ? `${dbt.name} (P&I + escrow)` : `${dbt.name} · minimum`;
+    const base = { amount: -round2(amount), label, kind: dbt.source === 'rental' ? 'mortgage' : 'debt-min', source: dbt.source, refId: dbt.id, entityId: dbt.entityId ?? null, accountId: dbt.source === 'rental' ? null : (dbt.accountId || null) };
+    if (!day) {
+      assumedDebtTiming += 1;
+      dateNeeded.push({ refId: dbt.id, label, amount: round2(amount), kind: base.kind, entityId: dbt.entityId ?? null });
+      // One payment per month-long period: today, then the day after each
+      // month boundary, so a 30-day window holds exactly one (not today AND
+      // day 30), 60 days two, 90 days three.
+      for (let k = 0; k < 24; k++) {
+        const at = k === 0 ? start : addDays(addMonthsClamped(start, k, start.getDate()), 1);
+        if (at > end) break;
+        const occKey = `${dbt.id}:date-needed:${isoDay(at).slice(0, 7)}`;
+        events.push({ ...base, date: isoDay(at), dueDate: null, dateUnknown: true, assumed: true, occKey, key: occKey });
+      }
+      continue;
+    }
     const anchor = new Date(start.getFullYear(), start.getMonth(), Math.min(day, new Date(start.getFullYear(), start.getMonth() + 1, 0).getDate()));
     const first = anchor < start ? addMonthsClamped(anchor, 1, day) : anchor;
     for (const at of expandOccurrences(first, 'monthly', start, end)) {
-      events.push({ date: isoDay(at), amount: -round2(amount), label: dbt.source === 'rental' ? `${dbt.name} (P&I + escrow)` : `${dbt.name} · minimum`, kind: dbt.source === 'rental' ? 'mortgage' : 'debt-min', source: dbt.source, refId: dbt.id, entityId: dbt.entityId ?? null, assumed });
+      events.push({ ...base, date: isoDay(at), dueDate: isoDay(at), assumed: false });
     }
   }
-  if (assumedDebtTiming) assumptions.push(`${assumedDebtTiming} debt payment${assumedDebtTiming === 1 ? '' : 's'} assumed due on the 1st (no due day on file); set due days in Money → Settings.`);
+  if (assumedDebtTiming) assumptions.push(`${assumedDebtTiming} debt payment${assumedDebtTiming === 1 ? ' has' : 's have'} no due date on file (${dateNeeded.map((d) => d.label).slice(0, 4).join(', ')}${dateNeeded.length > 4 ? ', …' : ''}): each known minimum is reserved once a month starting today and listed under "Due date needed", never shown as due on a day. Enter the due date from the statement in Money → Setup.`);
 
   // 4) Tax calendar items that land inside the window (dated; the rest accrue).
   for (const tx of (data?.taxCalendar || [])) {
@@ -500,13 +474,20 @@ export function obligationEvents(data, sc, start, end, settings = {}, opts = {})
       if (seenPayees.has(p.key) || scheduledKeys.has(p.key)) continue;
       if (confirmedNames.has(cleanName(p.label || '').toLowerCase())) continue;
       if (looksLikeDebtPayment(p.label)) continue; // the debt minimum already carries it
+      const pRows = rows.filter((t) => (p.txIds || []).includes(t.id));
+      const pCat = payeeCategory(p.label, pRows);
+      if (MERCHANT_CATEGORIES.has(pCat)) {
+        notBills.push({ key: p.key, label: p.label, category: pCat, monthly: round2(p.amount * (DAYS_PER_MONTH / p.cadenceDays)), cadence: p.cadenceLabel, count: p.count || pRows.length, lastPaid: pRows.length ? String(pRows.map((t) => t.date).sort().pop()).slice(0, 10) : null });
+        continue;
+      }
+      const subscription = SUBSCRIPTION_CATEGORIES.has(pCat);
       let next = new Date(p.nextExpected.getFullYear(), p.nextExpected.getMonth(), p.nextExpected.getDate());
       let guard = 0;
       while (next < start && guard++ < 120) next = addDays(next, p.cadenceDays);
       const occ = expandOccurrences(next, cadenceToFrequency(p.cadence), start, end);
       const lastRow = rows.filter((t) => (p.txIds || []).includes(t.id)).sort((a, b) => String(a.date).localeCompare(String(b.date))).pop();
       for (const at of occ) {
-        events.push({ date: isoDay(at), amount: -round2(p.amount), label: p.label, kind: 'inferred-bill', source: 'inferred', refId: p.key, entityId: null, assumed: true, cadence: p.cadenceLabel, accountId: lastRow ? lastRow.accountId : null });
+        events.push({ date: isoDay(at), amount: -round2(p.amount), label: p.label, kind: 'inferred-bill', source: 'inferred', refId: p.key, entityId: null, assumed: true, cadence: p.cadenceLabel, accountId: lastRow ? lastRow.accountId : null, category: pCat, subscription });
       }
       const monthly = round2(p.amount * (DAYS_PER_MONTH / p.cadenceDays));
       inferredMonthly.total = round2(inferredMonthly.total + monthly);
@@ -539,6 +520,14 @@ export function obligationEvents(data, sc, start, end, settings = {}, opts = {})
       if (confirmedNames.has(cleanName(s.name || '').toLowerCase())) continue;
       if (cleanName(s.name || '').toLowerCase().split(/\W+/).some((w) => w.length > 3 && debtWords.has(w))) continue; // a debt minimum already carries it
       if (looksLikeDebtPayment(s.name) && debtMins.some((m) => Math.abs(m - Number(s.amount)) <= m * 0.05)) continue; // an autopay of that debt's minimum
+      {
+        const sRows = (data?.transactions || []).filter((t) => t && t.accountId === s.accountId && cleanName(t.description || '').toLowerCase().slice(0, 40) === cleanName(s.name || '').toLowerCase().slice(0, 40));
+        const sCat = payeeCategory(s.name, sRows);
+        if (MERCHANT_CATEGORIES.has(sCat)) {
+          if (!notBills.some((n) => payeeKey(n.label || '') === key)) notBills.push({ key: s.key, label: s.name, category: sCat, monthly: round2(Number(s.amount) * historyOccurrences(s, start, end).perMonth), cadence: null, count: s.evidence ? s.evidence.payments : sRows.length, lastPaid: s.evidence ? s.evidence.lastPaid : null });
+          continue;
+        }
+      }
       const acct = accountsById.get(s.accountId);
       if (!acct || !SPENDABLE_TYPES.includes(acct.type) || !inScope(sc, accountEntity.get(s.accountId))) continue;
       const amount = Number(s.amount) || 0; if (!(amount > 0)) continue;
@@ -596,7 +585,8 @@ export function obligationEvents(data, sc, start, end, settings = {}, opts = {})
   //    want incorrect calculations influencing my financial decisions").
   const settledOut = settleOccurrences(live, data, asOf);
   assumptions.push(...settledOut.assumptions);
-  return { events: settledOut.events, assumptions, inferredMonthly, settled: [...inBalance, ...settledOut.settled], duplicates, waitingOnLedger: settledOut.waitingOnLedger };
+  if (notBills.length) assumptions.push(`${notBills.length} repeating purchase${notBills.length === 1 ? '' : 's'} (${notBills.slice(0, 3).map((n) => n.label).join(', ')}${notBills.length > 3 ? ', …' : ''}) ${notBills.length === 1 ? 'is' : 'are'} everyday spending, not ${notBills.length === 1 ? 'a bill' : 'bills'}: counted in the spending budget, not projected as future bills.`);
+  return { events: settledOut.events, assumptions, inferredMonthly, settled: [...inBalance, ...settledOut.settled], duplicates, waitingOnLedger: settledOut.waitingOnLedger, notBills, dateNeeded };
 }
 
 // The words that name a payee, without the bank's noise (Zelle codes, "Online
@@ -698,7 +688,9 @@ export const OBLIGATION_TYPE_LABEL = {
 };
 
 export const BILL_STATUSES = ['scheduled', 'paid', 'paid-outside', 'partial-outside', 'canceled', 'overdue', 'needs-review'];
-export function occurrenceKey(ev) { return `${ev.refId || ev.label}:${ev.date}`; }
+// A payment with no due date on file is reserved on a moving day (today), so
+// its key is its calendar month instead: a "paid" mark on it holds all month.
+export function occurrenceKey(ev) { return ev.occKey || `${ev.refId || ev.label}:${ev.date}`; }
 function samePayee(a, b) {
   if (!a || !b) return false;
   if (a === b) return true;
@@ -848,6 +840,18 @@ export function monthlyAccruals(data, sc, start, end, settings = {}, opts = {}) 
   }
   // Inferred recurring payments are carved out of the household figure so they
   // count once (a MEASURED figure already leaves them out).
+  // REPEATING PURCHASES ARE SPENDING, NOT BILLS (Phase 1.2, 2026-11-17). Fuel,
+  // grocery, dining and household repeats are no longer projected as dated
+  // bills. With the sample's figures they are inside the measured figure
+  // above; with the family's own household figure they are inside that figure
+  // (no longer carved out of it, since they are no longer itemized); with
+  // neither, their monthly amount is reserved here, day by day, so the plan
+  // holds the same money without inventing a due date for a store.
+  const repeating = Number(opts.notBillsMonthly) || 0;
+  if (!sampleOutflows && !(Number(outflows.household) > 0) && repeating > 0 && sc.kind !== 'business') {
+    out.livingParts.repeatingPurchases = round2(repeating); out.living += repeating;
+    out.notes.push(`$${Math.round(repeating).toLocaleString()}/mo of repeating purchases (fuel, groceries, dining, household) reserved as everyday spending, not as bills; enter a household spending figure in Money → Setup to replace it.`);
+  }
   const carve = sampleOutflows ? 0 : Math.min(out.livingParts.household || 0, Number(opts.inferredMonthlyTotal) || 0);
   if (carve > 0) { out.livingParts.household = round2(out.livingParts.household - carve); out.living = round2(out.living - carve); out.notes.push(`$${Math.round(carve).toLocaleString()}/mo of itemized recurring payments carved out of the household figure so they are counted once.`); }
   out.living = round2(out.living);
@@ -901,22 +905,60 @@ export function ledgerFreshness(data, sc, asOf, settings = {}) {
 // bills, overdue items, creditor arrangements and settlements, and expected
 // income, each with the items that make it up (every number can be opened).
 function comingUp(data, sc, start, settings, opts) {
+  const accountNames = new Map((data?.accounts || []).map((a) => [a.id, a.name || a.id]));
   const end30 = addDays(start, 30);
   const end14 = addDays(start, 14);
   const end7 = addDays(start, 7);
   // One 30-day walk; the 7- and 14-day windows are its earlier days (the
   // events are the same whatever the end), so the three can never disagree.
   const ob = obligationEvents(data, sc, start, end30, settings, { asOf: start, goals: opts.goals, recurringDecisions: opts.recurringDecisions });
-  const inc = incomeEvents(data, sc, addDays(start, 1), end30, settings, start);
+  // Income through 90 days, from tomorrow: the projected schedule plus every
+  // deposit typed into the register ahead of time (the walk already counts
+  // those; the windows did not, 2026-11-17).
+  const end60 = addDays(start, 60);
+  const end90 = addDays(start, 90);
+  const inc90 = incomeEvents(data, sc, addDays(start, 1), end90, settings, start);
+  const typed = scheduledLedgerEvents(data, sc, start, addDays(start, 1), end90).filter((e) => e.amount > 0);
+  const incomeAll = [...inc90.events, ...typed].sort((a, b) => a.date.localeCompare(b.date) || String(a.label).localeCompare(String(b.label)));
   const out30 = ob.events.filter((e) => e.amount < 0);
   const out = out30.filter((e) => e.date <= isoDay(end14));
-  const pick = (xs) => ({ total: round2(xs.reduce((s, e) => s - e.amount, 0)), items: xs.map((e) => ({ date: e.date, label: e.label, amount: round2(-e.amount), kind: e.kind, status: billStatusOf(e), obligationType: e.obligationType || null, overdue: !!e.overdue, dueDate: e.dueDate || null, graceState: e.graceState || null, graceEndsOn: e.graceEndsOn || null, assumed: !!e.assumed, inferred: e.kind === 'inferred-bill', entityId: e.source === 'obligation' ? (e.entityId || null) : undefined, paidByEntityId: e.paidByEntityId })) });
+  const pick = (xs) => ({ total: round2(xs.reduce((s, e) => s - e.amount, 0)), items: xs.map((e) => ({ date: e.date, label: e.label, amount: round2(-e.amount), kind: e.kind, status: billStatusOf(e), obligationType: e.obligationType || null, overdue: !!e.overdue, dueDate: e.dueDate || null, graceState: e.graceState || null, graceEndsOn: e.graceEndsOn || null, assumed: !!e.assumed, inferred: e.kind === 'inferred-bill', dateUnknown: !!e.dateUnknown, subscription: !!e.subscription, billClass: billClassOf(e), entityId: e.source === 'obligation' ? (e.entityId || null) : undefined, paidByEntityId: e.paidByEntityId })) });
   const in7 = out.filter((e) => e.date <= isoDay(end7));
   // Past-due obligations are their own list, apart from the regular monthly
   // bills (Darrell 2026-11-11): a missed loan payment (overdue, in or past
   // its grace period) or a past-due balance entered as such.
   const isPastDue = (e) => !!e.overdue || !!e.graceState || e.obligationType === 'past-due';
-  const incomeThrough = (end) => { const xs = inc.events.filter((e) => e.date <= isoDay(end)); return { total: round2(xs.reduce((s, e) => s + e.amount, 0)), items: xs.map((e) => ({ date: e.date, label: e.label, amount: round2(e.amount), inferred: !!e.inferred })) }; };
+  // EVERY DEPOSIT IN THE WINDOW, NAMED (Christina 2026-11-16: "The 30-day
+  // income forecast must show exactly which deposits make up the total").
+  // `total` is everything expected in the window; `confirmed` is what Safe to
+  // Spend counts (entered pay schedules, rent with its due day set, deposits
+  // typed into the register); `unconfirmed` is shown, never counted as cash
+  // (inferred pay rhythms, rent whose day is assumed).
+  const incomeItem = (e) => ({ date: e.date, label: e.label, amount: round2(e.amount), inferred: !!e.inferred, confirmed: !e.inferred, status: e.status || (e.inferred ? 'inferred' : 'confirmed'), statusNote: e.statusNote || null, source: e.source, frequency: e.frequency || null, accountId: e.accountId || null, accountName: e.accountId ? (accountNames.get(e.accountId) || null) : null, entityId: e.entityId ?? null, salaryId: e.salaryId || null, confirm: e.confirm || null });
+  const incomeThrough = (end) => {
+    const xs = incomeAll.filter((e) => e.date <= isoDay(end));
+    const confirmed = round2(xs.filter((e) => !e.inferred).reduce((a, e) => a + e.amount, 0));
+    const total = round2(xs.reduce((a, e) => a + e.amount, 0));
+    return { total, confirmed, unconfirmed: round2(total - confirmed), through: isoDay(end), items: xs.map(incomeItem) };
+  };
+  // INCOME BEFORE EACH BILL — a different calculation from the window total
+  // (Christina 2026-11-16: "Distinguish total income expected during the next
+  // 30 days from income expected before specific bills become due"). For each
+  // bill in the 30 days, in date order: the bills due through its date, and
+  // the income arriving from tomorrow THROUGH that date (a deposit landing on
+  // the due day counts as arriving in time). A bill owed today has no income
+  // before it.
+  const billsBefore = out30.slice().sort((a, b) => a.date.localeCompare(b.date)).map((b, i, arr) => {
+    const upTo = arr.filter((x) => x.date <= b.date);
+    const arrived = incomeAll.filter((e) => e.date <= b.date);
+    return {
+      date: b.date, label: b.label, amount: round2(-b.amount), overdue: !!b.overdue, dueDate: b.dueDate || null, kind: b.kind, assumed: !!b.assumed, inferred: b.kind === 'inferred-bill',
+      billsThrough: round2(upTo.reduce((a, x) => a - x.amount, 0)),
+      confirmedIncomeBy: round2(arrived.filter((e) => !e.inferred).reduce((a, e) => a + e.amount, 0)),
+      unconfirmedIncomeBy: round2(arrived.filter((e) => e.inferred).reduce((a, e) => a + e.amount, 0)),
+      index: i,
+    };
+  });
   // What is NOT subtracted, shown beside what is: payments already paid and
   // cleared (in the ledger, marked paid outside, or inside the bank-checked
   // balance) and the possible duplicates counted once.
@@ -938,11 +980,23 @@ function comingUp(data, sc, start, settings, opts) {
     pastDue: pick(out30.filter(isPastDue)),
     overdue: pick(out.filter((e) => e.overdue)),
     arrangements: pick(out.filter((e) => e.obligationType === 'arrangement' || e.obligationType === 'settlement')),
-    // Income expected BEFORE each window's bills are due: what arrives inside
-    // the same window (counted only on the day it arrives, never earlier).
+    // Income expected INSIDE each window (from tomorrow through its last day),
+    // counted only on the day it arrives. This is the window's total, not
+    // "income before these bills are due"; that is billsBefore30.
     income7: incomeThrough(end7),
     income14: incomeThrough(end14),
     income30: incomeThrough(end30),
+    income60: incomeThrough(end60),
+    income90: incomeThrough(end90),
+    billsBefore30: { items: billsBefore },
+    // THE 30 DAYS OF BILLS IN SIX GROUPS (Christina 2026-11-16, Task 3): what
+    // makes up the bills total, by how much is known about each. The groups
+    // partition next30 exactly (their totals add up to it to the cent).
+    // `notBills` is apart: repeating purchases counted in the spending budget,
+    // never in this total.
+    groups30: Object.fromEntries(BILL_CLASSES.map((c) => [c, pick(out30.filter((e) => billClassOf(e) === c))])),
+    notBills: { items: ob.notBills || [], monthly: round2((ob.notBills || []).reduce((a, n) => a + (Number(n.monthly) || 0), 0)) },
+    dateNeeded: { items: ob.dateNeeded || [] },
   };
 }
 
@@ -958,6 +1012,7 @@ export const BILL_DUE_STATUS_LABEL = {
   pending: 'Pending',
   confirmed: 'Confirmed upcoming',
   inferred: 'Inferred from history, not confirmed',
+  'needs-verification': 'Needs verification',
 };
 export function billStatusOf(e) {
   // A loan with a grace period on file: within it, or past it (both still owed).
@@ -965,6 +1020,8 @@ export function billStatusOf(e) {
   if (e.overdue) return 'overdue';
   if (e.markedPaid || e.kind === 'scheduled') return 'pending';
   if (e.kind === 'inferred-bill') return 'inferred';
+  // No due date on file: the amount is known, the day is not. Never "confirmed".
+  if (e.dateUnknown) return 'needs-verification';
   return 'confirmed';
 }
 
@@ -1038,6 +1095,30 @@ export function reserveStatus(data, settings = {}, sc) {
     pct: goal > 0 ? Math.min(100, Math.round((designated / goal) * 100)) : null,
     goalSource: goalKey != null ? 'saved' : (sc.kind === 'personal' ? 'default' : 'none'),
   };
+}
+
+// One day-by-day walk of cash: start from `availableCash`, apply each dated
+// item on its day and the undated reserves from day 1. Returns the timeline,
+// the lowest day and the first day below zero.
+function walkCash(availableCash, items, start, days, dailyAccrual) {
+  const byDay = new Map();
+  for (const it of items) { if (!byDay.has(it.date)) byDay.set(it.date, []); byDay.get(it.date).push(it); }
+  const timeline = [];
+  let cash = availableCash;
+  let lowest = { amount: availableCash, date: isoDay(start) };
+  let overdraftDate = null;
+  for (let d = 0; d <= days; d++) {
+    const date = isoDay(addDays(start, d));
+    const dayItems = byDay.get(date) || [];
+    let inflow = 0; let outflow = 0;
+    for (const it of dayItems) { if (it.amount > 0) inflow += it.amount; else outflow += -it.amount; }
+    const accrued = d === 0 ? 0 : dailyAccrual;
+    cash = cash + inflow - outflow - accrued;
+    timeline.push({ date, cash: round2(cash), in: round2(inflow), out: round2(outflow + accrued), accrued: round2(accrued), items: dayItems });
+    if (cash < lowest.amount) lowest = { amount: round2(cash), date };
+    if (cash < 0 && !overdraftDate) overdraftDate = date;
+  }
+  return { timeline, lowest, overdraftDate };
 }
 
 export function buildSafeToSpend(data, opts = {}) {
@@ -1128,7 +1209,7 @@ function forScope(data, sc, asOf, settings, opts) {
   const income = incomeEvents(data, sc, start, end, settings, asOf);
   const obligations = obligationEvents(data, sc, start, end, settings, { asOf, goals: opts.goals, recurringDecisions: opts.recurringDecisions });
   const countedNames = new Set([...obligations.events.filter((e) => e.amount < 0), ...(obligations.settled || [])].map((e) => cleanName(e.label || '').toLowerCase().slice(0, 40)));
-  const accrual = monthlyAccruals(data, sc, start, end, settings, { inferredMonthlyTotal: obligations.inferredMonthly.total, goals: opts.goals, goalMeta: opts.goalMeta || data?.moneyPlan?.goalMeta, countedNames });
+  const accrual = monthlyAccruals(data, sc, start, end, settings, { inferredMonthlyTotal: obligations.inferredMonthly.total, notBillsMonthly: (obligations.notBills || []).reduce((a, n) => a + (Number(n.monthly) || 0), 0), goals: opts.goals, goalMeta: opts.goalMeta || data?.moneyPlan?.goalMeta, countedNames });
   assumptions.push(...income.assumptions, ...obligations.assumptions, ...accrual.notes);
   // Each entity keeps its OWN reserve when one is set (settings.reserveByEntity,
   // keyed by scope id: 'personal' or the entity's id); otherwise the household
@@ -1155,28 +1236,25 @@ function forScope(data, sc, asOf, settings, opts) {
   windows.reserveSource = reserve.source;
 
   // Day-by-day walk.
-  const items = [...income.events, ...obligations.events].sort((a, b) => a.date.localeCompare(b.date));
-  const byDay = new Map();
-  for (const it of items) { if (!byDay.has(it.date)) byDay.set(it.date, []); byDay.get(it.date).push(it); }
+  // UNCONFIRMED INCOME IS NOT CASH (Christina 2026-11-16: "Unconfirmed income
+  // must be shown separately and must not be treated as guaranteed cash in
+  // Safe-to-Spend"). The walk Safe to Spend reads counts only CONFIRMED income
+  // (an entered pay schedule, rent with its due day set, a deposit typed into
+  // the register). Inferred pay rhythms and rent on an assumed day are walked
+  // a second time beside it, so the family sees what the figure WOULD be if
+  // that money arrives, never as the figure itself.
+  const confirmedIncome = income.events.filter((e) => !e.inferred);
+  const unconfirmedIncomeEvents = income.events.filter((e) => e.inferred);
+  const items = [...confirmedIncome, ...obligations.events].sort((a, b) => a.date.localeCompare(b.date));
   const dailyLiving = accrual.living / DAYS_PER_MONTH;
   const dailyTax = accrual.tax / DAYS_PER_MONTH;
   const dailySavings = accrual.savings / DAYS_PER_MONTH;
-  const timeline = [];
-  let cash = availableCash;
-  let lowest = { amount: availableCash, date: isoDay(start) };
-  let overdraftDate = null;
   const days = Math.max(0, daysBetween(start, end));
-  for (let d = 0; d <= days; d++) {
-    const date = isoDay(addDays(start, d));
-    const dayItems = byDay.get(date) || [];
-    let inflow = 0; let outflow = 0;
-    for (const it of dayItems) { if (it.amount > 0) inflow += it.amount; else outflow += -it.amount; }
-    const accrued = d === 0 ? 0 : dailyLiving + dailyTax + dailySavings;
-    cash = cash + inflow - outflow - accrued;
-    timeline.push({ date, cash: round2(cash), in: round2(inflow), out: round2(outflow + accrued), accrued: round2(accrued), items: dayItems });
-    if (cash < lowest.amount) lowest = { amount: round2(cash), date };
-    if (cash < 0 && !overdraftDate) overdraftDate = date;
-  }
+  const walk = walkCash(availableCash, items, start, days, dailyLiving + dailyTax + dailySavings);
+  const { timeline, lowest, overdraftDate } = walk;
+  const withUnconfirmed = unconfirmedIncomeEvents.length
+    ? walkCash(availableCash, [...items, ...unconfirmedIncomeEvents].sort((a, b) => a.date.localeCompare(b.date)), start, days, dailyLiving + dailyTax + dailySavings)
+    : walk;
   const sum = (pred) => round2(items.filter(pred).reduce((s, it) => s + Math.abs(it.amount), 0));
   // THE SIMPLE BREAKDOWN RECONCILES WITH THE WALK (Christina 2026-10-28): the
   // sums THROUGH the lowest day are the walk's own terms, so
@@ -1203,6 +1281,7 @@ function forScope(data, sc, asOf, settings, opts) {
   const taxesDated = sum((it) => it.kind === 'tax');
   const otherCommitments = sum((it) => it.kind === 'incident');
   const expectedIncome = sum((it) => it.kind === 'income');
+  const unconfirmedIncome = round2(unconfirmedIncomeEvents.reduce((a, e) => a + e.amount, 0));
   const periodFraction = days / DAYS_PER_MONTH;
   const livingReserved = round2(accrual.living * periodFraction);
   const taxReserved = round2(accrual.tax * periodFraction + taxesDated);
@@ -1220,13 +1299,26 @@ function forScope(data, sc, asOf, settings, opts) {
   const safeToSpendNow = reconciliationRequired ? 0 : unreconciledSafe;
   const shortfall = round2(Math.max(0, minCushion - lowest.amount));
   const nextIncome = income.events.filter((e) => e.date > isoDay(asOf)).sort((a, b) => a.date.localeCompare(b.date))[0] || null;
+  // What Safe to Spend would read IF the unconfirmed income arrives on the
+  // days projected. Shown beside the figure, never in its place.
+  const ifUnconfirmedArrives = {
+    income: unconfirmedIncome,
+    // Each deposit behind the figure, traceable: source, date, account, status,
+    // and the window it falls in (Safe to Spend's period, which can end on a
+    // payday past the 30-day list, Christina 2026-11-17).
+    through: isoDay(end),
+    items: unconfirmedIncomeEvents.map((e) => ({ date: e.date, label: e.label, amount: round2(e.amount), status: e.status || 'inferred', statusNote: e.statusNote || null, frequency: e.frequency || null, accountId: e.accountId || null, accountName: e.accountId ? ((data?.accounts || []).find((a) => a.id === e.accountId)?.name || null) : null, entityId: e.entityId ?? null })),
+    lowest: withUnconfirmed.lowest,
+    safeToSpend: reconciliationRequired ? 0 : round2(Math.max(0, withUnconfirmed.lowest.amount - minCushion)),
+    unreconciledSafe: round2(Math.max(0, withUnconfirmed.lowest.amount - minCushion)),
+  };
 
   let status = 'verified';
   const reasons = [];
   if (!spendable.length) { status = 'unavailable'; reasons.push('No checking, savings or cash account in this scope yet.'); }
   else {
     if (freshness.stale) { status = 'estimate'; reasons.push(freshness.ledgerAsOf ? `The ledger's newest entry is ${freshness.staleDays} days old (older than ${freshness.staleAfter}).` : 'No ledger entries on the spendable accounts yet.'); }
-    if (income.events.some((e) => e.inferred)) { if (status === 'verified') status = 'estimate'; reasons.push('Some income timing is inferred, not entered.'); }
+    if (unconfirmedIncomeEvents.length) reasons.push(`$${unconfirmedIncome.toLocaleString()} of expected income is not confirmed, so it is left out of Safe to Spend; confirm the pay schedule or rent day to count it.`);
     if (obligations.events.some((e) => e.assumed && e.kind !== 'inferred-bill')) { if (status === 'verified') status = 'estimate'; reasons.push('Some payment due days are assumed.'); }
     if (obligations.waitingOnLedger) { if (status === 'verified') status = 'estimate'; reasons.push(`${obligations.waitingOnLedger} bill${obligations.waitingOnLedger === 1 ? ' is' : 's are'} marked paid but not in the ledger yet; still counted until the payment posts.`); }
     // VERIFIED MEANS CHECKED AGAINST THE BANK (Christina 2026-11-03: "label Safe
@@ -1244,7 +1336,7 @@ function forScope(data, sc, asOf, settings, opts) {
 
   const explanation = [
     `Start with ${balanceSources.filter((b) => b.counted).every((b) => b.verifiedOn) ? 'bank-checked' : 'ledger-calculated (not every account bank-checked)'} cash on ${spendable.length} spendable account${spendable.length === 1 ? '' : 's'}: $${availableCash.toLocaleString()}. Every ledger row dated ${isoDay(asOf)} or earlier is already inside this number, so pending rows are not subtracted again.`,
-    `Lay out every dated item through ${isoDay(end)}: $${billsDue.toLocaleString()} of bills, $${debtMinimums.toLocaleString()} of minimum debt and mortgage payments, $${taxesDated.toLocaleString()} of dated tax items, $${otherCommitments.toLocaleString()} of other commitments, and $${expectedIncome.toLocaleString()} of expected income on the days it is expected.`,
+    `Lay out every dated item through ${isoDay(end)}: $${billsDue.toLocaleString()} of bills, $${debtMinimums.toLocaleString()} of minimum debt and mortgage payments, $${taxesDated.toLocaleString()} of dated tax items, $${otherCommitments.toLocaleString()} of other commitments, and $${expectedIncome.toLocaleString()} of confirmed income on the days it is expected.${unconfirmedIncome ? ` $${unconfirmedIncome.toLocaleString()} of unconfirmed income is NOT counted (if it arrives as projected, Safe to Spend would read $${ifUnconfirmedArrives.unreconciledSafe.toLocaleString()}).` : ''}`,
     `Accrue the undated reserves day by day: $${accrual.living.toLocaleString()}/mo living expenses, $${accrual.tax.toLocaleString()}/mo tax set-aside, $${accrual.savings.toLocaleString()}/mo planned savings.`,
     `The lowest projected balance is $${lowest.amount.toLocaleString()} on ${lowest.date}. Keep the $${minCushion.toLocaleString()} cash cushion: ${lowest.amount - minCushion >= 0 ? `$${unreconciledSafe.toLocaleString()} could be spent today without any projected balance dropping below the cushion${reconciliationRequired ? ' IF the balances were right' : ''}.` : `the cushion is short by $${shortfall.toLocaleString()}, so nothing is safely spendable today.`}`,
   ];
@@ -1263,15 +1355,19 @@ function forScope(data, sc, asOf, settings, opts) {
     lines: {
       availableCash, unverifiedExcluded, investmentsHeldApart: investments, pendingHolds: 0,
       billsDue, debtMinimums, livingExpenses: livingReserved, taxesReserved: taxReserved, savingsReserved,
-      minCushion, otherCommitments, expectedIncome,
+      minCushion, otherCommitments, expectedIncome, unconfirmedIncome, ifUnconfirmedArrives,
       reserve: { goal: reserve.goal, designated: reserve.designated, remaining: reserve.remaining, pct: reserve.pct, source: reserve.source, goalSource: reserve.goalSource, key: reserve.key, typed: reserve.typed, designations: reserve.designations },
       projectedLowest: lowest,
       toLowest,
-      nextIncome: nextIncome ? { date: nextIncome.date, amount: nextIncome.amount, source: nextIncome.label, inferred: !!nextIncome.inferred } : null,
+      nextIncome: nextIncome ? { date: nextIncome.date, amount: nextIncome.amount, source: nextIncome.label, inferred: !!nextIncome.inferred, status: nextIncome.status || null } : null,
       potentialDebtPayment: safeToSpendNow,
     },
     monthly: { living: accrual.living, livingParts: accrual.livingParts, tax: accrual.tax, savings: accrual.savings, inferredBills: obligations.inferredMonthly },
     items, timeline, explanation, assumptions,
+    // Expected income that is NOT in the walk above (inferred pay rhythms, rent
+    // on an assumed day): kept whole so the budget-by-paycheck view can still
+    // cut its periods at those paydays, labeled inferred.
+    unconfirmedIncomeItems: unconfirmedIncomeEvents,
     settled: obligations.settled || [],
   };
 }
@@ -1317,6 +1413,7 @@ function consolidated(data, sc, asOf, settings, opts) {
       ],
       assumptions: [...new Set(byEntity.flatMap((r) => r.assumptions))],
       items: byEntity.flatMap((r) => r.items),
+      unconfirmedIncomeItems: byEntity.flatMap((r) => r.unconfirmedIncomeItems || []),
       settled: byEntity.flatMap((r) => r.settled || []),
       byEntity,
     };
@@ -1339,7 +1436,15 @@ function consolidated(data, sc, asOf, settings, opts) {
     lines: {
       availableCash: sumLine('availableCash'), investmentsHeldApart: sumLine('investmentsHeldApart'), pendingHolds: 0,
       billsDue: sumLine('billsDue'), debtMinimums: sumLine('debtMinimums'), livingExpenses: sumLine('livingExpenses'), taxesReserved: sumLine('taxesReserved'), savingsReserved: sumLine('savingsReserved'),
-      minCushion: sumLine('minCushion'), otherCommitments: sumLine('otherCommitments'), expectedIncome: sumLine('expectedIncome'),
+      minCushion: sumLine('minCushion'), otherCommitments: sumLine('otherCommitments'), expectedIncome: sumLine('expectedIncome'), unconfirmedIncome: sumLine('unconfirmedIncome'),
+      ifUnconfirmedArrives: {
+        income: sumLine('unconfirmedIncome'),
+        through: ((byEntity[0] && byEntity[0].lines.ifUnconfirmedArrives) || {}).through || null,
+        items: byEntity.flatMap((r) => ((r.lines.ifUnconfirmedArrives || {}).items || [])),
+        lowest: { amount: round2(byEntity.reduce((s, r) => s + (((r.lines.ifUnconfirmedArrives || {}).lowest || r.lines.projectedLowest).amount || 0), 0)), date: null },
+        safeToSpend: round2(byEntity.reduce((s, r) => s + ((r.lines.ifUnconfirmedArrives || {}).safeToSpend ?? r.safeToSpendNow), 0)),
+        unreconciledSafe: round2(byEntity.reduce((s, r) => s + ((r.lines.ifUnconfirmedArrives || {}).unreconciledSafe ?? (r.unreconciledSafe || 0)), 0)),
+      },
       reserve: ['goal', 'designated', 'remaining'].reduce((acc, k) => { acc[k] = round2(byEntity.reduce((s, r) => s + (((r.lines || {}).reserve || {})[k] || 0), 0)); return acc; }, { pct: null, source: 'summed', goalSource: 'summed', key: null, typed: null, designations: [] }),
       projectedLowest: { amount: lowestSum, date: null },
       toLowest: ['income', 'bills', 'debtMinimums', 'taxesDated', 'other', 'living', 'taxes', 'savings', 'reserves', 'obligations'].reduce((acc, k) => { acc[k] = round2(byEntity.reduce((s, r) => s + ((r.lines.toLowest || {})[k] || 0), 0)); return acc; }, { date: null, days: null }),
@@ -1347,6 +1452,7 @@ function consolidated(data, sc, asOf, settings, opts) {
     },
     monthly: null,
     items: byEntity.flatMap((r) => r.items), timeline: [],
+    unconfirmedIncomeItems: byEntity.flatMap((r) => r.unconfirmedIncomeItems || []),
     explanation: [
       `Each entity is projected on its own and floored at $0, then summed — business and rental cash is never treated as personal spending money, and no pocket subsidizes another.`,
       ...byEntity.map((r) => `${r.scope.label}: lowest $${r.lines.projectedLowest.amount.toLocaleString()} on ${r.lines.projectedLowest.date}, cushion $${r.lines.minCushion.toLocaleString()} → safe $${r.safeToSpendNow.toLocaleString()}.`),
@@ -1356,14 +1462,22 @@ function consolidated(data, sc, asOf, settings, opts) {
     // The combined view lists every entity's bills and income side by side,
     // each item tagged with the pocket it comes out of — a total of what is
     // DUE, never a pool of who may spend what.
-    windows: ['next7', 'next14', 'next30', 'regular7', 'regular14', 'regular30', 'pastDue', 'overdue', 'arrangements', 'cleared', 'duplicates', 'income7', 'income14', 'income30'].reduce((w, k) => {
+    windows: ['next7', 'next14', 'next30', 'regular7', 'regular14', 'regular30', 'pastDue', 'overdue', 'arrangements', 'cleared', 'duplicates', 'income7', 'income14', 'income30', 'income60', 'income90', 'billsBefore30', 'notBills', 'dateNeeded'].reduce((w, k) => {
       const parts = byEntity.map((r) => ({ r, part: (r.windows || {})[k] || { total: 0, items: [] } }));
       w[k] = {
+        ...(k.startsWith('income') ? {
+          confirmed: round2(parts.reduce((s, { part }) => s + (Number(part.confirmed) || 0), 0)),
+          unconfirmed: round2(parts.reduce((s, { part }) => s + (Number(part.unconfirmed) || 0), 0)),
+          through: (parts[0] && parts[0].part.through) || null,
+        } : {}),
         total: round2(parts.reduce((s, { part }) => s + (Number(part.total) || 0), 0)),
         items: parts.flatMap(({ r, part }) => (part.items || []).map((i) => ({ ...i, scopeId: r.scope.id, scopeLabel: r.scope.label }))).sort((a, b) => String(a.date).localeCompare(String(b.date))),
       };
       return w;
-    }, {}),
+    }, { groups30: Object.fromEntries(BILL_CLASSES.map((c) => {
+      const parts = byEntity.map((r) => ({ r, part: ((r.windows || {}).groups30 || {})[c] || { total: 0, items: [] } }));
+      return [c, { total: round2(parts.reduce((a, { part }) => a + (Number(part.total) || 0), 0)), items: parts.flatMap(({ r, part }) => (part.items || []).map((i) => ({ ...i, scopeId: r.scope.id, scopeLabel: r.scope.label }))).sort((a, b) => String(a.date).localeCompare(String(b.date))) }];
+    })) }),
     balanceSources: byEntity.flatMap((r) => (r.balanceSources || []).map((b) => ({ ...b, scopeLabel: r.scope.label }))),
     byEntity,
   };

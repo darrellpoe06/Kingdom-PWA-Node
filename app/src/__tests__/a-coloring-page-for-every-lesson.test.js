@@ -290,22 +290,22 @@ describe('the sheet fits on the paper', () => {
 // hash here in the same commit that changes the path.
 // ===========================================================================
 const REVIEWED = {
-  lamb: '0dfa6288c11b',
-  crown: 'fb0abb060edf',
-  bread: 'ca582d07048f',
-  water: 'fc4c84fecc46',
-  lamp: 'f3da7b6543ea',
-  tree: '82ed12a8b025',
-  house: '186d0b5044f6',
-  heart: '790016cca43e',
-  star: '5db82389bfa9',
-  fish: '4febaa8d70e1',
+  lamb: '8ae6e26bfe3c',
+  crown: '20e5f09da39d',
+  bread: '7d7ccd7138f1',
+  water: '1566b9271401',
+  lamp: '8de3697a544f',
+  tree: 'e47eed0615e9',
+  house: 'cdc0ad8323b6',
+  heart: 'ef2f27e0518b',
+  star: '0717f0b1a228',
+  fish: '9a32ce6a9ada',
   hand: 'b4863361cb30',
-  book: 'd4bbbd3b68ad',
-  sun: '91ab1ce385e9',
-  bird: '144c4645651c',
-  door: 'b5bd1111328e',
-  cross: '975f35c191eb',
+  book: '0717ccc70976',
+  sun: '3e8d49922ac2',
+  bird: 'e6aaaa661648',
+  door: '24680d8b0c17',
+  cross: 'f02bf2d968bb',
 };
 
 describe('a shape a child colors was looked at by a person', () => {
