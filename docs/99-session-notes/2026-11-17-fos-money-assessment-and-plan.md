@@ -218,6 +218,30 @@ Phase 1.3b (next): per-row approve / reject / edit / category on the card, learn
 
 `lib/intake-row-review.js` (new): every imported row can be added or left out and given a category before Approve; categories are suggested from the family's own rules first, then the built-in rules (spending categories only). `commitDoc` now writes the reviewed rows. Found and fixed: Approve used to re-read the raw extraction and wrote a row the person had left out; the built-in rules file every Zelle as "transfer", which the engine treats as never a payment, so they no longer suggest it. Tests: `money-import-review.test.jsx` (9).
 
+## 4h. Chase screenshot: running balances read as amounts (2026-11-18)
+
+Reported by Christina from her Chase Personal Checking 7206 screenshot: six rows saved as deposits of the running balance (Zelle to TLC -$75.00 as +$3,941.72; Zelle to TLC -$837.00 as +$6,890.57; Transfer from GMR +$55.00 as +$8,529.13; Cash App from Darrell +$1,450.00 as +$8,474.13; Transfer from Chase 3322 +$2,201.00 as +$7,024.13; ATM cash deposit +$1,000.00 as +$4,497.99). Account details: available = present = $2,559.78.
+
+- **Cause** (`app/src/lib/snapshot-rows.js`, Phase 1.3): the reader handled a running balance in one layout only: amount first, balance second, on the same line. Chase prints the gray balance beneath the row. OCR does not keep that geometry and can deliver the balance on its own line before the amount, or ahead of it on one line. The reader then took the first figure it met (the balance) and dropped the real amount line. The balance is unsigned, and on a screen that signs its debits an unsigned figure is read as money in. So every withdrawal became a deposit of the balance. Replayed on the old reader, both layouts reproduce her six wrong figures exactly.
+- **Why the earlier fixes and tests missed it:**
+  - The Phase 1.3 tests were hand-typed text in the one layout the reader assumed ("Nov 14 CIRCLE K -$45.00 $4,687.18"). None came from a real Chase screen's OCR output.
+  - Nothing cross-checked the figures. A screen with running balances carries its own proof: each balance minus the next older one equals the row's amount. The reader never used it.
+  - The review card showed only the amount taken, never the balance beside it, so a wrong pick looked like an ordinary deposit.
+  - The sign rule ("unsigned on a signing screen = in") turned the mistake into the worst case: withdrawals saved as income.
+- **Fix:**
+  - Every figure OCR attaches to a row is kept with it.
+  - Which one is the amount is proven by the balances' arithmetic, to the cent; a sign the balances prove is used, and one they contradict is shown, never chosen.
+  - A row whose amount cannot be told apart, or whose amount OCR lost (only the gray balance left on a screen that prints balances), is listed as "amount unclear" and never written.
+  - The review card shows "Bank balance after: $X" for every row and lists unclear rows with what was printed.
+  - An account-details screen is told apart from a history screen (`summary.screen`).
+  - Transfers naming an account's last four, and Cash App to or from Darrell, are suggested as transfers. "Transfer from GMR" is not assumed.
+- **Past imports:** `lib/screenshot-import-recheck.js` re-reads every screenshot already added from the OCR text kept on the device, with the same answers, and lists each row written differently (in the books / what the screen says / bank balance after) on the Books upload screen. It changes nothing; a correction is made by the person in Transactions. A screenshot added on another device is counted as not checkable there, never as fine.
+- **Pending:** a pending charge on the screenshot's day is inside that day's available-balance checkpoint, so it is not subtracted twice (tested).
+- **Tests:**
+  - `money-chase-running-balance.test.js` (17): her six rows in five OCR layouts, sign from the balances, sign conflict, lost amount, transfers, balance vs history screen, end to end (writes the six real amounts plus the $2,559.78 checkpoint), pending, and the re-check.
+  - `money-chase-running-balance-card.test.jsx` (1).
+  - Proven to catch: 15 of the 17 fail on the old reader.
+
 ## 6. Morning report (overnight 2026-11-17)
 
 ### Pull requests (all labeled `hold`; nothing merged or deployed)

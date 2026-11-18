@@ -134,20 +134,24 @@ export function readSnapshotRows(text, { asOf = null } = {}) {
   let pending = false;
   let heading = null;
   let carry = null;
+  let last = null;
   for (const rawLine of String(text || '').split(/\r?\n/)) {
     const line = rawLine.replace(/[−–]/g, '-').replace(/\s+/g, ' ').trim();
     if (!line) {
       carry = null;
+      last = null;
       continue;
     }
     if (/^pending\b/i.test(line)) {
       pending = true;
       carry = null;
+      last = null;
       continue;
     }
     if (/^(posted|completed|recent (transactions|activity)|transactions|activity)\b/i.test(line)) {
       pending = false;
       carry = null;
+      last = null;
       continue;
     }
     const day = dayOf(line, asOf);
@@ -157,59 +161,181 @@ export function readSnapshotRows(text, { asOf = null } = {}) {
     if (day && (!rest || !rest.trim())) {
       heading = day;
       carry = null;
+      last = null;
       continue;
     }
     if (money) {
       const desc = rest.slice(0, money.index).trim();
-      const amt = readMoney(money[1]);
-      if (!amt) {
+      const tokens = [readMoney(money[1]), money[2] ? readMoney(money[2]) : null].filter(Boolean);
+      if (!tokens.length) {
         carry = null;
+        last = null;
         continue;
       }
       const rowDay = day || heading;
       if (desc) {
         if (HEADING.test(desc) && !day) {
           carry = null;
+          last = null;
           continue;
         } // "Available balance $4,687.18"
-        raw.push({ day: rowDay, description: desc, amt, pending, hadBalance: !!money[2] });
+        last = { day: rowDay, description: desc, tokens, pending };
+        raw.push(last);
         carry = null;
         continue;
       }
-      // An amount on its own line: it belongs to the description just above it.
-      if (carry && ONLY_MONEY.test(rest)) {
-        raw.push({ day: carry.day || rowDay, description: carry.description, amt, pending, hadBalance: !!money[2] });
-        carry = null;
-        continue;
+      if (ONLY_MONEY.test(rest)) {
+        // An amount on its own line: it belongs to the description just above it.
+        if (carry) {
+          last = { day: carry.day || rowDay, description: carry.description, tokens, pending };
+          raw.push(last);
+          carry = null;
+          continue;
+        }
+        // A second figure under a row that already has one: the bank's running
+        // balance (Chase prints it in gray beneath the row) or the amount OCR
+        // read after it. Kept with its row; which is which is decided below,
+        // by the balances' own arithmetic, never by position.
+        if (last && last.tokens.length + tokens.length <= 2) {
+          last.tokens.push(...tokens);
+          continue;
+        }
       }
       carry = null;
+      last = null;
       continue;
     }
     // A description with no amount: hold it for an amount on the next line.
     if (HEADING.test(line)) {
       carry = null;
+      last = null;
       continue;
     }
     carry = { day: day || heading, description: (rest || line).trim() };
+    last = null;
   }
-  const signsKnown = raw.some((r) => r.amt.signed);
+  resolveAmounts(raw);
+  const signsKnown = raw.some((r) => r.amt && r.amt.signed);
   const rows = [];
   for (const r of raw) {
     const open = r.day && typeof r.day === 'object' ? r.day.open : null;
     const date = typeof r.day === 'string' ? r.day : null;
     if (!date && !open) continue; // no day at all on the screen for this row
     if (date && asOf && date > asOf) continue; // a row cannot be after the screen's day
-    const row = { date, description: r.description, amount: r.amt.value };
+    const row = { date, description: r.description, amount: r.amt ? r.amt.value : null };
     if (open) row.openDate = open;
     if (r.pending) row.pending = true;
+    if (r.balance != null) row.runningBalance = r.balance;
+    // The figures the screen printed for this row, exactly as read, so the
+    // review card can show them beside the amount taken (Christina 2026-11-18).
+    row.printed = r.tokens.map((t) => t.value);
+    if (r.amountUnclear) {
+      // Two figures that the balances cannot tell apart, or one figure on a
+      // screen that prints a balance under every row (the amount itself was
+      // not read): never written, shown for review with what was printed.
+      row.amountUnclear = r.amountUnclear;
+      row.amount = null;
+    } else if (r.signFrom === 'balance') row.signFrom = 'balance';
     // Unsigned on a screen that signs its debits: money in. Unsigned on a
-    // screen that signs nothing: unknown, asked, never guessed.
-    if (!r.amt.signed && !signsKnown) row.signUnknown = true;
-    if (isOwnAccountTransfer(r.description)) row.category = 'transfer';
-    else if (row.amount < 0 && isDebtPaymentDesc(r.description)) row.category = 'debt-payment';
+    // screen that signs nothing: unknown, asked, never guessed. A sign read
+    // from the running balance is known.
+    if (row.amount != null && !r.amt.signed && r.signFrom !== 'balance' && !signsKnown) row.signUnknown = true;
+    if (isOwnTransferRow(r.description)) row.category = 'transfer';
+    else if (row.amount != null && row.amount < 0 && isDebtPaymentDesc(r.description)) row.category = 'debt-payment';
     rows.push(row);
   }
   return { rows, signsKnown: signsKnown || raw.length === 0 };
+}
+
+const near = (a, b) => Math.abs(a - b) < 0.005;
+/**
+ * Which of a row's figures is the transaction and which the running balance,
+ * and the transaction's sign. Banks list newest first, so a row's balance
+ * minus the next (older) row's balance IS the row's amount, sign included.
+ * The layout (amount first or balance first) is the one that arithmetic
+ * proves on this screen. Without that proof a row with two figures takes the
+ * signed one as the amount only when exactly one is signed; otherwise it is
+ * unclear. A screen that prints a balance under its rows and shows one figure
+ * for a row has lost that row's amount: unclear, never the balance.
+ */
+function resolveAmounts(raw) {
+  const pairs = raw.map((r) => (r.tokens.length === 2 ? r.tokens : null));
+  // Score each layout by the chain: for consecutive rows i (newer) and j (older)
+  // that both have two figures, does balance_i - balance_j equal amount_i?
+  const score = (amountIdx) => {
+    let hits = 0;
+    let misses = 0;
+    for (let i = 0; i < raw.length - 1; i += 1) {
+      const a = pairs[i];
+      const b = pairs[i + 1];
+      if (!a || !b) continue;
+      const amt = Math.abs(a[amountIdx].value);
+      const delta = a[1 - amountIdx].value - b[1 - amountIdx].value;
+      if (near(Math.abs(delta), amt) && amt > 0) hits += 1;
+      else misses += 1;
+    }
+    return { hits, misses };
+  };
+  const first = score(0);
+  const second = score(1);
+  let layout = null; // index of the amount among a row's two figures
+  // One exact match to the cent is proof; a screen with rows OCR skipped has
+  // gaps (misses) that say nothing about the layout.
+  if (first.hits > second.hits) layout = 0;
+  else if (second.hits > first.hits) layout = 1;
+  const screenHasBalances = pairs.some(Boolean);
+  for (let i = 0; i < raw.length; i += 1) {
+    const r = raw[i];
+    if (r.tokens.length === 1) {
+      if (screenHasBalances && !r.tokens[0].signed) {
+        r.amountUnclear = 'one-figure';
+        continue;
+      }
+      r.amt = r.tokens[0];
+      continue;
+    }
+    let idx = layout;
+    if (idx == null) {
+      const signed = r.tokens.map((t) => t.signed && t.value < 0);
+      if (signed[0] !== signed[1]) idx = signed[0] ? 0 : 1;
+    }
+    if (idx == null) {
+      r.amountUnclear = 'two-figures';
+      continue;
+    }
+    const amt = r.tokens[idx];
+    r.balance = r.tokens[1 - idx].value;
+    // The sign from the balances: this row's balance minus the older row's.
+    const older = pairs[i + 1];
+    if (layout != null && older) {
+      const delta = r.balance - older[1 - layout].value;
+      if (near(Math.abs(delta), Math.abs(amt.value)) && Math.abs(delta) > 0) {
+        const fromBalance = Math.sign(delta) * Math.abs(amt.value);
+        if (amt.signed && Math.sign(amt.value) !== Math.sign(fromBalance)) {
+          // The printed sign and the balances disagree: shown, never chosen.
+          r.amountUnclear = 'sign-conflict';
+          continue;
+        }
+        r.amt = { value: fromBalance, signed: true };
+        r.signFrom = 'balance';
+        continue;
+      }
+    }
+    r.amt = amt;
+  }
+}
+
+/**
+ * Money moving between the household's own accounts, as a banking app prints
+ * it: the shared rule (lib/bill-review.js), plus a transfer that names an
+ * account by its last four ("Transfer from Chase 3322", "Online Transfer to
+ * CHK ...7206") and Cash App to or from Darrell. A suggestion on the review
+ * card, never income (Christina 2026-11-18: "Transfers between my own accounts
+ * must not count as new income").
+ */
+export function isOwnTransferRow(desc = '') {
+  const s = String(desc);
+  return isOwnAccountTransfer(s) || /\btransfer\s+(?:from|to)\b.*\d{4}\b/i.test(s) || /\bcash\s*app\b.*\bdarrell\b/i.test(s);
 }
 
 /** A payment on a loan, mortgage or card as the bank prints it. */

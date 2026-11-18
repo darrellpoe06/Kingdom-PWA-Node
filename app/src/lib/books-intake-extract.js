@@ -362,7 +362,9 @@ function snapshotLast4(text = '') {
 export function snapshotLines(text, { asOf = null, signs = null } = {}) {
   if (!asOf) return [];
   const { rows } = readSnapshotRows(text, { asOf });
-  return applySigns(rows.filter((r) => r.date), signs);
+  // A row whose amount the screen did not make clear is shown for review and
+  // never written (Christina 2026-11-18: a running balance was saved as the amount).
+  return applySigns(rows.filter((r) => r.date && r.amount != null), signs);
 }
 function applySigns(rows, signs) {
   if (signs !== 'out' && signs !== 'in') return rows;
@@ -399,8 +401,13 @@ registerExtractor('account-snapshot', ({ text = '', asOf = null, signs = null })
   const current = moneyNear(text, ['present balance', 'current balance', 'posted balance', 'ledger balance', 'cash balance', 'total balance']);
   const day = asOf || asOfDateOf(text);
   const balance = available != null ? available : current;
+  const read = readSnapshotRows(text, { asOf: day });
+  // Which screen this is (Christina 2026-11-18): an account-details screen
+  // (balances, no rows) gives the balance checkpoint only; a transaction
+  // history gives rows, and its running balances are never a balance figure.
+  const screen = read.rows.length ? (balance != null ? 'history+balance' : 'history') : (balance != null ? 'balance' : 'unknown');
   return {
-    summary: { availableBalance: available, currentBalance: current, newBalance: balance, balanceKind: available != null ? 'available' : (current != null ? 'current' : null) },
+    summary: { availableBalance: available, currentBalance: current, newBalance: balance, balanceKind: available != null ? 'available' : (current != null ? 'current' : null), screen },
     amounts: [available != null && { label: 'available', value: available }, current != null && current !== available && { label: 'current', value: current }].filter(Boolean),
     dates: { document: day, period_end: day },
     account_hint: { last4: snapshotLast4(text), institution: institutionOf(text) },
@@ -408,8 +415,8 @@ registerExtractor('account-snapshot', ({ text = '', asOf = null, signs = null })
     // Every row the screen shows, dated or not, for the review card: a
     // screenshot with no visible date still shows its rows before its day is
     // answered (nothing is written until then).
-    preview_items: applySigns(readSnapshotRows(text, { asOf: day }).rows, signs),
-    signsKnown: readSnapshotRows(text, { asOf: day }).signsKnown,
+    preview_items: applySigns(read.rows, signs),
+    signsKnown: read.signsKnown,
   };
 });
 
