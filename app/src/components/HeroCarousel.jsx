@@ -31,17 +31,25 @@ export default function HeroCarousel({ slides = [], fallback = null, why = '', a
 
   useEffect(() => { if (i >= n) setI(0); }, [i, n]);
 
-  const ask = useCallback((s) => {
-    if (!s || s.storagePath || asked.current.has(s.key)) return;
-    asked.current.add(s.key);
-    loadVacancyPicture(s.rentalId, s.photoId, 'thumb').then((r) => {
-      if (r && r.ok && r.src) setBytes((cur) => ({ ...cur, [s.key]: r.src }));
+  // THUMBNAIL FIRST, THEN THE SLIDE ON SCREEN SHARP (DR-1531). The hero is
+  // the widest picture in the app and drew the 640 px thumbnail across it:
+  // pixelated on a tablet. The thumbnail still shows at once; the slide on
+  // screen then asks for its full image and swaps in. The next slide stays a
+  // thumbnail until it is the one shown, so the budget is one full image at
+  // a time (DR-1016).
+  const ask = useCallback((s, size = 'thumb') => {
+    const id = s && `${s.key}:${size}`;
+    if (!s || s.storagePath || asked.current.has(id)) return;
+    asked.current.add(id);
+    loadVacancyPicture(s.rentalId, s.photoId, size).then((r) => {
+      if (r && r.ok && r.src) setBytes((cur) => ({ ...cur, [id]: r.src }));
     });
   }, []);
   useEffect(() => {
     if (!n) return;
     ask(slides[i % n]);
     if (n > 1) ask(slides[(i + 1) % n]);
+    ask(slides[i % n], 'full');
   }, [slides, i, n, ask]);
 
   // Autoplay, paused by a hand or a focus, never for reduced motion.
@@ -60,7 +68,7 @@ export default function HeroCarousel({ slides = [], fallback = null, why = '', a
     );
   }
   const s = slides[i % n];
-  const src = s.storagePath || bytes[s.key] || '';
+  const src = s.storagePath || bytes[`${s.key}:full`] || bytes[`${s.key}:thumb`] || '';
   return (
     <div
       className="pp-slides"
