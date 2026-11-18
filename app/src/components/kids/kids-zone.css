@@ -227,6 +227,7 @@
 .kz-interim.story.david{--kz-story-a:#8E44F0;--kz-story-b:#FFB020}
 .kz-interim.story::before{content:"";position:absolute;inset:auto 0 0 0;height:55%;background:linear-gradient(180deg,rgba(255,255,255,0),rgba(255,246,223,.35))}
 .kz-interim .kz-interim-bible{position:absolute;left:0;right:0;bottom:0;width:100%;height:auto;object-fit:cover;object-position:50% 100%}
+.kz-book .kz-interim .kz-interim-bible{top:0;height:100%} /* in the 16:9 book frame the temporary picture fills the frame, no band above it */
 .kz-interim .kz-interim-narrator{position:absolute;right:8%;bottom:14%;width:34%;max-width:120px;aspect-ratio:1;border-radius:50%;border:3px solid #fff;box-shadow:0 4px 0 rgba(0,0,0,.18);background:#fff}
 .kz-card .kz-interim,.kz-gamehead .kz-interim,.kz-celebrate .kz-interim{border:3px solid rgba(255,255,255,.8);box-shadow:0 4px 0 rgba(0,0,0,.14)}
 /* tiles: the art is a window at the top of the card; the words never cross it */

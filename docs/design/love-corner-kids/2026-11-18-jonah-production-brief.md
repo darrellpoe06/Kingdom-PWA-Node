@@ -41,7 +41,7 @@ One 16:9 scene per page, PNG (or JPEG), sRGB, named exactly as the id. **At leas
 
 ### `jonah-2.png` · page 2 · Jonah 1:4
 
-**Scene.** The ship pitched in a great wind, waves high, sailors hauling ropes, afraid; the guides gripping the rail, braids and hood flying.
+**Scene.** The ship pitched in a great wind, waves high, sailors hauling ropes, afraid. (Landed 2026-11-18 without the guides in frame; approved as is by Darrell. The boy's face stays beside his caption on the page.)
 
 **KJV (printed and read on the page).** *"But the LORD sent out a great wind into the sea, and there was a mighty tempest in the sea, so that the ship was like to be broken."*
 
@@ -128,7 +128,7 @@ The narration script, page by page:
 
 ## 6. Checklist
 
-- [ ] `jonah-1` … `jonah-8` (2 of 8 on disk, 2026-11-18: `jonah-1.jpg`, `jonah-2.jpg`; scene 2 arrived without the two guides, flagged for Darrell's word)
+- [ ] `jonah-1` … `jonah-8` (2 of 8 on disk, 2026-11-18: `jonah-1.jpg`, `jonah-2.jpg`; scene 2 has no guides in frame, approved as is by Darrell 2026-11-18)
 - [ ] `narration/jonah-p1.m4a` … `jonah-p8.m4a` (0 of 8)
 - [ ] `episodes/jonah-poster.jpg` (0 of 1)
 - [ ] `episodes/jonah.mp4` (0 of 1; served off-repo)
