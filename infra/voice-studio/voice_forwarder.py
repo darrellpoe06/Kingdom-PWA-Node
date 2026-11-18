@@ -64,6 +64,13 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 TOKEN_FILE_DEFAULT = "/volume1/PoeTech/secrets/chat-bridge-token.txt"
 UPSTREAM_DEFAULT = "http://tlcmediadpt:8770"
+# THE NAS'S OWN CLONE (DR-1538): when the tower's studio does not answer, "My
+# voice" is made on this box (infra/nas-voice-clone, Piper + the OpenVoice V2
+# converter) instead of the stand-in. Empty disables the fallback.
+NAS_CLONE_DEFAULT = os.environ.get("VOICE_NAS_CLONE_UPSTREAM", "http://127.0.0.1:8773")
+# How long a studio that did not answer /health is skipped before it is asked
+# again: a dark tower costs one 5-second probe a minute, never one per piece.
+STUDIO_RECHECK_S = float(os.environ.get("VOICE_STUDIO_RECHECK", "60"))
 MAX_INFLIGHT = int(os.environ.get("VOICE_MAX_INFLIGHT", "2"))
 # 16 MB (DR-0721): a cloned piece carries the whole recording as base64, and an
 # imported WAV sample of a minute is ~5 MB raw, ~7 MB encoded; 2 MB refused it.
@@ -100,9 +107,32 @@ def bearer_ok(header_value, expected):
 
 
 # --- The handler -------------------------------------------------------------
-def make_handler(upstream, token, max_inflight=MAX_INFLIGHT, timeout=UPSTREAM_TIMEOUT):
+def make_handler(upstream, token, max_inflight=MAX_INFLIGHT, timeout=UPSTREAM_TIMEOUT, clone=None):
     upstream = upstream.rstrip("/")
+    clone = (NAS_CLONE_DEFAULT if clone is None else clone).rstrip("/")
     gate = threading.BoundedSemaphore(max_inflight)
+    seen = {"dark_at": 0.0}
+
+    def studio_dark():
+        """True while the studio failed /health within STUDIO_RECHECK_S."""
+        import time
+        return seen["dark_at"] and time.time() - seen["dark_at"] < STUDIO_RECHECK_S
+
+    def mark_dark():
+        import time
+        seen["dark_at"] = time.time()
+
+    def clone_health():
+        """(status, body) from the NAS clone, or (None, None) when it does not answer."""
+        if not clone:
+            return None, None
+        try:
+            with urllib.request.urlopen(clone + "/health", timeout=HEALTH_TIMEOUT) as r:
+                return r.status, r.read(4096)
+        except urllib.error.HTTPError as e:
+            return e.code, e.read(4096) or b""
+        except (urllib.error.URLError, OSError, ValueError):
+            return None, None
 
     class Handler(BaseHTTPRequestHandler):
         server_version = "poetech-voice-forwarder/1"
@@ -137,8 +167,24 @@ def make_handler(upstream, token, max_inflight=MAX_INFLIGHT, timeout=UPSTREAM_TI
                     self.end_headers()
                     self.wfile.write(body)
             except (urllib.error.URLError, OSError, ValueError):
-                self._json(502, {"ok": False, "error": "studio-unreachable", "upstream": upstream,
-                                 "reason": "the voice studio is not answering from the NAS; the reader falls back to the NAS's own voice (voice-lite) until the tower is up"})
+                mark_dark()
+                # The tower is dark. If the NAS's own clone is READY, say so with
+                # its own answer (engine: nas-clone), never this process's word:
+                # a 200 here means a voice can really be made (DR-0440, DR-1538).
+                cs, cb = clone_health()
+                if cs == 200:
+                    try:
+                        info = json.loads(cb.decode("utf-8"))
+                    except (UnicodeDecodeError, ValueError):
+                        info = {}
+                    if isinstance(info, dict) and info.get("ok") is True:
+                        info["studio"] = "unreachable"
+                        return self._json(200, info)
+                body = {"ok": False, "error": "studio-unreachable", "upstream": upstream,
+                        "reason": "the voice studio is not answering from the NAS; the reader falls back to the NAS's own voice (voice-lite) until the tower is up"}
+                if clone:
+                    body["nas_clone"] = "not answering" if cs is None else "not ready (%s)" % cs
+                self._json(502, body)
 
         def do_POST(self):
             path = self.path.split("?", 1)[0]
@@ -158,15 +204,34 @@ def make_handler(upstream, token, max_inflight=MAX_INFLIGHT, timeout=UPSTREAM_TI
             if not gate.acquire(blocking=False):
                 return self._json(503, {"error": "busy", "max_inflight": max_inflight})
             try:
+                # The tower first; the NAS's own clone when the tower is dark
+                # (DR-1538). A tower that just failed /health is not asked again
+                # for STUDIO_RECHECK_S, so no piece waits on a dead connection.
+                target = upstream
+                if clone and studio_dark():
+                    target = clone
                 req = urllib.request.Request(
-                    upstream + "/speak", data=body, method="POST",
+                    target + "/speak", data=body, method="POST",
                     headers={"Content-Type": self.headers.get("Content-Type", "application/json")},
                 )
                 try:
-                    with urllib.request.urlopen(req, timeout=timeout) as r:
+                    try:
+                        r = urllib.request.urlopen(req, timeout=timeout)
+                    except urllib.error.HTTPError:
+                        raise
+                    except (urllib.error.URLError, OSError, ValueError):
+                        if not clone or target == clone:
+                            raise
+                        mark_dark()
+                        req = urllib.request.Request(clone + "/speak", data=body, method="POST",
+                                                     headers={"Content-Type": "application/json"})
+                        r = urllib.request.urlopen(req, timeout=timeout)
+                    with r:
                         self.send_response(r.status)
                         ctype = r.headers.get("Content-Type", "application/octet-stream")
                         self.send_header("Content-Type", ctype)
+                        if r.headers.get("X-Voice-Engine"):
+                            self.send_header("X-Voice-Engine", r.headers.get("X-Voice-Engine"))
                         clen = r.headers.get("Content-Length")
                         if clen:
                             self.send_header("Content-Length", clen)
@@ -193,7 +258,8 @@ def make_handler(upstream, token, max_inflight=MAX_INFLIGHT, timeout=UPSTREAM_TI
                     self.end_headers()
                     self.wfile.write(payload)
                 except (urllib.error.URLError, OSError, ValueError):
-                    self._json(502, {"error": "studio-unreachable", "upstream": upstream})
+                    self._json(502, {"error": "studio-unreachable", "upstream": upstream,
+                                     "nas_clone": "not answering" if clone else "off"})
             finally:
                 gate.release()
 
@@ -246,7 +312,7 @@ def _selftest():
     threading.Thread(target=studio.serve_forever, daemon=True).start()
 
     token = "test-token-" + str(os.getpid())
-    fwd = ThreadingHTTPServer(("127.0.0.1", 0), make_handler(f"http://127.0.0.1:{sp}", token, max_inflight=1, timeout=5))
+    fwd = ThreadingHTTPServer(("127.0.0.1", 0), make_handler(f"http://127.0.0.1:{sp}", token, max_inflight=1, timeout=5, clone=""))
     fp = fwd.server_address[1]
     threading.Thread(target=fwd.serve_forever, daemon=True).start()
 
@@ -328,6 +394,66 @@ def _selftest():
     print("=== 8. bearer_ok never accepts an empty expected token ===")
     check(not bearer_ok("Bearer ", ""), "empty expected token matches nothing, not even an empty bearer")
     check(not bearer_ok("Bearer x", ""), "an unconfigured forwarder accepts nobody")
+
+    print("=== 9. DR-1538: a dark tower hands My voice to the NAS's own clone ===")
+    class Clone(BaseHTTPRequestHandler):
+        protocol_version = "HTTP/1.1"
+        ready = True
+        hits = 0
+
+        def log_message(self, *a):
+            pass
+
+        def do_GET(self):
+            b = (b'{"ok": true, "engine": "nas-clone"}' if Clone.ready
+                 else b'{"ok": false, "reason": "weights missing"}')
+            self.send_response(200 if Clone.ready else 503); self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(b))); self.end_headers(); self.wfile.write(b)
+
+        def do_POST(self):
+            Clone.hits += 1
+            n = int(self.headers.get("Content-Length") or 0)
+            body = self.rfile.read(n)
+            audio = b"RIFF-clone" + body
+            self.send_response(200); self.send_header("Content-Type", "audio/wav")
+            self.send_header("X-Voice-Engine", "nas-clone")
+            self.send_header("Content-Length", str(len(audio))); self.end_headers(); self.wfile.write(audio)
+
+    cl = ThreadingHTTPServer(("127.0.0.1", 0), Clone)
+    threading.Thread(target=cl.serve_forever, daemon=True).start()
+    dead = ThreadingHTTPServer(("127.0.0.1", 0), Studio)
+    dead_port = dead.server_address[1]
+    dead.server_close()  # a port nobody answers on: the dark tower
+    f2 = ThreadingHTTPServer(("127.0.0.1", 0), make_handler(
+        f"http://127.0.0.1:{dead_port}", token, max_inflight=2, timeout=5,
+        clone=f"http://127.0.0.1:{cl.server_address[1]}"))
+    threading.Thread(target=f2.serve_forever, daemon=True).start()
+
+    def call2(method, path, body=None, auth=None):
+        c = HTTPConnection("127.0.0.1", f2.server_address[1], timeout=10)
+        headers = {"Content-Type": "application/json"}
+        if auth is not None:
+            headers["Authorization"] = auth
+        c.request(method, path, body=body, headers=headers)
+        r = c.getresponse()
+        data = r.read()
+        hdrs = dict(r.getheaders())
+        c.close()
+        return r.status, hdrs, data
+
+    s, _, d = call2("POST", "/speak", body, auth="Bearer " + token)
+    check(s == 200 and d.startswith(b"RIFF-clone"), "tower dark -> /speak is made by the NAS clone, not a 502")
+    s, h, _ = call2("POST", "/speak", body, auth="Bearer " + token)
+    check(h.get("X-Voice-Engine") == "nas-clone", "the engine that made it is named in the answer")
+    s, _, d = call2("GET", "/health")
+    check(s == 200 and b'"engine": "nas-clone"' in d and b'"studio": "unreachable"' in d,
+          "/health 200 says nas-clone AND that the tower is unreachable")
+    s, _, _ = call2("POST", "/speak", b'{"text":"x"}')
+    check(s == 401, "the clone road is behind the same family lock (no token -> 401)")
+    Clone.ready = False
+    s, _, d = call2("GET", "/health")
+    check(s == 502 and b"not ready (503)" in d, "PROVEN-TO-CATCH: a clone that is NOT ready never turns /health green")
+    f2.shutdown(); cl.shutdown()
 
     fwd.shutdown()
     if failures:

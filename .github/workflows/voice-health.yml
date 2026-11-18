@@ -54,6 +54,15 @@ jobs:
             echo "go=true" >> "$GITHUB_OUTPUT"
           fi
 
+      # The public road needs no key (DR-1538): which engine answers, its reason, its measured speed.
+      - name: Ask the public road (no key)
+        run: |
+          for U in https://poetech.tail5a2f35.ts.net/voice/health https://poetech.us/voice/health; do
+            B="$(curl -sS -m 20 -w ' [HTTP %{http_code}]' "$U" 2>&1 | head -c 600)"
+            echo "$U -> $B"
+            echo "- \`$U\` -> \`$(printf '%s' "$B" | tr '\n|' '  ')\`" >> "$GITHUB_STEP_SUMMARY"
+          done
+
       - name: Check out (the join-tailnet action lives in this repo)
         uses: actions/checkout@v7
         with:
@@ -168,6 +177,9 @@ jobs:
             echo "studio $C/health from the NAS: $(curl -s -m 5 -o /dev/null -w '%{http_code}' "$C/health" 2>/dev/null || echo 000)"
           done
           echo "forwarder /health (loopback): $(curl -sS -m 8 http://127.0.0.1:8771/health 2>&1 | head -c 300)"
+          echo "nas clone (DR-1538) running code: $(rd /volume1/PoeTech/voice-clone/.code.sha || echo none) / repo code: $(sha256sum < "$REPO/infra/nas-voice-clone/nas_clone_server.py" 2>/dev/null | cut -c1-16)"
+          echo "nas clone unit: $(systemctl is-active poetech-voice-clone 2>/dev/null || echo unknown); /health: $(curl -sS -m 8 http://127.0.0.1:8773/health 2>&1 | head -c 300)"
+          echo "nas clone install log: $(tail -3 /volume1/PoeTech/voice-clone/install.log 2>/dev/null | tr '\n' ' ' | cut -c1-300)"
           TSB=/var/packages/Tailscale/target/bin/tailscale
           echo "funnel /voice: $(sudo -n $TSB funnel status 2>/dev/null | grep -cE '/voice([[:space:]]|$)' || echo 0) mount line(s)"
           echo "---- last lines of the service ----"
