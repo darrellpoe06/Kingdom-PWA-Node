@@ -1,12 +1,7 @@
-# =============================================================================
 # church-site-probe — what the church's public website publishes, read from a
-# GitHub runner (the cloud sandbox has no route to it), printed to the log.
-# Darrell 2026-11-18: "The Love Corner App should be able to get the latest
-# data from the website... announcements, upcoming events, etc... without
-# needing to go to the site." Before a sync can be built, the site's shape
-# has to be SEEN: which pages exist, whether it offers a feed or an API, how
-# announcements and events are marked up. Read-only; nothing is written.
-# =============================================================================
+# GitHub runner (the cloud sandbox has no route to it) and printed to the log,
+# so the announcements-and-events sync (Darrell 2026-11-18, DR-1540) is built
+# on what the site actually publishes. Read-only; nothing is written.
 name: Church site probe (read-only)
 on:
   workflow_dispatch:
@@ -15,6 +10,10 @@ on:
         description: The site to read
         default: https://www.thechurchofthelivinggod.com
         required: true
+permissions: {}
+concurrency:
+  group: church-site-probe
+  cancel-in-progress: false
 jobs:
   probe:
     runs-on: ubuntu-latest
