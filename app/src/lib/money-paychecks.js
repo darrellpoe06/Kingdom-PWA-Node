@@ -27,7 +27,9 @@ export function paycheckPeriods(data, opts = {}) {
   const horizonDays = Number(opts.horizonDays) || 90;
   const end = addDays(asOf, horizonDays);
   const result = buildSafeToSpend(data, { ...opts, currentDate: asOf, period: 'custom', customEnd: isoDay(end) });
-  const items = (result.items || []).slice().sort((a, b) => a.date.localeCompare(b.date));
+  // Paydays the family has not confirmed still cut the budget's periods (each
+  // is labeled inferredIncome), though Safe to Spend does not count them as cash.
+  const items = [...(result.items || []), ...(result.unconfirmedIncomeItems || [])].sort((a, b) => a.date.localeCompare(b.date));
   const paydays = [...new Set(items.filter((it) => it.kind === 'income' && it.date > isoDay(asOf)).map((it) => it.date))].sort();
   const missing = [];
   if (!paydays.length) missing.push('No upcoming pay dates are known. Enter a pay schedule in Money → Settings; a rhythm the ledger shows is used until then and labeled inferred.');

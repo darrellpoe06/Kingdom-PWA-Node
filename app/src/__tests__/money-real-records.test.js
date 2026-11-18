@@ -45,7 +45,9 @@ function household() {
     moneyPlan: { settings: { minCushion: 1000 } },
   };
 }
-const incomeOf = (r) => r.items.filter((i) => i.kind === 'income');
+// Every expected deposit the engine recognises: the confirmed ones walk with
+// the bills (items); the unconfirmed ones are kept apart (unconfirmedIncomeItems).
+const incomeOf = (r) => [...r.items, ...(r.unconfirmedIncomeItems || [])].filter((i) => i.kind === 'income');
 const billNamed = (r, re) => r.items.filter((i) => i.amount < 0 && re.test(i.label));
 
 describe('the sample household is recognised exactly', () => {

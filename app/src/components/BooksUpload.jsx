@@ -20,7 +20,8 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import UiIcon from './UiIcon.jsx';
 import Modal from './Modal.jsx';
 import { intakeStore } from '../lib/books-intake-store.js';
-import { intakeFiles, processDoc, answer as answerDoc, commitDoc, canWrite, STATUS_LABEL } from '../lib/books-intake-pipeline.js';
+import { intakeFiles, processDoc, answer as answerDoc, decideRows, commitDoc, canWrite, STATUS_LABEL } from '../lib/books-intake-pipeline.js';
+import { TX_CATEGORIES, categoryLabel } from '../lib/categorize.js';
 import { queueSummary } from '../lib/books-intake-questions.js';
 import { DOC_TYPE_LABEL, TAB_HINTS } from '../lib/books-intake-extract.js';
 import { buildTimeline } from '../lib/books-intake-reconcile.js';
@@ -69,7 +70,7 @@ function Question({ q, onAnswer, busy }) {
   );
 }
 
-function DocCard({ doc, onAnswer, onConfirm, busy, demo, today, acctName }) {
+function DocCard({ doc, onAnswer, onConfirm, onDecide, busy, demo, today, acctName }) {
   const x = doc.extraction;
   const waiting = (doc.questions || []).filter((q) => q.status !== 'answered');
   const ready = canWrite(doc);
@@ -98,6 +99,8 @@ function DocCard({ doc, onAnswer, onConfirm, busy, demo, today, acctName }) {
           {x.line_items.length > 0 && (<><span className="text-[#5A5751]">Lines</span><span className="text-[#1A1815]">{x.line_items.length}{doc.plan && doc.plan.duplicates ? ` · ${doc.plan.duplicates} already in the books` : ''}</span></>)}
         </div>
       )}
+      {x && x.doc_type === 'account-snapshot' && <SnapshotRows doc={doc} x={x} onDecide={onDecide} busy={busy || demo} />}
+      {doc.plan && doc.plan.held && <p className="text-[0.6875rem] text-[#8B6F47]" data-testid="intake-held">Held: {doc.plan.reason}.</p>}
       {doc.recon && x && x.doc_type !== 'unknown' && (
         <p className={`text-[0.6875rem] ${doc.recon.status === 'mismatch' ? 'text-[#7A1F1F]' : doc.recon.status === 'reconciled' ? 'text-[#5A6E3D]' : 'text-[#8B6F47]'}`}>{doc.recon.note}</p>
       )}
@@ -136,6 +139,71 @@ function DocCard({ doc, onAnswer, onConfirm, busy, demo, today, acctName }) {
   );
 }
 
+// THE ROWS THEMSELVES, not a count (Christina 2026-11-16: "Present extracted
+// transactions for my approval before importing. Allow individual and bulk
+// transaction approval, editing, categorization, and rejection"). While a
+// question is open: every row the screen showed, with what is still missing
+// (its day, or whether it is money in or out). Once ready: every row with a
+// box to add it or leave it out, its category (suggested from your own rules
+// first, then the built-in ones; yours to change), and rows already in the
+// books marked so. Approve adds exactly the boxed rows, as categorized.
+function SnapshotRows({ doc, x, onDecide, busy }) {
+  const statuses = doc.plan && doc.plan.kind === 'snapshot' ? doc.plan.rowStatuses || null : null;
+  if (!statuses) {
+    const list = x.preview_items || [];
+    if (!list.length) return null;
+    return (
+      <details open className="text-[0.6875rem]" data-testid="intake-snapshot-rows">
+        <summary className="cursor-pointer text-[#5A5751]">{`${list.length} row${list.length === 1 ? '' : 's'} read from the screen (not added yet)`}</summary>
+        <ul className="mt-1 space-y-0.5" style={MONO}>
+          {list.map((r, i) => (
+            <li key={`${r.date || r.openDate}-${r.description}-${i}`} className="flex gap-2" data-testid="intake-snapshot-row">
+              <span className="w-[5.5rem] shrink-0 text-[#5A5751]">{r.date || (r.openDate ? `${r.openDate} · day needed` : 'day needed')}</span>
+              <span className="flex-1 min-w-0 break-words text-[#1A1815]">{r.description}{r.pending ? ' · pending' : ''}{r.category === 'transfer' ? ' · transfer' : r.category === 'debt-payment' ? ' · debt payment' : ''}</span>
+              <span className={`shrink-0 ${r.signUnknown ? 'text-[#8B6F47]' : 'text-[#1A1815]'}`}>{r.signUnknown ? `${money(Math.abs(r.amount))} · in or out?` : `${r.amount < 0 ? '\u2212' : '+'}${money(Math.abs(r.amount))}`}</span>
+            </li>
+          ))}
+        </ul>
+      </details>
+    );
+  }
+  const adding = statuses.filter((s) => s.status === 'new').length;
+  const can = !!onDecide && !busy;
+  const all = (exclude) => onDecide(doc, Object.fromEntries(statuses.filter((s) => s.status !== 'duplicate').map((s) => [s.index, exclude ? { exclude: true } : {}])));
+  return (
+    <div className="text-[0.6875rem]" data-testid="intake-snapshot-rows">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-[#5A5751]" data-testid="intake-rows-summary">{adding} of {statuses.length} row{statuses.length === 1 ? '' : 's'} will be added{doc.plan.duplicates ? ` · ${doc.plan.duplicates} already in the books` : ''}</span>
+        {onDecide && <button type="button" disabled={!can} onClick={() => all(false)} data-testid="intake-rows-all" className="min-h-[36px] px-2.5 border border-[#1A1815] text-[#1A1815] disabled:opacity-40">Add all</button>}
+        {onDecide && <button type="button" disabled={!can} onClick={() => all(true)} data-testid="intake-rows-none" className="min-h-[36px] px-2.5 border border-[#1A1815] text-[#1A1815] disabled:opacity-40">Add none</button>}
+      </div>
+      <ul className="mt-1 space-y-1" style={MONO}>
+        {statuses.map((s) => {
+          const r = s.row;
+          const dup = s.status === 'duplicate';
+          return (
+            <li key={s.index} className={`flex flex-wrap items-center gap-2 ${s.status === 'excluded' ? 'opacity-60' : ''}`} data-testid="intake-snapshot-row" data-status={s.status}>
+              <label className="flex items-center gap-1 min-h-[36px]">
+                <input type="checkbox" checked={s.status === 'new'} disabled={!can || dup} onChange={(e) => onDecide(doc, { [s.index]: e.target.checked ? { exclude: false, category: (doc.rowDecisions || {})[s.index]?.category } : { exclude: true } })} aria-label={`Add ${r.description}`} data-testid={`intake-row-add-${s.index}`} />
+                <span className="w-[5.5rem] shrink-0 text-[#5A5751]">{r.date}</span>
+              </label>
+              <span className="flex-1 min-w-[8rem] break-words text-[#1A1815]">{r.description}{r.pending ? ' \u00b7 pending' : ''}{dup ? ' \u00b7 already in the books' : ''}</span>
+              <span className="shrink-0 text-[#1A1815]">{`${r.amount < 0 ? '\u2212' : '+'}${money(Math.abs(r.amount))}`}</span>
+              <label className="w-full flex items-center gap-1 pl-6 text-[#5A5751]">
+                <span>Category</span>
+                <select value={r.category || 'other'} disabled={!can || dup || s.status === 'excluded'} onChange={(e) => onDecide(doc, { [s.index]: { category: e.target.value } })} aria-label={`Category for ${r.description}`} data-testid={`intake-row-category-${s.index}`} className="min-h-[36px] px-1 border border-[#E8E4DC] bg-white text-[#1A1815]">
+                  {TX_CATEGORIES.map((c) => <option key={c} value={c}>{categoryLabel(c)}</option>)}
+                </select>
+                {r.categorySource && <span data-testid={`intake-row-category-source-${s.index}`}>{r.categorySource === 'you' ? 'your choice' : r.categorySource === 'your rule' ? 'from your rule' : 'suggested'}</span>}
+              </label>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
 export default function BooksUpload({ hint = null, data = {}, debts = [], demo = false, commitImportedRows, addAccount, updateAccount, onClose }) {
   const store = useMemo(() => intakeStore({ demoMode: demo }), [demo]);
   const inputRef = useRef(null);
@@ -146,7 +214,7 @@ export default function BooksUpload({ hint = null, data = {}, debts = [], demo =
   const today = new Date().toISOString().slice(0, 10);
 
   const known = useMemo(() => ({
-    accounts: data.accounts || [], entities: data.entities || [], transactions: data.transactions || [],
+    accounts: data.accounts || [], entities: data.entities || [], transactions: data.transactions || [], categoryRules: data.categoryRules || null,
     rentals: (data.inflows && data.inflows.rentals) || [], subscriptions: data.subscriptions || [],
     contractors: data.contractors1099 || [], debts: debts || [], projects: data.projects || [],
   }), [data, debts]);
@@ -179,6 +247,11 @@ export default function BooksUpload({ hint = null, data = {}, debts = [], demo =
   const onAnswer = async (doc, qid, value) => {
     setBusy('Updating…');
     try { await answerDoc(doc, qid, value, ctx); } finally { setBusy(''); await refresh(); }
+  };
+
+  const onDecide = async (doc, decisions) => {
+    setBusy('Updating\u2026');
+    try { await decideRows(doc, decisions, ctx); } finally { setBusy(''); await refresh(); }
   };
 
   const sinks = useMemo(() => ({
@@ -246,7 +319,7 @@ export default function BooksUpload({ hint = null, data = {}, debts = [], demo =
           {(filter === 'all' || filter === 'waiting') && (
             shown.length ? (
               <ul className="space-y-3">
-                {shown.map((d) => <DocCard key={d.id} doc={d} onAnswer={onAnswer} onConfirm={onConfirm} busy={!!busy} demo={demo} today={today} acctName={acctName} />)}
+                {shown.map((d) => <DocCard key={d.id} doc={d} onAnswer={onAnswer} onConfirm={onConfirm} onDecide={onDecide} busy={!!busy} demo={demo} today={today} acctName={acctName} />)}
               </ul>
             ) : (
               <p className="text-sm text-[#5A5751]">{filter === 'waiting' ? 'Nothing is waiting on you.' : 'Nothing uploaded yet.'}</p>

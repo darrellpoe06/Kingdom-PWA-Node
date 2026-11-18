@@ -154,7 +154,28 @@
       "to": 23119,
       "dr": "DR-1468",
       "reason": "The parallel-lesson pipeline: ci.yml's push filter skips reserve/** (a reservation is an empty commit on main and needs no CI run) and its guards leg runs unfilled-verse-token-guard, because a guard CI never runs is not a guard (DR-0076 section 3); keep-prs-current.yml gains one step that deletes the number reservations main has passed. One comment line per change, the narrative in DR-1468. Raised to the measured total, not above it."
+    },
+    {
+      "date": "2026-11-13",
+      "from": 23119,
+      "to": 23147,
+      "dr": "DR-1483",
+      "reason": "live-homepage-still.yml, dispatch only: a runner's Chrome opens the production Love Corner door at a phone and a desktop width, waits for the door's own header (DR-1483) and leaves the stills as an artifact, because the sandbox has no route to poetech.us (DR-0125) and DR-0104 asks that the live push be reviewed on the live site. It calls the reusable _browser-probe.yml; the caller is the trigger, the brake and the arguments only. Raised to the measured total, not above it."
+    },
+    {
+      "date": "2026-11-16",
+      "from": 23147,
+      "to": 23156,
+      "dr": "DR-1507",
+      "reason": "inbox-lessons-waiting.yml's rolling-log step gains one elif: when the tailnet is shut and the house's own census answered, its lines ride the log entry instead of only the count, because the shape and the stall reasons are what decide whether a waiting teaching is buildable at all and reaching them in the step summary costs a cloud session thousands of tokens (DR-1186). The comment is folded to five lines with the measurement in DR-1507 and its session note. Raised to the measured total, not above it."
+    },
+    {
+      "date": "2026-11-17",
+      "from": 23156,
+      "to": 23187,
+      "dr": "DR-1520",
+      "reason": "live-kids-zone-walk.yml, dispatch only: a runner's Chrome opens the production door at a phone width and walks the Kids Zone v1 the way a child does (the home, the Theater, the games, a storybook page, the badges and the map, the Teens door, the church's Home tab), asserts what a user sees, proves the served build is the merged commit, and leaves the stills as an artifact, because the sandbox has no route to poetech.us (DR-0125) and DR-0104 asks that the launch be reviewed on the live site. It calls the reusable _browser-probe.yml; the caller is the trigger, the brake and the arguments only. Raised to the measured total, not above it."
     }
   ],
-  "totalLines": 23119
+  "totalLines": 23187
 }

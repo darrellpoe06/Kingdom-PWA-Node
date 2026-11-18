@@ -140,7 +140,29 @@ const LOOPS_ON_THE_WAY = {
  *  silent stall). */
 // The audit began 2026-10-20 (DR-0236: nothing buildable waits); the date is the
 // ceiling the build fails at, not the day the work starts.
-const AUDIT_BY = '2026-11-15';
+//
+// DATE MOVED 2026-11-16, with the why, which is what DR-0075 asks for and what
+// this gate's own message prescribes (DR-1510). The audit WORKED: the list
+// below began at the services born before 2026-10-19 and is down to two, and
+// neither of the two is unfinished work anybody forgot.
+//
+//   supabase — lacks NOTHING readable. It sits here only because its restart is
+//     `compose up -d`, a compose stack's own idempotent converge, and the
+//     restart-on-every-path reader counts systemd functions. The open item is
+//     therefore in the READER, not in the service: teach it to read a compose
+//     converge as the restart it is. That is in this repo and is the one
+//     genuinely actionable piece left.
+//   ytzero — lacks `health` alone, and the why was already recorded here on
+//     2026-10-20: the app exposes no health route (its own healthcheck is a TCP
+//     connect), so the installer can only ask its root. Closing it honestly
+//     means giving it a door it does not have, which is a change to a
+//     third-party app's deployment and not a date we control.
+//
+// So the remaining debt is one reader change plus one thing outside our hands,
+// and the date is sized to the reader change rather than to the whole list.
+// NOT a licence to drift: if 2026-12-15 passes with the reader unchanged, this
+// gate goes red again and the next session owes a why, not another month.
+const AUDIT_BY = '2026-12-15';
 const BORN_BEFORE_THE_WAY = {
   // 2026-10-20: lacks none of the readable parts (the stack stamps the code it
   // converged on; nas-health is its witness and says where the install stands).
