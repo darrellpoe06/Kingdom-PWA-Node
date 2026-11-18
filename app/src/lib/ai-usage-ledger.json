@@ -3070,6 +3070,21 @@
       "wallClockHours": 0.9,
       "estimateWithoutAiHours": 8,
       "notes": "Verified the events through search (resignation, his own admission, the GRAT terminations) before writing; page fetches refused by the network allowlist, named in UNCHECKED. The unconfirmed per-share price was dropped and the unproven espionage allegation gated out. 131 quotations filled from the corpus; gate 15/15; ladder child 1.4 < youth 3.5 < teen 4.8 < senior 8.6."
+    },
+    {
+      "id": "which-failure-site-refused-the-build",
+      "date": "2026-11-18",
+      "task": "The keyless lesson-queue receipt names WHICH failure site refused a build (no-writer, gates, tests, no-push-token, catalog, budget, crashed) instead of 'other: 6', by identity against lesson_builder's own authored openings; migration 0334 refuses independently; the reader prints the job each class asks for; and why_of now treats both self-healing classes alike",
+      "drs": [
+        "DR-1534"
+      ],
+      "prs": [],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.6,
+      "estimateWithoutAiHours": 6,
+      "notes": "Found while reading the 05:12Z census on the hourly intake tick: six of seven waiting rows classed 'other', the oldest 5 d 16 h. Proven to catch in two independent gates; the JS gate previously could not see a site class at all. Nothing measured live yet -- the NAS re-classes on its own 15-minute census."
     }
   ]
 }
