@@ -10,7 +10,15 @@
 
 ## Context
 
-The app's "Announcements" card read *No new announcements posted* from a hand-typed list whose two events were in July and August. The office publishes on its own website and nowhere else. The site was read from a runner on 2026-11-18 (three probe runs; the sandbox has no route to it): a Weebly site with no feed and no API. The month's calendar is one picture under a "november 2026" heading on `/calendar.html`; the Letters from BG are a picture named `october-2026-letter`; the current events are flyer pictures in a slideshow (`battle-cry-sunday-veterans-flyer-3.jpg` on the page's `og:image`); the service times are text on the home page. A browser cannot read any of it cross-origin.
+The app's "Announcements" card read *No new announcements posted* from a hand-typed list whose two events were in July and August. The office publishes on its own website and nowhere else, and a browser cannot read it cross-origin.
+
+## What was measured
+
+Three runs of `church-site-probe.yml` from a runner on 2026-11-18 (the sandbox has no route to the site): a Weebly site with no feed and no API (`/feed`, `/rss.xml`, `/wp-json/*` all 404). The month's calendar is one picture under a "november 2026" heading on `/calendar.html`; the Letters from BG are a picture named `october-2026-letter`; the current events are flyer pictures in a slideshow (`battle-cry-sunday-veterans-flyer-3.jpg` on the page's `og:image`); the service times are text on the home page. The content sits in `<div id="wsite-content">`; headings in `h2.wsite-content-title`; prose in `div.paragraph`.
+
+## Impact
+
+A parishioner opens the app and sees the month's calendar, the latest letter and the flyers the office posted, without going to the site; the office changes nothing about how it publishes. The app's announcements stop depending on a hand-typed list.
 
 ## Decision
 
