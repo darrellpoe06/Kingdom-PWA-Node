@@ -35,11 +35,12 @@ const ts = (v) => {
   const n = v ? Date.parse(v) : NaN;
   return Number.isFinite(n) ? n : null;
 };
-const latestBy = (rows, at) => rows.reduce((best, r) => {
-  const t = ts(at(r));
-  if (t === null) return best;
-  return !best || t > best.t ? { t, row: r } : best;
-}, null);
+const latestBy = (rows, at) =>
+  rows.reduce((best, r) => {
+    const t = ts(at(r));
+    if (t === null) return best;
+    return !best || t > best.t ? { t, row: r } : best;
+  }, null);
 
 export const UNTIED = '__untied__';
 
@@ -91,8 +92,7 @@ export function portfolioRows({ rentals = [], tenancies = [], requests = [], mes
     return rows.get(UNTIED);
   };
   const place = (rec) => {
-    const rid = (rec.rental_id && rows.has(rec.rental_id) ? rec.rental_id : null)
-      || (rec.tenancy_id ? toRental.get(rec.tenancy_id) : null);
+    const rid = (rec.rental_id && rows.has(rec.rental_id) ? rec.rental_id : null) || (rec.tenancy_id ? toRental.get(rec.tenancy_id) : null);
     if (rid && rows.has(rid)) return rows.get(rid);
     return strict ? null : untied();
   };
@@ -108,15 +108,22 @@ export function portfolioRows({ rentals = [], tenancies = [], requests = [], mes
 }
 
 function summarize(row, clock) {
-  const open = row.requests.filter(isOpenWork)
+  const open = row.requests
+    .filter(isOpenWork)
     .sort((a, b) => (PRIORITY_RANK[b.priority] ?? 1) - (PRIORITY_RANK[a.priority] ?? 1) || (ts(a.created_at) ?? 0) - (ts(b.created_at) ?? 0));
   const urgent = open.filter((r) => r.priority === 'urgent' || r.priority === 'high').length;
-  const oldest = open.reduce((min, r) => { const t = ts(r.created_at); return t !== null && (min === null || t < min) ? t : min; }, null);
+  const oldest = open.reduce((min, r) => {
+    const t = ts(r.created_at);
+    return t !== null && (min === null || t < min) ? t : min;
+  }, null);
   const lastWork = latestBy(row.requests, (r) => r.updated_at || r.created_at);
   const lastMsg = latestBy(row.messages, (m) => m.sent_at);
   const awaitingReply = Boolean(lastMsg && ASKING_SIDES.includes(lastMsg.row.from_role));
   const toConfirm = row.rent.filter((p) => p.status === 'reported').length;
-  const lastPay = latestBy(row.rent.filter((p) => p.status !== 'void'), (p) => p.paid_on || p.reported_at);
+  const lastPay = latestBy(
+    row.rent.filter((p) => p.status !== 'void'),
+    (p) => p.paid_on || p.reported_at
+  );
   const active = row.tenancies.find((t) => t.status === 'active') || null;
   const lastActivity = Math.max(lastWork?.t ?? 0, lastMsg?.t ?? 0, lastPay?.t ?? 0) || null;
   const oldestDays = oldest === null ? 0 : Math.max(0, Math.floor((clock - oldest) / DAY));
@@ -162,14 +169,16 @@ const recentOf = (r) => ts(r.lastActivityAt) ?? 0;
 /** A new array in the chosen order; an unknown key falls back to attention. */
 export function sortPortfolio(rows = [], key = 'attention') {
   const list = [...rows];
-  const cmp = {
-    attention: (a, b) => b.attention - a.attention || recentOf(b) - recentOf(a) || byName(a, b),
-    recent: (a, b) => recentOf(b) - recentOf(a) || byName(a, b),
-    open: (a, b) => b.openCount - a.openCount || b.urgentCount - a.urgentCount || byName(a, b),
-    oldest: (a, b) => (b.oldestOpenDays ?? -1) - (a.oldestOpenDays ?? -1) || byName(a, b),
-    messages: (a, b) => Number(b.awaitingReply) - Number(a.awaitingReply) || (ts(b.latestMessage?.sent_at) ?? 0) - (ts(a.latestMessage?.sent_at) ?? 0) || byName(a, b),
-    name: byName,
-  }[key] || null;
+  const cmp =
+    {
+      attention: (a, b) => b.attention - a.attention || recentOf(b) - recentOf(a) || byName(a, b),
+      recent: (a, b) => recentOf(b) - recentOf(a) || byName(a, b),
+      open: (a, b) => b.openCount - a.openCount || b.urgentCount - a.urgentCount || byName(a, b),
+      oldest: (a, b) => (b.oldestOpenDays ?? -1) - (a.oldestOpenDays ?? -1) || byName(a, b),
+      messages: (a, b) =>
+        Number(b.awaitingReply) - Number(a.awaitingReply) || (ts(b.latestMessage?.sent_at) ?? 0) - (ts(a.latestMessage?.sent_at) ?? 0) || byName(a, b),
+      name: byName,
+    }[key] || null;
   return list.sort(cmp || ((a, b) => b.attention - a.attention || byName(a, b)));
 }
 
@@ -180,19 +189,23 @@ export function activeOnly(rows = []) {
 
 /** The KPIs across every door: the sum of the rows, never a separate count. */
 export function portfolioTotals(rows = []) {
-  return rows.reduce((t, r) => ({
-    doors: t.doors + (r.untied ? 0 : 1),
-    occupied: t.occupied + (r.occupied ? 1 : 0),
-    open: t.open + r.openCount,
-    urgent: t.urgent + r.urgentCount,
-    awaiting: t.awaiting + (r.awaitingReply ? 1 : 0),
-    toConfirm: t.toConfirm + r.toConfirm,
-  }), { doors: 0, occupied: 0, open: 0, urgent: 0, awaiting: 0, toConfirm: 0 });
+  return rows.reduce(
+    (t, r) => ({
+      doors: t.doors + (r.untied ? 0 : 1),
+      occupied: t.occupied + (r.occupied ? 1 : 0),
+      open: t.open + r.openCount,
+      urgent: t.urgent + r.urgentCount,
+      awaiting: t.awaiting + (r.awaitingReply ? 1 : 0),
+      toConfirm: t.toConfirm + r.toConfirm,
+    }),
+    { doors: 0, occupied: 0, open: 0, urgent: 0, awaiting: 0, toConfirm: 0 }
+  );
 }
 
 /** Every open work order across every door, the most pressing first. */
 export function allOpenWork(rows = []) {
-  return rows.flatMap((r) => r.open.map((w) => ({ ...w, doorId: r.id, doorLabel: r.label })))
+  return rows
+    .flatMap((r) => r.open.map((w) => ({ ...w, doorId: r.id, doorLabel: r.label })))
     .sort((a, b) => (PRIORITY_RANK[b.priority] ?? 1) - (PRIORITY_RANK[a.priority] ?? 1) || (ts(a.created_at) ?? 0) - (ts(b.created_at) ?? 0));
 }
 
@@ -209,7 +222,16 @@ export function latestFeed({ rentals = [], tenancies = [], requests = [], messag
   };
   const items = [
     ...messages.filter(Boolean).map((m) => ({ kind: 'message', id: `m-${m.id}`, at: m.sent_at, who: m.from_role, text: m.body || '', ...doorOf(m) })),
-    ...requests.filter(Boolean).map((r) => ({ kind: 'work', id: `w-${r.id}`, at: r.updated_at || r.created_at, who: r.created_by_role || '', text: r.title || 'Work order', status: r.status, priority: r.priority, ...doorOf(r) })),
+    ...requests.filter(Boolean).map((r) => ({
+      kind: 'work',
+      id: `w-${r.id}`,
+      at: r.updated_at || r.created_at,
+      who: r.created_by_role || '',
+      text: r.title || 'Work order',
+      status: r.status,
+      priority: r.priority,
+      ...doorOf(r),
+    })),
   ].filter((i) => ts(i.at) !== null && !(strict && i.doorId === UNTIED));
   return items.sort((a, b) => ts(b.at) - ts(a.at)).slice(0, Math.max(0, limit));
 }
@@ -223,6 +245,6 @@ export function agoLabel(at, now = Date.now()) {
   if (s < 60) return 'just now';
   if (s < 3600) return `${Math.floor(s / 60)}m ago`;
   if (s < DAY / 1000) return `${Math.floor(s / 3600)}h ago`;
-  if (s < 60 * DAY / 1000) return `${Math.floor(s / 86400)}d ago`;
+  if (s < (60 * DAY) / 1000) return `${Math.floor(s / 86400)}d ago`;
   return new Date(t).toISOString().slice(0, 10);
 }

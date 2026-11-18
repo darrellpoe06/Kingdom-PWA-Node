@@ -30,7 +30,10 @@ export async function loadPortfolioPulse(client = supabase) {
     ]);
     const unreadable = [];
     const part = (res, what) => {
-      if (!res || res.error) { unreadable.push(what); return []; }
+      if (!res || res.error) {
+        unreadable.push(what);
+        return [];
+      }
       return res.data || [];
     };
     const requests = part(req, 'work orders');
@@ -38,5 +41,7 @@ export async function loadPortfolioPulse(client = supabase) {
     const payments = part(rent, 'payments');
     if (unreadable.length === 3) return no('read-failed', (req && req.error) || (msg && msg.error) || null);
     return ok({ requests, messages, rent: payments, unreadable });
-  } catch (e) { return no('unexpected', e); }
+  } catch (e) {
+    return no('unexpected', e);
+  }
 }

@@ -5,7 +5,14 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { createElement, act } from 'react';
 import { createRoot } from 'react-dom/client';
 import {
-  portfolioRows, sortPortfolio, portfolioTotals, allOpenWork, latestFeed, activeOnly, tenancyToRental, UNTIED,
+  portfolioRows,
+  sortPortfolio,
+  portfolioTotals,
+  allOpenWork,
+  latestFeed,
+  activeOnly,
+  tenancyToRental,
+  UNTIED,
 } from '../modules/properties/portfolio.js';
 import PortfolioTab from '../modules/properties/PortfolioTab.jsx';
 import { MANAGER_TABS } from '../modules/properties/model.js';
@@ -90,19 +97,36 @@ describe('the roll-up across every door', () => {
 });
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
-let host; let root;
-beforeEach(() => { host = document.createElement('div'); document.body.appendChild(host); root = createRoot(host); });
-afterEach(() => { act(() => root.unmount()); document.body.removeChild(host); });
+let host;
+let root;
+beforeEach(() => {
+  host = document.createElement('div');
+  document.body.appendChild(host);
+  root = createRoot(host);
+});
+afterEach(() => {
+  act(() => root.unmount());
+  document.body.removeChild(host);
+});
 const mount = async (props) => {
-  await act(async () => { root.render(createElement(PortfolioTab, { rentals, tenancies, now: NOW, ...props })); });
+  await act(async () => {
+    root.render(createElement(PortfolioTab, { rentals, tenancies, now: NOW, ...props }));
+  });
 };
 const $ = (id) => host.querySelector(`[data-testid="${id}"]`);
 const $$ = (id) => [...host.querySelectorAll(`[data-testid="${id}"]`)];
 async function settle(done, ms = 3000) {
   const end = Date.now() + ms;
-  while (!done() && Date.now() < end) await act(async () => { await new Promise((r) => setTimeout(r, 10)); });
+  while (!done() && Date.now() < end)
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 10));
+    });
 }
-const click = async (el) => { await act(async () => { el.dispatchEvent(new MouseEvent('click', { bubbles: true })); }); };
+const click = async (el) => {
+  await act(async () => {
+    el.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+  });
+};
 const byText = (scope, re) => [...scope.querySelectorAll('button')].find((b) => re.test(b.textContent));
 
 describe('the Overview tab', () => {
