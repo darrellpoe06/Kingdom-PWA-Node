@@ -10,7 +10,7 @@ Darrell, 2026-11-17, after approving the Kids & Youth Zone and the characters: *
 |---|---|---|
 | Bible Adventure Theater | `components/kids/Theater.jsx` + `lib/kids/theater.js`: a poster (the key art) with tap-to-play, an episode shelf (Jonah, Noah, David, all `planned`, shown COMING SOON), the church channel playing until an episode is published. A `published` episode must carry a YouTube link; nothing else plays. | Keep. Needs a self-hosted video path and the Jonah episode. |
 | Interactive storybook | `components/kids/Storybook.jsx` + `lib/kids/storybooks.js`: Jonah is 8 pages, each a KJV verse loaded word for word (Jonah 1:1-3, 1:4, 1:17, 2:1, 2:10, 3:1-3, 3:5, 3:10), a guide caption per page, **Hear this page** (the device reader), **Color this page**, page dots, Back/Next, three questions whose answers are in the verses, a learner record `storybook-jonah` on finish. Page art: the interim open-Bible scene with the narrator's face until `jonah-1..8` land. | Keep. Needs narration recordings, a page turn, read-to-me, and the 8 scenes. |
-| Bible games | Memory verse (weekly verse, every fourth word blanked), Bible trivia (from the message), Word Builder (the verse's own words), Who am I? (five people, clues from verses; Jonah is not among them). | Keep. Add Jonah to the games. |
+| Bible games | Memory verse (weekly verse, every fourth word blanked), Bible trivia (from the message), Word Builder (the week's verse only), Who am I? (fifteen people from the Word, Jonah among them with clues from Jonah 1:3, 3:3 and 1:17). | Keep. Bring the storybooks' verses into Word Builder and the memory game; add Put the story in order. |
 | Memory verses | `MemoryVerseGame` plays the week's verse only. | Keep. Add the storybook's own verse. |
 | Adventure map | `AdventureMap` in `KidsZone.jsx` lights stops from LESSON rows of the chosen course. | **Gap:** a finished storybook does not light a stop, though the finish screen says "That stop is lit on your map." |
 | Achievement badges | `badgesFor` in `lib/youth-zone.js`: six badges derived from real rows; a finished storybook already counts toward First Step and Quiz Star. | Keep. Add adventure badges from the same rows. |
@@ -23,7 +23,7 @@ Also in hand: the two approved characters (portraits, faces, pair), the key art,
 2. Narration is the device's synthetic voice; there is no recorded human reading.
 3. Pages cut, they do not turn; there is no read-to-me mode that carries a child through the book.
 4. The Theater plays YouTube only; an episode of our own cannot be served from our own files.
-5. Nothing Jonah-specific in the games; no Jonah memory verse; no badge a child earns by finishing an adventure.
+5. Who am I? already asks about Jonah, but no storybook verse reaches Word Builder or the memory verse game, there is no sequencing game, and no badge is earned by finishing an adventure. (The first draft of this plan said Jonah was in no game; the roster was re-read and corrected the same day.)
 6. Every Jonah page shows the interim scene (honest, unlabeled) until the eight illustrations land.
 
 ## 3. The build, in four steps
@@ -35,7 +35,7 @@ Each step ships through the normal lane (tests, gates, PR, auto-merge on green, 
 - **The map lights from storybooks.** A "Bible Adventures" trail on the map: one stop per storybook plus a Theater stop, lit from `kids-storybooks` and `kids-theater` rows. The finish line says what is true (lit when signed in, invitation when not). Test: a `storybook-jonah` row lights exactly that stop; signed out lights none.
 - **Page turning.** A CSS page-turn (3D flip, 400 ms) on Next/Back and on a horizontal swipe; `prefers-reduced-motion` gets a crossfade. Test: the swipe handler advances and retreats; reduced motion sets no transform.
 - **Read to me.** One tap reads the whole book: the verse, then the caption, then turns the page; the sentence being read is highlighted (the reader already segments and reports progress); pause and stop in the same bar. Test: the sequence verse → caption → next page; stop halts and leaves the page.
-- **Jonah in the games.** Who am I? gains Jonah (clues Jonah 1:17, 1:3, 3:3, each proven to name him in the KJV); Word Builder offers Jonah 1:17 and 2:10 from the storybook; a new **Put the story in order** game: the eight pages shuffled, the child orders them by caption (by picture once the scenes land), graded "not yet" like every kids game. Tests: order grading, shuffle never equals the answer, every clue verse contains the name.
+- **Jonah in the games.** Who am I? already carries Jonah (clues Jonah 1:3, 3:3, 1:17, each proven to name him in the KJV); the trail opens him by name and solving him writes a row; Word Builder offers each storybook's key verse (Jonah 1:17) beside the week's; a new **Put the story in order** game: the eight pages shuffled, the child orders them by caption (by picture once the scenes land), graded "not yet" like every kids game. Tests: order grading, shuffle never equals the answer, every clue verse contains the name.
 - **The Jonah memory verse.** Each storybook names its verse (Jonah 2:9, *"Salvation is of the LORD"*); the storybook's last page offers **Learn the verse**, which opens the existing memory verse game on it; the Games tab lists the adventure verses under the weekly one. Test: the game receives the storybook's reference.
 - **Adventure badges from the same rows.** `great-fish` (finished Jonah and passed), `three-stories` (three storybooks finished), `front-row` (an episode watched to the end). Tests: each from rows alone; none signed out.
 - **A self-hosted episode path.** `lib/kids/theater.js` accepts a same-origin MP4/WebM source beside YouTube; `Theater.jsx` plays it in a `<video>` with the poster, a WebVTT caption track (the KJV verses and captions, written by Claude), and writes `episode-jonah` under `kids-theater` when the video ends. The validator still refuses `published` without a source. Tests: a same-origin source is watchable; `ended` writes the row.
@@ -78,6 +78,10 @@ One recording per page, `jonah-p1.m4a` through `jonah-p8.m4a` (AAC or MP3, mono,
 ## 5. What does not change
 
 Every game, lesson, quiz, the Grown-Ups tab, Teens Zone, the church home, the records and their RLS, the voice gate, the asset ratchet. No new app, no new route, no redesign of the Kids Zone: the work adds inside the tabs that exist.
+
+## 5a. J1 as built (2026-11-17, same day)
+
+Shipped in the same PR as this plan, every piece of §3 J1: `lib/kids/trail.js` (the five stops, lit from rows, next/locked/soon, the tap rule), `components/kids/AdventureTrail.jsx` (the trail on the Badges tab, Jonah in full and the other books compact, and the next stop on the Kids home), `components/kids/StoryOrder.jsx` (Put the story in order, a tile on the Games grid), the storybook's page turn, swipe, arrow keys, Read to me, sentence highlight and Learn the verse, the Theater's `<video>` road with poster and captions beside YouTube, the storybooks' verses in Word Builder and the memory verse game, three badges from rows, and records written by the order game, the memory game, Who am I? and the file player. The caption script for the episode is `jonah-episode-captions.en.vtt` beside this plan, generated from the in-repo KJV, timed as a draft. The live walk gained the order game and the trail as stops.
 
 ## 6. Verification each step carries
 

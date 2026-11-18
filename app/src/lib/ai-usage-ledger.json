@@ -2871,6 +2871,21 @@
       "wallClockHours": 0.4,
       "estimateWithoutAiHours": 6,
       "notes": ""
+    },
+    {
+      "id": "jonah-j1-build",
+      "date": "2026-11-17",
+      "task": "Jonah and the Great Fish J1: the storybook's page turn, swipe, arrow keys, Read to me and sentence highlight; Put the story in order; the five-stop trail lit from rows with the next stop unlocked and the rest locked; three adventure badges from rows; the Theater's file road with poster and captions beside YouTube; the storybooks' verses in Word Builder and the memory verse game; records from every stop; the caption script generated from the KJV; the live walk extended; 31 new tests proven to catch",
+      "drs": [
+        "DR-1523"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.2,
+      "estimateWithoutAiHours": 24,
+      "notes": ""
     }
   ]
 }

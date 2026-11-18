@@ -283,3 +283,71 @@
 .kz .kz-panel .space-y-3>*+*{margin-top:.75rem}
 .kz-emblem{display:grid;place-items:center;border-radius:.875rem;background:linear-gradient(145deg,#2A1A1C,#3A1013);border:1px solid #5A2A2E;min-height:76px}
 .kz-emblem svg{width:40%;max-width:56px;height:auto;color:var(--lc-gold)}
+/* ---- J1, the Jonah adventure (DR-1523): page turns, read-along, the order game, the trail ---- */
+.kz-story{perspective:1200px}
+.kz-book{transform-origin:left center;outline:none}
+.kz-book:focus-visible{box-shadow:0 0 0 3px var(--kz-orange-deep)}
+.kz-book.kz-turn-next{animation:kz-turn-next .42s ease-in-out}
+.kz-book.kz-turn-prev{animation:kz-turn-prev .42s ease-in-out}
+@keyframes kz-turn-next{0%{transform:rotateY(0)}45%{transform:rotateY(-22deg) translateX(-6px);opacity:.75}100%{transform:rotateY(0)}}
+@keyframes kz-turn-prev{0%{transform:rotateY(0)}45%{transform:rotateY(22deg) translateX(6px);opacity:.75}100%{transform:rotateY(0)}}
+.kz-sent{border-radius:.3rem;transition:background .15s}
+.kz-sent.on{background:#FFE08A;box-shadow:0 0 0 3px #FFE08A}
+.kz-bubble p .kz-sent.on{background:#FFF1B8;box-shadow:0 0 0 3px #FFF1B8}
+.kz-chips{display:flex;gap:.375rem;flex-wrap:wrap;margin-top:.75rem}
+.kz-chip{min-height:40px;padding:0 .875rem;border-radius:999px;border:2px solid var(--kz-butter);background:#fff;color:var(--kz-ink);font-weight:900;font-size:.78rem;cursor:pointer;font-family:inherit}
+.kz-chip[aria-selected="true"]{background:var(--kz-purple);border-color:var(--kz-purple);color:#fff}
+.kz-yes{color:var(--kz-green-deep);font-weight:900}
+.kz-order-placed{list-style:none;margin:.75rem 0 0;padding:0;display:flex;flex-direction:column;gap:.375rem}
+.kz-order-slot{display:flex;align-items:center;gap:.5rem;min-height:48px;border-radius:.875rem;border:2px dashed var(--kz-butter);background:#fff;padding:.25rem .375rem}
+.kz-order-slot.filled{border-style:solid;border-color:var(--kz-teal)}
+.kz-order-slot.no{border-color:var(--kz-coral);background:#FFF3EF}
+.kz-order-n{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--kz-teal);color:#fff;font-weight:900;font-size:.8rem;flex:0 0 auto}
+.kz-order-empty{font-size:.78rem;font-weight:700;color:#5E4B8A}
+.kz-order-pile{margin-top:.75rem;display:flex;flex-direction:column;gap:.375rem}
+.kz-order-row{display:flex;gap:.375rem;align-items:stretch}
+.kz-order-card{flex:1;min-width:0;min-height:48px;display:flex;align-items:center;gap:.5rem;border-radius:.875rem;border:3px solid var(--kz-teal);background:#fff;padding:.375rem .625rem;text-align:left;font:inherit;font-weight:800;font-size:.84rem;line-height:1.3;color:var(--kz-ink);cursor:pointer;box-shadow:0 4px 0 var(--kz-teal-deep)}
+.kz-order-card.placed{border-color:var(--kz-teal);box-shadow:none;background:#E6F7F5;flex:1}
+.kz-order-pic{width:56px;height:32px;object-fit:cover;border-radius:.375rem;flex:0 0 auto}
+.kz-order-row .kz-spk{margin:0;width:48px;height:auto;min-height:48px;border-radius:.875rem}
+.kz-trail{margin-top:.75rem;background:#fff;border-radius:1.25rem;padding:.625rem .75rem;border:3px solid var(--kz-orange)}
+.kz-trail.compact{border-width:2px;border-color:var(--kz-butter);display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
+.kz-trail.compact .kz-act{flex:0 0 auto;min-height:44px}
+.kz-trail-head{display:flex;flex-direction:column;flex:1;min-width:0}
+.kz-trail-head b{font-size:.95rem;font-weight:900}
+.kz-trail-head small{font-size:.72rem;font-weight:800;color:var(--kz-purple)}
+.kz-trail-stops{list-style:none;margin:.625rem 0 0;padding:0;display:grid;grid-template-columns:repeat(5,1fr);gap:.25rem;position:relative}
+.kz-trail-stops::before{content:"";position:absolute;left:10%;right:10%;top:44px;border-top:3px dashed var(--kz-orange);z-index:0}
+.kz-stop{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center}
+.kz-stop-guide{width:30px;height:30px;border-radius:50%;object-fit:cover;border:2px solid #fff;box-shadow:0 2px 0 rgba(0,0,0,.15);margin-bottom:-6px;position:relative;z-index:2}
+.kz-stop-btn{width:100%;min-height:92px;border:0;background:transparent;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;font-family:inherit;color:var(--kz-ink);padding:0}
+.kz-stop-ic{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;border:3px solid var(--kz-butter);background:#fff;color:#C9A86A}
+.kz-stop-ic svg{width:22px;height:22px}
+.kz-stop.lit .kz-stop-ic{background:var(--lc-gold);border-color:#7A5C14;color:#1A1012}
+.kz-stop.next .kz-stop-ic{background:var(--kz-orange-deep);border-color:var(--kz-orange-deep);color:#fff;animation:kz-pulse 1.6s ease-in-out infinite}
+.kz-stop.locked .kz-stop-ic,.kz-stop.soon .kz-stop-ic{opacity:.6}
+.kz-stop.soon .kz-stop-ic{border-style:dashed}
+.kz-stop-btn b{font-size:.62rem;font-weight:900;line-height:1.1;text-align:center}
+.kz-stop-btn small{font-size:.58rem;font-weight:800;color:#5E4B8A}
+.kz-stop.next .kz-stop-btn small{color:var(--kz-orange-deep)}
+@keyframes kz-pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+.kz-next{margin:.625rem 0 0;width:100%;display:flex;align-items:center;justify-content:space-between;gap:.5rem;background:#fff;color:var(--kz-ink);border:0;border-radius:1rem;padding:.5rem .75rem;text-align:left;cursor:pointer;font:inherit;min-height:56px}
+.kz-next small{display:block;font-size:.66rem;font-weight:800;color:var(--kz-purple);letter-spacing:.04em}
+.kz-next b{display:block;font-size:.98rem;font-weight:900}
+.kz-next .kz-face{width:44px;height:44px}
+.kz-video{display:block;width:100%;aspect-ratio:16/9;background:#000}
+@media (prefers-reduced-motion: reduce){
+  .kz-book.kz-turn-next,.kz-book.kz-turn-prev{animation:kz-fade .3s ease-in-out}
+  .kz-stop.next .kz-stop-ic{animation:none}
+  .kz-sent{transition:none}
+}
+@keyframes kz-fade{0%{opacity:1}50%{opacity:.4}100%{opacity:1}}
+/* The memory verse game inside the Kids Zone wears the zone's ink, not the house night ink (its blanks read as black boxes on cream). */
+.kz .yz-verse{color:var(--kz-ink)}
+.kz .yz-blank{background:#FFF1D6!important;color:var(--kz-ink)!important;border-bottom:3px solid var(--kz-orange-deep);min-height:40px;font-weight:800;color-scheme:light}
+.kz .yz-blank-ok{background:#E9F8EC!important;border-bottom-color:var(--kz-green)}
+.kz .yz-blank-no{background:#FFF3EF!important;border-bottom-color:var(--kz-coral)}
+/* (!important: the house night theme paints every input near-black by attribute selectors the zone cannot out-rank; the zone is daylight by design.) */
+.kz .lc-small{color:#5E4B8A}
+.kz .kz-story>.lc-small,.kz .kz-game .lc-small{color:#5E4B8A}
+.kz .kz-act svg{width:22px;height:22px;flex:0 0 auto}
