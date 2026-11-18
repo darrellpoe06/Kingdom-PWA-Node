@@ -59,12 +59,8 @@ jobs:
         run: |
           for U in https://poetech.tail5a2f35.ts.net/voice/health https://poetech.us/voice/health; do
             B="$(curl -sS -m 20 -w ' [HTTP %{http_code}]' "$U" 2>&1 | head -c 600)"
-            # Whose answer (DR-1555): with no /voice mount the camera forwarder's ok:true came back.
-            if printf '%s' "$B" | grep -qE '"clone": ?true|"engine": ?"[^"]'; then W="the voice's own answer"
-            elif printf '%s' "$B" | grep -q '"go2rtc"'; then W="NOT the voice: the camera forwarder answered (no /voice mount on the Funnel)"
-            else W="NOT the voice's own answer"; fi
-            echo "$U -> $W -> $B"
-            echo "- \`$U\` -> $W -> \`$(printf '%s' "$B" | tr '\n|' '  ')\`" >> "$GITHUB_STEP_SUMMARY"
+            W="NOT the voice's own answer"; printf '%s' "$B" | grep -q '"go2rtc"' && W="NOT the voice: the camera forwarder answered (no /voice mount; DR-1555)"; printf '%s' "$B" | grep -qE '"clone": ?true|"engine": ?"[^"]' && W="the voice's own answer"
+            echo "$U -> $W -> $B"; echo "- \`$U\` -> $W -> \`$(printf '%s' "$B" | tr '\n|' '  ')\`" >> "$GITHUB_STEP_SUMMARY"
           done
 
       - name: Check out (the join-tailnet action lives in this repo)
