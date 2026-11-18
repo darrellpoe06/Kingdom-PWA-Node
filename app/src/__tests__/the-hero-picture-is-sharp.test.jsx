@@ -1,5 +1,5 @@
 // =============================================================================
-// THE HERO PICTURE IS SHARP (DR-1531)
+// THE HERO PICTURE IS SHARP (DR-1533)
 // =============================================================================
 // Darrell, 2026-11-18: "Pictures on the main page is not clear... they are
 // pixelated... Poe Properties". The front page's big rotating picture drew the

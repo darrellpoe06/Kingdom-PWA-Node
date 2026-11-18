@@ -31,7 +31,7 @@ export default function HeroCarousel({ slides = [], fallback = null, why = '', a
 
   useEffect(() => { if (i >= n) setI(0); }, [i, n]);
 
-  // THUMBNAIL FIRST, THEN THE SLIDE ON SCREEN SHARP (DR-1531). The hero is
+  // THUMBNAIL FIRST, THEN THE SLIDE ON SCREEN SHARP (DR-1533). The hero is
   // the widest picture in the app and drew the 640 px thumbnail across it:
   // pixelated on a tablet. The thumbnail still shows at once; the slide on
   // screen then asks for its full image and swaps in. The next slide stays a

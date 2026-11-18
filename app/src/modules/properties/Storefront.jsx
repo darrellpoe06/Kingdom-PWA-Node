@@ -119,7 +119,7 @@ export function VacancyCard({ unit, onApply = null, openPictures = 0, photos = u
     const cur = shots[i]; const next = shots[(i + 1) % shots.length];
     if (cur && !cur.storage_path) ask(cur, 'thumb');
     if (next && next !== cur && !next.storage_path) ask(next, 'thumb');
-    // THE PICTURE ON THE CARD IS SHARP (DR-1531). Darrell, 2026-11-18:
+    // THE PICTURE ON THE CARD IS SHARP (DR-1533). Darrell, 2026-11-18:
     // "Pictures on the main page is not clear... they are pixelated". The
     // card drew the 640 px thumbnail across a full-width 4:3 frame -- on his
     // tablet about 1,700 device pixels, a 2.5x stretch. The thumbnail still

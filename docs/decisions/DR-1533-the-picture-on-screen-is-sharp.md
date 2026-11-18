@@ -1,4 +1,4 @@
-# DR-1531: The picture on screen is sharp
+# DR-1533: The picture on screen is sharp
 
 **Date:** 2026-11-18
 **Status:** Accepted (built, gated, shipped through the lane)

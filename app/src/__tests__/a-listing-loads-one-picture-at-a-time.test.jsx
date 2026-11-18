@@ -6,7 +6,7 @@
 // bytes -- 37 full images for the bed at 805 -- before the first could show.
 // Now the list carries no bytes; the card asks for the picture on it (and the
 // next), thumbnail first, and for the full image only when one is opened.
-// DR-1531 (Darrell 2026-11-18, "pixelated"): the ONE picture on the card also
+// DR-1533 (Darrell 2026-11-18, "pixelated"): the ONE picture on the card also
 // asks for its full image after its thumbnail, and swaps in when it lands; the
 // next picture and the strip stay thumbnails.
 // =============================================================================
@@ -57,7 +57,7 @@ describe('a listing loads one picture at a time', () => {
     expect(H.asked).toHaveLength(5);
   });
 
-  it('PROVEN-TO-CATCH (DR-1531): the card never leaves the 640 px thumbnail on screen once the full image is here', async () => {
+  it('PROVEN-TO-CATCH (DR-1533): the card never leaves the 640 px thumbnail on screen once the full image is here', async () => {
     H.list = list(3);
     await mount(createElement(VacancyCard, { unit: UNIT }));
     expect(container.querySelector('img').getAttribute('src')).not.toContain('THUMB-');

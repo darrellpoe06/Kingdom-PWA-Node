@@ -2969,7 +2969,7 @@
       "date": "2026-11-18",
       "task": "Poe Properties front page pixelated pictures: the hero carousel and listing cards drew the 640 px thumbnail full width; now the thumbnail draws first and the one picture on screen swaps to its full image; plus an accessibility audit of the Overview (44px targets, 12px floor, focus rings, live status)",
       "drs": [
-        "DR-1531"
+        "DR-1533"
       ],
       "prs": [
         2733
