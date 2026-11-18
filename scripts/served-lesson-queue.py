@@ -72,6 +72,34 @@ CLOCK_MIN = 15
 FRESH_WITHIN_MIN = CLOCK_MIN * 2
 SILENT_AFTER_MIN = CLOCK_MIN * 4
 
+# WHICH FAILURE SITE, AND THE JOB IT NAMES (0334). The classes come from
+# lesson-queue-census.py's FAILURE_SITES, published through 0334's k_stalls.
+# Printed in THIS order, not alphabetically: a writer that answered nothing is
+# the one a person fixes first, because every later class presupposes a draft
+# that got written. The two self-healing classes are last and ask for nothing --
+# the builder waits them out itself (eligibility(): "rate-limited {n} times").
+SITE_JOBS = (
+    ("no-writer", ("no writer answered on the box: one sign-in or one setup, and "
+                   "the census's own writers list names which")),
+    ("no-push-token", ("no GitHub token on the box to push with: a credential, "
+                       "not a teaching")),
+    ("gates", ("a draft was written and the gates refused it: the teaching is "
+               "re-written, and the gate results on the box say which gate")),
+    ("tests", "the generated test went red in the worktree: code, not a teaching"),
+    ("catalog", ("the catalog file the lesson appends to has lost the list it "
+                 "appends to: a repository fix")),
+    ("budget", ("the build ran past its wall-clock budget and was ended: a longer "
+                "budget, or a shorter teaching")),
+    ("crashed", ("the build process died outside a stated failure: the builder's "
+                 "own log on the box is the next read")),
+    ("rate-limited", ("the model's limit, waited out by the builder itself -- "
+                      "nothing for a person")),
+    ("transient", ("a passing moment (the CLI's sign-in refresh raced), waited "
+                   "out by the builder itself -- nothing for a person")),
+    ("other", ("its reason matches no site this road knows: the builder's log on "
+               "the box is the next read, and a new site name is the fix")),
+)
+
 
 def ask(origin, key, timeout):
     """One read of the receipt: (dict, '') or (None, why)."""
@@ -220,6 +248,15 @@ def judge(receipt, why, now=None):
         if isinstance(d, dict) and d:
             parts = ", ".join(f"{k}: {v}" for k, v in sorted(d.items()))
             lines.append(f"{label} -- {parts}.")
+    # WHAT EACH CLASS ASKS OF A PERSON (0334). Measured 2026-11-18: six of seven
+    # rows read `other`, which told a reader that a person was wanted and not
+    # what for. A class name alone still does not: these are different hands on
+    # different days, so the class is printed WITH the job it names.
+    stalls = receipt.get("by_stall")
+    if isinstance(stalls, dict) and stalls:
+        for cls, job in SITE_JOBS:
+            if stalls.get(cls):
+                lines.append(f"  {stalls[cls]} x {cls} -- {job}")
     # WHICH ROWS WAIT (0326, DR-1511). Until now this road could say five
     # teachings waited and never which five, so a session that could not join
     # the tailnet could describe the queue and not act on it -- not even run

@@ -246,7 +246,10 @@ class WhyABuildFailed(unittest.TestCase):
 
     def test_each_failure_class_is_counted_and_sums_to_the_build_failed_shape(self):
         c = qc.census_of(self._rows())
-        self.assertEqual(c["by_stall"], {"rate-limited": 1, "transient": 1, "other": 1})
+        # The third row's reason now lands on a NAMED site (0334): its opening
+        # is lesson_gates.select_version()'s own refusal, so it reads `gates`
+        # rather than the catch-all it read while only two classes existed.
+        self.assertEqual(c["by_stall"], {"rate-limited": 1, "transient": 1, "gates": 1})
         self.assertEqual(sum(c["by_stall"].values()), c["by_shape"]["build-failed"])
 
     def test_the_reasons_TEXT_never_leaves_the_house(self):
@@ -281,7 +284,8 @@ class WhyABuildFailed(unittest.TestCase):
         row = {"source": "research-inbox", "created_at": "2026-11-12T12:00:00Z",
                "tags": ["lesson", "build-failed",
                         "build-reason:no version passed every gate: the writer said rate-limited"]}
-        self.assertEqual(qc.stall_of(row), "other")
+        self.assertEqual(qc.stall_of(row), "gates")
+        self.assertNotEqual(qc.stall_of(row), "rate-limited")
 
 
 class WhichRowsWait(unittest.TestCase):
@@ -949,7 +953,7 @@ class TheReaderSaysWhichCauseTheStatePointsAt(unittest.TestCase):
     # fifteen minutes after it was written and every verdict below collapsed
     # into "UNKNOWN, a stale count". The reader takes `now`, so the clock is
     # frozen a minute after the stamp and the verdicts are about the STATE.
-    NOW = datetime(2026, 11, 17, 22, 12, 8, tzinfo=timezone.utc)
+    NOW = datetime(2026, 11, 17, 22, 12, 8, tzinfo=timezone.utc)  # noqa: UP017 -- the NAS runs Python 3.8
 
     def said(self, state=None, **kw):
         # judge() returns (code, read, count, lines); the lines are the surface.
@@ -1192,3 +1196,163 @@ class TheReaderNamesTheWriterToFix(unittest.TestCase):
                         state="waiting on a push credential")
         self.assertIn("a push credential", out)
         self.assertIn("CONFIGURED AND FAILING: cli-local", out)
+
+
+class WhichFailureSiteRefusedTheBuild(unittest.TestCase):
+    """0334. MEASURED on run 44242079320: `Failed because -- other: 6,
+    transient: 1`, the oldest of the six waiting 5 d 16 h. `other` says only
+    "not one of the two classes that retry themselves" -- so a reader learns a
+    person is wanted and never what for, though a missing writer, a refused
+    draft, a red test and a missing push token are four different jobs."""
+
+    def failed(self, reason, **kw):
+        row = {"source": "research-inbox", "created_at": "2026-11-12T12:00:00Z",
+               "tags": ["lesson", "build-failed"] + (["build-reason:" + reason] if reason else [])}
+        row.update(kw)
+        return row
+
+    def test_each_site_of_the_builder_is_named_by_its_own_class(self):
+        for reason, want in (
+            ("no writer reachable: cli-local (not signed in)", "no-writer"),
+            ("no version passed every gate (1 written): cli-local exit 1", "gates"),
+            ("the gates failed on the committed object: verse", "gates"),
+            ("local tests failed: 1 failed", "tests"),
+            ("no GitHub token at /volume1/PoeTech/secrets/gh to push with", "no-push-token"),
+            ("bible-study-session.js has no BIBLE_STUDY_SESSION_LESSONS list to add to", "catalog"),
+            ("budget: the build passed its wall-clock budget of 2700 s and was ended", "budget"),
+            ("the build process crashed (exit 137): Killed", "crashed"),
+        ):
+            self.assertEqual(qc.stall_of(self.failed(reason)), want, reason)
+
+    def test_the_two_self_healing_classes_are_unchanged_and_still_come_first(self):
+        self.assertEqual(qc.stall_of(self.failed("rate-limited: HTTP 429")), "rate-limited")
+        self.assertEqual(
+            qc.stall_of(self.failed("transient: Failed to refresh OAuth token")), "transient")
+
+    def test_an_UNKNOWN_site_is_still_other_and_is_never_guessed_at(self):
+        # lesson_builder.py:1029 tags an unexpected crash `<Type>: <message>`,
+        # whose opening is a class name and not a fixed literal. The published
+        # limit: such a row reads `other`, narrower than the builder, never
+        # wider -- and the reader says the log is the next read.
+        self.assertEqual(qc.stall_of(self.failed("CalledProcessError: git returned 128")), "other")
+        self.assertEqual(qc.stall_of(self.failed("")), "other")
+
+    def test_PROVEN_TO_CATCH_a_class_published_from_the_ROWS_OWN_string(self):
+        # The whole safety of a prefix match is that what rides is THIS file's
+        # constant. A reason whose opening matches a site and whose tail quotes
+        # a person must publish the class and nothing of the tail.
+        rows = [self.failed("no writer reachable: SECRET WORDS from Mary Smith")]
+        c = qc.census_of(rows)
+        self.assertEqual(c["by_stall"], {"no-writer": 1})
+        blob = json.dumps(c)
+        for leak in ("SECRET WORDS", "Mary", "Smith", "build-reason", "reachable"):
+            self.assertNotIn(leak, blob)
+
+    def test_PROVEN_TO_CATCH_a_shape_in_place_of_identity(self):
+        # A shape such as ^[a-z- ]+$ is satisfied by a sentence about a person.
+        # Identity against FAILURE_SITES is not, so a hostile opening that only
+        # LOOKS like a class word must not become one.
+        for hostile in ("no words from mary smith", "gates-for-mary-smith",
+                        "no-writer: mary smith", "crashed, says mary smith"):
+            self.assertEqual(qc.stall_of(self.failed(hostile)), "other", hostile)
+
+    def test_every_class_sums_to_the_build_failed_shape(self):
+        rows = [self.failed("no writer reachable: x"),
+                self.failed("local tests failed: y"),
+                self.failed("rate-limited: HTTP 429"),
+                self.failed(None)]
+        c = qc.census_of(rows)
+        self.assertEqual(c["by_stall"],
+                         {"no-writer": 1, "tests": 1, "rate-limited": 1, "other": 1})
+        self.assertEqual(sum(c["by_stall"].values()), c["by_shape"]["build-failed"])
+
+    def test_NO_DRIFT_every_literal_is_prose_the_builder_actually_writes(self):
+        # The one way a prefix match rots: the builder re-words a message and
+        # the class silently becomes `other` again. Each literal is matched
+        # against the builder's and the gates' own source, case-insensitively.
+        src = ""
+        for p in ("lesson_builder.py", "lesson_gates.py"):
+            with open(os.path.join(_ROOT, "infra", "nas-lesson-builder", p),
+                      "r", encoding="utf-8") as fh:
+                src += fh.read().lower()
+        for opening, cls in qc.FAILURE_SITES:
+            # assertTrue, not assertIn: assertIn prints the whole CONTAINER on
+            # failure, which here is two source files -- 165 KB of noise around
+            # the one word that matters.
+            self.assertTrue(opening in src,
+                            f"no builder message opens with {opening!r}, so the class "
+                            f"{cls!r} can never be assigned; was the message re-worded?")
+
+    def test_the_SQL_allowlist_publishes_exactly_these_classes(self):
+        import glob
+
+        def read(path):
+            with open(path, "r", encoding="utf-8") as fh:
+                return fh.read()
+
+        auto = os.path.join(_ROOT, "infra", "supabase", "migrations-auto")
+        # The definition IN FORCE is the newest file that replaces the function,
+        # found rather than named: this test must not have to be edited every
+        # time the receipt is replaced again.
+        newest = max(p for p in glob.glob(os.path.join(auto, "*.sql"))
+                     if "lesson_queue_receipt" in read(p))
+        sql = read(newest)
+        m = re.search(r"k_stalls\s+text\[\]\s*:=\s*ARRAY\[(.*?)\];", sql, re.DOTALL)
+        self.assertTrue(m, "the newest receipt migration declares no k_stalls")
+        published = sorted(re.findall(r"'([a-z-]+)'", m.group(1)))
+        self.assertEqual(
+            published,
+            sorted(set(qc.STALLS) | set(qc.SITE_CLASSES) | {"other"}),
+            f"the census and {os.path.basename(newest)} disagree about the failure "
+            "classes; a class the SQL does not list is dropped on the public road "
+            "and reads as nothing at all",
+        )
+
+
+class TheReaderNamesTheJobEachClassAsksFor(unittest.TestCase):
+    """A class name alone still does not send anybody anywhere (0334). The
+    class is printed WITH the job it names, in fix order rather than
+    alphabetically: a writer that answered nothing comes first, because every
+    later class presupposes a draft that got written."""
+
+    @classmethod
+    def setUpClass(cls):
+        s = importlib.util.spec_from_file_location(
+            "served_lesson_queue3", os.path.join(_ROOT, "scripts", "served-lesson-queue.py"))
+        cls.rd = importlib.util.module_from_spec(s)
+        s.loader.exec_module(cls.rd)
+
+    def said(self, by_stall):
+        now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")  # noqa: UP017
+        r = {"seen": True, "at": now, "total": sum(by_stall.values()), "waiting": [],
+             "by_shape": {"build-failed": sum(by_stall.values())}, "by_stall": by_stall}
+        return "\n".join(self.rd.judge(r, "ok")[3])
+
+    def test_the_job_is_printed_beside_the_class(self):
+        out = self.said({"no-writer": 6, "transient": 1})
+        self.assertIn("6 x no-writer", out)
+        self.assertIn("one sign-in or one setup", out)
+        self.assertIn("1 x transient", out)
+        self.assertIn("nothing for a person", out)
+
+    def test_the_writer_class_is_named_BEFORE_the_classes_that_presuppose_a_draft(self):
+        out = self.said({"gates": 1, "no-writer": 1, "tests": 1})
+        self.assertLess(out.index("x no-writer"), out.index("x gates"))
+        self.assertLess(out.index("x gates"), out.index("x tests"))
+
+    def test_a_class_that_is_not_present_says_nothing(self):
+        out = self.said({"no-writer": 1})
+        for absent in ("x gates", "x tests", "x budget", "x other"):
+            self.assertNotIn(absent, out)
+
+    def test_every_class_the_census_can_assign_has_a_job(self):
+        have = {cls for cls, _ in self.rd.SITE_JOBS}
+        want = set(qc.STALLS) | set(qc.SITE_CLASSES) | {"other"}
+        self.assertEqual(want - have, set(),
+                         "a class the census can publish has no job printed, so a "
+                         "reader would see the word and not what to do")
+
+    def test_PROVEN_TO_CATCH_a_count_of_zero_printed_as_a_job(self):
+        out = self.said({"no-writer": 0, "gates": 2})
+        self.assertNotIn("0 x no-writer", out)
+        self.assertIn("2 x gates", out)
