@@ -168,6 +168,9 @@ export default function Storybook({
   manifest = LANDED,
   cueTable = undefined,
   createAudio = defaultAudio,
+  // The Theater's show (Darrell, 2026-11-18: "Theater?!"): the book starts
+  // reading itself as soon as its first page's words are here.
+  autoStart = false,
 }) {
   const book = useMemo(() => storybookById(bookId), [bookId]);
   const [index, setIndex] = useState(0);
@@ -176,6 +179,7 @@ export default function Storybook({
   const [picks, setPicks] = useState({});
   const [saved, setSaved] = useState(null);
   const [auto, setAuto] = useState(false); // Read to me: verse, caption, next page, on its own
+  const autoStarted = useRef(false);
   const phase = useRef(null); // what the device reader is reading for Read to me: 'verse' | 'caption' | null
   const wasReading = useRef(false);
   const startedFor = useRef(-1); // the page whose recording Read to me has started
@@ -233,6 +237,12 @@ export default function Storybook({
   const reading = recorded ? audio.status !== 'idle' : ttsReading;
   const paused = recorded ? audio.status === 'paused' : !!(tts && tts.isPaused);
   const supported = recorded || !!(tts && tts.supported);
+  useEffect(() => {
+    if (autoStart && supported && text && !autoStarted.current) {
+      autoStarted.current = true;
+      setAuto(true);
+    }
+  }, [autoStart, supported, text]);
 
   /** Turn to a page with the flip; nothing past the questions, nothing before the first. */
   const go = (to, dir) => {

@@ -86,6 +86,21 @@ Shipped in the same PR as this plan, every piece of §3 J1: `lib/kids/trail.js` 
 ## 5b. J2 as built (2026-11-18): the folder publishes (DR-1527)
 
 The exact deliverables, with the KJV per page and the narration script, are in `2026-11-18-jonah-production-brief.md` beside this plan. `scripts/kids-landed-manifest.mjs` writes what is in the kids folder to `app/src/lib/kids/landed.json` before every build; the registry derives from it: a scene file lands its page, a recording under `narration/` narrates its page (played by Hear this page and Read to me, with cued or estimated sentence highlighting), a poster under `episodes/` reads IN PRODUCTION, a video there publishes the episode into the Theater's own player with captions. Nothing is published by a status string.
+## 5c. The Theater plays today, and the movie is cut from the folder (2026-11-18, DR-1531)
+
+Darrell, on the live Theater showing three COMING SOON rows: "Theater?!" and "Let's make the movies, why wait?" Two things shipped the same day:
+
+**The Theater plays every adventure now.** Each unpublished row reads PLAY. PLAY opens the storybook inside the Theater as a show (`theater-show`) that starts reading on its own (`Storybook autoStart`), turns its own pages, and writes the same `storybook-<book>` record the storybook writes, so the trail's "read" stop lights from the Theater too. The episode's state ("episode coming soon") is a line under the title, never the headline. A published episode keeps WATCH. Phone proof: `phone/theater-shelf-play.png`, `phone/theater-show-jonah.png`.
+
+**The movie-maker.** From the repository root:
+
+```
+node scripts/kids-make-episode.mjs jonah [outDir] [--seconds 6] [--size 1920x1080]
+```
+
+It reads the storybook registry and the landed manifest and cuts, with ffmpeg: one shot per page from the landed scene (`jonah-N.png`, interim art where a scene is missing) with a slow move and crossfades; the narration (`narration/jonah-pN.m4a`) under its page where it exists, the page held to the recording's length, silence where not; the KJV verse and the caption burned in from the registry (never retyped); `jonah-poster.jpg` from page 3; `jonah.en.vtt` timed to the cut; and `jonah.cut.json`, a sidecar that says plainly whether every page used its landed scene and recording (finished) or not (DRAFT). The script publishes nothing. Proven on this machine with the interim art: 42.4 s, 1920x1080 H.264 + AAC, sidecar marked DRAFT, 0/8 scenes, 0/8 recordings.
+
+**What finishes the film, and only Darrell can mint:** the eight scenes and the eight recordings (filenames in section 4). The day they land in the folder, the same command cuts the finished episode; the published file is the one whose sidecar says finished, placed off-repo on the NAS road and named in the episode registry.
 
 ## 6. Verification each step carries
 

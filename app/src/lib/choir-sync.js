@@ -977,9 +977,36 @@ export async function saveSermon(sermon, displayName) {
   return error ? { skipped: 'insert-error', error } : { saved: true, id: data?.id };
 }
 
+// A DELETE THAT REMOVED NOTHING IS NOT A DELETE (DR-0076 section 8, applied to
+// a write). PostgREST answers a DELETE that RLS refuses with NO error and no
+// rows -- so the old `return error ? ... : { deleted: true }` reported success
+// for a row that is still there, and the UI then cleared its error banner and
+// said nothing at all. Measured 2026-11-18: Darrell pressed Delete on a draft
+// and "nothing happens, no message" was the entire symptom.
+//
+// `.select('id')` makes PostgREST return the rows it actually removed, so zero
+// is distinguishable from one and the caller can say which happened.
 export async function deleteSermon(id) {
-  const { error } = await supabase.from('choir_sermons').delete().eq('id', id);
-  return error ? { skipped: 'delete-error', error } : { deleted: true };
+  if (!id) return { skipped: 'no-id' };
+  const { data, error } = await supabase.from('choir_sermons').delete().eq('id', id).select('id');
+  if (error) return { skipped: 'delete-error', error };
+  const n = Array.isArray(data) ? data.length : 0;
+  return n ? { deleted: true, count: n } : { skipped: 'nothing-deleted' };
+}
+
+// DELETE THE WHOLE DUPLICATE GROUP, not the one row the list happened to show.
+// The library renders `dedupeSermons(...).kept`, so a message with clones in the
+// table is drawn ONCE. Deleting that one row promoted a clone into its place and
+// the card never left the screen -- which reads, correctly, as "I can't delete
+// this." The clones are the same message by `sermonDedupeKey`, so removing them
+// together is one logical delete, not a wider one.
+export async function deleteSermons(ids) {
+  const list = [...new Set((Array.isArray(ids) ? ids : []).filter(Boolean))];
+  if (!list.length) return { skipped: 'no-id' };
+  const { data, error } = await supabase.from('choir_sermons').delete().in('id', list).select('id');
+  if (error) return { skipped: 'delete-error', error };
+  const n = Array.isArray(data) ? data.length : 0;
+  return n ? { deleted: true, count: n, asked: list.length } : { skipped: 'nothing-deleted' };
 }
 
 // Sermon documents — OWNER/ADMIN ONLY (only BG/Darrell/Christina). RLS returns
