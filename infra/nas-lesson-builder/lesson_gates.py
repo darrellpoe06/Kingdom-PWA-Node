@@ -249,7 +249,29 @@ def quotation_gate(module):
         quotes = len(QUOTED.findall(t))
         with_ref = len(SPAN_WITH_REFERENCE.findall(t))
         if quotes != with_ref:
-            problems.append("{}: {} quoted spans, {} with a reference".format(where, quotes, with_ref))
+            # NAME THE SPANS, don't just count them (measured 2026-11-18). This
+            # gate refused four of the seven teachings that had waited six days,
+            # every one of them on THIS branch and no other -- and all it told
+            # the writer was "7 quoted spans, 4 with a reference". A count is not
+            # actionable: lesson_builder.previous_failures() feeds these lines
+            # into the next attempt, and the next attempt could not know WHICH
+            # span to fix. The verse gate has always quoted the offending text
+            # back ('(ref) was quoted as "X" but the verse reads: Y'); this is
+            # the same courtesy, in the same shape.
+            #
+            # The opening is unchanged on purpose: lesson-queue-census.py's
+            # PROBLEM_KINDS classifies this line by matching `quoted spans,`,
+            # and a drift test pins that literal to this file.
+            # finditer + group(1), NOT findall: SPAN_WITH_REFERENCE has four
+            # groups, so findall yields TUPLES and `q not in referenced` would
+            # be true of every span -- naming spans that are perfectly fine.
+            referenced = {m.group(1) for m in SPAN_WITH_REFERENCE.finditer(t)}
+            bare = [q for q in QUOTED.findall(t) if q not in referenced]
+            problems.append(
+                "{}: {} quoted spans, {} with a reference{}".format(
+                    where, quotes, with_ref,
+                    " -- no reference after: " + "; ".join(
+                        '"{}"'.format(q[:60]) for q in bare[:5]) if bare else ""))
         for span in QUOTED.findall(t):
             if ELLIPSIS.search(span):
                 problems.append("{}: an ellipsis inside a quotation".format(where))
