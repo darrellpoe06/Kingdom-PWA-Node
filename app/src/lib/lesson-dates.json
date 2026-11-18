@@ -125,7 +125,9 @@
    "sov87-cleanse-thou-me-from-secret-faults": ["2026-11-13", "5613c6ce"],
    "sov88-every-man-by-his-own-standard": ["2026-11-13", "15454f02"],
    "sov89-take-thee-again-another-roll": ["2026-11-18", "31abf305"],
-   "sov90-let-your-yea-be-yea": ["2026-11-18", "e728419e"]
+   "sov90-let-your-yea-be-yea": ["2026-11-18", "e728419e"],
+   "sov91-know-the-state-of-thy-flocks": ["2026-11-18", "b127f781"],
+   "sov92-the-voice-is-jacobs-voice": ["2026-11-18", "1b0ed181"]
   },
   "ai-legal-blueprint": {
    "aib1-the-one-rule": ["2026-06-24", "055416e3"],
