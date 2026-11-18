@@ -27,6 +27,7 @@ import { DOC_TYPE_LABEL, TAB_HINTS } from '../lib/books-intake-extract.js';
 import { buildTimeline } from '../lib/books-intake-reconcile.js';
 import { reportBooksUploadCount } from './BooksUploadButton.jsx';
 import { resolveBridgeBearer } from '../lib/bridge-auth.js';
+import { getLedgerEditor, learnImportRules } from '../lib/ledger-edit.js';
 
 const MONO = { fontFamily: '"JetBrains Mono", monospace' };
 const SERIF = { fontFamily: '"Fraunces", serif' };
@@ -277,7 +278,8 @@ export default function BooksUpload({ hint = null, data = {}, debts = [], demo =
     setBusy('Adding to the books…');
     try {
       const fresh = await processDoc(doc, ctx);
-      await commitDoc(fresh, { store, sinks, known, demo });
+      const out = await commitDoc(fresh, { store, sinks, known, demo });
+      if (out && out.status === 'added' && !demo) learnImportRules(getLedgerEditor(), fresh); // categories you chose become rules; no past row changes
     } finally { setBusy(''); await refresh(); }
   };
 
