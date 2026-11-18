@@ -27,10 +27,22 @@ let response = { data: [{ id: 'a' }], error: null };
 // A minimal PostgREST shape: .delete() -> .eq()/.in() -> .select() resolves.
 function makeBuilder(table) {
   const b = {
-    delete: () => { calls.push({ table, op: 'delete' }); return b; },
-    eq: (col, val) => { calls.push({ op: 'eq', col, val }); return b; },
-    in: (col, vals) => { calls.push({ op: 'in', col, vals }); return b; },
-    select: (cols) => { calls.push({ op: 'select', cols }); return Promise.resolve(response); },
+    delete: () => {
+      calls.push({ table, op: 'delete' });
+      return b;
+    },
+    eq: (col, val) => {
+      calls.push({ op: 'eq', col, val });
+      return b;
+    },
+    in: (col, vals) => {
+      calls.push({ op: 'in', col, vals });
+      return b;
+    },
+    select: (cols) => {
+      calls.push({ op: 'select', cols });
+      return Promise.resolve(response);
+    },
   };
   return b;
 }
