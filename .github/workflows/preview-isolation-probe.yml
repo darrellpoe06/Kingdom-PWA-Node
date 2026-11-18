@@ -17,10 +17,10 @@
 # No secret is used or printed. A run is identified by its own id, never by its
 # place in a list (LESSONS P62 / P64).
 #
-# HOW IT FIRES. On push to a Money branch it waits for Vercel to build THIS
-# commit, then probes the branch's own preview address as Vercel posted it on
-# the PR (never a fixed one: a pinned address probed a dead 404 on every other
-# branch until 2026-11-18; the per-commit address sits behind Vercel's login).
+# HOW IT FIRES. On push to a Money branch it builds THIS commit and serves it
+# here over TLS under a *.vercel.app name (`--serve`), so no Vercel and no key:
+# every live preview sits behind Vercel's login and a runner cannot enter it
+# (measured 2026-11-18). Dispatch with a URL still probes a live preview.
 name: Preview isolation probe (read-only)
 
 on:
@@ -34,8 +34,6 @@ on:
 
 permissions:
   contents: read
-  statuses: read
-  pull-requests: read
 
 env:
   PREVIEW_URL: ${{ inputs.url }}
@@ -49,24 +47,18 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Wait for Vercel to serve THIS commit (the `Vercel` commit status; up to 12 minutes)
+      - name: Build THIS commit (the preview rule is in the code, keyed to the host name)
         if: github.event_name == 'push'
+        working-directory: app
+        run: npm ci --no-audit --no-fund && npm run build
         env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          for i in $(seq 1 48); do
-            state=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/status" --jq '[.statuses[] | select(.context | test("vercel"; "i"))] | map(.state) | first // "none"')
-            echo "attempt $i: Vercel status for ${GITHUB_SHA} = ${state}"
-            if [ "$state" = "success" ]; then url=$(gh api "repos/${GITHUB_REPOSITORY}/issues/$(gh api "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/pulls" --jq '.[0].number // 0' 2>/dev/null || echo 0)/comments?per_page=100" --jq '[.[] | select(.user.login == "vercel[bot]")][0].body // empty' 2>/dev/null | sed -n 's/^\[vc\]: #[^:]*:\(.*\)$/\1/p' | base64 -d 2>/dev/null | jq -r '.projects[0].previewUrl // empty' 2>/dev/null || true); fi
-            if [[ "${url:-}" == *.vercel.app ]]; then echo "PREVIEW_URL=https://${url}/poetech-app/" >> "$GITHUB_ENV"; echo "probing https://${url}/poetech-app/ (this branch's preview, now serving this commit)"; exit 0; fi
-            if [ "$state" = "failure" ] || [ "$state" = "error" ]; then echo "Vercel reported ${state} for this commit (the Hobby cap, measured 2026-10-21, turns it red); the preview is NOT this commit — refusing to probe a stale build"; exit 1; fi
-            sleep 15
-          done
-          echo "Vercel never reported success for this commit within 12 minutes"; exit 1
+          VITE_SUPABASE_URL: https://test-stub.supabase.co
+          VITE_SUPABASE_ANON_KEY: test-stub-anon-key
+          NODE_OPTIONS: --max-old-space-size=6144
       - name: Install playwright-core (drives the runner's installed Chrome)
         run: npm install --no-save playwright-core@1
       - name: Probe the preview with planted sign-in leftovers
-        run: node scripts/preview-isolation-probe.mjs --url "${PREVIEW_URL}" --out probe-out
+        run: if [ -n "${PREVIEW_URL}" ]; then A=(--url "${PREVIEW_URL}"); else A=(--serve app/dist); fi; node scripts/preview-isolation-probe.mjs "${A[@]}" --out probe-out
       - name: Keep the screenshots and the report
         if: always()
         uses: actions/upload-artifact@v4
