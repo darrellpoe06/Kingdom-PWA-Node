@@ -13,6 +13,8 @@
 // road stays. Only the file road hears `ended`, so only it tells the zone a
 // child watched to the end (the trail's last stop, the Front Row badge).
 import React, { useState } from 'react';
+import Storybook from './Storybook.jsx';
+import { gentleReveal } from '../../lib/gentle-motion.js';
 import { resolveChurch } from '../../lib/resolve-church.js';
 import { worshipPlayerSrc } from '../../lib/church-live.js';
 import { EPISODES, nowShowing, shelfLabel, watchable } from '../../lib/kids/theater.js';
@@ -37,9 +39,15 @@ export function posterFor(episode, list) {
   return kidsAsset(KIDS_BRAND.reference);
 }
 
-export default function Theater({ church = null, episodes = EPISODES, onOpenStorybook = null, onWatched = null, shotList = undefined }) {
+export default function Theater({ church = null, episodes = EPISODES, onOpenStorybook = null, onWatched = null, shotList = undefined, storybook = {} }) {
   const c = resolveChurch(church);
   const now = nowShowing(c, episodes);
+  // THE SHOW (Darrell, 2026-11-18, on three COMING SOON rows: "Theater?!!!!!"):
+  // until an episode is published, every adventure PLAYS here as its storybook
+  // read aloud, page by page, with the scene art and the guide's voice; the
+  // animated episode replaces it the day its file lands. Nothing waits.
+  const [show, setShow] = useState(null);
+  const playing2 = show ? episodes.find((e) => e.storybook === show) : null;
   const file = now.kind === 'episode' && now.media === 'file';
   const src = file
     ? episodeFileSrc(now.url)
@@ -117,9 +125,18 @@ export default function Theater({ church = null, episodes = EPISODES, onOpenStor
         </div>
       </div>
 
+      {show && (
+        <div className="kz-strip kz-show" data-testid="theater-show" data-book={show}>
+          <h3>
+            Now playing: {playing2 ? playing2.title : show} <small>the storybook, read aloud</small>
+          </h3>
+          <Storybook key={show} bookId={show} autoStart shotList={shotList} onBack={() => setShow(null)} {...storybook} />
+        </div>
+      )}
+
       <div className="kz-strip" data-testid="theater-shelf">
         <h3>
-          The Love Corner Bible Adventures <small>our own series</small>
+          The Love Corner Bible Adventures <small>{episodes.some(watchable) ? 'our own series' : 'read aloud now · episodes to come'}</small>
         </h3>
         {episodes.map((e) => (
           <div
@@ -134,16 +151,28 @@ export default function Theater({ church = null, episodes = EPISODES, onOpenStor
             </span>
             <div style={{ minWidth: 0, flex: 1 }}>
               <b style={{ display: 'block', fontSize: '.86rem', fontWeight: 900 }}>{e.title}</b>
-              <small className="kz-sub kz-sub-line">{e.scripture}</small>
+              <small className="kz-sub kz-sub-line">
+                {e.scripture} · {watchable(e) ? 'the episode' : `read aloud now · episode ${shelfLabel(e).toLowerCase()}`}
+              </small>
             </div>
             {watchable(e) ? (
               <a href={e.source} target="_blank" rel="noopener noreferrer" className={`kz-play red ${KZ_FOCUS}`} style={{ marginTop: 0 }}>
                 WATCH
               </a>
             ) : (
-              <span className="kz-play soon" style={{ marginTop: 0 }}>
-                {shelfLabel(e)}
-              </span>
+              <button
+                type="button"
+                className={`kz-play red ${KZ_FOCUS}`}
+                style={{ marginTop: 0 }}
+                onClick={() => {
+                  setShow(e.storybook);
+                  if (typeof document !== 'undefined') gentleReveal(document.querySelector('[data-testid="theater-show"]'));
+                }}
+                aria-label={`Play ${e.title}: the storybook read aloud`}
+                data-testid={`episode-${e.id}-play`}
+              >
+                PLAY
+              </button>
             )}
           </div>
         ))}
@@ -173,12 +202,12 @@ export default function Theater({ church = null, episodes = EPISODES, onOpenStor
       </div>
 
       <GuideBubble who="girl" shot="girl-point" list={shotList}>
-        Every episode is a true story from the Word. Open the Storybook to read it first, then watch it with me!
+        Every adventure is a true story from the Word. Tap PLAY and I read it to you, page by page; the animated episodes come next!
       </GuideBubble>
 
       <div className="kz-strip">
         <h3>
-          After you watch <small>earns a stop on your map</small>
+          Read the stories <small>each one lights a stop on your trail</small>
         </h3>
         <div className="kz-actions" style={{ marginTop: 0 }}>
           {episodes.slice(0, 3).map((e) => (

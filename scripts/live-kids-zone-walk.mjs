@@ -150,11 +150,17 @@ await stop('theater', async () => {
   await page.waitForSelector('[data-testid="theater"]', { timeout: 15000 });
   const now = await page.locator('[data-testid="theater-now"]').innerText();
   const play = await page.locator('[data-testid="theater-play"]').count();
-  const shelf = await page.locator('[data-testid^="episode-"]').count();
+  const shelf = await page.locator('[data-testid^="episode-"][data-status]').count();
   const im = await imagesLoaded();
   if (im.broken.length) throw new Error(`broken images: ${im.broken.slice(0, 3).join(', ')}`);
   if (shelf < 3) throw new Error(`shelf=${shelf}`);
-  return `now="${now.trim()}" play=${play} shelf=${shelf}`;
+  // Every adventure PLAYS today (DR-1531): PLAY on the Jonah row opens the storybook as a show inside the Theater.
+  const plays = await page.locator('[data-testid^="episode-"][data-testid$="-play"], [data-testid^="episode-"][data-testid$="-watch"]').count();
+  await click('episode-jonah-play');
+  const show = await page.locator('[data-testid="theater-show"] [data-testid="storybook"]').count();
+  if (plays < 3 || show !== 1) throw new Error(`plays=${plays} show=${show}`);
+  await click('storybook-back');
+  return `now="${now.trim()}" play=${play} shelf=${shelf} plays=${plays} showOpened=${show}`;
 });
 
 await stop('games', async () => {
