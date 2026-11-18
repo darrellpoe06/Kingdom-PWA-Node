@@ -31,6 +31,7 @@ import { overallCompletion, projectedFinish } from './completion.js';
 import { extractReReviews, reReviewStatus, sortReReviews } from './re-reviews.js';
 import { deriveDataConcerns } from './derive-concerns.js';
 import { isPersonalProp } from './rental-portfolio.js';
+import { reviewClaims } from './surface-claims.js';
 
 // Severity ranking — shared vocabulary with llm-review so the whole app reads
 // findings the same way. Higher = worse.
@@ -48,6 +49,7 @@ export const REVIEW_DIMENSIONS = [
   ['recurrence', 'Lessons recurrence', 'Are the documented past incident classes staying fixed?'],
   ['oversight', 'Agent-fleet oversight', 'Is every standing automation working for our good, with its brakes on?'],
   ['workflows', 'Workflow currency', 'Does the app\'s picture of its workflows match what is actually running?'],
+  ['claims', 'Promise truth', 'Does every page promise only what the app can actually show, with evidence behind each line?'],
   ['capacity', 'Live-system capacity', 'Is the live system up, serving the current build, and inside its headroom?'],
 ];
 
@@ -711,7 +713,7 @@ export function buildAppReview(input = {}, nowMs = 0) {
   const {
     tasks = [], concerns = [], feedback = [], reviews = null, decisions = null,
     transactions = [], rentals = [], debts = [], demoRowIds = null, fleet = null,
-    workflows = null, loops = null, site = null,
+    workflows = null, loops = null, site = null, surfaceIds = null,
   } = input;
 
   const raw = [
@@ -725,6 +727,7 @@ export function buildAppReview(input = {}, nowMs = 0) {
     reviewRecurrence({ concerns, feedback, transactions, demoRowIds }, nowMs),
     reviewOversight({ fleet }),
     reviewWorkflows({ workflows, loops }),
+    reviewClaims({ surfaceIds }),
     reviewCapacity({ site }),
   ];
   const labelOf = Object.fromEntries(REVIEW_DIMENSIONS.map(([k, label, q]) => [k, { label, question: q }]));

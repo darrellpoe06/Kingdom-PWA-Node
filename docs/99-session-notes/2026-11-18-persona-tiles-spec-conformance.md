@@ -51,3 +51,29 @@ Every row is a gap: one bullet per tile. "Real user" means a signed-in person wi
 - **Data-only gaps** (seed subscriptions, the goal, receipts, three 529s): can be built now; next PR.
 - **Feature gaps** (who-paid-what, per-kid rollup, exchange log, split model, ClarityLine everywhere, late-on-the-1st detection, capex auto-fund): real builds, queued in the order above. `re-review: 2026-12-02`.
 - **Copy vs. roadmap conflict** (the landlord and solo-practice tiles sell as live what `matched-services.js` dates to 2028): this needs Darrell's decision. Either move those claims into each tile's `vision` line, or pull the module build forward. `re-review: 2026-11-25`.
+
+## Second pass, same day: the tiles made true, and Ari checks every page's words
+
+Darrell: *"Fix the tiles to be accurate ... unless we can make happen what's on the tiles"*, and *"Ari should be on every page validation efforts for each page and or text isn't good enough..."*
+
+**Made true by seeding the sample** (`lib/demo-data.js`):
+- **Singles:** 4 subscriptions, each a real card charge. The card still reconciles at −245.47.
+- **Families of 5+:** a 529 per child (Jonah, Lila, Micah), and each kid's activity on their own line.
+- **Co-parents:** every paid split cost carries a receipt. Each is an inline SVG marked SAMPLE RECEIPT.
+
+**Copy made accurate.** Every unbuilt claim moved into that tile's "Vision in build" line, which is shown in the welcome modal when the sample loads:
+- **Couples:** per-partner settle-up.
+- **Your family:** the what/when/why/how line on every screen.
+- **Families of 5+:** the per-kid cost rollup.
+- **Co-parents:** split percentages and the exchange log.
+- **Solo practice:** owner draw, a self-funding set-aside, and the check against the filed return.
+- **Landlords:** late-on-the-1st detection, net per property, and the capex reserve. The Landlords vision line also now says what already runs for real users: the tenant portal, leases and work orders.
+
+**Ari's "Promise truth" dimension** (`lib/surface-claims.js`, wired into `lib/ari-app-review.js`):
+- Each page's promises are registered with the check that proves them.
+- Retracted phrases may not return.
+- Ari reports broken promises in-app as bugs, with evidence.
+- Ari counts the pages with no promise check yet. That count is the worklist toward every page; on 2026-11-18 one of the app's 73 pages plus the picker is registered.
+- CI runs the same registry (`__tests__/persona-tile-claims.test.js`, proven to catch four ways).
+
+`re-review: 2026-12-02` covers two things: the feature builds above, and registering the next pages. Next pages, in order: Rentals, Money, Forecast, About/pricing.
