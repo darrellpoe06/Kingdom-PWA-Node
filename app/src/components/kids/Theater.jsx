@@ -6,11 +6,17 @@
 // record, embedded the way Live Worship embeds it (worshipPlayerSrc). The
 // shelf reads the episode registry; nothing reads WATCH before it is. After
 // you watch, the matching storybook opens, where the questions live.
+//
+// J1 of the Jonah adventure (DR-1523): a published episode of our own may
+// be a file we serve (MP4/WebM under lovecorner/kids/episodes/), played in
+// a <video> with its poster frame and a WebVTT caption track; the YouTube
+// road stays. Only the file road hears `ended`, so only it tells the zone a
+// child watched to the end (the trail's last stop, the Front Row badge).
 import React, { useState } from 'react';
 import { resolveChurch } from '../../lib/resolve-church.js';
 import { worshipPlayerSrc } from '../../lib/church-live.js';
 import { EPISODES, nowShowing, shelfLabel, watchable } from '../../lib/kids/theater.js';
-import { Shot, ShotSlot, GuideBubble, KidsIcon, kidsAsset, KZ_FOCUS } from './GuideArt.jsx';
+import { Shot, ShotSlot, GuideBubble, KidsIcon, kidsAsset, isLanded, KZ_FOCUS } from './GuideArt.jsx';
 import { KIDS_BRAND } from '../../lib/kids/guides.js';
 
 /** The embed URL of a published episode's YouTube watch link, or null. */
@@ -19,17 +25,52 @@ export function episodeEmbedSrc(url) {
   return m ? `https://www.youtube.com/embed/${m[1]}?rel=0` : null;
 }
 
-export default function Theater({ church = null, episodes = EPISODES, onOpenStorybook = null, shotList = undefined }) {
+/** The served path of a file of our own (an episode, its poster, its captions). */
+export function episodeFileSrc(path) {
+  return kidsAsset(String(path || '').replace(/^\/?lovecorner\/kids\//, ''));
+}
+
+/** The poster an episode shows before it plays: its own frame, else the story's third scene once landed, else the key art. */
+export function posterFor(episode, list) {
+  if (episode && episode.poster) return episodeFileSrc(episode.poster);
+  if (episode && episode.storybook && isLanded(`${episode.storybook}-3`, list)) return kidsAsset(`${episode.storybook}-3.png`);
+  return kidsAsset(KIDS_BRAND.reference);
+}
+
+export default function Theater({ church = null, episodes = EPISODES, onOpenStorybook = null, onWatched = null, shotList = undefined }) {
   const c = resolveChurch(church);
   const now = nowShowing(c, episodes);
-  const src = now.kind === 'episode' ? episodeEmbedSrc(now.url) : now.kind === 'channel' ? worshipPlayerSrc(c.youtubeChannelId) : null;
+  const file = now.kind === 'episode' && now.media === 'file';
+  const src = file
+    ? episodeFileSrc(now.url)
+    : now.kind === 'episode'
+      ? episodeEmbedSrc(now.url)
+      : now.kind === 'channel'
+        ? worshipPlayerSrc(c.youtubeChannelId)
+        : null;
+  const poster = now.kind === 'episode' ? posterFor(now.episode, shotList) : kidsAsset(KIDS_BRAND.reference);
   // The player loads only on a tap (nothing from YouTube reaches the device
   // until a child asks); until then the approved key art is the poster.
   const [playing, setPlaying] = useState(false);
   return (
     <div className="kz-theater" data-testid="theater" data-now={now.kind} data-playing={playing ? 'true' : 'false'}>
       <div className="kz-book kz-screen">
-        {src && playing ? (
+        {src && playing && file ? (
+          <video
+            className="kz-video"
+            src={src}
+            poster={poster}
+            controls
+            playsInline
+            autoPlay
+            preload="metadata"
+            onEnded={() => onWatched && onWatched(now.episode)}
+            data-testid="theater-video"
+            aria-label={now.title}
+          >
+            {now.episode.captions && <track kind="captions" srcLang="en" label="English" src={episodeFileSrc(now.episode.captions)} default />}
+          </video>
+        ) : src && playing ? (
           <div style={{ position: 'relative', paddingTop: '56.25%' }}>
             <iframe
               title={now.title}
@@ -42,7 +83,12 @@ export default function Theater({ church = null, episodes = EPISODES, onOpenStor
           </div>
         ) : (
           <div className="kz-poster">
-            <img className="kz-poster-art" src={kidsAsset(KIDS_BRAND.reference)} alt="The Love Corner Bible Adventures" data-interim="true" />
+            <img
+              className="kz-poster-art"
+              src={poster}
+              alt="The Love Corner Bible Adventures"
+              data-interim={now.kind === 'episode' && now.episode.poster ? 'false' : 'true'}
+            />
             {src ? (
               <button
                 type="button"
