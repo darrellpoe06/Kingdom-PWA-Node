@@ -8,10 +8,20 @@
 **Sent in by:** Darrell, 2026-11-18, from the tablet: *"Pictures on the main page is not clear... they are pixelated... Poe Properties"*
 **Pairs with:** DR-1016 (one picture at a time), DR-1236 (the hero carousel), DR-0955 (thumbnail first, then sharp: `SharpPicture` on the owner side)
 
-## Context (SHOULD / ARE)
+## Context
 
-- **SHOULD:** a picture shown large on the Poe Properties front page is sharp on the device it is shown on.
-- **ARE (before):** the hero carousel (`HeroCarousel.jsx:37`) and each listing card's main picture (`Storefront.jsx`, `srcOf(shot)`) asked `public_vacancy_picture` for `thumb` only. A thumbnail is 640 px wide at 75% JPEG (`cloud.js:625`). The full image was asked for only when a person opened the lightbox. A full-width 4:3 frame on his tablet is about 1,700 device pixels, so the 640 px thumbnail was stretched about 2.5x: pixelated. The owner side already solved this in DR-0955 (`SharpPicture`: thumbnail first, full swapped in); the public side never got it.
+A picture shown large on the Poe Properties front page should be sharp on the device it is shown on. Darrell saw it soft and blocky on his tablet.
+
+## What was measured
+
+- The hero carousel (`HeroCarousel.jsx`) and each listing card's main picture (`Storefront.jsx`, `srcOf(shot)`) asked `public_vacancy_picture` for `thumb` only; the full image was asked for only when the lightbox opened.
+- A thumbnail is 640 px wide at 75% JPEG (`cloud.js`, the `thumb_path` comment).
+- A full-width 4:3 frame on his tablet is about 1,700 device pixels: the thumbnail was stretched about 2.5x.
+- The owner side already solved this in DR-0955 (`SharpPicture`: thumbnail first, full swapped in); the public side never got it.
+
+## Impact
+
+Unresolved, the front page every prospective tenant meets first shows the homes blurred, which reads as neglect of the homes themselves. The fix obligates DR-1016's budget: one full image at a time, for the picture actually on screen, never the whole set.
 
 ## Decision
 

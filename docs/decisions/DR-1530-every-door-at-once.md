@@ -8,10 +8,19 @@
 **Sent in by:** Darrell, 2026-11-18, a tablet frame of one door's empty Messages tab: *"We need to be able to see all active work orders in the Poe Properties App... we should not need to look individually to find open work orders... or messages... the latest ones and sorting by KPI's or something instead of each asset individually... I need to see all at the same time in a list... maybe a list of each property with the latest everything... like messages... work orders... etc... another view... make sense?"*
 **Pairs with:** DR-1213 (work-order triage in the PoeTech shell), DR-0837 (the work is an option of the door), DR-0904 (a door's thread follows `rental_ref`), DR-1199 (the owner's preview is one door through that face's wall), DR-0076 (an unread part is never a zero)
 
-## Context (SHOULD / ARE)
+## Context
 
-- **SHOULD:** the landlord sees, in one list, every door with its open work, its latest message and what waits on him, sorted by what needs him.
-- **ARE (before):** in the Poe Properties App every one of Work board, Dispatch, Messages and Rent reads ONE door (`DOOR_SCOPED`, `loadDoorRecord`). The only cross-door work queue, `WorkOrderTriage` (DR-1213), is mounted in the PoeTech shell (Projects, LifeHub, Big Picture), not in the Poe Properties App, and it holds work orders only, not messages or payments. To find an open job or an unanswered message he had to open each door in turn.
+The landlord should see, in one list, every door with its open work, its latest message and what waits on him, sorted by what needs him. The request came from one door's empty Messages tab: to know whether anything was open anywhere, he had to open each door in turn.
+
+## What was measured
+
+- In the Poe Properties App, Work board, Dispatch, Messages and Rent each read ONE door (`DOOR_SCOPED`, `loadDoorRecord` in `PropertiesApp.jsx`).
+- The only cross-door work queue, `WorkOrderTriage` (DR-1213), is mounted in the PoeTech shell (Projects, LifeHub, Big Picture), not in the Poe Properties App, and it holds work orders only: no messages, no payments.
+- `tenant_messages` carries `tenancy_id` only, so a message reaches its door through `rental_tenancies.rental_ref` (the rentals slug, or the id), the same key DR-0904 follows.
+
+## Impact
+
+Unresolved, an urgent job or an unanswered tenant on one door is invisible until somebody happens to open that door, and the answer to "what needs me today" costs one tap per property. The view obligates honesty in its counts: a total that disagrees with the rows beneath it, or a failed read shown as zero, would be worse than no view, which is why both are pinned by tests.
 
 ## Decision
 
