@@ -8,6 +8,11 @@
 // extended to the Kids door), Ask Ari in child mode (the same /llm/chat seam,
 // honest when it is offline), and Color it (the existing coloring page). A
 // pass writes the same learner record Learn writes, signed in.
+//
+// Darrell, 2026-11-18: "Can we also have a scroll version as an option?" The
+// lesson reads two ways, remembered on the device: STEP BY STEP (the paced
+// plan, one segment at a time) or SCROLL (the whole lesson on one page, the
+// same segments stacked; Read to me reads it from the top).
 import React, { useEffect, useMemo, useState } from 'react';
 import { verseText } from '../../lib/bible-kjv.js';
 import { useTextToSpeech } from '../../lib/tts.js';
@@ -30,6 +35,28 @@ export function kidsTutorMeta(courseKey, band = 'child') {
     childMode: true,
     intro: `You are Ari, a kind, patient helper for ${who} reading this lesson in the Love Corner Kids Zone.`,
   };
+}
+
+export const LESSON_MODE_KEY = 'poetech.kids.lessonMode';
+/** The way the lesson reads on this device: 'steps' or 'scroll'. */
+export function readLessonMode(storage = typeof window !== 'undefined' ? window.localStorage : null) {
+  try {
+    const v = storage && storage.getItem(LESSON_MODE_KEY);
+    return v === 'scroll' ? 'scroll' : 'steps';
+  } catch {
+    return 'steps';
+  }
+}
+export function writeLessonMode(mode, storage = typeof window !== 'undefined' ? window.localStorage : null) {
+  try {
+    if (storage) storage.setItem(LESSON_MODE_KEY, mode === 'scroll' ? 'scroll' : 'steps');
+  } catch {
+    /* a device with no storage still reads */
+  }
+}
+/** The words of a segment, whichever shape the plan gives it. */
+export function segmentWords(seg) {
+  return typeof seg === 'string' ? seg : (seg && (seg.text || seg.body)) || '';
 }
 
 /** The first reference of an anchor like "1 Thessalonians 5:21; Proverbs 25:2". */
@@ -120,6 +147,12 @@ export default function KidsAdventure({
   const [verse, setVerse] = useState(null);
   const [step, setStep] = useState(0);
   const [saved, setSaved] = useState('');
+  const [mode, setMode] = useState(() => readLessonMode());
+  const scroll = mode === 'scroll';
+  const pickMode = (m) => {
+    setMode(m);
+    writeLessonMode(m);
+  };
   const tts = useTextToSpeech();
   useEffect(() => {
     let alive = true;
@@ -162,7 +195,8 @@ export default function KidsAdventure({
     }
   };
   const segmentText = plan.segments[Math.min(step, plan.segments.length - 1)];
-  const speakable = typeof segmentText === 'string' ? segmentText : (segmentText && (segmentText.text || segmentText.body)) || opening;
+  const wholeLesson = plan.segments.map(segmentWords).filter(Boolean).join('\n\n');
+  const speakable = scroll ? wholeLesson || opening : segmentWords(segmentText) || opening;
   return (
     <div className="kz-adventure" data-testid="kids-adventure" data-lesson={module.id} data-band={band}>
       <div className="kz-bubble-big" data-testid="adventure-opening">
@@ -186,9 +220,33 @@ export default function KidsAdventure({
           fallback={<ShotSlot id="home-hero" what="your guides in this week's story (a render from the collection)" />}
         />
       </div>
-      <div className="kz-panel" style={{ borderColor: 'var(--kz-butter)' }} data-testid="adventure-plan" data-segments={plan.totalSegments}>
+      <div className="kz-chips" role="radiogroup" aria-label="How to read this lesson" data-testid="adventure-mode">
+        <button
+          type="button"
+          role="radio"
+          aria-checked={!scroll}
+          className={`kz-chip ${KZ_FOCUS}`}
+          onClick={() => pickMode('steps')}
+          data-testid="adventure-mode-steps"
+        >
+          Step by step
+        </button>
+        <button
+          type="button"
+          role="radio"
+          aria-checked={scroll}
+          className={`kz-chip ${KZ_FOCUS}`}
+          onClick={() => pickMode('scroll')}
+          data-testid="adventure-mode-scroll"
+        >
+          Scroll the whole lesson
+        </button>
+      </div>
+      <div className="kz-panel" style={{ borderColor: 'var(--kz-butter)' }} data-testid="adventure-plan" data-segments={plan.totalSegments} data-mode={mode}>
         <AgePacedLesson
+          key={mode}
           plan={plan}
+          showAll={scroll}
           onStepChange={(i) => setStep(i)}
           onSegmentComplete={(i) => {
             if (i >= plan.totalSegments - 1) record({ completedAt: new Date().toISOString() });
