@@ -23,7 +23,7 @@ const FANTASY = /\b(magic|spell|wand|wizard|witch|fairy|genie|potion|wish|superp
 describe('the guides are real assets from the approved reference', () => {
   it('every listed file exists under public/lovecorner/kids and is a real image (PNG, or the JPEG key art)', () => {
     const files = listedAssets();
-    expect(files.length).toBeGreaterThanOrEqual(8) // the key art, the logo, the pair, the Bible, two portraits, two faces (the five door crops of the earlier key art retired 2026-11-17);
+    expect(files.length).toBeGreaterThanOrEqual(8); // the key art, the logo, the pair, the Bible, two portraits, two faces (the five door crops of the earlier key art retired 2026-11-17);
     for (const f of files) {
       const p = join(DIR, f);
       expect(existsSync(p), `${f} is listed but not on disk`).toBe(true);
@@ -39,9 +39,12 @@ describe('the guides are real assets from the approved reference', () => {
     expect(GUIDES.boy.name).toBeNull();
     expect(GUIDES.girl.portrait).not.toBe(GUIDES.boy.portrait);
   });
-  it('a served URL rides the door base path', () => {
-    expect(assetUrl(GUIDES.girl.face)).toBe('/lovecorner/kids/guide-girl-face.png');
-    expect(assetUrl(KIDS_BRAND.logo, '/lovecorner/')).toBe('/lovecorner/lovecorner/kids/logo.png');
+  it('a served URL rides the door base path and carries the build, so a replaced file is a new URL (never the cached old one)', () => {
+    expect(assetUrl(GUIDES.girl.face, '/', '')).toBe('/lovecorner/kids/guide-girl-face.png');
+    expect(assetUrl(KIDS_BRAND.logo, '/lovecorner/', '')).toBe('/lovecorner/lovecorner/kids/logo.png');
+    expect(assetUrl(KIDS_BRAND.pair, '/poetech-app/', 'f1ced83')).toBe('/poetech-app/lovecorner/kids/guides-pair.png?v=f1ced83');
+    // Two builds, two URLs for the same file name: the one thing a stale cache cannot survive.
+    expect(assetUrl(KIDS_BRAND.pair, '/', 'aaaaaaa')).not.toBe(assetUrl(KIDS_BRAND.pair, '/', 'bbbbbbb'));
   });
 });
 
