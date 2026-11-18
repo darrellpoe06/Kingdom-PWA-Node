@@ -1,7 +1,7 @@
 {
   "derivedFrom": ".github/workflows",
   "derivedBy": "scripts/derive-job-registry.mjs",
-  "scheduled": 39,
+  "scheduled": 40,
   "jobs": [
     {
       "file": "announce-health.yml",
@@ -148,6 +148,13 @@
       "name": "Migration freshness (heal an unapplied migration)",
       "crons": [
         "*/5 * * * *"
+      ]
+    },
+    {
+      "file": "money-readiness.yml",
+      "name": "Money readiness (keyless)",
+      "crons": [
+        "17 13 * * *"
       ]
     },
     {

@@ -29,3 +29,9 @@ Christina set three conditions before any FOS Money migration: authorized databa
 2. **The receipts (0334).** `db_backup_receipt()` rebuilds only typed, whitelisted fields from the NAS's own row; `money_readiness_receipt()` reads the catalog, never a financial row, and carries the backup. Definer, fixed search path, anon and authenticated.
 3. **The witness.** `money-readiness.yml` asks the receipt over poetech.us/sb with the served anon key, prints where the install stands, and is red when not ready or unreadable. It never applies anything.
 4. **The Way.** A Money step that needs a NAS-held value or state is answered by the house's own write first (DR-1360); a key or a paste is named as a gap to close, never a precondition.
+
+## Verification
+
+- `scripts/readiness-receipt-replay.sh`: 0334 applied twice to a real PostgreSQL 16; anon receives only whitelisted facts; dropping the `source = 'nas-loops'` filter fails it (the forged 2099 row is read). Runs inside vitest (`money-readiness.test.js`).
+- `infra/nas-loops/test_db_backup_receipt.py` (6): no file, path, host or error words; a failed drill never reads passed; the rider runs on the NAS's Python 3.8 (proven to catch a `datetime.UTC` import).
+- Live proof is pending (P66): the first receipt read by `money-readiness.yml` after merge.
