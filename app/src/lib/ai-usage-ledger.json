@@ -282,6 +282,21 @@
       "notes": "Shared window with D13's push."
     },
     {
+      "id": "church-website-read-into-the-app",
+      "date": "2026-11-18",
+      "task": "The church website read into the app: the office's calendar, letter and flyers through a same-origin relay; the board on the door and the Times tab",
+      "drs": [
+        "DR-1550"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.9,
+      "estimateWithoutAiHours": 10,
+      "notes": "Built on three runner probes of the site's real markup; 21 tests; the live read is the re-review."
+    },
+    {
       "id": "sov67-what-cannot-be-patched",
       "date": "2026-11-05",
       "task": "Lesson sov67: the removing of those things that are made (another session's work, ledgered at the first merge after DR-1347)",
@@ -1531,6 +1546,21 @@
       "notes": "Darrell: show completed vs not started where it motivates reading; low hanging fruit"
     },
     {
+      "id": "which-problem-not-only-which-gate",
+      "date": "2026-11-18",
+      "task": "The keyless receipt names WHICH problem refused a draft, not only which gate: eleven kinds across the quotation, voice and verse gates, matched on the builder's own prose and published as the census's own word because two of those strings interpolate a name",
+      "drs": [
+        "DR-1551"
+      ],
+      "prs": [],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.6,
+      "estimateWithoutAiHours": 5,
+      "notes": "0335's first live read named the gate and still could not decide the fix: the quotation gate refuses five different things calling for opposite work, and one of them is Darrell's call on how a lesson is written. Checked first that the prompt already states the rules and that previous_failures does reach attempt 2, so more retries was never the obvious answer. Proven to catch the adversary's name reaching the receipt."
+    },
+    {
       "id": "dr-1420-record-in-readers-name",
       "date": "2026-11-10",
       "task": "The learner record is headed by the reader's name with who they are in the household beneath it; an exam average is no longer badged Mastered",
@@ -2166,6 +2196,21 @@
       "notes": "No token meter in this session; tokens and cost are null."
     },
     {
+      "id": "sov90-let-your-yea-be-yea",
+      "date": "2026-11-18",
+      "task": "Sovereign A.I. week 90 from one word over a forwarded ByteByteGo issue on reasoning models and overthinking: Word first on Acts 17:11 and Matthew 5:37, four hand-written bands, every verse generator-filled from the KJV, and our own gates read against the article (the quotation gate that once checked against itself, the duplicate finder's two drifts, the band ladder's floor with no length ceiling)",
+      "drs": [
+        "DR-1548"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.5,
+      "estimateWithoutAiHours": 14,
+      "notes": "Claimed week 90 while 89 was in flight; 89 landed first and 90 was re-spliced on it. DeepSeek's README read at the source; arxiv, openai and the newsletter's site gave no answer from this sandbox. The course lengths (week 1: 291 words, week 88: 3,668) were counted on this tree; whether length helps was not measured."
+    },
+    {
       "id": "matrix-0319-renter-seat-2026-11-13",
       "date": "2026-11-13",
       "task": "The matrix's one-person-one-house leg red on two runs: the 0319 smoke seated a renter role instance_members never had; the smoke now seats viewer and the withdraw CI bootstrap carries the live eight-role wall, proven to catch locally",
@@ -2316,6 +2361,21 @@
       "wallClockHours": 2.1,
       "estimateWithoutAiHours": 40,
       "notes": "No token meter exposed to this session; tokens and cost are null. The 40-hour estimate without A.I. is for one hour of teaching written five times over (an adult lesson and four age-banded versions, about 15,900 words of authored prose), 62 verses transcribed by hand from a printed KJV, the independent checking of five load-bearing figures, and 54 tests. The band work failed its floors and its reading ladder on the first measurement, as P60 predicts, and every repair was authored by hand rather than swept by a script (DR-1306). Renumbered to DR-1470 after #2658 landed a record on the number first, while this branch was green and in flight; the rename was done by hand on each citation's own surrounding text, never by number, because renumber-decision-record.mjs rewrites by number across the whole tree and the surrendered number's call sites now belong to that landed record."
+    },
+    {
+      "id": "sov89-take-thee-again-another-roll",
+      "date": "2026-11-18",
+      "task": "Sovereign A.I. week 89 built from one word over a forwarded Level Up Coding issue (Redis vs Memcached), all four age bands, 25-case gate",
+      "drs": [
+        "DR-1546"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.4,
+      "estimateWithoutAiHours": 32,
+      "notes": "Gmail thread 1a1e43310d023259, forwarded issue dated 2026-11-16, built 2026-11-18. Each tool's limits and defaults taught as reported and unranked; redis.io, memcached.org, valkey.io and docs.immich.app refused the session network (ENOTFOUND), re-review 2026-12-18. 30 anchor references, 122 quoted spans, every verse filled from app/public/bible/kjv by scripts/sov89-fill.mjs and none typed. Our house measured: no Redis or Memcached in the app or our NAS code; Valkey 9 in infra/nas-immich/docker-compose.yml:53-56 on defaults (no maxmemory, no policy, no volume); SearXNG limiter off for want of a Valkey; sw.js per-build Cache Storage; clip-cache.js LRU at 300 MB, downloads held, two in flight. Valkey memory on the NAS not measured."
     },
     {
       "id": "sov79-promotion-cometh-not-from-the-east",

@@ -71,7 +71,7 @@ function FindingRow({ f }) {
   );
 }
 
-export default function AriReview({ concerns = [], feedback = [], transactions = [], rentals = [], debts = [], demoRowIds = null, loopData = null, financialDocAt = null }) {
+export default function AriReview({ concerns = [], feedback = [], transactions = [], rentals = [], debts = [], demoRowIds = null, loopData = null, financialDocAt = null, surfaceIds = null }) {
   const { tasks } = useBoardTasks();
 
   // WORKFLOW CURRENCY + LIVE-SYSTEM CAPACITY (Darrell 2026-09-05). Ari reviewed
@@ -113,7 +113,9 @@ export default function AriReview({ concerns = [], feedback = [], transactions =
     workflows: storedWorkflowRegistry(),
     loops,
     site,
-  }, Date.now()), [tasks, concerns, feedback, transactions, rentals, debts, demoRowIds, loops, site]);
+    // Promise truth: every page's words checked against what runs (lib/surface-claims.js).
+    surfaceIds,
+  }, Date.now()), [tasks, concerns, feedback, transactions, rentals, debts, demoRowIds, loops, site, surfaceIds]);
 
   const overall = sevMeta(review.summary.status);
   const comp = review.completion;

@@ -292,6 +292,14 @@ def judge(receipt, why, now=None):
                 named = [str(g) for g in gates if isinstance(g, str)]
                 if named:
                     bits.append("gates refused: " + "+".join(named))
+            # WHICH PROBLEM (0336). The gate's name did not decide the fix:
+            # `quotation` refuses five different things and they call for
+            # opposite work. The kind is what a person acts on.
+            kinds = r.get("kinds")
+            if isinstance(kinds, list) and kinds:
+                named = [str(k) for k in kinds if isinstance(k, str)]
+                if named:
+                    bits.append("because: " + "+".join(named))
             if r.get("exception"):
                 bits.append(f"crashed: {r.get('exception')}")
             if shape == "build-failed" and not (gates or r.get("exception")):

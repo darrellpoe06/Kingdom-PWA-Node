@@ -30,6 +30,7 @@ import AuthBanner from './components/AuthBanner.jsx';
 import ClaimInviteBanner from './components/ClaimInviteBanner.jsx';
 import PublicFrontDoor from './components/PublicFrontDoor.jsx';
 import { accessState, isPublicChurchRoute, wearsChurchBrand, isChurchLinkVisit, isPublicHost, isIsolatedPreview, previewSamplePersona, previewStorageKey, purgePreviewSnapshots, PREVIEW_TEST_OWNER } from './lib/access-gate.js';
+import { pickInitialSeed } from './lib/demo-seed-choice.js';
 import { PROPOSED_COHORT_START, resolveCohort, CLASS_INTEREST_TAG, extractClassRoster } from './lib/church-classes.js';
 import { COLG_DEFAULT_CHURCH } from './lib/default-church.js';
 import { LOVE_CORNER_BRAND, isChurchDoorContext } from './lib/church-own-door.js';
@@ -128,7 +129,7 @@ import { pushModuleInterest, clearModuleInterest } from './lib/module-interest-s
 import { submitInterest as submitAppInterest } from './lib/interest-sync.js';
 import { makeSyncedListCrud, wireLiveRails } from './lib/live-rails.js';
 import { SEED_CONCERNS } from './lib/concerns.js';
-import { buildDemoPersonas, DEMO_PERSONA_META } from './lib/demo-data.js';
+import { buildDemoPersonas, DEMO_PERSONA_META, DEMO_PICKER_INTRO } from './lib/demo-data.js';
 import { withReleaseMeta } from './lib/release-meta.js';
 import { motionBehavior } from './lib/gentle-motion.js';
 import VerifyBalances from './components/VerifyBalances.jsx';
@@ -996,13 +997,9 @@ export default function PoeFinancialSystem() {
   // property addresses, real project titles, real business operations could
   // still surface in the Action Queue / Big Picture). The aspirational Reeves-
   // family DEMO_DATA_FAMILY_OF_4 is the only safe seed for the public domain.
-  const [data, setData] = useState(
-    (isPublicHost() || reviewerMode) ? DEMO_DATA_FAMILY_OF_4
-      : isDemoMode ? DEMO_DATA_BY_PERSONA[demoPersona]
-      : isPickerMode ? DEMO_DATA_FAMILY_OF_4
-      : isFirstTimeLandingBoot ? DEMO_DATA_FAMILY_OF_4
-      : SEED_DATA
-  );
+  // The chosen ?demo persona wins even on a public host (every persona is the
+  // same anonymized sample class as family-of-4) — lib/demo-seed-choice.js.
+  const [data, setData] = useState(() => pickInitialSeed({ isDemoMode, demoPersona, personas: DEMO_DATA_BY_PERSONA, isPublic: isPublicHost(), reviewerMode, isPickerMode, isFirstTimeLanding: isFirstTimeLandingBoot, seed: SEED_DATA }));
   const [pressure, setPressure] = useState(5);
   const [view, setView] = useState(getInitialView());
   // Church-door mode (DR-0174): LAUNCHED via the church door (installed Love
@@ -3607,7 +3604,7 @@ ${THEME_CSS}
                 <span className="inline-block text-[0.5625rem] sm:text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] bg-transparent border border-[#5A6E3D] px-2 py-1 font-medium">Free forever · Spiritual Module for the Body</span>
               </div>
             )}
-            <p className="text-base text-[#1A1815] mb-3" style={{ fontFamily: '"Fraunces", serif' }}>{isFirstTimeLanding ? 'PoeTech is the family financial system that lifts anxiety by answering — every day, on every screen — what to do, when, why, and how.' : 'One modular framework, multiple lenses. The shipped tiles run on real data right now; the coming-soon tiles are vision for the same framework — they ship as the infrastructure does.'}</p>
+            <p className="text-base text-[#1A1815] mb-3" style={{ fontFamily: '"Fraunces", serif' }}>{isFirstTimeLanding ? 'PoeTech is the family financial system that lifts anxiety by answering — every day, on every screen — what to do, when, why, and how.' : DEMO_PICKER_INTRO}</p>
             {isFirstTimeLanding && (
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 mb-4 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">
                 <div className="p-2 border border-[#E8E4DC]"><span className="block text-[#1A1815] font-semibold mb-0.5">What</span> Today's next action</div>
@@ -4777,7 +4774,7 @@ ${THEME_CSS}
             </div>
           ))}
         {view === 'projects' && (tierMeets(data.userTier, VIEW_TIER_REQUIREMENTS.projects)
-          ? <SectionBoundary name="Projects"><ProjectsWrapper incidents={data.incidents || []} workOrderOps={{ updateIncident, addIncident, workerOps, movers: { poetech: sendNoteToPoeTech, pastor: addChurchVoice, prayer: addPrayerRequest, private: addNote } }} projects={data.projects || []} scopes={data.scopes || []} entities={data.entities} contractors={data.contractors1099 || []} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} addScope={addScope} deleteScope={deleteScope} capexItems={data.capexItems || []} addCapexItem={addCapexItem} updateCapexItem={updateCapexItem} deleteCapexItem={deleteCapexItem} netCashFlow={totals.netCashFlow} rentals={data.inflows?.rentals || []} accounts={data.accounts || []} transactions={data.transactions || []} debts={derivedDebts} demoRowIds={authSession && !isAnyDemoMode ? DEMO_ONLY_IDS : null} currentUserId={authSession?.user?.id || null} currentUserPersona={authSession ? personaOf(authSession.user?.email) : null} familyMembers={(!!authSession && isFamilyEmail(authSession.user?.email)) ? FAMILY_MEMBERS : []} isGovernor={isGov}
+          ? <SectionBoundary name="Projects"><ProjectsWrapper incidents={data.incidents || []} workOrderOps={{ updateIncident, addIncident, workerOps, movers: { poetech: sendNoteToPoeTech, pastor: addChurchVoice, prayer: addPrayerRequest, private: addNote } }} projects={data.projects || []} scopes={data.scopes || []} entities={data.entities} contractors={data.contractors1099 || []} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} addScope={addScope} deleteScope={deleteScope} capexItems={data.capexItems || []} addCapexItem={addCapexItem} updateCapexItem={updateCapexItem} deleteCapexItem={deleteCapexItem} netCashFlow={totals.netCashFlow} rentals={data.inflows?.rentals || []} accounts={data.accounts || []} transactions={data.transactions || []} debts={derivedDebts} demoRowIds={authSession && !isAnyDemoMode ? DEMO_ONLY_IDS : null} surfaceIds={Object.keys(surfaceById)} currentUserId={authSession?.user?.id || null} currentUserPersona={authSession ? personaOf(authSession.user?.email) : null} familyMembers={(!!authSession && isFamilyEmail(authSession.user?.email)) ? FAMILY_MEMBERS : []} isGovernor={isGov}
               loopData={data} loopDecisions={data.loopDecisions || {}} onLoopDecision={onLoopDecision}
               discussions={data.discussions || []} addDiscussion={addDiscussion} updateDiscussion={updateDiscussion} deleteDiscussion={deleteDiscussion}
               concerns={data.concerns || []} feedback={[...(data.feedback || []), ...remoteFeedback]} addConcern={addConcern} updateConcern={updateConcern} deleteConcern={deleteConcern}
