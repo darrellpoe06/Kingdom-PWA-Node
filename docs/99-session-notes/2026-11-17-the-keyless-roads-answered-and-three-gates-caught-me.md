@@ -457,3 +457,66 @@ sides against each other showed it. Corrected in the same change.
 Nothing here is measured live. Until the NAS pulls this census on its own
 15-minute clock the six rows still read `other`, and the first real test of
 0334 is the next read after it lands. `re-review: 2026-11-25`.
+
+---
+
+## 11. The instrument worked, and then told me to stop building instruments (DR-1537)
+
+**0334's first live read, 07:09Z, run 44256161123, census code `ab7672790dfc`**
+— main's own code, so the NAS had pulled it:
+
+```
+Failed because -- other: 6, transient: 1.
+  1 x transient -- a passing moment (the CLI's sign-in refresh raced), waited
+                   out by the builder itself -- nothing for a person
+  6 x other -- its reason matches no site this road knows: the builder's log on
+               the box is the next read, and a new site name is the fix
+  65241324-... | research-inbox | build-failed/transient | rate-limited after 4
+```
+
+Three things proved themselves on live data, within eleven minutes of the
+deploy landing:
+
+1. **The class carries its job.** Each line now says what it asks of a person.
+2. **DR-1534's second correction is visible.** `65241324` reads `rate-limited
+   after 4`; every read before it said `failed after 4`. That is `why_of`
+   treating `transient` as self-healing, which is what the builder does.
+3. **The six matched nothing.** On the new code. Which leaves `:1029`'s
+   `<ExceptionType>: <message>` crash — the limit 0334 published rather than
+   hid — as the standing hypothesis, and it is still a hypothesis.
+
+### The move I did not make, and why that is the finding
+
+A fifth receipt could narrow this without anyone's hand: the opening of a
+`:1029` reason is a single token before its colon, where every builder literal
+has spaces, so the census could test that on the box and publish one more
+constant word. It would have worked. **DR-1526, written nine hours earlier,
+says that is the wrong move** — building a receipt to infer what a direct read
+states outright. The roads in order are the runner (key dead since 11-04),
+Darrell's own ssh, his hand. Road 2 answers it outright.
+
+So the build was the TOOL FOR ROAD 2, not another receipt:
+`infra/nas-lesson-builder/why_the_builds_failed.py`, reading the records
+`_store` already writes at `lesson_builder.py:1251`. One path, no quoting:
+
+```
+ssh dpoe@192.168.1.26 "python3 /volume1/PoeTech/repos/Kingdom-PWA-Node/infra/nas-lesson-builder/why_the_builds_failed.py"
+```
+
+### What it may print, and what it may never
+
+Those records hold `body` — the drafted lesson — and `prompt_text`, which
+quotes the teaching. So the diagnostic prints the row id, the writer, the
+elapsed time, `error` to a stated cut, and the **names** of the gates that did
+not pass with their fault **counts**. Not a fault's text: the verse gate's
+faults quote both the draft and the verse. `--faults` exists for a person
+reading their own box on purpose and its help says so in those words.
+
+Proven to catch: a version that prints `body` fails the marker case. An empty
+or missing store exits non-zero saying *"which is not 'no failures'"* — DR-0076
+§8 on the diagnostic itself.
+
+**Not claimed:** it has not been run. Only Darrell's ssh can run it, the output
+is his to read, and the six rows' cause is still unnamed. Four consecutive
+reads (05:12, 06:09, 07:09, 08:09) were otherwise identical: 7 waiting, 0
+building, the handoff stable.
