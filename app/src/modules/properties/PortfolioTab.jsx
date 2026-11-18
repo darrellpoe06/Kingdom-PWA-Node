@@ -41,7 +41,7 @@ const money = (n) => (Number.isFinite(Number(n)) ? `$${Number(n).toLocaleString(
 const Chip = ({ children, tone = 'plain', testid }) => (
   <span
     data-testid={testid}
-    className={`inline-block text-[0.625rem] uppercase tracking-wider px-2 py-1 border mr-1 mb-1 ${
+    className={`inline-block text-xs uppercase tracking-wider px-2 py-1 border mr-1 mb-1 ${
       tone === 'hot'
         ? 'border-[#8A6510] text-[#8A6510] font-semibold'
         : tone === 'wait'
@@ -59,7 +59,7 @@ const Pill = ({ active, onClick, children, testid }) => (
     onClick={onClick}
     aria-pressed={active}
     data-testid={testid}
-    className={`text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border mr-1 mb-1 focus:outline focus:outline-2 focus:outline-[#2F5D50] ${
+    className={`text-xs uppercase tracking-wider px-3 py-2 min-h-[44px] border mr-1 mb-1 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#2F5D50] ${
       active ? 'bg-[#2F5D50] text-white border-[#2F5D50]' : 'bg-white text-[#1A1815] border-[#E8E4DC] hover:border-[#1A1815]'
     }`}
   >
@@ -120,26 +120,31 @@ export default function PortfolioTab({
   return (
     <section className="bg-white border border-[#E8E4DC] p-3 sm:p-4 mb-3" data-testid="portfolio-tab">
       <div className="flex items-baseline justify-between gap-3 mb-2">
-        <h3 className="text-[0.625rem] uppercase tracking-[0.25em] font-semibold text-[#2F5D50]">Every door at once</h3>
+        <h3 className="text-xs uppercase tracking-[0.25em] font-semibold text-[#2F5D50]">Every door at once</h3>
         <button
           type="button"
           onClick={read}
           data-testid="portfolio-refresh"
-          className="text-[0.625rem] uppercase tracking-wider underline text-[#5A5751] focus:outline focus:outline-2 focus:outline-[#2F5D50]"
+          aria-busy={state.status === 'refreshing' || state.status === 'loading'}
+          className="text-xs uppercase tracking-wider underline text-[#5A5751] min-h-[44px] min-w-[44px] px-2 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#2F5D50]"
         >
           {state.status === 'refreshing' || state.status === 'loading' ? 'Reading…' : 'Refresh'}
         </button>
       </div>
 
       {state.status === 'loading' && (
-        <p className="text-xs text-[#5A5751]" style={serif} data-testid="portfolio-loading">
+        <p className="text-xs text-[#5A5751]" style={serif} role="status" data-testid="portfolio-loading">
           Reading every door&rsquo;s work orders, messages and payments&hellip;
         </p>
       )}
       {state.status === 'failed' && (
         <p className="text-xs text-[#1A1815]" style={serif} role="status" data-testid="portfolio-failed">
           The work orders, messages and payments did not come back ({state.reason}). Nothing below is a count of zero.{' '}
-          <button type="button" className="underline focus:outline focus:outline-2 focus:outline-[#2F5D50]" onClick={read}>
+          <button
+            type="button"
+            className="underline min-h-[44px] px-2 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#2F5D50]"
+            onClick={read}
+          >
             Try again
           </button>
         </p>
@@ -150,9 +155,14 @@ export default function PortfolioTab({
         </p>
       )}
 
+      <p className="sr-only" aria-live="polite" data-testid="portfolio-announce">
+        {state.status === 'ready'
+          ? `${totals.doors} doors read: ${totals.open} open work orders, ${totals.awaiting} waiting on your reply, ${totals.toConfirm} payments to confirm.`
+          : ''}
+      </p>
       {(state.status === 'ready' || state.status === 'refreshing') && (
         <>
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-3" data-testid="portfolio-kpis">
+          <dl className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-3" data-testid="portfolio-kpis">
             {[
               ['Doors', `${totals.doors}`, `${totals.occupied} lived in`],
               ['Open work', `${totals.open}`, `${totals.urgent} urgent or high`],
@@ -161,14 +171,14 @@ export default function PortfolioTab({
               ['Messages read', `${state.messages.length}`, 'newest across doors'],
             ].map(([k, v, s]) => (
               <div key={k} className="border border-[#E8E4DC] p-2">
-                <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">{k}</div>
-                <div className="text-xl text-[#1A1815]" style={serif}>
+                <dt className="text-xs uppercase tracking-wider text-[#5A5751]">{k}</dt>
+                <dd className="text-xl text-[#1A1815]" style={serif}>
                   {v}
-                </div>
-                <div className="text-[0.625rem] text-[#5A5751]">{s}</div>
+                </dd>
+                <dd className="text-xs text-[#5A5751]">{s}</dd>
               </div>
             ))}
-          </div>
+          </dl>
 
           <div className="mb-2" role="group" aria-label="View">
             {VIEWS.map((v) => (
@@ -181,14 +191,20 @@ export default function PortfolioTab({
           {view === 'doors' && (
             <>
               <div className="mb-2 flex flex-wrap items-center" role="group" aria-label="Sort">
-                <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mr-2">Sort</span>
+                <span className="text-xs uppercase tracking-wider text-[#5A5751] mr-2">Sort</span>
                 {SORTS.map((s) => (
                   <Pill key={s.id} active={sort === s.id} onClick={() => setSort(s.id)} testid={`portfolio-sort-${s.id}`}>
                     {s.label}
                   </Pill>
                 ))}
-                <label className="text-xs text-[#1A1815] ml-1 inline-flex items-center gap-1" style={serif}>
-                  <input type="checkbox" checked={onlyActive} onChange={(e) => setOnlyActive(e.target.checked)} data-testid="portfolio-only-active" />
+                <label className="text-xs text-[#1A1815] ml-1 inline-flex items-center gap-2 min-h-[44px] cursor-pointer" style={serif}>
+                  <input
+                    type="checkbox"
+                    className="w-5 h-5"
+                    checked={onlyActive}
+                    onChange={(e) => setOnlyActive(e.target.checked)}
+                    data-testid="portfolio-only-active"
+                  />
                   Only doors with something open
                 </label>
               </div>
@@ -197,7 +213,7 @@ export default function PortfolioTab({
                   {rows.length ? 'Nothing open on any door.' : 'No doors yet.'}
                 </p>
               ) : (
-                <ul data-testid="portfolio-rows">
+                <ul role="list" data-testid="portfolio-rows">
                   {shown.map((r) => (
                     <li key={r.id} className="border-b border-[#F0EDE6] py-2" data-testid="portfolio-row">
                       <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -205,12 +221,12 @@ export default function PortfolioTab({
                           type="button"
                           disabled={r.untied}
                           onClick={() => go(r.id, r.openCount ? 'board' : 'history')}
-                          className="text-sm text-left text-[#1A1815] underline decoration-[#E8E4DC] underline-offset-4 disabled:no-underline focus:outline focus:outline-2 focus:outline-[#2F5D50]"
+                          className="text-sm text-left text-[#1A1815] underline decoration-[#8A867E] underline-offset-4 disabled:no-underline min-h-[44px] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#2F5D50]"
                           style={serif}
                         >
                           {r.label}
                         </button>
-                        <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">
+                        <span className="text-xs uppercase tracking-wider text-[#5A5751]">
                           {r.lastActivityAt ? `Last activity ${agoLabel(r.lastActivityAt, clock)}` : 'No activity recorded'}
                         </span>
                       </div>
@@ -241,10 +257,10 @@ export default function PortfolioTab({
                           type="button"
                           disabled={r.untied}
                           onClick={() => go(r.id, 'board')}
-                          className="block w-full text-left text-xs text-[#1A1815] mt-1 focus:outline focus:outline-2 focus:outline-[#2F5D50]"
+                          className="block w-full text-left text-xs text-[#1A1815] mt-1 py-2 min-h-[44px] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#2F5D50]"
                           style={serif}
                         >
-                          <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Top work · {r.open[0].status} · </span>
+                          <span className="text-xs uppercase tracking-wider text-[#5A5751]">Top work · {r.open[0].status} · </span>
                           {clip(r.open[0].title)}
                         </button>
                       )}
@@ -253,11 +269,11 @@ export default function PortfolioTab({
                           type="button"
                           disabled={r.untied}
                           onClick={() => go(r.id, 'thread')}
-                          className="block w-full text-left text-xs text-[#1A1815] mt-1 focus:outline focus:outline-2 focus:outline-[#2F5D50]"
+                          className="block w-full text-left text-xs text-[#1A1815] mt-1 py-2 min-h-[44px] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#2F5D50]"
                           style={serif}
                           data-testid="portfolio-row-message"
                         >
-                          <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">
+                          <span className="text-xs uppercase tracking-wider text-[#5A5751]">
                             {WHO[r.latestMessage.from_role] || r.latestMessage.from_role} · {agoLabel(r.latestMessage.sent_at, clock)} ·{' '}
                           </span>
                           {clip(r.latestMessage.body)}
@@ -268,7 +284,7 @@ export default function PortfolioTab({
                           type="button"
                           disabled={r.untied}
                           onClick={() => go(r.id, 'rent')}
-                          className="block w-full text-left text-xs text-[#5A5751] mt-1 focus:outline focus:outline-2 focus:outline-[#2F5D50]"
+                          className="block w-full text-left text-xs text-[#5A5751] mt-1 py-2 min-h-[44px] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#2F5D50]"
                           style={serif}
                         >
                           Last payment {money(r.lastPayment.amount)} · {r.lastPayment.status} ·{' '}
@@ -288,17 +304,17 @@ export default function PortfolioTab({
                 No open work orders on any door.
               </p>
             ) : (
-              <ul data-testid="portfolio-open-work">
+              <ul role="list" data-testid="portfolio-open-work">
                 {openWork.map((w) => (
                   <li key={w.id} className="border-b border-[#F0EDE6] py-2">
                     <button
                       type="button"
                       disabled={w.doorId === UNTIED}
                       onClick={() => go(w.doorId, 'board')}
-                      className="block w-full text-left focus:outline focus:outline-2 focus:outline-[#2F5D50]"
+                      className="block w-full text-left py-2 min-h-[44px] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#2F5D50]"
                       style={serif}
                     >
-                      <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">
+                      <div className="text-xs uppercase tracking-wider text-[#5A5751]">
                         {w.doorLabel} · {w.priority || 'normal'} · {w.status} · in {agoLabel(w.created_at, clock)}
                         {w.assigned_to_label ? ` · ${w.assigned_to_label}` : ''}
                       </div>
@@ -317,17 +333,17 @@ export default function PortfolioTab({
                 Nothing has happened on any door yet.
               </p>
             ) : (
-              <ul data-testid="portfolio-feed">
+              <ul role="list" data-testid="portfolio-feed">
                 {feed.map((i) => (
                   <li key={i.id} className="border-b border-[#F0EDE6] py-2">
                     <button
                       type="button"
                       disabled={i.doorId === UNTIED}
                       onClick={() => go(i.doorId, i.kind === 'message' ? 'thread' : 'board')}
-                      className="block w-full text-left focus:outline focus:outline-2 focus:outline-[#2F5D50]"
+                      className="block w-full text-left py-2 min-h-[44px] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#2F5D50]"
                       style={serif}
                     >
-                      <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">
+                      <div className="text-xs uppercase tracking-wider text-[#5A5751]">
                         {i.doorLabel} · {i.kind === 'message' ? `Message from ${WHO[i.who] || i.who}` : `Work order · ${i.status}`} · {agoLabel(i.at, clock)}
                       </div>
                       <div className="text-sm text-[#1A1815]">{clip(i.text, 140)}</div>
