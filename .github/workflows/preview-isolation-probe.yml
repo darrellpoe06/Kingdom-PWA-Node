@@ -18,9 +18,9 @@
 # place in a list (LESSONS P62 / P64).
 #
 # HOW IT FIRES. On push to a Money branch it waits for Vercel to build THIS
-# commit, then probes the address Vercel published for it (the deployment's
-# environment_url) — never a fixed one: a pinned branch address probed a dead
-# 404 on every other branch until 2026-11-18. Dispatch takes a URL by hand.
+# commit, then probes the branch's own preview address as Vercel posted it on
+# the PR (never a fixed one: a pinned address probed a dead 404 on every other
+# branch until 2026-11-18; the per-commit address sits behind Vercel's login).
 name: Preview isolation probe (read-only)
 
 on:
@@ -35,7 +35,7 @@ on:
 permissions:
   contents: read
   statuses: read
-  deployments: read
+  pull-requests: read
 
 env:
   PREVIEW_URL: ${{ inputs.url }}
@@ -57,8 +57,8 @@ jobs:
           for i in $(seq 1 48); do
             state=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/status" --jq '[.statuses[] | select(.context | test("vercel"; "i"))] | map(.state) | first // "none"')
             echo "attempt $i: Vercel status for ${GITHUB_SHA} = ${state}"
-            if [ "$state" = "success" ]; then url=$(gh api "repos/${GITHUB_REPOSITORY}/deployments/$(gh api "repos/${GITHUB_REPOSITORY}/deployments?sha=${GITHUB_SHA}&environment=Preview" --jq '.[0].id // 0')/statuses" --jq '[.[] | select(.state == "success" and (.environment_url // "") != "")][0].environment_url // empty' 2>/dev/null || true); fi
-            if [[ "${url:-}" == https://* ]]; then echo "PREVIEW_URL=${url%/}/poetech-app/" >> "$GITHUB_ENV"; echo "probing ${url%/}/poetech-app/, the build of this commit"; exit 0; fi
+            if [ "$state" = "success" ]; then url=$(gh api "repos/${GITHUB_REPOSITORY}/issues/$(gh api "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/pulls" --jq '.[0].number // 0' 2>/dev/null || echo 0)/comments?per_page=100" --jq '[.[] | select(.user.login == "vercel[bot]")][0].body // empty' 2>/dev/null | sed -n 's/^\[vc\]: #[^:]*:\(.*\)$/\1/p' | base64 -d 2>/dev/null | jq -r '.projects[0].previewUrl // empty' 2>/dev/null || true); fi
+            if [[ "${url:-}" == *.vercel.app ]]; then echo "PREVIEW_URL=https://${url}/poetech-app/" >> "$GITHUB_ENV"; echo "probing https://${url}/poetech-app/ (this branch's preview, now serving this commit)"; exit 0; fi
             if [ "$state" = "failure" ] || [ "$state" = "error" ]; then echo "Vercel reported ${state} for this commit (the Hobby cap, measured 2026-10-21, turns it red); the preview is NOT this commit — refusing to probe a stale build"; exit 1; fi
             sleep 15
           done
