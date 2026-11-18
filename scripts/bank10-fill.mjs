@@ -394,55 +394,98 @@ Daniel knew. He had known for three years. The fees had been wrong the whole tim
     questions: [
       {
         q: 'What is the one job of the watchman in Ezekiel 33:3?',
-        options: ['To fight the army himself', 'To see the sword coming and blow the trumpet to warn the people', 'To collect taxes at the gate', 'To decide who may enter the town'],
+        options: [
+          'To fight the army himself',
+          'To see the sword coming and blow the trumpet to warn the people',
+          'To collect taxes at the gate',
+          'To decide who may enter the town',
+        ],
         answer: 1,
-        explain: 'If when he seeth the sword come upon the land, he blow the trumpet, and warn the people. He sees first and speaks loud; that is the whole office.',
+        explain:
+          'If when he seeth the sword come upon the land, he blow the trumpet, and warn the people. He sees first and speaks loud; that is the whole office.',
       },
       {
         q: 'In Ezekiel 33:6, what happens to the man who was never warned?',
-        options: ['He is excused because nobody warned him', 'He is taken away in his iniquity - his own wrong is still his own', 'The watchman takes his place', 'Nothing happens to him at all'],
+        options: [
+          'He is excused because nobody warned him',
+          'He is taken away in his iniquity - his own wrong is still his own',
+          'The watchman takes his place',
+          'Nothing happens to him at all',
+        ],
         answer: 1,
-        explain: 'The verse has two halves. The silent watchman answers for his silence, AND the man is still taken away in his iniquity. The missing warning never made his wrong right.',
+        explain:
+          'The verse has two halves. The silent watchman answers for his silence, AND the man is still taken away in his iniquity. The missing warning never made his wrong right.',
       },
       {
         q: 'What does Ecclesiastes 8:11 say a slow consequence does to people?',
-        options: ['It makes them more careful', 'It makes no difference', 'Because sentence is not executed speedily, the heart is fully set to do evil', 'It makes them forget the law exists'],
+        options: [
+          'It makes them more careful',
+          'It makes no difference',
+          'Because sentence is not executed speedily, the heart is fully set to do evil',
+          'It makes them forget the law exists',
+        ],
         answer: 2,
-        explain: 'A quiet season trains people to push further. Solomon names the pattern, and in verses 12 and 13 he names how it ends: it shall not be well with the wicked.',
+        explain:
+          'A quiet season trains people to push further. Solomon names the pattern, and in verses 12 and 13 he names how it ends: it shall not be well with the wicked.',
       },
       {
         q: 'Which statement in this lesson is ESTABLISHED, not merely reported?',
-        options: ['That the agency stepped back for about two years', 'That fees are an easy target for new lawmakers', 'That a law does not stop being the law because nobody enforced it this season, and most claims carry a time limit the law sets', 'That hearings will be held next year'],
+        options: [
+          'That the agency stepped back for about two years',
+          'That fees are an easy target for new lawmakers',
+          'That a law does not stop being the law because nobody enforced it this season, and most claims carry a time limit the law sets',
+          'That hearings will be held next year',
+        ],
         answer: 2,
-        explain: 'The first two come from one podcast guest through one newsletter and are held as reported. The last is a forecast and is not taught. The general principle about law and its time limits is stated plainly.',
+        explain:
+          'The first two come from one podcast guest through one newsletter and are held as reported. The last is a forecast and is not taught. The general principle about law and its time limits is stated plainly.',
       },
       {
         q: 'How does this lesson treat the newsletter forecasts about hearings and cooperation?',
-        options: ['As facts to be taught', 'As opinion about the future, left out of the teaching', 'As proof that one party is right', 'As the reason to vote a certain way'],
+        options: [
+          'As facts to be taught',
+          'As opinion about the future, left out of the teaching',
+          'As proof that one party is right',
+          'As the reason to vote a certain way',
+        ],
         answer: 1,
-        explain: 'Teach the Word, do not debate it. A forecast is not a fact, no party is staged against another, and Ezekiel 33:6 does not need anyone to win for it to be true.',
+        explain:
+          'Teach the Word, do not debate it. A forecast is not a fact, no party is staged against another, and Ezekiel 33:6 does not need anyone to win for it to be true.',
       },
       {
         q: 'Why does this lesson not teach in depth who pays bank fees?',
-        options: ['Because fees do not matter', 'Because lesson six of this course already teaches it from Amos 8, and one teaching gets one lesson', 'Because the newsletter did not mention fees', 'Because fees are always fair'],
+        options: [
+          'Because fees do not matter',
+          'Because lesson six of this course already teaches it from Amos 8, and one teaching gets one lesson',
+          'Because the newsletter did not mention fees',
+          'Because fees are always fair',
+        ],
         answer: 1,
-        explain: 'Lesson six owns who actually pays the fees. This lesson adds only that the fee was still the fee while nobody was watching, and the person who paid it still paid it.',
+        explain:
+          'Lesson six owns who actually pays the fees. This lesson adds only that the fee was still the fee while nobody was watching, and the person who paid it still paid it.',
       },
       {
         q: 'What word did Jesus close His story of the absent master with, for everyone?',
         options: ['Rest', 'Watch', 'Wait', 'Count'],
         answer: 1,
-        explain: 'And what I say unto you I say unto all, Watch (Mark 13:37). Each of us is the watchman over our own account, and a household that reads its own statement loses nothing when the regulators go quiet.',
+        explain:
+          'And what I say unto you I say unto all, Watch (Mark 13:37). Each of us is the watchman over our own account, and a household that reads its own statement loses nothing when the regulators go quiet.',
       },
       {
         q: 'If you are the one who sees a charge is wrong, what do you answer for, according to Ezekiel 33?',
         options: ['Whether the other person listened', 'Whether you spoke', 'Whether the regulator acted', 'Nothing at all'],
         answer: 1,
-        explain: 'If the watchman warns and the man does not take warning, his blood is upon his own head; the watchman has delivered his soul. You cannot make anyone listen. You answer for whether you blew the trumpet.',
+        explain:
+          'If the watchman warns and the man does not take warning, his blood is upon his own head; the watchman has delivered his soul. You cannot make anyone listen. You answer for whether you blew the trumpet.',
       },
       {
         q: 'Why does Yahweh have the trumpet blown at all, according to Ezekiel 33:11?',
-        options: ['To frighten people', 'Because He has no pleasure in the death of the wicked, but that the wicked turn from his way and live', 'To catch people out', 'To give the watchman something to do'],
+        options: [
+          'To frighten people',
+          'Because He has no pleasure in the death of the wicked, but that the wicked turn from his way and live',
+          'To catch people out',
+          'To give the watchman something to do',
+        ],
         answer: 1,
         explain: 'The trumpet is mercy. It exists so people can turn before the sword arrives.',
       },
@@ -450,7 +493,8 @@ Daniel knew. He had known for three years. The fees had been wrong the whole tim
         q: 'What is the one thing that truly takes a wrong away?',
         options: ['A regulator going quiet', 'Enough years passing', 'The Lamb of Yahweh, who taketh away the sin of the world', 'Nobody finding out'],
         answer: 2,
-        explain: 'Silence cannot erase a wrong and time cannot erase it. Jesus, the Lamb of Yahweh and the Eternal Son, takes it away for real (John 1:29), and the way back for anyone who took what was not theirs is to stop and give it back.',
+        explain:
+          'Silence cannot erase a wrong and time cannot erase it. Jesus, the Lamb of Yahweh and the Eternal Son, takes it away for real (John 1:29), and the way back for anyone who took what was not theirs is to stop and give it back.',
       },
     ],
   },

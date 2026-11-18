@@ -150,7 +150,10 @@ describe('the Word opens the hour, and both halves of Ezekiel 33:6 are taught', 
 
   it('every teaching place says the man is still answerable, not only the watchman', () => {
     for (const p of TEACHING_PLACES) {
-      const t = place(MODULE, p).split('"').filter((_, i) => i % 2 === 0).join(' ');
+      const t = place(MODULE, p)
+        .split('"')
+        .filter((_, i) => i % 2 === 0)
+        .join(' ');
       // The child band says it in its own words (his wrong thing was still wrong);
       // the older bands name the verse's own phrase in our voice.
       expect(t, p).toMatch(p === 'child' ? /wrong thing was still wrong/ : /taken away in his iniquity/);
@@ -183,7 +186,10 @@ describe('teach the Word, do not debate it (DR-0098): no party staged, no offici
 
   it('no figure from the newsletter is printed (seats, ratings, percentages)', () => {
     for (const p of READER_PLACES) {
-      const ours = place(MODULE, p).split('"').filter((_, i) => i % 2 === 0).join(' ');
+      const ours = place(MODULE, p)
+        .split('"')
+        .filter((_, i) => i % 2 === 0)
+        .join(' ');
       expect(ours, p).not.toMatch(/\d+\s?(%|percent|seats)|\b\d+\s?(out of|\/)\s?10\b|three out of ten/i);
     }
   });
