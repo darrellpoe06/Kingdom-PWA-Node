@@ -69,3 +69,51 @@ describe('uploaded through the Books upload, a .tsv becomes a transactions downl
     expect(doc.extraction.line_items.map((r) => r.amount)).toEqual([-75, 1000, -837, 55, 1450, 2201]);
   });
 });
+
+describe('a TSV after a screenshot of the same days never adds a row twice', () => {
+  it('rows already in the books from a screenshot (no balance) are recognised in the TSV (with balance)', async () => {
+    const { planAccountImport } = await import('../lib/bulk-statement-import.js');
+    const fromScreenshot = ROWS.map((r, i) => ({
+      id: `shot-${i}`,
+      accountId: 'a-7206',
+      date: r[1].replace(/(\d+)\/(\d+)\/(\d+)/, '$3-$1-$2'),
+      description: r[2],
+      amount: Number(r[3]),
+      source: 'screenshot',
+    }));
+    const tsvRows = parseDelimitedToRows(tsv).rows;
+    const plan = planAccountImport(tsvRows, 'a-7206', fromScreenshot);
+    expect(plan.txns).toEqual([]);
+    expect(plan.duplicates).toBe(6);
+  });
+  it('and the other way: a screenshot after the TSV adds nothing', async () => {
+    const { planAccountImport } = await import('../lib/bulk-statement-import.js');
+    const inBooks = parseDelimitedToRows(tsv).rows.map((r, i) => ({ ...r, id: `tsv-${i}`, accountId: 'a-7206' }));
+    const shot = inBooks.map(({ date, description, amount }) => ({ date, description, amount }));
+    expect(planAccountImport(shot, 'a-7206', inBooks).txns).toEqual([]);
+  });
+  it('two real same-day charges in the TSV, one already in the books: exactly one is added', async () => {
+    const { planAccountImport } = await import('../lib/bulk-statement-import.js');
+    const existing = [{ id: 'c1', accountId: 'a-7206', date: '2026-11-15', description: 'Coffee', amount: -5 }];
+    const plan = planAccountImport(
+      [
+        { date: '2026-11-15', description: 'Coffee', amount: -5, balance: 100 },
+        { date: '2026-11-15', description: 'Coffee', amount: -5, balance: 95 },
+      ],
+      'a-7206',
+      existing
+    );
+    expect(plan.txns.length).toBe(1);
+  });
+  it('a different amount, day, account or description is never treated as the same', async () => {
+    const { planAccountImport } = await import('../lib/bulk-statement-import.js');
+    const existing = [{ id: 'z', accountId: 'a-7206', date: '2026-11-15', description: 'Zelle payment to TLC', amount: -837 }];
+    const tries = [
+      { date: '2026-11-15', description: 'Zelle payment to TLC', amount: -75, balance: 1 },
+      { date: '2026-11-16', description: 'Zelle payment to TLC', amount: -837, balance: 1 },
+      { date: '2026-11-15', description: 'Zelle payment to someone else', amount: -837, balance: 1 },
+    ];
+    for (const t of tries) expect(planAccountImport([t], 'a-7206', existing).txns.length).toBe(1);
+    expect(planAccountImport([{ date: '2026-11-15', description: 'Zelle payment to TLC', amount: -837, balance: 1 }], 'a-3322', existing).txns.length).toBe(1);
+  });
+});
