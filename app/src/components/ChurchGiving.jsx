@@ -38,23 +38,11 @@ import { DOCK_BTN, DOCK_ICON, DOCK_LABEL } from '../lib/chrome-dock.js';
 import { callToGiveCoverage, TRANSCRIPT_PIPELINE_NOTE, LINKED_SERVICE_VIDEO } from '../lib/call-to-give.js';
 import { fetchCallToGiveArchive } from '../lib/call-to-give-sync.js';
 import {
-  fetchMyGiving,
-  recordGiving,
-  removeGiving,
-  GIVING_FUNDS,
-  GIVING_METHODS,
-  RECORD_PROVENANCE,
-  RECORD_PRIVACY,
-  blankDraft,
-  validateGivingDraft,
-  localToday,
-  fundLabel,
-  methodLabel,
-  formatMoney,
-  yearsOf,
-  recordsInYear,
-  summarizeGiving,
-  sortByDateDesc,
+  fetchMyGiving, recordGiving, removeGiving,
+  GIVING_FUNDS, GIVING_METHODS, RECORD_PROVENANCE, RECORD_PRIVACY,
+  blankDraft, validateGivingDraft, localToday,
+  fundLabel, methodLabel, formatMoney,
+  yearsOf, recordsInYear, summarizeGiving, sortByDateDesc,
 } from '../lib/giving-records-sync.js';
 
 // Inline gift icon — wrapped box + ribbon + bow. 24x24 grid, stroke currentColor
@@ -97,17 +85,11 @@ export function CallToGiveArchive() {
     let alive = true;
     setState((s) => ({ ...s, loading: true, error: false }));
     fetchCallToGiveArchive()
-      .then(({ archive }) => {
-        if (alive) setState({ loading: false, archive, error: false });
-      })
+      .then(({ archive }) => { if (alive) setState({ loading: false, archive, error: false }); })
       // A real fetch/RLS FAILURE is NOT the same as "no rows" — don't tell a
       // signed-in member to "sign in" when the read errored (DR-0076 honest states).
-      .catch(() => {
-        if (alive) setState({ loading: false, archive: [], error: true });
-      });
-    return () => {
-      alive = false;
-    };
+      .catch(() => { if (alive) setState({ loading: false, archive: [], error: true }); });
+    return () => { alive = false; };
   }, []);
   useEffect(() => load(), [load]);
 
@@ -120,21 +102,17 @@ export function CallToGiveArchive() {
         The Call to Give — from our own services
       </h4>
       <p className="text-xs text-[#5A5751] leading-relaxed mb-2">
-        Sourced from the same service videos and transcripts the sermon library reads — measured, never assumed. {TRANSCRIPT_PIPELINE_NOTE.answer}
+        Sourced from the same service videos and transcripts the sermon library reads — measured, never assumed.
+        {' '}{TRANSCRIPT_PIPELINE_NOTE.answer}
       </p>
 
       {state.loading ? (
-        <p className="text-xs text-[#5A5751]" role="status">
-          Reading the service archive…
-        </p>
+        <p className="text-xs text-[#5A5751]" role="status">Reading the service archive…</p>
       ) : state.error ? (
         <div className="border border-[#B85838] bg-[#FAF8F4] p-3" role="alert">
           <p className="text-xs text-[#1A1815] leading-relaxed">
             Couldn&rsquo;t load the service archive just now — this is a connection hiccup, not a sign-in problem.{' '}
-            <button type="button" onClick={load} className="underline underline-offset-2 text-[#B85838] hover:text-[#1A1815]">
-              Try again
-            </button>
-            .
+            <button type="button" onClick={load} className="underline underline-offset-2 text-[#B85838] hover:text-[#1A1815]">Try again</button>.
           </p>
         </div>
       ) : state.archive.length === 0 ? (
@@ -153,25 +131,21 @@ export function CallToGiveArchive() {
           </div>
           {detected.length === 0 ? (
             <p className="text-xs text-[#5A5751] leading-relaxed">
-              No giving-appeal segments detected in the transcribed services yet — detection only runs where a real transcript exists, and it proposes; the
-              church confirms.
+              No giving-appeal segments detected in the transcribed services yet — detection only runs where a real transcript exists, and it proposes; the church confirms.
             </p>
           ) : (
             <ul className="space-y-3">
               {detected.map((r) => (
                 <li key={r.videoId} className="border-l-2 border-[#5A6E3D] pl-3">
                   <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A6E3D] font-semibold">
-                    {r.serviceDate || 'undated'}
-                    {r.title ? ` — ${r.title}` : ''}
+                    {r.serviceDate || 'undated'}{r.title ? ` — ${r.title}` : ''}
                   </div>
                   <p className="text-sm text-[#1A1815] leading-relaxed italic" style={{ fontFamily: '"Fraunces", serif' }}>
                     “{r.segment.excerpt}”
                   </p>
                   <p className="text-[0.6875rem] text-[#5A5751] mt-1">
                     confidence: {r.segment.confidence} · needs church review ·{' '}
-                    <a href={r.youtubeUrl} target="_blank" rel="noopener noreferrer" className="underline hover:text-[#1A1815]">
-                      watch the service
-                    </a>
+                    <a href={r.youtubeUrl} target="_blank" rel="noopener noreferrer" className="underline hover:text-[#1A1815]">watch the service</a>
                   </p>
                 </li>
               ))}
@@ -184,8 +158,8 @@ export function CallToGiveArchive() {
         Latest linked service:{' '}
         <a href={LINKED_SERVICE_VIDEO.url} target="_blank" rel="noopener noreferrer" className="underline hover:text-[#1A1815]">
           youtube.com/live/{LINKED_SERVICE_VIDEO.videoId}
-        </a>{' '}
-        — {LINKED_SERVICE_VIDEO.provenance}.
+        </a>
+        {' '}— {LINKED_SERVICE_VIDEO.provenance}.
       </p>
     </div>
   );
@@ -218,15 +192,9 @@ function MyGivingRecord() {
     let alive = true;
     setState((s) => ({ ...s, loading: true }));
     fetchMyGiving()
-      .then((res) => {
-        if (alive) setState({ loading: false, records: res.records || [], reason: res.ok ? null : res.reason });
-      })
-      .catch(() => {
-        if (alive) setState({ loading: false, records: [], reason: 'error' });
-      });
-    return () => {
-      alive = false;
-    };
+      .then((res) => { if (alive) setState({ loading: false, records: res.records || [], reason: res.ok ? null : res.reason }); })
+      .catch(() => { if (alive) setState({ loading: false, records: [], reason: 'error' }); });
+    return () => { alive = false; };
   }, []);
   useEffect(() => load(), [load]);
 
@@ -252,24 +220,18 @@ function MyGivingRecord() {
       setTimeout(() => setJustSaved(false), 4000);
       return;
     }
-    if (res.reason === 'invalid') {
-      setErrors(res.errors || {});
-      return;
-    }
+    if (res.reason === 'invalid') { setErrors(res.errors || {}); return; }
     setSaveError(
-      res.reason === 'signed-out'
-        ? 'Sign in to keep your giving record — it is saved to your account, not this device.'
-        : res.reason === 'no-church'
-          ? 'Your account isn’t linked to the church yet, so there’s nowhere to file this. Ask the church office to add you.'
-          : 'That didn’t save — a connection problem, not something you did. Try again.'
+      res.reason === 'signed-out' ? 'Sign in to keep your giving record — it is saved to your account, not this device.'
+      : res.reason === 'no-church' ? 'Your account isn’t linked to the church yet, so there’s nowhere to file this. Ask the church office to add you.'
+      : 'That didn’t save — a connection problem, not something you did. Try again.',
     );
   }
 
   async function remove(rec) {
-    const ok =
-      typeof window !== 'undefined' && window.confirm
-        ? window.confirm(`Remove your ${formatMoney(rec.cents)} ${fundLabel(rec.fund).toLowerCase()} from ${rec.givenOn}? This only removes YOUR record of it.`)
-        : true;
+    const ok = typeof window !== 'undefined' && window.confirm
+      ? window.confirm(`Remove your ${formatMoney(rec.cents)} ${fundLabel(rec.fund).toLowerCase()} from ${rec.givenOn}? This only removes YOUR record of it.`)
+      : true;
     if (!ok) return;
     const res = await removeGiving(rec.remoteUuid);
     if (res.ok) setState((s) => ({ ...s, records: s.records.filter((r) => r.remoteUuid !== rec.remoteUuid) }));
@@ -283,21 +245,9 @@ function MyGivingRecord() {
     const esc = (v) => `"${String(v == null ? '' : v).replace(/"/g, '""')}"`;
     const header = ['Date', 'Amount', 'Fund', 'Designation', 'How', 'Reference', 'Note'];
     const lines = [header.map(esc).join(',')].concat(
-      shown.map((r) => [r.givenOn, (r.cents / 100).toFixed(2), fundLabel(r.fund), r.fundNote, methodLabel(r.method), r.reference, r.note].map(esc).join(','))
+      shown.map((r) => [r.givenOn, (r.cents / 100).toFixed(2), fundLabel(r.fund), r.fundNote, methodLabel(r.method), r.reference, r.note].map(esc).join(',')),
     );
-    lines.push(
-      [
-        `Total (${year === 'all' ? 'all years' : year})`,
-        (summary.totalCents / 100).toFixed(2),
-        '',
-        '',
-        '',
-        '',
-        'Giver’s own record — not a church-issued statement',
-      ]
-        .map(esc)
-        .join(',')
-    );
+    lines.push([`Total (${year === 'all' ? 'all years' : year})`, (summary.totalCents / 100).toFixed(2), '', '', '', '', 'Giver’s own record — not a church-issued statement'].map(esc).join(','));
     try {
       const blob = new Blob([lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
       const url = URL.createObjectURL(blob);
@@ -314,8 +264,7 @@ function MyGivingRecord() {
   }
 
   const fieldErr = (k) => (errors[k] ? <span className="block text-[0.6875rem] text-[#B85838] mt-0.5">{errors[k]}</span> : null);
-  const inputCls =
-    'w-full border border-[#C9C2B6] bg-white text-[#1A1815] px-2 py-2 text-sm min-h-[44px] focus:outline focus:outline-2 focus:outline-[#5A6E3D]';
+  const inputCls = 'w-full border border-[#C9C2B6] bg-white text-[#1A1815] px-2 py-2 text-sm min-h-[44px] focus:outline focus:outline-2 focus:outline-[#5A6E3D]';
   const labelCls = 'block text-[0.625rem] uppercase tracking-[0.2em] text-[#5A5751] font-semibold mb-1';
 
   return (
@@ -326,31 +275,24 @@ function MyGivingRecord() {
       <p className="text-xs text-[#5A5751] leading-relaxed mb-3">{RECORD_PROVENANCE}</p>
 
       {state.loading ? (
-        <p className="text-xs text-[#5A5751]" role="status">
-          Opening your giving record…
-        </p>
+        <p className="text-xs text-[#5A5751]" role="status">Opening your giving record…</p>
       ) : state.reason === 'signed-out' ? (
         <div className="border border-[#C9C2B6] bg-[#FAF8F4] p-3" role="status">
           <p className="text-xs text-[#5A5751] leading-relaxed">
-            Sign in to keep a record of your tithes, offerings and gifts. It saves to your account, so it follows you to any device — and it stays private to
-            you.
+            Sign in to keep a record of your tithes, offerings and gifts. It saves to your account, so it follows you to any device — and it stays private to you.
           </p>
         </div>
       ) : state.reason === 'no-church' ? (
         <div className="border border-[#C9C2B6] bg-[#FAF8F4] p-3" role="status">
           <p className="text-xs text-[#5A5751] leading-relaxed">
-            Your account isn’t linked to the church yet, so there’s nowhere to file a record. Ask the church office to add you — giving itself works right now
-            through the channels above.
+            Your account isn’t linked to the church yet, so there’s nowhere to file a record. Ask the church office to add you — giving itself works right now through the channels above.
           </p>
         </div>
       ) : state.reason === 'error' ? (
         <div className="border border-[#B85838] bg-[#FAF8F4] p-3" role="alert">
           <p className="text-xs text-[#1A1815] leading-relaxed">
             Couldn’t open your giving record just now — a connection problem, not a sign-in problem.{' '}
-            <button type="button" onClick={load} className="underline underline-offset-2 text-[#B85838] hover:text-[#1A1815]">
-              Try again
-            </button>
-            .
+            <button type="button" onClick={load} className="underline underline-offset-2 text-[#B85838] hover:text-[#1A1815]">Try again</button>.
           </p>
         </div>
       ) : (
@@ -374,21 +316,10 @@ function MyGivingRecord() {
                 </div>
                 {years.length > 0 && (
                   <div>
-                    <label className={labelCls} htmlFor="giving-year">
-                      Year
-                    </label>
-                    <select
-                      id="giving-year"
-                      value={year}
-                      onChange={(e) => setYear(e.target.value)}
-                      className="border border-[#C9C2B6] bg-white text-[#1A1815] px-2 py-2 text-sm min-h-[44px] focus:outline focus:outline-2 focus:outline-[#5A6E3D]"
-                    >
+                    <label className={labelCls} htmlFor="giving-year">Year</label>
+                    <select id="giving-year" value={year} onChange={(e) => setYear(e.target.value)} className="border border-[#C9C2B6] bg-white text-[#1A1815] px-2 py-2 text-sm min-h-[44px] focus:outline focus:outline-2 focus:outline-[#5A6E3D]">
                       <option value="all">All years</option>
-                      {years.map((y) => (
-                        <option key={y} value={y}>
-                          {y}
-                        </option>
-                      ))}
+                      {years.map((y) => <option key={y} value={y}>{y}</option>)}
                     </select>
                   </div>
                 )}
@@ -402,20 +333,14 @@ function MyGivingRecord() {
                   ))}
                 </ul>
               )}
-              <button
-                type="button"
-                onClick={downloadCsv}
-                className="mt-2 text-[0.6875rem] uppercase tracking-wider underline underline-offset-2 text-[#5A6E3D] hover:text-[#1A1815] min-h-[44px] focus:outline focus:outline-2 focus:outline-[#1A1815]"
-              >
+              <button type="button" onClick={downloadCsv} className="mt-2 text-[0.6875rem] uppercase tracking-wider underline underline-offset-2 text-[#5A6E3D] hover:text-[#1A1815] min-h-[44px] focus:outline focus:outline-2 focus:outline-[#1A1815]">
                 Download this record (CSV)
               </button>
             </div>
           )}
 
           {justSaved && (
-            <p className="text-xs text-[#5A6E3D] font-semibold mb-2" role="status">
-              Recorded. Thank you for your faithfulness.
-            </p>
+            <p className="text-xs text-[#5A6E3D] font-semibold mb-2" role="status">Recorded. Thank you for your faithfulness.</p>
           )}
 
           {/* RECORD A GIFT — collapsed by default so the Word and the channels
@@ -432,118 +357,53 @@ function MyGivingRecord() {
             <form onSubmit={submit} className="border border-[#C9C2B6] bg-[#FAF8F4] p-3 space-y-3">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className={labelCls} htmlFor="giving-amount">
-                    Amount
-                  </label>
-                  <input
-                    id="giving-amount"
-                    inputMode="decimal"
-                    autoComplete="off"
-                    placeholder="$0.00"
-                    value={draft.amount}
-                    onChange={(e) => setDraft({ ...draft, amount: e.target.value })}
-                    className={inputCls}
-                  />
+                  <label className={labelCls} htmlFor="giving-amount">Amount</label>
+                  <input id="giving-amount" inputMode="decimal" autoComplete="off" placeholder="$0.00" value={draft.amount} onChange={(e) => setDraft({ ...draft, amount: e.target.value })} className={inputCls} />
                   {fieldErr('amount')}
                 </div>
                 <div>
-                  <label className={labelCls} htmlFor="giving-date">
-                    Day you gave
-                  </label>
-                  <input
-                    id="giving-date"
-                    type="date"
-                    max={localToday()}
-                    value={draft.givenOn}
-                    onChange={(e) => setDraft({ ...draft, givenOn: e.target.value })}
-                    className={inputCls}
-                  />
+                  <label className={labelCls} htmlFor="giving-date">Day you gave</label>
+                  <input id="giving-date" type="date" max={localToday()} value={draft.givenOn} onChange={(e) => setDraft({ ...draft, givenOn: e.target.value })} className={inputCls} />
                   {fieldErr('givenOn')}
                 </div>
                 <div>
-                  <label className={labelCls} htmlFor="giving-fund">
-                    What it was for
-                  </label>
+                  <label className={labelCls} htmlFor="giving-fund">What it was for</label>
                   <select id="giving-fund" value={draft.fund} onChange={(e) => setDraft({ ...draft, fund: e.target.value })} className={inputCls}>
-                    {GIVING_FUNDS.map((f) => (
-                      <option key={f.id} value={f.id}>
-                        {f.label}
-                      </option>
-                    ))}
+                    {GIVING_FUNDS.map((f) => <option key={f.id} value={f.id}>{f.label}</option>)}
                   </select>
                   {fieldErr('fund')}
                 </div>
                 <div>
-                  <label className={labelCls} htmlFor="giving-method">
-                    How you gave
-                  </label>
+                  <label className={labelCls} htmlFor="giving-method">How you gave</label>
                   <select id="giving-method" value={draft.method} onChange={(e) => setDraft({ ...draft, method: e.target.value })} className={inputCls}>
-                    {GIVING_METHODS.map((m) => (
-                      <option key={m.id} value={m.id}>
-                        {m.label}
-                      </option>
-                    ))}
+                    {GIVING_METHODS.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
                   </select>
                   {fieldErr('method')}
                 </div>
               </div>
               {draft.fund === 'other' && (
                 <div>
-                  <label className={labelCls} htmlFor="giving-fundnote">
-                    Name it in your own words
-                  </label>
+                  <label className={labelCls} htmlFor="giving-fundnote">Name it in your own words</label>
                   <input id="giving-fundnote" value={draft.fundNote} onChange={(e) => setDraft({ ...draft, fundNote: e.target.value })} className={inputCls} />
                   {fieldErr('fundNote')}
                 </div>
               )}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className={labelCls} htmlFor="giving-ref">
-                    Reference <span className="normal-case tracking-normal text-[#5A5751]">(optional)</span>
-                  </label>
-                  <input
-                    id="giving-ref"
-                    placeholder="check no., confirmation"
-                    value={draft.reference}
-                    onChange={(e) => setDraft({ ...draft, reference: e.target.value })}
-                    className={inputCls}
-                  />
+                  <label className={labelCls} htmlFor="giving-ref">Reference <span className="normal-case tracking-normal text-[#5A5751]">(optional)</span></label>
+                  <input id="giving-ref" placeholder="check no., confirmation" value={draft.reference} onChange={(e) => setDraft({ ...draft, reference: e.target.value })} className={inputCls} />
                 </div>
                 <div>
-                  <label className={labelCls} htmlFor="giving-note">
-                    Note <span className="normal-case tracking-normal text-[#5A5751]">(optional)</span>
-                  </label>
-                  <input
-                    id="giving-note"
-                    placeholder="harvest offering, in memory of…"
-                    value={draft.note}
-                    onChange={(e) => setDraft({ ...draft, note: e.target.value })}
-                    className={inputCls}
-                  />
+                  <label className={labelCls} htmlFor="giving-note">Note <span className="normal-case tracking-normal text-[#5A5751]">(optional)</span></label>
+                  <input id="giving-note" placeholder="harvest offering, in memory of…" value={draft.note} onChange={(e) => setDraft({ ...draft, note: e.target.value })} className={inputCls} />
                 </div>
               </div>
-              {saveError && (
-                <p className="text-xs text-[#B85838] leading-relaxed" role="alert">
-                  {saveError}
-                </p>
-              )}
+              {saveError && <p className="text-xs text-[#B85838] leading-relaxed" role="alert">{saveError}</p>}
               <div className="flex gap-2 flex-wrap">
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="px-4 py-3 bg-[#5A6E3D] text-white text-sm uppercase tracking-wider font-semibold border-2 border-[#5A6E3D] hover:bg-[#1A1815] hover:border-[#1A1815] min-h-[48px] disabled:opacity-60 focus:outline focus:outline-2 focus:outline-[#1A1815]"
-                >
+                <button type="submit" disabled={saving} className="px-4 py-3 bg-[#5A6E3D] text-white text-sm uppercase tracking-wider font-semibold border-2 border-[#5A6E3D] hover:bg-[#1A1815] hover:border-[#1A1815] min-h-[48px] disabled:opacity-60 focus:outline focus:outline-2 focus:outline-[#1A1815]">
                   {saving ? 'Saving…' : 'Save to my record'}
                 </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setFormOpen(false);
-                    setErrors({});
-                    setSaveError('');
-                  }}
-                  className="px-4 py-3 border-2 border-[#C9C2B6] text-[#1A1815] text-sm uppercase tracking-wider font-semibold hover:border-[#1A1815] min-h-[48px] focus:outline focus:outline-2 focus:outline-[#1A1815]"
-                >
+                <button type="button" onClick={() => { setFormOpen(false); setErrors({}); setSaveError(''); }} className="px-4 py-3 border-2 border-[#C9C2B6] text-[#1A1815] text-sm uppercase tracking-wider font-semibold hover:border-[#1A1815] min-h-[48px] focus:outline focus:outline-2 focus:outline-[#1A1815]">
                   Cancel
                 </button>
               </div>
@@ -564,23 +424,13 @@ function MyGivingRecord() {
                   <div className="min-w-0">
                     <div className="text-sm text-[#1A1815]">
                       <span className="font-semibold">{formatMoney(r.cents)}</span>{' '}
-                      <span className="text-[#5A5751]">
-                        — {fundLabel(r.fund)}
-                        {r.fund === 'other' && r.fundNote ? `: ${r.fundNote}` : ''}
-                      </span>
+                      <span className="text-[#5A5751]">— {fundLabel(r.fund)}{r.fund === 'other' && r.fundNote ? `: ${r.fundNote}` : ''}</span>
                     </div>
                     <div className="text-[0.6875rem] text-[#5A5751]">
-                      {r.givenOn} · {methodLabel(r.method)}
-                      {r.reference ? ` · ${r.reference}` : ''}
-                      {r.note ? ` · ${r.note}` : ''}
+                      {r.givenOn} · {methodLabel(r.method)}{r.reference ? ` · ${r.reference}` : ''}{r.note ? ` · ${r.note}` : ''}
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => remove(r)}
-                    aria-label={`Remove your record of ${formatMoney(r.cents)} given on ${r.givenOn}`}
-                    className="shrink-0 text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] focus:outline focus:outline-2 focus:outline-[#5A6E3D]"
-                  >
+                  <button type="button" onClick={() => remove(r)} aria-label={`Remove your record of ${formatMoney(r.cents)} given on ${r.givenOn}`} className="shrink-0 text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] focus:outline focus:outline-2 focus:outline-[#5A6E3D]">
                     Remove
                   </button>
                 </li>
@@ -609,7 +459,7 @@ function MyGivingRecord() {
  * "The giving sections should be populated with the links and QR codes... not
  * linked to the site"). The same cards the Give popup shows — one tap opens
  * the channel, the QR is for a second device — so no surface in the app ever
- * sends a parishioner to the website to find out HOW to give.
+ * sends a parishioner to the website to find out HOW to give. DR-1540.
  */
 export function ChurchGivingChannels({ church: churchIn, compact = false }) {
   const door = useChurchProfile();
@@ -644,11 +494,7 @@ export function ChurchGivingChannels({ church: churchIn, compact = false }) {
           </a>
         ))}
       </div>
-      {giving.source !== 'none' && (
-        <p className="text-[0.6875rem] text-[#5A5751] leading-relaxed" data-giving-provenance>
-          {giving.line}
-        </p>
-      )}
+      {giving.source !== 'none' && <p className="text-[0.6875rem] text-[#5A5751] leading-relaxed" data-giving-provenance>{giving.line}</p>}
     </div>
   );
 }
@@ -670,22 +516,15 @@ export function ChurchGivePanel({ church: churchIn, onClose }) {
 
   // Escape closes; focus the panel on open (accessible dialog behavior).
   useEffect(() => {
-    const onKey = (e) => {
-      if (e.key === 'Escape') onClose();
-    };
+    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
     document.addEventListener('keydown', onKey);
-    try {
-      panelRef.current?.focus();
-    } catch (_) {
-      /* ignore */
-    }
+    try { panelRef.current?.focus(); } catch (_) { /* ignore */ }
     return () => document.removeEventListener('keydown', onKey);
   }, [onClose]);
 
   return (
     <div
-      data-read-skip
-      className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-3 sm:p-6 print:hidden"
+      data-read-skip className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-3 sm:p-6 print:hidden"
       style={{ backgroundColor: 'rgba(0, 0, 0, 0.6)' }}
       onClick={onClose}
     >
@@ -704,21 +543,11 @@ export function ChurchGivePanel({ church: churchIn, onClose }) {
               <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#5A6E3D] font-semibold mb-1 flex items-center gap-1.5">
                 <GiftIcon /> Give to the church
               </div>
-              <h3
-                id="give-panel-title"
-                className="text-xl sm:text-2xl text-[#1A1815]"
-                style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}
-              >
+              <h3 id="give-panel-title" className="text-xl sm:text-2xl text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>
                 {church?.name || 'Give to the church'}
               </h3>
             </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#5A6E3D]"
-            >
-              × Close
-            </button>
+            <button type="button" onClick={onClose} className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#5A6E3D]">× Close</button>
           </div>
 
           {/* THE WORD FIRST (Darrell 2026-07-27): the popup gives priority to
@@ -766,9 +595,7 @@ export function ChurchGivePanel({ church: churchIn, onClose }) {
             ))}
           </div>
           {giving.source !== 'none' && (
-            <p className="text-[0.6875rem] text-[#5A5751] mb-3 leading-relaxed" data-giving-provenance>
-              {giving.line}
-            </p>
+            <p className="text-[0.6875rem] text-[#5A5751] mb-3 leading-relaxed" data-giving-provenance>{giving.line}</p>
           )}
 
           {/* MY GIVING RECORD — the history Darrell asked for (2026-09-08),
@@ -797,12 +624,13 @@ export function ChurchGivePanel({ church: churchIn, onClose }) {
                   deep-link, the app says the two taps rather than guessing a URL
                   (never invent a giving address — lib/giving.js). */}
               {!dest.confirmed && dest.hint && (
-                <p className="text-[0.6875rem] text-[#1A1815] mt-1 leading-relaxed font-medium border-l-2 border-[#5A6E3D] pl-2">{dest.hint}</p>
+                <p className="text-[0.6875rem] text-[#1A1815] mt-1 leading-relaxed font-medium border-l-2 border-[#5A6E3D] pl-2">
+                  {dest.hint}
+                </p>
               )}
               {!dest.confirmed && (
                 <p className="text-[0.6875rem] text-[#B85838] mt-1 leading-relaxed">
-                  This opens the church website, not the giving page itself. Once the office gives us the direct link to that page, this button will open it in
-                  one tap.
+                  This opens the church website, not the giving page itself. Once the office gives us the direct link to that page, this button will open it in one tap.
                 </p>
               )}
             </>
@@ -810,8 +638,7 @@ export function ChurchGivePanel({ church: churchIn, onClose }) {
             <div className="border-2 border-[#B85838] bg-[#FAF8F4] p-3" role="status">
               <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-1">Giving link needed</div>
               <p className="text-xs text-[#5A5751] leading-relaxed">
-                This church’s online giving link has not been provided yet. Add the church’s own secure giving URL in Settings, and this button will open it. We
-                never link to a guessed address, and no payment information is collected by this app.
+                This church’s online giving link has not been provided yet. Add the church’s own secure giving URL in Settings, and this button will open it. We never link to a guessed address, and no payment information is collected by this app.
               </p>
             </div>
           )}
@@ -869,9 +696,7 @@ export function ChurchGiveDockButton({ church, className = '' }) {
         data-testid="dock-give"
         className={`church-give-dock ${DOCK_BTN} ${className}`}
       >
-        <span aria-hidden="true" className={`text-[#5A6E3D] ${DOCK_ICON}`}>
-          <GiftIcon />
-        </span>
+        <span aria-hidden="true" className={`text-[#5A6E3D] ${DOCK_ICON}`}><GiftIcon /></span>
         <span className={DOCK_LABEL}>Give</span>
       </button>
       {open && <ChurchGivePanel church={church} onClose={() => setOpen(false)} />}
@@ -927,8 +752,7 @@ export function ChurchGiveHeaderButton({ church, floaterPresent = false }) {
         title="Give to the church — tithes, offerings, gifts, and your own giving record"
         className={`${floaterPresent ? 'hidden sm:inline-flex ' : ''}ts-chrome-region text-[0.625rem] uppercase tracking-wider px-2 py-1.5 bg-[#5A6E3D] text-white border border-[#5A6E3D] hover:bg-[#1A1815] hover:border-[#1A1815] font-semibold whitespace-nowrap inline-flex items-center gap-1.5 min-h-[44px] focus:outline focus:outline-2 focus:outline-[#1A1815] print:hidden`}
       >
-        <GiftIcon />
-        <span>Give</span>
+        <GiftIcon /><span>Give</span>
       </button>
       {open && <ChurchGivePanel church={church} onClose={() => setOpen(false)} />}
     </>
