@@ -269,6 +269,125 @@ FAILURE_SITES = (
 )
 SITE_CLASSES = tuple(sorted({cls for _, cls in FAILURE_SITES}))
 
+# =============================================================================
+# THE CAUSE ITSELF, WITHOUT A HAND (2026-11-18; DR-1537's question answered the
+# other way round)
+# =============================================================================
+# DR-1537 built the direct read for road 2 and left the answer waiting on
+# Darrell's ssh. His own words that afternoon, relayed from another session:
+# "Fix it!!!!!! So we don't need anything!!!!!!! For all of these.... obviously"
+# A step that waits on a hand is the defect, so the box writes its own answer on
+# the receipt it already publishes.
+#
+# TWO SOURCES, BOTH ALREADY ON THE BOX, AND NEITHER IS FREE TEXT WHEN PUBLISHED:
+#
+#   1. The GATE NAMES from the builder's own stored records
+#      (versions/<build_id>.json, written by lesson_builder._store). A gate's
+#      name is a fixed word; a fault's TEXT quotes the draft and the verse and
+#      is never read here. Names and counts only.
+#   2. The EXCEPTION CLASS NAME from a `<Type>: <message>` build reason, which
+#      is what lesson_builder.py:1029 writes for an unhandled crash -- the one
+#      site 0334 publishes as `other` because its opening is a class name and
+#      not a fixed literal. It rides ONLY when the name is a real exception
+#      class: identity against the interpreter's own builtins plus a short list
+#      of the stdlib exceptions this builder can reach. `MarySmith` is not an
+#      exception class, so it cannot pass; what rides is the matched name.
+GATE_NAMES = ("verse", "quotation", "voice", "depth", "structure", "band",
+              "bands", "curriculum", "placement", "shape", "title", "scripture")
+# The stdlib exceptions the builder's own imports can raise, whose names are not
+# in builtins. Extend deliberately; an unlisted type reads as unknown, never as
+# no-crash (DR-0076 section 8).
+STDLIB_EXCEPTIONS = ("CalledProcessError", "TimeoutExpired", "JSONDecodeError",
+                     "HTTPError", "URLError", "SSLError", "SSLCertVerificationError",
+                     "RemoteDisconnected", "IncompleteRead", "BadStatusLine")
+
+
+def _exception_names():
+    """Every name the INTERPRETER itself says is an exception class, plus the
+    short stdlib list. Built from `builtins`, so the allowlist is not a list
+    this file maintains and cannot drift from Python."""
+    import builtins
+
+    got = {n: n for n in STDLIB_EXCEPTIONS}
+    for name in dir(builtins):
+        obj = getattr(builtins, name, None)
+        if isinstance(obj, type) and issubclass(obj, BaseException):
+            got[name] = name
+    # A MAP, not a set, so a lookup returns THIS FILE'S OWN string rather than
+    # the bytes that came off the row -- the same discipline 0333 keeps with
+    # k_kinds[array_position(...)].
+    return got
+
+
+EXCEPTION_NAMES = _exception_names()
+
+
+def exception_of(row):
+    """The exception CLASS NAME a crashed build left on the row, or None.
+
+    lesson_builder.py:1029 tags an unhandled crash `<Type>: <message>`. The
+    token before the first colon is published only when it IS an exception
+    class name; the message after it is never read.
+    """
+    tags = row.get("tags") or []
+    tags = tags if isinstance(tags, list) else []
+    for t in tags:
+        if not isinstance(t, str) or not t.startswith("build-reason:"):
+            continue
+        why = t[len("build-reason:"):].strip()
+        # The allowlist's own string is returned, never the row's bytes.
+        return EXCEPTION_NAMES.get(why.split(":", 1)[0].strip())
+    return None
+
+
+def stored_gates(home, limit=400):
+    """{teaching_row_id: [gate names that did not pass]} from the builder's own
+    records on the box. Read ONCE per census, not per row.
+
+    NAMES AND NOTHING ELSE. Each record also holds `body` (the drafted lesson)
+    and `prompt_text` (which quotes the teaching); neither is opened here, and a
+    gate's `faults` quote both the draft and the verse, so only the gate's NAME
+    travels. An unreadable record is skipped rather than counted as passing.
+    """
+    out = {}
+    d = os.path.join(home, "versions")
+    try:
+        names = sorted(os.listdir(d))[-limit:]
+    except OSError:
+        return out
+    for n in names:
+        if not n.endswith(".json"):
+            continue
+        try:
+            with open(os.path.join(d, n), encoding="utf-8") as fh:
+                recs = json.load(fh)
+        except (OSError, ValueError):
+            continue
+        if not isinstance(recs, list):
+            continue
+        for rec in recs:
+            if not isinstance(rec, dict):
+                continue
+            rid = rec.get("teaching_row_id")
+            gates = rec.get("gate_results")
+            if not isinstance(rid, str) or not isinstance(gates, dict):
+                continue
+            failed = []
+            for g in GATE_NAMES:
+                sub = gates.get(g)
+                if not isinstance(sub, dict):
+                    continue
+                faults = sub.get("faults") if isinstance(sub.get("faults"), list) else []
+                probs = sub.get("problems") if isinstance(sub.get("problems"), list) else []
+                if sub.get("passed") is False or faults or probs:
+                    failed.append(g)
+            if failed:
+                have = out.setdefault(rid, [])
+                for g in failed:
+                    if g not in have:
+                        have.append(g)
+    return out
+
 
 def stall_of(row):
     """For a build-failed row: a word from STALLS, one from SITE_CLASSES, or
@@ -607,9 +726,16 @@ def census_code_sha(repo=None, run=None):
     return cand if HEX_SHA.match(cand) else None
 
 
-def census_of(rows, now=None, builder=None, code_sha=None, empty_ids=()):
-    """Counts by road and by shape, the oldest wait, and WHICH rows wait. No bodies, no tags."""
+def census_of(rows, now=None, builder=None, code_sha=None, empty_ids=(), gates=None):
+    """Counts by road and by shape, the oldest wait, and WHICH rows wait. No bodies, no tags.
+
+    `gates` is {row id: [gate names that did not pass]} from stored_gates(), or
+    None when the caller did not read the builder's records -- absent is NOT
+    "no gate failed" (DR-0076 section 8), so nothing is published for a row the
+    caller could not look up.
+    """
     rows = rows or []
+    gates = gates if isinstance(gates, dict) else {}
     by_road = {}
     by_shape = {}
     by_stall = {}
@@ -646,6 +772,18 @@ def census_of(rows, now=None, builder=None, code_sha=None, empty_ids=()):
         }
         if shape == "build-failed":
             entry["stall"] = stall_of(r)
+            # THE CAUSE, not only the class (2026-11-18). `other` told a reader
+            # that a person was wanted and never what for, and the answer was
+            # on the box the whole time. Both of these are vocabulary, never
+            # prose: gate NAMES from the builder's stored records, and an
+            # exception CLASS NAME the interpreter itself recognises. Absent
+            # when unknown -- an absent cause is unread, never "no cause".
+            failed = gates.get(r.get("id"))
+            if failed:
+                entry["gates"] = failed
+            exc = exception_of(r)
+            if exc:
+                entry["exception"] = exc
         # WHY it waits, and how many tries it has had (DR-1515). `ready` means
         # the builder should take it; `deferred` and an exhausted `failed` mean
         # it was handed to the hourly Routine on purpose.
@@ -802,6 +940,10 @@ def main():
                 builder=builder_state(),
                 code_sha=census_code_sha(),
                 empty_ids=empty_ids,
+                # The builder's own stored records, read on the box with no key.
+                # A read that fails leaves this empty, so a row's cause goes
+                # ABSENT rather than reading as "no gate failed".
+                gates=stored_gates(BUILDER_HOME),
             )
         )
         what = publish(

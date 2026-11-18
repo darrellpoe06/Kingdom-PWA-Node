@@ -95,6 +95,57 @@ def sent_ids(rows):
     return out
 
 
+MIRROR_PER_CYCLE = 6
+TRANSCRIPT_SOURCES = ("youtube-asr", "whisper-nas", "manual", "rss-feed", "rss-whisper")
+
+
+def mirror_rows(transcripts, hosted_have, hosted_instance, limit=MIRROR_PER_CYCLE):
+    """Pure. Bishop Gwin's transcripts the hosted copy lacks, as rows to insert
+    there (DR-1543): the words a cloud session can read with no tailnet key, so a
+    lesson waits on nobody's hand. Only transcripts with words; at most `limit`."""
+    rows = []
+    for t in transcripts or []:
+        vid = t.get("video_id")
+        text = str(t.get("text") or "").strip()
+        if (
+            not vid
+            or vid in hosted_have
+            or not text
+            or (t.get("words") or 0) <= 0
+            or t.get("error")
+        ):
+            continue
+        rows.append(
+            {
+                "instance_id": hosted_instance,
+                "video_id": vid,
+                "text": text,
+                "words": int(t.get("words") or 0),
+                # The table allows five sources (a CHECK); the copy keeps the
+                # original's, so a refused insert can never come from a new word.
+                "source": t.get("source")
+                if t.get("source") in TRANSCRIPT_SOURCES
+                else "youtube-asr",
+                "lang": t.get("lang") or "en",
+            }
+        )
+        if len(rows) >= limit:
+            break
+    return rows
+
+
+def hosted_target(secrets_path):
+    """(url, key) of the hosted project from the secrets file, or (None, None)."""
+    try:
+        with open(secrets_path, encoding="utf-8") as fh:
+            d = json.load(fh)
+    except (OSError, ValueError):
+        return None, None
+    url = str(d.get("url") or "").rstrip("/")
+    key = d.get("service_key") or d.get("service_role_key")
+    return (url, key) if url and key else (None, None)
+
+
 def plan(messages, transcripts, sent, cfg):
     """Pure. -> (to_send, waiting, skipped). Wednesdays first, then newest.
     to_send holds (message, transcript) pairs, at most cfg['per_cycle']."""
@@ -203,6 +254,56 @@ def write_ledger(home, entry):
         return False
 
 
+def mirror_to_hosted(sovereign_url, transcripts):
+    """Copy his transcripts the hosted project lacks (DR-1543). Returns what was
+    done, in words, for the ledger. A failure here never stops the lesson road."""
+    hurl, hkey = hosted_target(os.environ.get("SUPABASE_SECRETS", DEFAULT_SECRETS))
+    if not hurl or not hkey:
+        return "no hosted credential"
+    if hurl == (sovereign_url or "").rstrip("/"):
+        return "the target is the hosted project already"
+    try:
+        slug = os.environ.get("TRANSCRIPTS_SLUG", "colg")
+        inst = rest(
+            hurl, hkey, "GET", "instances?select=id&slug=eq." + urllib.parse.quote(slug)
+        )
+        if not inst:
+            return "no hosted instance " + slug
+        vids = sorted(
+            {t.get("video_id") for t in transcripts or [] if t.get("video_id")}
+        )
+        if not vids:
+            return "0"
+        have = (
+            rest(
+                hurl,
+                hkey,
+                "GET",
+                "video_transcripts?select=video_id&instance_id=eq."
+                + inst[0]["id"]
+                + "&video_id=in.("
+                + ",".join(urllib.parse.quote(v) for v in vids)
+                + ")",
+            )
+            or []
+        )
+        rows = mirror_rows(
+            transcripts, {r.get("video_id") for r in have}, inst[0]["id"]
+        )
+        if rows:
+            rest(
+                hurl,
+                hkey,
+                "POST",
+                "video_transcripts?on_conflict=instance_id,video_id",
+                body=rows,
+                prefer="resolution=merge-duplicates,return=minimal",
+            )
+        return str(len(rows))
+    except (OSError, ValueError, KeyError, IndexError) as e:
+        return f"failed: {e.__class__.__name__}"
+
+
 def main():
     home = os.environ.get("BG_LESSONS_HOME", DEFAULT_HOME)
     sys.path.insert(0, os.path.join(HERE, "..", "nas-supabase"))
@@ -256,13 +357,9 @@ def main():
                 + urllib.parse.quote(json.dumps([TAG])),
             )
         )
-        vids = sorted(
-            {
-                m["video_id"]
-                for m in mine
-                if m["video_id"] not in sent and m["video_id"] not in cfg["done"]
-            }
-        )
+        # Every message of his without a built lesson, sent or not: the words
+        # are mirrored for the cloud even when the NAS builder has the row.
+        vids = sorted({m["video_id"] for m in mine if m["video_id"] not in cfg["done"]})
         transcripts = []
         if vids:
             transcripts = (
@@ -270,7 +367,7 @@ def main():
                     url,
                     key,
                     "GET",
-                    "video_transcripts?select=video_id,text,words,error&video_id=in.("
+                    "video_transcripts?select=video_id,text,words,error,lang,source&video_id=in.("
                     + ",".join(urllib.parse.quote(v) for v in vids)
                     + ")",
                 )
@@ -287,6 +384,7 @@ def main():
                 body=[row_for(m, t, instance_id, created_by)],
                 prefer="return=minimal",
             )
+        mirrored = mirror_to_hosted(url, transcripts)
     except (OSError, ValueError, KeyError, IndexError) as e:
         write_ledger(
             home,
@@ -308,6 +406,7 @@ def main():
             {"video_id": m["video_id"], "date": m.get("service_date")} for m in waiting
         ],
         "already_have_a_lesson": len(skipped),
+        "mirrored_to_hosted": mirrored,
         "since": cfg["since"],
     }
     write_ledger(home, entry)
