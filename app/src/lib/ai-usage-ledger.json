@@ -1822,6 +1822,21 @@
       "notes": "Runner tailnet key expired 2026-11-04; every research-inbox run failed at the join. Same SQL via live-sql local mode."
     },
     {
+      "id": "ledger-adds-off-the-tail",
+      "date": "2026-11-18",
+      "task": "The ledger adds off the tail: --add places an entry at a slot read from its id, never in the last 40, so waiting lesson PRs stop conflicting with every landing",
+      "drs": [
+        "DR-1536"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.6,
+      "estimateWithoutAiHours": 4,
+      "notes": "Proven with git merge-file in ledger-adds-off-the-tail.test.js: two tail appends conflict; two placed entries merge cleanly with both kept. Found while landing sov84, pm19 and sov85-88 on 2026-11-18."
+    },
+    {
       "id": "reviewer-lens-promise",
       "date": "2026-11-12",
       "task": "The reviewer lens cannot promise more than it hides: one registry generates every lens description, the work-order board and the payments ledger honour it, a gate holds the sentence equal to the surfaces",

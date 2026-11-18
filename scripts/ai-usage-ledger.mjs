@@ -12,7 +12,7 @@
 //             not a guess) and REQUIRES every decision record numbered
 //             FIRST_LEDGERED_DR or higher to be named by an entry. A record
 //             that lands without its line fails the guards leg.
-//   --add     appends an entry from flags, so a session records its own
+//   --add     adds an entry from flags (placed off the tail, DR-1536), so a session records its own
 //             delivery in one command:
 //             node scripts/ai-usage-ledger.mjs --add --id <task-id> --date YYYY-MM-DD \
 //               --task "..." --drs <the record's id> [--prs <pr number>] --model claude-fable-5-1 \
@@ -86,6 +86,26 @@ export function canonicalFault(raw, parsed = null) {
   return `${LEDGER_PATH} is not in the writer's own serialization: ${why}. Re-serialize it (or append with --add, which does) so a two-sided append is the only thing that ever conflicts here (DR-1369).`;
 }
 
+/**
+ * Where --add puts a new entry (DR-1536). Appending at the tail made every open
+ * lesson branch conflict on every merge to main: each landing appends there too,
+ * so each PR had to merge main again and re-run CI, and a long queue never drained.
+ * Order carries no meaning in this ledger (it is checked by id), so the entry goes
+ * to a slot read from its own id, never inside the last TAIL_GUARD entries: two
+ * branches adding at once land in different places and git merges them cleanly.
+ * Deterministic, so the same id always lands in the same slot.
+ */
+export const TAIL_GUARD = 40;
+export function placementIndex(id, length, guard = TAIL_GUARD) {
+  if (length <= guard) return length;
+  let h = 0x811c9dc5; // FNV-1a, 32-bit
+  for (const ch of String(id)) {
+    h ^= ch.codePointAt(0);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  return h % (length - guard + 1);
+}
+
 function flag(name, argv) {
   const i = argv.indexOf(`--${name}`);
   return i >= 0 ? argv[i + 1] : undefined;
@@ -119,7 +139,8 @@ if (isMain) {
       estimateWithoutAiHours: num(flag('estimate', argv)),
       notes: flag('notes', argv) || '',
     };
-    const next = { ...ledger, entries: [...ledger.entries, entry] };
+    const at = placementIndex(entry.id, ledger.entries.length);
+    const next = { ...ledger, entries: [...ledger.entries.slice(0, at), entry, ...ledger.entries.slice(at)] };
     const findings = validateLedger(next);
     if (findings.length) {
       console.error(`ai-usage-ledger: the entry is not sound:\n  ${findings.join('\n  ')}`);
