@@ -21,7 +21,7 @@ import os
 import sys
 import urllib.error
 import urllib.request
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 UA = "poetech-money-readiness/1 (DR-1360)"
 COLUMNS = ("outstanding", "cleared_on", "pending", "source", "doc_id")
@@ -32,7 +32,12 @@ def ask(origin, key, timeout=20):
         origin.rstrip("/") + "/sb/rest/v1/rpc/money_readiness_receipt",
         data=b"{}",
         method="POST",
-        headers={"apikey": key, "Authorization": "Bearer " + key, "Content-Type": "application/json", "User-Agent": UA},
+        headers={
+            "apikey": key,
+            "Authorization": "Bearer " + key,
+            "Content-Type": "application/json",
+            "User-Agent": UA,
+        },
     )
     try:
         with urllib.request.urlopen(req, timeout=timeout) as r:
@@ -45,7 +50,7 @@ def ask(origin, key, timeout=20):
 
 def hours_since(iso, now):
     try:
-        return (now - datetime.fromisoformat(str(iso).replace("Z", "+00:00"))).total_seconds() / 3600
+        return (now - datetime.fromisoformat(str(iso))).total_seconds() / 3600
     except (TypeError, ValueError):
         return None
 
@@ -55,27 +60,40 @@ def judge(r, now):
     b = r.get("backup") if isinstance(r, dict) else None
     lines, reasons = [], []
     if not isinstance(b, dict) or b.get("seen") is not True:
-        reasons.append("no backup receipt: the db-backup-receipt rider has not written (not yet run, or no credential)")
+        reasons.append(
+            "no backup receipt: the db-backup-receipt rider has not written (not yet run, or no credential)"
+        )
         lines.append("rider: never written")
     else:
         w = hours_since(b.get("written_at"), now)
         lines.append(f"rider: last wrote {'?' if w is None else round(w, 1)} h ago")
         if w is None or w > 1:
-            reasons.append("the rider has not written within an hour: the services-sync clock may not be running it")
+            reasons.append(
+                "the rider has not written within an hour: the services-sync clock may not be running it"
+            )
         age = hours_since(b.get("at"), now)
-        lines.append(f"backup: ok={b.get('ok')} at={b.get('at')} ({'?' if age is None else round(age, 1)} h) kept={b.get('kept')}")
+        lines.append(
+            f"backup: ok={b.get('ok')} at={b.get('at')} ({'?' if age is None else round(age, 1)} h) kept={b.get('kept')}"
+        )
         if b.get("ok") is not True:
             reasons.append("the last backup did not verify")
         elif age is None or age > 36:
             reasons.append("no verified backup within 36 hours")
         d = b.get("drill") or {}
         dage = hours_since(b.get("last_drill_at"), now)
-        lines.append(f"drill: {d.get('verdict')} ({'?' if dage is None else round(dage / 24, 1)} d), tables {d.get('tables')}/{d.get('tables_live')}")
+        lines.append(
+            f"drill: {d.get('verdict')} ({'?' if dage is None else round(dage / 24, 1)} d), tables {d.get('tables')}/{d.get('tables_live')}"
+        )
         if d.get("verdict") != "passed" or dage is None or dage > 8 * 24:
             reasons.append("no passing restore drill within 8 days")
     cols = (r or {}).get("transactions_columns") or {}
-    lines.append("phase 1.4 columns present: " + (", ".join(c for c in COLUMNS if cols.get(c) is True) or "none"))
-    lines.append(f"category CHECK: {(r or {}).get('category_check')}  obligations tables: {(r or {}).get('obligations_table')}/{(r or {}).get('obligation_settlements_table')}")
+    lines.append(
+        "phase 1.4 columns present: "
+        + (", ".join(c for c in COLUMNS if cols.get(c) is True) or "none")
+    )
+    lines.append(
+        f"category CHECK: {(r or {}).get('category_check')}  obligations tables: {(r or {}).get('obligations_table')}/{(r or {}).get('obligation_settlements_table')}"
+    )
     if (r or {}).get("category_check") is True:
         reasons.append("a CHECK limits categories: 'tithes' must be added to it first")
     return not reasons, reasons, lines
@@ -85,17 +103,25 @@ def main():
     key = os.environ.get("SOVEREIGN_ANON_KEY", "")
     origin = os.environ.get("SITE_ORIGIN", "https://poetech.us")
     if not key:
-        print("where the install stands: no anon key could be read from the served site")
+        print(
+            "where the install stands: no anon key could be read from the served site"
+        )
         return 2
     r, why = ask(origin, key)
     print("## Money readiness -- where the install stands")
     if r is None:
-        print(f"- the receipt did not answer ({why}); migration 0334 may not be applied yet")
+        print(
+            f"- the receipt did not answer ({why}); migration 0334 may not be applied yet"
+        )
         return 2
-    ready, reasons, lines = judge(r, datetime.now(timezone.utc))
+    ready, reasons, lines = judge(r, datetime.now(UTC))
     for line in lines:
         print("- " + line)
-    print("**READY** for the Phase 1.4 migration." if ready else "**NOT READY:** " + "; ".join(reasons))
+    print(
+        "**READY** for the Phase 1.4 migration."
+        if ready
+        else "**NOT READY:** " + "; ".join(reasons)
+    )
     return 0 if ready else 1
 
 

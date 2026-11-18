@@ -44,11 +44,17 @@ TAG = "db-backup-receipt"
 DEFAULT_CREATED_BY = "c2a6c39a-ae99-4ff7-83c6-b927e2e7f1cc"
 DEFAULT_SECRETS = "/volume1/PoeTech/secrets/supabase.json"
 DEFAULT_STATUS = "/volume1/PoeTech/backups/db/status.json"
-DRILL_RE = re.compile(r"^(passed|FAILED): auth\.users (\d+|\?) of (\d+|\?), public tables (\d+|\?) of (\d+|\?)$")
+DRILL_RE = re.compile(
+    r"^(passed|FAILED): auth\.users (\d+|\?) of (\d+|\?), public tables (\d+|\?) of (\d+|\?)$"
+)
 
 
 def _int(v):
-    return v if isinstance(v, int) and not isinstance(v, bool) and 0 <= v < 10**15 else None
+    return (
+        v
+        if isinstance(v, int) and not isinstance(v, bool) and 0 <= v < 10**15
+        else None
+    )
 
 
 def _num(s):
@@ -65,7 +71,11 @@ def receipt_of(status, drill_mtime=None):
     at = status.get("at")
     if isinstance(at, str):
         try:
-            out["at"] = datetime.fromisoformat(at.replace("Z", "+00:00")).astimezone(timezone.utc).isoformat()
+            out["at"] = (
+                datetime.fromisoformat(at.replace("Z", "+00:00"))  # noqa: FURB162 -- the NAS runs Python 3.8
+                .astimezone(timezone.utc)  # noqa: UP017 -- the NAS runs Python 3.8
+                .isoformat()
+            )
         except ValueError:
             pass
     for k in ("bytes", "toc_entries", "kept"):
@@ -87,7 +97,10 @@ def receipt_of(status, drill_mtime=None):
         else:
             out["drill"] = {"verdict": "unknown"}
     if drill_mtime is not None:
-        out["last_drill_at"] = datetime.fromtimestamp(drill_mtime, timezone.utc).isoformat()
+        out["last_drill_at"] = datetime.fromtimestamp(
+            drill_mtime,
+            timezone.utc,  # noqa: UP017 -- the NAS runs Python 3.8
+        ).isoformat()
     if isinstance(status.get("error"), str) and status["error"].strip():
         out["error"] = True  # the words stay on the box
     return out
@@ -104,11 +117,17 @@ def read_status(path):
 
 
 def rest(url, key, method, path, body=None, extra_headers=None):
-    headers = {"apikey": key, "Authorization": "Bearer " + key, "Content-Type": "application/json"}
+    headers = {
+        "apikey": key,
+        "Authorization": "Bearer " + key,
+        "Content-Type": "application/json",
+    }
     if extra_headers:
         headers.update(extra_headers)
     data = json.dumps(body).encode("utf-8") if body is not None else None
-    req = urllib.request.Request(url + "/rest/v1/" + path, data=data, headers=headers, method=method)
+    req = urllib.request.Request(
+        url + "/rest/v1/" + path, data=data, headers=headers, method=method
+    )
     with urllib.request.urlopen(req, timeout=30) as resp:
         raw = resp.read().decode("utf-8")
         return json.loads(raw) if raw.strip() else None
@@ -116,14 +135,40 @@ def rest(url, key, method, path, body=None, extra_headers=None):
 
 def publish(url, key, instance_id, body, created_by):
     """PATCH the existing receipt row, or INSERT the first. Returns 'patched' | 'inserted'."""
-    q = "agent_inbox?select=id&instance_id=eq." + instance_id + "&tags=cs." + urllib.parse.quote(json.dumps([TAG])) + "&order=created_at.desc&limit=1"
+    q = (
+        "agent_inbox?select=id&instance_id=eq."
+        + instance_id
+        + "&tags=cs."
+        + urllib.parse.quote(json.dumps([TAG]))
+        + "&order=created_at.desc&limit=1"
+    )
     rows = rest(url, key, "GET", q)
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(timezone.utc).isoformat()  # noqa: UP017 -- the NAS runs Python 3.8
     if rows:
-        rest(url, key, "PATCH", "agent_inbox?id=eq." + rows[0]["id"], body={"body": body, "created_at": now}, extra_headers={"Prefer": "return=minimal"})
+        rest(
+            url,
+            key,
+            "PATCH",
+            "agent_inbox?id=eq." + rows[0]["id"],
+            body={"body": body, "created_at": now},
+            extra_headers={"Prefer": "return=minimal"},
+        )
         return "patched"
-    row = {"instance_id": instance_id, "body": body, "tags": [TAG, "lesson-captured"], "source": "nas-loops", "created_by": created_by}
-    rest(url, key, "POST", "agent_inbox", body=[row], extra_headers={"Prefer": "return=minimal"})
+    row = {
+        "instance_id": instance_id,
+        "body": body,
+        "tags": [TAG, "lesson-captured"],
+        "source": "nas-loops",
+        "created_by": created_by,
+    }
+    rest(
+        url,
+        key,
+        "POST",
+        "agent_inbox",
+        body=[row],
+        extra_headers={"Prefer": "return=minimal"},
+    )
     return "inserted"
 
 
@@ -135,23 +180,39 @@ def main():
         return 0
     drill_file = os.path.join(os.path.dirname(status_path), ".last-drill")
     drill_mtime = os.path.getmtime(drill_file) if os.path.exists(drill_file) else None
-    body = json.dumps(receipt_of(status if status != "unreadable" else None, drill_mtime))
+    body = json.dumps(
+        receipt_of(status if status != "unreadable" else None, drill_mtime)
+    )
     sys.path.insert(0, os.path.join(HERE, "..", "nas-supabase"))
     try:
         from sovereign_target import load_target
 
-        url, key = load_target(os.environ.get("SUPABASE_SECRETS", DEFAULT_SECRETS), quiet=True)
+        url, key = load_target(
+            os.environ.get("SUPABASE_SECRETS", DEFAULT_SECRETS), quiet=True
+        )
     except (ImportError, OSError, ValueError, KeyError):
         url = key = None
     if not url or not key:
         print("db-backup-receipt: no credential - quiet no-op")
         return 0
     try:
-        rows = rest(url, key, "GET", "instances?select=id&slug=eq." + urllib.parse.quote(os.environ.get("TRANSCRIPTS_SLUG", "colg")))
+        rows = rest(
+            url,
+            key,
+            "GET",
+            "instances?select=id&slug=eq."
+            + urllib.parse.quote(os.environ.get("TRANSCRIPTS_SLUG", "colg")),
+        )
         if not rows:
             print("db-backup-receipt: no instance")
             return 1
-        what = publish(url, key, rows[0]["id"], body, os.environ.get("CENSUS_CREATED_BY", DEFAULT_CREATED_BY))
+        what = publish(
+            url,
+            key,
+            rows[0]["id"],
+            body,
+            os.environ.get("CENSUS_CREATED_BY", DEFAULT_CREATED_BY),
+        )
     except (OSError, ValueError, KeyError, IndexError) as e:
         print(f"db-backup-receipt: error {e.__class__.__name__}")
         return 1

@@ -90,7 +90,7 @@ describe("the backup receipt rider's own Python tests run in CI", () => {
       child.stderr.on('data', (d) => (out += d));
       child.on('close', (code) => resolve({ code, out }));
     });
-    expect(r.out).toMatch(/Ran 5 tests/);
+    expect(r.out).toMatch(/Ran 6 tests/);
     expect(r.code, r.out).toBe(0);
   });
 });
