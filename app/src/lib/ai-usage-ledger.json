@@ -2901,6 +2901,21 @@
       "wallClockHours": 1.2,
       "estimateWithoutAiHours": 24,
       "notes": ""
+    },
+    {
+      "id": "delete-says-so",
+      "date": "2026-11-18",
+      "task": "The Word: a draft would not delete. Fixed two independent silent-failure defects - a DELETE that removed zero rows reporting success, and deleting the deduped representative instead of the duplicate group",
+      "drs": [
+        "DR-1528"
+      ],
+      "prs": [],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.4,
+      "estimateWithoutAiHours": 3,
+      "notes": "PostgREST returns no error when RLS refuses a DELETE. Which of the two causes Darrell hit is unestablished: he declined the database query, so both were fixed."
     }
   ]
 }
