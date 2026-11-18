@@ -239,12 +239,14 @@ describe('a landed scene and a published episode', () => {
     expect(video.querySelector('track').getAttribute('src')).toContain('/lovecorner/kids/episodes/jonah.en.vtt');
     act(() => video.dispatchEvent(new Event('ended')));
     expect(watched).toEqual(['jonah']);
-    // In production: the poster shows on the shelf, nothing plays, the label says so.
+    // In production: the poster shows on the shelf, the film does not play yet, the
+    // state is a line under the title, and PLAY still reads the storybook (DR-1531).
     const prod = episodesFrom(fake('episodes/jonah-poster.jpg'));
     await act(() => root.render(createElement(Theater, { key: 'prod', church: COLG_DEFAULT_CHURCH, episodes: prod })));
     expect(q('[data-testid="episode-jonah"]').getAttribute('data-status')).toBe('in-production');
     expect(q('[data-testid="episode-jonah-poster"]')).toBeTruthy();
     expect(q('[data-testid="episode-jonah-watch"]')).toBeNull();
-    expect(q('[data-testid="episode-jonah"]').textContent).toContain('IN PRODUCTION');
+    expect(q('[data-testid="episode-jonah-play"]')).toBeTruthy();
+    expect(q('[data-testid="episode-jonah"]').textContent).toContain('read aloud now · episode in production');
   });
 });

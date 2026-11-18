@@ -18,7 +18,6 @@ import { gentleReveal } from '../../lib/gentle-motion.js';
 import { resolveChurch } from '../../lib/resolve-church.js';
 import { worshipPlayerSrc } from '../../lib/church-live.js';
 import { EPISODES, nowShowing, shelfLabel, watchable, mediaKind } from '../../lib/kids/theater.js';
-import { gentleReveal } from '../../lib/gentle-motion.js';
 import { Shot, ShotSlot, GuideBubble, KidsIcon, kidsAsset, isLanded, KZ_FOCUS } from './GuideArt.jsx';
 import { KIDS_BRAND } from '../../lib/kids/guides.js';
 
