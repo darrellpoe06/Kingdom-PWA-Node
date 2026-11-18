@@ -16,6 +16,7 @@ import React, { useState } from 'react';
 import { resolveChurch } from '../../lib/resolve-church.js';
 import { worshipPlayerSrc } from '../../lib/church-live.js';
 import { EPISODES, nowShowing, shelfLabel, watchable, mediaKind } from '../../lib/kids/theater.js';
+import { gentleReveal } from '../../lib/gentle-motion.js';
 import { Shot, ShotSlot, GuideBubble, KidsIcon, kidsAsset, isLanded, KZ_FOCUS } from './GuideArt.jsx';
 import { KIDS_BRAND } from '../../lib/kids/guides.js';
 
@@ -147,10 +148,7 @@ export default function Theater({ church = null, episodes = EPISODES, onOpenStor
                 style={{ marginTop: 0 }}
                 onClick={() => {
                   setPlaying(true);
-                  if (typeof document !== 'undefined') {
-                    const el = document.querySelector('[data-testid="theater"]');
-                    if (el && el.scrollIntoView) el.scrollIntoView({ block: 'start', behavior: 'smooth' });
-                  }
+                  if (typeof document !== 'undefined') gentleReveal(document.querySelector('[data-testid="theater"]'));
                 }}
                 data-testid={`episode-${e.id}-watch`}
               >
