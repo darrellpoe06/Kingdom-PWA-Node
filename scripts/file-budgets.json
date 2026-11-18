@@ -350,11 +350,18 @@
       "to": 13790,
       "date": "2026-11-18",
       "why": "sov86 (All the works of this pattern, DR-1502) adds one lesson to this file after sov85 (DR-1500) landed; the same reason as every raise above it -- the lesson corpus lives in JavaScript until DR-1339's lesson-content-out-of-JS re-review (2026-11-19). Re-measured with wc -l on the merged tree that holds sov85 and sov86 (the sov86 module literal re-spliced by scripts/sov86-fill.mjs onto main's catalog), never taken from either side of the conflict."
+    },
+    {
+      "file": "app/src/lib/sovereign-ai-class.js",
+      "from": 13790,
+      "to": 13990,
+      "date": "2026-11-18",
+      "why": "sov87 (Cleanse thou me from secret faults, DR-1501) adds one lesson to this file after sov86 (DR-1502) landed; the same reason as every raise above it -- the lesson corpus lives in JavaScript until DR-1339's lesson-content-out-of-JS re-review (2026-11-19). Re-measured with wc -l on the merged tree that holds sov86 and sov87 (the sov87 module literal re-spliced by scripts/sov87-fill.mjs onto main's catalog), never taken from either side of the conflict."
     }
   ],
   "budgets": {
     "app/src/lib/living-lessons-class.js": 33072,
-    "app/src/lib/sovereign-ai-class.js": 13790,
+    "app/src/lib/sovereign-ai-class.js": 13990,
     "app/src/lib/world-issues-class.js": 6789,
     "app/src/components/ChurchLearn.jsx": 6012,
     "app/src/modules/properties/DoorTabs.jsx": 3352,

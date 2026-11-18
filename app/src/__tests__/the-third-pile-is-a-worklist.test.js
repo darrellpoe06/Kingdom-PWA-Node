@@ -844,7 +844,27 @@ const REPO = join(HERE, '..', '..', '..');
 // lesson's raise lands at 38, measured below rather than taken from a side. re-review: 2026-11-27 -- read the
 // profile from a runner; if it reads back, compare it with the three
 // sentences taught and lower this pin.
-const GAP = 38;
+// 38 -> 39 on 2026-11-18 for sov87-cleanse-thou-me-from-secret-faults
+// (DR-1501), by the SECOND remedy, on main 152cfb3b302 (sov83 landed without
+// moving this pin). Darrell forwarded IT Brew's Site unseen (Gmail thread
+// 1a1c24a55626cb1c) with one word: Lesson. The email held the lead story's
+// opening paragraphs; www.itbrew.com and www.php.net both answered `curl: (56)
+// CONNECT tunnel failed, response 403` (control registry.npmjs.org 200). Then
+// stopped. A web search's news summaries agree PHP shipped October 2026 fixes
+// for two critical A.I.-assisted finds but credit several finders and do not
+// confirm 2014, so the finder, the date and the one-volunteer picture are the
+// newsletter's account in every reader place, gated. The lesson teaches no
+// outside figure: every number it states is measured on our own repository
+// (app/package.json, app/package-lock.json, the audit allowlist and guard)
+// and pinned in sovereign-ai-sov87-verses.test.js, plus one registry count
+// that carries its date. So no lesson-sources.json row (DR-0076 section 3).
+// Weeks 84-86 are in flight and may move this pin too: whichever lands after
+// another re-derives on the merged tree. re-review: 2026-11-27 -- try those
+// hosts from a runner; if the story reads back, replace the not-checked
+// clauses and lower this pin.
+// Re-measured on the merged tree, 2026-11-18: main held 38 after pm19 and sov86;
+// sov87 raises it to 39, never taken from either side of the conflict.
+const GAP = 39;
 const CHECKED_LESSONS = 6;
 
 describe('both sides of the honesty gap are counted', () => {
