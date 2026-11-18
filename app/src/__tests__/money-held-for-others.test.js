@@ -122,28 +122,46 @@ describe('the six safeguards before merge (Christina 2026-11-18)', () => {
   });
   const sts = (rows) => buildSafeToSpend(book(rows), { currentDate: asOf, scope: 'personal' });
 
-  it('the tithe paid for her is taken off once: cash falls by $55 and nothing more is set aside', () => {
+  it('1. received: the bank balance rises by $55, but not her income and not what she can spend', () => {
     const before = sts([]);
     const received = sts([{ ...IN55, date: '2026-11-18' }]);
+    expect(received.lines.availableCash).toBe(2614.78);
+    expect(received.lines.expectedIncome).toBe(before.lines.expectedIncome);
+    expect(allIncomeModel([{ ...IN55, date: '2026-11-18' }], {}).total.in).toBe(0);
+    expect(received.safeToSpendNow).toBe(before.safeToSpendNow);
+    expect(received.lines.projectedLowest.amount).toBe(before.lines.projectedLowest.amount);
+  });
+
+  it('2. while held: the $55 is set aside on its own line and is not spendable', () => {
+    const received = sts([{ ...IN55, date: '2026-11-18' }]);
+    expect(received.lines.heldForOthers).toBe(55);
+    expect(received.items.filter((it) => it.kind === 'held-for-others').map((it) => it.amount)).toEqual([-55]);
+  });
+
+  it('3. once paid out: the set-aside is released and the payment is taken off once, never twice', () => {
+    const before = sts([]);
     const paid = sts([
       { ...IN55, date: '2026-11-18' },
       { ...TITHE_FOR_HER, date: '2026-11-19' },
     ]);
-    // Received: +$55 in the account, $55 set aside: what she can spend is unchanged.
-    expect(received.lines.availableCash).toBe(2614.78);
-    expect(received.lines.projectedLowest.amount).toBe(before.lines.projectedLowest.amount);
-    // Paid: the $55 has left the account once, and no set-aside remains: unchanged again, never $55 less.
     expect(paid.lines.availableCash).toBe(2559.78);
     expect(paid.lines.heldForOthers).toBe(0);
+    expect(paid.items.filter((it) => it.kind === 'held-for-others')).toEqual([]);
+    expect(paid.safeToSpendNow).toBe(before.safeToSpendNow);
     expect(paid.lines.projectedLowest.amount).toBe(before.lines.projectedLowest.amount);
   });
 
-  it('an unrelated $55 on the same day is never paired and never set aside', () => {
+  it('an unrelated $55 on the same day is never paired, never set aside, and never modified', () => {
     const coffee = { id: 'x', accountId: 'a-7206', date: '2026-11-19', description: 'CIRCLE K', amount: -55, category: 'fuel' };
     const deposit = { id: 'y', accountId: 'a-7206', date: '2026-11-18', description: 'REFUND', amount: 55, category: 'other' };
-    const h = heldForOthers([IN55, coffee, deposit]);
+    const ledger = [IN55, coffee, deposit];
+    const frozen = JSON.stringify(ledger);
+    const h = heldForOthers(ledger);
     expect(h.pairs).toEqual([]);
     expect(h.stillHeld.map((r) => r.id)).toEqual(['gmr']);
     expect(heldForOthers([coffee, deposit]).outstanding).toBe(0);
+    sts([{ ...IN55, date: '2026-11-18' }, coffee, deposit]);
+    expect(JSON.stringify(ledger)).toBe(frozen);
+    expect([coffee.category, deposit.category]).toEqual(['fuel', 'other']);
   });
 });
