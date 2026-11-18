@@ -54,6 +54,7 @@
 // =============================================================================
 
 import { deriveAccountBalances, deriveDebts, latestCheckpoints, checkpointHistory } from './financial-engineering.js';
+import { heldForOthers } from './held-for-others.js';
 import { round2, isoDay, parseDay, addDays, addMonthsClamped, daysBetween, expandOccurrences } from './money-dates.js';
 import { isTransferTxn, isBalanceAdjustment } from './imported-view.js';
 import { detectRecurring, payeeKey } from './recurring-payments.js';
@@ -1245,7 +1246,16 @@ function forScope(data, sc, asOf, settings, opts) {
   // that money arrives, never as the figure itself.
   const confirmedIncome = income.events.filter((e) => !e.inferred);
   const unconfirmedIncomeEvents = income.events.filter((e) => e.inferred);
-  const items = [...confirmedIncome, ...obligations.events].sort((a, b) => a.date.localeCompare(b.date));
+  // MONEY HELD FOR SOMEONE ELSE (Christina 2026-11-18: $55 from Christiana's
+  // account to pay her tithe). It is in the account, so it is in the cash, but
+  // it is not the family's: what came in and has not gone out yet is set aside
+  // today, so it is never spendable (lib/held-for-others.js).
+  const held = heldForOthers(data?.transactions || [], { accountIds: balanceSources.filter((b) => b.counted).map((b) => b.id), asOf: isoDay(asOf) });
+  const heldEvents = held.outstanding > 0
+    ? [{ date: isoDay(asOf), amount: -held.outstanding, label: `Held for someone else, not yet passed along (${held.stillHeld.map((r) => r.description).join(', ')})`, kind: 'held-for-others', source: 'held-for-others' }]
+    : [];
+  if (held.outstanding > 0) assumptions.push(`$${held.outstanding.toLocaleString()} in the account is held for someone else and is set aside until it is passed along: ${held.stillHeld.map((r) => `${r.description} on ${String(r.date).slice(0, 10)} ($${r.remaining.toLocaleString()})`).join('; ')}.`);
+  const items = [...confirmedIncome, ...obligations.events, ...heldEvents].sort((a, b) => a.date.localeCompare(b.date));
   const dailyLiving = accrual.living / DAYS_PER_MONTH;
   const dailyTax = accrual.tax / DAYS_PER_MONTH;
   const dailySavings = accrual.savings / DAYS_PER_MONTH;
@@ -1269,7 +1279,7 @@ function forScope(data, sc, asOf, settings, opts) {
     bills: toLow((it) => it.amount < 0 && (it.kind === 'bill' || it.kind === 'scheduled' || it.kind === 'inferred-bill')),
     debtMinimums: toLow((it) => it.amount < 0 && (it.kind === 'debt-min' || it.kind === 'mortgage')),
     taxesDated: toLow((it) => it.amount < 0 && it.kind === 'tax'),
-    other: toLow((it) => it.amount < 0 && it.kind === 'incident'),
+    other: toLow((it) => it.amount < 0 && (it.kind === 'incident' || it.kind === 'held-for-others')),
     living: round2(dailyLiving * accruedDays),
     taxes: round2(dailyTax * accruedDays),
     savings: round2(dailySavings * accruedDays),
@@ -1279,7 +1289,8 @@ function forScope(data, sc, asOf, settings, opts) {
   const billsDue = sum((it) => it.kind === 'bill' || it.kind === 'scheduled' || it.kind === 'inferred-bill');
   const debtMinimums = sum((it) => it.kind === 'debt-min' || it.kind === 'mortgage');
   const taxesDated = sum((it) => it.kind === 'tax');
-  const otherCommitments = sum((it) => it.kind === 'incident');
+  const otherCommitments = sum((it) => it.kind === 'incident' || it.kind === 'held-for-others');
+  const heldForOthersLine = sum((it) => it.kind === 'held-for-others');
   const expectedIncome = sum((it) => it.kind === 'income');
   const unconfirmedIncome = round2(unconfirmedIncomeEvents.reduce((a, e) => a + e.amount, 0));
   const periodFraction = days / DAYS_PER_MONTH;
@@ -1355,7 +1366,7 @@ function forScope(data, sc, asOf, settings, opts) {
     lines: {
       availableCash, unverifiedExcluded, investmentsHeldApart: investments, pendingHolds: 0,
       billsDue, debtMinimums, livingExpenses: livingReserved, taxesReserved: taxReserved, savingsReserved,
-      minCushion, otherCommitments, expectedIncome, unconfirmedIncome, ifUnconfirmedArrives,
+      minCushion, otherCommitments, heldForOthers: heldForOthersLine, expectedIncome, unconfirmedIncome, ifUnconfirmedArrives,
       reserve: { goal: reserve.goal, designated: reserve.designated, remaining: reserve.remaining, pct: reserve.pct, source: reserve.source, goalSource: reserve.goalSource, key: reserve.key, typed: reserve.typed, designations: reserve.designations },
       projectedLowest: lowest,
       toLowest,
