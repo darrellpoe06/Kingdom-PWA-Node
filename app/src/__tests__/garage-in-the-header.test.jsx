@@ -82,6 +82,24 @@ describe('the garage door rides the header', () => {
     expect(said.textContent).toMatch(/door was told to move/i);
   });
 
+  it('PROVEN TO CATCH: a held Enter key (the keyboard repeats keydown) finishes the hold instead of restarting it', async () => {
+    // 2026-11-18, "The button to open the garage is not working." Every
+    // repeated keydown called beginHold again, which restarted the clock, so a
+    // held key could never reach HOLD_MS. A hold already running is kept.
+    const calls = [];
+    await mount({ token: 'family-key', fetchImpl: fakeFetch(calls), storage: memStore() });
+    const btn = container.querySelector('[data-testid="garage-header-press"]');
+    vi.useFakeTimers();
+    await act(async () => { btn.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); });
+    for (let t = 0; t < HOLD_MS + 200; t += 40) {
+      await act(async () => { vi.advanceTimersByTime(40); });
+      await act(async () => { btn.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Enter', repeat: true, bubbles: true })); });
+    }
+    vi.useRealTimers();
+    await act(async () => { for (let i = 0; i < 5; i += 1) await Promise.resolve(); });
+    expect(presses(calls), 'a held key moves the door once').toHaveLength(1);
+  });
+
   it('letting go before the hold is full sends nothing, and says to hold it', async () => {
     const calls = [];
     await mount({ token: 'family-key', fetchImpl: fakeFetch(calls), storage: memStore() });
