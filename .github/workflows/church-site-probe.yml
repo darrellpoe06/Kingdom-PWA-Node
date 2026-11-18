@@ -55,3 +55,15 @@ jobs:
             echo "-- text (tags, scripts and styles stripped) --"
             perl -0pe 's/<script.*?<\/script>//gis; s/<style.*?<\/style>//gis; s/<(br|\/p|\/div|\/h[1-6]|\/li|\/tr|\/td)[^>]*>/\n/gi; s/<[^>]+>//g; s/&nbsp;/ /g; s/&amp;/&/g; s/&#8203;//g' page.html | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//' | grep -v '^$' | head -250
           done
+      - name: Print the raw markup around the calendar image, the current-events heading, the letter and the home service times (parser fixtures)
+        env:
+          SITE: ${{ github.event.inputs.site }}
+        run: |
+          set -u
+          ua="Mozilla/5.0 (compatible; PoeTechProbe/1.0; +https://poetech.us)"
+          show() { echo "== MARKUP $1 around /$2/ =="; curl -sS -L --max-time 30 -A "$ua" -o m.html "$SITE$1" || { echo "curl failed"; return; }; perl -0pe 's/<script.*?<\/script>//gis; s/<style.*?<\/style>//gis' m.html | tr -d '\r' | grep -n -i -B"$3" -A"$4" "$2" | cut -c1-400 | head -"$5"; }
+          show /calendar.html 'calendar_orig' 30 12 90
+          show /current-events.html 'Current Events' 6 40 80
+          show /letters-from-bg.html 'letter_orig' 20 8 60
+          show / 'WORSHIP EXPERIENCE' 20 20 60
+          echo "== CONTENT WRAPPER CLASSES on /calendar.html =="; perl -0pe 's/<script.*?<\/script>//gis' m.html >/dev/null; curl -sS -L --max-time 30 -A "$ua" "$SITE/calendar.html" | grep -oE '<div[^>]+(id|class)="[^"]*(wsite|content|container|section|wrapper|main)[^"]*"' | sort | uniq -c | sort -rn | head -30
