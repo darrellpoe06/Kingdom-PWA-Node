@@ -18,6 +18,9 @@
     },
     "claude-fable-5-2": {
       "note": "The Claude session model on 2026-11-10 (Anthropic). Per-task tokens are not exposed by the harness."
+    },
+    "claude-unrecorded": {
+      "note": "A Claude Code session whose own configuration forbids writing a model identifier into the repository; the model is deliberately not on the record, and neither are its tokens."
     }
   },
   "sessions": [
@@ -2946,6 +2949,21 @@
       "wallClockHours": 0.4,
       "estimateWithoutAiHours": 3,
       "notes": "PostgREST returns no error when RLS refuses a DELETE. Which of the two causes Darrell hit is unestablished: he declined the database query, so both were fixed."
+    },
+    {
+      "id": "books-ask-the-house-whether-they-are-ready",
+      "date": "2026-11-18",
+      "task": "FOS Money readiness with no key: a NAS rider publishes the backup verdict, migration 0334 returns it with the books' schema facts to anon through whitelisting receipts, the app and a keyless witness judge it, and the Phase 1.4 handoff's key and paste preconditions are corrected",
+      "drs": [
+        "DR-1525"
+      ],
+      "prs": [],
+      "model": "claude-unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.2,
+      "estimateWithoutAiHours": 10,
+      "notes": "Read the record after being asked to: DR-1269, DR-1398, DR-1360, DR-1399 and DR-1511 already applied migrations keylessly, so the handoff's TS_AUTHKEY and ConnectBot preconditions repeated DR-1511's miss. Proven on a real PostgreSQL 16 with a hostile backup row and a wrong-source row planted."
     }
   ]
 }

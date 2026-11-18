@@ -1,0 +1,28 @@
+# money-readiness -- the keyless witness for FOS Money Phase 1.4 (DR-1360).
+# Asks the house over poetech.us/sb, with the anon key the site ships, whether
+# the migration's preconditions hold: a verified backup within 36 h and a
+# passing restore drill within 8 d (the NAS's own db_backup.sh, published by
+# the db-backup-receipt rider), and which Phase 1.4 columns already exist.
+# Prints where the install stands before the verdict; red when not ready or
+# unreadable. Reads only; never applies anything. No tailnet, no SSH, no key.
+name: Money readiness (keyless)
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 13 * * *'
+permissions:
+  contents: read
+concurrency:
+  group: money-readiness
+  cancel-in-progress: false
+jobs:
+  ask:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - name: Ask the house where the install stands
+        run: |
+          KEY=$(python3 scripts/served-anon-key.py) || KEY=""; [ -n "$KEY" ] && echo "::add-mask::$KEY"
+          SOVEREIGN_ANON_KEY="$KEY" python3 scripts/served-money-readiness.py | tee -a "$GITHUB_STEP_SUMMARY"
+          exit "${PIPESTATUS[0]}"

@@ -439,6 +439,27 @@ const NODES = [
     ],
     seeds: ['lesson-queue-census-read'],
   }),
+  rider('service:db-backup-receipt', 'infra/nas-loops/db-backup-receipt.py', {
+    id: 'db-backup-receipt', name: 'Backup receipt (the house says whether its backup is good)',
+    purpose: 'One row per services-sync cycle, patched in place: the nightly backup verdict and the weekly restore drill, whitelisted, read back by db_backup_receipt() and money_readiness_receipt() over the public road with no key (DR-1360, DR-1113). Never a file name, path, host or error words.',
+    reads: [
+      { res: 'nas:clock', token: 'services-sync' },
+      { res: 'nas:db-backup', token: 'status.json' },
+    ],
+    writes: [
+      { res: 'db:agent_inbox#db-backup-receipt', token: 'def publish' },
+    ],
+    seeds: ['money-readiness-read'],
+  }),
+  app('app/src/lib/money-readiness.js', {
+    id: 'money-readiness-read', name: 'Is the books\u2019 database ready for the Phase 1.4 migration?',
+    purpose: 'Reads money_readiness_receipt() (migration 0334) and says, step by step, whether the backup is verified and recent, the restore drill passed, and which Phase 1.4 columns already exist; an absent or unreadable receipt reads as not confirmed, never as ready (DR-0076).',
+    reads: [
+      { res: 'db:agent_inbox#db-backup-receipt', token: "rpc('money_readiness_receipt')" },
+    ],
+    writes: [],
+    seeds: [],
+  }),
   app('app/src/lib/lesson-queue-census.js', {
     id: 'lesson-queue-census-read', name: 'What waits in the lesson queue',
     purpose: 'Reads the newest census row and says fresh, late, stale, never or unreadable against the clock, and names a count taken under a different definition. An absent row reads as never counted, never as an empty queue (DR-1186).',
@@ -1523,6 +1544,11 @@ const NODES = [
     id: 'libraries-health', name: 'Libraries road witness (DR-1121)', purpose: 'Once a day and on dispatch: over the tailnet, reads the libraries health door (Jellyfin, Audiobookshelf, the shelves) and the home-accounts loop’s last ledger; on a failure says where the install stands first.',
     reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }, { res: 'http:libraries', token: '127.0.0.1:8802' }, { res: 'nas:home-accounts', token: 'last-pass.json' }],
     writes: [{ res: 'gh:incident', token: 'libraries-incident' }], seeds: ['ops-surface'],
+  }),
+  wf('money-readiness.yml', {
+    id: 'money-readiness', name: 'Money readiness (keyless)', purpose: 'Asks money_readiness_receipt() over poetech.us/sb with the anon key the site ships: is there a verified backup within 36 h and a passing restore drill within 8 d, and which FOS Money Phase 1.4 columns exist. The witness of the db-backup-receipt rider; red when not ready or unreadable; never applies anything (DR-1360).',
+    reads: [{ res: 'db:agent_inbox#db-backup-receipt', file: 'scripts/served-money-readiness.py', token: 'money_readiness_receipt' }],
+    writes: [], seeds: [],
   }),
   wf('nas-health.yml', {
     id: 'nas-health', name: 'NAS health (look, never touch)', purpose: 'What the NAS is doing right now — GPU, containers, services, and the live tables’ row counts.',
