@@ -24,7 +24,7 @@ A reader finds the text sizes where they are reading, one tap from any screen. A
 
 ## Decision
 
-1. **An Aa button rides the Love Corner header beside search**, on every screen, and opens Personalize, where the five sizes live. Its glyph is fixed in px so it never grows with the text it controls.
+1. **An Aa button rides the Love Corner header beside search**, on every screen, and opens Personalize, where the five sizes live. Its glyph is fixed in px so it never grows with the text it controls. Under 480px the header keeps the name, the tagline and its four controls under the 80px chrome cap by hiding the small church-name eyebrow line (measured: 60px at 360/390/412; 88 to 128px with the eyebrow); the church's name stays on the hero and the door.
 2. **One component carries the church's giving channels** (`ChurchGivingChannels`): the Give popup and the Give & Serve panel render the same cards from the same resolution (the church's own profile rows first, COLG's slide constants only for COLG). No surface sends a parishioner to the website to learn how to give; no payment data passes through the app.
 3. **The Ask Ari card is a form.** The question typed there opens this week's lesson with Ari answering it once; Ari still talks only about the lesson, and a grown-up can read everything.
 
