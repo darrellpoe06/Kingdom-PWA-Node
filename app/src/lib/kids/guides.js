@@ -82,10 +82,19 @@ export function listedAssets() {
   return out;
 }
 
-/** A served URL for an asset, under the door's own base path. */
-export function assetUrl(file, base = '/') {
+/**
+ * The build this bundle came from (vite.config `__BUILD_SHA__`; 'dev' locally).
+ * Every kids asset URL carries it (Darrell, 2026-11-18, from his tablet: the
+ * Teens lesson showed the EARLIER pair of children, a cached guides-pair.png
+ * replaced under the same name). A replaced file is a new URL on the next
+ * deploy, whatever a browser, a worker or an edge cached under the old one.
+ */
+export const BUILD_VERSION = typeof __BUILD_SHA__ !== 'undefined' && __BUILD_SHA__ && __BUILD_SHA__ !== 'dev' ? String(__BUILD_SHA__) : '';
+
+/** A served URL for an asset, under the door's own base path, versioned by the build. */
+export function assetUrl(file, base = '/', version = BUILD_VERSION) {
   const b = String(base || '/');
-  return `${b.endsWith('/') ? b : `${b}/`}${KIDS_ASSET_DIR}${file}`;
+  return `${b.endsWith('/') ? b : `${b}/`}${KIDS_ASSET_DIR}${file}${version ? `?v=${encodeURIComponent(version)}` : ''}`;
 }
 
 /**

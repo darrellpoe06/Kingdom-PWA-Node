@@ -2903,6 +2903,36 @@
       "notes": ""
     },
     {
+      "id": "second-road-open",
+      "date": "2026-11-18",
+      "task": "Ways finding: the TS_AUTHKEY was never the blocker. One LAN SSH read of status.json gave more than a night of census instrumentation, and the fix was one lapsed claude sign-in",
+      "drs": [
+        "DR-1526"
+      ],
+      "prs": [],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.2,
+      "estimateWithoutAiHours": 1,
+      "notes": "Darrell: we didnt need it?!!!!!! Road 1 dead was reported as THE blocker while road 2, his own SSH, was open the whole time. The instrumentation keeps its value; the order was wrong."
+    },
+    {
+      "id": "teens-night-skin-and-asset-versions",
+      "date": "2026-11-18",
+      "task": "The Teens lesson's white-on-white cards and the earlier children on screen: .tz overrides for every light kids card with a stylesheet gate proven to catch, kids asset URLs versioned by the build sha, the live walk comparing served bytes with the checkout, the lesson readable step by step or scrolled and remembered on the device",
+      "drs": [
+        "DR-1529"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.6,
+      "estimateWithoutAiHours": 8,
+      "notes": ""
+    },
+    {
       "id": "jonah-j2-landed-manifest",
       "date": "2026-11-18",
       "task": "Jonah J2: the landed manifest (the kids folder decides what is landed, narrated, published, in production; prebuild + stale guard), recorded narration in the storybook with cued or estimated sentence highlighting, the Theater playing a file episode from the shelf with poster and captions, the production brief naming every illustration, recording and video file with specs and the KJV per page, the character bible corrected to the approved pair; 11 new tests proven to catch",

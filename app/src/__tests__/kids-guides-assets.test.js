@@ -39,9 +39,12 @@ describe('the guides are real assets from the approved reference', () => {
     expect(GUIDES.boy.name).toBeNull();
     expect(GUIDES.girl.portrait).not.toBe(GUIDES.boy.portrait);
   });
-  it('a served URL rides the door base path', () => {
-    expect(assetUrl(GUIDES.girl.face)).toBe('/lovecorner/kids/guide-girl-face.png');
-    expect(assetUrl(KIDS_BRAND.logo, '/lovecorner/')).toBe('/lovecorner/lovecorner/kids/logo.png');
+  it('a served URL rides the door base path and carries the build, so a replaced file is a new URL (never the cached old one)', () => {
+    expect(assetUrl(GUIDES.girl.face, '/', '')).toBe('/lovecorner/kids/guide-girl-face.png');
+    expect(assetUrl(KIDS_BRAND.logo, '/lovecorner/', '')).toBe('/lovecorner/lovecorner/kids/logo.png');
+    expect(assetUrl(KIDS_BRAND.pair, '/poetech-app/', 'f1ced83')).toBe('/poetech-app/lovecorner/kids/guides-pair.png?v=f1ced83');
+    // Two builds, two URLs for the same file name: the one thing a stale cache cannot survive.
+    expect(assetUrl(KIDS_BRAND.pair, '/', 'aaaaaaa')).not.toBe(assetUrl(KIDS_BRAND.pair, '/', 'bbbbbbb'));
   });
 });
 
