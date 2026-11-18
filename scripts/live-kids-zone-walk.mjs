@@ -114,6 +114,37 @@ await stop('home', async () => {
   return `logo=${logo} guideImages=${im.guides} tiles=${tiles} dock=${dock}`;
 });
 
+// THE SERVED FILES ARE THE COMMITTED FILES (Darrell, 2026-11-18, from his
+// tablet: the Teens lesson showed the EARLIER pair of children, a cached
+// guides-pair.png replaced under the same name). Every kids image the page
+// loaded is fetched again here and its byte size compared with the file in
+// this checkout: a stale copy anywhere between the folder and the phone is a
+// failed stop, not a guess.
+await stop('assets-are-current', async () => {
+  const { statSync } = await import('node:fs');
+  const urls = await page.evaluate(() =>
+    [...document.querySelectorAll('[data-testid="kids-zone"] img')]
+      .map((i) => i.currentSrc || i.src)
+      .filter((u, i, a) => /\/lovecorner\/kids\//.test(u) && a.indexOf(u) === i)
+  );
+  if (!urls.length) throw new Error('no kids image on the home');
+  const stale = [];
+  for (const u of urls) {
+    const rel = u.split('/lovecorner/kids/')[1].split('?')[0];
+    let onDisk = -1;
+    try {
+      onDisk = statSync(join('app', 'public', 'lovecorner', 'kids', rel)).size;
+    } catch {
+      onDisk = -1;
+    }
+    const res = await page.request.get(u, { headers: { 'cache-control': 'no-cache' } }).catch(() => null);
+    const served = res ? (await res.body()).length : -1;
+    if (onDisk < 0 || served !== onDisk) stale.push(`${rel}: served ${served} bytes, checkout ${onDisk}`);
+  }
+  if (stale.length) throw new Error(`stale or missing: ${stale.join('; ')}`);
+  return `${urls.length} kids image(s) match the checkout byte for byte`;
+});
+
 await stop('theater', async () => {
   await click('kids-tab-theater');
   await page.waitForSelector('[data-testid="theater"]', { timeout: 15000 });
