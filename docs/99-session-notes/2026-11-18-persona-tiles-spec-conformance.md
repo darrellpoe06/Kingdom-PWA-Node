@@ -50,7 +50,7 @@ Every row is a gap: one bullet per tile. "Real user" means a signed-in person wi
 
 - **Data-only gaps** (seed subscriptions, the goal, receipts, three 529s): can be built now; next PR.
 - **Feature gaps** (who-paid-what, per-kid rollup, exchange log, split model, ClarityLine everywhere, late-on-the-1st detection, capex auto-fund): real builds, queued in the order above. `re-review: 2026-12-02`.
-- **Copy vs. roadmap conflict** (the landlord and solo-practice tiles sell as live what `matched-services.js` dates to 2028): this needs Darrell's decision. Either move those claims into each tile's `vision` line, or pull the module build forward. `re-review: 2026-11-25`.
+- **Copy vs. roadmap conflict** (the landlord and solo-practice tiles sold as live what `matched-services.js` dates to 2028): **resolved the same day.** Darrell ruled "fix the tiles to be accurate, unless we can make happen what's on the tiles", so the unbuilt lines moved into each tile's vision note (second pass below).
 
 ## Second pass, same day: the tiles made true, and Ari checks every page's words
 
