@@ -47,7 +47,7 @@ import LedgerProof from './LedgerProof.jsx';
 import LedgerEdit from './LedgerEdit.jsx';
 import { motionBehavior } from '../lib/gentle-motion.js';
 
-const TX_CATEGORIES = ['salary', 'rental-income', 'transfer', 'groceries', 'fuel', 'utilities', 'dining', 'medical', 'vehicle', 'household', 'charitable', 'business', 'professional', 'insurance', 'subscription', 'debt-payment', 'other'];
+const TX_CATEGORIES = ['salary', 'rental-income', 'transfer', 'groceries', 'fuel', 'utilities', 'dining', 'medical', 'vehicle', 'household', 'tithes', 'charitable', 'business', 'professional', 'insurance', 'subscription', 'debt-payment', 'other'];
 
 // TxHistory — the Books living-record proof: every edit/delete to this
 // transaction is an immutable, attributed version in record_events
@@ -761,7 +761,7 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
     accountId: csvAccountId,
     amount: r.amount,
     description: r.desc.slice(0, 200),
-    category: ['salary','rental-income','transfer','groceries','fuel','utilities','dining','medical','vehicle','household','charitable','business','professional','insurance','subscription','debt-payment','other'].includes(r.category) ? r.category : 'other',
+    category: ['salary','rental-income','transfer','groceries','fuel','utilities','dining','medical','vehicle','household','tithes','charitable','business','professional','insurance','subscription','debt-payment','other'].includes(r.category) ? r.category : 'other',
     // Carry the bank's running balance so the account-of-record "reconciles" badge
     // can verify this account, matching the bulk path (2026-07-18).
     ...(r.balance != null && r.balance !== '' ? { balance: Number(r.balance) || 0 } : {}),

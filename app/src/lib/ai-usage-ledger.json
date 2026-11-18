@@ -2363,6 +2363,51 @@
       "notes": "Reserved L309 and DR-1479 on origin with new-lesson.mjs and claim-decision-number through intermittent 503s. 157 verses filled from app/public/bible/kjv by fill-verses.mjs, none typed. Every personal detail of the source emails withheld; the second thread was not read back (session permission check), re-review 2026-11-27."
     },
     {
+      "id": "sov84-the-body-hath-many-members",
+      "date": "2026-11-13",
+      "task": "Sovereign A.I. week 84 from one forwarded newsletter and one typed word",
+      "drs": [
+        "DR-1497"
+      ],
+      "prs": [],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.9,
+      "estimateWithoutAiHours": 26,
+      "notes": "One lesson, four bands, 168 quoted spans generator-filled from the KJV corpus, a 33-case proven-to-catch test, and the verification pass that found a shared expert the article never mentions. Three primary hosts refused; raw.githubusercontent.com and gh code search opened."
+    },
+    {
+      "id": "pm18-what-is-that-in-thine-hand",
+      "date": "2026-11-13",
+      "task": "pm18 What is that in thine hand: capability anxiety, the path a leader owes, and the One who teaches; Project Management lesson 18 from a LinkedIn column forwarded under one word, Lesson; all four age bands, 44-case gate",
+      "drs": [
+        "DR-1485"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.5,
+      "estimateWithoutAiHours": 30,
+      "notes": "Reserved DR-1485 and reserve/pm18 on origin. 204 quoted spans filled from app/public/bible/kjv by scripts/pm18-fill.mjs, none typed. The email is a teaser; the rest of the column was never read and www.wtwco.com and www.shrm.org both failed to resolve, so no report figure is taught; re-review 2026-11-27. App skills-inventory gap named, re-review 2026-12-13."
+    },
+    {
+      "id": "pm19-let-these-also-first-be-proved",
+      "date": "2026-11-13",
+      "task": "pm19 Let these also first be proved: proof of readiness, the letter and the trial, and the apprentice down the hall; Project Management lesson 19 from a WGU LinkedIn digest forwarded twice under Lesson; all four age bands, lesson gate with tiered-figure check",
+      "drs": [
+        "DR-1496"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 2,
+      "estimateWithoutAiHours": 30,
+      "notes": "Reserved DR-1496 and reserve/pm19 on origin. Verses filled from app/public/bible/kjv by scripts/pm19-fill.mjs, none typed. The three pieces were read whole from the second forward; www.wgu.edu, www.weforum.org, www.linkedin.com and Craft Education's site refused by the proxy (403), so figures are taught at their tier and one unsourced figure is left out; re-review 2026-11-27. Course hands-on work unrecorded (crowns record completion), named, re-review 2026-12-13."
+    },
+    {
       "id": "sov81-what-hast-thou-that-thou-didst-not-receive",
       "date": "2026-11-13",
       "task": "Sovereign A.I. week 81 built from one word over a forwarded IT Brew issue (Copyright, copyleft), all four age bands, 31-case gate",
@@ -2391,6 +2436,21 @@
       "wallClockHours": 0.9,
       "estimateWithoutAiHours": 10,
       "notes": "LearnersPanel CourseLessons fold; course-pace studiedLessons/lessonsToGrow from the same standing loop; ChurchLearn openLessonFromList shared with the Latest list. Measured in Chrome at 360 and 412px, Normal and A44: no overflow, taps 44px or more. 9 new tests fail on the old panel; 3 mutations caught."
+    },
+    {
+      "id": "sov85-and-it-fell-not",
+      "date": "2026-11-13",
+      "task": "Sovereign A.I. week 85 built from one word over a forwarded Level Up Coding newsletter (Chaos Engineering Clearly Explained), all four age bands, 38-case gate",
+      "drs": [
+        "DR-1500"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.5,
+      "estimateWithoutAiHours": 14,
+      "notes": "Word first on Matthew 7:25-27 and 1 Corinthians 3:13. House measured: proven-to-catch count, deploy fault-injection tests, site-health steady state, weekly NAS restore drill, the second road on 2026-11-13 run logs. Gap recorded: no deliberate road-closing drill. Held for sov84; sov83 landed mid-build and was merged in, numbers re-derived on the merged tree."
     },
     {
       "id": "ll310-the-hidden-life-and-the-empty-chair",
@@ -2961,6 +3021,55 @@
       "wallClockHours": 0.7,
       "estimateWithoutAiHours": 14,
       "notes": ""
+    },
+    {
+      "id": "properties-every-door-at-once",
+      "date": "2026-11-18",
+      "task": "Poe Properties Overview: every door at once with open work, the latest message, a reply owed and payments to confirm per door; KPIs, six sorts, an all-open-work list and a mixed latest feed; a tap opens the door on the tab that holds it; an unread part is never a zero",
+      "drs": [
+        "DR-1530"
+      ],
+      "prs": [
+        2733
+      ],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.7,
+      "estimateWithoutAiHours": 10,
+      "notes": ""
+    },
+    {
+      "id": "properties-sharp-front-page-pictures",
+      "date": "2026-11-18",
+      "task": "Poe Properties front page pixelated pictures: the hero carousel and listing cards drew the 640 px thumbnail full width; now the thumbnail draws first and the one picture on screen swaps to its full image; plus an accessibility audit of the Overview (44px targets, 12px floor, focus rings, live status)",
+      "drs": [
+        "DR-1533"
+      ],
+      "prs": [
+        2733
+      ],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.4,
+      "estimateWithoutAiHours": 5,
+      "notes": ""
+    },
+    {
+      "id": "ll319-what-the-trust-could-not-keep",
+      "date": "2026-11-18",
+      "task": "L319: what the trust could not keep, from a news summary sent into the build channel",
+      "drs": [
+        "DR-1532"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.9,
+      "estimateWithoutAiHours": 8,
+      "notes": "Verified the events through search (resignation, his own admission, the GRAT terminations) before writing; page fetches refused by the network allowlist, named in UNCHECKED. The unconfirmed per-share price was dropped and the unproven espionage allegation gated out. 131 quotations filled from the corpus; gate 15/15; ladder child 1.4 < youth 3.5 < teen 4.8 < senior 8.6."
     },
     {
       "id": "jonah-j2-landed-manifest",
