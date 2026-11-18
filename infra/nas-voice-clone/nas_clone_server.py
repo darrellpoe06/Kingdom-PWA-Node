@@ -48,6 +48,7 @@ import binascii
 import hashlib
 import io
 import json
+import math
 import os
 import re
 import shutil
@@ -79,7 +80,9 @@ BASE_SAMPLE_TEXT = (
     "Trust in the Lord with all thine heart, and lean not unto thine own understanding."
 )
 
-DATA_URI = re.compile(r"^data:([a-z0-9.+/-]+)?(?:;[a-z0-9=.+-]+)*;base64,(.*)$", re.I | re.S)
+DATA_URI = re.compile(
+    r"^data:([a-z0-9.+/-]+)?(?:;[a-z0-9=.+-]+)*;base64,(.*)$", re.IGNORECASE | re.DOTALL
+)
 
 
 # --- Pure pieces (the selftest pins these without torch) ----------------------
@@ -107,13 +110,13 @@ def clamp_speed(value):
         v = float(value)
     except (TypeError, ValueError):
         return 1.0
-    if v != v or v <= 0:
+    if math.isnan(v) or v <= 0:
         return 1.0
     return max(SPEED_MIN, min(SPEED_MAX, v))
 
 
 def clip_key(ref_sha, speed, text):
-    return hashlib.sha256(("%s|%.2f|%s" % (ref_sha, speed, text)).encode("utf-8")).hexdigest()
+    return hashlib.sha256(f"{ref_sha}|{speed:.2f}|{text}".encode()).hexdigest()
 
 
 def parse_request(body):
@@ -122,8 +125,8 @@ def parse_request(body):
         req = json.loads(body.decode("utf-8"))
     except (UnicodeDecodeError, ValueError):
         raise ValueError("body-not-json")
-    if not isinstance(req, dict):
-        raise ValueError("body-not-json")
+    # A body that is JSON but not an object carries no text: refused as text-required.
+    req = req if isinstance(req, dict) else {}
     text = " ".join(str(req.get("text") or "").split())
     if not text:
         raise ValueError("text-required")
@@ -149,7 +152,9 @@ def wav_seconds(data):
 
 def prune_cache(folder, max_bytes):
     try:
-        files = [os.path.join(folder, f) for f in os.listdir(folder) if f.endswith(".wav")]
+        files = [
+            os.path.join(folder, f) for f in os.listdir(folder) if f.endswith(".wav")
+        ]
     except OSError:
         return 0
     files.sort(key=lambda p: os.path.getmtime(p))
@@ -174,7 +179,7 @@ def find_tool(candidates):
 
 
 # --- The engine (torch is imported only here, only when it is real) -----------
-class Engine(object):
+class Engine:
     """OpenVoice V2's converter, loaded from <home>/models/converter/{config.json,checkpoint.pth}."""
 
     def __init__(self, home, threads):
@@ -207,7 +212,14 @@ class Engine(object):
         audio, _ = librosa.load(wav_path, sr=self.hps.data.sampling_rate)
         y = self.torch.FloatTensor(audio).unsqueeze(0)
         d = self.hps.data
-        return self.spec(y, d.filter_length, d.sampling_rate, d.hop_length, d.win_length, center=False)
+        return self.spec(
+            y,
+            d.filter_length,
+            d.sampling_rate,
+            d.hop_length,
+            d.win_length,
+            center=False,
+        )
 
     def embedding(self, wav_path):
         with self.torch.no_grad():
@@ -219,7 +231,9 @@ class Engine(object):
         with self.torch.no_grad():
             spec = self._spec(wav_path)
             lengths = self.torch.LongTensor([spec.size(-1)])
-            audio = self.model.voice_conversion(spec, lengths, sid_src=src_se, sid_tgt=tgt_se, tau=tau)[0][0, 0]
+            audio = self.model.voice_conversion(
+                spec, lengths, sid_src=src_se, sid_tgt=tgt_se, tau=tau
+            )[0][0, 0]
             pcm = (audio.clamp(-1, 1) * 32767).short().numpy().tobytes()
         buf = io.BytesIO()
         with wave.open(buf, "wb") as w:
@@ -236,10 +250,12 @@ class Engine(object):
         return self.torch.load(path, map_location="cpu")
 
 
-class Clone(object):
+class Clone:
     """Everything around the engine: Piper, ffmpeg, embeddings, the clip cache, the lock."""
 
-    def __init__(self, home, lite_home, engine=None, piper="", ffmpeg="", voice_model=""):
+    def __init__(
+        self, home, lite_home, engine=None, piper="", ffmpeg="", voice_model=""
+    ):
         self.home = home
         self.engine = engine
         self.piper = piper
@@ -252,28 +268,50 @@ class Clone(object):
 
     def ready(self):
         if not self.piper:
-            return False, "piper is not on this box yet (the voice-lite install puts it there)"
+            return (
+                False,
+                "piper is not on this box yet (the voice-lite install puts it there)",
+            )
         if not self.voice_model:
-            return False, "the house voice %s is not on this box yet" % BASE_VOICE
+            return False, f"the house voice {BASE_VOICE} is not on this box yet"
         if not self.ffmpeg:
-            return False, "ffmpeg is not on this box yet (needed to read a phone's recording)"
+            return (
+                False,
+                "ffmpeg is not on this box yet (needed to read a phone's recording)",
+            )
         if self.engine is None:
             return False, self.reason or "the converter has not loaded"
         return True, ""
 
     def _run(self, args, stdin=None):
-        p = subprocess.run(args, input=stdin, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=SYNTH_TIMEOUT)
+        p = subprocess.run(
+            args,
+            input=stdin,
+            capture_output=True,
+            timeout=SYNTH_TIMEOUT,
+            check=False,
+        )
         if p.returncode != 0:
-            raise RuntimeError("%s exited %s" % (os.path.basename(args[0]), p.returncode))
+            raise RuntimeError(f"{os.path.basename(args[0])} exited {p.returncode}")
 
     def piper_wav(self, text, speed, out_path):
-        self._run([self.piper, "--model", self.voice_model, "--output_file", out_path,
-                   "--length_scale", "%.3f" % (1.0 / speed)], stdin=text.encode("utf-8"))
+        self._run(
+            [
+                self.piper,
+                "--model",
+                self.voice_model,
+                "--output_file",
+                out_path,
+                "--length_scale",
+                f"{1.0 / speed:.3f}",
+            ],
+            stdin=text.encode("utf-8"),
+        )
         if not os.path.isfile(out_path) or os.path.getsize(out_path) < 100:
             raise RuntimeError("piper produced no audio")
 
     def base_embedding(self):
-        path = os.path.join(self.home, "se", "_base_%s.pt" % BASE_VOICE)
+        path = os.path.join(self.home, "se", f"_base_{BASE_VOICE}.pt")
         if os.path.isfile(path):
             return self.engine.load(path)
         tmp = os.path.join(self.home, "tmp", "_base.wav")
@@ -292,8 +330,23 @@ class Clone(object):
             with open(raw, "wb") as fh:
                 fh.write(ref)
             try:
-                self._run([self.ffmpeg, "-y", "-loglevel", "error", "-i", raw, "-ac", "1", "-ar", "22050",
-                           "-t", str(MAX_REF_SECONDS), wav])
+                self._run(
+                    [
+                        self.ffmpeg,
+                        "-y",
+                        "-loglevel",
+                        "error",
+                        "-i",
+                        raw,
+                        "-ac",
+                        "1",
+                        "-ar",
+                        "22050",
+                        "-t",
+                        str(MAX_REF_SECONDS),
+                        wav,
+                    ]
+                )
             except (RuntimeError, subprocess.TimeoutExpired):
                 raise ValueError("reference-unreadable")
             se = self.engine.embedding(wav)
@@ -346,7 +399,12 @@ def make_handler(clone):
             if self.path.split("?", 1)[0] not in ("/health", "/voice-clone/health"):
                 return self._json(404, {"error": "not-found"})
             ok, why = clone.ready()
-            body = {"ok": ok, "engine": "nas-clone", "base": BASE_VOICE, "model": "openvoice-v2-converter"}
+            body = {
+                "ok": ok,
+                "engine": "nas-clone",
+                "base": BASE_VOICE,
+                "model": "openvoice-v2-converter",
+            }
             # The speed the installer MEASURED on this box (seconds of work per
             # second of speech), never an estimate; absent until it has run.
             try:
@@ -384,11 +442,15 @@ def make_handler(clone):
                 audio = clone.speak(req)
             except ValueError as e:
                 tag = str(e)
-                return self._json(413 if tag == "text-too-long" else 400, {"error": tag})
+                return self._json(
+                    413 if tag == "text-too-long" else 400, {"error": tag}
+                )
             except BlockingIOError:
                 return self._json(503, {"error": "busy"})
             except Exception as e:  # noqa: BLE001 -- one tagged answer, never a hung reader
-                return self._json(500, {"error": "synthesis-failed", "why": type(e).__name__})
+                return self._json(
+                    500, {"error": "synthesis-failed", "why": type(e).__name__}
+                )
             self.send_response(200)
             self.send_header("Content-Type", "audio/wav")
             self.send_header("Content-Length", str(len(audio)))
@@ -403,14 +465,26 @@ def make_handler(clone):
 def build_clone(home, lite_home, threads):
     piper = find_tool([os.path.join(lite_home, "piper", "piper")])
     model = os.path.join(lite_home, "voices", BASE_VOICE + ".onnx")
-    ffmpeg = find_tool([os.path.join(lite_home, "ffmpeg", "ffmpeg"), shutil.which("ffmpeg") or "",
-                        "/usr/bin/ffmpeg", "/var/packages/ffmpeg7/target/bin/ffmpeg",
-                        "/var/packages/ffmpeg6/target/bin/ffmpeg"])
-    clone = Clone(home, lite_home, piper=piper, ffmpeg=ffmpeg, voice_model=model if os.path.isfile(model) else "")
+    ffmpeg = find_tool(
+        [
+            os.path.join(lite_home, "ffmpeg", "ffmpeg"),
+            shutil.which("ffmpeg") or "",
+            "/usr/bin/ffmpeg",
+            "/var/packages/ffmpeg7/target/bin/ffmpeg",
+            "/var/packages/ffmpeg6/target/bin/ffmpeg",
+        ]
+    )
+    clone = Clone(
+        home,
+        lite_home,
+        piper=piper,
+        ffmpeg=ffmpeg,
+        voice_model=model if os.path.isfile(model) else "",
+    )
     try:
         clone.engine = Engine(home, threads)
     except Exception as e:  # noqa: BLE001 -- a missing weight file is said, not crashed on
-        clone.reason = "the converter did not load: %s" % type(e).__name__
+        clone.reason = f"the converter did not load: {type(e).__name__}"
     return clone
 
 
@@ -438,26 +512,42 @@ def _selftest():
     print("=== 1. the request is read strictly ===")
     ref = wav_bytes(1.0)
     uri = "data:audio/webm;codecs=opus;base64," + base64.b64encode(ref).decode()
-    r = parse_request(json.dumps({"text": "  In the   beginning ", "reference_audio": uri, "speed": 9}).encode())
+    r = parse_request(
+        json.dumps(
+            {"text": "  In the   beginning ", "reference_audio": uri, "speed": 9}
+        ).encode()
+    )
     check(r["text"] == "In the beginning", "text is trimmed and its spaces collapsed")
-    check(r["ref"] == ref and r["mime"] == "audio/webm", "a data URI with parameters decodes to the recording and its type")
+    check(
+        r["ref"] == ref and r["mime"] == "audio/webm",
+        "a data URI with parameters decodes to the recording and its type",
+    )
     check(r["speed"] == SPEED_MAX, "a speed out of range is clamped, not refused")
     for body, tag in [
         ({"text": "", "reference_audio": uri}, "text-required"),
         ({"text": "hi"}, "reference-required"),
-        ({"text": "hi", "reference_audio": "data:audio/wav;base64,@@@"}, "reference-unreadable"),
-        ({"text": "hi", "reference_audio": base64.b64encode(b"x" * 10).decode()}, "reference-unreadable"),
+        (
+            {"text": "hi", "reference_audio": "data:audio/wav;base64,@@@"},
+            "reference-unreadable",
+        ),
+        (
+            {"text": "hi", "reference_audio": base64.b64encode(b"x" * 10).decode()},
+            "reference-unreadable",
+        ),
         ({"text": "x" * (MAX_CHARS + 1), "reference_audio": uri}, "text-too-long"),
     ]:
         try:
             parse_request(json.dumps(body).encode())
-            check(False, "refuses with %s" % tag)
+            check(False, f"refuses with {tag}")
         except ValueError as e:
-            check(str(e) == tag, "refuses with %s (got %s)" % (tag, e))
-    check(clip_key("a", 1.0, "t") != clip_key("b", 1.0, "t"), "a clip is cached per recording, never shared between voices")
+            check(str(e) == tag, f"refuses with {tag} (got {e})")
+    check(
+        clip_key("a", 1.0, "t") != clip_key("b", 1.0, "t"),
+        "a clip is cached per recording, never shared between voices",
+    )
     check(clip_key("a", 1.0, "t") != clip_key("a", 1.25, "t"), "and per pace")
 
-    class FakeEngine(object):
+    class FakeEngine:
         calls = 0
 
         def embedding(self, path):
@@ -481,11 +571,15 @@ def _selftest():
     os.makedirs(bindir)
     piper = os.path.join(bindir, "piper")
     with open(piper, "w") as fh:
-        fh.write("#!/bin/sh\nout=''\nwhile [ $# -gt 0 ]; do [ \"$1\" = --output_file ] && out=\"$2\"; shift; done\n"
-                 "cat >/dev/null\nhead -c 4000 /dev/zero > \"$out\"\n")
+        fh.write(
+            '#!/bin/sh\nout=\'\'\nwhile [ $# -gt 0 ]; do [ "$1" = --output_file ] && out="$2"; shift; done\n'
+            'cat >/dev/null\nhead -c 4000 /dev/zero > "$out"\n'
+        )
     ff = os.path.join(bindir, "ffmpeg")
     with open(ff, "w") as fh:
-        fh.write("#!/bin/sh\nfor a; do last=\"$a\"; done\nhead -c 2000 /dev/zero > \"$last\"\n")
+        fh.write(
+            '#!/bin/sh\nfor a; do last="$a"; done\nhead -c 2000 /dev/zero > "$last"\n'
+        )
     os.chmod(piper, 0o755)
     os.chmod(ff, 0o755)
 
@@ -505,58 +599,98 @@ def _selftest():
         return resp.status, dict(resp.getheaders()), data
 
     s, _, d = call("GET", "/health")
-    check(s == 503 and b"converter did not load" in d, "health 503 with the reason while the weights are missing")
-    s, _, d = call("POST", "/speak", json.dumps({"text": "hi", "reference_audio": uri}).encode())
-    check(s == 503 and b"not-ready" in d, "speak 503 not-ready, never a stand-in passed off as the voice")
+    check(
+        s == 503 and b"converter did not load" in d,
+        "health 503 with the reason while the weights are missing",
+    )
+    s, _, d = call(
+        "POST", "/speak", json.dumps({"text": "hi", "reference_audio": uri}).encode()
+    )
+    check(
+        s == 503 and b"not-ready" in d,
+        "speak 503 not-ready, never a stand-in passed off as the voice",
+    )
 
     print("=== 3. ready: the voice is made, tagged, cached, and one at a time ===")
     c.engine = FakeEngine()
     s, _, d = call("GET", "/health")
     check(s == 200 and b'"engine": "nas-clone"' in d, "health 200 names the engine")
-    body = json.dumps({"text": "The Word of Yahweh endures.", "reference_audio": uri}).encode()
+    body = json.dumps(
+        {"text": "The Word of Yahweh endures.", "reference_audio": uri}
+    ).encode()
     s, hdr, d = call("POST", "/speak", body)
     check(s == 200 and d[:4] == b"RIFF", "speak returns WAV audio")
     check(hdr.get("X-Voice-Engine") == "nas-clone", "and says which engine made it")
-    check(wav_seconds(d) > 0.4, "the audio has real length (%.2fs)" % wav_seconds(d))
+    check(wav_seconds(d) > 0.4, f"the audio has real length ({wav_seconds(d):.2f}s)")
     n = FakeEngine.calls
     call("POST", "/speak", body)
-    check(FakeEngine.calls == n, "the same words in the same voice are served from the cache")
-    check(len(os.listdir(os.path.join(home, "se"))) == 2, "one embedding for the recording, one for the house voice")
-    s, _, d = call("POST", "/speak", json.dumps({"text": "hi", "reference_audio": "nope"}).encode())
-    check(s == 400 and b"reference-unreadable" in d, "an unreadable recording is a named 400")
+    check(
+        FakeEngine.calls == n,
+        "the same words in the same voice are served from the cache",
+    )
+    check(
+        len(os.listdir(os.path.join(home, "se"))) == 2,
+        "one embedding for the recording, one for the house voice",
+    )
+    s, _, d = call(
+        "POST", "/speak", json.dumps({"text": "hi", "reference_audio": "nope"}).encode()
+    )
+    check(
+        s == 400 and b"reference-unreadable" in d,
+        "an unreadable recording is a named 400",
+    )
     starts = []
 
     def one(i):
-        starts.append(call("POST", "/speak", json.dumps({"text": "piece %d" % i, "reference_audio": uri}).encode())[0])
+        starts.append(
+            call(
+                "POST",
+                "/speak",
+                json.dumps({"text": f"piece {i}", "reference_audio": uri}).encode(),
+            )[0]
+        )
 
     ts = [threading.Thread(target=one, args=(i,)) for i in range(2)]
     t0 = time.time()
     [t.start() for t in ts]
     [t.join() for t in ts]
-    check(starts == [200, 200], "two pieces at once both complete (the second waits its turn)")
-    check(time.time() - t0 >= 0.55, "and they ran one after the other, not together, on a CPU box")
+    check(
+        starts == [200, 200],
+        "two pieces at once both complete (the second waits its turn)",
+    )
+    check(
+        time.time() - t0 >= 0.55,
+        "and they ran one after the other, not together, on a CPU box",
+    )
 
     print("=== 4. the cache stays inside its bound ===")
     cdir = os.path.join(home, "cache")
     for i in range(5):
-        with open(os.path.join(cdir, "x%d.wav" % i), "wb") as fh:
+        with open(os.path.join(cdir, f"x{i}.wav"), "wb") as fh:
             fh.write(b"0" * 1000)
     prune_cache(cdir, 2500)
-    check(sum(os.path.getsize(os.path.join(cdir, f)) for f in os.listdir(cdir)) <= 2500, "oldest clips pruned to the limit")
+    check(
+        sum(os.path.getsize(os.path.join(cdir, f)) for f in os.listdir(cdir)) <= 2500,
+        "oldest clips pruned to the limit",
+    )
 
     srv.shutdown()
     shutil.rmtree(home, ignore_errors=True)
     if failures:
-        print("\nSELFTEST FAILED: %d check(s)" % len(failures))
+        print(f"\nSELFTEST FAILED: {len(failures)} check(s)")
         sys.exit(1)
     print("\nALL VOICE-CLONE CHECKS PASSED.")
 
 
 def main():
-    ap = argparse.ArgumentParser(description="My voice on the NAS's own CPU (Piper + OpenVoice V2 converter)")
+    ap = argparse.ArgumentParser(
+        description="My voice on the NAS's own CPU (Piper + OpenVoice V2 converter)"
+    )
     ap.add_argument("--port", type=int, default=int(os.environ.get("PORT", "8773")))
     ap.add_argument("--home", default=os.environ.get("VOICE_CLONE_HOME", HOME_DEFAULT))
-    ap.add_argument("--lite-home", default=os.environ.get("VOICE_LITE_HOME", LITE_HOME_DEFAULT))
+    ap.add_argument(
+        "--lite-home", default=os.environ.get("VOICE_LITE_HOME", LITE_HOME_DEFAULT)
+    )
     ap.add_argument("--threads", type=int, default=max(1, (os.cpu_count() or 2) - 1))
     ap.add_argument("--selftest", action="store_true")
     args = ap.parse_args()
@@ -564,7 +698,8 @@ def main():
         return _selftest()
     clone = build_clone(args.home, args.lite_home, args.threads)
     ok, why = clone.ready()
-    print("voice-clone on 127.0.0.1:%d -- %s" % (args.port, "ready" if ok else "NOT READY: " + why), flush=True)
+    state = "ready" if ok else "NOT READY: " + why
+    print(f"voice-clone on 127.0.0.1:{args.port} -- {state}", flush=True)
     ThreadingHTTPServer(("127.0.0.1", args.port), make_handler(clone)).serve_forever()
 
 
