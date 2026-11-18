@@ -520,3 +520,63 @@ or missing store exits non-zero saying *"which is not 'no failures'"* — DR-007
 is his to read, and the six rows' cause is still unnamed. Four consecutive
 reads (05:12, 06:09, 07:09, 08:09) were otherwise identical: 7 waiting, 0
 building, the handoff stable.
+
+---
+
+## 12. "Fix it!!!!!! So we don't need anything!!!!!!!" — and the answer was on the box (DR-1542)
+
+**Six consecutive reads, 05:12 → 13:10, every one the same:** 7 waiting, 0
+building, `Failed because -- other: 6, transient: 1`, the oldest teaching
+passing 6 d 0 h. 0334 told me *which site* refused — and for six rows said
+`other`, which is the honest word for "not one of the two that retry
+themselves" and tells a person nothing about what to do.
+
+At 13:10 a peer session relayed Darrell's own words from ~12:28Z, about every
+item parked on his hand: **"Fix it!!!!!! So we don't need anything!!!!!!! For
+all of these.... obviously!!!!!"**
+
+That reverses the call I had made two hours earlier. I had looked at exactly
+this and decided to leave it to road 2, citing DR-1526. I was reading DR-1526
+as "don't instrument" when what it actually records is an ORDER: don't
+instrument *instead of* asking. The direct read now exists — it is DR-1537 —
+so building the keyless field is no longer the premature move. It is the
+remaining one.
+
+### What was already on the box, unread
+
+Two artifacts the census can open locally, with no key and no ssh:
+
+1. **`versions/<build_id>.json`**, written by `lesson_builder._store` at
+   `:1251`, carries `gate_results` — so the NAMES of the gates that refused
+   are right there.
+2. **The crashed build's own reason tag** opens with its exception class name,
+   because `:1029` writes `"{}: {}".format(type(e).__name__, e)`. That is the
+   one site 0334 publishes as `other` precisely because the opening is a class
+   name and not a fixed literal.
+
+### Why these may ride when prose may not
+
+A gate's name is a fixed word, listed in `GATE_NAMES` and in `k_gates`. The
+exception name is matched against **the interpreter's own `BaseException`
+subclasses** — an allowlist this repository does not write and therefore cannot
+let drift from Python. `Mary` is not an exception class; neither is
+`MarySmith`, nor `mary_smith`. All three are refused, and that is a case.
+
+The lookup is a **dict**, not a set, so what gets published is this file's own
+string and never the bytes that came off the row — the same discipline 0333
+keeps with `k_kinds[array_position(...)]`.
+
+And a fault's TEXT is read on neither side. The verse gate's faults quote both
+the draft and the verse; the same record holds `body` and `prompt_text`. A case
+plants markers in all three and asserts none reaches the census.
+
+### The thing I am most likely to be wrong about
+
+**The six rows may have no stored records at all.** `_store` is not called on
+every failure path — a build that crashed at `:1029` before storing leaves
+nothing. If so, the next read says `cause not stored` for those six, which is
+the honest answer and not a regression: absent is unread, never "no cause"
+(DR-0076 §8). DR-1537's diagnostic is then still the read that answers it, and
+the exception name may yet come from the reason tag alone.
+
+Nothing here is measured live. `re-review: 2026-11-25`.

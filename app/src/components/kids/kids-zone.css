@@ -74,6 +74,11 @@
 .kz-ari{margin-top:.75rem;display:flex;gap:.625rem;align-items:center;background:#fff;border-radius:1.125rem;padding:.625rem .75rem;border:2px solid #CFE3FF}
 .kz-ari p{margin:0;font-size:.82rem;font-weight:700;line-height:1.3}
 .kz-ari small{display:block;font-weight:800;color:var(--kz-purple);font-size:.7rem}
+.kz-ari{flex-wrap:wrap}
+.kz-ari-ask{display:flex;gap:.5rem;width:100%;margin-top:.25rem}
+.kz-ari-ask input{flex:1 1 auto;min-width:0;min-height:44px;border-radius:999px;border:2px solid #CFE3FF;padding:0 .875rem;font:inherit;font-size:.9rem;color:var(--kz-ink);background:#fff}
+.kz-ari-ask .kz-act{margin-top:0;flex:0 0 auto;min-width:5rem}
+.tz .kz-ari-ask input{background:var(--tz-card);color:var(--tz-ink);border-color:var(--tz-line)}
 .kz-star{width:48px;height:48px;flex:0 0 auto}
 .kz-lil{margin-top:.75rem;display:flex;gap:.625rem;align-items:center;width:100%;background:linear-gradient(135deg,#FFF1C2,#FFE08A);border-radius:1.125rem;padding:.625rem .75rem;border:2px solid var(--lc-gold);color:var(--kz-ink);text-align:left;cursor:pointer;font:inherit}
 .kz-lil b{display:block;font-size:.95rem;font-weight:900}

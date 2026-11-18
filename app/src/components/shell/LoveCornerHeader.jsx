@@ -165,6 +165,21 @@ export default function LoveCornerHeader({
           </span>
         </button>
         <div className="lch-right">
+          {/* TEXT SIZE ON EVERY SCREEN (Darrell 2026-11-18: "Text sizing needs
+              to be somewhere on the screen? Not just in the reader"). One tap
+              opens Personalize, where the five sizes live; the glyph is fixed
+              in px so it never grows with the text it controls. */}
+          <button
+            type="button"
+            onClick={() => setPersonalizeOpen(true)}
+            className={`lch-ic lch-aa ${FOCUS}`}
+            aria-label="Text size and look: make the words bigger or smaller"
+            aria-haspopup="dialog"
+            aria-expanded={personalizeOpen}
+            data-testid="lch-text-size"
+          >
+            <span aria-hidden="true">Aa</span>
+          </button>
           <button
             type="button"
             onClick={() => setSheet('search')}

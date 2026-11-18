@@ -59,6 +59,21 @@ const clickTab = (label) => {
 };
 
 describe('Love Corner — an obvious Log in / Create account for signed-out visitors', () => {
+  it('Give & Serve shows the church\'s own giving channels with QR codes, never a send-off to the website (Darrell 2026-11-18)', () => {
+    mount();
+    clickTab('Give');
+    const panel = container.querySelector('[data-testid="give-tab-channels"]');
+    expect(panel).toBeTruthy();
+    expect(panel.textContent).not.toMatch(/runs on the church's own website/);
+    const channels = panel.querySelector('[data-testid="giving-channels"]');
+    expect(channels).toBeTruthy();
+    const zelle = panel.querySelector('[data-testid="giving-channel-zelle"]');
+    expect(zelle, 'Zelle card').toBeTruthy();
+    expect(zelle.querySelector('svg'), 'a QR code on the card').toBeTruthy();
+    expect(zelle.getAttribute('href')).toMatch(/^https:\/\//);
+    expect(panel.querySelectorAll('[data-testid^="giving-channel-"]').length).toBeGreaterThanOrEqual(3);
+  });
+
   it('shows a prominent Log in / Create account button when signed OUT', () => {
     mount({ signedIn: false });
     const btn = [...container.querySelectorAll('button')].find((b) => /log in\s*\/\s*create account/i.test(b.textContent || ''));

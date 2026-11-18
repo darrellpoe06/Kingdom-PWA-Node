@@ -18,7 +18,7 @@
 export const TX_CATEGORIES = [
   'salary', 'rental-income', 'transfer', 'groceries', 'fuel', 'utilities',
   'dining', 'medical', 'vehicle', 'household', 'tithes', 'charitable', 'business',
-  'professional', 'insurance', 'subscription', 'debt-payment', 'other',
+  'professional', 'insurance', 'subscription', 'debt-payment', 'held-for-others', 'other',
 ];
 
 // payeeKey — a stable key for a merchant/payer, used for learned rules and to
@@ -150,6 +150,9 @@ export function autoCategorizeSuggestions(transactions, learned = null, opts = {
 // Title-Case of the slug (underscores/hyphens -> spaces), so nothing renders raw.
 const CATEGORY_LABELS = {
   tithes: 'Tithes / Church Giving',
+  // Money that passes through for someone else (Christina 2026-11-18: $55 from
+  // Christiana's account to pay her tithe): neither income nor spending.
+  'held-for-others': 'Held for someone else (passed along)',
   // Raw bank transaction-type codes (Chase "Type" column, lowercased on import).
   acct_xfer: 'Transfer',
   account_transfer: 'Transfer',

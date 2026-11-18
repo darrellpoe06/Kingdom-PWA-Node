@@ -1306,6 +1306,11 @@ const NODES = [
     id: 'browser-probe', name: 'Browser probe harness (called)', purpose: 'The one job that builds the app, installs Chrome and Playwright, runs a named probe script and uploads its artifact; every browser witness calls it instead of carrying the same forty lines (DR-1342).',
     reads: [{ res: 'gh:call:browser-probe', token: 'workflow_call' }], writes: [], seeds: [],
   }),
+  wf('church-site-probe.yml', {
+    id: 'church-site-probe', name: 'Church site probe (read-only)',
+    purpose: 'Reads the church\u2019s public website from a runner (the sandbox has no route to it) and prints its pages, headings and any feed, so the announcements-and-events sync (Darrell 2026-11-18) can be built on what the site actually publishes; nothing is written.',
+    reads: [{ res: 'site:thechurchofthelivinggod.com', token: 'thechurchofthelivinggod.com' }], writes: [], seeds: [],
+  }),
   wf('live-link-probe.yml', {
     id: 'live-link-probe', name: 'Live link probe', purpose: 'A real browser opens a shared lesson link.',
     reads: [{ res: 'site:poetech.us', token: 'poetech.us' }], writes: [], seeds: [],
@@ -2053,7 +2058,11 @@ const NODES = [
   }),
   rider('service:voice-transport', 'infra/voice-studio/install.sh', {
     id: 'voice-transport', name: 'Voice transport (the road to the studio)', purpose: 'Carries the app’s /voice requests to the studio on the tower.',
-    reads: [{ res: 'tower:voice-studio', token: 'tlcmediadpt' }], writes: [{ res: 'http:voice', token: '/voice' }], seeds: ['voice-studio'],
+    reads: [{ res: 'tower:voice-studio', token: 'tlcmediadpt' }, { res: 'nas:voice-clone', file: 'infra/voice-studio/voice_forwarder.py', token: '127.0.0.1:8773' }], writes: [{ res: 'http:voice', token: '/voice' }], seeds: ['voice-studio'],
+  }),
+  rider('service:voice-clone', 'infra/nas-voice-clone/nas_clone_server.py', {
+    id: 'voice-clone', name: 'My voice on the NAS (Piper + OpenVoice converter)', purpose: 'Makes the reading in the listener’s own recorded voice on the NAS CPU when the tower’s studio is dark, behind the same /voice door (DR-1538).',
+    reads: [{ res: 'nas:services', file: 'infra/nas-loops/services.json', token: 'voice-clone' }], writes: [{ res: 'nas:voice-clone', token: '8773' }], seeds: ['voice-transport'],
   }),
   rider('service:voice-lite', 'infra/nas-voice-lite/voice_lite_server.py', {
     id: 'voice-lite', name: 'NAS audio voice (Piper)', purpose: 'Speaks a paragraph as a real audio clip on the NAS CPU, so the stand-in voice keeps playing in the background (DR-0627).',
@@ -2408,6 +2417,7 @@ const RESOURCES = {
   'gh:release': { label: 'the app release' },
   'gh:review-issue': { label: 'due re-review items', sink: 'A due re-review opens an issue a steward works; the ledger itself is the record.' },
   'site:poetech.us': { label: 'the live site' },
+  'site:thechurchofthelivinggod.com': { label: 'the church\u2019s public website', source: 'The church office publishes announcements, events and service times on its own website; the app reads, never writes, there.' },
   'site:preview': { label: 'a branch preview of the app (Vercel), never the live site', source: 'Built by the Vercel GitHub integration from every branch push; nothing in this repository writes it, and it serves no family data (lib/preview-isolation.js).' },
   // Cloudflare's own record of what it believes is deployed. Nothing here can
   // write it, which is exactly why #2057 ran five days on inference: the

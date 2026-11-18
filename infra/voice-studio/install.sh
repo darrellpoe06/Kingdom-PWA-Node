@@ -131,17 +131,28 @@ forwarder_follows_code
 
 if [ -z "$BACKEND" ]; then
   echo "  no voice studio answered on this cycle."
-  echo "  NOTHING MOUNTED -- deliberately. A /voice path in front of a dark studio"
-  echo "  would hang the reader instead of failing them, and would read as armed."
-  echo "  Bring the studio up (arm-voice-studio.yml, arm=true, once CI's key is"
-  echo "  authorized on the 4070); the next services-sync cycle mounts on its own."
-  exit 0
+  # THE NAS'S OWN CLONE (DR-1538). With the tower dark, the forwarder hands My
+  # voice to the clone on this box (infra/nas-voice-clone). A /voice path is
+  # mounted only when that clone ANSWERS ready -- a path in front of nothing
+  # would hang the reader and read as armed -- and the forwarder's /health
+  # then passes the clone's own answer through (engine: nas-clone).
+  CLONE="$(curl -s -m 8 http://127.0.0.1:8773/health 2>/dev/null || echo '')"
+  if printf '%s' "$CLONE" | grep -q '"ok": true'; then
+    echo "  the NAS's own clone answers ready -- /voice can carry My voice without the tower"
+  else
+    echo "  and the NAS's own clone is not ready yet ($(printf '%s' "$CLONE" | head -c 200))."
+    echo "  NOTHING MOUNTED -- deliberately. A /voice path in front of nothing"
+    echo "  would hang the reader instead of failing them, and would read as armed."
+    echo "  The clone installs itself (infra/nas-voice-clone, services-sync); the"
+    echo "  next cycle after it answers mounts on its own. No hand needed."
+    exit 0
+  fi
 fi
 
 echo "== voice install: the forwarder must itself answer before the Funnel points at it =="
 sleep 1
 FCODE="$(curl -s -m 8 -o /dev/null -w '%{http_code}' "$FWD/health" 2>/dev/null || echo 000)"
-echo "  $FWD/health -> $FCODE (this is the STUDIO's answer, passed through)"
+echo "  $FWD/health -> $FCODE (the STUDIO's answer, or the NAS clone's when the tower is dark)"
 if [ "$FCODE" != "200" ]; then
   echo "  forwarder is not passing a 200 through -- NOT mounting. See: journalctl -u poetech-voice-forwarder -n 50"
   exit 0

@@ -70,10 +70,15 @@ export function myVoiceUsable(status) {
  * One plain sentence: which voice will read, and why. Said before play and
  * after a miss, never only as a status word. Pure.
  */
-export function myVoiceLine({ name = '', status = MY_VOICE.CHECKING, miss = '' } = {}) {
+export function myVoiceLine({ name = '', status = MY_VOICE.CHECKING, miss = '', engine = '' } = {}) {
   const who = myVoiceLabel(name);
   switch (status) {
     case MY_VOICE.READY:
+      // The tower is dark and the NAS makes the voice itself (DR-1538). Said
+      // plainly: the sound of your voice, the house voice's pacing.
+      if (engine === 'nas-clone') {
+        return `${who} is ready: lessons read with the sound of your recorded voice, made on the house’s own NAS while the voice studio on the tower is dark. The pacing is the house voice’s; the voice is yours.`;
+      }
       return `${who} is ready: lessons read in your recorded voice, made on the church’s own voice studio.`;
     case MY_VOICE.CHECKING:
       return `${who}: asking the church’s voice studio whether it is answering. If it is not, you will be told, and the stand-in voice reads.`;

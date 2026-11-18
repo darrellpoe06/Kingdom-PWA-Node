@@ -40,14 +40,14 @@ describe('chrome-layout-probe output is readable', () => {
   });
 
   it('every pass decides per case, against a snapshot taken before its checks', () => {
-    // Five passes (chrome + lesson reading [DR-0406] + the two comfort passes
+    // Six passes (chrome + lesson reading [DR-0406] + the two comfort passes
     // [DR-0716: the reader's one slim row, and the A44 block's Hide outside the
-    // reader] + text-scale), so five snapshot/compare pairs. A pass added
-    // without its own pair fails here.
+    // reader] + text-scale + the words-read pass [DR-1539]), so six
+    // snapshot/compare pairs. A pass added without its own pair fails here.
     const snapshots = [...SRC.matchAll(/const before = failures;/g)];
     const compares = [...SRC.matchAll(/if \(failures === before\)/g)];
-    expect(snapshots.length, 'each pass snapshots the count before its checks').toBe(5);
-    expect(compares.length, 'each pass compares against its own snapshot').toBe(5);
+    expect(snapshots.length, 'each pass snapshots the count before its checks').toBe(6);
+    expect(compares.length, 'each pass compares against its own snapshot').toBe(6);
   });
 
   it('still reports both an ok line and a fail line for each pass', () => {
@@ -55,6 +55,7 @@ describe('chrome-layout-probe output is readable', () => {
     expect(SRC).toMatch(/lesson ok /);
     expect(SRC).toMatch(/textscale ok /);
     expect(SRC).toMatch(/comfort ok /);
+    expect(SRC).toMatch(/words ok /);
     expect(SRC).toMatch(/LAYOUT FAIL/);
   });
 });
