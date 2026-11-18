@@ -567,6 +567,21 @@
       "notes": "Built in the same session and PR as ll284; the lesson measured 3,212 words, four bands inside the reader band, every verse verbatim from the KJV on disk."
     },
     {
+      "id": "open-source-chest",
+      "date": "2026-11-18",
+      "task": "Decide DR-1501's open-source fund: 1% of PoeTech+ income, split across single-keeper packages, /bin/bash until income",
+      "drs": [
+        "DR-1541"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.2,
+      "estimateWithoutAiHours": 1,
+      "notes": ""
+    },
+    {
       "id": "the-in-flight-view-has-an-age",
       "date": "2026-11-06",
       "task": "claim-decision-number.mjs walked a local remote-tracking cache as fresh as the last fetch and said nothing of it, so it under-reported a live three-way collision; the view is now refreshed first, its age always printed, and every holder of a number named instead of the first",
