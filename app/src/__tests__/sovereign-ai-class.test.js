@@ -183,6 +183,10 @@ describe('curriculum shape', () => {
     // the 84 entry the same way in the merge that brings 84. Until then the
     // ten strict-contiguity gates DR-1376 counted (sov52-54, sov57-63) are red
     // on this branch by design, which keeps it from merging ahead of 84.
+    // 89 WAS HELD and is DISCHARGED, 2026-11-18 (DR-1548). Week 90 (Let your
+    // yea be yea) was written while week 89 (DR-1546) was in flight; 89 landed
+    // before 90 was committed, so the entry was deleted and the list
+    // RECOMPUTED on the rebased tree: 90 modules, weeks 1..90, nothing missing.
     const HELD_IN_FLIGHT = [];
     const weeks = SOVEREIGN_AI_MODULES.map((m) => Number(m.id.match(/^sov(\d+)-/)?.[1]));
     // Strictly ascending: a doubled or misfiled week still fails.

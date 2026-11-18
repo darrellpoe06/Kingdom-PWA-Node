@@ -90,7 +90,7 @@ export function upcomingAnnounced(events, now = new Date()) {
  * lead, then the next announced event or the honest "none posted" card, then
  * the first-visit card. Every card carries the id of the surface it opens.
  */
-export function featureCards({ services = [], announcedEvents = [], now = new Date() } = {}) {
+export function featureCards({ services = [], announcedEvents = [], office = null, now = new Date() } = {}) {
   const { day } = churchClock(now);
   const today = servicesOn(services, day);
   const next = nextService(services, now);
@@ -138,6 +138,15 @@ export function featureCards({ services = [], announcedEvents = [], now = new Da
       kicker: 'Coming up',
       title: e.name,
       body: [e.date, e.detail].filter(Boolean).join(' · '),
+      open: { sub: 'home', section: 'times' },
+    });
+  } else if (office && office.calendar) {
+    // The office's own month calendar, read from the church website (DR-1550).
+    cards.push({
+      id: 'office-calendar',
+      kicker: 'From the office',
+      title: `${office.calendar.label}: the church calendar is posted`,
+      body: 'The month at a glance, as the office published it. Tap to see it.',
       open: { sub: 'home', section: 'times' },
     });
   } else {
