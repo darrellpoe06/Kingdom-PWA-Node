@@ -461,7 +461,7 @@ describe('FRESHNESS INSIDE THE DEPARTMENT, measured rather than claimed (DR-0076
       .toEqual(['Deuteronomy 24', 'Leviticus 25', 'Matthew 18', 'Micah 2']);
   });
 
-  it('shares exactly EIGHT verses with courses OUTSIDE the department, and names them', () => {
+  it('shares exactly ELEVEN verses with courses OUTSIDE the department, and names them', () => {
     // The department pin above is verse-level zero. This is the wider picture,
     // pinned so the narrower claim cannot be mistaken for a catalog-wide one.
     //
@@ -522,7 +522,17 @@ describe('FRESHNESS INSIDE THE DEPARTMENT, measured rather than claimed (DR-0076
     // and the trampling, read by an evictions course and a lesson on who may
     // call on Him, is the catalog agreeing with itself. Re-pinned rather than
     // loosened, and the title says EIGHT.
-    expect([...outside].sort()).toEqual(['Amos 2:6', 'Amos 2:7', 'Job 24:2', 'Job 24:7', 'Job 31:15', 'Job 31:16', 'Matthew 18:27', 'Matthew 18:33']);
+    //
+    // And to ELEVEN on 2026-11-18 when ll322 (why should he take away thy bed,
+    // DR-1547) landed in Living Lessons: it teaches Deuteronomy 24:6, 10 and
+    // 11. These are the millstone no lender may take as a pledge, and the
+    // lender who must stand outside and wait for the pledge to be brought out.
+    // They are what Yahweh fenced off for a borrower who signs away his house
+    // for debts that never touched it. This course reads the same three verses
+    // for what the Word restrains against a household that cannot pay. Both
+    // read Deuteronomy 24 on the door a creditor may not walk through, so the
+    // list is re-pinned rather than loosened, and the title says ELEVEN.
+    expect([...outside].sort()).toEqual(['Amos 2:6', 'Amos 2:7', 'Deuteronomy 24:10', 'Deuteronomy 24:11', 'Deuteronomy 24:6', 'Job 24:2', 'Job 24:7', 'Job 31:15', 'Job 31:16', 'Matthew 18:27', 'Matthew 18:33']);
   });
 
   it('carries none of the three passages the measurement ruled out', () => {
