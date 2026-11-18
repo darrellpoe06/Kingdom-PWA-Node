@@ -2931,6 +2931,23 @@
       "wallClockHours": 0.6,
       "estimateWithoutAiHours": 8,
       "notes": ""
+    },
+    {
+      "id": "properties-every-door-at-once",
+      "date": "2026-11-18",
+      "task": "Poe Properties Overview: every door at once with open work, the latest message, a reply owed and payments to confirm per door; KPIs, six sorts, an all-open-work list and a mixed latest feed; a tap opens the door on the tab that holds it; an unread part is never a zero",
+      "drs": [
+        "DR-1530"
+      ],
+      "prs": [
+        2733
+      ],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.7,
+      "estimateWithoutAiHours": 10,
+      "notes": ""
     }
   ]
 }
