@@ -236,11 +236,26 @@ Reported by Christina from her Chase Personal Checking 7206 screenshot: six rows
   - An account-details screen is told apart from a history screen (`summary.screen`).
   - Transfers naming an account's last four, and Cash App to or from Darrell, are suggested as transfers. "Transfer from GMR" is not assumed.
 - **Past imports:** `lib/screenshot-import-recheck.js` re-reads every screenshot already added from the OCR text kept on the device, with the same answers, and lists each row written differently (in the books / what the screen says / bank balance after) on the Books upload screen. It changes nothing; a correction is made by the person in Transactions. A screenshot added on another device is counted as not checkable there, never as fine.
-- **Pending:** a pending charge on the screenshot's day is inside that day's available-balance checkpoint, so it is not subtracted twice (tested).
+- **The $837.00 tithe** (Christina: it is her church tithe). It stays a withdrawal.
+  - A category she confirms on the row (Tithes / Church Giving) wins for that row.
+  - It teaches no payee-wide rule when the reader saw a transfer between her accounts, because one payee (TLC) can be both. Not every TLC payment becomes a tithe; genuine transfers stay transfers.
+  - An older remembered rule that disagrees with the transfer label no longer decides silently. The row is flagged on the card for her to choose.
+- **Pending, measured gaps closed:**
+  - Chase prints pending rows with no date, and the reader dropped them. They now take the screenshot's day.
+  - The import planner dropped the `pending` flag. It is now kept (not part of the duplicate check, so re-imports match as before).
+  - When available and present differ by exactly the pending rows on the screen, the available balance is recorded without a question.
+  - A pending charge on the screenshot's day is inside that day's available-balance checkpoint, so it is not subtracted twice.
+- **Pending to posted** (`matchPostedToPending`). A posted row is compared with pending rows already in the books: same account, same amount, posted 0 to 7 days after.
+  - Same transaction id: the same charge; not added.
+  - Same merchant words (wording may differ, e.g. "POS DEBIT CIRCLE K #1234" for "CIRCLE K 1234"): held for review, unticked, so it is not counted twice. Ticking adds it.
+  - Only the amount and days agree: added, with a note to check.
+  - One pending row answers for one posted row. Nothing in the books is changed.
+  - Known limit: the pending row itself stays marked pending (records are not edited); cleaning it up is a separate, approved step.
 - **Tests:**
   - `money-chase-running-balance.test.js` (17): her six rows in five OCR layouts, sign from the balances, sign conflict, lost amount, transfers, balance vs history screen, end to end (writes the six real amounts plus the $2,559.78 checkpoint), pending, and the re-check.
-  - `money-chase-running-balance-card.test.jsx` (1).
-  - Proven to catch: 15 of the 17 fail on the old reader.
+  - `money-chase-running-balance.test.js` now 28 tests, adding the tithe, the $2,559.78 checkpoint on Nov 17, the pending day, pending to posted (held, ticked, different merchant, same id, outside 7 days, another account, one-for-one).
+  - `money-chase-running-balance-card.test.jsx` (2).
+  - Proven to catch: 15 of the original 17 fail on the old reader; each new safeguard removed fails its tests (matcher 4, per-row tithe 1, pending flag 3, pending day 3).
 
 ## 6. Morning report (overnight 2026-11-17)
 

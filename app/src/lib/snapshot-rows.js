@@ -172,7 +172,10 @@ export function readSnapshotRows(text, { asOf = null } = {}) {
         last = null;
         continue;
       }
-      const rowDay = day || heading;
+      // A pending row carries no date of its own on a banking app: it is
+      // today's, the screenshot's day (2026-11-18: Chase pending rows were
+      // dropped for having no day).
+      const rowDay = day || heading || (pending ? (asOf || { open: 'pending' }) : null);
       if (desc) {
         if (HEADING.test(desc) && !day) {
           carry = null;
@@ -211,7 +214,7 @@ export function readSnapshotRows(text, { asOf = null } = {}) {
       last = null;
       continue;
     }
-    carry = { day: day || heading, description: (rest || line).trim() };
+    carry = { day: day || heading || (pending ? (asOf || { open: 'pending' }) : null), description: (rest || line).trim() };
     last = null;
   }
   resolveAmounts(raw);

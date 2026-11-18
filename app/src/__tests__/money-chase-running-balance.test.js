@@ -15,6 +15,10 @@ import { memoryStore } from '../lib/books-intake-store.js';
 import { intakeFiles, commitDoc } from '../lib/books-intake-pipeline.js';
 import { balanceCheckpointRow, deriveAccountBalances } from '../lib/financial-engineering.js';
 import { recheckScreenshotImports } from '../lib/screenshot-import-recheck.js';
+import { payeeKey } from '../lib/categorize.js';
+import { isTransferTxn } from '../lib/imported-view.js';
+import { matchPostedToPending } from '../lib/books-intake-match.js';
+import { rulesFromDecisions } from '../lib/ledger-edit.js';
 
 vi.mock('../lib/books-intake-cloud.js', () => ({ keepOriginalInCloud: async () => ({ ok: false, reason: 'test' }) }));
 
@@ -22,9 +26,9 @@ const AS_OF = '2026-11-17';
 // Her six rows: what Chase shows as the amount, and the gray balance under it.
 // Newest first, as the app lists them.
 const SIX = [
-  { day: 'Nov 16, 2026', desc: 'Zelle payment to TLC THERAPY SOLUTIONS', amount: '-$75.00', balance: '$3,941.72', want: -75 },
+  { day: 'Nov 16, 2026', desc: 'Zelle payment to TLC', amount: '-$75.00', balance: '$3,941.72', want: -75 },
   { day: null, desc: 'ATM CASH DEPOSIT', amount: '$1,000.00', balance: '$4,497.99', want: 1000 },
-  { day: 'Nov 15, 2026', desc: 'Zelle payment to TLC THERAPY SOLUTIONS', amount: '-$837.00', balance: '$6,890.57', want: -837 },
+  { day: 'Nov 15, 2026', desc: 'Zelle payment to TLC', amount: '-$837.00', balance: '$6,890.57', want: -837 },
   { day: null, desc: 'Transfer from GMR', amount: '$55.00', balance: '$8,529.13', want: 55 },
   { day: null, desc: 'Cash App from Darrell', amount: '$1,450.00', balance: '$8,474.13', want: 1450 },
   { day: null, desc: 'Transfer from Chase 3322', amount: '$2,201.00', balance: '$7,024.13', want: 2201 },
@@ -104,7 +108,7 @@ describe('transfers between her own accounts are transfers, not income', () => {
   it('Zelle to TLC, Cash App from Darrell and the transfer from Chase 3322 are suggested as transfers; GMR is not assumed', () => {
     const { rows } = readSnapshotRows(screen('balance on its own line, then the amount'), { asOf: AS_OF });
     const cat = Object.fromEntries(rows.map((r) => [`${r.description} ${r.amount}`, r.category || null]));
-    expect(cat['Zelle payment to TLC THERAPY SOLUTIONS -75']).toBe('transfer');
+    expect(cat['Zelle payment to TLC -75']).toBe('transfer');
     expect(cat['Cash App from Darrell 1450']).toBe('transfer');
     expect(cat['Transfer from Chase 3322 2201']).toBe('transfer');
     expect(cat['Transfer from GMR 55']).toBeNull();
@@ -231,5 +235,181 @@ describe('screenshots already added are re-checked, and nothing is changed', () 
     ).toEqual([]);
     const elsewhere = recheckScreenshotImports([{ id: 'd', status: 'added', extraction: { doc_type: 'account-snapshot' } }], good);
     expect(elsewhere).toMatchObject({ checked: 0, notCheckable: 1 });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Christina 2026-11-18: the $837.00 Zelle payment is her church tithe; the
+// Chase 7206 available balance is recorded as of the screenshot's day; a
+// pending charge is never subtracted twice, now or when it later posts.
+// ---------------------------------------------------------------------------
+describe('through Approve: the tithe, the balance on the day, and pending charges', () => {
+  const ACCOUNTS = [{ id: 'a-7206', name: 'Chase 7206', fragment: '7206', type: 'checking', entityId: 'e-personal', balance: 0 }];
+  const ENTITIES = [{ id: 'e-personal', name: 'Personal', type: 'personal' }];
+  const file = (body, name = 'chase.jpg') => ({
+    name,
+    type: 'image/jpeg',
+    size: body.length,
+    text: async () => body,
+    arrayBuffer: async () => new TextEncoder().encode(body).buffer,
+  });
+  async function approve(body, { transactions = [], categoryRules = null, rowDecisions = null, name } = {}) {
+    const store = memoryStore();
+    const known = { accounts: ACCOUNTS, entities: ENTITIES, transactions, categoryRules };
+    const ctx = { store, hint: 'overview', known, reader: async (f) => ({ text: await f.text(), method: 'ocr:test' }) };
+    const [doc] = await intakeFiles([file(body, name)], ctx);
+    const written = [];
+    const sinks = {
+      commitImportedRows: async (rows) => {
+        written.push(...rows);
+        return { total: rows.length, saved: rows.length };
+      },
+    };
+    await commitDoc(rowDecisions ? { ...doc, rowDecisions } : doc, { store, known, sinks });
+    return { doc, rows: written.filter((r) => r.category !== 'balance-checkpoint'), checkpoint: written.find((r) => r.category === 'balance-checkpoint') };
+  }
+  const HISTORY = [...screen('balance on its own line, then the amount').split('\n'), 'as of Nov 17, 2026'].join('\n');
+  const tithe = (rows) => rows.find((r) => r.amount === -837);
+
+  it('the $837.00 tithe is a withdrawal, and is Tithes / Church Giving when she marks it so on the card', async () => {
+    const { rows } = await approve(HISTORY, { rowDecisions: { 2: { category: 'tithes' } } });
+    expect(tithe(rows)).toMatchObject({ amount: -837, category: 'tithes' });
+    // Only the row she marked: the $75.00 payment keeps its own suggestion.
+    expect(rows.find((r) => r.amount === -75).category).toBe('transfer');
+  });
+
+  it('an older remembered rule never turns every TLC payment into a tithe: the transfer stays, flagged for her choice', async () => {
+    const { doc, rows } = await approve(HISTORY, { categoryRules: { [payeeKey('Zelle payment to TLC')]: 'tithes' } });
+    expect(rows.find((r) => r.amount === -75).category).toBe('transfer');
+    expect(tithe(rows).category).toBe('transfer');
+    const flagged = doc.plan.rowStatuses.filter((x) => x.row.categoryConflict === 'tithes').map((x) => x.row.amount);
+    expect(flagged).toEqual([-75, -837]);
+  });
+
+  it('confirming Tithes on the $837.00 row teaches no payee-wide rule (one payee can be both)', () => {
+    const items = [
+      { description: 'Zelle payment to TLC', amount: -837, category: 'transfer' },
+      { description: 'Circle K', amount: -40 },
+    ];
+    expect(rulesFromDecisions(items, { 0: { category: 'tithes' }, 1: { category: 'vehicle' } })).toEqual([{ description: 'Circle K', category: 'vehicle' }]);
+  });
+
+  it('a tithe is spending, never a transfer left out of the totals', async () => {
+    const { rows } = await approve(HISTORY, { rowDecisions: { 2: { category: 'tithes' } } });
+    expect(isTransferTxn(tithe(rows))).toBe(false);
+  });
+
+  it('records $2,559.78 as the available balance of Chase 7206 on the screenshot day, Nov 17, 2026', async () => {
+    const { checkpoint } = await approve(HISTORY);
+    expect(checkpoint).toMatchObject({
+      accountId: 'a-7206',
+      date: '2026-11-17',
+      reconciliation: expect.objectContaining({ balance: 2559.78, basis: 'available' }),
+    });
+  });
+
+  const PENDING_DAY = [
+    'CHASE',
+    'TOTAL CHECKING (...7206)',
+    'Available balance $2,559.78',
+    'Present balance $2,599.78',
+    'as of Nov 17, 2026',
+    'Pending',
+    'CIRCLE K 1234 -$40.00',
+    'Posted',
+    ...screen('balance on its own line, then the amount').split('\n').slice(4),
+  ].join('\n');
+
+  it("a pending charge on the screenshot day: written once, marked pending, and the books read exactly Chase's available balance that day", async () => {
+    const { rows, checkpoint } = await approve(PENDING_DAY, { rowDecisions: null });
+    const pend = rows.filter((r) => r.pending);
+    expect(pend.map((r) => [r.description, r.amount, r.date])).toEqual([['CIRCLE K 1234', -40, '2026-11-17']]);
+    const ledger = [{ id: 'cp', ...checkpoint }, ...rows.map((r, i) => ({ id: `r${i}`, ...r }))];
+    const bal = deriveAccountBalances({ accounts: ACCOUNTS, transactions: ledger }, new Date(2026, 10, 17, 12));
+    expect(bal['a-7206']).toBe(2559.78);
+  });
+
+  const ledgerAfterFirst = async () => {
+    const first = await approve(PENDING_DAY);
+    return [{ id: 'cp', ...first.checkpoint }, ...first.rows.map((r, i) => ({ id: `r${i}`, ...r }))];
+  };
+
+  it('the same charge later posted on another day, worded a little differently, is held for review, not added, so it is never subtracted twice', async () => {
+    const ledger = await ledgerAfterFirst();
+    const NEXT = [
+      'CHASE',
+      'TOTAL CHECKING (...7206)',
+      'Available balance $2,514.78',
+      'as of Nov 18, 2026',
+      'Nov 18, 2026',
+      'POS DEBIT CIRCLE K #1234',
+      '$2,519.78',
+      '-$40.00',
+      'Nov 17, 2026',
+      'Coffee',
+      '$2,559.78',
+      '-$5.00',
+    ].join('\n');
+    const second = await approve(NEXT, { transactions: ledger, name: 'chase-2.jpg' });
+    expect(second.rows.map((r) => r.description)).not.toContain('POS DEBIT CIRCLE K #1234');
+    const held = second.doc.plan.rowStatuses.find((x) => x.row.description === 'POS DEBIT CIRCLE K #1234');
+    expect(held).toMatchObject({ status: 'pending-posted', pendingMatch: { date: '2026-11-17', description: 'CIRCLE K 1234', strength: 'likely' } });
+    // Until the next balance is recorded, Nov 18 reads Nov 17's available balance with nothing taken twice.
+    const after = [...ledger, ...second.rows.map((r, i) => ({ id: `s${i}`, ...r }))];
+    expect(deriveAccountBalances({ accounts: ACCOUNTS, transactions: after }, new Date(2026, 10, 18, 12))['a-7206']).toBe(2559.78);
+  });
+
+  it('she can add a held row as a separate charge: ticking it adds it', async () => {
+    const ledger = await ledgerAfterFirst();
+    const NEXT = [
+      'CHASE',
+      'TOTAL CHECKING (...7206)',
+      'Available balance $2,519.78',
+      'as of Nov 18, 2026',
+      'Nov 18, 2026',
+      'POS DEBIT CIRCLE K #1234',
+      '-$40.00',
+    ].join('\n');
+    const second = await approve(NEXT, { transactions: ledger, name: 'chase-3.jpg', rowDecisions: { 0: { exclude: false, addAnyway: true } } });
+    expect(second.rows.map((r) => [r.description, r.amount])).toEqual([['POS DEBIT CIRCLE K #1234', -40]]);
+  });
+
+  it('a different merchant with the same amount is never merged: added, with a note to check', async () => {
+    const ledger = await ledgerAfterFirst();
+    const NEXT = [
+      'CHASE',
+      'TOTAL CHECKING (...7206)',
+      'Available balance $2,519.78',
+      'as of Nov 18, 2026',
+      'Nov 18, 2026',
+      'WALMART SUPERCENTER',
+      '-$40.00',
+    ].join('\n');
+    const second = await approve(NEXT, { transactions: ledger, name: 'chase-4.jpg' });
+    expect(second.rows.map((r) => [r.description, r.amount])).toEqual([['WALMART SUPERCENTER', -40]]);
+    expect(second.doc.plan.rowStatuses[0]).toMatchObject({ status: 'new', pendingMatch: { strength: 'possible' } });
+  });
+
+  it('the same transaction id is the same charge; outside 7 days or on another account nothing is matched', () => {
+    const pending = [{ accountId: 'a-7206', date: '2026-11-17', description: 'AMAZON MKTPL', amount: -19.99, pending: true, fitid: 'X1' }];
+    expect(
+      matchPostedToPending([{ date: '2026-11-19', description: 'AMZN Mktp US*2K4', amount: -19.99, fitid: 'X1' }], 'a-7206', pending).matches[0].strength
+    ).toBe('same');
+    expect(matchPostedToPending([{ date: '2026-11-30', description: 'AMAZON MKTPL', amount: -19.99 }], 'a-7206', pending).matches).toEqual([]);
+    expect(matchPostedToPending([{ date: '2026-11-18', description: 'AMAZON MKTPL', amount: -19.99 }], 'a-3322', pending).matches).toEqual([]);
+  });
+
+  it('one pending row answers for one posted row: a second real charge the same week is added', () => {
+    const existing = [{ accountId: 'a-7206', date: '2026-11-17', description: 'CIRCLE K 1234', amount: -40, pending: true }];
+    const res = matchPostedToPending(
+      [
+        { date: '2026-11-18', description: 'CIRCLE K 1234', amount: -40 },
+        { date: '2026-11-19', description: 'CIRCLE K 1234', amount: -40 },
+      ],
+      'a-7206',
+      existing
+    );
+    expect(res.txns.map((r) => r.date)).toEqual(['2026-11-19']);
+    expect(res.matches.map((m) => [m.row.date, m.strength, !!m.added])).toEqual([['2026-11-18', 'likely', false]]);
   });
 });

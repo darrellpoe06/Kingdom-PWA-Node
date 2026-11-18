@@ -184,15 +184,30 @@ function SnapshotRows({ doc, x, onDecide, busy }) {
         {statuses.map((s) => {
           const r = s.row;
           const dup = s.status === 'duplicate';
+          const held = s.status === 'pending-posted';
           return (
-            <li key={s.index} className={`flex flex-wrap items-center gap-2 ${s.status === 'excluded' ? 'opacity-60' : ''}`} data-testid="intake-snapshot-row" data-status={s.status}>
+            <li key={s.index} className={`flex flex-wrap items-center gap-2 ${s.status === 'excluded' || held ? 'opacity-60' : ''}`} data-testid="intake-snapshot-row" data-status={s.status}>
               <label className="flex items-center gap-1 min-h-[36px]">
-                <input type="checkbox" checked={s.status === 'new'} disabled={!can || dup} onChange={(e) => onDecide(doc, { [s.index]: e.target.checked ? { exclude: false, category: (doc.rowDecisions || {})[s.index]?.category } : { exclude: true } })} aria-label={`Add ${r.description}`} data-testid={`intake-row-add-${s.index}`} />
+                <input type="checkbox" checked={s.status === 'new'} disabled={!can || dup} onChange={(e) => onDecide(doc, { [s.index]: e.target.checked ? { exclude: false, category: (doc.rowDecisions || {})[s.index]?.category, ...(held ? { addAnyway: true } : {}) } : { exclude: true } })} aria-label={`Add ${r.description}`} data-testid={`intake-row-add-${s.index}`} />
                 <span className="w-[5.5rem] shrink-0 text-[#5A5751]">{r.date}</span>
               </label>
               <span className="flex-1 min-w-[8rem] break-words text-[#1A1815]">{r.description}{r.pending ? ' \u00b7 pending' : ''}{dup ? ' \u00b7 already in the books' : ''}</span>
               <span className="shrink-0 text-[#1A1815]">{`${r.amount < 0 ? '\u2212' : '+'}${money(Math.abs(r.amount))}`}</span>
               <RowFigures r={r} />
+              {s.pendingMatch && (
+                <span className="w-full pl-6 text-[0.625rem] text-[#8B6F47]" data-testid={`intake-row-pending-match-${s.index}`}>
+                  {held
+                    ? `Likely the posted copy of the pending ${s.pendingMatch.description} on ${s.pendingMatch.date} already in the books. Not added, so it is not counted twice; tick it if it is a separate charge.`
+                    : s.pendingMatch.strength === 'same'
+                      ? `The same transaction as the pending one on ${s.pendingMatch.date}.`
+                      : `Same amount as the pending ${s.pendingMatch.description} on ${s.pendingMatch.date}. Added; untick it if it is the same charge.`}
+                </span>
+              )}
+              {r.categoryConflict && (
+                <span className="w-full pl-6 text-[0.625rem] text-[#8B6F47]" data-testid={`intake-row-category-conflict-${s.index}`}>
+                  {`Read as a transfer between your accounts; your rule for this payee says ${categoryLabel(r.categoryConflict)}. Choose which below.`}
+                </span>
+              )}
               <label className="w-full flex items-center gap-1 pl-6 text-[#5A5751]">
                 <span>Category</span>
                 <select value={r.category || 'other'} disabled={!can || dup || s.status === 'excluded'} onChange={(e) => onDecide(doc, { [s.index]: { category: e.target.value } })} aria-label={`Category for ${r.description}`} data-testid={`intake-row-category-${s.index}`} className="min-h-[36px] px-1 border border-[#E8E4DC] bg-white text-[#1A1815]">

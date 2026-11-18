@@ -45,7 +45,7 @@ describe('the review card for a Chase history screenshot', () => {
       'Available balance $2,559.78',
       'as of Nov 17, 2026',
       'Nov 16, 2026',
-      'Zelle payment to TLC THERAPY SOLUTIONS',
+      'Zelle payment to TLC',
       '$3,941.72',
       '-$75.00',
       'ATM CASH DEPOSIT',
@@ -93,7 +93,7 @@ describe('the review card for a Chase history screenshot', () => {
     });
     const list = await until(() => document.querySelector('[data-testid="intake-snapshot-rows"]'));
     const text = list.textContent;
-    expect(text).toContain('Zelle payment to TLC THERAPY SOLUTIONS');
+    expect(text).toContain('Zelle payment to TLC');
     expect(text).toContain('−$75.00');
     expect(text).toContain('Bank balance after: $3,941.72');
     expect(text).toContain('+$55.00');
@@ -107,5 +107,54 @@ describe('the review card for a Chase history screenshot', () => {
     expect(unclear.textContent).toContain('not added: amount unclear');
     expect(unclear.textContent).toContain('$4,497.99');
     expect(written).toEqual([]);
+  });
+
+  it('a posted charge that is likely the pending one already in the books is shown unticked, with why', { timeout: 30000 }, async () => {
+    const DATA = {
+      accounts: [{ id: 'a-7206', name: 'Chase 7206', fragment: '7206', type: 'checking', entityId: 'e-personal', balance: 0 }],
+      entities: [{ id: 'e-personal', name: 'Personal', type: 'personal' }],
+      transactions: [{ id: 'p1', accountId: 'a-7206', date: '2026-11-17', description: 'CIRCLE K 1234', amount: -40, pending: true }],
+    };
+    const body = [
+      'CHASE',
+      'TOTAL CHECKING (...7206)',
+      'Available balance $2,519.78',
+      'as of Nov 18, 2026',
+      'Nov 18, 2026',
+      'POS DEBIT CIRCLE K #1234',
+      '-$40.00',
+    ].join('\n');
+    host = document.createElement('div');
+    document.body.appendChild(host);
+    root = createRoot(host);
+    act(() =>
+      root.render(
+        createElement(BooksUpload, {
+          hint: 'overview',
+          data: DATA,
+          debts: [],
+          commitImportedRows: async () => ({ saved: 0 }),
+          addAccount: () => {},
+          updateAccount: () => {},
+          onClose: () => {},
+        })
+      )
+    );
+    const input = await until(() => document.querySelector('[data-testid="books-upload-input"]'));
+    const file = {
+      name: 'Screenshot_chase2.txt',
+      type: 'text/plain',
+      size: body.length,
+      text: async () => body,
+      arrayBuffer: async () => new TextEncoder().encode(body).buffer,
+    };
+    await act(async () => {
+      Object.defineProperty(input, 'files', { configurable: true, value: [file] });
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    const row = await until(() => document.querySelector('[data-testid="intake-snapshot-row"][data-status="pending-posted"]'));
+    expect(row.querySelector('input[type="checkbox"]').checked).toBe(false);
+    expect(row.textContent).toContain('Likely the posted copy of the pending CIRCLE K 1234 on 2026-11-17');
+    expect(document.querySelector('[data-testid="intake-rows-summary"]').textContent).toMatch(/^0 of 1 row/);
   });
 });

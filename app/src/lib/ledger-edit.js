@@ -134,6 +134,11 @@ export function rulesFromDecisions(lineItems, decisions) {
     const row = (lineItems || [])[Number(i)];
     const category = d && !d.exclude ? normalizeCategory(d.category) : '';
     const key = row ? payeeKey(row.description) : '';
+    // A row the reader read as a transfer between her own accounts that she
+    // marks as something else (the $837.00 Zelle to TLC is her tithe) is decided
+    // for THAT row only: one payee can be both, so no payee-wide rule is made
+    // (Christina 2026-11-18: "Do not automatically classify every TLC payment as a tithe").
+    if (row && row.category === 'transfer' && category !== 'transfer') continue;
     if (key && category) byPayee.set(key, { description: row.description, category });
   }
   return [...byPayee.values()];

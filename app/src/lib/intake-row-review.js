@@ -50,7 +50,11 @@ export function reviewLineItems(lineItems = [], decisions = {}, learned = null) 
     const d = (decisions || {})[i] || {};
     if (d.exclude) return;
     const row = { ...r };
+    // "Add it anyway" on a row held as the likely posted copy of a pending charge.
+    if (d.addAnyway === true) row.confirmedNew = true;
     if (d.category) {
+      // A category the person confirms on this row wins, for this row
+      // (Christina 2026-11-18: the $837.00 Zelle payment is her tithe).
       row.category = d.category;
       row.categorySource = 'you';
     } else if (!row.category || row.category === 'other') {
@@ -59,6 +63,13 @@ export function reviewLineItems(lineItems = [], decisions = {}, learned = null) 
         row.category = s.category;
         row.categorySource = s.rule === 'learned' ? 'your rule' : 'suggested';
       }
+    } else if (row.category === 'transfer' || row.category === 'debt-payment') {
+      // The reader's label (a transfer between her own accounts, a debt
+      // payment) is a suggestion. A remembered payee rule that says otherwise
+      // does not silently replace it, and is not dropped either: the row is
+      // flagged for her to decide (not every TLC payment is a tithe).
+      const s = categorize(row.description || '', { learned });
+      if (s.rule === 'learned' && s.category !== row.category) row.categoryConflict = s.category;
     }
     out.push(row);
   });
@@ -70,7 +81,7 @@ export function reviewLineItems(lineItems = [], decisions = {}, learned = null) 
  * { index, row (with its suggested or chosen category), status: 'new' |
  * 'duplicate' | 'excluded' }. `planned` is the list the dedupe kept as new.
  */
-export function rowStatuses(lineItems = [], decisions = {}, learned = null, planned = null) {
+export function rowStatuses(lineItems = [], decisions = {}, learned = null, planned = null, pendingMatches = []) {
   const reviewed = (lineItems || []).map((r, i) => {
     const d = (decisions || {})[i] || {};
     const [one] = reviewLineItems([r], d.exclude ? {} : { 0: d }, learned);
@@ -83,10 +94,26 @@ export function rowStatuses(lineItems = [], decisions = {}, learned = null, plan
       .trim()
       .toLowerCase()}`;
   for (const r of planned || []) left.set(key(r), (left.get(key(r)) || 0) + 1);
+  // Rows matched to a pending charge already in the books ('same' / 'likely'
+  // held back, 'possible' added with a note), by the same key.
+  const matched = new Map();
+  for (const m of pendingMatches || []) {
+    const k = key(m.row);
+    if (!matched.has(k)) matched.set(k, []);
+    matched.get(k).push(m);
+  }
   return reviewed.map((x) => {
     if (x.excluded) return { ...x, status: 'excluded' };
     if (planned == null) return { ...x, status: 'new' };
     const k = key(x.row);
+    const mm = matched.get(k);
+    const m = mm && mm.length ? mm.shift() : null;
+    if (m && !m.added) return { ...x, status: m.strength === 'same' ? 'duplicate' : 'pending-posted', pendingMatch: { ...m.pending, strength: m.strength } };
+    if (m && m.added) {
+      const n0 = left.get(k) || 0;
+      if (n0 > 0) left.set(k, n0 - 1);
+      return { ...x, status: 'new', pendingMatch: { ...m.pending, strength: m.strength } };
+    }
     const n = left.get(k) || 0;
     if (n > 0) {
       left.set(k, n - 1);

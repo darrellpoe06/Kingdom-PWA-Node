@@ -175,6 +175,10 @@ export function planBulkImport(files, accounts = [], existingTxns = [], fallback
         // ledger). The occurrence index keeps two truly-identical pending twins apart.
         id: r.fitid ? 'vl-' + r.fitid : 'imp-' + occKey,
         ...(r.fitid ? { fitid: String(r.fitid) } : {}),
+        // A pending row stays marked pending, so its posted copy on a later
+        // import is recognised instead of counted again (2026-11-18). Not part
+        // of the dedupe key: a re-import still matches exactly as before.
+        ...(r.pending ? { pending: true } : {}),
         // Persist the running balance so (a) a later re-import rebuilds the SAME
         // dedupe key (idempotent) and (b) the balance-continuity audit can verify
         // the ledger is complete + un-double-counted. Only when the source had it.

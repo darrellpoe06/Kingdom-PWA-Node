@@ -452,7 +452,14 @@ export function extractDocument(read = {}, source = {}, { hint = null, forceType
   if (cls.doc_type === 'account-snapshot') {
     // A person's answer picks which figure is the bank's; otherwise two different
     // figures on one screen are a question, never a guess.
+    // The two figures differ by exactly the pending rows on the screen: the
+    // available balance is the one with them already taken out, so it is the
+    // checkpoint and the pending rows are not taken out again (2026-11-18).
+    const pendingSum = (out.preview_items || []).filter((r) => r.pending && r.amount != null).reduce((t, r) => t + r.amount, 0);
+    const gapIsPending = out.summary.availableBalance != null && out.summary.currentBalance != null && pendingSum !== 0
+      && Math.abs(out.summary.currentBalance + pendingSum - out.summary.availableBalance) < 0.005;
     if (balanceKind && out.summary[`${balanceKind}Balance`] != null) { out.summary.newBalance = out.summary[`${balanceKind}Balance`]; out.summary.balanceKind = balanceKind; }
+    else if (gapIsPending) { out.summary.newBalance = out.summary.availableBalance; out.summary.balanceKind = 'available'; out.summary.pendingExplainsGap = Math.round(pendingSum * 100) / 100; }
     else if (out.summary.availableBalance != null && out.summary.currentBalance != null && Math.abs(out.summary.availableBalance - out.summary.currentBalance) > 0.005) out.uncertain.push('balance_kind');
     if (out.summary.newBalance == null) out.uncertain.push('balance');
     if (!out.dates.document) out.uncertain.push('as_of');
