@@ -5,18 +5,28 @@
 // from the hosted KJV at play time and the person's name is blanked while the
 // child guesses, then shown whole. A wrong tap says "not yet"; stars are the
 // round's alone; Next hero walks the roster.
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { verseText } from '../../lib/bible-kjv.js';
 import { useTextToSpeech } from '../../lib/tts.js';
 import { weeklyPick, weekIndex } from '../../lib/youth-zone.js';
-import { rosterFor, blankName, choicesFor, nextPerson, gradeGuess, CLUES_PER_PERSON } from '../../lib/kids/who-am-i.js';
+import { rosterFor, personByName, blankName, choicesFor, nextPerson, gradeGuess, CLUES_PER_PERSON } from '../../lib/kids/who-am-i.js';
 import { Shot, ShotSlot, GuideBubble, KidsIcon, KZ_FOCUS } from './GuideArt.jsx';
 
-export default function WhoAmI({ door = 'kids', now = null, loadVerse = verseText, onBack = null, onOpenScripture = null, shotList = undefined }) {
+export default function WhoAmI({
+  door = 'kids',
+  now = null,
+  loadVerse = verseText,
+  onBack = null,
+  onOpenScripture = null,
+  shotList = undefined,
+  // J1 (DR-1523): the trail opens the storybook's own hero; solving tells the zone, which records it.
+  hero = null,
+  onSolved = null,
+}) {
   const at = useMemo(() => now || new Date(), [now]);
   const roster = useMemo(() => rosterFor(door), [door]);
   const seed = weekIndex(at);
-  const [person, setPerson] = useState(() => weeklyPick(roster, at));
+  const [person, setPerson] = useState(() => (hero && personByName(roster, hero)) || weeklyPick(roster, at));
   const [revealed, setRevealed] = useState(1);
   const [texts, setTexts] = useState(null);
   const [guess, setGuess] = useState(null);
@@ -42,6 +52,13 @@ export default function WhoAmI({ door = 'kids', now = null, loadVerse = verseTex
   const choices = useMemo(() => choicesFor(person, roster, seed), [person, roster, seed]);
   const result = guess ? gradeGuess(person, guess, revealed) : null;
   const solved = result && result.right;
+  const told = useRef(null);
+  useEffect(() => {
+    if (solved && onSolved && told.current !== person.name) {
+      told.current = person.name;
+      onSolved(person, result);
+    }
+  }, [solved, person, result, onSolved]);
   return (
     <div className="kz-game" data-testid="who-am-i" data-person={person.name} data-solved={solved ? 'true' : 'false'}>
       <div className="kz-gamehead g-violet">

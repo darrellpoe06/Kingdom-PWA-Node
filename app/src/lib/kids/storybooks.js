@@ -13,6 +13,13 @@
 // at the end, whose answers are words the storybook's own verses contain
 // (kids-storybooks.test.js opens every verse in the in-repo KJV and proves
 // it). Pure: no React, no I/O.
+//
+// J1 of the Jonah adventure (DR-1523): each book names its hero (a person on
+// the Who am I? roster), its memory verse (the one the memory verse game
+// fills) and its key verse (the one the Word builder spells), all verified
+// to open in the KJV by the same test; and the Put the story in order game
+// is graded here, from the pages' own order, with a shuffle that never hands
+// a child the answer.
 
 const page = (ref, shot, who, caption) => ({ ref, shot, who, caption });
 const q = (question, options, answer, from) => ({ question, options, answer, from });
@@ -24,10 +31,13 @@ export const STORYBOOKS = Object.freeze([
     scripture: 'Jonah 1–3',
     book: 'Jonah',
     chapter: 1,
+    hero: 'Jonah',
+    memory: 'Jonah 2:9',
+    keyVerse: 'Jonah 1:17',
     pages: [
       page('Jonah 1:1-3', 'jonah-1', 'girl', 'Yahweh told Jonah to go to Nineveh. Look which way Jonah is going! That is the wrong way.'),
       page('Jonah 1:4', 'jonah-2', 'boy', 'Hold on tight! Yahweh sent a great wind, and the sailors were afraid.'),
-      page('Jonah 1:17', 'jonah-3', 'boy', 'Three days inside a fish! Yahweh had a plan for Jonah even there. Tap the words to hear them.'),
+      page('Jonah 1:17', 'jonah-3', 'boy', 'Three days inside a fish! Yahweh had a plan for Jonah even there.'),
       page('Jonah 2:1', 'jonah-4', 'girl', 'Even inside the fish, Jonah could pray. Yahweh hears us anywhere.'),
       page('Jonah 2:10', 'jonah-5', 'girl', 'Safe on dry land! Yahweh told the fish what to do, and it did.'),
       page('Jonah 3:1-3', 'jonah-6', 'boy', 'This time Jonah went the right way. Nineveh was a very big city.'),
@@ -46,6 +56,9 @@ export const STORYBOOKS = Object.freeze([
     scripture: 'Genesis 6–9',
     book: 'Genesis',
     chapter: 6,
+    hero: 'Noah',
+    memory: 'Genesis 9:13',
+    keyVerse: 'Genesis 7:16',
     pages: [
       page('Genesis 6:8', 'noah-1', 'girl', 'Everyone else had forgotten Yahweh. But Noah found grace in His eyes.'),
       page('Genesis 6:14', 'noah-2', 'boy', 'Build a boat on dry land? Noah did exactly what Yahweh said, plank by plank.'),
@@ -68,6 +81,9 @@ export const STORYBOOKS = Object.freeze([
     scripture: '1 Samuel 17',
     book: '1 Samuel',
     chapter: 17,
+    hero: 'David',
+    memory: '1 Samuel 17:47',
+    keyVerse: '1 Samuel 17:50',
     pages: [
       page('1 Samuel 17:4', 'david-1', 'boy', 'Goliath was a champion, and he was very, very tall. Six cubits and a span!'),
       page('1 Samuel 17:33', 'david-2', 'girl', 'King Saul said David was too young. But David trusted Yahweh.'),
@@ -125,4 +141,60 @@ export function storyProgress(book, pageIndex) {
   const n = book ? book.pages.length : 0;
   const i = Math.max(0, Math.min(n, Number(pageIndex) || 0));
   return { read: i, total: n, done: n > 0 && i >= n };
+}
+
+/** A small deterministic generator, so the same seed shuffles the same way on every device. */
+function lcg(seed) {
+  let x = (Number(seed) || 0) * 2654435761 + 12345;
+  return () => {
+    x = (x * 1103515245 + 12345) % 2147483648;
+    return x / 2147483648;
+  };
+}
+
+/**
+ * The pages of a book shuffled for Put the story in order: a permutation of
+ * the page indexes that is never the right order (a child always has
+ * something to do), the same for the same seed.
+ */
+export function orderShuffle(book, seed = 0) {
+  const n = book ? book.pages.length : 0;
+  const idx = Array.from({ length: n }, (_, i) => i);
+  if (n < 2) return idx;
+  const rnd = lcg(seed);
+  for (let i = n - 1; i > 0; i -= 1) {
+    const j = Math.floor(rnd() * (i + 1));
+    [idx[i], idx[j]] = [idx[j], idx[i]];
+  }
+  if (idx.every((v, i) => v === i)) idx.push(idx.shift());
+  return idx;
+}
+
+/**
+ * Grade an order the child built: the page indexes as placed. Right only
+ * when every page is in its place; otherwise the first page out of place is
+ * named, kindly ("not yet", never "wrong"), so the child can fix it from there.
+ */
+export function gradeOrder(book, order = []) {
+  const n = book ? book.pages.length : 0;
+  const placed = (order || []).map(Number);
+  let firstWrong = -1;
+  for (let i = 0; i < n; i += 1) {
+    if (placed[i] !== i) {
+      firstWrong = i;
+      break;
+    }
+  }
+  const complete = placed.length === n;
+  const right = complete && firstWrong === -1;
+  return {
+    right,
+    complete,
+    firstWrong,
+    says: right
+      ? 'Yes! That is the order the Word tells it.'
+      : firstWrong === -1
+        ? `Keep going: ${n - placed.length} more to place.`
+        : `Not yet. Look again at what comes ${firstWrong === 0 ? 'first' : `after page ${firstWrong}`}.`,
+  };
 }

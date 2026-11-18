@@ -176,7 +176,16 @@ describe('never a body', () => {
     const block = served.slice(served.indexOf('bl = receipt.get("builder")'));
     const quoted = new Set([...block.matchAll(/\bbl\.get\(\s*["']([a-z_]+)["']/g)].map((m) => m[1]));
     // `read` and `status` are containers whose own keys the SQL whitelists.
-    expect(quoted).toEqual(new Set(['read', 'status', 'service', 'status_withheld']));
+    // `writers` (0333, DR-1524) is the third such container: a list whose every
+    // entry the SQL REBUILDS from kind/ok/configured, so the two fields that
+    // could carry prose — `why`, a probe's own words, and `writer`, a name out
+    // of lesson-writers.json — never reach it. Widened DELIBERATELY here, which
+    // is the point of a closed set: this guard refused the field until it was
+    // declared, and that refusal is what makes the list mean something.
+    expect(quoted).toEqual(new Set(['read', 'status', 'service', 'status_withheld', 'writers']));
+    // The reader may read a writer's kind and its two flags, and nothing else.
+    const perWriter = new Set([...block.matchAll(/\bw\.get\(\s*["']([a-z_]+)["']/g)].map((m) => m[1]));
+    expect(perWriter).toEqual(new Set(['kind', 'configured', 'ok']));
     // Nothing that could carry a sentence is ever asked for.
     for (const never of ['error', 'reason', 'message', 'last_row_body', 'locks', 'stderr', 'log']) {
       expect(block, never).not.toContain(`'${never}'`);

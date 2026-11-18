@@ -106,7 +106,17 @@ describe('badges are derived from rows', () => {
       .map((b) => b.key);
   it('no rows, no badge; every badge has copy about learning, never about beating anyone', () => {
     expect(earnedKeys([], MON)).toEqual([]);
-    expect(BADGES.map((b) => b.key)).toEqual(['first-step', 'five-lessons', 'first-quiz', 'three-quizzes', 'showed-up', 'kids-reader']);
+    expect(BADGES.map((b) => b.key)).toEqual([
+      'first-step',
+      'five-lessons',
+      'first-quiz',
+      'three-quizzes',
+      'showed-up',
+      'kids-reader',
+      'great-fish',
+      'three-stories',
+      'front-row',
+    ]);
     for (const b of BADGES) expect(b.how).not.toMatch(/beat|rank|leader|top/i);
   });
   it('one read earns First Step; five earn Five Lessons; reads on three days in the week earn Showed Up', () => {
@@ -120,6 +130,25 @@ describe('badges are derived from rows', () => {
     expect(earnedKeys([q(1), q(2), q(3)], MON)).toEqual(['first-quiz', 'three-quizzes']);
     expect(earnedKeys([read('2026-11-14T10:00:00Z', { age_band: 'child' })], MON)).toEqual(['first-step', 'kids-reader']);
     expect(normalizeRecord({ lesson_id: 'a', quiz_passed: true })).toMatchObject({ lessonId: 'a', quizPassed: true });
+  });
+  it('the Bible Adventure badges (DR-1523) come from doing: Jonah finished AND answered, three storybooks, an episode watched to the end', () => {
+    const story = (id, extra = {}) => ({
+      lessonId: `storybook-${id}`,
+      courseKey: 'kids-storybooks',
+      completedAt: '2026-11-14T10:00:00Z',
+      ageBand: 'child',
+      ...extra,
+    });
+    // Jonah read but the questions not passed: no Great Fish yet (participation, not a tap).
+    expect(earnedKeys([story('jonah', { quizPassed: false })], MON)).not.toContain('great-fish');
+    expect(earnedKeys([story('jonah', { quizPassed: true })], MON)).toContain('great-fish');
+    // Three different storybooks, not the same one three times.
+    expect(earnedKeys([story('jonah'), story('jonah'), story('jonah')], MON)).not.toContain('three-stories');
+    expect(earnedKeys([story('jonah'), story('noah'), story('david')], MON)).toContain('three-stories');
+    // Front Row only from an episode row with a completion, which only the file player writes.
+    expect(earnedKeys([{ lessonId: 'episode-jonah', courseKey: 'kids-theater', completedAt: null }], MON)).not.toContain('front-row');
+    expect(earnedKeys([{ lessonId: 'episode-jonah', courseKey: 'kids-theater', completedAt: '2026-11-14T10:00:00Z' }], MON)).toContain('front-row');
+    expect(earnedKeys([], MON)).toEqual([]);
   });
   it('PROVEN-TO-CATCH: take the rows away and the badge goes with them', () => {
     const rows = [read('2026-11-14T10:00:00Z')];

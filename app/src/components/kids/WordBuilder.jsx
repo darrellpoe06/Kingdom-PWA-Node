@@ -9,6 +9,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { verseText } from '../../lib/bible-kjv.js';
 import { useTextToSpeech } from '../../lib/tts.js';
 import { weeklyVerse, weekIndex } from '../../lib/youth-zone.js';
+import { STORYBOOKS } from '../../lib/kids/storybooks.js';
 import {
   buildableWords,
   scrambleLetters,
@@ -185,9 +186,19 @@ export function OrderRound({ text, verseRef, seed, onNext }) {
   );
 }
 
-export default function WordBuilder({ door = 'kids', now = null, loadVerse = verseText, onBack = null, shotList = undefined }) {
+/** The verses the builder offers: this week's, then each storybook's key verse (J1, DR-1523). */
+export function builderVerses(weekly) {
+  const out = weekly ? [{ ref: weekly.ref, label: 'This week', id: 'week' }] : [];
+  for (const b of STORYBOOKS) if (b.keyVerse) out.push({ ref: b.keyVerse, label: b.hero, id: b.id });
+  return out;
+}
+
+export default function WordBuilder({ door = 'kids', now = null, loadVerse = verseText, onBack = null, shotList = undefined, verseRef = null }) {
   const at = useMemo(() => now || new Date(), [now]);
-  const verse = weeklyVerse(door, at);
+  const weekly = weeklyVerse(door, at);
+  const choices = useMemo(() => builderVerses(weekly), [weekly]);
+  const [ref, setRef] = useState(() => (verseRef && choices.some((c) => c.ref === verseRef) ? verseRef : weekly.ref));
+  const verse = { ref };
   const seed = weekIndex(at);
   const [text, setText] = useState(null);
   const [step, setStep] = useState(0);
@@ -219,7 +230,7 @@ export default function WordBuilder({ door = 'kids', now = null, loadVerse = ver
           <p>
             {teens
               ? 'The verse, phrase by phrase, then its longest word.'
-              : `Tap the letters in order. ${words.length ? `Word ${Math.min(step + 1, words.length)} of ${words.length} from this week's verse.` : ''}`}
+              : `Tap the letters in order. ${words.length ? `Word ${Math.min(step + 1, words.length)} of ${words.length} from ${ref === weekly.ref ? "this week's verse" : verse.ref}.` : ''}`}
           </p>
         </div>
         <Shot
@@ -231,6 +242,23 @@ export default function WordBuilder({ door = 'kids', now = null, loadVerse = ver
         />
       </div>
       <div className="kz-body">
+        {choices.length > 1 && (
+          <div className="kz-chips" role="tablist" aria-label="Which verse">
+            {choices.map((c) => (
+              <button
+                key={c.id}
+                type="button"
+                role="tab"
+                className={`kz-chip ${KZ_FOCUS}`}
+                aria-selected={c.ref === ref}
+                onClick={() => setRef(c.ref)}
+                data-testid={`builder-verse-${c.id}`}
+              >
+                {c.label}
+              </button>
+            ))}
+          </div>
+        )}
         <GuideBubble who="boy" shot="boy-explain" list={shotList}>
           {teens
             ? 'Tap the phrases in the order the verse says them.'
@@ -259,7 +287,7 @@ export default function WordBuilder({ door = 'kids', now = null, loadVerse = ver
           />
         )}
         {text && !finished && !teens && !words.length && (
-          <p className="lc-notice">This week's verse has no word of four letters or more to spell. Try Who am I?</p>
+          <p className="lc-notice">This verse has no word of four letters or more to spell. Try another verse, or Who am I?</p>
         )}
         {finished && (
           <div className="kz-panel" data-testid="builder-finished">

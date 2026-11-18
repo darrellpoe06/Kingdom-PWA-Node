@@ -193,6 +193,10 @@ export const BADGES = Object.freeze([
   { key: 'three-quizzes', title: 'Three in a Row', how: 'Pass three quizzes', icon: 'crown' },
   { key: 'showed-up', title: 'Showed Up', how: 'Read on three different days in one week', icon: 'calendar' },
   { key: 'kids-reader', title: 'Little Reader', how: 'Read a lesson at the Kids or Teens level', icon: 'heart' },
+  // The Bible Adventures (DR-1523): earned by doing, from the same rows.
+  { key: 'great-fish', title: 'Great Fish', how: 'Finish Jonah and the Great Fish and answer its questions', icon: 'dove' },
+  { key: 'three-stories', title: 'Story Keeper', how: 'Finish three Bible storybooks', icon: 'book' },
+  { key: 'front-row', title: 'Front Row', how: 'Watch a Bible Adventure episode to the end', icon: 'eye' },
 ]);
 
 const dayKey = (iso) => String(iso || '').slice(0, 10);
@@ -204,6 +208,8 @@ export function badgesFor(records = [], { now = new Date() } = {}) {
   const weekAgo = now.getTime() - 7 * 86400000;
   const daysThisWeek = new Set(read.filter((r) => Date.parse(r.completedAt) >= weekAgo).map((r) => dayKey(r.completedAt)));
   const youthBand = rows.some((r) => ['child', 'youth', 'teen'].includes(r.ageBand) && (r.completedAt || r.quizPassed));
+  const id = (r) => String(r.lessonId || '');
+  const storiesDone = new Set(read.filter((r) => id(r).startsWith('storybook-')).map(id));
   const earned = {
     'first-step': read.length >= 1,
     'five-lessons': read.length >= 5,
@@ -211,6 +217,9 @@ export function badgesFor(records = [], { now = new Date() } = {}) {
     'three-quizzes': passed.length >= 3,
     'showed-up': daysThisWeek.size >= 3,
     'kids-reader': youthBand,
+    'great-fish': rows.some((r) => id(r) === 'storybook-jonah' && r.completedAt && r.quizPassed === true),
+    'three-stories': storiesDone.size >= 3,
+    'front-row': read.some((r) => id(r).startsWith('episode-')),
   };
   return BADGES.map((b) => ({ ...b, earned: !!earned[b.key] }));
 }
