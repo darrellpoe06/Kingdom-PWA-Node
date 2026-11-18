@@ -392,11 +392,25 @@
       "to": 15002,
       "date": "2026-11-18",
       "why": "sov92 (The voice is Jacob’s voice, DR-1559) adds one lesson to this file after sov91 (DR-1553); the same reason as every raise above it -- the lesson corpus lives in JavaScript until DR-1339’s lesson-content-out-of-JS re-review (2026-11-19). The twenty-fifth raise of this ceiling, and the lesson it carries names that count to its readers. Measured with wc -l on the tree that holds sov92 spliced by scripts/sov92-fill.mjs onto sov91: 15002."
+    },
+    {
+      "file": "app/src/lib/sovereign-ai-class.js",
+      "from": 15002,
+      "to": 15190,
+      "date": "2026-11-18",
+      "why": "sov93 (The porter and the course, DR-1560) adds one lesson to this file after sov92 (DR-1559) landed; the same reason as every raise above it -- the lesson corpus lives in JavaScript until DR-1339’s lesson-content-out-of-JS re-review (2026-11-19). The twenty-sixth raise of this ceiling. Measured with wc -l on the tree that holds sov93 spliced by scripts/sov93-fill.mjs onto main at sov92: 15190."
+    },
+    {
+      "file": "app/src/lib/sovereign-ai-class.js",
+      "from": 15190,
+      "to": 15378,
+      "date": "2026-11-18",
+      "why": "sov94 (A bag with holes, DR-1562) adds one lesson to this file, stacked on sov93 (DR-1560) because the course numbers its weeks contiguously; the same reason as every raise above it -- the lesson corpus lives in JavaScript until DR-1339’s lesson-content-out-of-JS re-review (2026-11-19). The twenty-seventh raise of this ceiling. Measured with wc -l on the tree that holds sov94 spliced by scripts/sov94-fill.mjs onto sov93: 15378."
     }
   ],
   "budgets": {
     "app/src/lib/living-lessons-class.js": 33072,
-    "app/src/lib/sovereign-ai-class.js": 15002,
+    "app/src/lib/sovereign-ai-class.js": 15378,
     "app/src/lib/world-issues-class.js": 6789,
     "app/src/components/ChurchLearn.jsx": 6012,
     "app/src/modules/properties/DoorTabs.jsx": 3352,
