@@ -2903,6 +2903,21 @@
       "notes": ""
     },
     {
+      "id": "second-road-open",
+      "date": "2026-11-18",
+      "task": "Ways finding: the TS_AUTHKEY was never the blocker. One LAN SSH read of status.json gave more than a night of census instrumentation, and the fix was one lapsed claude sign-in",
+      "drs": [
+        "DR-1526"
+      ],
+      "prs": [],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.2,
+      "estimateWithoutAiHours": 1,
+      "notes": "Darrell: we didnt need it?!!!!!! Road 1 dead was reported as THE blocker while road 2, his own SSH, was open the whole time. The instrumentation keeps its value; the order was wrong."
+    },
+    {
       "id": "delete-says-so",
       "date": "2026-11-18",
       "task": "The Word: a draft would not delete. Fixed two independent silent-failure defects - a DELETE that removed zero rows reporting success, and deleting the deduped representative instead of the duplicate group",
