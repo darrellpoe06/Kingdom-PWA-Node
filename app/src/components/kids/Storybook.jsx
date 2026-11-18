@@ -1,16 +1,24 @@
 // =============================================================================
-// Storybook — an interactive Bible storybook with read-along (DR-1508)
+// Storybook — an interactive Bible storybook with read-along (DR-1508, DR-1523)
 // =============================================================================
 // Every page is a King James verse loaded at read time, word for word; the
 // guide's caption sits beside it, never inside it; the picture is a render of
-// the approved reference (a labeled slot until it lands); Hear this page is
+// the approved reference (the interim art until it lands); Hear this page is
 // the app's own read-aloud; Color this page is the existing coloring page
 // derived from the same verse; the last page asks three questions whose
 // answers are in the verses just read, and a pass writes a learner record
-// (signed in) so the map and the badges can light. Nothing is painted.
-import React, { useEffect, useMemo, useState } from 'react';
+// (signed in) so the trail and the badges can light. Nothing is painted.
+//
+// J1 of the Jonah adventure (DR-1523): the pages TURN (a short flip; a
+// crossfade under prefers-reduced-motion), a swipe or the arrow keys turn
+// them, Read to me reads the verse then the caption and turns the page by
+// itself until the questions, and the sentence being read is highlighted
+// from the reader's own segment index (lib/tts.js segments deterministically,
+// so the page maps index to sentence without the engine handing text back).
+// The last page offers the book's memory verse to the memory verse game.
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { verseText } from '../../lib/bible-kjv.js';
-import { useTextToSpeech } from '../../lib/tts.js';
+import { useTextToSpeech, segmentText } from '../../lib/tts.js';
 import { storybookById, gradeStoryAnswer, storyProgress } from '../../lib/kids/storybooks.js';
 import { coloringPage, coloringBooklet, coloringSvg } from '../../lib/coloring-page.js';
 import { saveLearnerRecord } from '../../lib/learner-records-sync.js';
@@ -18,6 +26,10 @@ import { printDocument, downloadText, sheetFileName } from '../ColoringSheet.jsx
 import { Shot, ShotSlot, GuideBubble, KidsIcon, KZ_FOCUS } from './GuideArt.jsx';
 
 export const STORYBOOK_COURSE_KEY = 'kids-storybooks';
+/** How long a page takes to turn; the class comes off the book after it. */
+export const TURN_MS = 420;
+/** A horizontal swipe shorter than this is a tap, not a page turn. */
+export const SWIPE_PX = 48;
 
 /** The record a finished storybook writes: one row per book, like a lesson. */
 export function storybookRecord(book, { passed, pct, at = new Date().toISOString() } = {}) {
@@ -35,6 +47,34 @@ export function pageColoringModule(book, page, text) {
   return { id: `storybook-${book.id}-${page.ref}`, title: book.title, levels: { child: `"${text}" (${page.ref})` } };
 }
 
+/** Which way a swipe turns the page: 'next', 'prev', or null for a tap or a scroll. */
+export function swipeDirection(dx, dy, min = SWIPE_PX) {
+  if (Math.abs(dx) < min || Math.abs(dx) <= Math.abs(dy)) return null;
+  return dx < 0 ? 'next' : 'prev';
+}
+
+/** The sentences of a page as the reader will speak them, so the one being read can light. */
+export function sentencesOf(text) {
+  return text ? segmentText(String(text)) : [];
+}
+
+/** The text in sentence spans; the `on` one is being read right now. */
+function Sentences({ text, on = -1, testId }) {
+  const parts = useMemo(() => sentencesOf(text), [text]);
+  return (
+    <span data-testid={testId}>
+      {parts.map((s, i) => (
+        <React.Fragment key={`${i}-${s.slice(0, 12)}`}>
+          {i ? ' ' : ''}
+          <span className={`kz-sent${i === on ? ' on' : ''}`} data-sentence={i}>
+            {s}
+          </span>
+        </React.Fragment>
+      ))}
+    </span>
+  );
+}
+
 export default function Storybook({
   bookId,
   door = 'kids',
@@ -43,14 +83,22 @@ export default function Storybook({
   saveRecord = saveLearnerRecord,
   onBack = null,
   onDone = null,
+  onLearnVerse = null,
   shotList = undefined,
+  useTts = useTextToSpeech,
 }) {
   const book = useMemo(() => storybookById(bookId), [bookId]);
   const [index, setIndex] = useState(0);
+  const [turn, setTurn] = useState(null); // 'next' | 'prev' while a page turns
   const [texts, setTexts] = useState({});
   const [picks, setPicks] = useState({});
   const [saved, setSaved] = useState(null);
-  const tts = useTextToSpeech();
+  const [auto, setAuto] = useState(false); // Read to me: verse, caption, next page, on its own
+  const phase = useRef(null); // what the reader is reading for Read to me: 'verse' | 'caption' | null
+  const wasReading = useRef(false);
+  const touch = useRef(null);
+  const turnTimer = useRef(null);
+  const tts = useTts();
 
   // Load every page's verse once, so paging is instant and a miss is said once.
   useEffect(() => {
@@ -76,16 +124,91 @@ export default function Storybook({
     };
   }, [book, loadVerse]);
 
-  if (!book) return <p className="lc-notice">That storybook is not on the shelf.</p>;
-  const onQuestions = index >= book.pages.length;
-  const page = onQuestions ? null : book.pages[index];
+  useEffect(
+    () => () => {
+      if (turnTimer.current) clearTimeout(turnTimer.current);
+    },
+    []
+  );
+
+  const pages = book ? book.pages.length : 0;
+  const onQuestions = index >= pages;
+  const page = onQuestions || !book ? null : book.pages[index];
   const text = page ? texts[page.ref] : '';
   const loading = page && text === undefined;
   const progress = storyProgress(book, index);
-  const reading = tts && tts.state && tts.state.status === 'speaking';
+  const reading = !!(tts && tts.isReading);
+  const supported = !!(tts && tts.supported);
+
+  /** Turn to a page with the flip; nothing past the questions, nothing before the first. */
+  const go = (to, dir) => {
+    const target = Math.max(0, Math.min(pages, to));
+    if (target === index) return;
+    if (tts && tts.isReading) tts.stop();
+    phase.current = null;
+    setTurn(dir || (target > index ? 'next' : 'prev'));
+    setIndex(target);
+    if (turnTimer.current) clearTimeout(turnTimer.current);
+    turnTimer.current = setTimeout(() => setTurn(null), TURN_MS);
+  };
+  const next = () => go(index + 1, 'next');
+  const prev = () => (index === 0 ? onBack && onBack() : go(index - 1, 'prev'));
+
+  // Read to me: when the reader falls quiet after the verse, read the caption;
+  // after the caption, turn the page; the page's own effect reads the next verse.
+  useEffect(() => {
+    if (reading) {
+      wasReading.current = true;
+      return;
+    }
+    if (!wasReading.current) return;
+    wasReading.current = false;
+    if (!auto) {
+      phase.current = null;
+      return;
+    }
+    if (phase.current === 'verse' && page) {
+      phase.current = 'caption';
+      tts.speak(page.caption);
+    } else if (phase.current === 'caption') {
+      phase.current = null;
+      if (index < pages - 1) go(index + 1, 'next');
+      else setAuto(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reading, auto]);
+  useEffect(() => {
+    if (!auto) return;
+    if (!page) {
+      setAuto(false);
+      return;
+    }
+    if (text && !reading && phase.current === null) {
+      phase.current = 'verse';
+      tts.speak(text);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [auto, index, text]);
+
+  if (!book) return <p className="lc-notice">That storybook is not on the shelf.</p>;
 
   const hear = (words) => {
-    if (tts && tts.supported && words) tts.speak(words);
+    if (!supported || !words) return;
+    setAuto(false);
+    phase.current = 'verse';
+    tts.speak(words);
+  };
+  const readToMe = () => {
+    if (!supported) return;
+    if (auto) {
+      setAuto(false);
+      phase.current = null;
+      tts.stop();
+      return;
+    }
+    phase.current = null;
+    if (tts.isReading) tts.stop();
+    setAuto(true);
   };
   const color = () => {
     if (!page || !text) return;
@@ -95,6 +218,32 @@ export default function Storybook({
     if (printDocument(coloringBooklet([mod], { title: `${book.title} · ${page.ref}` }), book.title)) return;
     downloadText(coloringSvg(pg), sheetFileName(pg), 'image/svg+xml;charset=utf-8');
   };
+  const onTouchStart = (e) => {
+    const t = e.touches && e.touches[0];
+    touch.current = t ? { x: t.clientX, y: t.clientY } : null;
+  };
+  const onTouchEnd = (e) => {
+    const start = touch.current;
+    touch.current = null;
+    const t = e.changedTouches && e.changedTouches[0];
+    if (!start || !t || onQuestions) return;
+    const dir = swipeDirection(t.clientX - start.x, t.clientY - start.y);
+    if (dir === 'next') next();
+    else if (dir === 'prev' && index > 0) go(index - 1, 'prev');
+  };
+  const onKeyDown = (e) => {
+    if (onQuestions) return;
+    if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      next();
+    } else if (e.key === 'ArrowLeft' && index > 0) {
+      e.preventDefault();
+      go(index - 1, 'prev');
+    }
+  };
+
+  const verseOn = reading && phase.current !== 'caption' ? tts.segmentIndex || 0 : -1;
+  const captionOn = reading && phase.current === 'caption' ? tts.segmentIndex || 0 : -1;
 
   const allRight = book.questions.every((q, i) => picks[i] != null && gradeStoryAnswer(q, picks[i]).right);
   const finish = async () => {
@@ -109,14 +258,25 @@ export default function Storybook({
       }
     }
     setSaved(result);
-    if (onDone) onDone(book.id, { passed: allRight, pct, result });
+    if (onDone) onDone(book.id, { passed: allRight, pct, result, record: rec });
   };
 
   return (
-    <div className="kz-story" data-testid="storybook" data-book={book.id} data-page={index}>
+    <div className="kz-story" data-testid="storybook" data-book={book.id} data-page={index} data-auto={auto ? 'true' : 'false'}>
       {page ? (
         <>
-          <div className="kz-book">
+          <div
+            className={`kz-book${turn ? ` kz-turn-${turn}` : ''}`}
+            data-turn={turn || ''}
+            role="group"
+            aria-roledescription="storybook page"
+            aria-label={`${book.title}, page ${index + 1} of ${pages}. Swipe or use the arrow keys to turn the page.`}
+            tabIndex={0}
+            onKeyDown={onKeyDown}
+            onTouchStart={onTouchStart}
+            onTouchEnd={onTouchEnd}
+            data-testid="storybook-book"
+          >
             <div className="kz-scene">
               <Shot
                 id={page.shot}
@@ -127,10 +287,10 @@ export default function Storybook({
             </div>
             <div className="kz-page">
               <div className="kz-pn">
-                <span>
-                  PAGE {index + 1} OF {book.pages.length}
+                <span aria-live="polite" data-testid="storybook-pn">
+                  PAGE {index + 1} OF {pages}
                 </span>
-                <span>READ-ALONG</span>
+                <span>{auto ? 'READING TO YOU' : 'READ-ALONG'}</span>
               </div>
               {loading && (
                 <p className="lc-small" data-testid="storybook-loading">
@@ -143,46 +303,60 @@ export default function Storybook({
                 </p>
               )}
               {!loading && text && (
-                <p className={`kz-v${reading ? ' reading' : ''}`} data-testid="storybook-verse">
-                  "{text}"
+                <p className={`kz-v${verseOn >= 0 ? ' reading' : ''}`}>
+                  "<Sentences text={text} on={verseOn} testId="storybook-verse" />"
                 </p>
               )}
               <span className="kz-ref">{page.ref} · KJV</span>
             </div>
           </div>
           <GuideBubble who={page.who} shot={page.who === 'girl' ? 'girl-point' : 'boy-reading-point'} list={shotList}>
-            {page.caption}
+            <Sentences text={page.caption} on={captionOn} testId="storybook-caption" />
           </GuideBubble>
           <div className="kz-actions">
             <button
               type="button"
-              className={`kz-act blue ${KZ_FOCUS}`}
-              onClick={() => hear(text)}
-              disabled={!text || !(tts && tts.supported)}
-              data-testid="storybook-hear"
+              className={`kz-act violet ${KZ_FOCUS}`}
+              onClick={readToMe}
+              disabled={!text || !supported}
+              aria-pressed={auto}
+              data-testid="storybook-read-to-me"
             >
+              <KidsIcon name={auto ? 'speaker' : 'read'} /> {auto ? 'Stop reading to me' : 'Read to me, page by page'}
+            </button>
+          </div>
+          <div className="kz-actions">
+            <button type="button" className={`kz-act blue ${KZ_FOCUS}`} onClick={() => hear(text)} disabled={!text || !supported} data-testid="storybook-hear">
               <KidsIcon name="read" /> Hear this page
             </button>
             <button type="button" className={`kz-act orange ${KZ_FOCUS}`} onClick={color} disabled={!text} data-testid="storybook-color">
               <KidsIcon name="crayon" /> Color this page
             </button>
           </div>
+          {auto && supported && (
+            <div className="kz-actions" data-testid="storybook-reader-bar">
+              <button
+                type="button"
+                className={`kz-act plain ${KZ_FOCUS}`}
+                onClick={() => (tts.isPaused ? tts.resume() : tts.pause())}
+                aria-pressed={!!tts.isPaused}
+                data-testid="storybook-pause"
+              >
+                {tts.isPaused ? '▶ Keep reading' : '❚❚ Pause'}
+              </button>
+            </div>
+          )}
           <div className="kz-dots" aria-hidden="true">
             {book.pages.map((p, i) => (
               <i key={p.ref} className={i < index ? 'done' : i === index ? 'on' : ''} />
             ))}
           </div>
           <div className="kz-actions">
-            <button
-              type="button"
-              className={`kz-act plain ${KZ_FOCUS}`}
-              onClick={() => (index === 0 ? onBack && onBack() : setIndex(index - 1))}
-              data-testid="storybook-back"
-            >
+            <button type="button" className={`kz-act plain ${KZ_FOCUS}`} onClick={prev} data-testid="storybook-back">
               ◀ Back
             </button>
-            <button type="button" className={`kz-act green ${KZ_FOCUS}`} onClick={() => setIndex(index + 1)} data-testid="storybook-next">
-              {index === book.pages.length - 1 ? 'The questions ▶' : 'Next page ▶'}
+            <button type="button" className={`kz-act green ${KZ_FOCUS}`} onClick={next} data-testid="storybook-next">
+              {index === pages - 1 ? 'The questions ▶' : 'Next page ▶'}
             </button>
           </div>
         </>
@@ -228,7 +402,7 @@ export default function Storybook({
             );
           })}
           <div className="kz-actions">
-            <button type="button" className={`kz-act plain ${KZ_FOCUS}`} onClick={() => setIndex(book.pages.length - 1)}>
+            <button type="button" className={`kz-act plain ${KZ_FOCUS}`} onClick={() => go(pages - 1, 'prev')}>
               ◀ Back to the book
             </button>
             <button
@@ -244,11 +418,18 @@ export default function Storybook({
           {saved && (
             <p className="lc-small" role="status" data-testid="storybook-saved">
               {saved.skipped === 'signed-out'
-                ? 'Finished! Sign in and a finished storybook lights a stop on your map.'
+                ? 'Finished! Sign in and a finished storybook lights the first stop on your trail.'
                 : saved.error
                   ? 'Finished! Your stop could not be saved right now; it will count next time.'
-                  : 'Finished! That stop is lit on your map.'}
+                  : 'Finished! The first stop on your trail is lit.'}
             </p>
+          )}
+          {book.memory && onLearnVerse && (
+            <div className="kz-actions">
+              <button type="button" className={`kz-act teal ${KZ_FOCUS}`} onClick={() => onLearnVerse(book)} data-testid="storybook-learn-verse">
+                <KidsIcon name="bulb" /> Learn the verse · {book.memory}
+              </button>
+            </div>
           )}
         </div>
       )}

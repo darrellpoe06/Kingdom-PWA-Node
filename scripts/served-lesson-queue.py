@@ -321,6 +321,40 @@ def judge(receipt, why, now=None):
                 "recorded while its heartbeat keeps advancing. Every `ready` verdict above is "
                 "real and is waiting on the box, not on the words."
             )
+            # WHICH writer, and which of two different jobs it is (DR-1524).
+            # `state` is one word for every writer; this says whether anything
+            # was ever set up at all. Published at builder.writers, one level up
+            # from `status` -- see 0333's note on the hoist.
+            wr = bl.get("writers")
+            if isinstance(wr, list) and wr:
+                failing = [w.get("kind") for w in wr
+                           if isinstance(w, dict) and w.get("configured") and w.get("ok") is False]
+                unset = [w.get("kind") for w in wr
+                         if isinstance(w, dict) and w.get("configured") is False]
+                if failing:
+                    lines.append(
+                        "The writer to fix is CONFIGURED AND FAILING: "
+                        + ", ".join(sorted(k for k in failing if k))
+                        + ". It was set up and has stopped answering -- for a `claude` CLI that "
+                        "is almost always a sign-in that lapsed, which is one login on the box, "
+                        "not a setup."
+                    )
+                if unset and not failing:
+                    lines.append(
+                        "NO writer is configured: "
+                        + ", ".join(sorted(k for k in unset if k))
+                        + " are all unset, so this is a setup and not a lapsed login."
+                    )
+                elif unset:
+                    lines.append(
+                        "Also never configured (optional, not the fix): "
+                        + ", ".join(sorted(k for k in unset if k)) + "."
+                    )
+            else:
+                lines.append(
+                    "WHICH writer is unknown -- this census carried no per-writer state, so "
+                    "whether one lapsed or none was ever configured cannot be told from here."
+                )
         elif state == "stopped":
             lines.append(
                 "It is STOPPED by its own kill state, so no row will be built until that is "
