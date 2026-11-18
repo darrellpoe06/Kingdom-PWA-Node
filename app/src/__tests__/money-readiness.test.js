@@ -117,8 +117,10 @@ describe('the migrations are proven on a throwaway PostgreSQL, in CI', () => {
   };
   it('0334: the backup and readiness receipts give anon only whitelisted facts', { timeout: 120000 }, async () => {
     const r = await run('readiness-receipt-replay.sh');
-    if (/no PostgreSQL server binaries/.test(r.out || '')) return; // the runner image carries them; a laptop may not
+    // A laptop without PostgreSQL may skip; CI never may (a skip there would be a green that measured nothing).
+    if (/no PostgreSQL server binaries/.test(r.out || '') && !process.env.CI) return;
     expect(r.out, r.out).toMatch(/replay: OK/);
+    console.log(`readiness replay ran: ${(r.out.match(/rollback drops[^\n]*/) || [''])[0]} · replay: OK`);
     expect(r.code).toBe(0);
   });
 });
