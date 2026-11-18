@@ -1306,6 +1306,11 @@ const NODES = [
     id: 'browser-probe', name: 'Browser probe harness (called)', purpose: 'The one job that builds the app, installs Chrome and Playwright, runs a named probe script and uploads its artifact; every browser witness calls it instead of carrying the same forty lines (DR-1342).',
     reads: [{ res: 'gh:call:browser-probe', token: 'workflow_call' }], writes: [], seeds: [],
   }),
+  wf('church-site-probe.yml', {
+    id: 'church-site-probe', name: 'Church site probe (read-only)',
+    purpose: 'Reads the church\u2019s public website from a runner (the sandbox has no route to it) and prints its pages, headings and any feed, so the announcements-and-events sync (Darrell 2026-11-18) can be built on what the site actually publishes; nothing is written.',
+    reads: [{ res: 'site:thechurchofthelivinggod.com', token: 'thechurchofthelivinggod.com' }], writes: [], seeds: [],
+  }),
   wf('live-link-probe.yml', {
     id: 'live-link-probe', name: 'Live link probe', purpose: 'A real browser opens a shared lesson link.',
     reads: [{ res: 'site:poetech.us', token: 'poetech.us' }], writes: [], seeds: [],
