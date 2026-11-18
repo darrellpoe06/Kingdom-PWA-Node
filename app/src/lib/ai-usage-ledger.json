@@ -2948,6 +2948,21 @@
       "notes": "PostgREST returns no error when RLS refuses a DELETE. Which of the two causes Darrell hit is unestablished: he declined the database query, so both were fixed."
     },
     {
+      "id": "theater-plays-today-and-movie-maker",
+      "date": "2026-11-18",
+      "task": "The Theater plays today: PLAY on every unpublished adventure runs the storybook as a read-aloud show inside the Theater (autoStart), writes its record and lights the trail; the movie-maker cuts a Bible Adventure episode with ffmpeg from the folder (landed scenes or interim art, narration or silence, the KJV and captions burned in, poster, timed WebVTT, an honest sidecar); a draft Jonah cut proven; the live walk presses PLAY",
+      "drs": [
+        "DR-1531"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.7,
+      "estimateWithoutAiHours": 14,
+      "notes": ""
+    },
+    {
       "id": "properties-every-door-at-once",
       "date": "2026-11-18",
       "task": "Poe Properties Overview: every door at once with open work, the latest message, a reply owed and payments to confirm per door; KPIs, six sorts, an all-open-work list and a mixed latest feed; a tap opens the door on the tab that holds it; an unread part is never a zero",

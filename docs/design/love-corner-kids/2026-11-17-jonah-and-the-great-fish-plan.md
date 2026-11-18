@@ -83,6 +83,22 @@ Every game, lesson, quiz, the Grown-Ups tab, Teens Zone, the church home, the re
 
 Shipped in the same PR as this plan, every piece of §3 J1: `lib/kids/trail.js` (the five stops, lit from rows, next/locked/soon, the tap rule), `components/kids/AdventureTrail.jsx` (the trail on the Badges tab, Jonah in full and the other books compact, and the next stop on the Kids home), `components/kids/StoryOrder.jsx` (Put the story in order, a tile on the Games grid), the storybook's page turn, swipe, arrow keys, Read to me, sentence highlight and Learn the verse, the Theater's `<video>` road with poster and captions beside YouTube, the storybooks' verses in Word Builder and the memory verse game, three badges from rows, and records written by the order game, the memory game, Who am I? and the file player. The caption script for the episode is `jonah-episode-captions.en.vtt` beside this plan, generated from the in-repo KJV, timed as a draft. The live walk gained the order game and the trail as stops.
 
+## 5b. The Theater plays today, and the movie is cut from the folder (2026-11-18, DR-1531)
+
+Darrell, on the live Theater showing three COMING SOON rows: "Theater?!" and "Let's make the movies, why wait?" Two things shipped the same day:
+
+**The Theater plays every adventure now.** Each unpublished row reads PLAY. PLAY opens the storybook inside the Theater as a show (`theater-show`) that starts reading on its own (`Storybook autoStart`), turns its own pages, and writes the same `storybook-<book>` record the storybook writes, so the trail's "read" stop lights from the Theater too. The episode's state ("episode coming soon") is a line under the title, never the headline. A published episode keeps WATCH. Phone proof: `phone/theater-shelf-play.png`, `phone/theater-show-jonah.png`.
+
+**The movie-maker.** From the repository root:
+
+```
+node scripts/kids-make-episode.mjs jonah [outDir] [--seconds 6] [--size 1920x1080]
+```
+
+It reads the storybook registry and the landed manifest and cuts, with ffmpeg: one shot per page from the landed scene (`jonah-N.png`, interim art where a scene is missing) with a slow move and crossfades; the narration (`narration/jonah-pN.m4a`) under its page where it exists, the page held to the recording's length, silence where not; the KJV verse and the caption burned in from the registry (never retyped); `jonah-poster.jpg` from page 3; `jonah.en.vtt` timed to the cut; and `jonah.cut.json`, a sidecar that says plainly whether every page used its landed scene and recording (finished) or not (DRAFT). The script publishes nothing. Proven on this machine with the interim art: 42.4 s, 1920x1080 H.264 + AAC, sidecar marked DRAFT, 0/8 scenes, 0/8 recordings.
+
+**What finishes the film, and only Darrell can mint:** the eight scenes and the eight recordings (filenames in section 4). The day they land in the folder, the same command cuts the finished episode; the published file is the one whose sidecar says finished, placed off-repo on the NAS road and named in the episode registry.
+
 ## 6. Verification each step carries
 
 Suites green with the new proven-to-catch tests named above; nine screens at 360, 390 and 414 px with no overflow and no target under 36 px; the production walk (`live-kids-zone-walk.yml`) reads ten stops ok after each deploy; the site witness reads UP and fresh. `re-review: 2026-11-24` for J1 built and green or a why.
