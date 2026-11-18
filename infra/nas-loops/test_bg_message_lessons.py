@@ -159,5 +159,46 @@ class ConfigTest(unittest.TestCase):
             self.assertIn("at", got)
 
 
+class MirrorToHosted(unittest.TestCase):
+    """DR-1543: his words reach the hosted copy a cloud session can read."""
+
+    T = [
+        {"video_id": "a", "text": "words a", "words": 2, "source": "whisper-nas"},
+        {"video_id": "b", "text": "words b", "words": 2},
+        {"video_id": "c", "text": "", "words": 0},
+        {"video_id": "d", "text": "x", "words": 1, "error": "IpBlocked"},
+    ]
+
+    def test_only_missing_transcripts_with_words_are_copied(self):
+        rows = bg.mirror_rows(self.T, {"b"}, "inst-1")
+        self.assertEqual([r["video_id"] for r in rows], ["a"])
+        self.assertEqual(rows[0]["instance_id"], "inst-1")
+        self.assertEqual(rows[0]["source"], "whisper-nas")
+        odd = bg.mirror_rows(
+            [{"video_id": "z", "text": "w", "words": 1, "source": "nas-mirror"}],
+            set(),
+            "i",
+        )
+        self.assertIn(odd[0]["source"], bg.TRANSCRIPT_SOURCES)
+
+    def test_nothing_twice_and_the_cap_holds(self):
+        self.assertEqual(bg.mirror_rows(self.T, {"a", "b"}, "i"), [])
+        many = [{"video_id": str(i), "text": "w", "words": 1} for i in range(20)]
+        self.assertEqual(len(bg.mirror_rows(many, set(), "i")), bg.MIRROR_PER_CYCLE)
+
+    def test_hosted_target_reads_the_secrets_file_and_refuses_an_empty_one(self):
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as d:
+            p = os.path.join(d, "s.json")
+            with open(p, "w") as fh:
+                json.dump({"url": "https://h.example/", "service_key": "k"}, fh)
+            self.assertEqual(bg.hosted_target(p), ("https://h.example", "k"))
+            with open(p, "w") as fh:
+                json.dump({"url": ""}, fh)
+            self.assertEqual(bg.hosted_target(p), (None, None))
+        self.assertEqual(bg.hosted_target("/nonexistent/x.json"), (None, None))
+
+
 if __name__ == "__main__":
     unittest.main()
