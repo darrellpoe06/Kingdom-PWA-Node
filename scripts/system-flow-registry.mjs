@@ -2058,7 +2058,11 @@ const NODES = [
   }),
   rider('service:voice-transport', 'infra/voice-studio/install.sh', {
     id: 'voice-transport', name: 'Voice transport (the road to the studio)', purpose: 'Carries the app’s /voice requests to the studio on the tower.',
-    reads: [{ res: 'tower:voice-studio', token: 'tlcmediadpt' }], writes: [{ res: 'http:voice', token: '/voice' }], seeds: ['voice-studio'],
+    reads: [{ res: 'tower:voice-studio', token: 'tlcmediadpt' }, { res: 'nas:voice-clone', file: 'infra/voice-studio/voice_forwarder.py', token: '127.0.0.1:8773' }], writes: [{ res: 'http:voice', token: '/voice' }], seeds: ['voice-studio'],
+  }),
+  rider('service:voice-clone', 'infra/nas-voice-clone/nas_clone_server.py', {
+    id: 'voice-clone', name: 'My voice on the NAS (Piper + OpenVoice converter)', purpose: 'Makes the reading in the listener’s own recorded voice on the NAS CPU when the tower’s studio is dark, behind the same /voice door (DR-1538).',
+    reads: [{ res: 'nas:services', file: 'infra/nas-loops/services.json', token: 'voice-clone' }], writes: [{ res: 'nas:voice-clone', token: '8773' }], seeds: ['voice-transport'],
   }),
   rider('service:voice-lite', 'infra/nas-voice-lite/voice_lite_server.py', {
     id: 'voice-lite', name: 'NAS audio voice (Piper)', purpose: 'Speaks a paragraph as a real audio clip on the NAS CPU, so the stand-in voice keeps playing in the background (DR-0627).',

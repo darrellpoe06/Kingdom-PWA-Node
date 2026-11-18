@@ -60,6 +60,9 @@ const ON_THE_WAY = {
   announce: { door: 'infra/nas-announce/announce_server.py', witness: 'announce-health.yml' },
   // The eighth: the reading voice's road to the tower.
   'voice-transport': { door: 'infra/voice-studio/voice_forwarder.py', witness: 'voice-health.yml' },
+  // Born by the Way (DR-1538): My voice on the NAS's own CPU, behind the same
+  // /voice door, witnessed by the same voice witness.
+  'voice-clone': { door: 'infra/nas-voice-clone/nas_clone_server.py', witness: 'voice-health.yml' },
 };
 
 /** Loops born by the Way: no door of their own (their "says why" is the ledger

@@ -179,10 +179,10 @@
     {
       "date": "2026-11-18",
       "from": 23187,
-      "to": 23229,
-      "dr": "DR-1540",
-      "reason": "church-site-probe.yml, dispatch only and read-only: a runner reads the church's public website (the sandbox has no route to it) and prints its pages, headings and any feed, so the announcements-and-events sync Darrell asked for the same day (DR-1540) is built on what the site actually publishes, not on a guess. permissions {} and a concurrency group; nothing is written anywhere. Raised to the measured total, not above it."
+      "to": 23203,
+      "dr": "DR-1538",
+      "reason": "voice-health.yml reads the public /voice/health on every run with no key (which engine answers, the tower's studio or the NAS's own clone, its reason and the speed the NAS measured), because the tailnet key the rest of the witness rides has been dead since 2026-11-04 (DR-1360); and its where-the-install-stands block gains the clone's running code, unit, /health and install log. ci.yml gains the clone's selftest step. The comment is folded to one line. Raised to the measured total, not above it."
     }
   ],
-  "totalLines": 23229
+  "totalLines": 23203
 }

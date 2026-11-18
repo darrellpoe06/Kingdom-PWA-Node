@@ -582,6 +582,21 @@
       "notes": "Built in the same session and PR as ll284; the lesson measured 3,212 words, four bands inside the reader band, every verse verbatim from the KJV on disk."
     },
     {
+      "id": "open-source-chest",
+      "date": "2026-11-18",
+      "task": "Decide DR-1501's open-source fund: 1% of PoeTech+ income, split across single-keeper packages, /bin/bash until income",
+      "drs": [
+        "DR-1541"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.2,
+      "estimateWithoutAiHours": 1,
+      "notes": ""
+    },
+    {
       "id": "the-in-flight-view-has-an-age",
       "date": "2026-11-06",
       "task": "claim-decision-number.mjs walked a local remote-tracking cache as fresh as the last fetch and said nothing of it, so it under-reported a live three-way collision; the view is now refreshed first, its age always printed, and every holder of a number named instead of the first",
@@ -1364,6 +1379,21 @@
       "wallClockHours": 0.8,
       "estimateWithoutAiHours": 10,
       "notes": "Darrell: Lesson. Read with the heart... according to the Word"
+    },
+    {
+      "id": "the-box-names-the-cause-itself",
+      "date": "2026-11-18",
+      "task": "The keyless lesson-queue receipt now names the CAUSE of a failed build, not only the site: the gate NAMES from the builder's own stored records on the box, and the exception class name of an unhandled crash, matched against the interpreter's own BaseException subclasses -- so nothing waits on a hand",
+      "drs": [
+        "DR-1542"
+      ],
+      "prs": [],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.8,
+      "estimateWithoutAiHours": 7,
+      "notes": "Built on Darrell's relayed words of 2026-11-18 ~12:28Z, that a step waiting on his hand is itself the defect. Reverses DR-1537's deferral while keeping DR-1526's order (the direct read was built first). Proven to catch a person's name in place of an exception class, a marker in body/prompt/fault reaching the census, and a vocabulary dropped from the SQL. Nothing measured live yet."
     },
     {
       "id": "dr-1412-record-figures-fit",
@@ -2303,6 +2333,21 @@
       "notes": "Gmail thread 1a182d6bb1fd6fa6, forwarded 2026-10-28T14:07Z, built 2026-11-13; sixteen days kept on the record. 62 anchor references, every verse filled from app/public/bible/kjv by scripts/sov79-fill.mjs and none typed. Four primary hosts refused the proxy (403 CONNECT), named in every reader place with re-review 2026-11-27."
     },
     {
+      "id": "bg-words-reach-the-builders",
+      "date": "2026-11-18",
+      "task": "Bishop Gwin's transcripts mirrored from the NAS to the hosted project so a session can build his lessons without the tailnet",
+      "drs": [
+        "DR-1543"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.4,
+      "estimateWithoutAiHours": 4,
+      "notes": ""
+    },
+    {
       "id": "sov80-discovery-is-not-permission",
       "date": "2026-11-13",
       "task": "Sovereign A.I. week 80 built from one word over a forwarded engineering newsletter, all four age bands, 24-case gate",
@@ -2556,6 +2601,21 @@
       "wallClockHours": 1.5,
       "estimateWithoutAiHours": 16,
       "notes": "Root cause traced to the onFallback hand-off speaking an unmatched-gender phone voice and a speak-time URI miss setting no voice. New suite 13 cases, 9 fail on origin/main. My voice blocked: tower studio unarmed (arm run 36796584904) and CI tailnet key invalid (run 43310501087)."
+    },
+    {
+      "id": "my-voice-on-the-nas",
+      "date": "2026-11-18",
+      "task": "My voice made on the NAS when the tower is dark: Piper + OpenVoice V2 converter service, forwarder fallback, reader names the engine, public-road witness",
+      "drs": [
+        "DR-1538"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.5,
+      "estimateWithoutAiHours": 16,
+      "notes": "Darrell 2026-11-18: fix it so we don't need anything. NAS speed measured on the box by the installer, not here (Hugging Face unreachable from the sandbox)."
     },
     {
       "id": "sov88-every-man-by-his-own-standard",
