@@ -109,3 +109,41 @@ describe('on the import card', () => {
     expect(next).toMatchObject({ category: HELD_CATEGORY, categorySource: 'your rule' });
   });
 });
+
+describe('the six safeguards before merge (Christina 2026-11-18)', () => {
+  const asOf = new Date(2026, 10, 20, 12);
+  const book = (rows) => ({
+    entities: [{ id: 'e-personal', name: 'Personal', type: 'personal' }],
+    accounts: [{ id: 'a-7206', name: 'Chase 7206', type: 'checking', entityId: 'e-personal', balance: 0 }],
+    transactions: [{ id: 'cp', ...balanceCheckpointRow('a-7206', 2559.78, '2026-11-17', { basis: 'available' }) }, ...rows],
+    recurringObligations: [],
+    inflows: { salaries: [], rentals: [] },
+    moneyPlan: { settings: {} },
+  });
+  const sts = (rows) => buildSafeToSpend(book(rows), { currentDate: asOf, scope: 'personal' });
+
+  it('the tithe paid for her is taken off once: cash falls by $55 and nothing more is set aside', () => {
+    const before = sts([]);
+    const received = sts([{ ...IN55, date: '2026-11-18' }]);
+    const paid = sts([
+      { ...IN55, date: '2026-11-18' },
+      { ...TITHE_FOR_HER, date: '2026-11-19' },
+    ]);
+    // Received: +$55 in the account, $55 set aside: what she can spend is unchanged.
+    expect(received.lines.availableCash).toBe(2614.78);
+    expect(received.lines.projectedLowest.amount).toBe(before.lines.projectedLowest.amount);
+    // Paid: the $55 has left the account once, and no set-aside remains: unchanged again, never $55 less.
+    expect(paid.lines.availableCash).toBe(2559.78);
+    expect(paid.lines.heldForOthers).toBe(0);
+    expect(paid.lines.projectedLowest.amount).toBe(before.lines.projectedLowest.amount);
+  });
+
+  it('an unrelated $55 on the same day is never paired and never set aside', () => {
+    const coffee = { id: 'x', accountId: 'a-7206', date: '2026-11-19', description: 'CIRCLE K', amount: -55, category: 'fuel' };
+    const deposit = { id: 'y', accountId: 'a-7206', date: '2026-11-18', description: 'REFUND', amount: 55, category: 'other' };
+    const h = heldForOthers([IN55, coffee, deposit]);
+    expect(h.pairs).toEqual([]);
+    expect(h.stillHeld.map((r) => r.id)).toEqual(['gmr']);
+    expect(heldForOthers([coffee, deposit]).outstanding).toBe(0);
+  });
+});
