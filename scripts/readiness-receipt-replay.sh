@@ -11,12 +11,13 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 MIG="$ROOT/infra/supabase/migrations-auto/0334-the-house-says-its-backup-and-the-books-readiness.sql"
+DOWN="$ROOT/infra/supabase/rollback/0334-the-house-says-its-backup-and-the-books-readiness.down.sql"
 PGBIN="${PGBIN:-$(ls -d /usr/lib/postgresql/*/bin 2>/dev/null | sort -V | tail -1)}"
 [ -x "$PGBIN/initdb" ] || { echo "replay: no PostgreSQL server binaries found (set PGBIN)"; exit 2; }
 WORK="$(mktemp -d)"
 RUN=()
 if [ "$(id -u)" = "0" ]; then chown postgres "$WORK"; RUN=(runuser -u postgres --); fi
-cp "$MIG" "$WORK/m.sql"; [ "${#RUN[@]}" -gt 0 ] && chown postgres "$WORK/m.sql"
+cp "$MIG" "$WORK/m.sql"; cp "$DOWN" "$WORK/d.sql"; [ "${#RUN[@]}" -gt 0 ] && chown postgres "$WORK/m.sql" "$WORK/d.sql"
 cleanup() { "${RUN[@]}" "$PGBIN/pg_ctl" -D "$WORK/data" -m immediate stop >/dev/null 2>&1 || true; rm -rf "$WORK"; }
 trap cleanup EXIT
 "${RUN[@]}" "$PGBIN/initdb" -D "$WORK/data" -A trust -U replay >/dev/null
@@ -78,4 +79,14 @@ q -c "DELETE FROM agent_inbox;"
 R3="$(q -c "SET ROLE anon; SELECT public.db_backup_receipt()::text;")"
 [ "$R3" = '{"seen": false}' ] || { echo "replay: FAIL no row must read seen:false, got $R3"; exit 1; }
 echo "replay: no receipt row reads seen:false, never ok"
+
+# The rollback: both functions gone, every table and row untouched.
+q -c "INSERT INTO agent_inbox (body, tags, source) VALUES ('{}', '[\"x\"]', 'nas-loops');"
+ROWS_BEFORE="$(q -c "SELECT count(*) FROM agent_inbox")|$(q -c "SELECT count(*) FROM transactions")"
+q -f "$WORK/d.sql"
+q -f "$WORK/d.sql"   # idempotent
+LEFT="$(q -c "SELECT count(*) FROM pg_proc WHERE proname IN ('db_backup_receipt','money_readiness_receipt')")"
+[ "$LEFT" = "0" ] || { echo "replay: FAIL rollback left $LEFT function(s)"; exit 1; }
+[ "$ROWS_BEFORE" = "$(q -c "SELECT count(*) FROM agent_inbox")|$(q -c "SELECT count(*) FROM transactions")" ] || { echo "replay: FAIL rollback changed rows"; exit 1; }
+echo "replay: rollback drops exactly the two functions (twice, idempotent); no row changed"
 echo "replay: OK"
