@@ -25,7 +25,7 @@
 // =============================================================================
 import { readAnyFile } from './books-intake-read.js';
 import { extractDocument } from './books-intake-extract.js';
-import { matchDocument, newRowsFor, proposedAccount, ledgerRows, resolveEntity } from './books-intake-match.js';
+import { matchDocument, newRowsFor, proposedAccount, ledgerRows, resolveEntity, matchPostedToPending } from './books-intake-match.js';
 import { reconcileExtraction } from './books-intake-reconcile.js';
 import { questionsFor, answerQuestion, blockingOpen, lessonFrom, applyLesson } from './books-intake-questions.js';
 import { receiptShape } from './receipts.js';
@@ -186,7 +186,13 @@ export function planWrite(doc, { known = {} } = {}) {
       // The balance on the screen becomes the bank-verified checkpoint for that
       // account on that day (never twice for the same day and figure), and the
       // rows go through the same dedupe as every import.
-      const rows = accountId ? newRowsFor(rx, accountId, known.transactions) : { txns: ledgerRows(rx), duplicates: 0 };
+      // A posted copy of a pending charge already in the books is matched on
+      // the person's reviewed rows first (their "add it anyway" survives), then
+      // the rest go through the same dedupe as every import.
+      const posted = accountId ? matchPostedToPending(ledgerRows(rx), accountId, known.transactions) : { txns: ledgerRows(rx), matches: [] };
+      const planned = accountId ? planAccountImport(posted.txns, accountId, known.transactions || []) : { txns: posted.txns, duplicates: 0 };
+      const held = posted.matches.filter((m) => !m.added).length;
+      const rows = { txns: planned.txns, duplicates: planned.duplicates + held };
       const day = x.dates.document;
       const bal = x.summary.rowsOnly ? null : x.summary.newBalance;
       const basis = x.summary.balanceKind || 'available';
@@ -194,7 +200,8 @@ export function planWrite(doc, { known = {} } = {}) {
         && String(t.date || '').slice(0, 10) === day && Math.abs(Number(t.reconciliation && t.reconciliation.balance) - bal) < 0.005));
       const checkpoint = day && bal != null ? { balance: bal, day, basis } : null;
       return { kind: 'snapshot', accountId: accountId || null, createAccount, rows: rows.txns, duplicates: rows.duplicates, checkpoint, checkpointAlreadyRecorded: already, asOf: day, summary: x.summary,
-        rowStatuses: rowStatuses(x.line_items, doc.rowDecisions, learned, accountId ? rows.txns : null) };
+        pendingMatches: posted.matches.map((m) => ({ date: m.row.date, description: m.row.description, amount: m.row.amount, strength: m.strength, added: !!m.added, pending: m.pending })),
+        rowStatuses: rowStatuses(x.line_items, doc.rowDecisions, learned, accountId ? rows.txns : null, posted.matches) };
     }
     case 'tax-form':
       return { kind: 'tax', year: x.tax_year, entityId: m.entity && m.entity.entityId, taxKind: x.summary.taxKind || 'other', pdf: /pdf$/i.test(doc.type) || /\.pdf$/i.test(doc.name) };
@@ -266,7 +273,8 @@ export async function commitDoc(doc, { store, sinks = {}, known = {}, demo = fal
   } else if (p.kind === 'snapshot' && accountId && sinks.commitImportedRows) {
     // Rows first (re-planned against the ledger as it is NOW), then the
     // bank-verified balance for the day, unless that exact checkpoint is there.
-    const fresh = planAccountImport(ledgerRows(reviewed), accountId, known.transactions || []);
+    const posted = matchPostedToPending(ledgerRows(reviewed), accountId, known.transactions || []);
+    const fresh = planAccountImport(posted.txns, accountId, known.transactions || []);
     const summary = fresh.txns.length ? await sinks.commitImportedRows(fresh.txns.map((r) => ({ ...r, source: 'screenshot', docId: doc.id }))) : { total: 0, saved: 0 };
     links.push({ kind: 'transactions', accountId, count: fresh.txns.length, duplicates: fresh.duplicates, summary });
     const cp = p.checkpoint;
@@ -324,7 +332,7 @@ export async function answer(doc, questionId, value, ctx) {
 export async function decideRows(doc, decisions, ctx) {
   const merged = { ...(doc.rowDecisions || {}) };
   for (const [k, v] of Object.entries(decisions || {})) {
-    if (!v || (!v.exclude && !v.category)) delete merged[k];
+    if (!v || (!v.exclude && !v.category && !v.addAnyway)) delete merged[k];
     else merged[k] = { ...(merged[k] || {}), ...v };
   }
   return processDoc({ ...doc, rowDecisions: merged }, ctx);

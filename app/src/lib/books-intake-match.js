@@ -154,6 +154,70 @@ export function newRowsFor(x = {}, accountId, transactions = []) {
   return planAccountImport(ledgerRows(x), accountId, transactions || []);
 }
 
+// The merchant words of a bank description: no card / payment boilerplate, no
+// digits, no store numbers. "POS DEBIT CIRCLE K #1234" and "CIRCLE K 1234
+// PENDING" both read ["circle"]... plus "k" dropped as too short.
+const BOILER = new Set(['pos', 'debit', 'card', 'purchase', 'pending', 'recurring', 'ach', 'payment', 'pmt', 'to', 'from', 'the', 'online', 'zelle', 'transfer', 'withdrawal', 'deposit', 'chk', 'checking', 'web', 'id', 'ppd', 'ccd', 'des', 'indn', 'co', 'inc', 'llc']);
+function merchantWords(desc = '') {
+  return String(desc).toLowerCase().replace(/[^a-z]+/g, ' ').split(' ').filter((w) => w.length >= 3 && !BOILER.has(w));
+}
+function sameMerchant(a, b) {
+  const x = merchantWords(a);
+  const y = merchantWords(b);
+  if (!x.length || !y.length) return false;
+  const xs = x.join('');
+  const ys = y.join('');
+  if (xs.length >= 4 && ys.length >= 4 && (xs.startsWith(ys.slice(0, 5)) || ys.startsWith(xs.slice(0, 5)))) return true;
+  const inter = x.filter((w) => y.includes(w)).length;
+  return inter / new Set([...x, ...y]).size >= 0.5;
+}
+const dayGap = (later, earlier) => (Date.parse(`${String(later).slice(0, 10)}T12:00:00Z`) - Date.parse(`${String(earlier).slice(0, 10)}T12:00:00Z`)) / 86400000;
+
+/**
+ * A charge imported while PENDING often shows again once POSTED: on a later
+ * day, sometimes worded differently. Chase's available balance already took it
+ * out, so adding the posted copy subtracts it twice (Christina 2026-11-18).
+ * Each new (not pending) row is compared with the pending rows already in the
+ * books for the same account and the same amount, posted 0 to 7 days after:
+ *   - the same transaction id (fitid): 'same' -- it is that charge; not added;
+ *   - the same merchant words: 'likely' -- held for review, NOT added unless the
+ *     person ticks it (row.confirmedNew), so nothing is counted twice by default;
+ *   - only the amount and the days agree: 'possible' -- added, with a note to check.
+ * Each pending row answers for one posted row. Nothing in the books is changed.
+ * Returns { txns (the rows to add), matches: [{ row, pending, strength }] }.
+ */
+export function matchPostedToPending(txns = [], accountId, existing = []) {
+  const open = (existing || []).filter((t) => t && t.pending === true && t.accountId === accountId).map((t) => ({ t, used: false }));
+  if (!open.length) return { txns, matches: [] };
+  const out = [];
+  const matches = [];
+  for (const r of txns || []) {
+    if (r.pending) {
+      out.push(r);
+      continue;
+    }
+    const near = open.filter((o) => !o.used && Math.abs(Number(o.t.amount) - Number(r.amount)) < 0.005 && dayGap(r.date, o.t.date) >= 0 && dayGap(r.date, o.t.date) <= 7);
+    const byId = r.fitid ? near.find((o) => o.t.fitid && String(o.t.fitid) === String(r.fitid)) : null;
+    const byMerchant = byId || near.find((o) => sameMerchant(o.t.description, r.description));
+    const pick = byMerchant || near[0] || null;
+    if (!pick) {
+      out.push(r);
+      continue;
+    }
+    const strength = byId ? 'same' : byMerchant ? 'likely' : 'possible';
+    const pending = { date: String(pick.t.date || '').slice(0, 10), description: pick.t.description || '', amount: Number(pick.t.amount) };
+    if (strength === 'same' || (strength === 'likely' && !r.confirmedNew)) {
+      pick.used = true;
+      matches.push({ row: r, pending, strength });
+      continue;
+    }
+    if (strength === 'likely') pick.used = true;
+    matches.push({ row: r, pending, strength, added: true });
+    out.push(r);
+  }
+  return { txns: out, matches };
+}
+
 /** Every match at once, for the document's detail view and the question queue. */
 export function matchDocument(x = {}, known = {}, { text = '' } = {}) {
   const acc = resolveAccount(x, known.accounts || []);
