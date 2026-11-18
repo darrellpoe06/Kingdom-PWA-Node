@@ -2258,6 +2258,21 @@
       "notes": "No token meter exposed to this session; tokens and cost are null. The 40-hour estimate without A.I. is for one hour of teaching written five times over (an adult lesson and four age-banded versions, about 15,900 words of authored prose), 62 verses transcribed by hand from a printed KJV, the independent checking of five load-bearing figures, and 54 tests. The band work failed its floors and its reading ladder on the first measurement, as P60 predicts, and every repair was authored by hand rather than swept by a script (DR-1306). Renumbered to DR-1470 after #2658 landed a record on the number first, while this branch was green and in flight; the rename was done by hand on each citation's own surrounding text, never by number, because renumber-decision-record.mjs rewrites by number across the whole tree and the surrendered number's call sites now belong to that landed record."
     },
     {
+      "id": "sov89-take-thee-again-another-roll",
+      "date": "2026-11-18",
+      "task": "Sovereign A.I. week 89 built from one word over a forwarded Level Up Coding issue (Redis vs Memcached), all four age bands, 25-case gate",
+      "drs": [
+        "DR-1546"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.4,
+      "estimateWithoutAiHours": 32,
+      "notes": "Gmail thread 1a1e43310d023259, forwarded issue dated 2026-11-16, built 2026-11-18. Each tool's limits and defaults taught as reported and unranked; redis.io, memcached.org, valkey.io and docs.immich.app refused the session network (ENOTFOUND), re-review 2026-12-18. 30 anchor references, 122 quoted spans, every verse filled from app/public/bible/kjv by scripts/sov89-fill.mjs and none typed. Our house measured: no Redis or Memcached in the app or our NAS code; Valkey 9 in infra/nas-immich/docker-compose.yml:53-56 on defaults (no maxmemory, no policy, no volume); SearXNG limiter off for want of a Valkey; sw.js per-build Cache Storage; clip-cache.js LRU at 300 MB, downloads held, two in flight. Valkey memory on the NAS not measured."
+    },
+    {
       "id": "sov79-promotion-cometh-not-from-the-east",
       "date": "2026-11-13",
       "task": "Sovereign A.I. week 79 built from one word over a forwarded business digest, all four age bands, 51-case gate",
