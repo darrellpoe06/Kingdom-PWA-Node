@@ -86,6 +86,9 @@ export default function Storybook({
   onLearnVerse = null,
   shotList = undefined,
   useTts = useTextToSpeech,
+  // The Theater's show (Darrell, 2026-11-18: "Theater?!"): the book starts
+  // reading itself as soon as its first page's words are here.
+  autoStart = false,
 }) {
   const book = useMemo(() => storybookById(bookId), [bookId]);
   const [index, setIndex] = useState(0);
@@ -94,6 +97,7 @@ export default function Storybook({
   const [picks, setPicks] = useState({});
   const [saved, setSaved] = useState(null);
   const [auto, setAuto] = useState(false); // Read to me: verse, caption, next page, on its own
+  const autoStarted = useRef(false);
   const phase = useRef(null); // what the reader is reading for Read to me: 'verse' | 'caption' | null
   const wasReading = useRef(false);
   const touch = useRef(null);
@@ -139,6 +143,12 @@ export default function Storybook({
   const progress = storyProgress(book, index);
   const reading = !!(tts && tts.isReading);
   const supported = !!(tts && tts.supported);
+  useEffect(() => {
+    if (autoStart && supported && text && !autoStarted.current) {
+      autoStarted.current = true;
+      setAuto(true);
+    }
+  }, [autoStart, supported, text]);
 
   /** Turn to a page with the flip; nothing past the questions, nothing before the first. */
   const go = (to, dir) => {

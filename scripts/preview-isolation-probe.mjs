@@ -26,22 +26,58 @@
 //   node scripts/preview-isolation-probe.mjs --url https://<preview>/poetech-app/
 //   node scripts/preview-isolation-probe.mjs --url http://money-probe.vercel.app:4173/poetech-app/ \
 //        --map money-probe.vercel.app=127.0.0.1:4173          (local build under a preview hostname)
+//   node scripts/preview-isolation-probe.mjs --serve app/dist  (THIS commit's build, served here over
+//        TLS under a *.vercel.app name: no Vercel, no key — the road CI walks, since every live
+//        preview sits behind Vercel's login and a runner cannot enter it; measured 2026-11-18)
 //   --out <dir>   screenshots + a JSON report (default: ./preview-isolation-probe-out)
 // Exit 0 = every check passed. Exit 1 = a check failed (the report names it).
 // Requires playwright (this repo's dev dependency) or playwright-core with the
 // runner's installed Chrome.
 // =============================================================================
-import { mkdirSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { mkdirSync, writeFileSync, readFileSync, existsSync, statSync, mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join, normalize, extname } from 'node:path';
 import { createRequire } from 'node:module';
+import { createServer } from 'node:https';
+import { execFileSync } from 'node:child_process';
 
 const args = process.argv.slice(2);
 const opt = (name, dflt = null) => { const i = args.indexOf(name); return i >= 0 && args[i + 1] ? args[i + 1] : dflt; };
-const URL_BASE = opt('--url');
-const MAP = opt('--map');
+let URL_BASE = opt('--url');
+let MAP = opt('--map');
+const SERVE = opt('--serve');
 const OUT = opt('--out', 'preview-isolation-probe-out');
-if (!URL_BASE) { console.error('preview-isolation-probe: --url is required'); process.exit(2); }
+if (!URL_BASE && !SERVE) { console.error('preview-isolation-probe: --url or --serve <dist> is required'); process.exit(2); }
 mkdirSync(OUT, { recursive: true });
+if (SERVE) URL_BASE = await serveBuild(SERVE);
+
+// Serve a built dist the way the preview host does (/poetech-app/* onto the
+// root, unknown routes to the shell) over TLS with a throwaway self-signed
+// certificate, and name it a *.vercel.app host so the app's preview rules apply.
+async function serveBuild(dist) {
+  const DIST = normalize(dist);
+  if (!existsSync(join(DIST, 'index.html'))) { console.error(`preview-isolation-probe: no build at ${DIST} (run npm run build first)`); process.exit(2); }
+  const tmp = mkdtempSync(join(tmpdir(), 'probe-tls-')), key = join(tmp, 'key.pem'), cert = join(tmp, 'cert.pem'), HOST = 'money-probe.vercel.app';
+  execFileSync('openssl', ['req', '-x509', '-newkey', 'rsa:2048', '-nodes', '-keyout', key, '-out', cert, '-days', '1', '-subj', `/CN=${HOST}`], { stdio: 'ignore' });
+  const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.webmanifest': 'application/manifest+json', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon', '.woff2': 'font/woff2', '.wasm': 'application/wasm' };
+  const tls = { key: readFileSync(key), cert: readFileSync(cert) };
+  rmSync(tmp, { recursive: true, force: true }); // the throwaway key never reaches the uploaded report
+  const server = createServer(tls, (req, res) => {
+    let path = (req.url || '/').split('?')[0];
+    if (path.startsWith('/poetech-app')) path = path.slice('/poetech-app'.length) || '/';
+    if (path.endsWith('/')) path += 'index.html';
+    const file = normalize(join(DIST, path));
+    const hit = file.startsWith(DIST) && existsSync(file) && statSync(file).isFile();
+    res.writeHead(200, { 'Content-Type': (hit && MIME[extname(file)]) || (hit ? 'application/octet-stream' : 'text/html') });
+    res.end(readFileSync(hit ? file : join(DIST, 'index.html')));
+  });
+  await new Promise((r) => server.listen(0, '127.0.0.1', r));
+  server.unref();
+  const port = server.address().port;
+  MAP = `${HOST}=127.0.0.1:${port}`;
+  console.log(`serving ${DIST} as https://${HOST}:${port}/poetech-app/ (this commit's build)`);
+  return `https://${HOST}:${port}/poetech-app/`;
+}
 
 const FORBIDDEN_HOSTS = [/(^|\.)poetech\.us$/i, /\.pages\.dev$/i, /\.ts\.net$/i, /\.supabase\.co$/i];
 const FORBIDDEN_PATHS = [/^\/sb(\/|$)/, /^\/n8n(\/|$)/, /^\/nas-photos(\/|$)/, /^\/taxes(\/|$)/, /^\/poetech-app\/sb(\/|$)/, /^\/poetech-app\/n8n(\/|$)/];
