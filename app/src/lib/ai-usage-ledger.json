@@ -1805,6 +1805,21 @@
       "notes": "The runner road to transcripts was dead (expired tailnet key); reversed per DR-1360"
     },
     {
+      "id": "lesson-ll321-lay-hands-suddenly-on-no-man",
+      "date": "2026-11-18",
+      "task": "L321 Lay Hands Suddenly on No Man: a forwarded newsletter (thread 1a1e490da1c1c750) on a crowd petitioning to restore a leader days after he resigned, taught as restoration of the person versus restoration of the office, and who decides fitness to lead",
+      "drs": [
+        "DR-1545"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.6,
+      "estimateWithoutAiHours": 8,
+      "notes": ""
+    },
+    {
       "id": "courses-fully-completed",
       "date": "2026-11-12",
       "task": "Courses fully completed counts the row's own best pass and each course names the exams still owed",
