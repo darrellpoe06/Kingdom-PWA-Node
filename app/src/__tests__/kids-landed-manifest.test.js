@@ -47,9 +47,18 @@ describe('the manifest is the folder', () => {
 const fake = (...files) => ({ folder: 'x', files: Object.fromEntries(files.map((f) => [f, { kind: kindOf(f), bytes: 1 }])) });
 
 describe('a file on disk is the only thing that lands a render', () => {
-  it('no Jonah scene is on disk today, so every Jonah page is needed; a scene file flips exactly its shot', () => {
-    for (let n = 1; n <= 8; n += 1) expect(landedFile(`jonah-${n}`)).toBeNull();
-    expect(SHOT_LIST.find((s) => s.id === 'jonah-3').status).toBe('needed');
+  it('each Jonah page is landed exactly when its scene file is in the folder; a scene file flips exactly its shot', () => {
+    // The folder decides (DR-1527): scenes 1 and 2 landed 2026-11-18; the rest wait.
+    const folder = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'public', 'lovecorner', 'kids');
+    for (let n = 1; n <= 8; n += 1) {
+      const png = existsSync(join(folder, `jonah-${n}.png`));
+      const jpg = existsSync(join(folder, `jonah-${n}.jpg`));
+      const want = png ? `jonah-${n}.png` : jpg ? `jonah-${n}.jpg` : null;
+      expect(landedFile(`jonah-${n}`), `jonah-${n}`).toBe(want);
+      expect(SHOT_LIST.find((s) => s.id === `jonah-${n}`).status).toBe(want ? 'landed' : 'needed');
+    }
+    expect(landedFile('jonah-1')).toBe('jonah-1.jpg');
+    expect(landedFile('jonah-2')).toBe('jonah-2.jpg');
     const m = fake('jonah-3.png', 'jonah-4.jpg');
     expect(landedFile('jonah-3', m)).toBe('jonah-3.png');
     expect(landedFile('jonah-4', m)).toBe('jonah-4.jpg');

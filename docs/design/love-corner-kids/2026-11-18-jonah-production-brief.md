@@ -25,7 +25,11 @@ Or attach the files in this channel and I place them. Either way the build regen
 
 ## 2. The eight illustrations (J2)
 
-One 16:9 scene per page, **at least 1600 × 900**, PNG (or JPEG), named exactly as the id. Each shows what its verse says, the two guides present as witnesses (except page 4, inside the fish). The verse and the guide's caption are what the page prints beside the picture.
+One 16:9 scene per page, PNG (or JPEG), sRGB, named exactly as the id. **At least 1600 × 900 for the storybook; 2400 × 1350 or larger** so the episode's slow camera move stays sharp at 1080p (the movie-maker scales each scene to 1.25× the frame). Each shows what its verse says, the two guides present as witnesses (except page 4, inside the fish). The verse and the guide's caption are what the page prints beside the picture.
+
+**Who is in the frame (Darrell, 2026-11-18).** Every human character in these illustrations is Black / African American: Jonah, the sailors, the people and the king of Nineveh, and the two guides. The two guides are the approved pair and no one else, identical in every scene: the girl (braided hair gathered into a bun, pink and white beads, red hoodie, black backpack) and the boy (short curly twists with a fade, blue hoodie, tan utility vest, backpack), with the same faces, skin tones, hairstyles, clothing and approximate ages as the reference images in the kids folder. The look is a high-quality 3D animated feature-film scene, never a generic cartoon.
+
+**Until a scene lands, its page keeps the existing temporary artwork** (the interim open-Bible picture with the guide's face). No unrelated illustration stands in for a missing scene; the registry shows a page's real scene only when `jonah-N.png` is in the folder (the landed manifest), and the manifest test proves each file is a real image.
 
 ### `jonah-1.png` · page 1 · Jonah 1:1-3
 
@@ -124,7 +128,7 @@ The narration script, page by page:
 
 ## 6. Checklist
 
-- [ ] `jonah-1.png` … `jonah-8.png` (0 of 8 on disk)
+- [ ] `jonah-1` … `jonah-8` (2 of 8 on disk, 2026-11-18: `jonah-1.jpg`, `jonah-2.jpg`; scene 2 arrived without the two guides, flagged for Darrell's word)
 - [ ] `narration/jonah-p1.m4a` … `jonah-p8.m4a` (0 of 8)
 - [ ] `episodes/jonah-poster.jpg` (0 of 1)
 - [ ] `episodes/jonah.mp4` (0 of 1; served off-repo)
