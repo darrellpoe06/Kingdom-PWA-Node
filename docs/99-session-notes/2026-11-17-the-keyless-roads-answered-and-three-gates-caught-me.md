@@ -580,3 +580,82 @@ the honest answer and not a regression: absent is unread, never "no cause"
 the exception name may yet come from the reason tag alone.
 
 Nothing here is measured live. `re-review: 2026-11-25`.
+
+---
+
+## 13. Six days of `other: 6`, answered in one read — and the answer was not a credential (DR-1551)
+
+**0335's first live read, 14:11Z, run 44320331578, census code f444ab511df7:**
+
+```
+65241324 | research-inbox | build-failed/transient | gates refused: quotation | rate-limited after 4
+29d2c703 | research-inbox | build-failed/other     | crashed: RuntimeError   | failed after 2
+7a79db92 | research-inbox | build-failed/other     | crashed: RuntimeError   | failed after 2
+825019ca | research-inbox | build-failed/other     | gates refused: quotation | crashed: RuntimeError
+2e7ef925 | research-inbox | build-failed/other     | gates refused: verse
+f60ed2a5 | research-inbox | build-failed/other     | gates refused: quotation+verse+voice
+c671009b | research-inbox | build-failed/other     | gates refused: quotation+verse
+```
+
+Six days. One read. **And the thing I had been chasing since 05:12 was never a
+credential at all** — not the dead Tailscale key, not the lapsed sign-in. It is
+the drafts: `quotation` refused four of seven, `verse` three, `voice` one, and
+three builds crashed with `RuntimeError`. The `:1029` hypothesis DR-1534
+published as its limit is confirmed, and the class is named.
+
+### The next wrong turn I nearly took
+
+`MAX_ATTEMPTS = 2` and five rows sit at exactly `failed after 2`, so the
+obvious move is to raise the budget. I checked the premise first (DR-0076 §5)
+and it does not support that:
+
+- `lesson_writer.py:85-90, 116` **already states** every quotation rule to the
+  writer — every double-quoted span is Scripture and carries its reference, no
+  ellipsis inside a quotation, straight quotes, no record id, no percentage.
+- `previous_failures` (`lesson_builder.py:814`) **does** read the earlier
+  build's stored gate results and feed those lines into the next prompt.
+
+So these rows failed on attempt 2 **with the first attempt's feedback in hand**,
+against rules the prompt had already stated. A third attempt is a guess, not a
+fix.
+
+### Why the gate name still was not enough
+
+`quotation_gate` refuses five different things, and they call for OPPOSITE work:
+
+| what refused | whose work |
+|---|---|
+| a double-quoted span with no reference | the writer's prompt — or the gate itself |
+| an ellipsis inside a quotation | the writer, learnable |
+| curly double quotes | the writer, mechanical |
+| a recited `DR-####` | the writer, mechanical |
+| a stated percentage | the writer, mechanical |
+
+The first line is the one that matters: a model writing teaching prose will
+double-quote a phrase of the teacher's for emphasis, and the gate reads every
+double-quoted span as Scripture. If that is what is firing, the fix is not more
+attempts and not a better prompt — **it is a decision about how a lesson may
+quote its own teacher, and that is Darrell's call, not mine.** One word tells
+that apart from a mis-quoted verse. The gate's name cannot.
+
+So 0336 publishes the KIND: eleven of them, five from the quotation gate, three
+from voice, three from verse.
+
+### The one that required care
+
+`lesson_gates.py:279` and `:282` interpolate a NAME into their problem strings
+— "capitalises Satan", "writes yahweh in lower case". So the prose is **matched**
+and the census's own kind word is **published**: `capitalises-the-adversary`,
+`lowercases-His-Name`. A case plants both and asserts the receipt carries the
+kinds and neither name, nor any fragment of the prose.
+
+I also caught myself writing `lowercases-a-name-of-god` as a kind token. In our
+own authored voice that lower-cases a Name of Yahweh, which the typographic rule
+forbids — and it would have ridden a public endpoint. Renamed before it shipped.
+
+### What is still unknown
+
+`kinds` is **unioned across a row's builds**, so it cannot yet say whether the
+same problem repeated on attempt 2 or a different one appeared. That is exactly
+the question that decides whether a third attempt would help. Named here rather
+than guessed at. `re-review: 2026-11-25`.

@@ -294,6 +294,48 @@ SITE_CLASSES = tuple(sorted({cls for _, cls in FAILURE_SITES}))
 #      exception class, so it cannot pass; what rides is the matched name.
 GATE_NAMES = ("verse", "quotation", "voice", "depth", "structure", "band",
               "bands", "curriculum", "placement", "shape", "title", "scripture")
+
+# WHICH PROBLEM, not only which gate (2026-11-18, the read after 0335).
+# MEASURED on run 44320331578: `quotation` refused four of the seven waiting
+# teachings and `verse` three. That named the gate and still did not decide the
+# fix, because the quotation gate refuses five DIFFERENT things and they call
+# for opposite work -- a draft that double-quotes a phrase of the teacher's
+# wants the PROMPT changed, while a draft that mis-quotes a verse wants another
+# attempt, and a gate that refuses something lessons ought to be allowed to do
+# is Darrell's call on how a lesson is written, not mine.
+#
+# The builder's own problem strings are authored prose with the detail
+# interpolated INTO them, so the prose is matched and this file's own KIND word
+# is published -- never the string. lesson_gates.py:276-282 interpolates a NAME
+# into two of them, which is exactly why the match is a substring test and the
+# output is a constant.
+PROBLEM_KINDS = (
+    ("quoted spans,", "span-without-reference"),
+    ("an ellipsis inside a quotation", "ellipsis"),
+    ("curly double quotation marks", "curly-quotes"),
+    ("recites a record id", "record-id"),
+    ("states a percentage", "percentage"),
+    ('the generic "god" in our own voice', "generic-God-not-Yahweh"),
+    # Tight on purpose: lesson_gates.py:279 and :282 interpolate a NAME into
+    # these two, and a loose `capitalises ` or `writes ` would match prose all
+    # over the file. The colon and the trailing clause are the builder's own.
+    (": capitalises ", "capitalises-the-adversary"),
+    (" in lower case", "lowercases-His-Name"),
+)
+# The verse gate already answers in a fixed vocabulary of its own
+# (lesson_gates.py:206-214), so those ride by identity rather than by substring.
+VERSE_FAULT_KINDS = ("unresolvable", "shouted", "not-the-verse")
+PROBLEM_CLASSES = tuple(sorted(
+    {k for _, k in PROBLEM_KINDS} | set(VERSE_FAULT_KINDS)))
+
+
+def _kind_of_problem(text):
+    """This file's own kind word for one of the builder's problem strings."""
+    t = str(text).strip().lower()
+    for opening, kind in PROBLEM_KINDS:
+        if opening in t:
+            return kind
+    return None
 # The stdlib exceptions the builder's own imports can raise, whose names are not
 # in builtins. Extend deliberately; an unlisted type reads as unknown, never as
 # no-crash (DR-0076 section 8).
@@ -372,7 +414,7 @@ def stored_gates(home, limit=400):
             gates = rec.get("gate_results")
             if not isinstance(rid, str) or not isinstance(gates, dict):
                 continue
-            failed = []
+            failed, kinds = [], []
             for g in GATE_NAMES:
                 sub = gates.get(g)
                 if not isinstance(sub, dict):
@@ -381,11 +423,26 @@ def stored_gates(home, limit=400):
                 probs = sub.get("problems") if isinstance(sub.get("problems"), list) else []
                 if sub.get("passed") is False or faults or probs:
                     failed.append(g)
+                # WHICH PROBLEM. The verse gate answers in its own fixed
+                # vocabulary; the others in authored prose with the detail
+                # interpolated in, so the prose is matched and the KIND is
+                # published. Everything else about a fault stays unread.
+                for f in faults:
+                    k = f.get("kind") if isinstance(f, dict) else None
+                    if k in VERSE_FAULT_KINDS:
+                        kinds.append(VERSE_FAULT_KINDS[VERSE_FAULT_KINDS.index(k)])
+                for p in probs:
+                    k = _kind_of_problem(p)
+                    if k:
+                        kinds.append(k)
             if failed:
-                have = out.setdefault(rid, [])
+                have = out.setdefault(rid, {"gates": [], "kinds": []})
                 for g in failed:
-                    if g not in have:
-                        have.append(g)
+                    if g not in have["gates"]:
+                        have["gates"].append(g)
+                for k in kinds:
+                    if k not in have["kinds"]:
+                        have["kinds"].append(k)
     return out
 
 
@@ -778,9 +835,11 @@ def census_of(rows, now=None, builder=None, code_sha=None, empty_ids=(), gates=N
             # prose: gate NAMES from the builder's stored records, and an
             # exception CLASS NAME the interpreter itself recognises. Absent
             # when unknown -- an absent cause is unread, never "no cause".
-            failed = gates.get(r.get("id"))
-            if failed:
-                entry["gates"] = failed
+            found = gates.get(r.get("id")) or {}
+            if found.get("gates"):
+                entry["gates"] = found["gates"]
+            if found.get("kinds"):
+                entry["kinds"] = found["kinds"]
             exc = exception_of(r)
             if exc:
                 entry["exception"] = exc

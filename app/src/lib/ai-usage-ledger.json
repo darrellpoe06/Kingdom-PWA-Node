@@ -1546,6 +1546,21 @@
       "notes": "Darrell: show completed vs not started where it motivates reading; low hanging fruit"
     },
     {
+      "id": "which-problem-not-only-which-gate",
+      "date": "2026-11-18",
+      "task": "The keyless receipt names WHICH problem refused a draft, not only which gate: eleven kinds across the quotation, voice and verse gates, matched on the builder's own prose and published as the census's own word because two of those strings interpolate a name",
+      "drs": [
+        "DR-1551"
+      ],
+      "prs": [],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.6,
+      "estimateWithoutAiHours": 5,
+      "notes": "0335's first live read named the gate and still could not decide the fix: the quotation gate refuses five different things calling for opposite work, and one of them is Darrell's call on how a lesson is written. Checked first that the prompt already states the rules and that previous_failures does reach attempt 2, so more retries was never the obvious answer. Proven to catch the adversary's name reaching the receipt."
+    },
+    {
       "id": "dr-1420-record-in-readers-name",
       "date": "2026-11-10",
       "task": "The learner record is headed by the reader's name with who they are in the household beneath it; an exam average is no longer badged Mastered",
@@ -2179,6 +2194,21 @@
       "wallClockHours": 0.6,
       "estimateWithoutAiHours": 16,
       "notes": "No token meter in this session; tokens and cost are null."
+    },
+    {
+      "id": "sov90-let-your-yea-be-yea",
+      "date": "2026-11-18",
+      "task": "Sovereign A.I. week 90 from one word over a forwarded ByteByteGo issue on reasoning models and overthinking: Word first on Acts 17:11 and Matthew 5:37, four hand-written bands, every verse generator-filled from the KJV, and our own gates read against the article (the quotation gate that once checked against itself, the duplicate finder's two drifts, the band ladder's floor with no length ceiling)",
+      "drs": [
+        "DR-1548"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.5,
+      "estimateWithoutAiHours": 14,
+      "notes": "Claimed week 90 while 89 was in flight; 89 landed first and 90 was re-spliced on it. DeepSeek's README read at the source; arxiv, openai and the newsletter's site gave no answer from this sandbox. The course lengths (week 1: 291 words, week 88: 3,668) were counted on this tree; whether length helps was not measured."
     },
     {
       "id": "matrix-0319-renter-seat-2026-11-13",

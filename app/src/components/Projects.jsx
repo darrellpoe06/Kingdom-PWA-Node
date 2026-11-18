@@ -294,7 +294,7 @@ const SCOPE_TEMPLATES = [
   { id: 'tmpl-blank', name: 'Custom Scope (blank)', type: 'custom', description: 'Start from scratch', entityId: 'e-personal', defaults: { title: 'Service Agreement', scopeOfWork: '', deliverables: '', materials: '', schedule: '', paymentTerms: '', acceptanceCriteria: '', requirements: '', warranty: '', terminationClause: '' }},
 ];
 
-function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProject, updateProject, deleteProject, addScope, deleteScope, capexItems = [], addCapexItem, updateCapexItem, deleteCapexItem, netCashFlow = 0, rentals = [], accounts = [], transactions = [], debts = [], feedbackPanel = null, currentUserId = null, currentUserPersona = null, familyMembers = [], isGovernor = false, loopData = {}, loopDecisions = {}, onLoopDecision = null, financialDocAt = null, discussions = [], addDiscussion = null, updateDiscussion = null, deleteDiscussion = null, wakeData = null, onNavigate = null, concerns = [], feedback = [], addConcern = null, updateConcern = null, deleteConcern = null, demoRowIds = null, incidents = [], workOrderOps = null }) {
+function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProject, updateProject, deleteProject, addScope, deleteScope, capexItems = [], addCapexItem, updateCapexItem, deleteCapexItem, netCashFlow = 0, rentals = [], accounts = [], transactions = [], debts = [], feedbackPanel = null, currentUserId = null, currentUserPersona = null, familyMembers = [], isGovernor = false, loopData = {}, loopDecisions = {}, onLoopDecision = null, financialDocAt = null, discussions = [], addDiscussion = null, updateDiscussion = null, deleteDiscussion = null, wakeData = null, onNavigate = null, concerns = [], feedback = [], addConcern = null, updateConcern = null, deleteConcern = null, demoRowIds = null, incidents = [], workOrderOps = null, surfaceIds = null }) {
   const [subView, setSubView] = useState('list');
   // Back returns from a Projects sub-tab (Discussions/Concerns/Scopes/etc.) to
   // the timeline list, then on up the app history — the device Back button no
@@ -378,7 +378,7 @@ function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProj
         <ProjectBoards isGovernor={isGovernor} currentUserPersona={currentUserPersona} projects={projects} />
       )}
       {id === 'ari-review' && (
-        <AriReview concerns={concerns} feedback={feedback} transactions={transactions} rentals={rentals} debts={debts} demoRowIds={demoRowIds} loopData={loopData} financialDocAt={financialDocAt} />
+        <AriReview concerns={concerns} feedback={feedback} transactions={transactions} rentals={rentals} debts={debts} demoRowIds={demoRowIds} loopData={loopData} financialDocAt={financialDocAt} surfaceIds={surfaceIds} />
       )}
       {id === 'feedback' && (
         <div className="space-y-4">
