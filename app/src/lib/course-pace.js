@@ -29,6 +29,8 @@
 // in the next century, which is true but useless to a reader.
 // =============================================================================
 
+import { inNumberOrder, isNumberedCourse, lessonNumber } from './lesson-order.js';
+
 const DAY = 86400000;
 /** Two finished lessons are the fewest that can describe a rate. */
 export const MIN_FOR_PACE = 2;
@@ -105,6 +107,14 @@ export function examsOwed(records = [], courseKey, ids = []) {
   return (Array.isArray(ids) ? ids : []).map((id, i) => ({ id, n: i + 1 })).filter((x) => read.get(x.id)?.read && !read.get(x.id)?.done);
 }
 
+/** The best score this record holds for its lesson, or null when no attempt carries a score. */
+export function bestPctOf(record) {
+  const scores = attemptsOf(record).map((e) => Number(e && e.pct)).filter((n) => Number.isFinite(n));
+  return scores.length ? Math.max(...scores) : null;
+}
+
+const higher = (a, b) => (a === null || a === undefined ? (b ?? null) : b === null || b === undefined ? a : Math.max(a, b));
+
 /**
  * When this lesson became DONE: the later of the reading on record and the
  * first passing attempt. Null when either half is missing — that is the whole
@@ -145,6 +155,7 @@ export function standing(records = [], courseLessonIds = {}) {
     const prev = byCourse.get(r.courseKey).get(r.lessonId);
     // One record per lesson wins: the earliest moment it was both read and passed.
     const t = doneAt(r);
+    const best = bestPctOf(r);
     if (!prev || (t !== null && (prev.done === null || t < prev.done))) {
       byCourse.get(r.courseKey).set(r.lessonId, {
         done: t,
@@ -152,12 +163,14 @@ export function standing(records = [], courseLessonIds = {}) {
         read: !!(r.readEvidenceAt || r.completedAt) || !!(prev && prev.read),
         tested: attemptsOf(r).length > 0 || !!(prev && prev.tested),
         tries: Math.max(Number(r.quizAttempts) || 0, attemptsOf(r).length) + ((prev && prev.tries) || 0),
+        bestPct: higher(best, prev ? prev.bestPct : null),
       });
     } else {
       // A second row for a lesson already counted still adds its reading, its trying and its tries.
       prev.read = prev.read || !!(r.readEvidenceAt || r.completedAt);
       prev.tested = prev.tested || attemptsOf(r).length > 0;
       prev.tries += Math.max(Number(r.quizAttempts) || 0, attemptsOf(r).length);
+      prev.bestPct = higher(prev.bestPct, best);
     }
   }
   const courses = [];
@@ -176,8 +189,14 @@ export function standing(records = [], courseLessonIds = {}) {
     let read = 0;
     let courseTries = 0;
     let grow = 0;
+    // DR-1481: the lessons behind the figures, so a course's row can open onto
+    // exactly the lessons it counts (studied = read or tested), each with its marks.
+    const lessons = [];
     for (const id of ids) {
       const hit = seen.get(id);
+      if (hit && (hit.read || hit.tested)) {
+        lessons.push({ id, read: !!hit.read, tested: !!hit.tested, tries: hit.tries || 0, bestPct: hit.bestPct, done: hit.done !== null, mastered: hit.mastered !== null });
+      }
       if (hit && hit.read) read += 1;
       if (hit && hit.tested) lessonsTested += 1;
       // Studied (read or tested) and not yet understood: the room to grow.
@@ -194,7 +213,7 @@ export function standing(records = [], courseLessonIds = {}) {
     mastered += mast;
     lessonsRead += read;
     tries += courseTries;
-    courses.push({ courseKey, total: ids.length, done, read, tries: courseTries, grow, toGo: ids.length - done, mastered: mast, complete: done === ids.length, readInFull: read === ids.length, understoodAll: mast === ids.length });
+    courses.push({ courseKey, total: ids.length, done, read, tries: courseTries, grow, studied: lessons.length, lessons, toGo: ids.length - done, mastered: mast, complete: done === ids.length, readInFull: read === ids.length, understoodAll: mast === ids.length });
   }
   const coursesComplete = courses.filter((c) => c.complete).length;
   return {
@@ -269,6 +288,45 @@ export function growthOpportunities(stand, n = 3) {
     .filter((c) => (c.grow || 0) > 0)
     .sort((a, b) => b.grow - a.grow || (b.tries || 0) - (a.tries || 0) || a.courseKey.localeCompare(b.courseKey))
     .slice(0, n);
+}
+
+/**
+ * THE LESSONS BEHIND A COURSE'S ROW, IN THE ORDER THEY CAME (DR-1481; Darrell
+ * 2026-11-13, at Big Print: each course a drop-down, its lessons inside in
+ * chronological order, each one a link to its lesson). Chronological is the
+ * app's own: `order`, when given, is the course's lessons as the Lessons list
+ * orders them by number, oldest first (lesson-order.js inNumberOrder; for
+ * Living Lessons the dates never go backwards by number, living-lessons-
+ * dates.js). Without it, the lesson ids' own numbers, else the course's order.
+ * Each entry carries `n`, its place in that order (or its own number when the
+ * course is numbered), so a row reads the way the course list reads. Pure.
+ */
+export function chronologicalIds(ids = [], order = null) {
+  const list = Array.isArray(ids) ? ids : [];
+  if (Array.isArray(order) && order.length) {
+    const at = new Map(order.map((id, i) => [id, i]));
+    return list.map((id, i) => ({ id, i })).sort((a, b) => (at.get(a.id) ?? Infinity) - (at.get(b.id) ?? Infinity) || a.i - b.i).map((x) => x.id);
+  }
+  return inNumberOrder(list.map((id) => ({ id }))).map((m) => m.id);
+}
+
+function inTime(lessons, ids, order) {
+  const rank = new Map(chronologicalIds(ids, order).map((id, i) => [id, i]));
+  const numbered = isNumberedCourse(ids.map((id) => ({ id })));
+  return [...lessons]
+    .sort((a, b) => (rank.get(a.id) ?? Infinity) - (rank.get(b.id) ?? Infinity))
+    .map((l) => ({ ...l, n: numbered ? lessonNumber({ id: l.id }) : (rank.get(l.id) ?? 0) + 1, numbered }));
+}
+
+/** Every studied lesson (read or tested) of one course row, oldest first. Its length is the row's `studied`. Pure. */
+export function studiedLessons(course, ids = [], order = null) {
+  const lessons = course && Array.isArray(course.lessons) ? course.lessons : [];
+  return inTime(lessons, Array.isArray(ids) && ids.length ? ids : lessons.map((l) => l.id), order);
+}
+
+/** Exactly the studied lessons still short of 100%, oldest first. Its length is the row's `grow`. Pure. */
+export function lessonsToGrow(course, ids = [], order = null) {
+  return studiedLessons(course, ids, order).filter((l) => !l.mastered);
 }
 
 /**

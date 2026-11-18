@@ -32,8 +32,9 @@ import { SectionTitle, TabScroll } from './shared.jsx';
 import { onAuthChange } from '../lib/supabase.js';
 import {
   getChoirAccess, youtubeEmbedUrl, youtubeTimedUrl, parseTimecode, formatTimecode,
-  subscribeSermons, subscribeSermonDocuments, subscribeSpeakers, saveSermon, deleteSermon, reuseSermon,
+  subscribeSermons, subscribeSermonDocuments, subscribeSpeakers, saveSermon, deleteSermons, reuseSermon,
   saveSermonDocument, importSermonsFromChannel, SERMON_DOCS_BUCKET, fetchPublicSermons, dedupeSermons,
+  sermonDedupeKey,
 } from '../lib/choir-sync.js';
 import { corpusPrep, speakerRoster, theWordTabs } from '../lib/pulpit-prep.js';
 import { extractYoutubeId } from '../lib/youtube-title-parse.js';
@@ -738,6 +739,18 @@ export default function Pulpit() {
   }, [signedIn, email]);
 
   const reportSkip = (res) => { if (res && res.skipped) setErr(`Could not save (${res.skipped}). Your changes were not stored — try again.`); else setErr(''); };
+  // A DELETE HAS ITS OWN SENTENCE. `reportSkip` says "could not save", which is
+  // wrong for a delete and, worse, said nothing at all when the delete removed
+  // zero rows but reported no error -- the exact silence Darrell hit on
+  // 2026-11-18. A refusal now names itself on screen instead of looking like a
+  // dead button.
+  const reportDelete = (res) => {
+    if (res?.skipped === 'nothing-deleted') {
+      setErr('Nothing was deleted — the database refused it, so the message is still there. This is usually a permissions rule on your account for this church, not a problem with the message.');
+    } else if (res?.skipped) {
+      setErr(`Could not delete (${res.skipped}). The message is still there.`);
+    } else setErr('');
+  };
 
   // Tag each message with its canonical speaker's primary flag (0037) so the
   // roster credits BG as primary from real entity data, not a name regex; and
@@ -822,7 +835,17 @@ export default function Pulpit() {
   };
 
   const onSave = async (s) => { setBusy(true); const r = await saveSermon(s); reportSkip(r); if (r?.id) await saveSermonDocument(r.id, s.documentUrl); setBusy(false); };
-  const onDelete = async (s) => { reportSkip(await deleteSermon(s.id)); };
+  // DELETE THE GROUP THE LIST COLLAPSED, AND SAY SO WHEN NOTHING WENT.
+  // The library draws `dedupeSermons(...).kept`, so a message with clones in the
+  // table appears once; deleting that one id promoted a clone and the card
+  // stayed. Every row sharing its `sermonDedupeKey` IS that same message, so
+  // they go together -- one logical delete, not a wider one.
+  const onDelete = async (s) => {
+    const key = sermonDedupeKey(s);
+    const ids = (Array.isArray(sermons) ? sermons : [])
+      .filter((x) => x && sermonDedupeKey(x) === key).map((x) => x.id).filter(Boolean);
+    reportDelete(await deleteSermons(ids.length ? ids : [s.id]));
+  };
   // Re-preach: BG (the primary speaker) curates a new draft from the source,
   // crediting himself while linking the original deliverer's material (0038).
   const onReuse = async (s) => { const d = new Date(); d.setDate(d.getDate() + 7); reportSkip(await reuseSermon(s, d.toISOString().slice(0, 10), s.serviceType, primarySpeaker)); setTab('library'); };

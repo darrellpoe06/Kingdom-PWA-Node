@@ -25,7 +25,7 @@
 import { parseStatementSummary } from './debt-history.js';
 import { accountFragment } from './bank-formats.js';
 import { parseAmount } from './statement-import.js';
-import { isOwnAccountTransfer } from './bill-review.js';
+import { readSnapshotRows } from './snapshot-rows.js';
 
 export const DOC_TYPES = Object.freeze([
   'transactions-export', 'card-statement', 'bank-statement', 'loan-statement',
@@ -353,47 +353,27 @@ function snapshotLast4(text = '') {
   return m ? m[1] : accountFragment(text);
 }
 /**
- * The rows on the screen: "Nov 4  CASH APP*DARRELL POE  +$700.00" or
- * "11/04 Zelle payment to BG & Mom -$750.00". The year comes from the as-of
- * day (a row cannot be later than the day the screen was taken, so a month
- * after it belongs to the year before). Rows under a "Pending" heading are
- * flagged. Money moved between the family's own accounts (Cash App, transfers)
- * is a transfer, never income or spend (Darrell: "Never count the same money
- * twice").
+ * The rows on the screen, read by lib/snapshot-rows.js (Phase 1.3: every money
+ * form with its sign, the running balance never taken as the amount, Today /
+ * Yesterday, date headings, two-line rows; signs never guessed). Only rows with
+ * a known day are returned here: they are what may be written. `signs` is the
+ * person's answer when the screen signs nothing ('out' or 'in').
  */
-export function snapshotLines(text, { asOf = null } = {}) {
-  const out = [];
-  if (!asOf) return out;
-  const year = Number(asOf.slice(0, 4)); const asOfMonth = Number(asOf.slice(5, 7));
-  const amountRe = '([+-]?\\$?\\s?[\\d,]+\\.\\d{2}-?)';
-  const numeric = new RegExp(`^\\s*(\\d{1,2}\\/\\d{1,2}(?:\\/\\d{2,4})?)\\s+(.+?)\\s+${amountRe}\\s*$`);
-  const named = new RegExp(`^\\s*${MONTH_RE}\\s+(\\d{1,2})(?:,?\\s+(\\d{4}))?\\s+(.+?)\\s+${amountRe}\\s*$`, 'i');
-  let pending = false;
-  for (const raw of String(text || '').split(/\r?\n/)) {
-    const line = raw.trim();
-    if (/^pending\b/i.test(line)) { pending = true; continue; }
-    if (/^(posted|completed|recent (transactions|activity)|transactions|activity)\b/i.test(line)) { pending = false; continue; }
-    let date = null; let description = null; let amount = null;
-    let m = line.match(numeric);
-    if (m) {
-      const mo = Number(m[1].split('/')[0]);
-      // "11/07" carries no year (its "/07" is the day); "11/07/26" does.
-      date = toIsoDate(m[1], /^\d{1,2}\/\d{1,2}\/\d{2,4}$/.test(m[1]) ? null : (mo > asOfMonth ? year - 1 : year));
-      description = m[2]; amount = m[3];
-    } else if ((m = line.match(named))) {
-      const mo = MONTHS[m[1].toLowerCase().slice(0, 3)];
-      date = monthDay(m[1], m[2], m[3] ? Number(m[3]) : (mo > asOfMonth ? year - 1 : year));
-      description = m[4]; amount = m[5];
-    }
-    if (!date || date > asOf) continue;
-    const desc = description.replace(/\s{2,}/g, ' ').trim();
-    const row = { date, description: desc, amount: parseAmount(amount) };
-    if (pending) row.pending = true;
-    if (isOwnAccountTransfer(desc)) row.category = 'transfer';
-    else if (row.amount < 0 && isDebtPaymentRow(desc)) row.category = 'debt-payment';
-    out.push(row);
-  }
-  return out;
+export function snapshotLines(text, { asOf = null, signs = null } = {}) {
+  if (!asOf) return [];
+  const { rows } = readSnapshotRows(text, { asOf });
+  return applySigns(rows.filter((r) => r.date), signs);
+}
+function applySigns(rows, signs) {
+  if (signs !== 'out' && signs !== 'in') return rows;
+  return rows.map((r) => {
+    if (!r.signUnknown) return r;
+    const { signUnknown: _unknown, ...rest } = r;
+    const amount = signs === 'out' ? -Math.abs(r.amount) : Math.abs(r.amount);
+    const next = { ...rest, amount };
+    if (amount < 0 && !next.category && isDebtPaymentRow(next.description)) next.category = 'debt-payment';
+    return next;
+  });
 }
 /**
  * A payment on a loan, mortgage or card as the bank prints it ("FIRST STATE
@@ -414,7 +394,7 @@ function moneyNear(text, labels) {
   }
   return null;
 }
-registerExtractor('account-snapshot', ({ text = '', asOf = null }) => {
+registerExtractor('account-snapshot', ({ text = '', asOf = null, signs = null }) => {
   const available = moneyNear(text, ['available balance', 'available now', 'available']);
   const current = moneyNear(text, ['present balance', 'current balance', 'posted balance', 'ledger balance', 'cash balance', 'total balance']);
   const day = asOf || asOfDateOf(text);
@@ -424,7 +404,12 @@ registerExtractor('account-snapshot', ({ text = '', asOf = null }) => {
     amounts: [available != null && { label: 'available', value: available }, current != null && current !== available && { label: 'current', value: current }].filter(Boolean),
     dates: { document: day, period_end: day },
     account_hint: { last4: snapshotLast4(text), institution: institutionOf(text) },
-    line_items: snapshotLines(text, { asOf: day }),
+    line_items: snapshotLines(text, { asOf: day, signs }),
+    // Every row the screen shows, dated or not, for the review card: a
+    // screenshot with no visible date still shows its rows before its day is
+    // answered (nothing is written until then).
+    preview_items: applySigns(readSnapshotRows(text, { asOf: day }).rows, signs),
+    signsKnown: readSnapshotRows(text, { asOf: day }).signsKnown,
   };
 });
 
@@ -440,11 +425,11 @@ export function layoutKeyOf({ doc_type, institution, headerSignature = '', text 
  * Classify + extract: the ONE entry point. `read` is the reader's result
  * ({ text, rows?, headerSignature? }), `source` the stored document.
  */
-export function extractDocument(read = {}, source = {}, { hint = null, forceType = null, asOf = null, balanceKind = null } = {}) {
+export function extractDocument(read = {}, source = {}, { hint = null, forceType = null, asOf = null, balanceKind = null, signs = null } = {}) {
   const base = emptyExtraction(source);
   const text = String(read.text || '');
   const cls = forceType ? { doc_type: forceType, confidence: 1, ranked: [forceType] } : classifyText(text, { hint, rows: read.rows });
-  const partial = extractorFor(cls.doc_type)({ text, rows: read.rows || [], asOf }) || {};
+  const partial = extractorFor(cls.doc_type)({ text, rows: read.rows || [], asOf, signs }) || {};
   const out = {
     ...base, ...partial,
     doc_type: cls.doc_type,
@@ -464,6 +449,9 @@ export function extractDocument(read = {}, source = {}, { hint = null, forceType
     else if (out.summary.availableBalance != null && out.summary.currentBalance != null && Math.abs(out.summary.availableBalance - out.summary.currentBalance) > 0.005) out.uncertain.push('balance_kind');
     if (out.summary.newBalance == null) out.uncertain.push('balance');
     if (!out.dates.document) out.uncertain.push('as_of');
+    // No row on the screen carries a sign: whether they are money out or in is
+    // asked, never guessed (an unsigned debit used to be saved as a deposit).
+    if (out.signsKnown === false && signs !== 'out' && signs !== 'in' && (out.preview_items || []).length) out.uncertain.push('signs');
   }
   return out;
 }

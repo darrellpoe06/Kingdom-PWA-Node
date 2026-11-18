@@ -109,6 +109,11 @@ export function questionsFor(doc, { extraction: x, matched = {}, recon = null, h
         [{ value: 'available', label: `Available ${money(x.summary.availableBalance)}` }, { value: 'current', label: `Current / present ${money(x.summary.currentBalance)}` }],
         { why: 'Only one figure becomes the bank-verified balance for that day.' }));
     }
+    if (x.uncertain.includes('signs')) {
+      out.push(q(id, 'signs', 'No row on this screen shows a minus or a plus. Are these rows money going out, or money coming in?',
+        [{ value: 'out', label: 'Money out (purchases and payments)' }, { value: 'in', label: 'Money in (deposits)' }, { value: 'hold', label: 'A mix; hold it, I will upload a screen that shows the signs' }],
+        { why: 'A purchase is never saved as a deposit by guessing its sign.' }));
+    }
     if (x.uncertain.includes('balance')) {
       out.push(q(id, 'balance', 'No balance was read from this screenshot. How should it be handled?',
         [{ value: 'rows-only', label: 'Add its transactions only; no verified balance' }, { value: 'hold', label: 'Hold it; I will upload a clearer screenshot' }],

@@ -231,8 +231,9 @@ export const OPEN_SOURCE_CANDIDATES = [
       'The engine is AGPL-3.0; we run it unmodified as a separate program and do not distribute it.',
       'No commits since March 2026, and no tests.',
     ],
-    nextStep: 'Place upscayl-bin and the Real-ESRGAN x4plus model on the left tower and write the batch job for the property photo folders.',
-    reReview: '2026-11-15',
+    nextStep:
+      'Place upscayl-bin and the Real-ESRGAN x4plus model on the left tower and write the batch job for the property photo folders. Re-reviewed 2026-11-16 (DR-1507): unchanged and still wanted, and it has not moved because its one step is a placement on dev-gpu-node-1 — a Vulkan GPU the NAS does not have — reached over the tailnet, which has been shut on a dead key since 2026-11-10. The batch script is writable here; the placement is not. Dated to the key, not to another month.',
+    reReview: '2026-12-14',
     gapRef: null,
     drRef: 'DR-1099',
   },

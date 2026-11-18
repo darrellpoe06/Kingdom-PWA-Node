@@ -80,6 +80,7 @@ import { tenancyRowForDoor, tenancyForTenantInvite, advertisedPriceFollows } fro
 import { areaKeyFor, describeAddress, linkToAddress } from './addressing.js';
 import { addressNow, useAddress } from './use-address.js';
 import supabase, { phoneLoginEmail } from '../../lib/supabase.js';
+import PortfolioTab from './PortfolioTab.jsx';
 import { boundedRead, deadlineIn, READ_TIMEOUT_MS, OPTIONAL_TIMEOUT_MS as CLAIM_TIMEOUT_MS } from '../../lib/bounded-read.js';
 import { POE_PROPERTIES, LAUNCH_PLAN, OPPORTUNITIES, CONSTRAINTS } from './config.js';
 import { placeDoorsOnTheMap } from './place-on-map.js';
@@ -1685,6 +1686,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
               onPatch={async (id, patch) => { await patchRoom(id, patch); loadDoorData(); }}
             />
           );
+          case 'overview': return <PortfolioTab rentals={rentals} tenancies={doors} strict={Boolean(preview)} onOpen={(id, to) => { setActiveId(id); setTab(face.tabs.some((t) => t.id === to && !t.locked) ? to : 'history'); }} />; // every door at once (DR-1530)
           case 'doors': return (
             <>
               <DoorsBoard

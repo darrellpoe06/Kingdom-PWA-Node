@@ -45,7 +45,7 @@ describe('the corpus the witness listens to is the reader’s own cut, pinned', 
   });
   it('has every group, with the longest sentences the catalog still hands the voice', () => {
     const groups = new Set(fixture.pieces.map((p) => p.group));
-    expect([...groups].sort()).toEqual(['citation-led', 'longest', 'ordinary', 'photographed', 'screenshot']);
+    expect([...groups].sort()).toEqual(['citation', 'longest', 'ordinary', 'photographed', 'screenshot']);
     const longest = fixture.pieces.filter((p) => p.group === 'longest');
     expect(longest.length).toBe(20);
     expect(Math.min(...longest.map((p) => p.longestSentenceWords))).toBeGreaterThan(18);

@@ -23,6 +23,14 @@
 //   • The week's activity is a real lesson from a registered course, chosen
 //     deterministically by the ISO week so every child sees the same one and
 //     it changes on its own with the calendar.
+//   • TRUE AGES (DR-1508; the 2026-11-13 audit found the Kids door labeled
+//     6–10 over Little Learners, whose own meta says about 3 to 6, and the
+//     Teens door reading at teen with the 11–14 youth band unused): Kids 6–10
+//     reads Living Lessons at `child` (every lesson carries an authored,
+//     screened child level); Teens 11–17 reads at `youth` by default and
+//     `teen` on a tap (TEEN_BANDS); Little Ones 3–6 is the Little Learners
+//     course, kept as its own door inside Kids. The bullet above this one keeps
+//     its line (22): a Living Lesson cites it by number.
 // Pure: no React, no I/O, `now` passed in.
 import { AGE_BANDS } from './learn-framework.js';
 import { LITTLE_LEARNERS_MODULES } from './little-learners-class.js';
@@ -37,7 +45,7 @@ export const YOUTH_DOORS = Object.freeze([
     title: 'Kids',
     range: '6–10',
     band: 'child',
-    courseKey: 'little-learners',
+    courseKey: 'living-lessons',
     caption: 'Short bursts, pictures, quick wins',
     cheer: 'You are loved, and you are learning. One small step at a time!',
   },
@@ -45,12 +53,29 @@ export const YOUTH_DOORS = Object.freeze([
     key: 'teens',
     title: 'Teens',
     range: '11–17',
-    band: 'teen',
+    band: 'youth',
     courseKey: 'living-lessons',
     caption: 'Real questions, real challenges',
     cheer: 'Real questions deserve real answers. The Word has them.',
   },
+  {
+    key: 'little',
+    title: 'Little Ones',
+    range: '3–6',
+    band: 'child',
+    courseKey: 'little-learners',
+    caption: 'Letters, numbers and first words from the Word, read aloud',
+    cheer: 'Big words start small. Yahweh made you, and He loves you!',
+  },
 ]);
+
+/** The Teens door reads at one of these, youth (11–14) by default and teen (15–17) on a tap. */
+export const TEEN_BANDS = Object.freeze(['youth', 'teen']);
+export const TEEN_BAND_PREF_KEY = 'poetech.youth.teenBand';
+
+export function normalizeTeenBand(id) {
+  return TEEN_BANDS.includes(id) ? id : TEEN_BANDS[0];
+}
 
 export const DEFAULT_DOOR = 'kids';
 export const DOOR_PREF_KEY = 'poetech.youth.door';
@@ -59,9 +84,9 @@ export function normalizeDoor(key) {
   return YOUTH_DOORS.some((d) => d.key === key) ? key : DEFAULT_DOOR;
 }
 
-export function doorBandProfile(key) {
+export function doorBandProfile(key, teenBand = null) {
   const d = YOUTH_DOORS.find((x) => x.key === normalizeDoor(key));
-  return band(d.band);
+  return band(d.key === 'teens' && teenBand ? normalizeTeenBand(teenBand) : d.band);
 }
 
 /**
@@ -82,9 +107,9 @@ export const MEMORY_VERSES = Object.freeze([
   { ref: 'Matthew 22:37-39', kids: false },
 ]);
 
-/** The verses a door offers: Kids gets the short ones, Teens gets them all. */
+/** The verses a door offers: Kids and Little Ones get the short ones, Teens gets them all. */
 export function versesFor(doorKey) {
-  return normalizeDoor(doorKey) === 'kids' ? MEMORY_VERSES.filter((v) => v.kids) : MEMORY_VERSES;
+  return normalizeDoor(doorKey) === 'teens' ? MEMORY_VERSES : MEMORY_VERSES.filter((v) => v.kids);
 }
 
 /** ISO-ish week number of `now` in UTC (deterministic; a tie-breaker, not a date shown). */
@@ -168,6 +193,10 @@ export const BADGES = Object.freeze([
   { key: 'three-quizzes', title: 'Three in a Row', how: 'Pass three quizzes', icon: 'crown' },
   { key: 'showed-up', title: 'Showed Up', how: 'Read on three different days in one week', icon: 'calendar' },
   { key: 'kids-reader', title: 'Little Reader', how: 'Read a lesson at the Kids or Teens level', icon: 'heart' },
+  // The Bible Adventures (DR-1523): earned by doing, from the same rows.
+  { key: 'great-fish', title: 'Great Fish', how: 'Finish Jonah and the Great Fish and answer its questions', icon: 'dove' },
+  { key: 'three-stories', title: 'Story Keeper', how: 'Finish three Bible storybooks', icon: 'book' },
+  { key: 'front-row', title: 'Front Row', how: 'Watch a Bible Adventure episode to the end', icon: 'eye' },
 ]);
 
 const dayKey = (iso) => String(iso || '').slice(0, 10);
@@ -179,6 +208,8 @@ export function badgesFor(records = [], { now = new Date() } = {}) {
   const weekAgo = now.getTime() - 7 * 86400000;
   const daysThisWeek = new Set(read.filter((r) => Date.parse(r.completedAt) >= weekAgo).map((r) => dayKey(r.completedAt)));
   const youthBand = rows.some((r) => ['child', 'youth', 'teen'].includes(r.ageBand) && (r.completedAt || r.quizPassed));
+  const id = (r) => String(r.lessonId || '');
+  const storiesDone = new Set(read.filter((r) => id(r).startsWith('storybook-')).map(id));
   const earned = {
     'first-step': read.length >= 1,
     'five-lessons': read.length >= 5,
@@ -186,6 +217,9 @@ export function badgesFor(records = [], { now = new Date() } = {}) {
     'three-quizzes': passed.length >= 3,
     'showed-up': daysThisWeek.size >= 3,
     'kids-reader': youthBand,
+    'great-fish': rows.some((r) => id(r) === 'storybook-jonah' && r.completedAt && r.quizPassed === true),
+    'three-stories': storiesDone.size >= 3,
+    'front-row': read.some((r) => id(r).startsWith('episode-')),
   };
   return BADGES.map((b) => ({ ...b, earned: !!earned[b.key] }));
 }

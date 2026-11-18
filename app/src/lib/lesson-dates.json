@@ -119,6 +119,9 @@
    "sov81-what-hast-thou-that-thou-didst-not-receive": ["2026-11-13", "50b59c7a"],
    "sov82-how-beautiful-are-the-feet": ["2026-11-13", "26a34987"],
    "sov83-that-they-may-continue-many-days": ["2026-11-13", "73d794b8"],
+   "sov84-the-body-hath-many-members": ["2026-11-13", "6ad8f8e8"],
+   "sov85-and-it-fell-not": ["2026-11-13", "8eb36cc2"],
+   "sov86-all-the-works-of-this-pattern": ["2026-11-13", "7d5f7e59"],
    "sov87-cleanse-thou-me-from-secret-faults": ["2026-11-13", "5613c6ce"]
   },
   "ai-legal-blueprint": {
@@ -274,7 +277,9 @@
    "pm14-whose-measure-the-benchmark-the-census-and-the-kpis": ["2026-11-05", "9f96cd39"],
    "pm15-sat-where-they-sat-the-oldest-forward-deployed-pattern": ["2026-11-06", "67dd1fc3"],
    "pm16-divers-weights-in-the-bag": ["2026-11-11", "c9ae22e0"],
-   "pm17-can-two-walk-together": ["2026-11-13", "e172128d"]
+   "pm17-can-two-walk-together": ["2026-11-13", "e172128d"],
+   "pm18-what-is-that-in-thine-hand": ["2026-11-13", "c552be44"],
+   "pm19-let-these-also-first-be-proved": ["2026-11-13", "7bd3935e"]
   },
   "software-project-management": {
    "spm1-requirements-are-a-vow": ["2026-09-18", "0023c5ac"],

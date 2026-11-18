@@ -231,6 +231,15 @@ jobs:
               printf '\n  <details><summary>the rows (id | created_at | created_by | source | tags | body length — never a body)</summary>\n\n  ```\n'
               sed 's/^/  /' "$RUNNER_TEMP/waiting-rows.txt"
               printf '  ```\n  </details>\n'
+            elif [ "${SERVED_READ:-}" = "ok" ] && [ -s "$RUNNER_TEMP/served-queue.txt" ]; then
+              # WHAT KIND OF WORK WAITS, not only how much (DR-1507, measured on
+              # run 43956538893). The census names no row, so its counts are all
+              # the public road can say about the queue's SHAPE -- and the shape
+              # is what decides the next move. Counts and tag names only; the
+              # `never a body` contract above is unchanged and is pinned.
+              printf '\n  <details><summary>what kind of work waits (counts and tag names only — never a body)</summary>\n\n  ```\n'
+              sed '/^### /d' "$RUNNER_TEMP/served-queue.txt" | sed 's/^/  /'
+              printf '  ```\n  </details>\n'
             fi
           } > "$RUNNER_TEMP/intake-line.md"
           num=$(gh issue list --repo "$REPO" --state all --search "in:title lesson-intake: the waiting queue, run log" --json number --jq '.[0].number // ""') || num=""
