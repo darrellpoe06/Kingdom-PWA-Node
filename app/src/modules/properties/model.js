@@ -110,6 +110,11 @@ export const MANAGER_TABS = [
   // "they should be options inside the apartment... doesn't make sense
   // separate"). The work board and the dispatch read ONE door; they sit after
   // the doors and under the door's own header, never beside it.
+  // EVERY DOOR AT ONCE (DR-1530). Darrell, 2026-11-18: "I need to see all at
+  // the same time in a list... each property with the latest everything".
+  // Open work, the latest message, payments to confirm, per door, sortable.
+  // First in the row because it is the one view that is not one door.
+  TAB('overview', 'Overview', 'Every door at once: open work, the latest message, payments to confirm, sorted by what needs you.'),
   TAB('doors', 'Doors', 'The doors I manage and who lives in them.'),
   TAB('board', 'Work board', 'The open work orders on this door.', 'request.manage'),
   TAB('dispatch', 'Dispatch', 'Send one of this door\u2019s jobs to a 1099 worker by text or call, and record it.', 'request.manage'),
