@@ -31,11 +31,35 @@
     },
     "jonah-1.jpg": {
       "kind": "image",
-      "bytes": 808532
+      "bytes": 526312
     },
     "jonah-2.jpg": {
       "kind": "image",
       "bytes": 848880
+    },
+    "jonah-3.jpg": {
+      "kind": "image",
+      "bytes": 451986
+    },
+    "jonah-4.jpg": {
+      "kind": "image",
+      "bytes": 509733
+    },
+    "jonah-5.jpg": {
+      "kind": "image",
+      "bytes": 590307
+    },
+    "jonah-6.jpg": {
+      "kind": "image",
+      "bytes": 556942
+    },
+    "jonah-7.jpg": {
+      "kind": "image",
+      "bytes": 486235
+    },
+    "jonah-8.jpg": {
+      "kind": "image",
+      "bytes": 395528
     },
     "logo.png": {
       "kind": "image",

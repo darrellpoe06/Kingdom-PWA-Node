@@ -221,7 +221,8 @@ describe('a landed scene and a published episode', () => {
     click(q('[data-testid="storybook-next"]'));
     const img = q('.kz-scene img[data-shot="jonah-3"]');
     expect(img).toBeTruthy();
-    expect(img.getAttribute('src')).toContain('/lovecorner/kids/jonah-3.png');
+    // by its real name on disk (jpg or png), never a guessed extension
+    expect(img.getAttribute('src')).toMatch(/\/lovecorner\/kids\/jonah-3\.(png|jpg|jpeg|webp)$/);
     expect(q('.kz-scene [data-needed="true"]')).toBeNull();
     click(q('[data-testid="storybook-next"]'));
     expect(q('.kz-scene [data-needed="true"]')).toBeTruthy();
