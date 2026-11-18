@@ -659,3 +659,69 @@ forbids — and it would have ridden a public endpoint. Renamed before it shippe
 same problem repeated on attempt 2 or a different one appeared. That is exactly
 the question that decides whether a third attempt would help. Named here rather
 than guessed at. `re-review: 2026-11-25`.
+
+---
+
+## 14. The same problem every time, and the writer was told a number (DR-1552)
+
+**0336's first live read, 16:08Z, census code 3615515d78e2** — the merged SHA,
+so the box had it within half an hour:
+
+```
+65241324 | gates refused: quotation             | because: span-without-reference
+825019ca | gates refused: quotation             | because: span-without-reference | crashed: RuntimeError
+2e7ef925 | gates refused: verse                 | because: not-the-verse
+f60ed2a5 | gates refused: quotation+verse+voice | because: generic-God-not-Yahweh+not-the-verse+span-without-reference
+c671009b | gates refused: quotation+verse       | because: not-the-verse+span-without-reference
+```
+
+**One problem, four rows.** Every quotation refusal is `span-without-reference`
+and nothing else — no ellipsis, no curly quote, no percentage, no record id.
+All three verse refusals are `not-the-verse`. That is not variance across seven
+teachings; it is one repeated behaviour, which is the first thing worth knowing
+about a six-day stall.
+
+### What the writer was actually told
+
+```
+levels.child: 7 quoted spans, 4 with a reference
+```
+
+A count. And `previous_failures` (`lesson_builder.py:814`) feeds exactly that
+line into the next attempt — so attempt 2 was asked to fix something it had no
+way to locate, against a rule `lesson_writer.py:85-90` had already stated to
+it. **That is why raising MAX_ATTEMPTS was never the fix**, and why checking the
+premise first (DR-0076 §5) was worth the ten minutes it cost.
+
+The verse gate has done this correctly from the start — `'(John 1:1) was quoted
+as "X" but the verse reads: Y'`. The quotation gate was the one withholding it.
+Now it names the spans: at most five, each cut to 60 characters, after an
+opening left deliberately unchanged because the census classifies the line by
+matching `quoted spans,`.
+
+### The bug I nearly shipped inside the fix
+
+`SPAN_WITH_REFERENCE` has four capture groups, so `findall` returns **tuples**.
+Building the referenced set from `findall` and testing `span not in referenced`
+is true of every span — a perfectly clean draft would be told its own Scripture
+carries no reference. `finditer` + `group(1)` is the only correct read. Caught
+on the first run against a one-span fixture, and pinned by a case that asserts
+the clean draft passes.
+
+### And a gap in yesterday's hour, found by the gate I added for it
+
+DR-1551 shipped `PROBLEM_KINDS` with no drift case, while `FAILURE_SITES` has
+had one since DR-1534. So re-wording a gate message would have silently stopped
+classifying it and the receipt would have gone back to naming only the gate —
+with nothing red. The case exists now, and **it failed on its first run**, on
+`the generic "God" in our own voice`: the gate's source escapes those quotes, so
+the source holds `\"god\"` while the runtime string holds `"god"`. The matcher
+was right; the test was comparing against the wrong thing. It strips escapes.
+
+### What this does not do
+
+Nothing about what the gate ACCEPTS has changed. Whether a lesson may
+double-quote its own teacher without a Scripture reference is a decision about
+how a lesson is written, and it stays Darrell's. And the seven rows are past
+their attempt budget, so this reaches the NEXT teaching and rebuilds none of
+them. `re-review: 2026-11-25`.

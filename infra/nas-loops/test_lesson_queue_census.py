@@ -1619,3 +1619,62 @@ class WhichProblemNotOnlyWhichGate(unittest.TestCase):
         self.assertEqual(
             set(qc.PROBLEM_CLASSES) - have, set(),
             f"a kind the census can publish and {os.path.basename(newest)} would drop")
+
+
+class TheProblemKindsDoNotDriftFromTheGates(unittest.TestCase):
+    """The gap 0336 shipped with (found 2026-11-18, same day): FAILURE_SITES has
+    a drift case and PROBLEM_KINDS did not, so re-wording a gate's message would
+    silently stop classifying it and the receipt would read the gate name with
+    no kind -- back to where 0335 left it, without anything going red."""
+
+    def gate_source(self):
+        """The gates' source, lowercased, with backslash escapes removed.
+
+        The escaping matters and this test found it on its first run: the voice
+        gate writes `"{}: the generic \\"God\\" in our own voice (say Yahweh)"`,
+        so the SOURCE contains `\\"god\\"` while the string the gate actually
+        produces at runtime contains `"god"` -- which is what PROBLEM_KINDS
+        matches, correctly. Comparing against the raw source would fail a
+        matcher that works, so the escapes come out first.
+        """
+        with open(os.path.join(_ROOT, "infra", "nas-lesson-builder",
+                               "lesson_gates.py"), encoding="utf-8") as fh:
+            return fh.read().lower().replace("\\", "")
+
+    def test_every_opening_is_prose_a_gate_actually_writes(self):
+        src = self.gate_source()
+        for opening, kind in qc.PROBLEM_KINDS:
+            self.assertTrue(opening in src,
+                            f"no gate message contains {opening!r}, so the kind "
+                            f"{kind!r} can never be assigned; was it re-worded?")
+
+    def test_every_verse_fault_kind_is_one_the_verse_gate_emits(self):
+        src = self.gate_source()
+        for kind in qc.VERSE_FAULT_KINDS:
+            self.assertTrue(f'"kind": "{kind}"' in src,
+                            f"the verse gate does not emit {kind!r}")
+
+    def test_PROVEN_TO_CATCH_a_reworded_gate_message(self):
+        src = self.gate_source()
+        self.assertNotIn("the number of quoted spans does not match", src,
+                         "this is the re-wording the case above would catch")
+
+    def test_the_SPAN_TEXT_the_gate_now_names_never_reaches_the_receipt(self):
+        # The quotation gate names the unreferenced spans so the next attempt
+        # can fix them (DR-1552). That text is the DRAFT. The census matches the
+        # line and publishes its own kind; the span must not ride.
+        d = tempfile.mkdtemp()
+        os.makedirs(os.path.join(d, "versions"))
+        with open(os.path.join(d, "versions", "b-1.json"), "w", encoding="utf-8") as fh:
+            json.dump([{"teaching_row_id": "r1", "gate_results": {"quotation": {
+                "passed": False,
+                "problems": [('levels.child: 3 quoted spans, 1 with a reference '
+                              '-- no reference after: "MARKER_SPAN"; "MARKER_TWO"')]}}}], fh)
+        c = qc.census_of([{"id": "r1", "source": "research-inbox",
+                           "created_at": "2026-11-12T12:17:12Z",
+                           "tags": ["lesson", "build-failed"]}],
+                         gates=qc.stored_gates(d))
+        blob = json.dumps(c)
+        self.assertIn("span-without-reference", blob)
+        for leak in ("MARKER_SPAN", "MARKER_TWO", "no reference after", "levels.child"):
+            self.assertNotIn(leak, blob, leak)
