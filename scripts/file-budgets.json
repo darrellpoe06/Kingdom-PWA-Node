@@ -315,6 +315,13 @@
       "to": 13372,
       "date": "2026-11-13",
       "why": "sov84 (The body hath many members, DR-1497) adds one lesson to this file; the same reason as every raise above it -- the lesson corpus lives in JavaScript until DR-1339's lesson-content-out-of-JS re-review (2026-11-19), and a lesson is not the bloat this ratchet exists to refuse. Raised to the MEASURED size of the spliced file (wc -l), not above it. The 204 lines are the module literal that scripts/sov84-fill.mjs generated from app/public/bible/kjv; none were hand-written into this file."
+    },
+    {
+      "file": "app/src/modules/properties/PropertiesApp.jsx",
+      "from": 2682,
+      "to": 2684,
+      "date": "2026-11-18",
+      "why": "The Overview (DR-1530) is its own module (PortfolioTab.jsx, portfolio.js, portfolio-cloud.js); the shell of the module pays only its wiring: one import and one case line. Raised to the measured size, not above it."
     }
   ],
   "budgets": {
@@ -324,7 +331,7 @@
     "app/src/components/ChurchLearn.jsx": 6012,
     "app/src/modules/properties/DoorTabs.jsx": 3352,
     "app/src/components/Rentals.jsx": 3220,
-    "app/src/modules/properties/PropertiesApp.jsx": 2682,
+    "app/src/modules/properties/PropertiesApp.jsx": 2684,
     "app/src/components/TTSControl.jsx": 2630,
     "app/src/lib/cameras.js": 2029,
     "app/src/lib/godhead-study.js": 1993,
