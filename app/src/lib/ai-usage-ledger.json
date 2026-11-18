@@ -1531,6 +1531,21 @@
       "notes": "Darrell: show completed vs not started where it motivates reading; low hanging fruit"
     },
     {
+      "id": "which-problem-not-only-which-gate",
+      "date": "2026-11-18",
+      "task": "The keyless receipt names WHICH problem refused a draft, not only which gate: eleven kinds across the quotation, voice and verse gates, matched on the builder's own prose and published as the census's own word because two of those strings interpolate a name",
+      "drs": [
+        "DR-1551"
+      ],
+      "prs": [],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.6,
+      "estimateWithoutAiHours": 5,
+      "notes": "0335's first live read named the gate and still could not decide the fix: the quotation gate refuses five different things calling for opposite work, and one of them is Darrell's call on how a lesson is written. Checked first that the prompt already states the rules and that previous_failures does reach attempt 2, so more retries was never the obvious answer. Proven to catch the adversary's name reaching the receipt."
+    },
+    {
       "id": "dr-1420-record-in-readers-name",
       "date": "2026-11-10",
       "task": "The learner record is headed by the reader's name with who they are in the household beneath it; an exam average is no longer badged Mastered",
