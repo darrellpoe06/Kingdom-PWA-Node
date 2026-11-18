@@ -19,6 +19,10 @@ The Kids Zone is live with the approved characters. Six pieces Darrell named alr
 - `theater.js` accepts only a YouTube source for `published`; the app is served from Cloudflare Pages, whose documented per-file limit is 25 MiB, so a finished episode cannot live in the repository.
 - `who-am-i.js` carries fifteen people, Jonah among them (clues Jonah 1:3, 3:3, 1:17), but no storybook verse reaches Word Builder or `MemoryVerseGame`, which plays the week's verse only. The reader (`lib/tts.js`) already segments and reports its segment index, so read-to-me needs no new engine.
 
+## Impact
+
+Without this record the adventure would grow as a second app beside the Kids Zone, with its own progress and rewards; with it, every piece lands inside the tabs that exist, every stop and badge is a derivation of a learner row, and the assets still to produce are named with their specs so nothing waits on a guess. The surfaces that said untrue things (a lit stop that was not lit) say true ones.
+
 ## Decision
 
 1. **Build inside the Kids Zone that exists**: no new app, route, or redesign; the work adds inside the Adventure, Theater, Games and Badges tabs.
