@@ -2543,6 +2543,21 @@
       "notes": "Root cause traced to the onFallback hand-off speaking an unmatched-gender phone voice and a speak-time URI miss setting no voice. New suite 13 cases, 9 fail on origin/main. My voice blocked: tower studio unarmed (arm run 36796584904) and CI tailnet key invalid (run 43310501087)."
     },
     {
+      "id": "my-voice-on-the-nas",
+      "date": "2026-11-18",
+      "task": "My voice made on the NAS when the tower is dark: Piper + OpenVoice V2 converter service, forwarder fallback, reader names the engine, public-road witness",
+      "drs": [
+        "DR-1538"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.5,
+      "estimateWithoutAiHours": 16,
+      "notes": "Darrell 2026-11-18: fix it so we don't need anything. NAS speed measured on the box by the installer, not here (Hugging Face unreachable from the sandbox)."
+    },
+    {
       "id": "sov88-every-man-by-his-own-standard",
       "date": "2026-11-13",
       "task": "Sovereign A.I. week 88 built from one word over a forwarded ByteByteGo issue (EP232, six orchestration frameworks), all four age bands, 40-case gate",

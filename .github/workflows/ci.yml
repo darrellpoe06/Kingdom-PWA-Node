@@ -476,6 +476,10 @@ jobs:
       - name: voice-lite selftest
         working-directory: infra/nas-voice-lite
         run: python3 voice_lite_server.py --selftest
+      # My voice on the NAS (DR-1538): never claims the voice while not ready, names its engine, one synthesis at a time.
+      - name: nas voice-clone selftest
+        working-directory: infra/nas-voice-clone
+        run: python3 nas_clone_server.py --selftest
       # The phone bell's door says why (the Way, step 5): ntfy down, no token,
       # never a path or a token in a reason (2026-10-20, the audit).
       - name: announce relay selftest (the door says why)

@@ -121,11 +121,17 @@ export const HEALTH_TIMEOUT_MS = 4000;
 export const HEALTH_CACHE_MS = 60000;
 let health = 'unknown'; // 'unknown' | 'up' | 'down'
 let healthAt = 0;
+// WHICH ENGINE ANSWERED (DR-1538): 'nas-clone' when the tower is dark and the
+// NAS makes My voice itself; '' for the tower's studio or when nothing said.
+let engine = '';
+
+/** The engine the last answering probe named ('' when none was named). */
+export function voiceServiceEngine() { return health === 'up' ? engine : ''; }
 
 /** What the last probe learned. Honest third state — never reported as up. */
 export function voiceServiceHealth() { return health; }
 /** For tests and for a deliberate re-probe after the studio is (re)armed. */
-export function resetVoiceServiceHealthForTests() { health = 'unknown'; healthAt = 0; }
+export function resetVoiceServiceHealthForTests() { health = 'unknown'; healthAt = 0; engine = ''; }
 /** Configured AND not known to be down — the readiness a reader should trust. */
 export function isVoiceServiceAnswering() { return isVoiceServiceReady() && health !== 'down'; }
 
@@ -154,6 +160,7 @@ export async function probeVoiceService({ timeoutMs = HEALTH_TIMEOUT_MS, force =
       try { body = await res.json(); } catch (_) { body = null; }
     }
     health = res && res.ok && body && body.ok === true ? 'up' : 'down';
+    engine = health === 'up' && body && typeof body.engine === 'string' ? body.engine : '';
   } catch (_) {
     health = 'down';
   } finally {

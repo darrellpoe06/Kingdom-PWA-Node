@@ -1,0 +1,23 @@
+# PoeTech voice-clone -- "My voice" on the NAS's own CPU (DR-1538): Piper reads
+# in the house voice, the OpenVoice V2 converter moves it onto the listener's
+# own recording. Request-driven (no timers): it does no work until the /voice
+# forwarder hands it a piece because the tower's studio is dark. Loopback only;
+# the forwarder in front holds the family key.
+# Installed + kept running by infra/nas-voice-clone/install.sh via services-sync;
+# the @...@ values are filled in by the installer.
+[Unit]
+Description=PoeTech voice-clone (My voice on the NAS CPU, behind /voice)
+After=network-online.target
+
+[Service]
+Type=simple
+Environment=VOICE_CLONE_HOME=@HOME@
+Environment=VOICE_LITE_HOME=@LITE@
+WorkingDirectory=@SRC@
+ExecStart=@PYTHON@ -u @SRC@/nas_clone_server.py --port @PORT@ --home @HOME@ --lite-home @LITE@
+Restart=on-failure
+RestartSec=10
+Nice=10
+
+[Install]
+WantedBy=multi-user.target

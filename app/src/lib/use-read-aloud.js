@@ -25,7 +25,7 @@ import { buildStandInAssignments, resolveVoiceURIForId, standInPitch } from './v
 // sound shaped for it, so one engine voice can be several readers.
 import { loadVoiceShapes, saveVoiceShape, shapeFor, clampPitch, nextPitch, DEFAULT_PITCH as SHAPE_DEFAULT_PITCH } from './voice-shape.js';
 import { loadPersonaVoiceMap } from './persona-voice-prefs.js';
-import { isVoiceServiceReady, synthesizeSpeech, activeVoiceEndpoint, builtInVoiceSupport, voiceServiceHealth, probeVoiceService, speakTimeoutFor, mayAttemptStudio, isStudioRoadProblem, synthesizeLite, mayTryLiteVoice, markLiteVoiceMiss, isPlayRefusal, liteVoiceReasonText, LITE_FIRST_TIMEOUT_MS, SPEAK_TIMEOUT_MS, voiceSpeedFor, residualRate } from './voice-service.js';
+import { isVoiceServiceReady, synthesizeSpeech, activeVoiceEndpoint, builtInVoiceSupport, voiceServiceHealth, voiceServiceEngine, probeVoiceService, speakTimeoutFor, mayAttemptStudio, isStudioRoadProblem, synthesizeLite, mayTryLiteVoice, markLiteVoiceMiss, isPlayRefusal, liteVoiceReasonText, LITE_FIRST_TIMEOUT_MS, SPEAK_TIMEOUT_MS, voiceSpeedFor, residualRate } from './voice-service.js';
 import { chunkForClips, createClipQueue, speakPieceOnPhone } from './clip-queue.js';
 import { clipKey, createClipSource, deviceClipCache, AHEAD_CONCURRENCY } from './clip-cache.js';
 import { joinClipBlobs } from './joined-clip.js';
@@ -412,7 +412,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     return {
       personKey: key, picked: !!pickedKey, mine: hasSample, name,
       label: myVoiceLabel(name), status, ready: status === MY_VOICE.READY,
-      line: myVoiceLine({ name, status, miss: myVoiceMiss }),
+      line: myVoiceLine({ name, status, miss: myVoiceMiss, engine: voiceServiceEngine() }),
     };
   }, [voiceId, personalVoices, samplesHere, studioHealth, myVoiceMiss]);
 
