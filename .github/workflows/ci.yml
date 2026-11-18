@@ -442,6 +442,14 @@ jobs:
       - name: lesson-builder proofs
         working-directory: infra/nas-lesson-builder
         run: python3 -m unittest test_lesson_builder -v
+      # The box's own read of WHY a build failed (DR-1537). 0334 named seven
+      # failure sites and six waiting rows matched none, so the next read is the
+      # builder's stored records -- which hold the drafted lesson and the prompt
+      # that quotes the teaching. This diagnostic must never print those;
+      # proven-to-catch against a version that prints the draft.
+      - name: why the builds failed -- says which gate, never a body
+        working-directory: infra/nas-lesson-builder
+        run: python3 -m unittest test_why_the_builds_failed -v
       # Sovereign photo server selftest (DR-0218 zero-n8n / DR-0076): the offline
       # logic checks for the property + family photo image server, including the
       # new list_uploaded family read-back. Proven-to-catch: fails if dest path
