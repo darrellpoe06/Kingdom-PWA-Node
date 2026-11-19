@@ -224,7 +224,14 @@
       "to": 23340,
       "dr": "DR-1601",
       "reason": "ci.yml gains the classify job (26 lines), two lines per skippable leg (needs + if, 14 legs) and seven aggregator lines, so a lesson-only push skips the 13 PostgreSQL wall legs, the door journeys and (unless it touches a course the probe opens) the layout probe: measured 24 jobs a lesson PR before. The ceiling refuses bloat; this is the lane's runner load going down by about 13 jobs a PR. The deploy fold in DR-1603 gives lines back. Raised to the measured total, not above it."
+    },
+    {
+      "date": "2026-11-19",
+      "from": 23340,
+      "to": 23376,
+      "dr": "DR-1527",
+      "reason": "kids-episode-narration.yml (36 lines): speaks a Bible Adventures episode script with the open Kokoro voice (Apache-2.0) on a runner, because the sandbox cannot reach Hugging Face; the Jonah episode's narration is timed from it. A new capability (the episode road DR-1527 named), not a longer version of one; one-shot on push, timeout and concurrency as its brakes. Its first draft was 47 lines with a 54-line copy-back companion; the companion was deleted and the header folded to two lines. Raised to the measured total, not above it."
     }
   ],
-  "totalLines": 23340
+  "totalLines": 23376
 }
