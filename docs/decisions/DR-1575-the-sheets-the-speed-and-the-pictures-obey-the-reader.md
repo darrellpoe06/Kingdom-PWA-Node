@@ -21,6 +21,10 @@ Four things on one door did not do what the reader asked. All four were reproduc
 - **Pictures.** `.lc-office-pic img` had `max-height:70vh; object-fit:contain`: on a 1024px tablet the calendar was drawn **415px wide in a 956px card (43%)**, its small print 6.8px. The full viewer was `max-width:100%` with no zoom at any text size. `DocumentViewer` drew a picture or a PDF page at its dialog's width, with no zoom.
 - Found by the new probe pass, not by the report: at Largest and Big Print on a 390px phone, **ten tile labels ran past their tiles** (three fixed columns).
 
+## Impact
+
+An elder at Big Print can close a sheet, see every speed, and hear the speed he picked from the Read button without reloading. The office's calendar and letter are read at the size he reads everything else, and a team document or a PDF page can be made larger than the screen and scrolled. A layout fault in either sheet now fails the build instead of waiting for a screenshot.
+
 ## Decision
 
 1. **`Modal` has a sheet shape** (`variant="sheet"`, `theme`): the panel carries the theme, has no padding, is the one scroll box, and its close is a 44px fixed-px themed button outside the scroll box. The default card is unchanged for every other caller.

@@ -23,15 +23,17 @@ export function usePictureZoom() {
 
 /** Smaller · the size now · Larger. `tone="dark"` for a viewer on a dark backdrop. */
 export function ZoomControls({ z, tone = 'light', what = 'picture', className = '' }) {
+  // The ring a keyboard or a remote sees: the app's own on a light page, gold on the dark viewer.
+  const ring = `focus:outline focus:outline-2 focus:outline-offset-2 ${tone === 'dark' ? 'focus:outline-[#CFA63C]' : 'focus:outline-[#B85838]'}`;
   return (
     <div role="group" aria-label={`Size of the ${what}`} className={`pz-bar pz-bar-${tone} ${className}`} data-testid="picture-zoom" data-zoom={z.label}>
-      <button type="button" className="pz-btn" onClick={z.smaller} disabled={z.atMin} aria-label={z.atMin ? `Smaller ${what} (already fits the screen)` : `Smaller ${what}`} data-testid="picture-zoom-smaller">
+      <button type="button" className={`pz-btn ${ring}`} onClick={z.smaller} disabled={z.atMin} aria-label={z.atMin ? `Smaller ${what} (already fits the screen)` : `Smaller ${what}`} data-testid="picture-zoom-smaller">
         <span aria-hidden="true">−</span> Smaller
       </button>
       <span className="pz-now" aria-live="polite" data-testid="picture-zoom-now">
         {z.label}
       </span>
-      <button type="button" className="pz-btn" onClick={z.larger} disabled={z.atMax} aria-label={z.atMax ? `Larger ${what} (already the largest)` : `Larger ${what}`} data-testid="picture-zoom-larger">
+      <button type="button" className={`pz-btn ${ring}`} onClick={z.larger} disabled={z.atMax} aria-label={z.atMax ? `Larger ${what} (already the largest)` : `Larger ${what}`} data-testid="picture-zoom-larger">
         <span aria-hidden="true">+</span> Larger
       </button>
     </div>
@@ -41,7 +43,7 @@ export function ZoomControls({ z, tone = 'light', what = 'picture', className = 
 /** A two-way scroll box; its content is laid out at zoom x the box's width. */
 export function ZoomPane({ zoom = 1, label = 'Picture', className = '', children }) {
   return (
-    <div className={`pz-pane ${className}`} role="group" aria-label={label} tabIndex={zoom > 1 ? 0 : undefined} data-testid="picture-zoom-pane">
+    <div className={`pz-pane focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] ${className}`} role="group" aria-label={label} tabIndex={zoom > 1 ? 0 : undefined} data-testid="picture-zoom-pane">
       <div className="pz-sheet" style={{ width: `${Math.round(zoom * 100)}%` }}>
         {children}
       </div>

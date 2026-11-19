@@ -977,10 +977,8 @@ html[data-reader-rails="sides"] header[data-read-skip] {
 .pz-bar{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap}
 .pz-btn{min-height:44px;min-width:44px;padding:0 12px;border-radius:12px;border:2px solid #1A1815;background:#fff;color:#1A1815;font-weight:700;font-size:16px;line-height:1;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
 .pz-btn:disabled{opacity:.45;cursor:default}
-.pz-btn:focus,.pz-pane:focus{outline:2px solid currentColor;outline-offset:2px}
 .pz-now{min-width:56px;text-align:center;font-weight:700;font-size:16px;font-variant-numeric:tabular-nums;color:#1A1815}
 .pz-bar-dark .pz-now{color:#fff}
 .pz-bar-dark .pz-btn{border-color:#fff}
-.pz-bar-dark .pz-btn:focus{outline-color:#CFA63C}
 .pz-pane{overflow:auto;-webkit-overflow-scrolling:touch;max-width:100%}
 .pz-sheet{min-width:100%}
