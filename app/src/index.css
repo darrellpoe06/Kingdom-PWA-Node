@@ -694,16 +694,26 @@ button.lc-tile{cursor:pointer}
 .lch-chip{background:var(--lc-red);color:#fff;border-radius:9999px;font-size:.66rem;padding:.1rem .5rem;font-weight:700}
 .lch-chip-muted{color:var(--lc-muted);font-size:.74rem}
 /* the sheets (inside the app's Modal) */
-.lch-sheet{padding:1rem;background:var(--lc-paper);color:var(--lc-ink);display:flex;flex-direction:column;gap:.875rem;max-height:80vh;overflow-y:auto}
+/* The Modal's sheet shape (components/Modal.jsx, DR-1575): the panel carries the theme, is the one scroll box, and its close is fixed-size chrome. */
+.modal-sheet{display:flex;flex-direction:column;max-height:92vh;max-height:92dvh;background:var(--lc-paper);color:var(--lc-ink);border:1px solid var(--lc-line);border-radius:1rem 1rem 0 0;overflow:hidden}
+@media (min-width:640px){.modal-sheet{border-radius:1rem}}
+.modal-sheet-scroll{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+.modal-sheet-x{position:absolute;top:8px;right:8px;z-index:2;width:44px;height:44px;display:grid;place-items:center;border-radius:50%;border:1px solid var(--lc-line);background:var(--lc-paper);color:var(--lc-ink);padding:0;cursor:pointer}
+.modal-sheet-x:focus{outline:2px solid var(--lc-gold-ink);outline-offset:2px}
+/* the sheet's first row keeps clear of the close (44px + its 8px inset), and is at least as tall, so nothing sits under it */
+.lch-sheet>:first-child{margin-right:52px;min-height:44px;display:flex;align-items:center}
+.lch-sheet{padding:1rem;background:var(--lc-paper);color:var(--lc-ink);display:flex;flex-direction:column;gap:.875rem}
 .lch-sheet-h{font-family:var(--lc-display);font-size:1.3rem;margin:0}
 .lch-group-h{font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;color:var(--lc-red);margin:0 0 .5rem;font-weight:700}
 [data-theme="night"] .lch-group-h{color:var(--lc-gold)}
-.lch-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.5rem}
+/* Three across while a label fits a third; fewer as the text grows, so no label runs past its tile (DR-1575: measured at Largest and Big Print on a 390px phone). */
+.lch-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(max(5.3rem,(100% - 1rem)/3),1fr));gap:.5rem}
 .lch-tile{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.25rem;min-height:64px;border-radius:.875rem;background:var(--lc-paper);border:1px solid var(--lc-line);color:var(--lc-ink);font-size:.72rem;font-weight:700;padding:.4rem;cursor:pointer;text-align:center;line-height:1.1}
 [data-theme="night"] .lch-tile{background:linear-gradient(180deg,#2E2224,#140D0E);border-color:rgba(228,185,62,.45)}
 .lch-tile-on{box-shadow:0 0 0 2px var(--lc-red)}
 [data-theme="night"] .lch-tile-on{box-shadow:0 0 0 2px var(--lc-gold)}
-.lch-tile svg{width:20px;height:20px}
+.lch-tile svg{width:1.25rem;height:1.25rem}
+.lch-tile span{min-width:0;max-width:100%;overflow-wrap:anywhere}
 .lch-row{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center}
 .lch-pill{min-height:40px;padding:0 .875rem;border-radius:9999px;border:1px solid var(--lc-line);background:var(--lc-paper);color:var(--lc-ink);font-weight:700;font-size:.85rem;cursor:pointer}
 .lch-pill-gold{background:var(--lc-gold);border-color:var(--lc-gold);color:#1A1012}
@@ -729,9 +739,11 @@ button.lc-tile{cursor:pointer}
 [data-theme="night"] .lch-check{background:var(--lc-gold);color:#1A1012}
 .lch-opt{display:flex;align-items:center;justify-content:space-between;gap:.5rem;font-size:.9rem;font-weight:600;flex-wrap:wrap}
 .lch-opt small{display:block;font-weight:500;color:var(--lc-muted);font-size:.74rem}
-.lch-seg{display:inline-flex;border:1px solid var(--lc-line);border-radius:.75rem;overflow:hidden}
-.lch-seg-btn{min-height:40px;padding:0 .75rem;border:0;background:var(--lc-paper);color:var(--lc-ink);font-weight:700;cursor:pointer}
-.lch-seg-on{background:var(--lc-red);color:#fff}
+/* Every speed is on the sheet (DR-1575): a wrapping grid, never a one-line strip that cuts the ladder off at its box. */
+.lch-seg{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,5.5rem),1fr));gap:.375rem;width:100%}
+.lch-seg-btn{min-height:44px;padding:.25rem .5rem;border:1px solid var(--lc-line);border-radius:.75rem;background:var(--lc-paper);color:var(--lc-ink);font-weight:700;line-height:1.15;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.1rem;text-align:center}
+.lch-seg-btn small{font-weight:600;font-size:.72rem;opacity:.85}
+.lch-seg-on{background:var(--lc-red);border-color:var(--lc-red);color:#fff}
 .lch-note{font-size:.76rem;color:var(--lc-muted);margin:.5rem 0 0;line-height:1.35}
 /* THE HOMEPAGE IN THE PICTURE'S ORDER (DR-1484): the tagline line, a scroll row of
    eight doors on a phone, the Customize strip, the paired cards, the trio. */
@@ -949,12 +961,24 @@ html[data-reader-rails="sides"] header[data-read-skip] {
 .lc-office-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,16rem),1fr));gap:.75rem;margin-top:.625rem}
 .lc-office-fig{margin:0;min-width:0;background:var(--lc-paper,#fff);border:1px solid var(--lc-line,#e6e0d6);border-radius:1rem;overflow:hidden}
 .lc-office-pic{display:block;width:100%;padding:0;border:0;background:#fff;cursor:zoom-in}
-.lc-office-pic img{display:block;width:100%;height:auto;max-height:70vh;object-fit:contain;background:#fff}
+/* The office's picture fills its card (DR-1575). A max-height with object-fit:contain drew a tall calendar narrower than the card it sat in, so its lettering shrank as the card grew. */
+.lc-office-pic img{display:block;width:100%;height:auto;background:#fff}
 .lc-office-cap{padding:.5rem .75rem;font-size:.8rem;color:var(--lc-muted,#5a5751)}
 .lc-office-events{margin-top:.75rem}
 .lc-office-strip{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(min(100%,14rem),18rem);gap:.625rem;overflow-x:auto;padding-bottom:.25rem;scroll-snap-type:x proximity}
 .lc-office-strip .lc-office-fig{scroll-snap-align:start}
-.lc-office-strip .lc-office-pic img{max-height:22rem}
-.lc-office-full{position:fixed;inset:0;z-index:80;background:rgba(0,0,0,.92);overflow:auto;padding:3.25rem .5rem 1rem;-webkit-overflow-scrolling:touch}
-.lc-office-full img{display:block;max-width:100%;height:auto;margin:0 auto;background:#fff}
-.lc-office-close{position:fixed;top:.625rem;right:.625rem;min-height:44px;padding:0 .875rem;border-radius:.75rem;border:0;background:#fff;color:#1A1815;font-weight:700;cursor:pointer}
+/* The full-size viewer (DR-1575): a bar that stays put (Smaller, the size now, Larger, Close) over a box that scrolls both ways; the picture is zoom x the box's width. */
+.lc-office-full{position:fixed;inset:0;z-index:80;background:rgba(0,0,0,.94);display:flex;flex-direction:column}
+.lc-office-bar{flex:0 0 auto;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;padding:8px}
+.lc-office-scroll{flex:1 1 auto;min-height:0;overflow:auto;-webkit-overflow-scrolling:touch;padding:0 8px 16px}
+.lc-office-scroll img{display:block;height:auto;max-width:none;margin:0 auto;background:#fff}
+.lc-office-close{min-height:44px;padding:0 14px;border-radius:12px;border:0;background:#fff;color:#1A1815;font-weight:700;font-size:16px;cursor:pointer}
+/* Larger / Smaller for a picture or a page (components/PictureZoom.jsx). Fixed px: the control is chrome and never grows with the text it is there to help. */
+.pz-bar{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap}
+.pz-btn{min-height:44px;min-width:44px;padding:0 12px;border-radius:12px;border:2px solid #1A1815;background:#fff;color:#1A1815;font-weight:700;font-size:16px;line-height:1;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.pz-btn:disabled{opacity:.45;cursor:default}
+.pz-now{min-width:56px;text-align:center;font-weight:700;font-size:16px;font-variant-numeric:tabular-nums;color:#1A1815}
+.pz-bar-dark .pz-now{color:#fff}
+.pz-bar-dark .pz-btn{border-color:#fff}
+.pz-pane{overflow:auto;-webkit-overflow-scrolling:touch;max-width:100%}
+.pz-sheet{min-width:100%}
