@@ -1529,6 +1529,21 @@
       "notes": "No token meter in this session; tokens and cost are null. PR number recorded after push."
     },
     {
+      "id": "ll337-not-far-from-the-kingdom",
+      "date": "2026-11-19",
+      "task": "L337 Not Far from the Kingdom, from summaries of a 1964 interview of Malcolm X and the question whether he moved toward Christ, all four age bands, shared gate",
+      "drs": [
+        "DR-1583"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.3,
+      "estimateWithoutAiHours": 24,
+      "notes": "Reserved L337 and DR-1583 on origin with new-lesson.mjs. 272 verse tokens filled from app/public/bible/kjv, none typed. Video not watched; his claims named as his; his death and religion stated from general knowledge and listed in UNCHECKED; first gate run caught a quiz option in the generic name, reworded; re-review 2026-12-19."
+    },
+    {
       "id": "dr-1411-ll299-read-with-the-heart",
       "date": "2026-11-10",
       "task": "L299 Read with the Heart, a spoken teaching built the day it was spoken: four bands, two parables, eight questions, 33 verses read from the KJV, 47-case gate",
