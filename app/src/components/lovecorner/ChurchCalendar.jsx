@@ -29,7 +29,7 @@ import {
   DAY_NAMES,
 } from '../../lib/church-calendar.js';
 
-// The ring's width and offset; its colour is the app's one global ring (index.css :focus-visible), never set here.
+// The ring's width and offset; its color is the app's one global ring (index.css :focus-visible), never set here.
 const FOCUS = 'focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2';
 
 const SOURCE_NOTE = {
