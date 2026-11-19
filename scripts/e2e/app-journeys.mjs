@@ -20,12 +20,32 @@
 //                  does not exist; lesson-link-lands must fail.
 //   --break=taps   pointer events are taken away from every tap target; the
 //                  tapping journeys must fail and the typing journey may not.
+//   --break=signin the signed-in stand-in is withheld, so the TLC Assistant
+//                  never mounts (the tier gate shows its locked card);
+//                  office-assistant-answers must fail and no other journey may.
 //
-// Usage: node scripts/e2e/app-journeys.mjs [distDir] [--only=id,id] [--break=link|taps]
+// THE SIGNED-IN STAND-IN (DR-0076: say what it is). Some surfaces mount only
+// for a signed-in tier. For those journeys (SIGNED_IN_JOURNEYS) the runner
+// stands in for the auth server and the database the way door-journeys does:
+// it MINTS a JWT with a throwaway secret that exists only in this file, for a
+// fictitious person (office-standin@e2e.local, a .local address no mail
+// server answers), places the session where supabase-js keeps it, and answers
+// the stub Supabase origin the dist was built against (ci.yml builds with
+// https://test-stub.supabase.co) from standinAnswer() below: /auth/v1/user is
+// read from the token after its signature is checked, member_subscriptions
+// holds one active 'business' row (the tier the Assistant's gate asks for),
+// every other read is empty and every write is accepted and recorded. It is
+// NOT a real account, NOT a real secret, and NOT the real auth server or
+// database: it proves the app mounts and works the surface for a signed-in
+// business-tier session, never that sign-in itself or the RLS walls work
+// (those are door-journeys and the SQL smokes).
+//
+// Usage: node scripts/e2e/app-journeys.mjs [distDir] [--only=id,id] [--break=link|taps|signin]
 // Exit 0 every journey passed (or the planted fault was caught); 1 a journey
 // failed; 2 setup. Bounded by JOURNEYS_BUDGET_MS and per-wait timeouts.
 // =============================================================================
 import { createServer } from 'node:http';
+import { createHmac, timingSafeEqual } from 'node:crypto';
 import { readFileSync, existsSync } from 'node:fs';
 import { join, extname, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -33,6 +53,74 @@ import { fileURLToPath } from 'node:url';
 export const BASE = '/poetech-app';
 export const LESSON_LINK = '?view=church&sub=learn&course=made-in-time&lesson=mit5-those-who-know-their-god';
 export const LESSON_LINK_COURSE = 'Made in Time';
+
+// ── the signed-in stand-in (see the header): pure, pinned in vitest ─────────
+export const STANDIN = Object.freeze({
+  // The origin the dist's supabase-js talks to. ci.yml's surface-sweep leg
+  // builds with this value; a dist built against another origin is answered
+  // by nothing here and the signed-in journey fails signed out (honestly).
+  supabaseUrl: process.env.JOURNEYS_SUPABASE_URL || 'https://test-stub.supabase.co',
+  // A secret that exists only in this file, for this throwaway stand-in.
+  secret: 'app-journeys-standin-throwaway-secret-not-a-real-key',
+  userId: '00000000-0000-4000-8000-00000000e2e1',
+  email: 'office-standin@e2e.local',
+  tier: 'business',
+});
+
+const b64url = (s) => Buffer.from(s).toString('base64url');
+/** An HS256 JWT signed with the stand-in's throwaway secret. */
+export function mintStandinJwt(payload, secret = STANDIN.secret) {
+  const h = b64url(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
+  const p = b64url(JSON.stringify(payload));
+  return `${h}.${p}.${createHmac('sha256', secret).update(`${h}.${p}`).digest('base64url')}`;
+}
+/** The claims of a token this stand-in signed, or null (bad shape or signature). */
+export function verifyStandinJwt(token, secret = STANDIN.secret) {
+  const parts = String(token || '').split('.');
+  if (parts.length !== 3) return null;
+  const want = Buffer.from(createHmac('sha256', secret).update(`${parts[0]}.${parts[1]}`).digest('base64url'));
+  const got = Buffer.from(parts[2]);
+  if (want.length !== got.length || !timingSafeEqual(want, got)) return null;
+  try {
+    return JSON.parse(Buffer.from(parts[1], 'base64url').toString());
+  } catch {
+    return null;
+  }
+}
+/** Where supabase-js v2 keeps the session for a project URL (sb-<first host label>-auth-token). */
+export function standinStorageKey(url = STANDIN.supabaseUrl) {
+  return `sb-${new URL(url).hostname.split('.')[0]}-auth-token`;
+}
+/** The session object supabase-js reads from storage; good for a year from nowSec. */
+export function standinSession(nowSec = Math.floor(Date.now() / 1000)) {
+  const exp = nowSec + 3600 * 24 * 365;
+  const user = { id: STANDIN.userId, aud: 'authenticated', role: 'authenticated', email: STANDIN.email, app_metadata: {}, user_metadata: {} };
+  const access_token = mintStandinJwt({ sub: STANDIN.userId, role: 'authenticated', aud: 'authenticated', email: STANDIN.email, exp });
+  return { access_token, token_type: 'bearer', expires_in: exp - nowSec, expires_at: exp, refresh_token: 'app-journeys-standin', user };
+}
+/**
+ * The stand-in's answer to one request to the stub Supabase origin. Pure.
+ * @returns {{status:number, body:string}}
+ */
+export function standinAnswer(method, pathname, authorization = '') {
+  const json = (status, v) => ({ status, body: JSON.stringify(v) });
+  const m = /^Bearer\s+(.+)$/.exec(authorization || '');
+  const claims = m ? verifyStandinJwt(m[1]) : null;
+  const signedIn = !!claims && claims.role === 'authenticated';
+  if (pathname === '/auth/v1/user') {
+    return signedIn ? json(200, standinSession().user) : json(401, { message: 'no session' });
+  }
+  if (pathname === '/auth/v1/token') return json(200, standinSession());
+  if (pathname === '/auth/v1/logout') return { status: 204, body: '' };
+  if (pathname.startsWith('/rest/v1/')) {
+    if (pathname === '/rest/v1/member_subscriptions') {
+      return json(200, signedIn ? [{ tier: STANDIN.tier, status: 'active', current_period_end: '2099-01-01T00:00:00Z' }] : []);
+    }
+    if (pathname.startsWith('/rest/v1/rpc/')) return json(200, null);
+    return method === 'GET' || method === 'HEAD' ? json(200, []) : json(201, []);
+  }
+  return json(404, {});
+}
 
 export function parseArgs(argv) {
   const a = { dist: null, only: null, breakKind: '' };
@@ -139,9 +227,59 @@ const JOURNEY_DEFS = {
     await area.fill('Words from the journey.');
     if (!(await area.inputValue()).includes('journey')) throw new Error('the feedback sheet did not take words');
   },
+  async 'office-assistant-answers'(page, t) {
+    // Signed in as the business-tier stand-in (header); --break=signin withholds it.
+    await t.signIn(page);
+    await t.open(page, '?view=tlc-assistant');
+    // A first sign-in is greeted: the Arrivals list opens itself once a
+    // launch (ArrivalsBell) over the once-only welcome for a non-family person
+    // (SelfServeWelcome). The journey closes each the way that person would,
+    // top one first; bounded, and a returning device that sees neither passes.
+    const GREETINGS = [
+      ['[role="dialog"][aria-label="Arrivals"] button:text-is("×")', 'the Arrivals close button'],
+      ['[role="dialog"][aria-labelledby="ssw-h"] button:text-is("Get started")', 'the first-sign-in welcome'],
+    ];
+    for (let round = 0; round < 4; round += 1) {
+      const showing = [];
+      for (const g of GREETINGS) if (await page.locator(g[0]).count()) showing.push(g);
+      if (!showing.length) break;
+      await t.tap(page, showing[0][0], showing[0][1]);
+    }
+    const tabs = page.locator('[role="tablist"][aria-label="TLC Therapy Solutions assistant sections"]');
+    await tabs.waitFor({ timeout: 20000 }).catch(() => {
+      throw new Error('the TLC Assistant did not mount for the signed-in business-tier stand-in (no "TLC Therapy Solutions assistant sections" tablist)');
+    });
+    const body = await t.body(page);
+    if (/The Assistant workspace is an operations space/.test(body))
+      throw new Error('the locked card shows beside the Assistant: the tier gate refused the stand-in');
+    if (t.boundary(body)) throw new Error('the Assistant rendered an error boundary');
+    if (!/Daily report/.test(await t.main(page))) throw new Error('the Today section did not answer with its daily report');
+    // The workspace takes a person's words and answers with them: an idea saved
+    // in Content's ideas folder is listed back. (The surface has no model or
+    // network question-and-answer to stub; this is what it actually answers.)
+    await t.tap(page, '[role="tablist"][aria-label="TLC Therapy Solutions assistant sections"] [role="tab"]:has-text("Content")', 'the Content section tab');
+    const words = 'An idea typed by the office journey';
+    const box = page.locator('input[aria-label="Idea"]').first();
+    await box.waitFor({ timeout: 10000 }).catch(() => {
+      throw new Error('no idea input: the Assistant did not give the business-tier operator its write controls');
+    });
+    await box.fill(words);
+    await t.tap(page, 'input[aria-label="Idea"] + button:text-is("Save")', 'the idea Save button');
+    const listed = await page.locator(`li:text-is("${words}")`).count();
+    if (!listed) throw new Error('the saved idea was not listed back in the ideas folder');
+    if (await box.inputValue()) throw new Error('the idea input kept its words after Save');
+  },
 };
 export const JOURNEY_IDS = Object.freeze(Object.keys(JOURNEY_DEFS));
-export const TAP_JOURNEYS = Object.freeze(['learn-by-taps', 'top-tabs-by-taps', 'money-tabs-by-taps', 'feedback-sheet-opens']);
+export const TAP_JOURNEYS = Object.freeze(['learn-by-taps', 'top-tabs-by-taps', 'money-tabs-by-taps', 'feedback-sheet-opens', 'office-assistant-answers']);
+export const SIGNED_IN_JOURNEYS = Object.freeze(['office-assistant-answers']);
+/** Which journeys a planted fault must fail. Pure. */
+export function expectedToFail(breakKind) {
+  if (breakKind === 'link') return ['lesson-link-lands'];
+  if (breakKind === 'taps') return [...TAP_JOURNEYS];
+  if (breakKind === 'signin') return [...SIGNED_IN_JOURNEYS];
+  return [];
+}
 
 const isMain = process.argv[1] && fileURLToPath(import.meta.url) === normalize(process.argv[1]);
 if (isMain) {
@@ -157,7 +295,7 @@ if (isMain) {
     console.error(`app-journeys: no index.html in ${DIST} — build the app first`);
     process.exit(2);
   }
-  if (args.breakKind && !['link', 'taps'].includes(args.breakKind)) {
+  if (args.breakKind && !['link', 'taps', 'signin'].includes(args.breakKind)) {
     console.error(`app-journeys: unknown --break=${args.breakKind}`);
     process.exit(2);
   }
@@ -230,10 +368,36 @@ if (isMain) {
       });
       if (process.env.JOURNEYS_DEBUG) console.log(`debug    tap ${what}: "${(await el.innerText().catch(() => '')).replace(/\s+/g, ' ').slice(0, 80)}"`);
       await el.click({ timeout: 5000 }).catch((e) => {
-        throw new Error(`${what} could not be tapped: ${String(e.message).split('\n')[0]}`);
+        throw new Error(`${what} could not be tapped: ${process.env.JOURNEYS_DEBUG ? e.message : String(e.message).split('\n')[0]}`);
       });
       await t.settle(page);
       if (process.env.JOURNEYS_DEBUG) console.log(`debug    after ${what}: ${(await t.main(page)).slice(0, 300)}`);
+    },
+    // The signed-in stand-in (header). Withheld under --break=signin, so the
+    // surface it opens must then fail to mount.
+    standinSeen: [],
+    async signIn(page) {
+      if (args.breakKind === 'signin') return;
+      const key = standinStorageKey();
+      const session = JSON.stringify(standinSession());
+      await page.addInitScript(
+        ([k, v]) => {
+          try {
+            localStorage.setItem(k, v);
+          } catch (_) {
+            /* private mode */
+          }
+        },
+        [key, session]
+      );
+      await page.context().route(`${STANDIN.supabaseUrl}/**`, (route) => {
+        const req = route.request();
+        const { pathname } = new URL(req.url());
+        const a = standinAnswer(req.method(), pathname, req.headers()['authorization'] || '');
+        t.standinSeen.push(`${req.method()} ${pathname} -> ${a.status}`);
+        if (process.env.JOURNEYS_DEBUG) console.log(`debug    stand-in ${req.method()} ${pathname} -> ${a.status}`);
+        return route.fulfill({ status: a.status, contentType: 'application/json', body: a.body, headers: { 'access-control-allow-origin': '*' } });
+      });
     },
     async textOf(page, selector, ms) {
       const el = page.locator(selector).first();
@@ -291,7 +455,7 @@ if (isMain) {
         results.push([id, 'pass']);
         console.log(`  ✔ ${id}`);
       } catch (e) {
-        const expected = (args.breakKind === 'link' && id === 'lesson-link-lands') || (args.breakKind === 'taps' && TAP_JOURNEYS.includes(id));
+        const expected = expectedToFail(args.breakKind).includes(id);
         if (expected) {
           caught.push(id);
           console.log(`  ✔ ${id} FAILED AS PLANTED — ${e.message}`);
@@ -300,6 +464,7 @@ if (isMain) {
           const text = await t.body(page).catch(() => '(no body)');
           console.log(`  ✘ ${id}\n      ${e.message}\n      url: ${page.url()}\n      page text: ${text.slice(0, 600)}`);
           for (const line of seen.slice(-12)) console.log(`      ${line}`);
+          if (SIGNED_IN_JOURNEYS.includes(id)) for (const line of t.standinSeen.slice(-12)) console.log(`      [stand-in] ${line}`);
         }
       }
       await context.close();
@@ -311,7 +476,7 @@ if (isMain) {
   }
   const failed = results.filter((r) => r[1] === 'FAIL');
   if (args.breakKind) {
-    const expectedIds = args.breakKind === 'link' ? ['lesson-link-lands'] : TAP_JOURNEYS;
+    const expectedIds = expectedToFail(args.breakKind);
     const ran = expectedIds.filter((id) => ids.includes(id));
     const missed = ran.filter((id) => !caught.includes(id));
     if (missed.length) {
