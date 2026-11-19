@@ -46,4 +46,4 @@ Stated from general knowledge with no study opened, and carried in `UNCHECKED`: 
 
 ## Verification
 
-`living-lessons-ll334-this-i-recall-to-my-mind.test.js` runs the shared gate (9 cases) with seven spine spans in the adult lesson and every band. `re-review: 2026-12-18`, with the other three. On merge: PR, squash SHA, deploy run on that SHA, `site-health.yml`.
+`living-lessons-ll334-this-i-recall-to-my-mind.test.js` runs the shared gate (9 cases) with seven spine spans in the adult lesson and every band. `re-review: 2026-12-18`, with the other three. On merge: PR, squash SHA, deploy run on that SHA, `site-health.yml`. One shared test changed with this lesson: `the-lesson-count-is-derived.test.jsx` required the real catalog to carry at most six unused numbers, which fails any lesson that lands ahead of numbers still reserved by parallel branches (L324-L329 and L332 on 2026-11-19); it now reads whichever branch of the label's own rule the catalog is on.
