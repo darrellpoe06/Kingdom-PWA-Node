@@ -23,6 +23,7 @@ import { createRoot } from 'react-dom/client';
 import ChurchLearn from '../components/ChurchLearn.jsx';
 import { buildCatalogCourseDescriptors } from '../lib/learn-catalog.js';
 import { recordPlace, getPlaceFor, finishPlace } from '../lib/learn-resume.js';
+import { openLessonsArea } from './helpers/learn-areas.js';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -42,7 +43,7 @@ afterEach(() => {
 });
 
 const extraCourses = buildCatalogCourseDescriptors();
-const mount = () => act(() => root.render(createElement(ChurchLearn, {
+const mountRaw = () => act(() => root.render(createElement(ChurchLearn, {
   extraCourses,
   progress: {},
   toggleModule: () => {},
@@ -53,6 +54,12 @@ const mount = () => act(() => root.render(createElement(ChurchLearn, {
   ageBand: 'adult',
   setAgeBand: () => {},
 })));
+// Learn opens on Latest (DR-1606): the reader's first tap is the Lessons tab.
+const mount = (...args) => {
+  const out = mountRaw(...args);
+  openLessonsArea();
+  return out;
+};
 const click = (el) => act(() => { el.click(); });
 
 // THE AREAS ARE SUB-TABS (DR-1190): what used to sit under the picker now lives
