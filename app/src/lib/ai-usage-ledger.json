@@ -1614,6 +1614,21 @@
       "notes": "Darrell: why can't a system be built to support this?"
     },
     {
+      "id": "test-waits-as-long-as-its-script",
+      "date": "2026-11-19",
+      "task": "research-answered-on-the-nas.test.js takes its child script's 60 s bound; reproduced under CPU contention and proven both ways; 29 sibling files measured",
+      "drs": [
+        "DR-1608"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.3,
+      "estimateWithoutAiHours": 2,
+      "notes": ""
+    },
+    {
       "id": "dr-1406-pace-and-depth-sustained",
       "date": "2026-11-10",
       "task": "Pace and depth stopped being overwritten by the household snapshot: device-personal, never pushed, stripped on pull; pinned by a test",
