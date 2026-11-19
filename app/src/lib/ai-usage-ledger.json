@@ -1072,6 +1072,21 @@
       "notes": "Same session as DR-1361, DR-1370 and DR-1371; four reader-feedback messages with two screenshots. Estimate is this session's own for the reader fold, the voice seam and the gate."
     },
     {
+      "id": "dr-1595-parish-life-shows-what-is-coming",
+      "date": "2026-11-19",
+      "task": "Parish Life listed July and August events in November; it now reads the church calendar and lists only events that have not ended",
+      "drs": [
+        "DR-1595"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.3,
+      "estimateWithoutAiHours": 2,
+      "notes": "Traced to a list rendering the church record's fixed announcedEvents with no date check. Proven to catch with the record's own events on 2026-11-19. No schema."
+    },
+    {
       "id": "l331-it-doth-not-yet-appear-what-we-shall-be",
       "date": "2026-11-19",
       "task": "L331 It Doth Not Yet Appear What We Shall Be, from three more summaries of the conversation behind L330, all four age bands, shared gate",
