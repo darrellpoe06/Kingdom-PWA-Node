@@ -28,7 +28,7 @@
 import React, { useEffect, useState } from 'react';
 import Modal from './Modal.jsx';
 import UiIcon from './UiIcon.jsx';
-import { ARRIVALS_EVENT, arrivalLanding } from '../lib/arrivals.js';
+import { ARRIVALS_EVENT, arrivalLanding, noteArrivalOpened } from '../lib/arrivals.js';
 import { DOCK_BTN, DOCK_ICON, DOCK_LABEL } from '../lib/chrome-dock.js';
 import { useIntakeHeld } from '../lib/intake-guard.js';
 
@@ -142,6 +142,10 @@ export default function ArrivalsBell({ win = typeof window !== 'undefined' ? win
       try { win.document.querySelector('[aria-label="Open feedback"]')?.click(); } catch { /* no button on this face */ }
       return;
     }
+    // A new service is seen when it is TAPPED, not when Church opens (Church
+    // is the church door's first screen). The bell still marks nothing: it
+    // leaves a note of which item was opened, and the watcher marks that one.
+    noteArrivalOpened(item, win.sessionStorage);
     const url = arrivalLanding({ pathname: win.location?.pathname, search: win.location?.search, item });
     if (!url) return;
     try { win.location.assign(url); } catch { win.location.href = url; }
