@@ -1311,6 +1311,21 @@
       "notes": "Spoken the same day; built the same session."
     },
     {
+      "id": "a-record-is-one-persons",
+      "date": "2026-11-19",
+      "task": "A learner record holds one person's reading: reading history leaves the household snapshot, the catch-up files only what the account did on the device",
+      "drs": [
+        "DR-1577"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.5,
+      "estimateWithoutAiHours": 10,
+      "notes": "Traced in code and matched to two screenshots; live rows not read. Removal of false rows already written is not in this change, re-review 2026-11-21."
+    },
+    {
       "id": "words-read-at-every-size",
       "date": "2026-11-18",
       "task": "Words read at every size: the Love Corner grids collapse with the text (hero flex-wrap, auto-fit grids, overflow-wrap anywhere); the layout probe gains a WORDS READ pass (church door, 4 widths x 3 sizes: squeezed prose, cut-off words, colliding labels) with a self-test",
@@ -1724,6 +1739,21 @@
       "wallClockHours": 0.3,
       "estimateWithoutAiHours": 12,
       "notes": "Darrell: We need our own mortgage calculator inside our PoeTech App where it makes sense"
+    },
+    {
+      "id": "ll329-what-mean-these-stones",
+      "date": "2026-11-18",
+      "task": "L329 What Mean These Stones, from one forwarded technology-podcast recap, all four age bands, shared gate plus tier, privacy and one-teaching checks",
+      "drs": [
+        "DR-1566"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1,
+      "estimateWithoutAiHours": 24,
+      "notes": "Reserved L329 and DR-1566 on origin with new-lesson.mjs. 104 verses filled from app/public/bible/kjv by fill-verses.mjs, none typed. Placed in Living Lessons (devotional teaching); names L248 for the manna. Recap timeline reported, adaptation established; re-review 2026-12-02. Found sov94's clock drift while building; DR-1564 landed the same pin first, so main's copy was taken."
     },
     {
       "id": "dr-1414-put-not-your-trust-in-princes",
@@ -2270,6 +2300,21 @@
       "wallClockHours": 1.5,
       "estimateWithoutAiHours": 14,
       "notes": "No token meter in this session; tokens and cost are null. oreilly.com, arxiv.org and the newsletter's site gave no answer from this sandbox, so the book stays the newsletter's report. Whether naming the span lowers the builder's failure rate is not measured; re-review 2026-11-25."
+    },
+    {
+      "id": "grownups-weekly-pick-has-notes",
+      "date": "2026-11-19",
+      "task": "The Grown-ups weekly pick rotates only over lessons with facilitator notes, so How to lead it always shows; year guard and fixed-list proven-to-catch",
+      "drs": [
+        "DR-1589"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.6,
+      "estimateWithoutAiHours": 3,
+      "notes": "Old rule left the live page without notes for 2026-11-16 (ll238) and 3 more weeks; 75 of 327 lessons carry no howToRun."
     },
     {
       "id": "sov75",
@@ -3805,6 +3850,21 @@
       "wallClockHours": 0.5,
       "estimateWithoutAiHours": 4,
       "notes": "DR-1534's first live read named the limit rather than the cause. Refused the fifth-receipt move DR-1526 recorded as wrong and built the direct read for road 2 instead. Proven to catch a printed draft; 10 cases, wired into ci.yml. Not run on the NAS -- only Darrell's own ssh can."
+    },
+    {
+      "id": "ll336-the-lie-the-fear-and-the-last-adam",
+      "date": "2026-11-19",
+      "task": "L336 The Lie, the Fear, and the Last Adam, from a summary of a talk on sin as broken trust, the true part affirmed and the over-reach corrected from the Word, all four age bands, shared gate",
+      "drs": [
+        "DR-1582"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.3,
+      "estimateWithoutAiHours": 24,
+      "notes": "Reserved L336 and DR-1582 on origin with new-lesson.mjs. 294 verse tokens filled from app/public/bible/kjv, none typed. Video not watched; speaker unnamed in the summary and in the lesson; gate 9 of 9 on the first run; re-review 2026-12-19."
     }
   ]
 }
