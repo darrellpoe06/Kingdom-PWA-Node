@@ -91,7 +91,14 @@ beforeEach(() => {
   origMM = window.matchMedia;
   origW = window.innerWidth;
   window.innerWidth = 390;
-  window.matchMedia = (q) => ({ matches: /max-width: (639|1023)/.test(q), media: q, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {} });
+  window.matchMedia = (q) => ({
+    matches: /max-width: (639|1023)/.test(q),
+    media: q,
+    addEventListener() {},
+    removeEventListener() {},
+    addListener() {},
+    removeListener() {},
+  });
   pageScrolls = [];
   realScrollTo = window.scrollTo;
   window.scrollTo = (a, b) => pageScrolls.push(typeof a === 'object' ? a.top : b);
@@ -157,13 +164,28 @@ function Shell({ header = false }) {
   return createElement(
     'div',
     null,
-    header && createElement(LoveCornerHeader, { churchTabs: TABS, churchView, setChurchView, view, setView, church: COLG_DEFAULT_CHURCH, isOffice: true, canAdmin: true, theme: 'night', setTheme: () => {} }),
+    header &&
+      createElement(LoveCornerHeader, {
+        churchTabs: TABS,
+        churchView,
+        setChurchView,
+        view,
+        setView,
+        church: COLG_DEFAULT_CHURCH,
+        isOffice: true,
+        canAdmin: true,
+        theme: 'night',
+        setTheme: () => {},
+      }),
     view === 'church' && churchView === 'home' && createElement(ChurchHome, HOME_PROPS),
     view !== 'church' && createElement('main', { 'data-testid': `view-${view}` }, view),
     createElement(ChromeDock, { onFeedback: () => {}, nav })
   );
 }
-const lit = () => CHURCH_BOTTOM_NAV.filter((t) => !t.give && q(`[data-testid="dock-tab-${t.key}"]`) && q(`[data-testid="dock-tab-${t.key}"]`).getAttribute('aria-current') === 'page').map((t) => t.words);
+const lit = () =>
+  CHURCH_BOTTOM_NAV.filter(
+    (t) => !t.give && q(`[data-testid="dock-tab-${t.key}"]`) && q(`[data-testid="dock-tab-${t.key}"]`).getAttribute('aria-current') === 'page'
+  ).map((t) => t.words);
 const tab = (key) => q(`[data-testid="dock-tab-${key}"]`);
 
 describe('the bottom bar on the church door', () => {
@@ -296,10 +318,18 @@ describe('the menu under the picture', () => {
 
   it('no row is on the menu without a place it is proven to open', async () => {
     await openMenu();
-    const ids = [...document.querySelectorAll('[data-testid="lch-profile-menu"] [role="menuitem"]')].map((b) => b.getAttribute('data-testid').replace('lch-menu-', ''));
+    const ids = [...document.querySelectorAll('[data-testid="lch-profile-menu"] [role="menuitem"]')].map((b) =>
+      b.getAttribute('data-testid').replace('lch-menu-', '')
+    );
     expect(ids.length).toBeGreaterThan(0);
-    expect(ids.filter((id) => !ROWS[id]), 'a row with no proven destination').toEqual([]);
-    expect(Object.keys(ROWS).filter((id) => !ids.includes(id)), 'a destination with no row').toEqual([]);
+    expect(
+      ids.filter((id) => !ROWS[id]),
+      'a row with no proven destination'
+    ).toEqual([]);
+    expect(
+      Object.keys(ROWS).filter((id) => !ids.includes(id)),
+      'a destination with no row'
+    ).toEqual([]);
   });
 
   it('after a row leaves the Church (Subscription, Admin, Messages), the logo, a strip tab and an All-sheet tile each bring it back', async () => {
