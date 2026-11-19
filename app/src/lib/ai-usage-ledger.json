@@ -2858,6 +2858,21 @@
       "notes": "Word first on Matthew 7:25-27 and 1 Corinthians 3:13. House measured: proven-to-catch count, deploy fault-injection tests, site-health steady state, weekly NAS restore drill, the second road on 2026-11-13 run logs. Gap recorded: no deliberate road-closing drill. Held for sov84; sov83 landed mid-build and was merged in, numbers re-derived on the merged tree."
     },
     {
+      "id": "a-landed-number-is-not-a-skip",
+      "date": "2026-11-19",
+      "task": "The lesson numbering gate counts a number main already carries; the count test reads both branches of its rule",
+      "drs": [
+        "DR-1580"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.4,
+      "estimateWithoutAiHours": 5,
+      "notes": "Found by landing four lessons in parallel: each landing reddened every other lesson branch. LANE_PUSH_TOKEN left for Darrell, re-review 2026-11-26."
+    },
+    {
       "id": "ll310-the-hidden-life-and-the-empty-chair",
       "date": "2026-11-13",
       "task": "L310 The Hidden Life and the Empty Chair, from the newsletters Darrell forwarded under one word, Lesson; all four age bands, 16-case gate with six dangers proven to catch",
