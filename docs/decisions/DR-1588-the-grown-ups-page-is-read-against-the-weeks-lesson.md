@@ -28,6 +28,10 @@ The test reads the page against the lesson the catalog picks for that Monday: th
 
 No product code changes. The page was right.
 
+## Also in this record: the second gap test learns what the first learned
+
+`living-lessons-numbers-are-unique.test.js` excused a missing lesson number only if it was reserved on origin. A reservation is swept when its lesson lands, so a branch cut before the landing read L327 and L332 as held by nobody (PR #2782, shard 3, 06:46Z). DR-1580 fixed this same race in `living-lessons-id-collision.test.js`; this file asked the same question and was missed. It now also counts the numbers `main` carries (`landedLessonNumbersOnOrigin`). Reproduced by removing the two lesson files from a copy of `main`: 1 failed before, 11 of 11 after. A number neither reserved nor landed is still a hole (the file's planted-gap case is unchanged).
+
 ## Not done
 
 Some lessons have no `facilitator.howToRun`, so on their weeks a parent sees the title and the anchor and no leading notes. How many, and whether to write notes for them, was not measured here. `re-review: 2026-12-03`.
