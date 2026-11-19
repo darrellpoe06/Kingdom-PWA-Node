@@ -12,13 +12,28 @@ import { join } from 'node:path';
 import { parseYoutubeFeed } from '../lib/youtube-feed.js';
 import { COLG_DEFAULT_CHURCH } from '../lib/default-church.js';
 import {
-  serviceArrivals, combineArrivals, arrivalLanding, arrivalNotification, unseenArrivals, markSeen, arrivalCount,
-  SCREEN_KINDS, ARRIVAL_KINDS, SERVICE_MAX, EMPTY_SEEN, OPENED_KEY, CATALOG_SINCE_PREFIX, noteArrivalOpened, peekArrivalOpened, markIdSeen,
+  serviceArrivals,
+  combineArrivals,
+  arrivalLanding,
+  arrivalNotification,
+  unseenArrivals,
+  markSeen,
+  arrivalCount,
+  SCREEN_KINDS,
+  ARRIVAL_KINDS,
+  SERVICE_MAX,
+  EMPTY_SEEN,
+  OPENED_KEY,
+  CATALOG_SINCE_PREFIX,
+  noteArrivalOpened,
+  peekArrivalOpened,
+  markIdSeen,
 } from '../lib/arrivals.js';
 import { fetchChannelServices, startArrivalsWatch, SERVICES_REFRESH_MS } from '../lib/arrivals-watch.js';
 import { ARRIVALS_EVENT } from '../lib/arrivals.js';
 
-const entry = (id, title, published) => `<entry><id>yt:video:${id}</id><yt:videoId>${id}</yt:videoId><title>${title}</title><published>${published}</published></entry>`;
+const entry = (id, title, published) =>
+  `<entry><id>yt:video:${id}</id><yt:videoId>${id}</yt:videoId><title>${title}</title><published>${published}</published></entry>`;
 const FEED = `<feed>${[
   entry('AAAAAAAAAAA', 'Sunday Worship &amp; The Word', '2026-11-15T17:00:00+00:00'),
   entry('BBBBBBBBBBB', 'RAP Bible Study', '2026-11-11T19:00:00+00:00'),
@@ -37,13 +52,20 @@ describe('a new recording on the church channel is an arrival', () => {
   });
 
   it('a video with no readable publish time is left out, never dated today', () => {
-    const items = serviceArrivals([{ videoId: 'EEEEEEEEEEE', title: 'No date', published: '' }, { videoId: 'FFFFFFFFFFF', title: 'Bad date', published: 'soon' }]);
+    const items = serviceArrivals([
+      { videoId: 'EEEEEEEEEEE', title: 'No date', published: '' },
+      { videoId: 'FFFFFFFFFFF', title: 'Bad date', published: 'soon' },
+    ]);
     expect(items).toEqual([]);
   });
 
   it('lists at most SERVICE_MAX, and the cap is 5', () => {
     expect(SERVICE_MAX).toBe(5);
-    const many = Array.from({ length: 9 }, (_, i) => ({ videoId: `VIDEO0000${i}0`, title: `S${i}`, published: `2026-11-${String(18 - i).padStart(2, '0')}T12:00:00Z` }));
+    const many = Array.from({ length: 9 }, (_, i) => ({
+      videoId: `VIDEO0000${i}0`,
+      title: `S${i}`,
+      published: `2026-11-${String(18 - i).padStart(2, '0')}T12:00:00Z`,
+    }));
     expect(serviceArrivals(many)).toHaveLength(5);
   });
 
@@ -62,7 +84,10 @@ describe('a new recording on the church channel is an arrival', () => {
   it('a tap lands on Church in the door the person is in, and the notification carries the title', () => {
     const [item] = serviceArrivals(parseYoutubeFeed(FEED, 15));
     expect(arrivalLanding({ pathname: '/poetech-app/', search: '', item })).toBe('/poetech-app/?view=church');
-    expect(arrivalNotification(item)).toMatchObject({ title: 'New service to watch: Sunday Worship & The Word', tag: 'poetech-arrival:service-new:AAAAAAAAAAA' });
+    expect(arrivalNotification(item)).toMatchObject({
+      title: 'New service to watch: Sunday Worship & The Word',
+      tag: 'poetech-arrival:service-new:AAAAAAAAAAA',
+    });
   });
 });
 
@@ -80,7 +105,15 @@ describe('the watcher reads the channel through the same-origin relay', () => {
     const id = COLG_DEFAULT_CHURCH.youtubeChannelId;
     expect(await fetchChannelServices({ fetchImpl: async () => ({ ok: false, text: async () => '' }), channelId: id, parse: parseYoutubeFeed })).toBeNull();
     expect(await fetchChannelServices({ fetchImpl: async () => ok('<feed></feed>'), channelId: id, parse: parseYoutubeFeed })).toBeNull();
-    expect(await fetchChannelServices({ fetchImpl: async () => { throw new Error('offline'); }, channelId: id, parse: parseYoutubeFeed })).toBeNull();
+    expect(
+      await fetchChannelServices({
+        fetchImpl: async () => {
+          throw new Error('offline');
+        },
+        channelId: id,
+        parse: parseYoutubeFeed,
+      })
+    ).toBeNull();
     const hung = (_u, o) => new Promise((_res, rej) => o.signal.addEventListener('abort', () => rej(new Error('aborted'))));
     expect(await fetchChannelServices({ fetchImpl: hung, channelId: id, parse: parseYoutubeFeed, timeoutMs: 20 })).toBeNull();
     expect(await fetchChannelServices({ fetchImpl: async () => ok(FEED), channelId: 'not-a-channel', parse: parseYoutubeFeed })).toBeNull();
@@ -94,17 +127,40 @@ describe('the watcher reads the channel through the same-origin relay', () => {
       localStorage: { getItem: (k) => (store.has(k) ? store.get(k) : null), setItem: (k, v) => store.set(k, String(v)) },
       document: { visibilityState: 'visible', addEventListener() {}, removeEventListener() {}, title: '' },
       navigator: {},
-      addEventListener: (n, fn) => { listeners[n] = fn; },
+      addEventListener: (n, fn) => {
+        listeners[n] = fn;
+      },
       removeEventListener() {},
-      dispatchEvent: (e) => { events.push(e); return true; },
-      CustomEvent: class { constructor(type, init) { this.type = type; this.detail = init && init.detail; } },
+      dispatchEvent: (e) => {
+        events.push(e);
+        return true;
+      },
+      CustomEvent: class {
+        constructor(type, init) {
+          this.type = type;
+          this.detail = init && init.detail;
+        }
+      },
       location: { pathname: '/poetech-app/', search: '' },
     };
     const readServices = vi.fn(async () => parseYoutubeFeed(FEED, 15));
     let session;
     const stop = startArrivalsWatch(win, {
-      supabase: { channel: () => ({ on() { return this; }, subscribe() { return this; } }), removeChannel() {} },
-      onAuthChange: (fn) => { session = fn; return () => {}; },
+      supabase: {
+        channel: () => ({
+          on() {
+            return this;
+          },
+          subscribe() {
+            return this;
+          },
+        }),
+        removeChannel() {},
+      },
+      onAuthChange: (fn) => {
+        session = fn;
+        return () => {};
+      },
       loaders: {
         catalog: async () => () => [],
         lessons: async () => async () => ({ ok: true, owner: false, items: [] }),
@@ -129,7 +185,10 @@ describe('the watcher reads the channel through the same-origin relay', () => {
 
 describe('a tap, not opening Church, marks a new service seen', () => {
   const src = (...p) => readFileSync(join(__dirname, '..', ...p), 'utf8');
-  const mem = () => { const m = new Map(); return { getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), removeItem: (k) => m.delete(k) }; };
+  const mem = () => {
+    const m = new Map();
+    return { getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), removeItem: (k) => m.delete(k) };
+  };
 
   it('the tap leaves a note of the one item; only a new service is noted', () => {
     const s = mem();
@@ -153,14 +212,35 @@ describe('a tap, not opening Church, marks a new service seen', () => {
       navigator: {},
       addEventListener() {},
       removeEventListener() {},
-      dispatchEvent: (e) => { events.push(e); return true; },
-      CustomEvent: class { constructor(type, init) { this.type = type; this.detail = init && init.detail; } },
+      dispatchEvent: (e) => {
+        events.push(e);
+        return true;
+      },
+      CustomEvent: class {
+        constructor(type, init) {
+          this.type = type;
+          this.detail = init && init.detail;
+        }
+      },
       location: { pathname: '/poetech-app/', search: '?view=church' },
     };
     let signIn;
     const stop = startArrivalsWatch(win, {
-      supabase: { channel: () => ({ on() { return this; }, subscribe() { return this; } }), removeChannel() {} },
-      onAuthChange: (fn) => { signIn = fn; return () => {}; },
+      supabase: {
+        channel: () => ({
+          on() {
+            return this;
+          },
+          subscribe() {
+            return this;
+          },
+        }),
+        removeChannel() {},
+      },
+      onAuthChange: (fn) => {
+        signIn = fn;
+        return () => {};
+      },
       loaders: {
         catalog: async () => () => [],
         lessons: async () => async () => ({ ok: true, owner: false, items: [] }),
