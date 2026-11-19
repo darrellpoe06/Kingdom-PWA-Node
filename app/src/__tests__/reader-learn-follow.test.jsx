@@ -31,6 +31,7 @@ import { getReadTarget, clearReadTarget } from '../lib/read-target.js';
 import { buildFollowMap, alignSegments } from '../lib/read-follow.js';
 import { segmentText } from '../lib/tts.js';
 import ChurchLearn from '../components/ChurchLearn.jsx';
+import { openLessonsArea } from './helpers/learn-areas.js';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -69,10 +70,16 @@ afterEach(() => {
   window.localStorage.clear();
 });
 
-const mountLearn = () => act(() => learnRoot.render(createElement(ChurchLearn, {
+const mountLearnRaw = () => act(() => learnRoot.render(createElement(ChurchLearn, {
   progress: {}, toggleModule: () => {}, quizState: {}, recordQuiz: () => {},
   learnLevel: 'auto', setLearnLevel: () => {}, ageBand: 'adult', setAgeBand: () => {},
 })));
+// Learn opens on Latest (DR-1606): the reader's first tap is the Lessons tab.
+const mountLearn = (...args) => {
+  const out = mountLearnRaw(...args);
+  openLessonsArea();
+  return out;
+};
 const learnButton = (text) => [...learnBox.querySelectorAll('button')].find((b) => (b.textContent || '').includes(text));
 // LEARN'S ALL-COURSES VIEW OPENS ON THE ONE LIST NOW (DR-1183). Darrell
 // 2026-10-21: "only have that sortable list when it is chosen". Nothing is open
