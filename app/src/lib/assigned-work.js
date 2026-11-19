@@ -40,7 +40,9 @@ export async function loadMyAssignedWork(client, { timeoutMs = ASSIGNED_TIMEOUT_
   if (!client || typeof client.rpc !== 'function') return { ok: false, reason: 'no-client' };
   let timer = null;
   try {
-    const timeout = new Promise((resolve) => { timer = setTimeout(() => resolve({ timedOut: true }), timeoutMs); });
+    const timeout = new Promise((resolve) => {
+      timer = setTimeout(() => resolve({ timedOut: true }), timeoutMs);
+    });
     const res = await Promise.race([client.rpc('my_assigned_work_orders'), timeout]);
     if (res && res.timedOut) return { ok: false, reason: 'timeout' };
     if (res && res.error) {
@@ -60,8 +62,7 @@ export function openAssigned(jobs = []) {
   const rank = { urgent: 0, high: 1, normal: 2, low: 3 };
   return (Array.isArray(jobs) ? jobs : [])
     .filter((j) => j && OPEN_JOB_STATUSES.includes(j.status))
-    .sort((a, b) => (rank[a.priority] ?? 2) - (rank[b.priority] ?? 2)
-      || String(b.created_at || '').localeCompare(String(a.created_at || '')));
+    .sort((a, b) => (rank[a.priority] ?? 2) - (rank[b.priority] ?? 2) || String(b.created_at || '').localeCompare(String(a.created_at || '')));
 }
 
 /** The id the Poe Properties door is opened with: the tenancy when there is one, else the door. */
@@ -74,7 +75,9 @@ export function jobWhere(job) {
   if (!job) return '';
   const name = [job.door_label, job.unit_label].filter(Boolean).join(' · ');
   const street = [job.address, [job.city, job.state].filter(Boolean).join(', ')].filter(Boolean).join(', ');
-  const label = String(job.door_label || '').trim().toLowerCase();
+  const label = String(job.door_label || '')
+    .trim()
+    .toLowerCase();
   if (street && (!name || (label && street.toLowerCase().startsWith(label)))) return [street, job.unit_label].filter(Boolean).join(' · ');
   if (name && street) return `${name} — ${street}`;
   return name || 'Address not on file';
