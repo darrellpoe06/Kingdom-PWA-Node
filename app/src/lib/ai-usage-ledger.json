@@ -78,6 +78,21 @@
       "notes": "Ratified ~16:37Z, pushed 17:00:31Z. Includes a full 136-case browser sweep run (469 s) and two selftest misses fixed."
     },
     {
+      "id": "ll335-not-done-in-a-corner",
+      "date": "2026-11-19",
+      "task": "L335 Not Done in a Corner, from summaries of a lecture on the historical data for the Resurrection, taught from the Word's own witnesses, all four age bands, shared gate",
+      "drs": [
+        "DR-1581"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.5,
+      "estimateWithoutAiHours": 24,
+      "notes": "Reserved L335 and DR-1581 on origin with new-lesson.mjs. Every quotation a kjv token filled from app/public/bible/kjv, none typed. Video not watched; scholars' counts and dates carried as reported in UNCHECKED; first gate run failed on short child and youth bands, lengthened; re-review 2026-12-19."
+    },
+    {
       "id": "d2-journeys",
       "date": "2026-11-05",
       "task": "Journey registry, six app journeys, coverage guard",
@@ -297,6 +312,21 @@
       "notes": "Shared window with D13's push."
     },
     {
+      "id": "the-sheets-the-speed-and-the-pictures-obey-the-reader",
+      "date": "2026-11-19",
+      "task": "Four interface bugs from the live Love Corner door: the white frame and unreadable close on the ALL and Personalize sheets, speeds cut off, a picked reading speed that never reached a mounted reader, and pictures and documents that did not grow with the text size",
+      "drs": [
+        "DR-1575"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1,
+      "estimateWithoutAiHours": 14,
+      "notes": "Each reproduced and measured in a real Chromium on the built app before and after (contrast, tap size, clipping, drawn picture width). Speed tests proven to fail on the pre-fix library. Layout probe gained a sheets pass with its own selftest; it found tile labels overflowing at the two largest sizes, fixed in the same change. Not run on the Samsung tablet or a real Android voice."
+    },
+    {
       "id": "church-website-read-into-the-app",
       "date": "2026-11-18",
       "task": "The church website read into the app: the office's calendar, letter and flyers through a same-origin relay; the board on the door and the Times tab",
@@ -423,6 +453,21 @@
       "wallClockHours": 1.37,
       "estimateWithoutAiHours": 24,
       "notes": "Measured first commit 17:54:54Z to merge 19:17:20Z on claude/there-shall-be-none-in-the-field (8 commits); the authoring before the first commit is not on the record. Estimate entered by the Ways session for a 1,151-line lesson with 31 gate cases, not the authoring session's own."
+    },
+    {
+      "id": "lesson-ll324",
+      "date": "2026-11-18",
+      "task": "L324 Filled to Devise Cunning Works: one Living Lesson from a forwarded call for arts and humanities proposals (thread 1a1ef8f50df1ee14)",
+      "drs": [
+        "DR-1554"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.8,
+      "estimateWithoutAiHours": 10,
+      "notes": "Scaffolded by new-lesson.mjs; 122 verses filled from the corpus; band shares fixed after first draft failed."
     },
     {
       "id": "app-does-what-it-advertises",
@@ -668,6 +713,21 @@
       "wallClockHours": 0.38,
       "estimateWithoutAiHours": 5,
       "notes": "Measured worktree creation (16:31:16Z, stat) to the commit (16:54:18Z, git %cI) on claude/a-present-base-can-still-be-stale: 23m02s, which includes the three timed fetches (776/808/965 ms) that replaced my own asserted cost argument with a number, and correcting three DR-1363 citations to DR-1365 after the renumber cascade moved my number. NOT on that clock: #2571's red that exposed it, and the renumber of #2571 off DR-1360 after another session landed that number. Tokens and dollars null: no meter exposed. Estimate is this session's own, not a measurement."
+    },
+    {
+      "id": "lesson-ll325-god-is-able",
+      "date": "2026-11-18",
+      "task": "L325 Yahweh Is Able: a Living Lesson built from Bishop Gwin's written Wednesday proclamation (2 Corinthians 9:8), his four points and his passages in KJV",
+      "drs": [
+        "DR-1556"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.4,
+      "estimateWithoutAiHours": 6,
+      "notes": "Thread confirmed by subject and date; NKJV wording not compared (KJV only). re-review 2026-12-02."
     },
     {
       "id": "ll285-a-light-that-is-not-light",
@@ -1024,6 +1084,21 @@
       "wallClockHours": 1.92,
       "estimateWithoutAiHours": 40,
       "notes": "Wall 1.92h measured from the session's first tool call (23:05 UTC) to this ledger line (00:00 UTC 2026-11-07); the committed span d0befabdab..3835440bee is 7m14s and covers only the commits, so it would understate the build. Token use not instrumented; honest estimate about 2.0M, read-heavy - the 5.5MB course file region, seven gate and helper modules, the KJV corpus for 40 verses, three rounds of measure-and-repair on the band ladder. The 40h without-AI estimate is for the same artifact at the same standard: about 90,000 characters of teaching prose across five reader registers, 40 verses fetched and pinned verbatim, a 55-case proven-to-catch gate, a record and a session note. The local full vitest run spent roughly 35 minutes queued behind two sibling runs on the machine's two-slot memory brake; that wait is in the wall figure but is not compute this build used. Three faults in my own work were caught by my own gate rather than by reading: a British spelling in anchor.theme prose, the bare phrase 'the teacher' in a child-band school illustration, and a quiz distractor naming Bishop Gwin for a send that names nobody - the exact DR-0719 fault sov70 and sov71 had already recorded."
+    },
+    {
+      "id": "lesson-ll326-touch-not-mine-anointed",
+      "date": "2026-11-18",
+      "task": "L326 Touch Not Mine Anointed: Darrell's spoken questions on anointing, prophets, who receives the Spirit, and how Yahweh joins Himself to a life, answered Word first",
+      "drs": [
+        "DR-1557"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.4,
+      "estimateWithoutAiHours": 6,
+      "notes": "Spoken in session, no outside source. Blessed points to L84, not re-taught."
     },
     {
       "id": "past-services-play-2026-11-13",
@@ -1679,6 +1754,21 @@
       "wallClockHours": 0.6,
       "estimateWithoutAiHours": 5,
       "notes": "0335's first live read named the gate and still could not decide the fix: the quotation gate refuses five different things calling for opposite work, and one of them is Darrell's call on how a lesson is written. Checked first that the prompt already states the rules and that previous_failures does reach attempt 2, so more retries was never the obvious answer. Proven to catch the adversary's name reaching the receipt."
+    },
+    {
+      "id": "a-new-service-rings-the-bell",
+      "date": "2026-11-19",
+      "task": "Arrivals gains a new-service kind read from the church channel feed; a tap marks one item seen",
+      "drs": [
+        "DR-1568"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.4,
+      "estimateWithoutAiHours": 6,
+      "notes": "Reads the feed the Past sermons tab already plays. Closed-phone push not built, re-review 2026-12-03."
     },
     {
       "id": "dr-1420-record-in-readers-name",
