@@ -438,6 +438,21 @@
       "notes": "Checked one teaching one lesson: the fall is taught in L310 and L319, so only the new teaching was built. Rival's quarter read back via search summaries of its 8-K; the rest tiered as reported. 123 quotations filled from the corpus; gate 9/9; shares first failed and were fixed."
     },
     {
+      "id": "home-goes-home-and-the-menu-goes-where-it-says",
+      "date": "2026-11-19",
+      "task": "Three more reports from the Love Corner door on a phone: the bottom bar's Home that did not go home and lit the wrong item, account-menu rows that did not open what they named, and the header title running under its buttons",
+      "drs": [
+        "DR-1579"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.8,
+      "estimateWithoutAiHours": 10,
+      "notes": "Header measured in a real Chromium at 320 to 412px signed in and out; found header buttons at 13px at Big Print (px inside a zoomed chrome region). Home and the menu proven with the real components mounted together; eight tests fail on the old code. Signed-in was a stand-in session. The picture menu on the PoeTech door was not built."
+    },
+    {
       "id": "sov68-there-shall-be-none-in-the-field",
       "date": "2026-11-05",
       "task": "Lesson sov68: there shall be none in the field (another session's work, ledgered at merge)",
@@ -992,6 +1007,21 @@
       "wallClockHours": 0.75,
       "estimateWithoutAiHours": 8,
       "notes": "Same session as DR-1361, DR-1370 and DR-1371; four reader-feedback messages with two screenshots. Estimate is this session's own for the reader fold, the voice seam and the gate."
+    },
+    {
+      "id": "l331-it-doth-not-yet-appear-what-we-shall-be",
+      "date": "2026-11-19",
+      "task": "L331 It Doth Not Yet Appear What We Shall Be, from three more summaries of the conversation behind L330, all four age bands, shared gate",
+      "drs": [
+        "DR-1569"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.4,
+      "estimateWithoutAiHours": 24,
+      "notes": "Reserved L331 and DR-1569 on origin with new-lesson.mjs. 322 verses filled from app/public/bible/kjv by fill-verses.mjs, none typed. Each cited passage read with the verse before it. Video not watched; re-review 2026-12-18."
     },
     {
       "id": "ll289-why-the-oppressed-still-call-on-him",
@@ -2856,6 +2886,21 @@
       "wallClockHours": 1.4,
       "estimateWithoutAiHours": 40,
       "notes": "Gmail thread 1a1d0d054cd67ed2, forwarded 2026-11-12T17:31Z, built 2026-11-13 after the scheduled intake missed it. 45 anchor references, 162 quoted spans, every verse filled from app/public/bible/kjv by scripts/sov81-fill.mjs and none typed. www.itbrew.com, www.copyright.gov and www.php.net refused (403 CONNECT), the law firm's newsroom ENOTFOUND; named in every teaching place with re-review 2026-11-27. Our own record measured: IP register 24 rows (11 human, 13 mixed, 0 generated); 1,895 of 2,980 commits on main carry a co-author line."
+    },
+    {
+      "id": "l330-he-healeth-the-broken-in-heart",
+      "date": "2026-11-18",
+      "task": "L330 He Healeth the Broken in Heart, from a YouTube conversation Darrell sent with six summaries, all four age bands, shared gate",
+      "drs": [
+        "DR-1567"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.5,
+      "estimateWithoutAiHours": 24,
+      "notes": "Reserved L330 and DR-1567 on origin with new-lesson.mjs. 278 verses filled from app/public/bible/kjv by fill-verses.mjs, none typed. The video was not reachable and not watched; the speakers' claims ride UNCHECKED as theirs, re-review 2026-12-18."
     },
     {
       "id": "record-lists-open-to-their-lessons",
