@@ -328,6 +328,21 @@
       "notes": "7b58a63 push to this push."
     },
     {
+      "id": "worker-reach-view",
+      "date": "2026-11-19",
+      "task": "The landlord's 'are your 1099 workers getting their jobs' panel on People: per worker invited / signed in / permissions held / open jobs assigned from the real rows, and the one reason that stops each; unknown when a read fails",
+      "drs": [
+        "DR-1594"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.5,
+      "estimateWithoutAiHours": 5,
+      "notes": ""
+    },
+    {
       "id": "d10-format-ratchet",
       "date": "2026-11-05",
       "task": "Prettier and ruff as a ratchet on files added since main; 28 of this session's files formatted",

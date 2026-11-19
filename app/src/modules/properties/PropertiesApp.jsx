@@ -39,6 +39,7 @@ import { formatPhone } from '../../lib/member-contact.js';
 import { DoorCamerasTab, TenantCamerasTab } from './DoorCameras.jsx';
 import DoorPictures from './DoorPictures.jsx';
 import AccessMatrix from './AccessMatrix.jsx';
+import WorkerReach from './WorkerReach.jsx';
 import { pickPreviewDoor, previewScope, previewDoorData, previewSeesPhoto } from './preview.js';
 import { setDoorCameraGrant } from './door-cameras.js';
 import { stageFromRecord, confirmDraft, tenancyRowFromDraft, vacantUnitRow } from './staging.js';
@@ -1880,6 +1881,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
               }} />
               {/* WHO SEES WHAT (DR-1198): the evaluated matrix, read where
                   people are invited, one face at a time. */}
+              {realRole === 'owner' && !previewing && <WorkerReach invites={invites} instanceId={(activeRental || activeDoor)?.instance_id || seat?.instance_id || null} reloadKey={reloadKey} />}
               {(role === 'owner' || role === 'manager') && <AccessMatrix />}
             </>);
           default:
