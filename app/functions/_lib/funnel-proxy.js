@@ -57,6 +57,31 @@ const FUNNEL_ORIGIN = 'https://poetech.tail5a2f35.ts.net';
 export const ROAD_HEADER = 'x-poetech-road';
 export const ROAD_VALUE = 'pages-function';
 
+// NO ROAD MAY CLIMB OUT OF ITS OWN MOUNT (2026-11-19, DR-1607). The target URL
+// is built by joining the route's path segments onto the Funnel origin, and the
+// URL parser that fetch() uses collapses dot segments -- including the ENCODED
+// spellings `%2e%2e`, `.%2e`, `%2e.` (WHATWG URL, single/double-dot path
+// segment). So `/sb/%2e%2e/rest/owner/setup` was fetched as
+// FUNNEL/rest/owner/setup: out of the Supabase mount and onto the Funnel ROOT,
+// which is the legacy n8n -- its editor, its REST API and its first-run owner
+// setup. Measured in node 2026-11-19 before this guard was written. Every road
+// shares this factory, so every road had the hole; the guard is here once.
+// A segment that is (or decodes to) a dot segment, or that smuggles a path
+// separator, is refused before anything is fetched.
+const DOT_SEGMENT = /^(?:\.|%2e){1,2}$/i;
+const SMUGGLED_SEPARATOR = /[\/\\]|%2f|%5c/i;
+export function escapesMount(segments) {
+  for (const raw of segments) {
+    const seg = String(raw);
+    let decoded = seg;
+    try { decoded = decodeURIComponent(seg); } catch { return true; }
+    for (const v of [seg, decoded]) {
+      if (DOT_SEGMENT.test(v) || SMUGGLED_SEPARATOR.test(v)) return true;
+    }
+  }
+  return false;
+}
+
 // upstreamPrefix: the path prefix ON THE FUNNEL that this route forwards to.
 //   ''            -> strip the route's own prefix (the legacy /n8n behavior:
 //                    /n8n/webhook/foo -> FUNNEL/webhook/foo)
@@ -87,6 +112,12 @@ export function makeFunnelProxy({ upstreamPrefix, label }) {
     // [[path]] catch-all -> array of segments after the route prefix (absent
     // entirely for single-path routes like /property-history).
     const segments = Array.isArray(params?.path) ? params.path : (params?.path ? [params.path] : []);
+    if (escapesMount(segments)) {
+      return new Response(
+        JSON.stringify({ error: `${label} proxy refused a path that leaves its mount`, code: 'mount-escape' }),
+        { status: 400, headers: { 'content-type': 'application/json', [ROAD_HEADER]: ROAD_VALUE } }
+      );
+    }
     const path = segments.join('/');
     const target = FUNNEL_ORIGIN + upstreamPrefix + (path ? '/' + path : '') + url.search;
 
