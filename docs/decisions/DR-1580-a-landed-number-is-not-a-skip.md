@@ -21,7 +21,7 @@ Four lessons were built in one evening on their own branches, numbered L330 to L
 | a lesson ahead of the queue fails the count test | `the-lesson-count-is-derived.test.jsx` required the real catalog to hold at most `NAMED_GAPS` (6) unused numbers. With L324 to L329 and L332 in flight the catalog had ten. `lessonCountLabel` already reports a count past six, and the test's own comment says it must not hard-code one branch of that rule. |
 | who keeps a branch current | `keep-prs-current` comments "nothing was pushed here... until the `LANE_PUSH_TOKEN` secret exists". Every landing was followed by a hand merge of main into five branches and a full CI run each. |
 | CI wall time that night | checks queued 25 to 35 minutes before starting; a run took 40 to 60 minutes end to end, with 14 pull requests open |
-| preview deploys | Vercel refused every preview after 100 deployments that day |
+| preview deploys | Vercel refused previews with "more than 100" deployments that day; of the ones seen on these branches, one built and the rest were refused |
 
 ## Impact
 
