@@ -7,7 +7,7 @@
     "scheduled": 39,
     "reusable": 2,
     "callers": 5,
-    "withoutConcurrency": 11,
+    "withoutConcurrency": 12,
     "withoutTimeout": 15,
     "withoutPermissions": 12
   },
@@ -376,7 +376,7 @@
       ],
       "crons": [],
       "brakes": {
-        "concurrency": true,
+        "concurrency": false,
         "timeout": true,
         "permissions": true
       },

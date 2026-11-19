@@ -30,7 +30,7 @@
 // =============================================================================
 import { formatPhone, isPhoneDoorEmail, phoneDoorDigits } from '../../lib/member-contact.js';
 import { normalizePhone } from '../../lib/dispatch.js';
-import { FACE_LABELS, CAPABILITY_LABELS } from './model.js';
+import { FACE_LABELS, CAPABILITY_LABELS, inviteGrantsNothing } from './model.js';
 
 /**
  * The name to show for an invited person. The name they were invited under
@@ -149,13 +149,19 @@ export function namesByUserId(invites = []) {
  * "WRITE THE INVITATION" with nothing saying what was missing).
  * Null when it is ready to press.
  */
-export function whyNotReady({ name = '', identified = false, by = 'phone', door = true } = {}) {
+export function whyNotReady({ name = '', identified = false, by = 'phone', door = true, role = null, caps = null } = {}) {
   if (!door) return 'Open one of your doors first — an invitation is to a particular place.';
   if (!String(name || '').trim()) return 'Add their name, so you and everyone after you know who this is.';
   if (!identified) {
     return by === 'phone'
       ? 'Enter their full cell number, including area code.'
       : 'Enter their email address.';
+  }
+  // DR-1594: a 1099 worker or manager with nothing checked signs in to an
+  // empty app and is sent no work order he can open. Checked by default now;
+  // unchecking every box is refused here, out loud.
+  if (role && caps && inviteGrantsNothing(role, caps)) {
+    return 'Check at least one thing they may do. With nothing checked they would sign in and see no work orders.';
   }
   return null;
 }

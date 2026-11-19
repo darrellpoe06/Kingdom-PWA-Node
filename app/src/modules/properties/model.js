@@ -50,6 +50,39 @@ export const CAPABILITY_LABELS = Object.freeze({
 });
 
 /**
+ * WHAT AN INVITATION STARTS WITH CHECKED (DR-1594). Darrell, 2026-11-19: "We
+ * add Coreyon as a 1099 worker and he is not getting the work orders!!!!!!"
+ * The door's invite form started every box UNCHECKED, so a 1099 worker
+ * invited as the form stood carried no capability, the claim granted nothing,
+ * and every work-order policy asks for a grant. A 1099 worker starts with the
+ * field worker's whole ceiling; a manager starts with the set PoeTech's own
+ * "People you know" already sends (lib/people-placement.js), which leaves
+ * "adjust a balance owed" for the family to turn on by hand. Tenants and
+ * household members hold no grant at all; their reach is their tenancy.
+ */
+export const DEFAULT_INVITE_CAPS = Object.freeze({
+  field_worker: Object.freeze([...ROLE_CEILING.field_worker]),
+  manager: Object.freeze(['request.manage', 'message.tenant', 'notice.post', 'rentroll.view', 'rent.confirm', 'application.review']),
+  tenant: Object.freeze([]),
+  household: Object.freeze([]),
+});
+
+/** The boxes checked when the invite form opens on (or switches to) this role. */
+export function defaultInviteCapabilities(role) {
+  return [...(DEFAULT_INVITE_CAPS[role] || [])];
+}
+
+/**
+ * An invitation for a role that works through grants (a 1099 worker, a
+ * manager) with none of them checked would let the person sign in to an empty
+ * app: refused before it is written, never after they wonder why.
+ */
+export function inviteGrantsNothing(role, requested = []) {
+  const ceiling = ROLE_CEILING[role] || [];
+  return ceiling.length > 0 && capabilitiesFor(role, Array.isArray(requested) ? requested : []).length === 0;
+}
+
+/**
  * Intersect a requested capability set with the role's ceiling. The SAME rule the
  * database's claim_property_access() enforces — kept here so the invite UI cannot
  * even OFFER something the server would drop (and the test proves they agree).
