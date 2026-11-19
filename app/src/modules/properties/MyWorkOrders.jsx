@@ -39,12 +39,14 @@ function Job({ job, canOpen, onOpen, onDocument }) {
       if (r && r.ok) setNote('');
     } finally { setBusy(false); }
   };
-  const picture = async (file) => {
-    if (!file) return;
-    if (!isLikelyImageFile(file)) { setSaid('That is not a picture.'); return; }
-    let imageData;
-    try { imageData = await compressImageFile(file, FULL_MAX_WIDTH, FULL_QUALITY); } catch { setSaid('That picture could not be read.'); return; }
-    await write({ outcome: null, imageData });
+  // Several at once: a job is before-and-after, rarely one picture.
+  const pictures = async (files) => {
+    for (const file of files) {
+      if (!isLikelyImageFile(file)) { setSaid(`${file.name || 'That file'} is not a picture.`); continue; }
+      let imageData;
+      try { imageData = await compressImageFile(file, FULL_MAX_WIDTH, FULL_QUALITY); } catch { setSaid('A picture could not be read.'); continue; }
+      await write({ outcome: null, imageData });
+    }
   };
   return (
     <div className="border-b border-[#F0EDE6] py-2" data-testid="my-work-order">
@@ -61,14 +63,14 @@ function Job({ job, canOpen, onOpen, onDocument }) {
       <input value={note} onChange={(e) => setNote(e.target.value)} type="text" placeholder="What you did or found (optional)"
         aria-label={`Note on ${job.title || 'this job'}`} className="w-full text-sm border border-[#E8E4DC] px-2 py-2 mt-2" style={serif} />
       <div className="flex flex-wrap gap-2 mt-2">
-        <button type="button" className={BTN} disabled={busy} onClick={() => write({ outcome: 'fixed' })}>Fixed</button>
-        <button type="button" className={BTN} disabled={busy} onClick={() => write({ outcome: 'not_fixed' })}>Not fixed yet</button>
+        <button type="button" className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border bg-white text-[#1A1815] border-[#E8E4DC] hover:border-[#1A1815] focus:outline focus:outline-2 focus:outline-[#2F5D50] disabled:opacity-40" disabled={busy} onClick={() => write({ outcome: 'fixed' })}>Fixed</button>
+        <button type="button" className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border bg-white text-[#1A1815] border-[#E8E4DC] hover:border-[#1A1815] focus:outline focus:outline-2 focus:outline-[#2F5D50] disabled:opacity-40" disabled={busy} onClick={() => write({ outcome: 'not_fixed' })}>Not fixed yet</button>
         <label className={`${BTN} cursor-pointer`}>
-          Add a picture
-          <input type="file" accept="image/*" capture="environment" className="sr-only" disabled={busy}
-            onChange={(e) => { const f = e.target.files && e.target.files[0]; e.target.value = ''; picture(f); }} />
+          Add pictures
+          <input type="file" accept="image/*" multiple className="sr-only" disabled={busy}
+            onChange={(e) => { const fs = [...(e.target.files || [])]; e.target.value = ''; pictures(fs); }} />
         </label>
-        {canOpen && <button type="button" className={BTN} onClick={() => onOpen(job)}>Open the door</button>}
+        {canOpen && <button type="button" className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border bg-white text-[#1A1815] border-[#E8E4DC] hover:border-[#1A1815] focus:outline focus:outline-2 focus:outline-[#2F5D50] disabled:opacity-40" onClick={() => onOpen(job)}>Open the door</button>}
       </div>
       {said && <p className="text-xs text-[#5A5751] mt-1" style={serif} role="status">{said}</p>}
     </div>
