@@ -423,6 +423,21 @@
       "notes": "Checked one teaching one lesson: the fall is taught in L310 and L319, so only the new teaching was built. Rival's quarter read back via search summaries of its 8-K; the rest tiered as reported. 123 quotations filled from the corpus; gate 9/9; shares first failed and were fixed."
     },
     {
+      "id": "home-goes-home-and-the-menu-goes-where-it-says",
+      "date": "2026-11-19",
+      "task": "Three more reports from the Love Corner door on a phone: the bottom bar's Home that did not go home and lit the wrong item, account-menu rows that did not open what they named, and the header title running under its buttons",
+      "drs": [
+        "DR-1579"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.8,
+      "estimateWithoutAiHours": 10,
+      "notes": "Header measured in a real Chromium at 320 to 412px signed in and out; found header buttons at 13px at Big Print (px inside a zoomed chrome region). Home and the menu proven with the real components mounted together; eight tests fail on the old code. Signed-in was a stand-in session. The picture menu on the PoeTech door was not built."
+    },
+    {
       "id": "sov68-there-shall-be-none-in-the-field",
       "date": "2026-11-05",
       "task": "Lesson sov68: there shall be none in the field (another session's work, ledgered at merge)",
