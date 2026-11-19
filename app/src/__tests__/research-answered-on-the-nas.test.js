@@ -111,11 +111,6 @@ esac
   return { dir, log, stub, token, home: join(dir, 'home') };
 }
 
-// Each case runs the real script in a child bash, bounded at 60 s (run() below).
-// The test's own bound matches it (DR-1608): on a loaded CI runner the default
-// 5 s tripped first and failed a docs-only PR (run 44549820698, shard 3/4).
-const RUN_BOUND_MS = 60000;
-
 async function lane(s, script = SCRIPT) {
   const env = {
     ...process.env,
@@ -128,7 +123,7 @@ async function lane(s, script = SCRIPT) {
     RESEARCH_READ_URL: `http://127.0.0.1:${port}/read`,
   };
   try {
-    const { stdout } = await run('bash', [script], { env, timeout: RUN_BOUND_MS });
+    const { stdout } = await run('bash', [script], { env, timeout: 60000 });
     return { code: 0, stdout };
   } catch (e) {
     return { code: e.code, stdout: e.stdout || '' };
@@ -152,7 +147,7 @@ const answerIsHonest = (a) =>
   a.sql.includes(`'${BY}'`) &&
   a.sql.includes('tags || \'["research-answered"]\'');
 
-describe('research-inbox-nas.sh -- the NAS answers a question itself', { timeout: RUN_BOUND_MS }, () => {
+describe('research-inbox-nas.sh -- the NAS answers a question itself', () => {
   it('claims ONE item at a time, under SKIP LOCKED', async () => {
     const s = stage();
     const r = await lane(s);
