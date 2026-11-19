@@ -696,6 +696,21 @@ button.lc-tile{cursor:pointer}
 .lch-menu-row:hover{background:var(--lc-red-tint)}
 .lch-menu-out{color:var(--lc-red);font-weight:700;border-top:1px solid var(--lc-line);margin-top:.25rem}
 [data-theme="night"] .lch-menu-out{color:#FFB3A7}
+/* the picture and its menu on the PoeTech door (DR-1600; components/HeaderAuthButton.jsx, shell/AccountMenu.jsx). Sizes are rem inside a .ts-chrome-region, so the zoom holds the picture at 40px at every text size (a px size there SHRINKS, DR-1579); colors are the shell's palette classes, which every theme recolors. */
+.acct-btn{display:inline-flex;align-items:center;gap:.375rem;min-height:2.5rem;padding:0;background:none;border:0;cursor:pointer;font-size:.625rem;text-transform:uppercase;letter-spacing:.05em}
+.acct-pic{width:2.5rem;height:2.5rem;flex:0 0 auto;border-radius:50%;display:grid;place-items:center;overflow:hidden;border:2px solid #B85838;box-sizing:border-box}
+.acct-pic>*{width:100%!important;height:100%!important;font-size:.95rem!important}
+.acct-name{max-width:9rem}
+/* the menu floats over the page (shell/AccountMenu.jsx `floating`): px, which the text-size step leaves alone, so it holds one size at every step; z above the big-text bottom bar (60) */
+.acct-menu{position:absolute;top:100%;right:0;margin-top:6px;z-index:80;width:272px;box-shadow:0 14px 40px rgba(26,24,21,.25);text-align:left;text-transform:none;letter-spacing:normal;font-size:16px;line-height:1.35;overflow-y:auto;overscroll-behavior:contain}
+.acct-menu-float{margin-top:0}
+.acct-menu-who{padding:12px 14px;display:flex;flex-direction:column;gap:2px}
+.acct-menu-who b{font-size:15px}.acct-menu-who small{font-size:12px;opacity:.8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.acct-menu-list{list-style:none;margin:0;padding:4px 0}
+.acct-menu-row{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;min-height:44px;padding:0 14px;background:none;border-left:0;border-right:0;border-bottom:0;font:inherit;font-size:14.5px;text-align:left;cursor:pointer}
+.acct-menu-row:not(.acct-menu-out){border-top:0}
+.acct-menu-out{font-weight:700;margin-top:4px}
+.acct-chip{border-radius:9999px;font-size:10.5px;padding:2px 8px;font-weight:700}.acct-chip-muted{font-size:12px}
 .lch-chip{background:var(--lc-red);color:#fff;border-radius:9999px;font-size:.66rem;padding:.1rem .5rem;font-weight:700}
 .lch-chip-muted{color:var(--lc-muted);font-size:.74rem}
 /* the sheets (inside the app's Modal) */

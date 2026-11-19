@@ -3431,6 +3431,21 @@
       "notes": "Found on PR #2775 shard 3, then on PR #2788 which adds no lesson, which showed main itself was red. Proven to catch by forcing the page to show the heading always. No product code changed."
     },
     {
+      "id": "poetech-door-account-picture",
+      "date": "2026-11-19",
+      "task": "The PoeTech door's account picture at the top right, open and collapsed, opening the Love Corner's menu frame with rows that have a real place on this door",
+      "drs": [
+        "DR-1600"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 2.5,
+      "estimateWithoutAiHours": 14,
+      "notes": "Root cause: the account rendered only in the open header and a device opens collapsed (DR-1046). Measured in Chromium on the built app; the first menu shrank at big text inside the zoomed header and now floats. No schema."
+    },
+    {
       "id": "my-voice-on-the-nas",
       "date": "2026-11-18",
       "task": "My voice made on the NAS when the tower is dark: Piper + OpenVoice V2 converter service, forwarder fallback, reader names the engine, public-road witness",

@@ -1224,7 +1224,15 @@
       "name": "Account box is mounted in the header",
       "surface": "app-header",
       "find": {
-        "source": "<HeaderAuthButton />"
+        "source": "<HeaderAuthButton door={accountDoor} />"
+      }
+    },
+    {
+      "id": "hdr-mount-auth-collapsed",
+      "name": "The picture stays when the header is collapsed (DR-1600)",
+      "surface": "app-header",
+      "find": {
+        "source": "account={!isIsolatedPreview() && <HeaderAuthButton door={accountDoor} compact />}"
       }
     },
     {
