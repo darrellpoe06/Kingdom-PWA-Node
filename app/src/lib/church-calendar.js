@@ -220,3 +220,81 @@ export function whenLine(e) {
   const b = partsOf(e.endDate);
   return a.month === b.month && a.year === b.year ? `${head} – ${b.day}` : `${head} – ${MONTH_NAMES[b.month - 1].slice(0, 3)} ${b.day}`;
 }
+
+// ── past years and planning (DR-1587) ────────────────────────────────────────
+// Darrell 2026-11-18: "Make sure historical events are also populated so users
+// and office staff can review and so can parishioners so they can expect what
+// will potentially be this year and maybe suggest something before it's too
+// late... feedback when it matters... so we can plan as a team."
+
+/** The years that hold a dated event, newest first, with how many each holds. */
+export function yearsOnRecord(events) {
+  const by = new Map();
+  for (const e of Array.isArray(events) ? events : []) by.set(partsOf(e.date).year, (by.get(partsOf(e.date).year) || 0) + 1);
+  return [...by.entries()].map(([year, count]) => ({ year, count })).sort((a, b) => b.year - a.year);
+}
+
+// The same month and day in another year; February 29 lands on February 28 where that year has none.
+function sameDayIn(year, key) {
+  const { month, day } = partsOf(key);
+  const k = dateKey(year, month, day);
+  return isDateKey(k) ? k : dateKey(year, month, day - 1);
+}
+
+/**
+ * What happened in PAST years at the time of year now coming up: every event
+ * from a year before today's whose same month and day falls from today through
+ * `days` days ahead (the window crosses a year end). Each is returned with the
+ * date it would fall on this time round and how many years ago it was. This is
+ * a look back at the record, not a schedule: nothing here says an event WILL
+ * happen.
+ */
+export function comingUpFromPastYears(events, todayKey, { days = 60 } = {}) {
+  if (!isDateKey(todayKey)) return [];
+  const until = addDays(todayKey, days);
+  const thisYear = partsOf(todayKey).year;
+  const out = [];
+  for (const e of Array.isArray(events) ? events : []) {
+    const y = partsOf(e.date).year;
+    if (y >= thisYear) continue;
+    const around = [sameDayIn(thisYear, e.date), sameDayIn(thisYear + 1, e.date)].find((k) => k >= todayKey && k <= until);
+    if (around) out.push({ event: e, around, yearsAgo: partsOf(around).year - y });
+  }
+  return out.sort((a, b) => a.around.localeCompare(b.around) || a.yearsAgo - b.yearsAgo || a.event.name.localeCompare(b.event.name));
+}
+
+/** Dated events from today through `days` days ahead. */
+export function upcomingEvents(events, todayKey, { days = 90 } = {}) {
+  if (!isDateKey(todayKey)) return [];
+  const until = addDays(todayKey, days);
+  return (Array.isArray(events) ? events : []).filter((e) => (e.endDate || e.date) >= todayKey && e.date <= until).sort(byWhen);
+}
+
+// A suggestion rides the app's existing feedback list (the Feedback button's
+// own pipe, the way class interest does: lib/church-classes.js), marked by
+// this tag so the office's view can pull it back out.
+export const CALENDAR_SUGGESTION_TAG = '[Calendar suggestion]';
+export const SUGGESTION_MAX = 600;
+
+/** The feedback text for one suggestion, or '' when there are no words to send. */
+export function suggestionText({ about = '', text = '', from = '' } = {}) {
+  const words = asStr(text).slice(0, SUGGESTION_MAX);
+  if (!words) return '';
+  return `${CALENDAR_SUGGESTION_TAG} ${asStr(from) || 'A parishioner'} · About: ${asStr(about) || 'A new idea'} · ${words}`;
+}
+
+/** The calendar suggestions in a feedback list, newest first, each once. */
+export function extractCalendarSuggestions(items) {
+  const seen = new Set();
+  const out = [];
+  for (const f of Array.isArray(items) ? items : []) {
+    if (!f || typeof f.text !== 'string' || !f.text.startsWith(CALENDAR_SUGGESTION_TAG)) continue;
+    const at = f.createdAt || f.submittedAt || '';
+    const key = f.id || `${f.text}|${at}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const [who = '', about = '', ...rest] = f.text.slice(CALENDAR_SUGGESTION_TAG.length).split(' · ');
+    out.push({ id: key, who: who.trim() || 'A parishioner', about: about.replace(/^About:\s*/, '').trim(), text: rest.join(' · ').trim(), at });
+  }
+  return out.sort((a, b) => String(b.at).localeCompare(String(a.at)));
+}

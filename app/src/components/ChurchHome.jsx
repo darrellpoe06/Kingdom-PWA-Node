@@ -40,6 +40,7 @@ import { markArrivalsSeen, SCREEN_KINDS } from '../lib/arrivals.js';
 import ChurchOfficeBoard, { useChurchSite } from './lovecorner/ChurchOfficeBoard.jsx';
 import ChurchCalendar from './lovecorner/ChurchCalendar.jsx';
 import ChurchCalendarTools from './lovecorner/ChurchCalendarTools.jsx';
+import ChurchCalendarPlanning from './lovecorner/ChurchCalendarPlanning.jsx';
 import { fromAnnounced, fromOfficeRows, mergeEvents } from '../lib/church-calendar.js';
 import { useChurchCalendarRows, useCalendarAccess, addCalendarEvents, removeCalendarEvent } from '../lib/church-calendar-sync.js';
 import { churchDateKey } from '../lib/home-week.js';
@@ -60,7 +61,7 @@ export function serviceDate(published) {
 // initialSection (DR-0142): a launch target may open a SPECIFIC section — the
 // Council Chamber is the Speak section of this surface, and "Open the Council
 // Chamber" landing on the Worship video was the 2026-07-10 premise miss.
-export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPrayerRequestSent, deletePrayerRequest, addEvent, conference, updateConference, churchVoice = [], addChurchVoice, sendToPoeTech, addIncident, addInquiry, initialSection = null, setChurchView = null, email = null, canStudy = false, signedIn = false }) {
+export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPrayerRequestSent, deletePrayerRequest, addEvent, conference, updateConference, churchVoice = [], addChurchVoice, sendToPoeTech, addIncident, addInquiry, initialSection = null, setChurchView = null, email = null, canStudy = false, signedIn = false, addFeedback = null, feedback = [] }) {
   // Obvious, prominent LOG IN / CREATE ACCOUNT for the public Love Corner door
   // (Darrell 2026-07-14). The community is public; this is the clear way in for a
   // member/staff/admin to sign in, or anyone to make an account (e.g. to request a
@@ -1003,6 +1004,14 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
         onRemove={calendarAccess.canManage ? removeOfficeEvent : null}
       >
         <ChurchCalendarTools events={calendarEvents} canManage={calendarAccess.canManage} onAdd={addCalendarEvents} onChanged={calendarRows.reload} />
+        <ChurchCalendarPlanning
+          events={calendarEvents}
+          todayKey={churchDateKey(new Date())}
+          signedIn={signedIn}
+          canManage={calendarAccess.canManage}
+          onSuggest={addFeedback}
+          feedback={feedback}
+        />
       </ChurchCalendar>
       <ChurchOfficeBoard digest={office} />
       {/* SERVICE TIMES + SAVE TO CALENDAR */}

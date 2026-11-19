@@ -988,7 +988,7 @@ html[data-reader-rails="sides"] header[data-read-skip] {
 .cc-form{display:flex;flex-direction:column;gap:.5rem;margin-top:.625rem}
 .cc-form .cc-note{border-top:0;padding-top:0;margin-top:0}
 .cc-field{display:flex;flex-direction:column;gap:.1875rem;font-size:.85rem;color:#1a1815}
-.cc-field input,.cc-field textarea{min-height:44px;padding:.375rem .5rem;font-size:1rem;border:1px solid #5a5751;border-radius:.5rem;background:#fff;color:#1a1815;max-width:100%}
+.cc-field input,.cc-field textarea,.cc-field select{min-height:44px;padding:.375rem .5rem;font-size:1rem;border:1px solid #5a5751;border-radius:.5rem;background:#fff;color:#1a1815;max-width:100%}
 .cc-rejects{margin:.25rem 0 .5rem;padding-left:1.125rem;font-size:.85rem;line-height:1.5;color:#1a1815}
 .cc-said{margin:.5rem 0 0;font-size:.9rem;line-height:1.5;font-weight:600}
 .cc-said.is-good{color:#3d5226}
