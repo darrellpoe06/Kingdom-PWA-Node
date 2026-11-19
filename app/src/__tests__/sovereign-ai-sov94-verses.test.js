@@ -219,15 +219,14 @@ describe('our own house: every claim the lesson makes is still true of the recor
     // --since=2026-10-19, at 5d16069df. Re-counted here when the commit is in
     // this clone's history (a shallow clone skips; CI fetches full history).
     const at = '5d16069df';
+    // RE-PINNED 2026-11-18 (DR-1564): git reads a bare --since=2026-10-19 as
+    // that date AT THE CURRENT CLOCK TIME, so the count drifted through the
+    // day (427 at 23:45Z, on main itself). Any start from 21:40:48Z to
+    // 22:57:33Z reproduces every number the lesson teaches (429, 0, 4, 12),
+    // MEASURED on full history; the window is now anchored, not loosened.
+    const WINDOW = '--since=2026-10-19T22:00:00Z';
     if (git(['cat-file', '-e', `${at}^{commit}`]) === null) return;
     const count = (extra) => Number(git(['rev-list', '--count', '--first-parent', ...extra, at]));
-    // 2026-11-18 (L329, DR-1566): a bare --since=2026-10-19 lets git fill the
-    // missing time with the CURRENT clock time, so the window slid through the
-    // day (428 at 23:30Z, 444 at midnight) and this test went red by the hour.
-    // The measurement was taken near 22:00Z; 429 holds for any cutoff from
-    // 21:40:48Z to 22:57:33Z on 10-19, so the window is pinned to 22:00Z. The
-    // measured numbers are unchanged; only the clock was taken out of the test.
-    const WINDOW = '--since=2026-10-19T22:00:00Z';
     expect(count([WINDOW])).toBe(429);
     expect(count(['--since=2026-11-18T00:00:00Z'])).toBe(45);
     expect(count([])).toBe(2859);

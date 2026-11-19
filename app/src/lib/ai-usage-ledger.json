@@ -112,6 +112,21 @@
       "notes": "17:15:13Z → 17:23:34Z."
     },
     {
+      "id": "sov95-he-that-taketh-warning",
+      "date": "2026-11-18",
+      "task": "Sovereign A.I. week 95 from one word over a forwarded account security alert (thread 1a1f08def44cc672), taught generically for privacy: Word first on Ezekiel 33:4-5 and Nehemiah 13:4-9; every grant of access a gate you opened, the alert the watchman, check through the account and never the link, take back what you no longer use; four hand-written bands, every verse generator-filled from the KJV; the house measured from the support door's own code.",
+      "drs": [
+        "DR-1564"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.5,
+      "estimateWithoutAiHours": 12,
+      "notes": "No token meter in this session; tokens and cost are null. The alert is reported as forwarded; whether the household made the grant is not verified, nor the provider's help page (outside this session's network); re-review 2026-12-02."
+    },
+    {
       "id": "d4-secret-scan",
       "date": "2026-11-05",
       "task": "House secret scanner + gitleaks, two real credentials found and closed",
@@ -1548,7 +1563,7 @@
     {
       "id": "ll329-what-mean-these-stones",
       "date": "2026-11-18",
-      "task": "L329 What Mean These Stones, from one forwarded technology-podcast recap, all four age bands, shared gate plus tier, privacy and one-teaching checks; sov94 commit-count window pinned off the clock",
+      "task": "L329 What Mean These Stones, from one forwarded technology-podcast recap, all four age bands, shared gate plus tier, privacy and one-teaching checks",
       "drs": [
         "DR-1566"
       ],
@@ -1558,7 +1573,7 @@
       "costUsd": null,
       "wallClockHours": 1,
       "estimateWithoutAiHours": 24,
-      "notes": "Reserved L329 and DR-1566 on origin with new-lesson.mjs. 104 verses filled from app/public/bible/kjv by fill-verses.mjs, none typed. Placed in Living Lessons (devotional teaching); names L248 for the manna. Recap timeline reported, adaptation established; re-review 2026-12-02. Found sov94's bare --since date drifting with the clock (428 at 23:30Z) and pinned it to 22:00Z, which reproduces the measured 429."
+      "notes": "Reserved L329 and DR-1566 on origin with new-lesson.mjs. 104 verses filled from app/public/bible/kjv by fill-verses.mjs, none typed. Placed in Living Lessons (devotional teaching); names L248 for the manna. Recap timeline reported, adaptation established; re-review 2026-12-02. Found sov94's clock drift while building; DR-1564 landed the same pin first, so main's copy was taken."
     },
     {
       "id": "dr-1414-put-not-your-trust-in-princes",

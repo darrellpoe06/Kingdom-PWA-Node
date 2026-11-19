@@ -2,7 +2,7 @@
 
 **Date:** 2026-11-18
 **Status:** Accepted
-**Tier:** A (one Living Lesson; content, plus a clock taken out of one existing test)
+**Tier:** A (one Living Lesson; content only)
 **Type:** lesson
 **Area:** Living Lessons (`app/src/lib/living-lessons/ll329-what-mean-these-stones.js`, its own file per DR-1468)
 **Source:** one forwarded newsletter recap of a technology podcast with one word above it: Lesson. Gmail thread 1a1f08d437cee973.
@@ -23,20 +23,18 @@ Darrell forwarded thread 1a1f08d437cee973 with the word Lesson. It was a newslet
 | band shares | child 0.56, youth 0.63, teen 0.65, senior 0.67 (floor 0.5 / 0.6) |
 | reading ladder | child 2.4, youth 5.2, teen 6.5, senior 8.1 (child ceiling 5.0) |
 | band overlap | worst pair 0.01 (ceiling 0.5) |
-| sov94 house count | `--since=2026-10-19` drifts with the clock: 428 at 23:30Z, 444 at 00:00Z; 429 holds for cutoffs from 21:40:48Z to 22:57:33Z |
+| sov94 house count | found red while building (`--since=2026-10-19` drifts with the clock: 428 at 23:30Z); the same 22:00Z pin landed on main first as DR-1564, so this branch takes main's copy |
 
 ## Impact
 
 Learners meet the Word's answer to normalisation. Yahweh set up a memorial before anyone forgot, so a child would ask (Joshua 4:6-7, 21-24). Forgetting starts on the full days (Deuteronomy 4:9; 8:10-11), and the manna shows it happening: a daily miracle called nothing (Numbers 11:6), with a jar kept for the generations (Exodus 16:32). The pride of progress is answered by who gave the power (Deuteronomy 8:17-18). A silent household loses a generation (Judges 2:10). The answer is to remember on purpose and to tell (Psalms 77:11; 103:2; 145:4). The lesson closes at the Lord's table (Luke 22:19; John 1:29; John 3:16; Hebrews 1:8).
 
-The sov94 fix stops a red build that depended on the hour, on main and on every open PR.
-
 ## Decision
 
 1. `ll329-what-mean-these-stones`, ORDER 329, ADDED 2026-11-18, in Living Lessons, with two parables (Mexico, light; Norway, solemn) and ten questions.
 2. Tiers (DR-0100): ESTABLISHED, and stated plainly, that people adapt to new conditions; also the chatbot's public release in late 2022 and the 2017 paper. REPORTED, with a trust-but-verify note: the podcast's timeline. The hosts' words are rendered for meaning, never quoted.
-3. `sovereign-ai-sov94-verses.test.js` pins its window to `--since=2026-10-19T22:00:00Z`, with a dated comment. The measured numbers are unchanged, and nothing was loosened.
+3. The sov94 clock drift found while building is DR-1564's fix (same 22:00Z pin, landed first); this record claims no part of it.
 
 ## Verification
 
-`living-lessons-ll329-what-mean-these-stones.test.js` runs 15 cases. It covers the shared gate with six spine spans in the adult lesson and every band. It also checks that the Word comes before the word REPORTED in every place, that the tiers appear in the adult, teen and senior texts, that no link, advertising or host name appears, that L248 is named, and that only one question is taught. title-in-narrative is green. Every test naming a cited verse was run: 113 files, 5,674 cases, with only sov94's clock failure, now green. `UNCHECKED` says nothing in the recap was read back. `re-review: 2026-12-02`: read the release and the 2017 paper back from their own pages, and correct any date the lesson states.
+`living-lessons-ll329-what-mean-these-stones.test.js` runs 15 cases. It covers the shared gate with six spine spans in the adult lesson and every band. It also checks that the Word comes before the word REPORTED in every place, that the tiers appear in the adult, teen and senior texts, that no link, advertising or host name appears, that L248 is named, and that only one question is taught. title-in-narrative is green. Every test naming a cited verse was run: 113 files, 5,674 cases, green once the sov94 window was pinned. The Living Lessons numbering test stays red until L324 to L328 land, by design. `UNCHECKED` says nothing in the recap was read back. `re-review: 2026-12-02`: read the release and the 2017 paper back from their own pages, and correct any date the lesson states.

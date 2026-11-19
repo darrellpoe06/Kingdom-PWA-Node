@@ -220,6 +220,9 @@ export default function MoneyOverview({ money }) {
               ['Savings reserved', L.savingsReserved, 'entered'],
               ['Minimum cash cushion', L.minCushion, 'entered'],
               ['Other commitments', L.otherCommitments, 'projected'],
+              // Money held for someone else (Christiana's $55 for her tithe) is
+              // inside Other commitments; named on its own while any is held.
+              ...(L.heldForOthers > 0 ? [['Held for someone else', L.heldForOthers, 'set aside until passed along']] : []),
               ['Expected income (on its day)', L.expectedIncome, 'projected'],
               ['Projected lowest balance', L.projectedLowest.amount, 'projected', L.projectedLowest.date],
             ].map(([label, value, kind, note]) => (
