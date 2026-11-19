@@ -1161,6 +1161,21 @@
       "notes": "Spoken the same day; built the same session."
     },
     {
+      "id": "a-record-is-one-persons",
+      "date": "2026-11-19",
+      "task": "A learner record holds one person's reading: reading history leaves the household snapshot, the catch-up files only what the account did on the device",
+      "drs": [
+        "DR-1577"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.5,
+      "estimateWithoutAiHours": 10,
+      "notes": "Traced in code and matched to two screenshots; live rows not read. Removal of false rows already written is not in this change, re-review 2026-11-21."
+    },
+    {
       "id": "words-read-at-every-size",
       "date": "2026-11-18",
       "task": "Words read at every size: the Love Corner grids collapse with the text (hero flex-wrap, auto-fit grids, overflow-wrap anywhere); the layout probe gains a WORDS READ pass (church door, 4 widths x 3 sizes: squeezed prose, cut-off words, colliding labels) with a self-test",
