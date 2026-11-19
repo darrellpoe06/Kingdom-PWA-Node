@@ -111,7 +111,7 @@ export function placementIndex(id, length, guard = TAIL_GUARD) {
  * last TAIL_GUARD entries (DR-1602): that is where a hand append lands, and two
  * hand appends always conflict. --add never puts one there.
  */
-export const PLACED_FROM_DR = 1601;
+export const PLACED_FROM_DR = 1607;
 export function tailEntryFindings(ledger, guard = TAIL_GUARD) {
   const entries = ledger.entries || [];
   return entries.slice(Math.max(0, entries.length - guard)).flatMap((e) => {

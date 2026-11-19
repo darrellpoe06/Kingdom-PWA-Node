@@ -17,7 +17,7 @@ Measured 2026-11-19: every landing made the other open PRs conflict, only in `do
 
 A row is placed, not appended. `node scripts/index-row.mjs --add '<row>'` inserts it in the live table at a slot read from its own number (FNV-1a, the function DR-1536 uses for ledger entries), never among the table's last 40 rows. `ai-usage-ledger.mjs --add` already placed entries that way. Row order carries no meaning: every reader (the guards, the resolver, the claim tool, the app's readers) finds a row by its id. Checked: none reads the last row as the newest.
 
-Two checks keep it: `business-systems-guard` names any row numbered DR-1601 or higher in the table's last 40 rows, and `ai-usage-ledger --check` names any entry for DR-1601 or higher in the ledger's last 40. Both say how to fix it (delete the row or entry and re-add it with the tool). Older rows and in-flight branches below DR-1601 are untouched; no history is rewritten.
+Two checks keep it: `business-systems-guard` names any row numbered DR-1607 or higher in the table's last 40 rows, and `ai-usage-ledger --check` names any entry for DR-1607 or higher in the ledger's last 40. Both say how to fix it (delete the row or entry and re-add it with the tool). Every number already reserved when this was written (to DR-1606, some on open PRs from other sessions) keeps the spot its branch gave it, so no in-flight PR turns red; no history is rewritten.
 
 ## Proof
 
