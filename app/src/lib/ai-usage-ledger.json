@@ -112,6 +112,21 @@
       "notes": "17:15:13Z → 17:23:34Z."
     },
     {
+      "id": "sov95-he-that-taketh-warning",
+      "date": "2026-11-18",
+      "task": "Sovereign A.I. week 95 from one word over a forwarded account security alert (thread 1a1f08def44cc672), taught generically for privacy: Word first on Ezekiel 33:4-5 and Nehemiah 13:4-9; every grant of access a gate you opened, the alert the watchman, check through the account and never the link, take back what you no longer use; four hand-written bands, every verse generator-filled from the KJV; the house measured from the support door's own code.",
+      "drs": [
+        "DR-1564"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.5,
+      "estimateWithoutAiHours": 12,
+      "notes": "No token meter in this session; tokens and cost are null. The alert is reported as forwarded; whether the household made the grant is not verified, nor the provider's help page (outside this session's network); re-review 2026-12-02."
+    },
+    {
       "id": "d4-secret-scan",
       "date": "2026-11-05",
       "task": "House secret scanner + gitleaks, two real credentials found and closed",
@@ -917,6 +932,21 @@
       "wallClockHours": 0.75,
       "estimateWithoutAiHours": 8,
       "notes": "Same session as DR-1361, DR-1370 and DR-1371; four reader-feedback messages with two screenshots. Estimate is this session's own for the reader fold, the voice seam and the gate."
+    },
+    {
+      "id": "l331-it-doth-not-yet-appear-what-we-shall-be",
+      "date": "2026-11-19",
+      "task": "L331 It Doth Not Yet Appear What We Shall Be, from three more summaries of the conversation behind L330, all four age bands, shared gate",
+      "drs": [
+        "DR-1569"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.4,
+      "estimateWithoutAiHours": 24,
+      "notes": "Reserved L331 and DR-1569 on origin with new-lesson.mjs. 322 verses filled from app/public/bible/kjv by fill-verses.mjs, none typed. Each cited passage read with the verse before it. Video not watched; re-review 2026-12-18."
     },
     {
       "id": "ll289-why-the-oppressed-still-call-on-him",

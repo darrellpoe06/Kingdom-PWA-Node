@@ -219,16 +219,22 @@ describe('our own house: every claim the lesson makes is still true of the recor
     // --since=2026-10-19, at 5d16069df. Re-counted here when the commit is in
     // this clone's history (a shallow clone skips; CI fetches full history).
     const at = '5d16069df';
+    // RE-PINNED 2026-11-18 (DR-1564): git reads a bare --since=2026-10-19 as
+    // that date AT THE CURRENT CLOCK TIME, so the count drifted through the
+    // day (427 at 23:45Z, on main itself). Any start from 21:40:48Z to
+    // 22:57:33Z reproduces every number the lesson teaches (429, 0, 4, 12),
+    // MEASURED on full history; the window is now anchored, not loosened.
+    const WINDOW = '--since=2026-10-19T22:00:00Z';
     if (git(['cat-file', '-e', `${at}^{commit}`]) === null) return;
     const count = (extra) => Number(git(['rev-list', '--count', '--first-parent', ...extra, at]));
-    expect(count(['--since=2026-10-19'])).toBe(429);
+    expect(count([WINDOW])).toBe(429);
     expect(count(['--since=2026-11-18T00:00:00Z'])).toBe(45);
     expect(count([])).toBe(2859);
     const subjects = (extra) => git(['log', '--first-parent', '--format=%s', ...extra, at]).split('\n');
-    expect(subjects(['--since=2026-10-19']).filter((s) => /^revert/i.test(s)).length).toBe(0);
+    expect(subjects([WINDOW]).filter((s) => /^revert/i.test(s)).length).toBe(0);
     expect(subjects([]).filter((s) => /^revert/i.test(s)).length).toBe(4);
-    expect(subjects(['--since=2026-10-19']).filter((s) => /^fix/i.test(s)).length).toBe(4);
-    expect(subjects(['--since=2026-10-19']).filter((s) => /\bfix/i.test(s)).length).toBe(12);
+    expect(subjects([WINDOW]).filter((s) => /^fix/i.test(s)).length).toBe(4);
+    expect(subjects([WINDOW]).filter((s) => /\bfix/i.test(s)).length).toBe(12);
     for (const p of TEACHING_PLACES) expect(place(MODULE, p), p).toMatch(/429|four hundred and twenty[- ]nine/);
   });
 
