@@ -1849,6 +1849,25 @@ const NODES = [
     ],
     seeds: ['door-pictures', 'door-work-orders'],
   }),
+  // The staff talk apart from the tenant (DR-1598, 0338): a staff group chat
+  // per door with a real member list (the assigned worker joins by himself),
+  // and the systems the landlord shares shown to the tenant as where things are.
+  app('app/src/modules/properties/StaffChat.jsx', {
+    id: 'staff-chat', name: "A door's staff group chat", purpose: 'The landlord, his managers and the 1099 workers he adds talk about a door where its tenant cannot read; the landlord adds and removes people; the worker assigned a job joins by himself.',
+    writes: [
+      { res: 'db:property_staff_messages', file: 'app/src/modules/properties/staff-chat.js', token: "from('property_staff_messages').insert" },
+      { res: 'db:property_staff_chat_members', file: 'app/src/modules/properties/staff-chat.js', token: "rpc('staff_chat_add_member'" },
+      { res: 'db:property_staff_chats', file: 'app/src/modules/properties/staff-chat.js', token: "rpc('open_staff_chat'" },
+      { res: 'db:property_systems', file: 'app/src/modules/properties/SystemsTab.jsx', token: 'share_with_tenant: !r.system.share_with_tenant' },
+    ],
+    reads: [
+      { res: 'db:property_staff_messages', file: 'app/src/modules/properties/staff-chat.js', token: "from('property_staff_messages').select" },
+      { res: 'db:property_staff_chat_members', file: 'app/src/modules/properties/staff-chat.js', token: "from('property_staff_chat_members').select" },
+      { res: 'db:property_systems', file: 'app/src/modules/properties/staff-chat.js', token: "rpc('where_things_are'" },
+      { res: 'db:property_staff_chats', file: 'app/src/modules/properties/staff-chat.js', token: "rpc('open_staff_chat'" },
+    ],
+    seeds: [],
+  }),
   // A short-stay door's calendar (DR-0930, 0269): a guest asks (no account),
   // the family confirms, declines, blacks out and books; every move on the clock.
   app('app/src/modules/properties/Booking.jsx', {
@@ -2353,6 +2372,7 @@ const RESOURCES = {
   'db:agent_inbox#voice-transcript': { label: 'spoken lessons written down', proof: { ts: 'created_at', fresh: 30, where: "tags ? 'voice-transcript'", consumed: "tags ? 'mirrored'" } },
   'hosted:lesson-published': { label: 'a member\u2019s lesson marked published by the reader (DR-0639)' },
   'db:agent_inbox#lesson-published': { label: 'members\u2019 lessons published', proof: { ts: 'created_at', fresh: 30, where: "tags ? 'lesson-published'", consumed: "tags ? 'messaged:published'" } },
+  'db:property_staff_messages': { label: "A door's staff chat", sink: 'Read by the landlord, his managers and the workers on the list in the staff chat itself; the tenant never (DR-1598).' },
   'db:direct_messages': { label: 'Messages', sink: 'The member reads the Message in their own Messages thread and may reply; a reply is an ordinary Message to Darrell (DR-0639).' },
   'db:agent_inbox#poetech': { label: 'PoeTech requests relayed to the inbox', proof: { ts: 'created_at', fresh: 60, where: "tags ? 'tell-poetech'" },
     open: { blocker: 'Nothing reads these rows (measured 2026-09-24: no code, NAS job or routine reads the tell-poetech tag). The same words now also reach the feedback queue; this relay retires once a PoeTech request is seen landing there on the live database, not before (never dismantle what may still deliver until its replacement is proven).', reReview: '2026-10-01' } },
