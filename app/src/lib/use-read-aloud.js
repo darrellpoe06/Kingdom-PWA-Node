@@ -44,6 +44,7 @@ import { forSynthesis } from './synthesis-text.js';
 const forVoice = (t) => forSynthesis(toSpokenForm(t));
 import { clipFraction, estimateClipSeconds, seekableEndOf } from './clip-progress.js';
 import { applyClipRate, clipRateNotice } from './clip-rate.js';
+import { useClipRate } from './use-clip-rate.js';
 import { supabase } from './supabase.js';
 import { hrefForView } from './nav-history.js';
 import { MY_VOICE, myVoiceLabel, myVoiceStatus, myVoiceLine } from './my-voice.js';
@@ -253,8 +254,6 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
   // — the same class of bug tts.js was built to kill.
   const rateRef = useRef(tts.rate);
   rateRef.current = tts.rate;
-  // The speed this hook last put on its own clip (see the effect under setRate, DR-1575).
-  const clipRateRef = useRef(tts.rate);
   // THE VOICE SPEAKS AT THE PACE; THE BROWSER STRETCHES ONLY THE REST
   // (2026-10-07; Darrell: "the voice mumbles at times when on faster speaking
   // especially"). Every NAS clip used to be made at 1x and sped up here with
@@ -289,43 +288,8 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [voiceId, voiceShapes]);
 
-  /** Set the read speed, and carry it to a clip already playing. */
-  const setRate = useCallback((r) => {
-    rateRef.current = r;
-    clipRateRef.current = r;
-    tts.setRate(r);
-    // The clip queue owns its element: it re-applies the remainder on every
-    // piece and on this change, or the next paragraph snaps back to the old speed.
-    if (queueRef.current) { queueRef.current.setRate(r); return; }
-    const a = audioRef.current;
-    if (a) {
-      // An audio element takes a live rate change mid-play, unlike an
-      // utterance, so this is audible immediately rather than at the next
-      // sentence — and it is MEASURED, never assumed (DR-0076).
-      const applied = applyClipRate(a, residualRate(r, audioSpeedRef.current));
-      const msg = clipRateNotice(applied);
-      if (msg) setNotice(msg);
-    }
-  // setNotice is a useCallback with an empty dep list, so it is stable for the
-  // life of the hook; it is listed because it is now a function rather than a
-  // raw setState, and the linter cannot know that by itself.
-  }, [tts, setNotice]);
-
-  // A SPEED PICKED SOMEWHERE ELSE REACHES A CLIP ALREADY PLAYING (DR-1575).
-  // The Personalize sheet (and any other reader on the page) changes the
-  // device's speed without calling this hook's setRate; tts.rate follows the
-  // store, and the NAS-voice clip on the element has to follow it too, or the
-  // sheet moves its highlight while the voice keeps its old pace. The speed
-  // this hook last put on its clip is remembered, so its own setRate (which
-  // has already done the work) is never applied twice.
-  useEffect(() => {
-    const r = tts.rate;
-    if (!Number.isFinite(r) || Math.abs(clipRateRef.current - r) < 0.001) return;
-    clipRateRef.current = r;
-    if (queueRef.current) { queueRef.current.setRate(r); return; }
-    const a = audioRef.current;
-    if (a) applyClipRate(a, residualRate(r, audioSpeedRef.current));
-  }, [tts.rate]);
+  // The speed setter, and the follower that carries a speed picked elsewhere to a clip already playing (lib/use-clip-rate.js, DR-1575).
+  const setRate = useClipRate({ tts, rateRef, queueRef, audioRef, audioSpeedRef, setNotice });
 
   useEffect(() => {
     let alive = true;

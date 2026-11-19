@@ -699,7 +699,7 @@ button.lc-tile{cursor:pointer}
 @media (min-width:640px){.modal-sheet{border-radius:1rem}}
 .modal-sheet-scroll{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
 .modal-sheet-x{position:absolute;top:8px;right:8px;z-index:2;width:44px;height:44px;display:grid;place-items:center;border-radius:50%;border:1px solid var(--lc-line);background:var(--lc-paper);color:var(--lc-ink);padding:0;cursor:pointer}
-.modal-sheet-x:focus-visible,.modal-sheet-x:focus{outline:2px solid var(--lc-gold-ink);outline-offset:2px}
+.modal-sheet-x:focus{outline:2px solid var(--lc-gold-ink);outline-offset:2px}
 /* the sheet's first row keeps clear of the close (44px + its 8px inset), and is at least as tall, so nothing sits under it */
 .lch-sheet>:first-child{margin-right:52px;min-height:44px;display:flex;align-items:center}
 .lch-sheet{padding:1rem;background:var(--lc-paper);color:var(--lc-ink);display:flex;flex-direction:column;gap:.875rem}
@@ -977,11 +977,10 @@ html[data-reader-rails="sides"] header[data-read-skip] {
 .pz-bar{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap}
 .pz-btn{min-height:44px;min-width:44px;padding:0 12px;border-radius:12px;border:2px solid #1A1815;background:#fff;color:#1A1815;font-weight:700;font-size:16px;line-height:1;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
 .pz-btn:disabled{opacity:.45;cursor:default}
-.pz-btn:focus-visible{outline:2px solid #B85838;outline-offset:2px}
+.pz-btn:focus,.pz-pane:focus{outline:2px solid currentColor;outline-offset:2px}
 .pz-now{min-width:56px;text-align:center;font-weight:700;font-size:16px;font-variant-numeric:tabular-nums;color:#1A1815}
 .pz-bar-dark .pz-now{color:#fff}
 .pz-bar-dark .pz-btn{border-color:#fff}
-.pz-bar-dark .pz-btn:focus-visible{outline-color:#CFA63C}
+.pz-bar-dark .pz-btn:focus{outline-color:#CFA63C}
 .pz-pane{overflow:auto;-webkit-overflow-scrolling:touch;max-width:100%}
-.pz-pane:focus-visible{outline:2px solid #B85838;outline-offset:2px}
 .pz-sheet{min-width:100%}
