@@ -14,7 +14,20 @@
 // says that instead of looking empty (P15: a surface never goes blank).
 // =============================================================================
 import React, { useMemo, useState } from 'react';
-import { dayAgenda, weekDays, monthGrid, eventsInMonth, shiftMonth, shiftYear, monthLabel, longDate, partsOf, whenLine, isDateKey, DAY_NAMES } from '../../lib/church-calendar.js';
+import {
+  dayAgenda,
+  weekDays,
+  monthGrid,
+  eventsInMonth,
+  shiftMonth,
+  shiftYear,
+  monthLabel,
+  longDate,
+  partsOf,
+  whenLine,
+  isDateKey,
+  DAY_NAMES,
+} from '../../lib/church-calendar.js';
 
 const SOURCE_NOTE = {
   'signed-out': 'Sign in to see the events your church office has added.',
@@ -79,7 +92,13 @@ export default function ChurchCalendar({ events = [], services = [], todayKey, s
         <h3 id="cc-h" className="cc-h">
           Church calendar
         </h3>
-        <button type="button" className="cc-btn" aria-pressed={view === 'month'} onClick={() => setView(view === 'month' ? 'week' : 'month')} data-testid="church-calendar-view">
+        <button
+          type="button"
+          className="cc-btn"
+          aria-pressed={view === 'month'}
+          onClick={() => setView(view === 'month' ? 'week' : 'month')}
+          data-testid="church-calendar-view"
+        >
           {view === 'month' ? 'This week' : 'Month and year'}
         </button>
       </div>
@@ -109,7 +128,13 @@ export default function ChurchCalendar({ events = [], services = [], todayKey, s
       {view === 'month' && (
         <div className="cc-month" data-testid="church-calendar-month">
           <div className="cc-nav">
-            <button type="button" className="cc-btn" onClick={() => setYm(shiftYear(ym, -1))} aria-label={`Previous year, ${ym.year - 1}`} data-testid="church-calendar-prev-year">
+            <button
+              type="button"
+              className="cc-btn"
+              onClick={() => setYm(shiftYear(ym, -1))}
+              aria-label={`Previous year, ${ym.year - 1}`}
+              data-testid="church-calendar-prev-year"
+            >
               « Year
             </button>
             <button
@@ -133,12 +158,23 @@ export default function ChurchCalendar({ events = [], services = [], todayKey, s
             >
               Month ›
             </button>
-            <button type="button" className="cc-btn" onClick={() => setYm(shiftYear(ym, 1))} aria-label={`Next year, ${ym.year + 1}`} data-testid="church-calendar-next-year">
+            <button
+              type="button"
+              className="cc-btn"
+              onClick={() => setYm(shiftYear(ym, 1))}
+              aria-label={`Next year, ${ym.year + 1}`}
+              data-testid="church-calendar-next-year"
+            >
               Year »
             </button>
           </div>
           {(ym.year !== today.year || ym.month !== today.month) && (
-            <button type="button" className="cc-btn cc-btn-quiet" onClick={() => setYm({ year: today.year, month: today.month })} data-testid="church-calendar-this-month">
+            <button
+              type="button"
+              className="cc-btn cc-btn-quiet"
+              onClick={() => setYm({ year: today.year, month: today.month })}
+              data-testid="church-calendar-this-month"
+            >
               Back to this month
             </button>
           )}

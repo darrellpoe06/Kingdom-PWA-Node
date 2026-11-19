@@ -71,7 +71,12 @@ export function makeEvent(partial = {}) {
   if (!name || !isDateKey(date)) return null;
   const end = asStr(p.endDate);
   return {
-    id: asStr(p.id) || `evt-${date}-${name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`,
+    id:
+      asStr(p.id) ||
+      `evt-${date}-${name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '')}`,
     name,
     date,
     endDate: isDateKey(end) && end > date ? end : null,
