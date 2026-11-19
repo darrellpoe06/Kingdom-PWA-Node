@@ -825,6 +825,21 @@
       "notes": ""
     },
     {
+      "id": "dr-1599-malcolm-x-in-the-title",
+      "date": "2026-11-19",
+      "task": "The Malcolm X lesson (L337) carries his name in its title so it can be found",
+      "drs": [
+        "DR-1599"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.1,
+      "estimateWithoutAiHours": 0.5,
+      "notes": "Title and the band-opening title changed; id, number and text unchanged; lesson gate green."
+    },
+    {
       "id": "the-in-flight-view-has-an-age",
       "date": "2026-11-06",
       "task": "claim-decision-number.mjs walked a local remote-tracking cache as fresh as the last fetch and said nothing of it, so it under-reported a live three-way collision; the view is now refreshed first, its age always printed, and every holder of a number named instead of the first",
