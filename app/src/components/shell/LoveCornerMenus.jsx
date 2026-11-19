@@ -66,6 +66,7 @@ export function ProfileMenu({
   onNotifications,
   onSubscription,
   onAdmin,
+  onMessages,
   onPersonalize,
   onAll,
 }) {
@@ -124,6 +125,16 @@ export function ProfileMenu({
           <Row onClick={onSubscription} testid="lch-menu-subscription">
             Subscription <span className="lch-chip-muted">PoeTech+</span>
           </Row>
+          {/* TWO ROWS, EACH GOING WHERE IT SAYS (DR-1579). One row named
+              "Messages / Contact" opened the church's About section and no
+              messages at all (Darrell 2026-11-18: "Messages and contacts
+              don't work"). Messages is the app's own Messages surface, which
+              this door already carries (the bell's message arrivals land on
+              it); Contact the church is the About section, where the
+              address, the phone and the office are. */}
+          <Row onClick={onMessages} testid="lch-menu-messages">
+            Messages
+          </Row>
           <Row
             onClick={() => {
               requestChurchHomeSection('about');
@@ -131,7 +142,7 @@ export function ProfileMenu({
             }}
             testid="lch-menu-contact"
           >
-            Messages / Contact
+            Contact the church
           </Row>
           <Row onClick={() => setGiveOpen(true)} testid="lch-menu-give">
             Give

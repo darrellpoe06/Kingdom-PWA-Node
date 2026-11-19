@@ -173,7 +173,9 @@ describe('bank9 is in the course, numbered, and whole', () => {
   it('exists exactly once as the ninth lesson with all four bands', () => {
     expect(L, `${ID} is not in the course`).toBeTruthy();
     expect(BANKING_MODULES.filter((m) => m.id === ID)).toHaveLength(1);
-    expect(BANKING_MODULES).toHaveLength(9);
+    // Re-pinned 2026-11-18 (DR-1563): bank10 landed after this lesson, so the
+    // course holds ten and bank9 stays the ninth.
+    expect(BANKING_MODULES).toHaveLength(10);
     expect(BANKING_MODULES[8].id).toBe(ID);
     for (const b of BANDS) expect(typeof L.levels[b], b).toBe('string');
     expect(L.levels.child.length).toBeGreaterThan(1000);
@@ -188,13 +190,15 @@ describe('bank9 is in the course, numbered, and whole', () => {
     const both = [...js, ...json];
     expect(both.filter((x) => x === ID)).toHaveLength(1);
     const numbers = both.map((x) => Number(/^bank(\d+)-/.exec(x)[1])).sort((a, b) => a - b);
-    expect(numbers).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9]);
-    expect(Math.max(...numbers)).toBe(9);
+    // Re-pinned 2026-11-18 (DR-1563): bank10 follows; still no gap.
+    expect(numbers).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    expect(Math.max(...numbers)).toBe(10);
   });
 
   it('the course says nine lessons wherever it states a count, and is reachable with all nine', () => {
-    expect(BANKING_META.format).toContain('9 lessons');
-    expect(BANKING_META.weeks).toBe(9);
+    // Re-pinned 2026-11-18 (DR-1563): the count the course states is ten now.
+    expect(BANKING_META.format).toContain('10 lessons');
+    expect(BANKING_META.weeks).toBe(10);
     const row = LEARN_CATALOG.find((e) => e.key === 'banking');
     expect(row.buildScheduleRows().map((m) => m.id)).toContain(ID);
   });
