@@ -9,10 +9,6 @@ import {
 } from './staff-chat.js';
 
 const serif = { fontFamily: '"Fraunces", serif' };
-const BTN = 'text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border bg-white text-[#1A1815] border-[#E8E4DC] '
-  + 'hover:border-[#1A1815] focus:outline focus:outline-2 focus:outline-[#2F5D50] disabled:opacity-40';
-const PRIMARY = 'text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border bg-[#2F5D50] text-white border-[#2F5D50] '
-  + 'hover:bg-[#1A1815] focus:outline focus:outline-2 focus:outline-[#2F5D50] disabled:opacity-40';
 const when = (iso) => { try { return new Date(iso).toLocaleString(); } catch { return iso; } };
 // ONE object for the life of the module: a default made inside the
 // signature is a new object every render, and the open effect below depends
@@ -91,7 +87,7 @@ export default function StaffChat({
       </div>
       <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={2} placeholder="Message the staff (not the tenant)"
         aria-label="Message the staff chat" className="w-full text-sm border border-[#E8E4DC] px-2 py-2 mb-2" style={serif} />
-      <button type="button" className={PRIMARY} disabled={!body.trim() || !chatId} onClick={send}>Send to staff only</button>
+      <button type="button" className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border bg-[#2F5D50] text-white border-[#2F5D50] hover:bg-[#1A1815] focus:outline focus:outline-2 focus:outline-[#2F5D50] disabled:opacity-40" disabled={!body.trim() || !chatId} onClick={send}>Send to staff only</button>
       {canRun && (
         <div className="mt-3 border-t border-[#F0EDE6] pt-2">
           <div className="flex flex-wrap items-center gap-2">
@@ -100,14 +96,14 @@ export default function StaffChat({
               <option value="">{addable.length ? 'Add someone…' : 'Everyone who has signed in is on the list'}</option>
               {addable.map((a) => <option key={a.userId} value={a.userId}>{a.name}{a.role === 'manager' ? ' (manager)' : ' (1099 worker)'}</option>)}
             </select>
-            <button type="button" className={BTN} disabled={!pick} onClick={add}>Add</button>
+            <button type="button" className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border bg-white text-[#1A1815] border-[#E8E4DC] hover:border-[#1A1815] focus:outline focus:outline-2 focus:outline-[#2F5D50] disabled:opacity-40" disabled={!pick} onClick={add}>Add</button>
           </div>
           {members.length > 0 && (
             <ul className="list-none p-0 m-0 mt-2">
               {members.map((m) => (
                 <li key={m.id} className="flex flex-wrap items-center justify-between gap-2 text-xs py-1" style={serif}>
                   <span>{nameOf(m.user_id)}{m.added_at ? ` · added ${when(m.added_at)}` : ''}</span>
-                  {m.user_id !== me && <button type="button" className={BTN} onClick={() => remove(m)}>Remove</button>}
+                  {m.user_id !== me && <button type="button" className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border bg-white text-[#1A1815] border-[#E8E4DC] hover:border-[#1A1815] focus:outline focus:outline-2 focus:outline-[#2F5D50] disabled:opacity-40" onClick={() => remove(m)}>Remove</button>}
                 </li>
               ))}
             </ul>
