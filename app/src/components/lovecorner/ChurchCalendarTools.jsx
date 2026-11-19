@@ -19,6 +19,9 @@ import React, { useRef, useState } from 'react';
 import { makeEvent, longDate } from '../../lib/church-calendar.js';
 import { parseEventsCsv, notAlreadyThere, eventsToCsv, CSV_TEMPLATE, MAX_FILE_BYTES } from '../../lib/church-calendar-file.js';
 
+// The ring's width and offset; its colour is the app's one global ring (index.css :focus-visible), never set here.
+const FOCUS = 'focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2';
+
 const BLANK = { name: '', date: '', endDate: '', time: '', place: '', detail: '' };
 const WHY = {
   'signed-out': 'You are signed out. Sign in and try again.',
@@ -110,12 +113,12 @@ export default function ChurchCalendarTools({ events = [], canManage = false, on
       <div className="cc-tools-row">
         {canManage && (
           <>
-            <button type="button" className="cc-btn" aria-expanded={open === 'add'} onClick={() => toggle('add')} data-testid="church-calendar-add-open">
+            <button type="button" className={`cc-btn ${FOCUS}`} aria-expanded={open === 'add'} onClick={() => toggle('add')} data-testid="church-calendar-add-open">
               Add an event
             </button>
             <button
               type="button"
-              className="cc-btn"
+              className={`cc-btn ${FOCUS}`}
               aria-expanded={open === 'upload'}
               onClick={() => toggle('upload')}
               data-testid="church-calendar-upload-open"
@@ -126,7 +129,7 @@ export default function ChurchCalendarTools({ events = [], canManage = false, on
         )}
         <button
           type="button"
-          className="cc-btn cc-btn-quiet"
+          className={`cc-btn cc-btn-quiet ${FOCUS}`}
           disabled={dated.length === 0}
           onClick={() => download('church-calendar.csv', eventsToCsv(dated))}
           data-testid="church-calendar-download"
@@ -161,7 +164,7 @@ export default function ChurchCalendarTools({ events = [], canManage = false, on
             <span>Note</span>
             <textarea value={form.detail} onChange={set('detail')} rows={2} maxLength={500} data-testid="church-calendar-add-note" />
           </label>
-          <button type="submit" className="cc-btn cc-btn-solid" disabled={busy} data-testid="church-calendar-add-submit">
+          <button type="submit" className={`cc-btn cc-btn-solid ${FOCUS}`} disabled={busy} data-testid="church-calendar-add-submit">
             {busy ? 'Adding…' : 'Add to the church calendar'}
           </button>
           <p className="cc-note">Everyone signed in at this church sees it once it is added.</p>
@@ -176,7 +179,7 @@ export default function ChurchCalendarTools({ events = [], canManage = false, on
           </p>
           <button
             type="button"
-            className="cc-btn cc-btn-quiet"
+            className={`cc-btn cc-btn-quiet ${FOCUS}`}
             onClick={() => download('church-calendar-template.csv', CSV_TEMPLATE)}
             data-testid="church-calendar-template"
           >
@@ -211,7 +214,7 @@ export default function ChurchCalendarTools({ events = [], canManage = false, on
               <div className="cc-tools-row">
                 <button
                   type="button"
-                  className="cc-btn cc-btn-solid"
+                  className={`cc-btn cc-btn-solid ${FOCUS}`}
                   disabled={busy || read.fresh.length === 0}
                   onClick={() => file(read.fresh, clearFile)}
                   data-testid="church-calendar-file-add"
@@ -222,7 +225,7 @@ export default function ChurchCalendarTools({ events = [], canManage = false, on
                       ? 'Nothing new to add'
                       : `Add ${read.fresh.length} ${read.fresh.length === 1 ? 'event' : 'events'} to the church calendar`}
                 </button>
-                <button type="button" className="cc-btn" onClick={clearFile} disabled={busy} data-testid="church-calendar-file-cancel">
+                <button type="button" className={`cc-btn ${FOCUS}`} onClick={clearFile} disabled={busy} data-testid="church-calendar-file-cancel">
                   Cancel, add nothing
                 </button>
               </div>
