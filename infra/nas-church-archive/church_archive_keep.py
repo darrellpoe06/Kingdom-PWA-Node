@@ -29,23 +29,31 @@ KONG = os.environ.get("KONG_URL", "http://127.0.0.1:8800")
 SUPA_ENV = os.environ.get("SUPABASE_DATA", "/volume1/docker/supabase") + "/.env"
 BUCKET = "church-archive"
 TIMEOUT_S = 30
-EXT = {"image/jpeg": "jpeg", "image/png": "png", "image/gif": "gif", "image/webp": "webp"}
+EXT = {
+    "image/jpeg": "jpeg",
+    "image/png": "png",
+    "image/gif": "gif",
+    "image/webp": "webp",
+}
 KINDS = ("calendar", "letter", "flyer")
 
 
 # ---- pure logic (the selftest pins all of it) --------------------------------
+
 
 def env_value(text, name):
     """The value of NAME=... in a .env text, quotes stripped, or ''."""
     for line in text.splitlines():
         line = line.strip()
         if line.startswith(name + "="):
-            return line[len(name) + 1:].strip().strip('"').strip("'")
+            return line[len(name) + 1 :].strip().strip('"').strip("'")
     return ""
 
 
 def object_name(instance_id, item):
-    return "{}/{}.{}".format(instance_id, item["sha256"].lower(), EXT[item["content_type"]])
+    return "{}/{}.{}".format(
+        instance_id, item["sha256"].lower(), EXT[item["content_type"]]
+    )
 
 
 def item_problem(item):
@@ -71,7 +79,9 @@ def already_there(status, body):
     if status == 409:
         return True
     text = body.decode("utf-8", "replace") if isinstance(body, bytes) else str(body)
-    return status == 400 and ('"statusCode":"409"' in text or "Duplicate" in text or "already exists" in text)
+    return status == 400 and (
+        '"statusCode":"409"' in text or "Duplicate" in text or "already exists" in text
+    )
 
 
 def keep_payload(slug, item):
@@ -81,8 +91,13 @@ def keep_payload(slug, item):
 
 # ---- the network -------------------------------------------------------------
 
+
 def call(method, path, key, body=None, headers=None):
-    data = body if isinstance(body, (bytes, type(None))) else json.dumps(body).encode("utf-8")
+    data = (
+        body
+        if isinstance(body, (bytes, type(None)))
+        else json.dumps(body).encode("utf-8")
+    )
     req = urllib.request.Request(KONG + path, data=data, method=method)
     req.add_header("apikey", key)
     req.add_header("Authorization", "Bearer " + key)
@@ -108,18 +123,25 @@ def main(folder):
     except OSError:
         key = ""
     if not key:
-        print("::error::SERVICE_ROLE_KEY not readable in {} - nothing kept".format(SUPA_ENV))
+        print(f"::error::SERVICE_ROLE_KEY not readable in {SUPA_ENV} - nothing kept")
         return 2
     slug = manifest.get("slug", "colg")
 
-    status, body = call("POST", "/storage/v1/bucket", key, {"id": BUCKET, "name": BUCKET, "public": False})
+    status, body = call(
+        "POST",
+        "/storage/v1/bucket",
+        key,
+        {"id": BUCKET, "name": BUCKET, "public": False},
+    )
     if status not in (200, 201) and not already_there(status, body):
-        print("::error::the {} bucket could not be made (HTTP {})".format(BUCKET, status))
+        print(f"::error::the {BUCKET} bucket could not be made (HTTP {status})")
         return 3
-    status, body = call("GET", "/rest/v1/instances?select=id&slug=eq." + urllib.parse.quote(slug), key)
+    status, body = call(
+        "GET", "/rest/v1/instances?select=id&slug=eq." + urllib.parse.quote(slug), key
+    )
     rows = json.loads(body or b"[]") if status == 200 else []
     if not rows:
-        print("::error::no church instance with slug {} (HTTP {})".format(slug, status))
+        print(f"::error::no church instance with slug {slug} (HTTP {status})")
         return 4
     instance = rows[0]["id"]
 
@@ -133,51 +155,94 @@ def main(folder):
         with open(os.path.join(folder, "files", item["file"]), "rb") as f:
             data = f.read()
         name = object_name(instance, item)
-        st, bd = call("POST", "/storage/v1/object/{}/{}".format(BUCKET, name), key, data,
-                      {"Content-Type": item["content_type"], "x-upsert": "false"})
+        st, bd = call(
+            "POST",
+            f"/storage/v1/object/{BUCKET}/{name}",
+            key,
+            data,
+            {"Content-Type": item["content_type"], "x-upsert": "false"},
+        )
         if st not in (200, 201) and not already_there(st, bd):
-            failed.append((item["source_path"], "bytes not stored (HTTP {})".format(st)))
+            failed.append((item["source_path"], f"bytes not stored (HTTP {st})"))
             continue
-        st, bd = call("POST", "/rest/v1/rpc/church_site_archive_keep", key, keep_payload(slug, item))
+        st, bd = call(
+            "POST",
+            "/rest/v1/rpc/church_site_archive_keep",
+            key,
+            keep_payload(slug, item),
+        )
         answer = bd.decode("utf-8", "replace").strip().strip('"') if st == 200 else ""
         if answer == "kept":
             kept += 1
-            print("kept: {} {}-{:02d} {}".format(item["kind"], item["for_year"], item["for_month"], item["source_path"]))
+            print(
+                "kept: {} {}-{:02d} {}".format(
+                    item["kind"],
+                    item["for_year"],
+                    item["for_month"],
+                    item["source_path"],
+                )
+            )
         elif answer == "seen":
             seen += 1
         else:
-            failed.append((item["source_path"], "row not kept (HTTP {}): {}".format(st, bd[:160].decode("utf-8", "replace"))))
+            failed.append(
+                (
+                    item["source_path"],
+                    "row not kept (HTTP {}): {}".format(
+                        st, bd[:160].decode("utf-8", "replace")
+                    ),
+                )
+            )
 
     # PROOF, not a claim: the rows the church now holds, read back.
-    st, bd = call("GET", "/rest/v1/church_site_archive?select=id&instance_id=eq." + instance, key)
-    held = len(json.loads(bd or b"[]")) if st == 200 else "unread (HTTP {})".format(st)
-    print("ARCHIVE-RESULT kept={} seen={} failed={} held-now={}".format(kept, seen, len(failed), held))
+    st, bd = call(
+        "GET", "/rest/v1/church_site_archive?select=id&instance_id=eq." + instance, key
+    )
+    held = len(json.loads(bd or b"[]")) if st == 200 else f"unread (HTTP {st})"
+    print(
+        f"ARCHIVE-RESULT kept={kept} seen={seen} failed={len(failed)} held-now={held}"
+    )
     for path, why in failed:
-        print("::error::{}: {}".format(path, why))
+        print(f"::error::{path}: {why}")
     return 1 if failed else 0
 
 
 # ---- selftest ----------------------------------------------------------------
 
+
 def selftest():
     sha = "a" * 64
-    item = {"kind": "flyer", "sha256": sha, "content_type": "image/jpeg", "file": sha + ".jpeg",
-            "source_path": "/uploads/6/0/6/7/6067835/x.jpg", "for_year": 2026, "for_month": 11}
+    item = {
+        "kind": "flyer",
+        "sha256": sha,
+        "content_type": "image/jpeg",
+        "file": sha + ".jpeg",
+        "source_path": "/uploads/6/0/6/7/6067835/x.jpg",
+        "for_year": 2026,
+        "for_month": 11,
+    }
     assert env_value('A=1\nSERVICE_ROLE_KEY="k.e.y"\n', "SERVICE_ROLE_KEY") == "k.e.y"
     assert env_value("X=1", "SERVICE_ROLE_KEY") == ""
-    assert object_name("inst", item) == "inst/{}.jpeg".format(sha)
+    assert object_name("inst", item) == f"inst/{sha}.jpeg"
     assert item_problem(item) == ""
     assert item_problem(dict(item, kind="sermon")) == "unknown kind"
     assert item_problem(dict(item, sha256="xyz")) == "no content hash"
     assert item_problem(dict(item, content_type="text/html")) == "not a picture type"
     assert item_problem(dict(item, file="other.jpeg")) == "file name is not its hash"
-    assert item_problem(dict(item, source_path="/etc/passwd")) == "not one of the site's own uploads"
+    assert (
+        item_problem(dict(item, source_path="/etc/passwd"))
+        == "not one of the site's own uploads"
+    )
     assert already_there(409, b"")
     assert already_there(400, b'{"statusCode":"409","error":"Duplicate"}')
     assert not already_there(400, b'{"statusCode":"400","error":"bad"}')
     assert not already_there(500, b"Duplicate")
     p = keep_payload("colg", item)
-    assert p["slug_in"] == "colg" and "file" not in p["item_in"] and p["item_in"]["sha256"] == sha
+    assert (
+        p["slug_in"] == "colg"
+        and "file" not in p["item_in"]
+        and p["item_in"]["sha256"] == sha
+    )
     print("church_archive_keep selftest: PASS")
     return 0
 
