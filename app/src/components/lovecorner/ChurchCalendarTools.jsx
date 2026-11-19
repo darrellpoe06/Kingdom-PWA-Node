@@ -113,7 +113,13 @@ export default function ChurchCalendarTools({ events = [], canManage = false, on
       <div className="cc-tools-row">
         {canManage && (
           <>
-            <button type="button" className={`cc-btn ${FOCUS}`} aria-expanded={open === 'add'} onClick={() => toggle('add')} data-testid="church-calendar-add-open">
+            <button
+              type="button"
+              className={`cc-btn ${FOCUS}`}
+              aria-expanded={open === 'add'}
+              onClick={() => toggle('add')}
+              data-testid="church-calendar-add-open"
+            >
               Add an event
             </button>
             <button

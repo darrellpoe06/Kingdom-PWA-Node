@@ -87,10 +87,22 @@ function EventLine({ ev, onSave, saved, onRemove }) {
             </button>
           ) : (
             <>
-              <button type="button" className={`cc-btn cc-btn-solid ${FOCUS}`} onClick={remove} disabled={gone === 'working'} data-testid="church-calendar-remove-yes">
+              <button
+                type="button"
+                className={`cc-btn cc-btn-solid ${FOCUS}`}
+                onClick={remove}
+                disabled={gone === 'working'}
+                data-testid="church-calendar-remove-yes"
+              >
                 {gone === 'working' ? 'Removing…' : 'Yes, remove it for everyone'}
               </button>
-              <button type="button" className={`cc-btn ${FOCUS}`} onClick={() => setAsking(false)} disabled={gone === 'working'} data-testid="church-calendar-remove-no">
+              <button
+                type="button"
+                className={`cc-btn ${FOCUS}`}
+                onClick={() => setAsking(false)}
+                disabled={gone === 'working'}
+                data-testid="church-calendar-remove-no"
+              >
                 Keep it
               </button>
             </>
