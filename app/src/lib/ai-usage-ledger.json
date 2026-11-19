@@ -297,6 +297,21 @@
       "notes": "Shared window with D13's push."
     },
     {
+      "id": "the-sheets-the-speed-and-the-pictures-obey-the-reader",
+      "date": "2026-11-19",
+      "task": "Four interface bugs from the live Love Corner door: the white frame and unreadable close on the ALL and Personalize sheets, speeds cut off, a picked reading speed that never reached a mounted reader, and pictures and documents that did not grow with the text size",
+      "drs": [
+        "DR-1575"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1,
+      "estimateWithoutAiHours": 14,
+      "notes": "Each reproduced and measured in a real Chromium on the built app before and after (contrast, tap size, clipping, drawn picture width). Speed tests proven to fail on the pre-fix library. Layout probe gained a sheets pass with its own selftest; it found tile labels overflowing at the two largest sizes, fixed in the same change. Not run on the Samsung tablet or a real Android voice."
+    },
+    {
       "id": "church-website-read-into-the-app",
       "date": "2026-11-18",
       "task": "The church website read into the app: the office's calendar, letter and flyers through a same-origin relay; the board on the door and the Times tab",
