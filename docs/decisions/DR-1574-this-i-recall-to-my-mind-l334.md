@@ -19,10 +19,11 @@ L330 already says the past is redeemed and not cut out. The later summaries went
 | the video | never watched (proxy 403 on YouTube from the sandbox); only the summaries were read |
 | who said what | two summaries disagree on which man spoke of being unchosen as training; the lesson says one of the men and leans on neither, and `UNCHECKED` says so |
 | verses | 258 tokens filled by `fill-verses.mjs` from `app/public/bible/kjv`, none typed; 0 verse faults |
-| length | adult prose 1,261 words |
-| band shares | child 0.57, youth 0.63, teen 0.76, senior 0.84 (floor 0.5 / 0.6) |
-| reading ladder | child 1.7, youth 3.7, teen 4.4, senior 5.6 (child ceiling 5.0) |
-| band overlap | worst pair 0.12 (ceiling 0.5) |
+| length | adult prose 1,271 words |
+| points | 7, one per movement, read by `lessonPoints` |
+| band shares | child 0.58, youth 0.63, teen 0.76, senior 0.84 (floor 0.5 / 0.6) |
+| reading ladder | child 1.6, youth 3.5, teen 4.4, senior 5.3 (child ceiling 5.0) |
+| band overlap | worst pair 0.13 (ceiling 0.5) |
 | gate | 9 of 9 on the first run; doubled-word guard green |
 
 ## Impact
