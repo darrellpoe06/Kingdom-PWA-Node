@@ -2123,6 +2123,21 @@
       "notes": "Darrell: the months are not populating in the next month (Migdal screenshot)"
     },
     {
+      "id": "standing-load-proposed",
+      "date": "2026-11-19",
+      "task": "Measured the runner pool's standing load (39 scheduled workflows, the workflow_run heals, Auto-merge's poll) and proposed six Tier C trims",
+      "drs": [
+        "DR-1604"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.4,
+      "estimateWithoutAiHours": 4,
+      "notes": ""
+    },
+    {
       "id": "dr-1428-two-apps-one-catalog",
       "date": "2026-11-11",
       "task": "Lesson links open in the lesson's own app; spiritual lessons free everywhere, child level and first lesson free, rigorous PoeTech levels PoeTech+ (rule built, enforcement off); brand follows the lesson",
@@ -2665,6 +2680,21 @@
       "wallClockHours": 0.3,
       "estimateWithoutAiHours": 6,
       "notes": "Darrell's two screenshots from the Teams tab: a strip of empty squares under a 33-picture note, and an orange frame around the tapped card. Both read from the code: per-id thumbnail asks and a focus: ring on a touch target."
+    },
+    {
+      "id": "lane-rules-in-context",
+      "date": "2026-11-19",
+      "task": "The delivery lane's rules as one section of docs/CONTEXT.md, with the session note of measurements",
+      "drs": [
+        "DR-1605"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.3,
+      "estimateWithoutAiHours": 3,
+      "notes": ""
     },
     {
       "id": "love-corner-front-door-2026-11-12",

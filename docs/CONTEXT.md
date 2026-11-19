@@ -4,6 +4,18 @@
 
 **Where things live.** Layer 3 reference: `docs/00-foundations/_root/` (authoritative foundations, annotated below). Layer 4 working: `docs/99-session-notes/` (dated artifacts, newest first). Decisions: `docs/decisions/` (`INDEX.md` = what is decided; `PRINCIPLES.md` = binding-principle IDs). Reviews: `docs/reviews/REVIEWS.md` (the watcher-swept ledger — every `re-review:` date in decisions, session-notes, foundations, and INDEX now reports to the daily review-watcher and its rolling `overdue` issue).
 
+## The delivery lane — how work lands (DR-1605; measured 2026-11-19)
+
+Every push queues for the same pool of runners, so every needless push slows every other session. Required checks: `app — lint + vitest` and `n8n workflows — wf36 gatekeeper harness`; a branch need **not** be up to date with main, only conflict-free.
+
+1. **Green locally before the first push.** `npm run lint`, `npm run verify:gates`, the tests you touched, and `decision-chain.test.js` for a new record. A push restarts CI at the back of the queue.
+2. **Keep a lesson PR lesson-only.** When every path is lesson content, a test, a record or a ledger, CI skips 13 to 14 legs (`scripts/ci-legs.mjs`, DR-1601). One stray code path runs all 25.
+3. **Reserve, then place.** `git fetch --unshallow origin` once, then `node scripts/claim-decision-number.mjs --reserve`. Put the INDEX row in with `node scripts/index-row.mjs --add '<row>'` and the usage line with `node scripts/ai-usage-ledger.mjs --add ...`. Never append either one by hand (DR-1602): two appends always conflict, and GitHub runs no merge driver.
+4. **Merge main only when it truly conflicts.** `git fetch origin main && git merge --no-commit --no-ff origin/main`. If it is clean, `git merge --abort` and push nothing. If it conflicts, resolve it (`scripts/resolve-ledger-conflicts.mjs`, `scripts/splice-append.mjs`), commit and push once. Never merge main "to stay current".
+5. **Copy a landed lane fix into your branch only when your CI failed on it.** Name the failing test and the DR that fixed it in the commit.
+6. **One re-run per failed job.** If it fails again, read the log and find the cause before you push anything (CLAUDE.md, Error Management).
+7. **At most two PRs per session with CI running at once.** A lesson PR costs about 11 jobs and a code PR about 25.
+
 ## The annotated foundation index (moved verbatim from CLAUDE.md Layer 0, 2026-07-30)
 
 ## SKOS Foundations (Added 2026-05-13)
