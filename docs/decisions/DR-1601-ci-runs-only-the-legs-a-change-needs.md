@@ -11,6 +11,8 @@
 
 Darrell, 2026-11-19, after a night in which eight lessons took minutes each to write and hours each to land: "fix our way of orchestrating the work then we should have better success."
 
+## What was measured
+
 Measured from the Actions API the same morning: every push ran 24 CI jobs whatever it touched. Run 44515147816 (lesson sov97) started guards, four vitest shards, probes, layout, surface-sweep, curriculum, 12 PostgreSQL wall legs, the door journeys, the aggregator and the wf36 job. Of the last 100 CI runs, 57 were cancelled (superseded); successful branch runs took a median 37 minutes and a p90 of 72 from creation to finish, 18 at the quietest. The wall legs ran 0.5 to 1.5 minutes each, but each held a runner slot under the account's concurrent-job ceiling while 40 to 50 runs queued.
 
 ## Decision
@@ -21,11 +23,13 @@ Fail safe: one unrecognised path, main, merge_group, a dispatch, an empty, unrea
 
 The required check `app — lint + vitest` keeps its name and its rule: it now also needs `classify`, and a skipped leg counts as passed only when a successful classifier named it. Any other skip after a successful classifier is a failure; after a cancelled one it reads as did-not-finish (DR-1041). Both still exit 1.
 
-## Proof
+## Verification
 
 `ci-runs-only-the-legs-a-change-needs.test.js` (17 tests) runs the real classifier on the real #2789 file list, and runs the aggregator's run script extracted from ci.yml with bash and jq: it passes on named skips and fails on an unnamed skip, a failed classifier, a cancelled classifier and a failed named leg. Proven to catch: an aggregator that waves every skip through passes the unnamed skip, and the suite sees the difference. Real-PR measurements (a lesson-only PR and a code PR) are recorded on this PR and in DR-1605.
 
-## Not changed
+## Impact
+
+Cost on a code PR: the gated legs start only after `classify`, one queue wait later. On this PR's first run (44545033575) `classify` waited 14 minutes for a runner and the 14 gated legs queued behind it; they are 0.5 to 6 minute legs beside 10 to 17 minute vitest shards, so the run's length is still the shards'.
 
 No test is skipped or quarantined; the legs that are skipped run on every push to main. `rls-isolation.yml` and its matrix are untouched (it is dispatched by db-migrate, not by PR CI), and any `infra/` path runs every leg.
 
