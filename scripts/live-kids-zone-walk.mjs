@@ -86,8 +86,21 @@ async function stop(name, check) {
 }
 
 await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 90000 }).catch(() => {});
-const build = await page.evaluate(() => (document.querySelector('meta[name="build-sha"]') || {}).content || '').catch(() => '');
-console.log(`BUILD meta build-sha="${build}" expected="${expectedSha}"`);
+// The served build: the page's build-sha meta when it has one; otherwise the
+// version every kids asset URL carries (?v=<sha>, guides.js BUILD_VERSION),
+// which the bundle bakes in at build time. The app ships no build-sha meta, so
+// the asset stamp is the real witness (2026-11-19: the Jonah release walk read
+// an empty meta and failed a site that was serving the merged commit).
+await page.waitForSelector('[data-testid="kids-zone"] img[src*="/lovecorner/kids/"]', { timeout: 60000 }).catch(() => {});
+const build = await page
+  .evaluate(() => {
+    const meta = (document.querySelector('meta[name="build-sha"]') || {}).content || '';
+    if (meta) return meta;
+    const img = [...document.querySelectorAll('img')].map((i) => i.getAttribute('src') || '').find((u) => /\/lovecorner\/kids\/[^?]+\?v=/.test(u));
+    return img ? decodeURIComponent(img.split('?v=')[1].split('&')[0]) : '';
+  })
+  .catch(() => '');
+console.log(`BUILD served build="${build}" expected="${expectedSha}"`);
 if (expectedSha && !build.startsWith(expectedSha.slice(0, 7))) {
   failed += 1;
   console.log('BUILD MISMATCH: the served build is not the merged commit');
