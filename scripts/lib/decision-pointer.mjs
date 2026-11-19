@@ -55,3 +55,51 @@ export function nextIdFromNames(names = []) {
 export function nextIdOnDisk(decisionsDir) {
   return nextIdFromNames(readdirSync(decisionsDir));
 }
+
+// ---------------------------------------------------------------------------
+// A PLACED ROW STAYS OUT OF THE TAIL (DR-1602). Rows are placed by
+// scripts/index-row.mjs; these live here so business-systems-guard needs no
+// new import (fixtures copy this lib).
+// ---------------------------------------------------------------------------
+/** Rows from this number on must not sit in the tail; it is where the tail was frozen. */
+export const PLACED_FROM = 1601;
+/** The tail's length; equal to ai-usage-ledger's TAIL_GUARD (a test pins it). */
+export const TAIL_ROWS = 40;
+export const ROW = /^\| \[DR-(\d{4,})\]/;
+
+/** [first, last] line numbers of the live table: the run of rows that holds the highest DR. */
+export function liveTable(lines) {
+  let best = -1;
+  let at = -1;
+  lines.forEach((l, i) => {
+    const m = ROW.exec(l);
+    if (m && Number(m[1]) > best) {
+      best = Number(m[1]);
+      at = i;
+    }
+  });
+  if (at < 0) return null;
+  let first = at;
+  let last = at;
+  while (first > 0 && lines[first - 1].startsWith('|')) first--;
+  while (last < lines.length - 1 && lines[last + 1].startsWith('|')) last++;
+  return [first, last];
+}
+
+/** Findings: a row numbered PLACED_FROM or higher sitting in the live table's tail. */
+export function tailFindings(text, guard = TAIL_ROWS) {
+  const lines = text.split('\n');
+  const t = liveTable(lines);
+  if (!t) return [];
+  const out = [];
+  for (let i = Math.max(t[0], t[1] - guard + 1); i <= t[1]; i++) {
+    const m = ROW.exec(lines[i]);
+    if (m && Number(m[1]) >= PLACED_FROM) {
+      out.push(
+        `INDEX.md: DR-${m[1]}'s row sits in the last ${guard} rows of the table, where every sibling PR appends and collides. Move it with \`node scripts/index-row.mjs --add\` (delete the row, re-add it; DR-1602).`
+      );
+    }
+  }
+  return out;
+}
+

@@ -106,6 +106,20 @@ export function placementIndex(id, length, guard = TAIL_GUARD) {
   return h % (length - guard + 1);
 }
 
+/**
+ * An entry for a record numbered PLACED_FROM_DR or higher may not sit among the
+ * last TAIL_GUARD entries (DR-1602): that is where a hand append lands, and two
+ * hand appends always conflict. --add never puts one there.
+ */
+export const PLACED_FROM_DR = 1601;
+export function tailEntryFindings(ledger, guard = TAIL_GUARD) {
+  const entries = ledger.entries || [];
+  return entries.slice(Math.max(0, entries.length - guard)).flatMap((e) => {
+    const n = Math.max(0, ...(e.drs || []).map((d) => Number(String(d).replace(/^DR-/, '')) || 0));
+    return n >= PLACED_FROM_DR ? [`${e.id}: appended in the last ${guard} entries, where sibling PRs collide; delete it and re-add it with --add (DR-1602)`] : [];
+  });
+}
+
 function flag(name, argv) {
   const i = argv.indexOf(`--${name}`);
   return i >= 0 ? argv[i + 1] : undefined;
@@ -155,6 +169,7 @@ if (isMain) {
   const findings = validateLedger(ledger);
   const serialization = canonicalFault(raw, ledger);
   if (serialization) findings.push(serialization);
+  findings.push(...tailEntryFindings(ledger));
   const missing = missingLines(recordsOnDisk(join(ROOT, 'docs/decisions')), ledgeredDrs(ledger));
   for (const m of missing) findings.push(`${m} landed without a line in ${LEDGER_PATH} — add it with --add (DR-1347)`);
   if (findings.length) {

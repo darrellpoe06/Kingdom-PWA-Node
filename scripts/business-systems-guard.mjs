@@ -32,7 +32,7 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, dirname, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { DERIVED_POINTER, isDerivedPointer, isPointerLine } from './lib/decision-pointer.mjs';
+import { DERIVED_POINTER, isDerivedPointer, isPointerLine, tailFindings } from './lib/decision-pointer.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -95,6 +95,9 @@ export function drLedgerFindings({ indexText, diskIds }) {
       `INDEX.md's "**Next ID:**" line was edited (${pointers[0].slice(0, 60)}…). The pointer is derived, never typed (DR-1477): restore it exactly — ${DERIVED_POINTER}`
     );
   }
+  // A PLACED ROW STAYS OUT OF THE TAIL (DR-1602): GitHub's merge runs no merge
+  // driver, so two rows appended at the table's end always conflict.
+  findings.push(...tailFindings(indexText));
   return findings;
 }
 
