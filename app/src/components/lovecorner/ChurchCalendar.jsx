@@ -29,6 +29,9 @@ import {
   DAY_NAMES,
 } from '../../lib/church-calendar.js';
 
+// The ring's width and offset; its colour is the app's one global ring (index.css :focus-visible), never set here.
+const FOCUS = 'focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2';
+
 const SOURCE_NOTE = {
   'signed-out': 'Sign in to see the events your church office has added.',
   unavailable: 'The office’s added events could not be read just now. What shows here is the church’s standing record.',
@@ -46,7 +49,7 @@ function EventLine({ ev, onSave, saved }) {
       {onSave && ev.source !== 'service' && (
         <button
           type="button"
-          className="cc-btn cc-btn-quiet"
+          className={`cc-btn cc-btn-quiet ${FOCUS}`}
           onClick={() => onSave(ev)}
           disabled={saved}
           aria-label={saved ? `${ev.name} is on your calendar` : `Add ${ev.name} to my calendar`}
@@ -94,7 +97,7 @@ export default function ChurchCalendar({ events = [], services = [], todayKey, s
         </h3>
         <button
           type="button"
-          className="cc-btn"
+          className={`cc-btn ${FOCUS}`}
           aria-pressed={view === 'month'}
           onClick={() => setView(view === 'month' ? 'week' : 'month')}
           data-testid="church-calendar-view"
@@ -109,7 +112,7 @@ export default function ChurchCalendar({ events = [], services = [], todayKey, s
             <button
               key={d.key}
               type="button"
-              className={`cc-day${d.key === picked ? ' is-picked' : ''}${d.isToday ? ' is-today' : ''}`}
+              className={`cc-day${d.key === picked ? ' is-picked' : ''}${d.isToday ? ' is-today' : ''} ${FOCUS}`}
               aria-pressed={d.key === picked}
               aria-label={`${longDate(d.key)}${d.isToday ? ', today' : ''}, ${d.count} ${d.count === 1 ? 'item' : 'items'}`}
               onClick={() => setPicked(d.key)}
@@ -130,7 +133,7 @@ export default function ChurchCalendar({ events = [], services = [], todayKey, s
           <div className="cc-nav">
             <button
               type="button"
-              className="cc-btn"
+              className={`cc-btn ${FOCUS}`}
               onClick={() => setYm(shiftYear(ym, -1))}
               aria-label={`Previous year, ${ym.year - 1}`}
               data-testid="church-calendar-prev-year"
@@ -139,7 +142,7 @@ export default function ChurchCalendar({ events = [], services = [], todayKey, s
             </button>
             <button
               type="button"
-              className="cc-btn"
+              className={`cc-btn ${FOCUS}`}
               onClick={() => setYm(shiftMonth(ym, -1))}
               aria-label={`Previous month, ${monthLabel(shiftMonth(ym, -1))}`}
               data-testid="church-calendar-prev-month"
@@ -151,7 +154,7 @@ export default function ChurchCalendar({ events = [], services = [], todayKey, s
             </b>
             <button
               type="button"
-              className="cc-btn"
+              className={`cc-btn ${FOCUS}`}
               onClick={() => setYm(shiftMonth(ym, 1))}
               aria-label={`Next month, ${monthLabel(shiftMonth(ym, 1))}`}
               data-testid="church-calendar-next-month"
@@ -160,7 +163,7 @@ export default function ChurchCalendar({ events = [], services = [], todayKey, s
             </button>
             <button
               type="button"
-              className="cc-btn"
+              className={`cc-btn ${FOCUS}`}
               onClick={() => setYm(shiftYear(ym, 1))}
               aria-label={`Next year, ${ym.year + 1}`}
               data-testid="church-calendar-next-year"
@@ -171,7 +174,7 @@ export default function ChurchCalendar({ events = [], services = [], todayKey, s
           {(ym.year !== today.year || ym.month !== today.month) && (
             <button
               type="button"
-              className="cc-btn cc-btn-quiet"
+              className={`cc-btn cc-btn-quiet ${FOCUS}`}
               onClick={() => setYm({ year: today.year, month: today.month })}
               data-testid="church-calendar-this-month"
             >
@@ -191,7 +194,7 @@ export default function ChurchCalendar({ events = [], services = [], todayKey, s
                 <button
                   key={key}
                   type="button"
-                  className={`cc-cell${key === picked ? ' is-picked' : ''}${key === todayKey ? ' is-today' : ''}`}
+                  className={`cc-cell${key === picked ? ' is-picked' : ''}${key === todayKey ? ' is-today' : ''} ${FOCUS}`}
                   aria-pressed={key === picked}
                   aria-label={`${longDate(key)}${key === todayKey ? ', today' : ''}, ${count} ${count === 1 ? 'item' : 'items'}`}
                   onClick={() => setPicked(key)}
