@@ -15,8 +15,10 @@ import { createRoot } from 'react-dom/client';
 import YouthZone from '../components/YouthZone.jsx';
 import Storybook from '../components/kids/Storybook.jsx';
 import { COLG_DEFAULT_CHURCH } from '../lib/default-church.js';
-import { SHOT_LIST } from '../lib/kids/guides.js';
+import { SHOT_LIST, landedFile } from '../lib/kids/guides.js';
 import { STORYBOOKS } from '../lib/kids/storybooks.js';
+import { weeklyLesson } from '../lib/youth-zone.js';
+import { moduleFor, leadLines } from '../components/kids/GrownUps.jsx';
 
 vi.mock('../lib/engagement-sync.js', () => ({
   uploadTriviaAnswer: vi.fn(async () => ({})),
@@ -137,7 +139,17 @@ describe('the tiles open real things', () => {
     expect(q('[data-testid="who-am-i"]')).toBeTruthy();
     expect(qa('[data-testid^="name-"]').length).toBe(4);
     click(q('[data-testid="kids-tab-grownups"]'));
-    expect(q('[data-testid="grownups-lesson"]').textContent).toContain('How to lead it');
+    // The week's lesson is the catalog's own pick for MON, chosen only among
+    // lessons that carry facilitator notes (DR-1576), so the page ALWAYS leads
+    // with them, however many lessons land and wherever the rotation falls.
+    const pick = weeklyLesson('kids', MON);
+    const how = leadLines(moduleFor(pick)).how;
+    const shown = q('[data-testid="grownups-lesson"]').textContent;
+    expect(shown).toContain(pick.title);
+    expect(how.length).toBeGreaterThan(0);
+    expect(shown).toContain('How to lead it');
+    expect(shown).toContain(how[0]);
+    expect(shown).not.toContain('carries no facilitator notes');
     expect(q('[data-testid="grownups-progress"]').textContent).toContain('Sign in');
     click(q('[data-testid="kids-tab-badges"]'));
     expect(q('[data-testid="badge-shelf"]').getAttribute('data-earned')).toBe('0');
@@ -168,7 +180,9 @@ describe('a storybook', () => {
     click(q('[data-testid="storybook-next"]'));
     expect(q('[data-testid="storybook-verse"]').textContent).toContain(VERSES['Jonah 1:17']);
     expect(q('[data-testid="storybook"]').getAttribute('data-page')).toBe('2');
-    expect(q('[data-shot="jonah-3"][data-needed="true"]')).toBeTruthy();
+    // The page shows the scene the folder holds, or names the render it still needs (the landed manifest decides).
+    if (landedFile('jonah-3')) expect(q(`.kz-scene img[data-shot="jonah-3"]`).getAttribute('src')).toContain(`/lovecorner/kids/${landedFile('jonah-3')}`);
+    else expect(q('[data-shot="jonah-3"][data-needed="true"]')).toBeTruthy();
     for (let i = 2; i < book.pages.length; i += 1) click(q('[data-testid="storybook-next"]'));
     expect(q('[data-testid="storybook-questions"]')).toBeTruthy();
     click(q('[data-testid="story-q0-o1"]'));

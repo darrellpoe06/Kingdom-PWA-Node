@@ -6,7 +6,7 @@ Date: 2026-11-13. For: Darrell, to generate from the approved character referenc
 
 ## 1. The rules every image follows
 
-1. **Same two children, always.** The girl and the boy of the reference, with the same faces, skin tones, hairstyles and wardrobe (section 2). No third child stands in for either; supporting children in a scene are new, consistent characters, never these two re-dressed.
+1. **Same two children, always.** The girl and the boy of the reference, with the same faces, skin tones, hairstyles and wardrobe (section 2). No third child stands in for either; supporting children in a scene are new, consistent characters, never these two re-dressed. **Every human character in the Bible Adventures illustrations is Black / African American** (Darrell, 2026-11-18): the people of each story as well as the guides.
 2. **Same look.** High-quality 3D animated feature-film render, as the reference: soft studio-warm lighting, gentle depth of field, expressive eyes, natural smiles, rich skin with subsurface warmth, clean clothing detail. Never flat vector, never clip-art, never photoreal children, never a different age.
 3. **Christ-centered and true to the text.** A Bible scene shows what the verse says, in the order it says it. Miracles are the acts of Yahweh shown plainly (the great fish the LORD prepared; the door Yahweh shut; the stone that flew). No magic, spells, wands, glowing runes, fairies, genies, potions, wishes, superpowers, occult signs, or "mystical" light that is not the text's own. No scary gore; the hard parts of a story stay gentle and short.
 4. **The church's colors live in the frame, not the costumes.** The children keep their reference wardrobe (red and black). True red on the page is for the Blood and the brand; scenes use natural color.
@@ -24,13 +24,13 @@ git push origin ccr-117befe9-n9u0iz
 
 The registry (`app/src/lib/kids/guides.js`, `SHOT_LIST`) names every file below; its test proves each registered file is on disk, and a surface shows a labeled slot for any shot that has not landed.
 
-## 2. The character bible (from the reference)
+## 2. The character bible (the approved pair, 2026-11-17)
 
-**The girl.** About nine. Deep warm brown skin. Long box braids past the shoulders, parted at the crown, with a big red satin bow on top; small gold hoop earrings. Bright, wide eyes; open, dimpled smile. Red hoodie with white-and-black stripes on the sleeve cuffs. In the reference she leans on her hand over an open Bible.
+**The girl.** About nine. Deep warm brown skin. Box braids gathered up into a high top bun, with pink and white beads on the braids; small stud earrings. Bright, wide eyes; an open, dimpled smile. A red hoodie over a white tee, a black backpack; in her reference she holds her Bible to her chest.
 
-**The boy.** About ten. Warm brown skin, a shade lighter than the girl's. Short curly twists on top with a clean fade at the sides. Warm, easy smile, bright eyes. Black hoodie with red lining and red drawstrings, a white T-shirt under it. In the reference his arms are folded on the table over the open Bible.
+**The boy.** About ten. Warm brown skin. Short curly twists on top with a clean fade at the sides. A warm, easy smile, bright eyes. A blue hoodie under a tan utility vest, a backpack; in his reference his arms are folded.
 
-**Continuity notes for the generator.** Keep the bow, the hoops, the hoodies and the hairlines identical in every image. Eye shape and smile are the identity; do not re-style them. Ages do not change between images.
+**Continuity notes for the generator.** The reference set is in `app/public/lovecorner/kids/` (`guide-girl.png`, `guide-boy.png`, the two `-face.png` files, `guides-pair.png`, `bible-adventures-key-art.jpg`). Keep the bun and its beads, the twists and the fade, the hoodies, the vest and the backpacks identical in every image. Eye shape and smile are the identity; do not re-style them. Ages do not change between images. No third child stands in for either; the third child is not approved for Jonah.
 
 ## 3. The images, surface by surface
 

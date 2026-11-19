@@ -18,6 +18,9 @@
     },
     "claude-fable-5-2": {
       "note": "The Claude session model on 2026-11-10 (Anthropic). Per-task tokens are not exposed by the harness."
+    },
+    "unrecorded": {
+      "note": "A Claude Code session whose standing instructions keep model identifiers out of pushed files; the session's model is in its own transcript, not on this record. Per-task tokens are not exposed by the harness."
     }
   },
   "sessions": [
@@ -78,6 +81,21 @@
       "notes": "Ratified ~16:37Z, pushed 17:00:31Z. Includes a full 136-case browser sweep run (469 s) and two selftest misses fixed."
     },
     {
+      "id": "ll335-not-done-in-a-corner",
+      "date": "2026-11-19",
+      "task": "L335 Not Done in a Corner, from summaries of a lecture on the historical data for the Resurrection, taught from the Word's own witnesses, all four age bands, shared gate",
+      "drs": [
+        "DR-1581"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.5,
+      "estimateWithoutAiHours": 24,
+      "notes": "Reserved L335 and DR-1581 on origin with new-lesson.mjs. Every quotation a kjv token filled from app/public/bible/kjv, none typed. Video not watched; scholars' counts and dates carried as reported in UNCHECKED; first gate run failed on short child and youth bands, lengthened; re-review 2026-12-19."
+    },
+    {
       "id": "d2-journeys",
       "date": "2026-11-05",
       "task": "Journey registry, six app journeys, coverage guard",
@@ -112,6 +130,21 @@
       "notes": "17:15:13Z → 17:23:34Z."
     },
     {
+      "id": "church-calendar-office-add-upload",
+      "date": "2026-11-19",
+      "task": "Church calendar: office add form, CSV upload with preview, two-press remove, CSV download",
+      "drs": [
+        "DR-1586"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.5,
+      "estimateWithoutAiHours": 8,
+      "notes": ""
+    },
+    {
       "id": "sov95-he-that-taketh-warning",
       "date": "2026-11-18",
       "task": "Sovereign A.I. week 95 from one word over a forwarded account security alert (thread 1a1f08def44cc672), taught generically for privacy: Word first on Ezekiel 33:4-5 and Nehemiah 13:4-9; every grant of access a gate you opened, the alert the watchman, check through the account and never the link, take back what you no longer use; four hand-written bands, every verse generator-filled from the KJV; the house measured from the support door's own code.",
@@ -142,6 +175,21 @@
       "wallClockHours": 0.3,
       "estimateWithoutAiHours": 8,
       "notes": "17:23:34Z → 17:41:35Z including gitleaks built from source and the fixture allowlist fix."
+    },
+    {
+      "id": "sov98-he-wrought-a-work-on-the-wheels",
+      "date": "2026-11-19",
+      "task": "Sovereign A.I. week 98 from one word over a forwarded technology newsletter (thread 1a1f090d679841cd): Word first on Jeremiah 18:2-6, the potter's hands on the clay as the wheel turns; directing as it unfolds versus ordering and hoping; the speed-for-quality cost counted with Luke 14:28; the honesty line that a generated person is not a person (Genesis 2:7, Jeremiah 10:14); four hand-written bands, every verse generator-filled from the KJV; the house measured from the generator's own code.",
+      "drs": [
+        "DR-1576"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.5,
+      "estimateWithoutAiHours": 12,
+      "notes": "No token meter in this session; tokens and cost are null. The tool is reported through a newsletter recap and was not used; whether it works as described is not verified; re-review 2026-12-03."
     },
     {
       "id": "d5-error-text",
@@ -297,6 +345,21 @@
       "notes": "Shared window with D13's push."
     },
     {
+      "id": "the-sheets-the-speed-and-the-pictures-obey-the-reader",
+      "date": "2026-11-19",
+      "task": "Four interface bugs from the live Love Corner door: the white frame and unreadable close on the ALL and Personalize sheets, speeds cut off, a picked reading speed that never reached a mounted reader, and pictures and documents that did not grow with the text size",
+      "drs": [
+        "DR-1575"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1,
+      "estimateWithoutAiHours": 14,
+      "notes": "Each reproduced and measured in a real Chromium on the built app before and after (contrast, tap size, clipping, drawn picture width). Speed tests proven to fail on the pre-fix library. Layout probe gained a sheets pass with its own selftest; it found tile labels overflowing at the two largest sizes, fixed in the same change. Not run on the Samsung tablet or a real Android voice."
+    },
+    {
       "id": "church-website-read-into-the-app",
       "date": "2026-11-18",
       "task": "The church website read into the app: the office's calendar, letter and flyers through a same-origin relay; the board on the door and the Times tab",
@@ -393,6 +456,21 @@
       "notes": "One commit 18:41:24Z on claude/stale-proofs-of-a-removed-refusal, merged 18:55:21Z: only the commit-to-merge span is measurable. Estimate entered by the Ways session for 7 files, +110/-11, not the authoring session's own."
     },
     {
+      "id": "sov96-he-shall-order-the-lamps-continually",
+      "date": "2026-11-19",
+      "task": "Sovereign A.I. week 96 from one word over a forwarded system design newsletter (thread 1a1daf286df06d06): one idea of five, Kubernetes' declared desired state and its reconciling controllers; Word first on Exodus 25:40 and Leviticus 24:3-4, the inspection of Exodus 39:42-43 and the fresh copy of 2 Kings 22; four hand-written bands, every verse generator-filled from the KJV; the house measured from services.json, registry.json, services-sync.sh and DR-1119.",
+      "drs": [
+        "DR-1570"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.5,
+      "estimateWithoutAiHours": 12,
+      "notes": "No token meter in this session; tokens and cost are null. The newsletter is reported; the controller loop documented from the Kubernetes docs; whether the NAS loop fires today is not verified (no road from this session); re-review 2026-12-03."
+    },
+    {
       "id": "ll320-go-to-the-ant-keep-your-own-work-when-a-rival-falls",
       "date": "2026-11-18",
       "task": "L320: go to the ant, keep your own work when a rival falls, from a forwarded business newsletter",
@@ -406,6 +484,21 @@
       "wallClockHours": 0.6,
       "estimateWithoutAiHours": 7,
       "notes": "Checked one teaching one lesson: the fall is taught in L310 and L319, so only the new teaching was built. Rival's quarter read back via search summaries of its 8-K; the rest tiered as reported. 123 quotations filled from the corpus; gate 9/9; shares first failed and were fixed."
+    },
+    {
+      "id": "home-goes-home-and-the-menu-goes-where-it-says",
+      "date": "2026-11-19",
+      "task": "Three more reports from the Love Corner door on a phone: the bottom bar's Home that did not go home and lit the wrong item, account-menu rows that did not open what they named, and the header title running under its buttons",
+      "drs": [
+        "DR-1579"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.8,
+      "estimateWithoutAiHours": 10,
+      "notes": "Header measured in a real Chromium at 320 to 412px signed in and out; found header buttons at 13px at Big Print (px inside a zoomed chrome region). Home and the menu proven with the real components mounted together; eight tests fail on the old code. Signed-in was a stand-in session. The picture menu on the PoeTech door was not built."
     },
     {
       "id": "sov68-there-shall-be-none-in-the-field",
@@ -423,6 +516,21 @@
       "wallClockHours": 1.37,
       "estimateWithoutAiHours": 24,
       "notes": "Measured first commit 17:54:54Z to merge 19:17:20Z on claude/there-shall-be-none-in-the-field (8 commits); the authoring before the first commit is not on the record. Estimate entered by the Ways session for a 1,151-line lesson with 31 gate cases, not the authoring session's own."
+    },
+    {
+      "id": "lesson-ll324",
+      "date": "2026-11-18",
+      "task": "L324 Filled to Devise Cunning Works: one Living Lesson from a forwarded call for arts and humanities proposals (thread 1a1ef8f50df1ee14)",
+      "drs": [
+        "DR-1554"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.8,
+      "estimateWithoutAiHours": 10,
+      "notes": "Scaffolded by new-lesson.mjs; 122 verses filled from the corpus; band shares fixed after first draft failed."
     },
     {
       "id": "app-does-what-it-advertises",
@@ -683,6 +791,21 @@
       "wallClockHours": 0.38,
       "estimateWithoutAiHours": 5,
       "notes": "Measured worktree creation (16:31:16Z, stat) to the commit (16:54:18Z, git %cI) on claude/a-present-base-can-still-be-stale: 23m02s, which includes the three timed fetches (776/808/965 ms) that replaced my own asserted cost argument with a number, and correcting three DR-1363 citations to DR-1365 after the renumber cascade moved my number. NOT on that clock: #2571's red that exposed it, and the renumber of #2571 off DR-1360 after another session landed that number. Tokens and dollars null: no meter exposed. Estimate is this session's own, not a measurement."
+    },
+    {
+      "id": "lesson-ll325-god-is-able",
+      "date": "2026-11-18",
+      "task": "L325 Yahweh Is Able: a Living Lesson built from Bishop Gwin's written Wednesday proclamation (2 Corinthians 9:8), his four points and his passages in KJV",
+      "drs": [
+        "DR-1556"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.4,
+      "estimateWithoutAiHours": 6,
+      "notes": "Thread confirmed by subject and date; NKJV wording not compared (KJV only). re-review 2026-12-02."
     },
     {
       "id": "ll285-a-light-that-is-not-light",
@@ -949,6 +1072,21 @@
       "notes": "Same session as DR-1361, DR-1370 and DR-1371; four reader-feedback messages with two screenshots. Estimate is this session's own for the reader fold, the voice seam and the gate."
     },
     {
+      "id": "l331-it-doth-not-yet-appear-what-we-shall-be",
+      "date": "2026-11-19",
+      "task": "L331 It Doth Not Yet Appear What We Shall Be, from three more summaries of the conversation behind L330, all four age bands, shared gate",
+      "drs": [
+        "DR-1569"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.4,
+      "estimateWithoutAiHours": 24,
+      "notes": "Reserved L331 and DR-1569 on origin with new-lesson.mjs. 322 verses filled from app/public/bible/kjv by fill-verses.mjs, none typed. Each cited passage read with the verse before it. Video not watched; re-review 2026-12-18."
+    },
+    {
       "id": "ll289-why-the-oppressed-still-call-on-him",
       "date": "2026-11-06",
       "task": "ll289: the fourth send of the evening, Garrison Hayes on why Black Americans still call themselves Christians; research pass, the Word asking the question first and answering it; a 55-case gate; a research row and three further rows filed for the lane",
@@ -1009,6 +1147,21 @@
       "notes": "Darrell's three messages and a screenshot; built across worker restarts."
     },
     {
+      "id": "bank10-the-watchman-who-went-quiet",
+      "date": "2026-11-18",
+      "task": "Banking lesson 10 from a forwarded Fintech Takes recap (thread 1a1f08bfcac456b1): Ezekiel 33:6 in both halves, all four bands, generator-filled verses, no party or official named",
+      "drs": [
+        "DR-1563"
+      ],
+      "prs": [],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.8,
+      "estimateWithoutAiHours": 10,
+      "notes": "Teen read above its 6.0 ceiling on first build; bands shortened by hand. Agency site and podcast refused by the proxy; reported tier held. re-review 2026-12-16."
+    },
+    {
       "id": "dr-1384-read-by-any-road",
       "date": "2026-11-10",
       "task": "A passed exam, Done, or every part seen finishes the reading with its version so the list shows READ; a 4-case gate, proven to catch",
@@ -1039,6 +1192,21 @@
       "wallClockHours": 1.92,
       "estimateWithoutAiHours": 40,
       "notes": "Wall 1.92h measured from the session's first tool call (23:05 UTC) to this ledger line (00:00 UTC 2026-11-07); the committed span d0befabdab..3835440bee is 7m14s and covers only the commits, so it would understate the build. Token use not instrumented; honest estimate about 2.0M, read-heavy - the 5.5MB course file region, seven gate and helper modules, the KJV corpus for 40 verses, three rounds of measure-and-repair on the band ladder. The 40h without-AI estimate is for the same artifact at the same standard: about 90,000 characters of teaching prose across five reader registers, 40 verses fetched and pinned verbatim, a 55-case proven-to-catch gate, a record and a session note. The local full vitest run spent roughly 35 minutes queued behind two sibling runs on the machine's two-slot memory brake; that wait is in the wall figure but is not compute this build used. Three faults in my own work were caught by my own gate rather than by reading: a British spelling in anchor.theme prose, the bare phrase 'the teacher' in a child-band school illustration, and a quiz distractor naming Bishop Gwin for a send that names nobody - the exact DR-0719 fault sov70 and sov71 had already recorded."
+    },
+    {
+      "id": "lesson-ll326-touch-not-mine-anointed",
+      "date": "2026-11-18",
+      "task": "L326 Touch Not Mine Anointed: Darrell's spoken questions on anointing, prophets, who receives the Spirit, and how Yahweh joins Himself to a life, answered Word first",
+      "drs": [
+        "DR-1557"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.4,
+      "estimateWithoutAiHours": 6,
+      "notes": "Spoken in session, no outside source. Blessed points to L84, not re-taught."
     },
     {
       "id": "past-services-play-2026-11-13",
@@ -1174,6 +1342,21 @@
       "wallClockHours": 0.75,
       "estimateWithoutAiHours": 8,
       "notes": "Spoken the same day; built the same session."
+    },
+    {
+      "id": "a-record-is-one-persons",
+      "date": "2026-11-19",
+      "task": "A learner record holds one person's reading: reading history leaves the household snapshot, the catch-up files only what the account did on the device",
+      "drs": [
+        "DR-1577"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.5,
+      "estimateWithoutAiHours": 10,
+      "notes": "Traced in code and matched to two screenshots; live rows not read. Removal of false rows already written is not in this change, re-review 2026-11-21."
     },
     {
       "id": "words-read-at-every-size",
@@ -1401,6 +1584,21 @@
       "notes": "Darrell: Lessons with no tests?!"
     },
     {
+      "id": "l333-heavenly-cheat-codes-life-his-way",
+      "date": "2026-11-19",
+      "task": "L333 Heavenly Cheat Codes: Life His Way, from Darrell's own lines over one summary of a conversation, all four age bands, shared gate",
+      "drs": [
+        "DR-1573"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.4,
+      "estimateWithoutAiHours": 24,
+      "notes": "Reserved L333 and DR-1573 on origin with new-lesson.mjs. Verses filled from app/public/bible/kjv by fill-verses.mjs, none typed. The name and two lines are Darrell's; video not watched; re-review 2026-12-18."
+    },
+    {
       "id": "dr-1405-system-built-around-the-king",
       "date": "2026-11-10",
       "task": "rto8 stopped setting a system against the King: the King brings the balance, and a system built around Him carries it; pinned by a test",
@@ -1514,6 +1712,21 @@
       "notes": "No token meter in this session; tokens and cost are null. PR number recorded after push."
     },
     {
+      "id": "ll337-not-far-from-the-kingdom",
+      "date": "2026-11-19",
+      "task": "L337 Not Far from the Kingdom, from summaries of a 1964 interview of Malcolm X and the question whether he moved toward Christ, all four age bands, shared gate",
+      "drs": [
+        "DR-1583"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.3,
+      "estimateWithoutAiHours": 24,
+      "notes": "Reserved L337 and DR-1583 on origin with new-lesson.mjs. 272 verse tokens filled from app/public/bible/kjv, none typed. Video not watched; his claims named as his; his death and religion stated from general knowledge and listed in UNCHECKED; first gate run caught a quiz option in the generic name, reworded; re-review 2026-12-19."
+    },
+    {
       "id": "dr-1411-ll299-read-with-the-heart",
       "date": "2026-11-10",
       "task": "L299 Read with the Heart, a spoken teaching built the day it was spoken: four bands, two parables, eight questions, 33 verses read from the KJV, 47-case gate",
@@ -1574,6 +1787,21 @@
       "wallClockHours": 0.3,
       "estimateWithoutAiHours": 12,
       "notes": "Darrell: We need our own mortgage calculator inside our PoeTech App where it makes sense"
+    },
+    {
+      "id": "ll329-what-mean-these-stones",
+      "date": "2026-11-18",
+      "task": "L329 What Mean These Stones, from one forwarded technology-podcast recap, all four age bands, shared gate plus tier, privacy and one-teaching checks",
+      "drs": [
+        "DR-1566"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1,
+      "estimateWithoutAiHours": 24,
+      "notes": "Reserved L329 and DR-1566 on origin with new-lesson.mjs. 104 verses filled from app/public/bible/kjv by fill-verses.mjs, none typed. Placed in Living Lessons (devotional teaching); names L248 for the manna. Recap timeline reported, adaptation established; re-review 2026-12-02. Found sov94's clock drift while building; DR-1564 landed the same pin first, so main's copy was taken."
     },
     {
       "id": "dr-1414-put-not-your-trust-in-princes",
@@ -1696,6 +1924,21 @@
       "notes": "0335's first live read named the gate and still could not decide the fix: the quotation gate refuses five different things calling for opposite work, and one of them is Darrell's call on how a lesson is written. Checked first that the prompt already states the rules and that previous_failures does reach attempt 2, so more retries was never the obvious answer. Proven to catch the adversary's name reaching the receipt."
     },
     {
+      "id": "a-new-service-rings-the-bell",
+      "date": "2026-11-19",
+      "task": "Arrivals gains a new-service kind read from the church channel feed; a tap marks one item seen",
+      "drs": [
+        "DR-1568"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.4,
+      "estimateWithoutAiHours": 6,
+      "notes": "Reads the feed the Past sermons tab already plays. Closed-phone push not built, re-review 2026-12-03."
+    },
+    {
       "id": "dr-1420-record-in-readers-name",
       "date": "2026-11-10",
       "task": "The learner record is headed by the reader's name with who they are in the household beneath it; an exam average is no longer badged Mastered",
@@ -1758,6 +2001,21 @@
       "wallClockHours": 0.4,
       "estimateWithoutAiHours": 2.5,
       "notes": "Darrell: Learn tab as a quick link under Soul (More menu screenshot)"
+    },
+    {
+      "id": "church-calendar-past-years-suggestions",
+      "date": "2026-11-19",
+      "task": "Church calendar: past-years look-back, suggestions through the feedback list, office received list",
+      "drs": [
+        "DR-1587"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.4,
+      "estimateWithoutAiHours": 6,
+      "notes": ""
     },
     {
       "id": "dr-1426-ll301-old-men-dream",
@@ -1835,6 +2093,21 @@
       "notes": "Darrell: is it fixed for all months? (November screenshot)"
     },
     {
+      "id": "l334-this-i-recall-to-my-mind",
+      "date": "2026-11-19",
+      "task": "L334 This I Recall to My Mind, from further summaries of one conversation, on time, memory and a hard past, all four age bands, shared gate",
+      "drs": [
+        "DR-1574"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.4,
+      "estimateWithoutAiHours": 24,
+      "notes": "Reserved L334 and DR-1574 on origin with new-lesson.mjs. 258 verse tokens filled from app/public/bible/kjv by fill-verses.mjs, none typed. Video not watched; two summaries disagree on one attribution and the lesson leans on neither; re-review 2026-12-18."
+    },
+    {
       "id": "dr-1430-lessons-in-both-apps",
       "date": "2026-11-12",
       "task": "Every lesson stays in both apps; access by plan, not app: the Love Corner card reworded, and the no-app-filter and same-access rules pinned",
@@ -1910,6 +2183,21 @@
       "notes": ""
     },
     {
+      "id": "ll338-not-with-eyeservice",
+      "date": "2026-11-19",
+      "task": "L338 Not with Eyeservice, from one chart on remote work, taught as faithful work when no one is watching, all four age bands, shared gate",
+      "drs": [
+        "DR-1584"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.3,
+      "estimateWithoutAiHours": 24,
+      "notes": "Reserved L338 and DR-1584 on origin with new-lesson.mjs. 259 verse tokens filled from app/public/bible/kjv, none typed. The chart has no numbers and its replies are carried as its author's; first gate run caught a quiz question in the generic title, reworded; re-review 2026-12-19."
+    },
+    {
       "id": "courses-fully-completed",
       "date": "2026-11-12",
       "task": "Courses fully completed counts the row's own best pass and each course names the exams still owed",
@@ -1923,6 +2211,21 @@
       "wallClockHours": 0.4,
       "estimateWithoutAiHours": 5,
       "notes": "Darrell's screenshot: 2 of 51 beside courses read in full at 100%"
+    },
+    {
+      "id": "sov97-the-staff-of-this-broken-reed",
+      "date": "2026-11-19",
+      "task": "Sovereign A.I. week 97 from one word over a forwarded business newsletter (thread 1a1f08f5aa0b9f68): two outages in one week, a national ground stop and a cloud provider's outage, read as one story of leaning. Word first on Isaiah 36:6 and Ezekiel 29:6-7 (the broken reed that pierces the hand), leaning told apart from trading (Isaiah 30-31), the aging system and the new load through Matthew 9:16-17, Hezekiah's order (Isaiah 37:14-15, 20); four hand-written bands, every verse generator-filled from the KJV; the house measured from its own records and workflow folder.",
+      "drs": [
+        "DR-1572"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 2,
+      "estimateWithoutAiHours": 12,
+      "notes": "No token meter in this session; tokens and cost are null. Both outages documented by several reports read through search (article hosts refused by this session's network); the newsletter's country count, dollar figure and the ground stop's root cause are reported or unverified; re-review 2026-12-03."
     },
     {
       "id": "dr-1435-money-reserve-trace-day-boundary",
@@ -1940,6 +2243,21 @@
       "wallClockHours": 3.5,
       "estimateWithoutAiHours": 16,
       "notes": "Christina's go-live brief, then her correction before merge: the $10,000 is a savings goal, not a cushion; only designated money is protected. Two sessions on one brief; restacked on fix/money-three-accounts with only what it lacked. Live 3322/8168 figures unreachable from the sandbox (no NAS road)."
+    },
+    {
+      "id": "dr-1590-camera-selftest-waits-for-the-gate",
+      "date": "2026-11-19",
+      "task": "A timing race in the camera forwarder's self-test turned an unrelated PR red; the self-test's request helper now asks again on a snapshot busy",
+      "drs": [
+        "DR-1590"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.3,
+      "estimateWithoutAiHours": 3,
+      "notes": "Reproduced by sleeping 0.2 s before the gate's release: 13 checks failed on busy before, none after. Forwarder behavior unchanged. One timed check still fails under the injected sleep and was not hardened."
     },
     {
       "id": "poetech-plus-keys-daily",
@@ -2032,6 +2350,21 @@
       "notes": "Video https://youtu.be/g_gRHW4SJtI sent with one word, Lesson; not watched (no YouTube from this session), built from his summary and said so in every band. Hany Farid and Estonia's AI Leap checked by web search; Karmen Kisel, India and cheating figures not checked and listed. 80 spans filled from the KJV corpus. The gate caught the teen band inverting the ladder (2.77 under youth 3.72); rejoined by hand to 5.42."
     },
     {
+      "id": "ll327-let-there-be-search-made",
+      "date": "2026-11-18",
+      "task": "L327: let there be search made, from a forwarded workplace bulletin on federal comment periods (taught generically)",
+      "drs": [
+        "DR-1561"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.8,
+      "estimateWithoutAiHours": 7,
+      "notes": "Forwarded the same day; built the same session."
+    },
+    {
       "id": "sov91-know-the-state-of-thy-flocks",
       "date": "2026-11-18",
       "task": "Sovereign A.I. week 91 from one word over a forwarded ByteByteGo excerpt of Evals for AI Engineers (Shankar and Husain): Word first on Proverbs 27:23 and Lamentations 3:40, the three gulfs and the analyze-measure-improve cycle taught in our words, four hand-written bands, every verse generator-filled from the KJV, and the NAS lesson builder's own week read against the book (six silent days, four of seven on one problem, a rule already given, a count with no place, the checker checked).",
@@ -2045,6 +2378,21 @@
       "wallClockHours": 1.5,
       "estimateWithoutAiHours": 14,
       "notes": "No token meter in this session; tokens and cost are null. oreilly.com, arxiv.org and the newsletter's site gave no answer from this sandbox, so the book stays the newsletter's report. Whether naming the span lowers the builder's failure rate is not measured; re-review 2026-11-25."
+    },
+    {
+      "id": "grownups-weekly-pick-has-notes",
+      "date": "2026-11-19",
+      "task": "The Grown-ups weekly pick rotates only over lessons with facilitator notes, so How to lead it always shows; year guard and fixed-list proven-to-catch",
+      "drs": [
+        "DR-1589"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.6,
+      "estimateWithoutAiHours": 3,
+      "notes": "Old rule left the live page without notes for 2026-11-16 (ll238) and 3 more weeks; 75 of 327 lessons carry no howToRun."
     },
     {
       "id": "sov75",
@@ -2152,6 +2500,21 @@
       "wallClockHours": 0.6,
       "estimateWithoutAiHours": 4,
       "notes": "Read ceiling + bounded retries; member device never wears the stranger church brand."
+    },
+    {
+      "id": "church-calendar-event-records",
+      "date": "2026-11-19",
+      "task": "Church calendar as event records: week strip, month and year view, office rows read per church",
+      "drs": [
+        "DR-1585"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.2,
+      "estimateWithoutAiHours": 10,
+      "notes": "First of three changes; office add and upload, then past years and suggestions, follow."
     },
     {
       "id": "learning-products-store",
@@ -2528,6 +2891,21 @@
       "notes": "No token meter exposed to this session; tokens and cost are null. The 40-hour estimate without A.I. is for one hour of teaching written five times over (an adult lesson and four age-banded versions, about 15,900 words of authored prose), 62 verses transcribed by hand from a printed KJV, the independent checking of five load-bearing figures, and 54 tests. The band work failed its floors and its reading ladder on the first measurement, as P60 predicts, and every repair was authored by hand rather than swept by a script (DR-1306). Renumbered to DR-1470 after #2658 landed a record on the number first, while this branch was green and in flight; the rename was done by hand on each citation's own surrounding text, never by number, because renumber-decision-record.mjs rewrites by number across the whole tree and the surrendered number's call sites now belong to that landed record."
     },
     {
+      "id": "lesson-ll328",
+      "date": "2026-11-18",
+      "task": "L328 Faithful in that which is least, from a forwarded public school-district newsletter",
+      "drs": [
+        "DR-1565"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.8,
+      "estimateWithoutAiHours": 8,
+      "notes": ""
+    },
+    {
       "id": "sov89-take-thee-again-another-roll",
       "date": "2026-11-18",
       "task": "Sovereign A.I. week 89 built from one word over a forwarded Level Up Coding issue (Redis vs Memcached), all four age bands, 25-case gate",
@@ -2753,6 +3131,21 @@
       "notes": "Gmail thread 1a1d0d054cd67ed2, forwarded 2026-11-12T17:31Z, built 2026-11-13 after the scheduled intake missed it. 45 anchor references, 162 quoted spans, every verse filled from app/public/bible/kjv by scripts/sov81-fill.mjs and none typed. www.itbrew.com, www.copyright.gov and www.php.net refused (403 CONNECT), the law firm's newsroom ENOTFOUND; named in every teaching place with re-review 2026-11-27. Our own record measured: IP register 24 rows (11 human, 13 mixed, 0 generated); 1,895 of 2,980 commits on main carry a co-author line."
     },
     {
+      "id": "l330-he-healeth-the-broken-in-heart",
+      "date": "2026-11-18",
+      "task": "L330 He Healeth the Broken in Heart, from a YouTube conversation Darrell sent with six summaries, all four age bands, shared gate",
+      "drs": [
+        "DR-1567"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.5,
+      "estimateWithoutAiHours": 24,
+      "notes": "Reserved L330 and DR-1567 on origin with new-lesson.mjs. 278 verses filled from app/public/bible/kjv by fill-verses.mjs, none typed. The video was not reachable and not watched; the speakers' claims ride UNCHECKED as theirs, re-review 2026-12-18."
+    },
+    {
       "id": "record-lists-open-to-their-lessons",
       "date": "2026-11-13",
       "task": "The class record's Most studied and Most opportunities lists became closed folds per course, titled, opening onto their lessons oldest first, each one tap to its lesson",
@@ -2768,6 +3161,21 @@
       "notes": "LearnersPanel CourseLessons fold; course-pace studiedLessons/lessonsToGrow from the same standing loop; ChurchLearn openLessonFromList shared with the Latest list. Measured in Chrome at 360 and 412px, Normal and A44: no overflow, taps 44px or more. 9 new tests fail on the old panel; 3 mutations caught."
     },
     {
+      "id": "ll332-give-me-this-mountain",
+      "date": "2026-11-19",
+      "task": "Living Lesson L332 from one word over a forwarded public radio newsletter on midlife reinvention (thread 1a1f0906b4bfc2c4): taught from Caleb in Joshua 14, the promise at forty, the years kept, the strength at eighty-five, the ask for the mountain already promised; the set-aside gift and rest before the next assignment; four hand-written bands, every verse generator-filled from the KJV.",
+      "drs": [
+        "DR-1571"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.2,
+      "estimateWithoutAiHours": 10,
+      "notes": "No token meter in this session; tokens and cost are null. The newsletter's arts study, survey and self-check are reported only, not opened; re-review 2026-12-19."
+    },
+    {
       "id": "sov85-and-it-fell-not",
       "date": "2026-11-13",
       "task": "Sovereign A.I. week 85 built from one word over a forwarded Level Up Coding newsletter (Chaos Engineering Clearly Explained), all four age bands, 38-case gate",
@@ -2781,6 +3189,21 @@
       "wallClockHours": 1.5,
       "estimateWithoutAiHours": 14,
       "notes": "Word first on Matthew 7:25-27 and 1 Corinthians 3:13. House measured: proven-to-catch count, deploy fault-injection tests, site-health steady state, weekly NAS restore drill, the second road on 2026-11-13 run logs. Gap recorded: no deliberate road-closing drill. Held for sov84; sov83 landed mid-build and was merged in, numbers re-derived on the merged tree."
+    },
+    {
+      "id": "a-landed-number-is-not-a-skip",
+      "date": "2026-11-19",
+      "task": "The lesson numbering gate counts a number main already carries; the count test reads both branches of its rule",
+      "drs": [
+        "DR-1580"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.4,
+      "estimateWithoutAiHours": 5,
+      "notes": "Found by landing four lessons in parallel: each landing reddened every other lesson branch. LANE_PUSH_TOKEN left for Darrell, re-review 2026-11-26."
     },
     {
       "id": "ll310-the-hidden-life-and-the-empty-chair",
@@ -2841,6 +3264,21 @@
       "wallClockHours": 1.5,
       "estimateWithoutAiHours": 16,
       "notes": "Root cause traced to the onFallback hand-off speaking an unmatched-gender phone voice and a speak-time URI miss setting no voice. New suite 13 cases, 9 fail on origin/main. My voice blocked: tower studio unarmed (arm run 36796584904) and CI tailnet key invalid (run 43310501087)."
+    },
+    {
+      "id": "dr-1588-kids-zone-reads-the-weeks-lesson",
+      "date": "2026-11-19",
+      "task": "A Kids Zone test that pinned one week's lesson turned main red when two lessons landed; the test now reads the lesson the catalog picks",
+      "drs": [
+        "DR-1588"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.3,
+      "estimateWithoutAiHours": 2,
+      "notes": "Found on PR #2775 shard 3, then on PR #2788 which adds no lesson, which showed main itself was red. Proven to catch by forcing the page to show the heading always. No product code changed."
     },
     {
       "id": "my-voice-on-the-nas",
@@ -3490,6 +3928,51 @@
       "wallClockHours": 0.5,
       "estimateWithoutAiHours": 4,
       "notes": "DR-1534's first live read named the limit rather than the cause. Refused the fifth-receipt move DR-1526 recorded as wrong and built the direct read for road 2 instead. Proven to catch a printed draft; 10 cases, wired into ci.yml. Not run on the NAS -- only Darrell's own ssh can."
+    },
+    {
+      "id": "ll336-the-lie-the-fear-and-the-last-adam",
+      "date": "2026-11-19",
+      "task": "L336 The Lie, the Fear, and the Last Adam, from a summary of a talk on sin as broken trust, the true part affirmed and the over-reach corrected from the Word, all four age bands, shared gate",
+      "drs": [
+        "DR-1582"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.3,
+      "estimateWithoutAiHours": 24,
+      "notes": "Reserved L336 and DR-1582 on origin with new-lesson.mjs. 294 verse tokens filled from app/public/bible/kjv, none typed. Video not watched; speaker unnamed in the summary and in the lesson; gate 9 of 9 on the first run; re-review 2026-12-19."
+    },
+    {
+      "id": "jonah-j2-landed-manifest",
+      "date": "2026-11-18",
+      "task": "Jonah J2: the landed manifest (the kids folder decides what is landed, narrated, published, in production; prebuild + stale guard), recorded narration in the storybook with cued or estimated sentence highlighting, the Theater playing a file episode from the shelf with poster and captions, the production brief naming every illustration, recording and video file with specs and the KJV per page, the character bible corrected to the approved pair; 11 new tests proven to catch",
+      "drs": [
+        "DR-1527"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.9,
+      "estimateWithoutAiHours": 16,
+      "notes": ""
+    },
+    {
+      "id": "j2-phone-review-gates",
+      "date": "2026-11-18",
+      "task": "The J2 phone review (REV): a signed-in Playwright walk of the real YouthZone on a Pixel 7; found and closed the Great Fish record-shape miss, doubled captions from a burned draft, a 34:15 frame cropping 16:9 scenes, a 2.61:1 page label; three proven-to-catch gates; scenes 1 and 2 placed",
+      "drs": [
+        "DR-1535"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.4,
+      "estimateWithoutAiHours": 10,
+      "notes": ""
     }
   ]
 }

@@ -35,6 +35,8 @@ import { headerName } from '../HeaderAuthButton.jsx';
 import { TabScroll } from '../shared.jsx';
 import { ProfileMenu, AllFeaturesSheet } from './LoveCornerMenus.jsx';
 import PersonalizeSheet from './PersonalizeSheet.jsx';
+import { requestChurchHomeTop } from '../../lib/church-home-section.js';
+import { scrollPageToTop } from '../../lib/chrome-dock.js';
 
 export const LOVE_CORNER_TAGLINE = 'Where Love Lives';
 const FOCUS = 'focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#CFA63C]';
@@ -136,10 +138,29 @@ export default function LoveCornerHeader({
     const btn = bellRef.current && bellRef.current.querySelector('button');
     if (btn) btn.click();
   };
+  // EVERY CHURCH TAB COMES BACK TO THE CHURCH (DR-1579). The menu's
+  // Subscription, Admin and Messages rows leave the Church view (About, Admin,
+  // Messages are the shell's own views); this used to set the sub-tab alone,
+  // so from any of them the logo, the strip and every tile in the All sheet
+  // changed nothing on screen. A church tab now names the Church view too.
   const go = (id) => {
     setSheet(null);
     setMenuOpen(false);
+    if (setView && view !== 'church') setView('church');
     if (setChurchView) setChurchView(id);
+  };
+  // The logo and the name are Home: the door's starting place, at the top,
+  // with no section asked for; the same thing the bar's Home does.
+  const goHome = () => {
+    go('home');
+    requestChurchHomeTop();
+    scrollPageToTop();
+  };
+  const leaveTo = (v) => {
+    setMenuOpen(false);
+    setSheet(null);
+    if (setView) setView(v);
+    scrollPageToTop();
   };
 
   return (
@@ -156,7 +177,7 @@ export default function LoveCornerHeader({
         >
           <MenuIcon />
         </button>
-        <button type="button" onClick={() => go('home')} className={`lch-brand ${FOCUS}`} aria-label={`${LOVE_CORNER_BRAND.name} home`} data-testid="lch-brand">
+        <button type="button" onClick={goHome} className={`lch-brand ${FOCUS}`} aria-label={`${LOVE_CORNER_BRAND.name} home`} data-testid="lch-brand">
           <img src={LOVE_CORNER_ASSETS.logo} width="36" height="36" alt="" className="lch-logo" />
           <span className="lch-words">
             <span className="lch-name">{LOVE_CORNER_BRAND.name}</span>
@@ -214,7 +235,7 @@ export default function LoveCornerHeader({
           )}
         </div>
       </div>
-      <ChurchTabStrip churchTabs={churchTabs} churchView={churchView} setChurchView={setChurchView} />
+      <ChurchTabStrip churchTabs={churchTabs} churchView={view === 'church' ? churchView : null} setChurchView={go} />
       {menuOpen && (
         <ProfileMenu
           name={name}
@@ -227,14 +248,9 @@ export default function LoveCornerHeader({
           onClose={() => setMenuOpen(false)}
           onGo={go}
           onNotifications={openNotifications}
-          onSubscription={() => {
-            setMenuOpen(false);
-            if (setView) setView('about');
-          }}
-          onAdmin={() => {
-            setMenuOpen(false);
-            if (setView) setView('admin');
-          }}
+          onSubscription={() => leaveTo('about')}
+          onAdmin={() => leaveTo('admin')}
+          onMessages={() => leaveTo('messages')}
           onPersonalize={() => {
             setMenuOpen(false);
             setPersonalizeOpen(true);

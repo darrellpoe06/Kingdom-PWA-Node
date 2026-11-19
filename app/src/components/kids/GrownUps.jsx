@@ -11,7 +11,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { fetchLearnerRecords } from '../../lib/learner-records-sync.js';
 import { LIVING_LESSONS_MODULES } from '../../lib/living-lessons-class.js';
 import { LITTLE_LEARNERS_MODULES } from '../../lib/little-learners-class.js';
-import { YOUTH_DOORS, TEEN_BANDS, weeklyLesson, normalizeRecord } from '../../lib/youth-zone.js';
+import { YOUTH_DOORS, TEEN_BANDS, weeklyLesson, normalizeRecord, leadLines } from '../../lib/youth-zone.js';
 import { CHILD_MODE_RULES } from '../../lib/class-tutor.js';
 import { lessonUrl } from '../../lib/lesson-links.js';
 import { ColoringBookButton } from '../ColoringSheet.jsx';
@@ -24,16 +24,8 @@ export function moduleFor(pick) {
   return list.find((m) => m.id === pick.lessonId) || null;
 }
 
-/** The facilitator's lines, as the lesson wrote them, split on its own " | " joins. */
-export function leadLines(module) {
-  const f = (module && module.facilitator) || {};
-  const how = String(f.howToRun || '')
-    .split(' | ')
-    .map((s) => s.trim())
-    .filter(Boolean);
-  const prompts = Array.isArray(f.discussionPrompts) ? f.discussionPrompts : [];
-  return { how, prompts, points: Array.isArray(f.talkingPoints) ? f.talkingPoints : [] };
-}
+/** The facilitator's lines now live beside the weekly pick (youth-zone.js), re-exported here. */
+export { leadLines };
 
 /** What the rows say, for a parent: counts of real records, never painted. */
 export function summarize(records = []) {

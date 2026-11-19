@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "prebuild": "node ../scripts/kids-landed-manifest.mjs",
     "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint src --max-warnings 0",

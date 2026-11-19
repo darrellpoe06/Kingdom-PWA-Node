@@ -86,8 +86,21 @@ async function stop(name, check) {
 }
 
 await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 90000 }).catch(() => {});
-const build = await page.evaluate(() => (document.querySelector('meta[name="build-sha"]') || {}).content || '').catch(() => '');
-console.log(`BUILD meta build-sha="${build}" expected="${expectedSha}"`);
+// The served build: the page's build-sha meta when it has one; otherwise the
+// version every kids asset URL carries (?v=<sha>, guides.js BUILD_VERSION),
+// which the bundle bakes in at build time. The app ships no build-sha meta, so
+// the asset stamp is the real witness (2026-11-19: the Jonah release walk read
+// an empty meta and failed a site that was serving the merged commit).
+await page.waitForSelector('[data-testid="kids-zone"] img[src*="/lovecorner/kids/"]', { timeout: 60000 }).catch(() => {});
+const build = await page
+  .evaluate(() => {
+    const meta = (document.querySelector('meta[name="build-sha"]') || {}).content || '';
+    if (meta) return meta;
+    const img = [...document.querySelectorAll('img')].map((i) => i.getAttribute('src') || '').find((u) => /\/lovecorner\/kids\/[^?]+\?v=/.test(u));
+    return img ? decodeURIComponent(img.split('?v=')[1].split('&')[0]) : '';
+  })
+  .catch(() => '');
+console.log(`BUILD served build="${build}" expected="${expectedSha}"`);
 if (expectedSha && !build.startsWith(expectedSha.slice(0, 7))) {
   failed += 1;
   console.log('BUILD MISMATCH: the served build is not the merged commit');
@@ -178,10 +191,46 @@ await stop('storybook-jonah', async () => {
   await page.waitForSelector('[data-testid="storybook-verse"]', { timeout: 30000 });
   const verse = await page.locator('[data-testid="storybook-verse"]').innerText();
   if (!/Jonah/.test(verse)) throw new Error('page 1 does not carry the verse');
-  await click('storybook-next');
-  const p2 = await page.locator('[data-testid="storybook"]').getAttribute('data-page');
-  if (p2 !== '1') throw new Error(`next page did not turn (page=${p2})`);
-  return `page1 verse ${verse.length} chars; turned to page 2`;
+  // Every page, turned the way a child does (Darrell, 2026-11-19, the J2 release):
+  // each page shows ITS OWN scene, really loaded, beside a verse from the Word.
+  const seen = [];
+  for (let n = 1; n <= 8; n += 1) {
+    const at = await page.locator('[data-testid="storybook"]').getAttribute('data-page');
+    if (at !== String(n - 1)) throw new Error(`page ${n}: the book is on page ${Number(at) + 1}`);
+    const shot = `jonah-${n}`;
+    await page
+      .waitForFunction(
+        (id) => {
+          const i = document.querySelector(`.kz-scene img[data-shot="${id}"]`);
+          return !!(i && i.complete && i.naturalWidth > 0);
+        },
+        shot,
+        { timeout: 20000 }
+      )
+      .catch(() => {});
+    const img = await page.evaluate((id) => {
+      const i = document.querySelector(`.kz-scene img[data-shot="${id}"]`);
+      return i ? { w: i.naturalWidth, src: i.getAttribute('src') || '' } : null;
+    }, shot);
+    if (!img || img.w < 1) throw new Error(`page ${n}: scene ${shot} did not load`);
+    const v = (await page.locator('[data-testid="storybook-verse"]').innerText()).trim();
+    if (v.length < 20) throw new Error(`page ${n}: no verse on the page`);
+    seen.push(`${n}:${img.src.split('/').pop()}`);
+    if (n < 8) await click('storybook-next');
+  }
+  return `8 pages turned, each with its own scene (${seen.join(' ')})`;
+});
+
+await stop('memory-verse-jonah', async () => {
+  await click('kids-back');
+  await click('kids-tab-games');
+  await click('tile-memory');
+  await click('memory-pick-jonah');
+  await page.waitForSelector('[data-testid="memory-game"], [data-testid="memory-unavailable"]', { timeout: 30000 });
+  const ref = await page.locator('[data-testid="memory-section"]').getAttribute('data-verse');
+  const game = await page.locator('[data-testid="memory-game"]').count();
+  if (!game || ref !== 'Jonah 2:9') throw new Error(`memory game=${game} verse=${ref}`);
+  return `memory verse ${ref}, the fill-in game open`;
 });
 
 await stop('word-builder', async () => {

@@ -62,7 +62,11 @@ const QUOTED_FLOOR = 70;
 describe('sov95 is in the catalog and is the whole lesson', () => {
   it('the module exists, as week 95, with all four bands', () => {
     expect(MODULE, `${ID} is in SOVEREIGN_AI_MODULES`).toBeTruthy();
-    expect(SOVEREIGN_AI_MODULES.indexOf(MODULE)).toBe(SOVEREIGN_AI_MODULES.length - 1);
+    // Re-pinned 2026-11-19 (DR-1570): sov96 now follows this week, so the pin
+    // is the neighbor, not the tail. Week 95 sits directly before week 96.
+    const at = SOVEREIGN_AI_MODULES.indexOf(MODULE);
+    expect(at).toBeGreaterThanOrEqual(0);
+    expect(SOVEREIGN_AI_MODULES[at + 1].id).toBe('sov96-he-shall-order-the-lamps-continually');
     for (const b of FOUR_BANDS) {
       expect(typeof MODULE.levels[b]).toBe('string');
       expect(MODULE.levels[b].startsWith(MODULE.title), b).toBe(true);
