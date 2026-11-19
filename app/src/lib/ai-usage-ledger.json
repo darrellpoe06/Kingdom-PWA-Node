@@ -533,6 +533,21 @@
       "notes": "Scaffolded by new-lesson.mjs; 122 verses filled from the corpus; band shares fixed after first draft failed."
     },
     {
+      "id": "person-sign-ins-dr1592",
+      "date": "2026-11-19",
+      "task": "Did they get in is on their row: the governor-only sign-in read (0338) that includes people with no space, GoTrue's own log fenced, unclaimed Poe Properties invitations; a Needs help list at the top of Signups with reasons and times, a sign-in line per row, a search box; smoke on PostgreSQL 16 proven to catch twice",
+      "drs": [
+        "DR-1592"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.5,
+      "estimateWithoutAiHours": 14,
+      "notes": ""
+    },
+    {
       "id": "app-does-what-it-advertises",
       "date": "2026-11-18",
       "task": "The app does what it advertises: an Aa text-size button on every screen in the Love Corner header; the church's giving channels with QR codes in the Give & Serve panel (one shared component with the Give popup); the Ask Ari card asks and opens the week's lesson with Ari answering; three tests",
