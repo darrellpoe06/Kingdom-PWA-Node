@@ -66,6 +66,31 @@ concurrency:
 # disjoint parts that together are the full suite, and every shard must pass.
 
 jobs:
+  # WHICH LEGS THIS CHANGE NEEDS (DR-1601). A push whose every changed path is
+  # lesson content, a test or a record skips the PostgreSQL walls and the door
+  # journeys (and the layout probe unless it opens that course); anything else,
+  # main, a dispatch or an unreadable diff runs every leg. scripts/ci-legs.mjs.
+  classify:
+    name: app — which legs this change needs
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      skip: ${{ steps.c.outputs.skip }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: scripts
+      - id: c
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          files=""
+          if [ "$EVENT" = push ] && [ "$GITHUB_REF" != refs/heads/main ]; then
+            files=$(timeout 60 gh api "repos/$GITHUB_REPOSITORY/compare/main...$GITHUB_SHA?per_page=100" --paginate --jq '.files[].filename' | sort -u) || files=""
+          fi
+          printf '%s\n' "$files" | node scripts/ci-legs.mjs --event "$EVENT" --ref "$GITHUB_REF" >> "$GITHUB_OUTPUT"
+
   # Lint + every node guard. Kept textually BEFORE the vitest step: the
   # verify-covers-ci-guards test reads the guard list between `npm run lint`
   # and `npx vitest run`.
@@ -819,6 +844,8 @@ jobs:
   # instead of after them.
   layout:
     name: app — chrome-layout probe
+    needs: classify
+    if: ${{ !contains(fromJSON(needs.classify.outputs.skip || '[]'), 'layout') }}
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -991,6 +1018,8 @@ jobs:
   # RAISEs, so a leaked grant or a widened policy is a red leg.
   lesson-shares:
     name: app — lesson share record (PostgreSQL)
+    needs: classify
+    if: ${{ !contains(fromJSON(needs.classify.outputs.skip || '[]'), 'lesson-shares') }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     services:
@@ -1029,6 +1058,8 @@ jobs:
   # person reads only their own rows and anon none. Every check RAISEs.
   arrivals-push:
     name: app — lesson arrival push (PostgreSQL)
+    needs: classify
+    if: ${{ !contains(fromJSON(needs.classify.outputs.skip || '[]'), 'arrivals-push') }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     services:
@@ -1066,6 +1097,8 @@ jobs:
   # a blank key is refused. Every check RAISEs.
   contacts-walls:
     name: app — contacts walls (PostgreSQL)
+    needs: classify
+    if: ${{ !contains(fromJSON(needs.classify.outputs.skip || '[]'), 'contacts-walls') }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     services:
@@ -1101,6 +1134,8 @@ jobs:
   # path. Every check RAISEs; the smoke was shown to fail with each wall open.
   voice-enrollments:
     name: app — add my voice consent walls (PostgreSQL)
+    needs: classify
+    if: ${{ !contains(fromJSON(needs.classify.outputs.skip || '[]'), 'voice-enrollments') }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     services:
@@ -1135,6 +1170,8 @@ jobs:
   # devices, anon reads none, and a short device id is refused.
   dm-device-keys:
     name: app — sealed-message device keys walls (PostgreSQL)
+    needs: classify
+    if: ${{ !contains(fromJSON(needs.classify.outputs.skip || '[]'), 'dm-device-keys') }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     services:
@@ -1171,6 +1208,8 @@ jobs:
   # (proven-to-catch: the restored row alarms again).
   withdraw-walls:
     name: app — withdraw my words walls (PostgreSQL)
+    needs: classify
+    if: ${{ !contains(fromJSON(needs.classify.outputs.skip || '[]'), 'withdraw-walls') }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     services:
@@ -1216,6 +1255,8 @@ jobs:
   # restores it and the smoke passes again.
   auth-events:
     name: app — sign-in record walls (PostgreSQL)
+    needs: classify
+    if: ${{ !contains(fromJSON(needs.classify.outputs.skip || '[]'), 'auth-events') }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     services:
@@ -1262,6 +1303,8 @@ jobs:
   # a short IV.
   vault-walls:
     name: app — password vault walls (PostgreSQL)
+    needs: classify
+    if: ${{ !contains(fromJSON(needs.classify.outputs.skip || '[]'), 'vault-walls') }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     services:
@@ -1302,6 +1345,8 @@ jobs:
   # invisible to a stranger and anon until the office makes it public).
   church-onboarding:
     name: app — church onboarding walls (PostgreSQL)
+    needs: classify
+    if: ${{ !contains(fromJSON(needs.classify.outputs.skip || '[]'), 'church-onboarding') }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     services:
@@ -1347,6 +1392,8 @@ jobs:
   # out-of-range score is refused by the wall. Every check RAISEs.
   learner-records:
     name: app — learner record walls (PostgreSQL)
+    needs: classify
+    if: ${{ !contains(fromJSON(needs.classify.outputs.skip || '[]'), 'learner-records') }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     services:
@@ -1381,6 +1428,8 @@ jobs:
   # header names each wall). A guard CI never runs is not a guard (DR-0076 §3).
   institute-walls:
     name: app — the Institute's walls (PostgreSQL)
+    needs: classify
+    if: ${{ !contains(fromJSON(needs.classify.outputs.skip || '[]'), 'institute-walls') }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     services:
@@ -1464,6 +1513,8 @@ jobs:
   # database in the rls-isolation leg.
   door-work:
     name: app — door work orders (PostgreSQL)
+    needs: classify
+    if: ${{ !contains(fromJSON(needs.classify.outputs.skip || '[]'), 'door-work') }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     services:
@@ -1795,6 +1846,8 @@ jobs:
   # calendar emptied) must each fail their own step, or this leg is red.
   door-journeys:
     name: app — door journeys end to end (Chrome + PostgREST + PostgreSQL)
+    needs: classify
+    if: ${{ !contains(fromJSON(needs.classify.outputs.skip || '[]'), 'door-journeys') }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     services:
@@ -1869,13 +1922,21 @@ jobs:
   app:
     name: app — lint + vitest
     if: always()
-    needs: [guards, vitest, probes, layout, surface-sweep, curriculum, lesson-shares, arrivals-push, contacts-walls, voice-enrollments, dm-device-keys, learner-records, institute-walls, vault-walls, church-onboarding, door-work, door-journeys, auth-events, withdraw-walls]
+    needs: [guards, vitest, classify, probes, layout, surface-sweep, curriculum, lesson-shares, arrivals-push, contacts-walls, voice-enrollments, dm-device-keys, learner-records, institute-walls, vault-walls, church-onboarding, door-work, door-journeys, auth-events, withdraw-walls]
     runs-on: ubuntu-latest
     steps:
       - name: Every leg passed (lint + guards, every vitest shard, build + probes, layout, every registered surface opens, curriculum, lesson shares, lesson arrival push, contacts walls, voice consent walls, sealed-message device keys walls, learner record walls, church onboarding walls, door work orders, door journeys end to end, withdraw my words walls)
         env:
           NEEDS: ${{ toJSON(needs) }}
+          CLASSIFY: ${{ needs.classify.result }}
+          SKIP: ${{ needs.classify.result == 'success' && needs.classify.outputs.skip || '[]' }}
         run: |
+          # A LEG SKIPPED BY RULE IS NOT NEEDED (DR-1601): only a leg the classifier
+          # named, from a classifier that succeeded, counts as passed. Any other
+          # skip after a successful classifier is a FAILURE; after a cancelled one
+          # it stays "did not finish" (DR-1041, below).
+          echo "skipped by rule: $SKIP"
+          NEEDS=$(echo "$NEEDS" | jq --argjson skip "${SKIP:-[]}" --arg c "$CLASSIFY" 'with_entries(if .value.result == "skipped" and (.key as $k | $skip | index($k)) then .value.result = "success" elif .value.result == "skipped" and $c == "success" then .value.result = "failure" else . end)')
           # A SUPERSEDED RUN IS NOT A FAILURE, AND MUST NOT READ AS ONE (DR-1041).
           # This used to be one `select(.value.result != "success")`, which lumps
           # `cancelled` in with `failure` and printed "required legs did not pass"

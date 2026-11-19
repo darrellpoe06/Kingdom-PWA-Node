@@ -217,7 +217,14 @@
       "to": 23279,
       "dr": "DR-1591",
       "reason": "0339's smoke must be run by a leg (rls-isolation-matrix-guard refuses an orphan smoke): a three-line person-doors leg in rls-isolation.yml with no comment, the walls named in the smoke's own header and DR-1591. Raised to the measured total, not above it."
+    },
+    {
+      "date": "2026-11-19",
+      "from": 23279,
+      "to": 23340,
+      "dr": "DR-1601",
+      "reason": "ci.yml gains the classify job (26 lines), two lines per skippable leg (needs + if, 14 legs) and seven aggregator lines, so a lesson-only push skips the 13 PostgreSQL wall legs, the door journeys and (unless it touches a course the probe opens) the layout probe: measured 24 jobs a lesson PR before. The ceiling refuses bloat; this is the lane's runner load going down by about 13 jobs a PR. The deploy fold in DR-1603 gives lines back. Raised to the measured total, not above it."
     }
   ],
-  "totalLines": 23279
+  "totalLines": 23340
 }
