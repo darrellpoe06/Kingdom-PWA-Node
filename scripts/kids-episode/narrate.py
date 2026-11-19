@@ -1,0 +1,52 @@
+#!/usr/bin/env python3
+"""Render the narration for a Bible Adventures episode with Kokoro (Apache-2.0).
+
+Reads scripts/kids-episode/<id>.episode.json (the KJV lines are copied from the
+in-repo corpus by the episode builder, never typed by hand), speaks every line
+with one voice, and writes one WAV per line plus timings.json (seconds per
+line), so the movie is timed to the voice and the captions to the words.
+
+  python3 narrate.py <episode.json> <outDir> <voice> [--sample]
+
+--sample speaks only the first verse and one guide line (a short audition clip).
+Runs where Hugging Face is reachable (a GitHub runner); the weights are fetched
+once by the kokoro package.
+"""
+import json, sys, os
+import numpy as np, soundfile as sf
+from kokoro import KPipeline
+
+ep_path, out, voice = sys.argv[1], sys.argv[2], sys.argv[3]
+sample = "--sample" in sys.argv
+os.makedirs(out, exist_ok=True)
+ep = json.load(open(ep_path))
+# Pronunciations the G2P would guess wrong (misaki inline phonemes).
+SAY = {"Yahweh": "[Yahweh](/jˈɑwˌeɪ/)", "Nineveh": "[Nineveh](/nˈɪnəvə/)", "Amittai": "[Amittai](/əmˈɪtaɪ/)", "Tarshish": "[Tarshish](/tˈɑɹʃɪʃ/)"}
+def prep(t):
+    for k, v in SAY.items():
+        t = t.replace(k, v)
+    return t
+pipe = KPipeline(lang_code="a" if voice.startswith("a") else "b")
+SR = 24000
+lines = [(b["id"], i, l) for b in ep["beats"] for i, l in enumerate(b["lines"])]
+if sample:
+    first_kjv = next(x for x in lines if x[2]["kind"] == "kjv")
+    first_guide = next(x for x in lines if x[2]["kind"] == "narrator" and x[0] != "intro")
+    lines = [first_kjv, first_guide]
+timings = []
+for bid, i, l in lines:
+    speed = 0.88 if l["kind"] == "kjv" else 0.95
+    chunks = [a for _, _, a in pipe(prep(l["text"]), voice=voice, speed=speed)]
+    audio = np.concatenate([np.asarray(c, dtype=np.float32) for c in chunks]) if chunks else np.zeros(1, np.float32)
+    f = f"{bid}-{i:02d}.wav"
+    sf.write(os.path.join(out, f), audio, SR)
+    timings.append({"beat": bid, "line": i, "file": f, "seconds": round(len(audio) / SR, 3), "kind": l["kind"], "ref": l.get("ref"), "text": l["text"]})
+    print(f"{f} {len(audio)/SR:.2f}s", flush=True)
+json.dump({"voice": voice, "sampleRate": SR, "lines": timings}, open(os.path.join(out, "timings.json"), "w"), indent=1, ensure_ascii=False)
+if sample:
+    gap = np.zeros(int(SR * 0.6), np.float32)
+    parts = []
+    for t in timings:
+        a, _ = sf.read(os.path.join(out, t["file"]), dtype="float32")
+        parts += [a, gap]
+    sf.write(os.path.join(out, f"sample-{voice}.wav"), np.concatenate(parts), SR)
