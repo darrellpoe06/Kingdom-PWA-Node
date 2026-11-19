@@ -4,7 +4,7 @@
     "functions": 31,
     "nasServices": 7,
     "nasRoutes": 33,
-    "tables": 327,
+    "tables": 330,
     "tablesWithoutRls": 1
   },
   "functions": [
@@ -2159,6 +2159,24 @@
       "definedIn": "infra/supabase/migrations-auto/0092-moore-showcase.sql",
       "rls": true,
       "policies": 1
+    },
+    {
+      "table": "sign_in_miss_meter",
+      "definedIn": "infra/supabase/migrations-auto/0341-a-try-with-no-account-is-counted-not-kept.sql",
+      "rls": true,
+      "policies": 0
+    },
+    {
+      "table": "sign_in_miss_settings",
+      "definedIn": "infra/supabase/migrations-auto/0341-a-try-with-no-account-is-counted-not-kept.sql",
+      "rls": true,
+      "policies": 0
+    },
+    {
+      "table": "sign_in_misses",
+      "definedIn": "infra/supabase/migrations-auto/0341-a-try-with-no-account-is-counted-not-kept.sql",
+      "rls": true,
+      "policies": 0
     },
     {
       "table": "stay_pictures",

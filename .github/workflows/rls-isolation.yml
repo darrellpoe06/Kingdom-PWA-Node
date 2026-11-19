@@ -81,6 +81,9 @@ jobs:
           - feature: person-sign-ins
             migrations: "0340-did-they-get-in-is-on-their-row.sql"
             smokes: "0340-person-sign-ins-smoke.sql"
+          - feature: sign-in-misses
+            migrations: "0341-a-try-with-no-account-is-counted-not-kept.sql"
+            smokes: "0341-sign-in-misses-smoke.sql"
           - feature: tv-sharing
             migrations: "0074-tv-circle-sharing.sql 0141-account-unification-person-links.sql"
             smokes: "0074-isolation-smoke.sql"

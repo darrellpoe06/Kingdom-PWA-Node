@@ -54,7 +54,7 @@ describe('the sign-in record per person (pure)', () => {
     expect(signInCoverage({ gotrue_audit: 'read', password_record_since: A(14) })).toContain('Password and phone+PIN tries, right or wrong, are recorded from');
     expect(signInCoverage({ gotrue_audit: 'read' })).toContain('Royalty Link or Google sign-in is read from the auth server');
     expect(signInCoverage({ gotrue_audit: 'unreadable: permission denied' })).toContain('could not be read (unreadable: permission denied)');
-    expect(signInCoverage({})).toContain('Not recorded: a wrong or expired Royalty Link code, and a try with a phone or email that has no account.');
+    expect(signInCoverage({})).toContain('Not recorded: a wrong or expired Royalty Link code.');
   });
 });
 
@@ -211,7 +211,7 @@ describe('find a person fast (pure)', () => {
 });
 
 // ── the screen ───────────────────────────────────────────────────────────────
-const H = vi.hoisted(() => ({ signups: [], signIns: null, doors: null }));
+const H = vi.hoisted(() => ({ signups: [], signIns: null, doors: null, misses: null }));
 vi.mock('../lib/access-metrics-sync.js', () => ({
   fetchAccessSnapshot: async () => ({ signedIn: true, instances: [], members: [], presence: [], invites: [], subscriptions: [], domains: [], errors: {} }),
   currentBuild: () => ({ sha: 'test', time: null }),
@@ -220,6 +220,7 @@ vi.mock('../lib/access-metrics-sync.js', () => ({
       return H.signIns
         ? { data: H.signIns, error: null }
         : { data: null, error: { message: 'function admin_person_sign_ins() does not exist', code: '42883' } };
+    if (fn === 'admin_sign_in_misses') return H.misses ? { data: H.misses, error: null } : { data: null, error: { message: 'nope', code: '42883' } };
     if (fn === 'admin_person_doors') return H.doors ? { data: H.doors, error: null } : { data: null, error: { message: 'nope', code: '42883' } };
     return { data: null, error: null };
   },
@@ -257,6 +258,7 @@ describe('the Signups screen: Needs help at the top, a sign-in line per row, and
     H.signups = [];
     H.signIns = null;
     H.doors = null;
+    H.misses = null;
   });
   async function mount() {
     container = document.createElement('div');
@@ -327,6 +329,7 @@ describe('the Signups screen: Needs help at the top, a sign-in line per row, and
     H.signups = SIGNUPS;
     H.signIns = SIGNINS;
     H.doors = { door_tracking_since: D(2), people: [] };
+    H.misses = { enabled: true, meter: { dropped_24h: 0 }, misses: [{ hint: 'phone ending 0177', tries: 4, days: 1, last_at: D(0.1) }] };
     await mount();
     const box = container.querySelector('[data-testid="needs-help"]');
     expect(box).not.toBeNull();
@@ -342,6 +345,9 @@ describe('the Signups screen: Needs help at the top, a sign-in line per row, and
     expect(people[0].querySelector('[data-testid="needs-help-message"]').getAttribute('href')).toContain('dm=');
     expect(people[0].querySelector('[data-testid="needs-help-call"]').getAttribute('href')).toBe('tel:+15555550142');
     expect(box.querySelector('[data-testid="needs-help-invite"]').textContent).toContain('no account with this address yet');
+    // DR-1593: a try with an address that has no account, by its hint only.
+    expect(box.querySelector('[data-testid="needs-help-miss"]').textContent).toContain('phone ending 0177');
+    expect(box.querySelector('[data-testid="needs-help-miss"]').textContent).toContain('4 sign-in tries with an address that has no account');
     // Each row says whether they got in.
     const lines = Array.from(container.querySelectorAll('[data-testid="signup-signin"]')).map((n) => n.textContent);
     expect(lines).toContain('Last got in yesterday by email');

@@ -231,7 +231,14 @@
       "to": 23343,
       "dr": "DR-1592",
       "reason": "0340's smoke must be run by a leg (rls-isolation-matrix-guard refuses an orphan smoke): a three-line person-sign-ins leg in rls-isolation.yml with no comment, the walls named in the smoke's own header and DR-1592. Raised to the measured total, not above it."
+    },
+    {
+      "date": "2026-11-19",
+      "from": 23343,
+      "to": 23346,
+      "dr": "DR-1593",
+      "reason": "0341's smoke must be run by a leg (rls-isolation-matrix-guard refuses an orphan smoke): a three-line sign-in-misses leg in rls-isolation.yml with no comment, the walls named in the smoke's own header and DR-1593. Raised to the measured total, not above it."
     }
   ],
-  "totalLines": 23343
+  "totalLines": 23346
 }

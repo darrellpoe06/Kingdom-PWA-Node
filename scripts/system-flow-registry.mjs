@@ -2303,6 +2303,29 @@ const NODES = [
     writes: [],
     seeds: [],
   }),
+  // A TRY WITH NO ACCOUNT (0341, DR-1593): after "Invalid login credentials",
+  // both sign-in paths hand the address tried to note_sign_in_miss, which
+  // counts it under a salted hash with a masked hint (no address kept).
+  app('app/src/lib/supabase.js', {
+    id: 'sign-in-miss-record', name: 'A sign-in try with no account, counted',
+    purpose: 'After invalid credentials, note_sign_in_miss counts the try under a salted hash and a masked hint when no account has the address; capped per hour and per address, switchable, kept 30 days.',
+    reads: [{ res: 'db:sign_in_miss_settings', token: 'note_sign_in_miss' }],
+    writes: [{ res: 'db:sign_in_misses', token: 'note_sign_in_miss' }, { res: 'db:sign_in_miss_meter', token: 'note_sign_in_miss' }],
+    seeds: ['sign-in-miss-read'],
+  }),
+  // WHO NEEDS HELP GETTING IN (DR-1592/1593): the governor reads the hints,
+  // matched to unclaimed invitations, in Admin -> Users & usage -> Signups.
+  app('app/src/lib/person-onboarding.js', {
+    id: 'sign-in-miss-read', name: 'Tries with no account, in Needs help (Admin -> Users & usage)',
+    purpose: 'The poe-family read of each hint with its tries, days and times, whether the counter is on and whether its cap dropped tries, shown in the Needs help list at the top of Signups.',
+    reads: [
+      { res: 'db:sign_in_misses', token: 'admin_sign_in_misses' },
+      { res: 'db:sign_in_miss_meter', token: 'admin_sign_in_misses' },
+      { res: 'db:sign_in_miss_settings', token: 'admin_sign_in_misses' },
+    ],
+    writes: [],
+    seeds: [],
+  }),
 ];
 
 // Every service rider and loop reads nas:services (the install services-sync
@@ -2488,6 +2511,9 @@ const RESOURCES = {
   'http:funnel': { label: 'the NAS’s public routes' },
   'db:contacts': { label: 'a person\u2019s own address book (0247, DR-0736; read by its owner alone)' },
   'db:dm_device_keys': { label: 'the public key of each device a person holds (0249, DR-0737; read by anyone signed in, written by its owner alone)' },
+  'db:sign_in_misses': { label: 'a sign-in try with an address that has no account: a salted hash, a masked hint and the count per day, never the address (0341, DR-1593)' },
+  'db:sign_in_miss_meter': { label: 'how many such tries were counted and dropped each hour, the cap\u2019s own ledger (0341, DR-1593)' },
+  'db:sign_in_miss_settings': { label: 'the counter\u2019s switch, its hourly cap and its salt, readable by no API role (0341, DR-1593)', source: 'Seeded once by migration 0341 with a random salt; the switch and the cap change only by a deliberate SQL UPDATE, never from the app (DR-1593).' },
   'db:usage_events': { label: 'every tab open and function exercised, per person with the time (0073, DR-0819); each person owns and can delete their own trail' },
   'db:rental_tenancies': { label: 'the tenancies (0055): who lives behind which door, the lease, the rent and, since 0258, the camera grant the door shares with its household (DR-0841)' },
   'db:church_devices': { label: 'the church device register (0056): identified assets with the MACs a scan read and, since 0256, the person each belongs to (DR-0830)' },

@@ -193,7 +193,8 @@ export function signInCoverage(data) {
     gotrue === 'read'
       ? 'The method of a Royalty Link or Google sign-in is read from the auth server’s own log (180 days).'
       : `The auth server’s own log could not be read (${gotrue || 'no answer'}), so a Royalty Link or Google sign-in shows when, not how.`,
-    'Not recorded: a wrong or expired Royalty Link code, and a try with a phone or email that has no account.',
+    'Not recorded: a wrong or expired Royalty Link code.',
+    'A password or PIN try with a phone or email that has no account is counted under a masked hint (the address itself is never kept).',
   ];
   return lines.join(' ');
 }
@@ -333,4 +334,37 @@ export function matchesSearch(fields, query) {
     const d = digitsOf(w);
     return d.length >= 3 && d.length === w.replace(/[\s().+-]/g, '').length && hayDigits.some((h) => h.includes(d));
   });
+}
+
+// =============================================================================
+// A TRY WITH NO ACCOUNT (DR-1593): admin_sign_in_misses() (0341)
+// =============================================================================
+export function fetchSignInMisses() {
+  return governorRead('admin_sign_in_misses');
+}
+
+/**
+ * The tries with an address that has no account, as Needs help entries, and a
+ * status line that says when the counter is off or its cap dropped tries.
+ */
+export function missesView(data, nowMs) {
+  const rows = data && Array.isArray(data.misses) ? data.misses : [];
+  const entries = rows
+    .filter((m) => m && m.hint && Number(m.tries) > 0)
+    .map((m) => {
+      const tries = Number(m.tries);
+      const days = Number(m.days) || 1;
+      let text = `${tries} sign-in ${tries === 1 ? 'try' : 'tries'} with an address that has no account (last ${relativeTime(m.last_at, nowMs)}${days > 1 ? `, on ${days} days` : ''}).`;
+      if (m.invite) {
+        const who = m.invite.display_name || 'someone';
+        const as = m.invite.role_label ? ` as ${String(m.invite.role_label).replace('_', ' ')}` : '';
+        text += ` It is the address ${who} was invited to Poe Properties with${as}: they are trying to sign in before making an account.`;
+      }
+      return { hint: String(m.hint), at: m.last_at || null, text, invited: !!m.invite };
+    });
+  let status = '';
+  if (data && data.enabled === false) status = 'Counting tries with no account is switched off.';
+  else if (data && data.meter && Number(data.meter.dropped_24h) > 0)
+    status = `The hourly limit was reached in the last 24 hours; ${Number(data.meter.dropped_24h)} ${Number(data.meter.dropped_24h) === 1 ? 'try was' : 'tries were'} not counted.`;
+  return { entries, status };
 }

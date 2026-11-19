@@ -48,6 +48,7 @@ import { emptyIndex, loadContactIndex, labelFor, countNamed } from '../lib/conta
 import {
   fetchPersonDoors, indexDoors, doorsView,
   fetchPersonSignIns, indexSignIns, signInLine, signInCoverage, needsHelp, invitesWithoutAccount, matchesSearch,
+  fetchSignInMisses, missesView,
 } from '../lib/person-onboarding.js';
 import { reachOf } from '../lib/signup-metrics.js';
 import { messageLandingHere } from '../lib/app-doors.js';
@@ -216,8 +217,8 @@ function reachLinks(rawEmail) {
 }
 const helpBtn = 'text-[0.5625rem] uppercase tracking-wider px-1.5 py-0.5 border border-[#5A5751] text-[#5A5751]';
 
-function NeedsHelp({ list, orphans, byUser, spaces, mask, onFind, onDone }) {
-  const count = list.length + orphans.length;
+function NeedsHelp({ list, orphans, misses = { entries: [], status: '' }, byUser, spaces, mask, onFind, onDone }) {
+  const count = list.length + orphans.length + misses.entries.length;
   return (
     <div className="mb-3 border border-[#B85838] bg-[#FAF8F4] p-2.5" data-testid="needs-help">
       <div className={sectionH + ' mb-1'}>Needs help getting in{count ? ` · ${count}` : ''}</div>
@@ -268,8 +269,18 @@ function NeedsHelp({ list, orphans, byUser, spaces, mask, onFind, onDone }) {
               </div>
             </li>
           ))}
+          {misses.entries.map((m) => (
+            <li key={m.hint} className="py-1.5" data-testid="needs-help-miss">
+              <div className="text-[0.8125rem] text-[#1A1815]">
+                {m.hint}
+                <span className="ml-1"><CategoryPill label="No account" /></span>
+              </div>
+              <div className="text-[0.6875rem] text-[#5A5751]" data-testid="needs-help-reason" data-code="miss-no-account">{m.text}</div>
+            </li>
+          ))}
         </ul>
       )}
+      {misses.status ? <p className={note + ' italic mt-1'} data-testid="needs-help-miss-status">{misses.status}</p> : null}
     </div>
   );
 }
@@ -300,12 +311,15 @@ function PlatformSignups() {
   const [signInsRes, setSignInsRes] = useState({ status: 'loading', data: null });
   // FIND A PERSON FAST (DR-1592): one word over name, address and phone.
   const [query, setQuery] = useState('');
+  // TRIES WITH NO ACCOUNT (DR-1593), counted under a masked hint only.
+  const [missesRes, setMissesRes] = useState({ status: 'loading', data: null });
   const load = useCallback(async () => {
     setRes((r) => ({ status: 'loading', data: r.data }));
-    const [signups, doorsRead, signInsRead] = await Promise.all([fetchSignupMetrics(), fetchPersonDoors(), fetchPersonSignIns()]);
+    const [signups, doorsRead, signInsRead, missesRead] = await Promise.all([fetchSignupMetrics(), fetchPersonDoors(), fetchPersonSignIns(), fetchSignInMisses()]);
     setRes(signups);
     setDoorsRes(doorsRead);
     setSignInsRes(signInsRead);
+    setMissesRes(missesRead);
   }, []);
   useEffect(() => { load(); }, [load]);
   useEffect(() => {
@@ -357,6 +371,7 @@ function PlatformSignups() {
       )
     : [];
   const orphanInvites = signInsReady ? invitesWithoutAccount(signInsRes.data, nowMs) : [];
+  const misses = missesRes.status === 'ready' ? missesView(missesRes.data, nowMs) : { entries: [], status: missesRes.status === 'unavailable' ? `Tries with no account could not be read: ${(missesRes.error && missesRes.error.message) || 'unknown error'}.` : '' };
   const visible = shaped.filter(({ r, who }) => matchesSearch([who.shown, r.name, r.rawEmail, r.email, r.phone], query));
 
   return (
@@ -411,6 +426,7 @@ function PlatformSignups() {
             <NeedsHelp
               list={helpList}
               orphans={orphanInvites}
+              misses={misses}
               byUser={byUser}
               spaces={spaces}
               mask={mask}

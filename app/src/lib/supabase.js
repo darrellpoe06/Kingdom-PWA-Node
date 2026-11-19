@@ -232,7 +232,29 @@ export async function signUpWithPassword(email, password, displayName) {
 export async function signInWithPassword(email, password) {
   const v = validateSignIn(email, password);
   if (v.error) return v;
-  return supabase.auth.signInWithPassword({ email: v.email, password });
+  const res = await supabase.auth.signInWithPassword({ email: v.email, password });
+  if (res && isWrongCredentials(res.error)) noteSignInMiss(v.email);
+  return res;
+}
+
+// A TRY WITH NO ACCOUNT IS COUNTED, NOT KEPT (DR-1593). The auth server answers
+// "Invalid login credentials" both for a wrong password and for an address
+// with no account, and only the first ever reaches the record (0315). After
+// that answer the address tried is handed to note_sign_in_miss (0341), which
+// writes nothing when an account has it, and otherwise counts it under a
+// salted hash with only a masked hint kept. Fire-and-forget: bounded, never
+// awaited by the sign-in, never throws into it.
+export function isWrongCredentials(error) {
+  if (!error) return false;
+  return error.code === 'invalid_credentials' || /invalid login credentials/i.test(String(error.message || ''));
+}
+export function noteSignInMiss(login, client = supabase) {
+  try {
+    const q = client.rpc('note_sign_in_miss', { p_login: String(login || '').slice(0, 254) });
+    const bounded = (q && typeof q.abortSignal === 'function' && typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function')
+      ? q.abortSignal(AbortSignal.timeout(8000)) : q;
+    Promise.resolve(bounded).catch(() => {});
+  } catch { /* the record-keeper never breaks a sign-in (DR-0107) */ }
 }
 
 // -----------------------------------------------------------------------------
@@ -313,7 +335,9 @@ export async function signUpWithPhonePin(rawPhone, pin, displayName) {
 export async function signInWithPhonePin(rawPhone, pin) {
   const v = validatePhonePin(rawPhone, pin);
   if (v.error) return v;
-  return supabase.auth.signInWithPassword({ email: v.email, password: v.pin });
+  const res = await supabase.auth.signInWithPassword({ email: v.email, password: v.pin });
+  if (res && isWrongCredentials(res.error)) noteSignInMiss(v.email);
+  return res;
 }
 
 /**

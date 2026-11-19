@@ -2093,6 +2093,21 @@
       "notes": "Darrell: Learn tab as a quick link under Soul (More menu screenshot)"
     },
     {
+      "id": "sign-in-misses-dr1593",
+      "date": "2026-11-19",
+      "task": "A try with no account is counted, not kept: note_sign_in_miss (0341) after invalid credentials from both sign-in paths, salted hash and masked hint only, hourly cap, per-address cap, switch and 30-day retention, governor read matched to unclaimed invitations; shown in Needs help; smoke on PostgreSQL 16 proven to catch twice",
+      "drs": [
+        "DR-1593"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.9,
+      "estimateWithoutAiHours": 10,
+      "notes": ""
+    },
+    {
       "id": "church-calendar-past-years-suggestions",
       "date": "2026-11-19",
       "task": "Church calendar: past-years look-back, suggestions through the feedback list, office received list",
