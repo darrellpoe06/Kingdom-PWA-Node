@@ -413,11 +413,18 @@
       "to": 15561,
       "date": "2026-11-18",
       "why": "sov95 (He that taketh warning, DR-1564) adds one lesson to this file after sov94 (DR-1562) landed; the same reason as every raise above it -- the lesson corpus lives in JavaScript until DR-1339’s lesson-content-out-of-JS re-review (2026-11-19). The twenty-eighth raise of this ceiling, measured with wc -l on the spliced file (15561), never by hand."
+    },
+    {
+      "file": "app/src/lib/sovereign-ai-class.js",
+      "from": 15561,
+      "to": 15742,
+      "date": "2026-11-19",
+      "why": "sov99 (The song that goes with you, DR-1578) adds one lesson to this file: Darrell's spoken teaching of 2026-09-24, rebuilt from PR #1814 which never landed; the same reason as every raise above it -- the lesson corpus lives in JavaScript until DR-1339’s lesson-content-out-of-JS re-review (2026-11-19). Measured with wc -l on the spliced file (15742), never by hand."
     }
   ],
   "budgets": {
     "app/src/lib/living-lessons-class.js": 33072,
-    "app/src/lib/sovereign-ai-class.js": 15561,
+    "app/src/lib/sovereign-ai-class.js": 15742,
     "app/src/lib/world-issues-class.js": 6789,
     "app/src/components/ChurchLearn.jsx": 6012,
     "app/src/modules/properties/DoorTabs.jsx": 3352,
