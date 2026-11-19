@@ -42,6 +42,7 @@
 // the SAME 16px baseline (text-[10px] -> text-[0.625rem]): pixel-identical at Normal,
 // but scaling to ~1.5x at Largest. New reading text here uses rem, never px.
 import React, { useState, useRef, useMemo, useCallback } from 'react';
+import { LEARN_LANDING_AREA, learnLandingArea } from '../lib/learn-landing.js';
 import {
   CLASS_META, PROPOSED_COHORT_START, SESSION_FLOW,
   buildSchedule, progressSummary, exportCurriculumMarkdown, formatClassDate,
@@ -4387,7 +4388,10 @@ export default function ChurchLearn({
   // screen at a time; the Lessons area (the default) is the one that scrolls.
   // Navigation only -- the blocks keep their place in the page and their
   // order, each gated by the area it belongs to, so nothing moved, it waits.
-  const [learnArea, setLearnAreaState] = useState('lessons');
+  // ...and Learn OPENS ON LATEST (DR-1606): a newcomer lands on the newest
+  // lessons with ▶ Play, not on a list of courses to choose from. Corrected to
+  // Lessons below when there is only one course (no strip to come back by).
+  const [learnArea, setLearnAreaState] = useState(LEARN_LANDING_AREA);
   const findFocusPending = React.useRef(false);
   const setLearnArea = (id) => { setLearnAreaState(id); };
   React.useEffect(() => {
@@ -4523,6 +4527,9 @@ export default function ChurchLearn({
   // lesson that names its Scripture opens with it, quoted from the in-app KJV.
   // And the stories a lesson was missing join it (lib/lesson-side-stories.js).
   const courses = withSideStories(withWordQuotes(withLessonDates(useCurriculumOverlay([aiCourse, ...(broadcastCourse ? [broadcastCourse] : []), ...builtExtras, ...eternalCourses]))));
+  // One course: no area strip, so no way back from Latest; open on its lessons
+  // (DR-1606). Set during render, so the first paint is already right.
+  if (learnArea === LEARN_LANDING_AREA && learnLandingArea(courses.length) !== LEARN_LANDING_AREA) setLearnAreaState(learnLandingArea(courses.length));
   const chosenCourse = activeKey != null ? courses.find((c) => c.key === activeKey) : null;
   const courseChosen = !!chosenCourse;
   // THE DEFAULT COURSE IS LIVING LESSONS (Darrell 2026-09-11: "let the default
@@ -4654,6 +4661,8 @@ export default function ChurchLearn({
   // old shelf did before it moved into the picker.
   const openCourseKey = (k) => {
     if (!k) return;
+    // Choosing a course shows its lessons, from whichever area it was chosen.
+    setLearnAreaState('lessons');
     if (gatheredCourses.some((r) => r.courseKey === k)) {
       setDeptId('all');
       setResumeOpenGuide(false);
@@ -5151,7 +5160,7 @@ export default function ChurchLearn({
             little lists instead of one. Every row is one tap into that
             course. */}
         {/* THE AREA STRIP (DR-1190): one row of sub-tabs under the picker. Only
-            the open area renders below it. Lessons is the default and the only
+            the open area renders below it. Learn opens on Latest (DR-1606); Lessons is the only
             long scroll; Continue, Latest, Find, Record and Downloads are each one
             tap, so what a reader needs is seen, never found by scrolling past
             everything else. */}

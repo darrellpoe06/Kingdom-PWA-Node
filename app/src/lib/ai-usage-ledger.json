@@ -3973,6 +3973,21 @@
       "wallClockHours": 1.4,
       "estimateWithoutAiHours": 10,
       "notes": ""
+    },
+    {
+      "id": "learn-opens-on-latest",
+      "date": "2026-11-19",
+      "task": "Learn opened on the course list, which asks a newcomer to choose first; it now opens on Latest on every visit",
+      "drs": [
+        "DR-1606"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.3,
+      "estimateWithoutAiHours": 2,
+      "notes": "One-course readers keep the lessons (no strip). Proven to catch: the old first area fails two mounted cases."
     }
   ]
 }
