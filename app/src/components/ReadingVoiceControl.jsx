@@ -16,6 +16,12 @@ import { useReadAloud } from '../lib/use-read-aloud.js';
 
 const SAMPLE = 'This is your reading voice. The Lord is my shepherd; I shall not want.';
 
+/** What one voice is called in the picker: its name and what it rides on. Pure. */
+export function voiceOptionLabel(item) {
+  if (!item) return '';
+  return `${item.label}${item.ai ? ' · AI' : ''}${item.standIn ? ' (stand-in)' : ''}${item.deviceVoice ? ` · ${item.deviceVoice}` : ''}${!item.usable ? ' — subscriber' : ''}`;
+}
+
 export default function ReadingVoiceControl({ variant = 'header', isOwner = false, className = '' }) {
   const ra = useReadAloud({ isOwner });
   const isPanel = variant === 'panel';
@@ -50,7 +56,7 @@ export default function ReadingVoiceControl({ variant = 'header', isOwner = fals
         <optgroup key={g} label={g}>
           {groups[g].map((item) => (
             <option key={item.id} value={item.id} disabled={!item.usable}>
-              {item.label}{item.ai ? ' · AI' : ''}{item.standIn ? ' (stand-in)' : ''}{item.deviceVoice ? ` · ${item.deviceVoice}` : ''}{!item.usable ? ' — subscriber' : ''}
+              {voiceOptionLabel(item)}
             </option>
           ))}
         </optgroup>
@@ -75,7 +81,13 @@ export default function ReadingVoiceControl({ variant = 'header', isOwner = fals
         follows you to any device.
       </p>
       {select}
-      <div className="mt-2 flex items-center gap-2">
+      {/* A phone's own picker shows one line and cuts a long voice name off ("Phone defa…", Darrell 2026-11-18). The pick is written out in full here, where it can wrap (DR-1575). */}
+      {ra.currentItem && (
+        <p className="text-[0.75rem] text-[#1A1815] mt-1.5 leading-snug break-words" data-testid="reading-voice-now">
+          Reading in: <strong>{voiceOptionLabel(ra.currentItem)}</strong>
+        </p>
+      )}
+      <div className="mt-2 flex flex-wrap items-center gap-2">
         {!ra.isReading ? (
           <button type="button" onClick={() => ra.read(SAMPLE)}
             className="text-[0.6875rem] uppercase tracking-wider px-3 py-1.5 border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">▶ Test</button>

@@ -16,7 +16,7 @@
 // ChurchOneVoice) came along untouched; COLG_DEFAULT_CHURCH moved to
 // lib/default-church.js so the shell's seed and this module share one record.
 // =============================================================================
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { openFloating, closeFloating, isFloating, subscribeFloating } from '../lib/floating-player.js';
 import VideoSkip from './VideoSkip.jsx';
 import { withJsApi } from '../lib/youtube-embed-control.js';
@@ -34,9 +34,17 @@ import ScriptureLibrary from './ScriptureLibrary.jsx';
 import AuthModal from './AuthModal.jsx';
 import { motionBehavior } from '../lib/gentle-motion.js';
 import LoveCornerHome from './lovecorner/LoveCornerHome.jsx';
-import { subscribeChurchHomeSection, takePendingChurchHomeSection, publishChurchHomeSection } from '../lib/church-home-section.js';
+import { subscribeChurchHomeSection, takePendingChurchHomeSection, publishChurchHomeSection, subscribeChurchHomeTop } from '../lib/church-home-section.js';
 import { ChurchGivingChannels } from './ChurchGiving.jsx';
+import { markArrivalsSeen, SCREEN_KINDS } from '../lib/arrivals.js';
 import ChurchOfficeBoard, { useChurchSite } from './lovecorner/ChurchOfficeBoard.jsx';
+import ChurchCalendar from './lovecorner/ChurchCalendar.jsx';
+import ChurchCalendarTools from './lovecorner/ChurchCalendarTools.jsx';
+import ChurchCalendarPlanning from './lovecorner/ChurchCalendarPlanning.jsx';
+import { fromAnnounced, fromOfficeRows, mergeEvents } from '../lib/church-calendar.js';
+import { useChurchCalendarRows, useCalendarAccess, addCalendarEvents, removeCalendarEvent } from '../lib/church-calendar-sync.js';
+import { churchDateKey } from '../lib/home-week.js';
+import { siteIsTheChurchs } from '../lib/church-site.js';
 
 // serviceDate — a feed's ISO `published` as a short calendar date; '' when it
 // cannot be read, so a recording with no date still lists by its title.
@@ -53,7 +61,7 @@ export function serviceDate(published) {
 // initialSection (DR-0142): a launch target may open a SPECIFIC section — the
 // Council Chamber is the Speak section of this surface, and "Open the Council
 // Chamber" landing on the Worship video was the 2026-07-10 premise miss.
-export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPrayerRequestSent, deletePrayerRequest, addEvent, conference, updateConference, churchVoice = [], addChurchVoice, sendToPoeTech, addIncident, addInquiry, initialSection = null, setChurchView = null, email = null, canStudy = false, signedIn = false }) {
+export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPrayerRequestSent, deletePrayerRequest, addEvent, conference, updateConference, churchVoice = [], addChurchVoice, sendToPoeTech, addIncident, addInquiry, initialSection = null, setChurchView = null, email = null, canStudy = false, signedIn = false, addFeedback = null, feedback = [] }) {
   // Obvious, prominent LOG IN / CREATE ACCOUNT for the public Love Corner door
   // (Darrell 2026-07-14). The community is public; this is the clear way in for a
   // member/staff/admin to sign in, or anyone to make an account (e.g. to request a
@@ -72,11 +80,30 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
   // was right and the reader was still at the top of the hero.
   const [askedFor] = useState(() => takePendingChurchHomeSection() || initialSection || null);
   const [section, setSection] = useState(askedFor || 'worship');
-  // The bar reads which section is open (DR-1484); cleared when this home leaves the screen.
+  // WHAT THE BAR IS TOLD IS WHERE THE READER WENT, NOT WHAT THE PAGE DEFAULTS
+  // TO (DR-1579). The strip always has an open section (Worship, by default),
+  // and publishing that default lit WATCH in the bottom bar on a page nobody
+  // had moved: Darrell's screenshot, the Welcome hero at the top and Watch
+  // boxed as selected. A section is published only once the reader asked for
+  // it or tapped it; a page on its own default publishes none, and Home lights.
+  const [chosen, setChosen] = useState(!!askedFor);
+  const pickSection = useCallback((id) => {
+    setChosen(true);
+    setSection(id);
+  }, []);
   useEffect(() => {
-    publishChurchHomeSection(section);
+    publishChurchHomeSection(chosen ? section : null);
     return () => publishChurchHomeSection(null);
-  }, [section]);
+  }, [section, chosen]);
+  // Home (the bar, the logo, the name) puts the page back as it opens.
+  useEffect(
+    () =>
+      subscribeChurchHomeTop(() => {
+        setChosen(false);
+        setSection(initialSection || 'worship');
+      }),
+    [initialSection]
+  );
   // A DOOR LANDS YOU ON THE THING IT NAMES (Darrell 2026-11-13, from the live
   // Love Corner front door): "When pushing latest message we should open to the
   // space with it... All buttons should work and go to the space it's
@@ -106,10 +133,10 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
     () =>
       subscribeChurchHomeSection((id) => {
         if (!id) return;
-        setSection(id);
+        pickSection(id);
         arriveAtSection();
       }),
-    [arriveAtSection]
+    [arriveAtSection, pickSection]
   );
   // The mount road (a launch target's `initialSection`, or a request made
   // before this component existed) arrives the same way. A page that opens on
@@ -178,6 +205,24 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
   const c = resolveChurch(church);
   // The office's own calendar, letter and flyers from the church website (DR-1550).
   const office = useChurchSite(c.site);
+  // THE CALENDAR AS EVENT RECORDS (DR-1585): the church record's announced
+  // events plus the rows the office added for this church. The office rows are
+  // read only when the reader is signed in AND this home is the church whose
+  // instance the app resolves, so one church's rows never show under another
+  // church's name.
+  const calendarRows = useChurchCalendarRows(signedIn && siteIsTheChurchs(c.site));
+  const calendarEvents = useMemo(
+    () => mergeEvents(fromAnnounced(c.announcedEvents), fromOfficeRows(calendarRows.rows).events),
+    [c.announcedEvents, calendarRows.rows]
+  );
+  const calendarStatus = !siteIsTheChurchs(c.site) ? 'ok' : signedIn ? calendarRows.status : 'signed-out';
+  // The office's tools (DR-1586) show only once the role is answered as owner/admin; the database is the real gate.
+  const calendarAccess = useCalendarAccess(signedIn && siteIsTheChurchs(c.site));
+  const removeOfficeEvent = async (ev) => {
+    const r = await removeCalendarEvent(ev.rowId);
+    if (r && r.removed) calendarRows.reload();
+    return r;
+  };
   const showingDefaultHome = c.isDefaultHome === true;
   const fieldCls = 'w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]';
   const labelCls = 'text-[0.5625rem] uppercase tracking-wider text-[#5A5751]';
@@ -634,6 +679,7 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
                       type="button"
                       onClick={() => {
                         setChosenVideoId(v.videoId);
+                        markArrivalsSeen(SCREEN_KINDS.church); // playing a recording is looking at it
                         openFloating({ src: worshipPlayerSrc(liveChannelId, v.videoId), title: v.title || 'Past service' });
                       }}
                       className="flex items-center gap-3 flex-1 min-w-0 text-left group focus:outline focus:outline-2 focus:outline-[#B85838]"
@@ -967,6 +1013,25 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
       render: () => (
         <>
       {/* FROM THE CHURCH OFFICE (DR-1550): the month's calendar, the letter, the flyers */}
+      <ChurchCalendar
+        events={calendarEvents}
+        services={c.services || []}
+        todayKey={churchDateKey(new Date())}
+        status={calendarStatus}
+        onSave={addEvent ? saveAnnouncedEvent : null}
+        savedIds={savedEventIds}
+        onRemove={calendarAccess.canManage ? removeOfficeEvent : null}
+      >
+        <ChurchCalendarTools events={calendarEvents} canManage={calendarAccess.canManage} onAdd={addCalendarEvents} onChanged={calendarRows.reload} />
+        <ChurchCalendarPlanning
+          events={calendarEvents}
+          todayKey={churchDateKey(new Date())}
+          signedIn={signedIn}
+          canManage={calendarAccess.canManage}
+          onSuggest={addFeedback}
+          feedback={feedback}
+        />
+      </ChurchCalendar>
       <ChurchOfficeBoard digest={office} />
       {/* SERVICE TIMES + SAVE TO CALENDAR */}
       {(c.services || []).length > 0 && (
@@ -1124,7 +1189,7 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
       )}
 
       <div ref={sectionStripRef} data-testid="church-section-strip">
-        <SectionTabs sections={sections} ariaLabel="Church" idBase="church" defaultId={initialSection || 'worship'} activeId={section} onActiveChange={setSection} />
+        <SectionTabs sections={sections} ariaLabel="Church" idBase="church" defaultId={initialSection || 'worship'} activeId={section} onActiveChange={pickSection} />
       </div>
     </div>
   );

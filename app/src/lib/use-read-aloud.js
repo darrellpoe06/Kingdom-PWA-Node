@@ -44,6 +44,7 @@ import { forSynthesis } from './synthesis-text.js';
 const forVoice = (t) => forSynthesis(toSpokenForm(t));
 import { clipFraction, estimateClipSeconds, seekableEndOf } from './clip-progress.js';
 import { applyClipRate, clipRateNotice } from './clip-rate.js';
+import { useClipRate } from './use-clip-rate.js';
 import { supabase } from './supabase.js';
 import { hrefForView } from './nav-history.js';
 import { MY_VOICE, myVoiceLabel, myVoiceStatus, myVoiceLine } from './my-voice.js';
@@ -287,26 +288,8 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [voiceId, voiceShapes]);
 
-  /** Set the read speed, and carry it to a clip already playing. */
-  const setRate = useCallback((r) => {
-    rateRef.current = r;
-    tts.setRate(r);
-    // The clip queue owns its element: it re-applies the remainder on every
-    // piece and on this change, or the next paragraph snaps back to the old speed.
-    if (queueRef.current) { queueRef.current.setRate(r); return; }
-    const a = audioRef.current;
-    if (a) {
-      // An audio element takes a live rate change mid-play, unlike an
-      // utterance, so this is audible immediately rather than at the next
-      // sentence — and it is MEASURED, never assumed (DR-0076).
-      const applied = applyClipRate(a, residualRate(r, audioSpeedRef.current));
-      const msg = clipRateNotice(applied);
-      if (msg) setNotice(msg);
-    }
-  // setNotice is a useCallback with an empty dep list, so it is stable for the
-  // life of the hook; it is listed because it is now a function rather than a
-  // raw setState, and the linter cannot know that by itself.
-  }, [tts, setNotice]);
+  // The speed setter, and the follower that carries a speed picked elsewhere to a clip already playing (lib/use-clip-rate.js, DR-1575).
+  const setRate = useClipRate({ tts, rateRef, queueRef, audioRef, audioSpeedRef, setNotice });
 
   useEffect(() => {
     let alive = true;

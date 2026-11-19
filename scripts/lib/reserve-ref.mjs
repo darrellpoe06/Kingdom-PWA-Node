@@ -118,6 +118,55 @@ export function reservedNumbersOnOrigin({ kind = 'll', cwd = process.cwd(), remo
 }
 
 /**
+ * Lesson numbers that have LANDED on origin's main, for a gate.
+ *
+ * A reservation is swept the moment its lesson lands (sweep-reservations.mjs).
+ * A branch cut before that landing does not hold the lesson yet, and its gate
+ * reads reservations from origin as they are NOW, so for as long as the branch
+ * is behind main the landed number looks like a hole nobody reserved. Measured
+ * 2026-11-19: L324 landed at 02:25Z and L325 at 03:21Z, and each time every
+ * other open lesson branch went red on a number that was not skipped at all.
+ * A number main already carries is not a skip; the merge will bring it.
+ *
+ * Reads the lesson directory's file names on origin's main: one fetch of the
+ * tip (trees only; depth 1 when the checkout is already shallow, as CI's is,
+ * and never otherwise, so a full clone is not made shallow), then ls-tree.
+ * The fallback is SAFE, like reservedNumbersOnOrigin's: any failure returns an
+ * empty set, which excuses no hole.
+ *
+ * Returns { numbers: Set, source: 'origin' | 'none', reason }.
+ */
+export function landedLessonNumbersOnOrigin({ dir, cwd = process.cwd(), remote = 'origin', branch = 'main', run = null, timeoutMs = 20_000 } = {}) {
+  const exec =
+    run ||
+    ((args) =>
+      execFileSync('git', args, {
+        cwd,
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'pipe'],
+        timeout: timeoutMs,
+        env: { ...process.env, GIT_TERMINAL_PROMPT: '0' },
+      }));
+  try {
+    if (!dir) throw new Error('no lesson directory named');
+    const shallow = String(exec(['rev-parse', '--is-shallow-repository'])).trim() === 'true';
+    exec(['fetch', '--quiet', '--no-tags', '--filter=blob:none', ...(shallow ? ['--depth=1'] : []), remote, branch]);
+    const out = exec(['ls-tree', '--name-only', 'FETCH_HEAD', `${String(dir).replace(/\/+$/, '')}/`]);
+    const numbers = new Set();
+    for (const line of String(out).split('\n')) {
+      const m = /(?:^|\/)ll(\d+)-[^/]*\.js$/.exec(line.trim());
+      if (m) numbers.add(Number(m[1]));
+    }
+    return { numbers, source: 'origin', reason: '' };
+  } catch (err) {
+    const reason = String(err.stderr || err.message || err)
+      .trim()
+      .split('\n')[0];
+    return { numbers: new Set(), source: 'none', reason };
+  }
+}
+
+/**
  * Pure. Split numbers missing from a sequence into the ones a reservation holds
  * (in flight on their own branch) and the real holes. A reservation excuses a
  * hole; it never excuses a duplicate, and an empty set excuses nothing.

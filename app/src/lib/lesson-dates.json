@@ -129,7 +129,8 @@
    "sov91-know-the-state-of-thy-flocks": ["2026-11-18", "b127f781"],
    "sov92-the-voice-is-jacobs-voice": ["2026-11-18", "1b0ed181"],
    "sov93-the-porter-and-the-course": ["2026-11-18", "8ef2fbc2"],
-   "sov94-a-bag-with-holes": ["2026-11-18", "4c05deab"]
+   "sov94-a-bag-with-holes": ["2026-11-18", "4c05deab"],
+   "sov95-he-that-taketh-warning": ["2026-11-18", "8251ed68"]
   },
   "ai-legal-blueprint": {
    "aib1-the-one-rule": ["2026-06-24", "055416e3"],
@@ -421,7 +422,8 @@
    "bank6-the-measure-that-reports-wrong": ["2026-09-19", "653cbb9a"],
    "bank7-the-chest-with-a-hole-in-the-lid": ["2026-09-19", "653cbb9a"],
    "bank8-who-actually-holds-it": ["2026-09-19", "653cbb9a"],
-   "bank9-the-moat-that-moves": ["2026-10-28", "a63c5791"]
+   "bank9-the-moat-that-moves": ["2026-10-28", "a63c5791"],
+   "bank10-the-watchman-who-went-quiet": ["2026-11-18", "4d461885"]
   },
   "stocks": {
    "stk1-a-share-is-a-piece-of-a-company": ["2026-09-20", "26662721"],
