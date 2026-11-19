@@ -34,6 +34,12 @@ DR-0617 held this file "until the n8n container is stopped", because traffic fro
 | new test with the guard disabled | 8 of 17 fail (each escape spelling) |
 | new test with the guard, plus 8 road suites | 99 of 99 pass |
 
+## Verification
+
+- `no-road-leaves-its-mount.test.js` (17 cases) is proven-to-catch. With `escapesMount` switched off, 8 cases fail, one for each escape spelling. With it on, all 17 pass.
+- The road suites pass: `every-road-signs-itself`, `a-200-is-not-an-answer-on-any-road`, `endpoint-register`, `cf-pages-parity`, `n8n-is-gone`, `tax-archive-road`, `error-text-guard`, `server-error-text`. Lint is clean.
+- After merge: site-health's outside-in probes of `/sb`, `/taxes`, `/cams` and the rest must stay green, which shows ordinary paths still pass. `GET /n8n/rest/settings` must answer 410.
+
 ## Not done
 
 The Funnel root still serves the whole n8n app on `poetech.tail5a2f35.ts.net` (unpinned `latest` image, secure cookies off). Closing it means stopping a running NAS service and changing the public transport, so it is sequenced in the research note §3: measure from a runner, stop n8n, drop the `/` handler, delete the rows. `re-review: 2026-11-26`
