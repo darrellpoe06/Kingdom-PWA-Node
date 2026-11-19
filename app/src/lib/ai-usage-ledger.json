@@ -2000,6 +2000,21 @@
       "notes": "Darrell: is it fixed for all months? (November screenshot)"
     },
     {
+      "id": "l334-this-i-recall-to-my-mind",
+      "date": "2026-11-19",
+      "task": "L334 This I Recall to My Mind, from further summaries of one conversation, on time, memory and a hard past, all four age bands, shared gate",
+      "drs": [
+        "DR-1574"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.4,
+      "estimateWithoutAiHours": 24,
+      "notes": "Reserved L334 and DR-1574 on origin with new-lesson.mjs. 258 verse tokens filled from app/public/bible/kjv by fill-verses.mjs, none typed. Video not watched; two summaries disagree on one attribution and the lesson leans on neither; re-review 2026-12-18."
+    },
+    {
       "id": "dr-1430-lessons-in-both-apps",
       "date": "2026-11-12",
       "task": "Every lesson stays in both apps; access by plan, not app: the Love Corner card reworded, and the no-app-filter and same-access rules pinned",
