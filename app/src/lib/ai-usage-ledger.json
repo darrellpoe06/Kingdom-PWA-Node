@@ -2846,6 +2846,21 @@
       "notes": "Darrell, spoken: how can someone be good and do nothing at the same time?"
     },
     {
+      "id": "ledger-rows-placed",
+      "date": "2026-11-19",
+      "task": "INDEX rows placed off the tail (scripts/index-row.mjs) and tail guards for INDEX and the usage ledger; merge=union tested on GitHub and refuted; placed rows proven to merge on two throwaway PRs",
+      "drs": [
+        "DR-1602"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.6,
+      "estimateWithoutAiHours": 6,
+      "notes": ""
+    },
+    {
       "id": "dr-1464-ll304-what-righteousness-is",
       "date": "2026-11-13",
       "task": "L304 What Righteousness Is: precept upon precept, seven facets as jewels",
