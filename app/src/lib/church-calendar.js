@@ -120,18 +120,27 @@ export function decodeDetail(text) {
 
 /**
  * Office rows (ministry_ops shape, snake or camel) as calendar records. Only
- * rows filed under the calendar ministry count; an undated one is dropped.
+ * rows filed under the calendar ministry count; an undated one is dropped; an
+ * archived one is returned apart, in `archived`, never in `events`.
  */
 export function fromOfficeRows(rows) {
   const events = [];
+  const archived = [];
   let dropped = 0;
   for (const r of Array.isArray(rows) ? rows : []) {
     if (!r || r.ministry !== CALENDAR_MINISTRY) continue;
     const ev = makeEvent({ id: r.id ? `office-${r.id}` : '', name: r.title, date: r.week_of ?? r.weekOf, ...decodeDetail(r.detail), source: 'office' });
-    if (ev) events.push({ ...ev, rowId: r.id || null });
-    else dropped += 1;
+    if (!ev) {
+      dropped += 1;
+      continue;
+    }
+    // An event the office removed after it happened is ARCHIVED (DR-1596):
+    // off the calendar's views, kept in the archive with when it was archived.
+    const archivedAt = r.archived_at ?? r.archivedAt ?? null;
+    if (archivedAt) archived.push({ ...ev, rowId: r.id || null, archivedAt });
+    else events.push({ ...ev, rowId: r.id || null });
   }
-  return { events, dropped };
+  return { events, dropped, archived };
 }
 
 /** One list, one record per id (an office row wins over a bundled one), in date then time order. */
