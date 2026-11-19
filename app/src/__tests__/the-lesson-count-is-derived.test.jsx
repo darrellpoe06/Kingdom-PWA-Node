@@ -67,8 +67,15 @@ describe('lessonSpan / lessonCountLabel', () => {
     expect(s).toEqual({ count: COUNT, numbered: true, first: 1, last: HIGHEST, missing: GAPS });
     const label = lessonCountLabel(LIVING_LESSONS_MODULES, { noun: 'lesson', plural: 'lessons', cap: 'Lesson' });
     expect(label).toBe(`${COUNT} lessons · L1–L${HIGHEST} · ${gapClause(GAPS)}`);
-    expect(GAPS.length, 'the real catalog keeps few enough gaps to name them all').toBeLessThanOrEqual(NAMED_GAPS);
-    for (const g of GAPS) expect(label).toContain(`L${g}`);
+    // BOTH BRANCHES OF THE RULE, on the real catalog (DR-0763, DR-1468). This
+    // used to require the catalog to carry no more than NAMED_GAPS unused
+    // numbers, so a lesson that landed ahead of several numbers still reserved
+    // by parallel branches failed here for a reason outside its own change
+    // (2026-11-19: L324-L329 and L332 were in flight, ten gaps in all). The
+    // label already says the count past the bound; the test now reads whichever
+    // branch the catalog is on.
+    if (GAPS.length <= NAMED_GAPS) for (const g of GAPS) expect(label).toContain(`L${g}`);
+    else expect(label).toContain(`${GAPS.length} numbers unused`);
   });
 
   it('stays right as new lessons land: three more make it 194 lessons, up to L195', () => {
