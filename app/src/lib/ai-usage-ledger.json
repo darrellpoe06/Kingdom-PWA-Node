@@ -3326,6 +3326,21 @@
       "notes": "Gmail thread 1a1885689c5c2ffc, forwarded 2026-10-29T18:38Z (1:38 PM CDT), built 2026-11-13 from the intake backlog. Preview only: blog.bytebytego.com and bytebytego.substack.com refused (403 CONNECT), nothing attributed to the article, re-review 2026-11-27. 43 anchor references, 161 quoted spans, every verse filled from app/public/bible/kjv by scripts/sov82-fill.mjs and none typed. Our own data movement measured and pinned against its source files: 37 postgres_changes listener files, signal-then-read messages with a 15s heartbeat, 5-min Inbound poll, site checker ~67 min measured, ten unpublished tables (June), push_outbox."
     },
     {
+      "id": "ci-runs-only-needed-legs",
+      "date": "2026-11-19",
+      "task": "Path-scoped CI legs: a classify job and scripts/ci-legs.mjs skip the PostgreSQL walls, door journeys and (unless the course is pinned) the layout probe for lesson-only pushes; the aggregator accepts only named skips",
+      "drs": [
+        "DR-1601"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.2,
+      "estimateWithoutAiHours": 10,
+      "notes": ""
+    },
+    {
       "id": "sov83-that-they-may-continue-many-days",
       "date": "2026-11-13",
       "task": "Sovereign A.I. week 83 built from one word over a forwarded Level Up Coding issue (ACID Clearly Explained), all four age bands, 36-case gate",
