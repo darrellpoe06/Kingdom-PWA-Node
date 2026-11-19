@@ -6,7 +6,7 @@
 **Type:** decision
 **Area:** `app/src/lib/church-calendar.js`, `app/src/components/lovecorner/ChurchCalendarPlanning.jsx`, `app/src/components/ChurchHome.jsx`, `app/src/poe-financial-mvp-v28.jsx` (two props on one existing line), `app/src/index.css`
 **Sent in by:** Darrell, 2026-11-18: *"Make sure historical events are also populated so users and office staff can review and so can parishioners so they can expect what will potentially be this year and maybe suggest something before it's too late... feedback when it matters... so we can plan as a team."*
-**Pairs with:** DR-1585 (event records), DR-1586 (the office's upload, which is how past years arrive), DR-0076 (never invented), DR-0061 (a surface is a view of real state)
+**Pairs with:** DR-1575 (landed the same day: the office's pictures now enlarge with the text-size step, so DR-1585's line that a picture "does not grow" is true of its lettering only; the picture still cannot be tapped by day or added to, which is what the records are for), DR-1585 (event records), DR-1586 (the office's upload, which is how past years arrive), DR-0076 (never invented), DR-0061 (a surface is a view of real state)
 
 ## Context
 
@@ -37,3 +37,5 @@ The month and year view (DR-1585) already reaches any year. Nothing told a reade
 `church-calendar-planning.test.jsx`, 14 cases: the 60-day window, soonest first, with years ago; yesterday's date last year and this year's own events excluded; the year-end crossing and February 29; the church's real record yielding nothing from past years and `2026 (2)` on record; the next 90 days including a running multi-day event; the suggestion line and its extraction (tagged rows only, each once, newest first, words containing the separator kept whole); the empty state's words; "Held ... (last year)" and no promise wording; signed out, no form; a sent suggestion's exact payload and reference; empty words sending nothing; a failed send keeping the words; the office's received list, and none for a member. **Proven to catch:** dropping the past-year check turns the exclusion case red. Fixture events in the tests are named "Fixture" and ship nowhere in the app.
 
 **Not verified:** a real suggestion arriving in the feedback list on the live site, and a real phone.
+
+**Measured in Chromium at 360px wide** (harness with the app stylesheet): the form's select, text box, name field and Send button each at least 44px tall, nothing off the right edge, no page-level sideways scroll at 1x and 2.75x; the empty-state text 13.6px at 1x and 37.4px at 2.75x.
