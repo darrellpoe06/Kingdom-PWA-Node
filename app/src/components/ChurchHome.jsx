@@ -42,7 +42,7 @@ import ChurchCalendar from './lovecorner/ChurchCalendar.jsx';
 import ChurchCalendarTools from './lovecorner/ChurchCalendarTools.jsx';
 import ChurchCalendarPlanning from './lovecorner/ChurchCalendarPlanning.jsx';
 import { fromAnnounced, fromOfficeRows, mergeEvents } from '../lib/church-calendar.js';
-import { parishLifeEvents } from '../lib/parish-life.js';
+import { parishLifeEvents, parishLifePast } from '../lib/parish-life.js';
 import { useChurchCalendarRows, useCalendarAccess, addCalendarEvents, removeCalendarEvent } from '../lib/church-calendar-sync.js';
 import { churchDateKey } from '../lib/home-week.js';
 import { siteIsTheChurchs } from '../lib/church-site.js';
@@ -224,6 +224,7 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
   // office edits (announced + office rows) and keeps only what has not ended
   // in the church's own time zone; past events live in the calendar's years.
   const parishEvents = useMemo(() => parishLifeEvents(calendarEvents, churchDateKey(new Date())), [calendarEvents]);
+  const parishPast = useMemo(() => parishLifePast(calendarEvents, churchDateKey(new Date())), [calendarEvents]);
   const calendarStatus = !siteIsTheChurchs(c.site) ? 'ok' : signedIn ? calendarRows.status : 'signed-out';
   // The office's tools (DR-1586) show only once the role is answered as owner/admin; the database is the real gate.
   const calendarAccess = useCalendarAccess(signedIn && siteIsTheChurchs(c.site));
@@ -982,6 +983,21 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
                 ? '✓ All on your calendar'
                 : `+ Add all ${parishEvents.length} to my calendar`}
             </button>
+          )}
+          {parishPast.length > 0 && (
+            <details className="mb-2" data-testid="parish-life-past">
+              <summary className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] cursor-pointer min-h-[36px] flex items-center focus:outline focus:outline-2 focus:outline-[#B85838]">
+                Past events ({parishPast.length})
+              </summary>
+              <ul className="text-xs space-y-1.5 mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+                {parishPast.map((ev) => (
+                  <li key={ev.id} className="text-[#5A5751]">
+                    <UiIcon name="calendar" /> <strong>{ev.name}</strong>
+                    {' '}· {ev.date}{ev.endDate ? ` → ${ev.endDate}` : ''}{ev.detail ? ` · ${ev.detail}` : ''}
+                  </li>
+                ))}
+              </ul>
+            </details>
           )}
           <ul className="text-xs space-y-1.5" style={{ fontFamily: '"Fraunces", serif' }}>
             {c.links?.calendar && <li><UiIcon name="calendar" /> <a href={c.links.calendar} target="_blank" rel="noopener noreferrer" className="underline text-[#B85838] hover:text-[#1A1815]">Church calendar</a></li>}

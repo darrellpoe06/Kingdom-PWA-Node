@@ -29,3 +29,15 @@ export function parishLifeEvents(events, todayKey, { limit = PARISH_LIFE_LIMIT }
     .sort((a, b) => a.date.localeCompare(b.date) || String(a.name).localeCompare(String(b.name)))
     .slice(0, Math.max(0, limit));
 }
+
+/**
+ * The events that have ENDED before `todayKey`, newest first. Darrell, the
+ * same day: "We like to keep historical events and activities etc..." The
+ * coming list never deletes anything; what has passed is shown here, kept.
+ */
+export function parishLifePast(events, todayKey) {
+  if (!isDateKey(todayKey)) return [];
+  return (Array.isArray(events) ? events : [])
+    .filter((e) => e && isDateKey(e.date) && (e.endDate || e.date) < todayKey)
+    .sort((a, b) => b.date.localeCompare(a.date) || String(a.name).localeCompare(String(b.name)));
+}

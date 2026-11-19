@@ -15,7 +15,7 @@ Traced: the list rendered `church.announcedEvents` from the church record (`app/
 
 ## Decision
 
-Parish Life reads the merged calendar (the church record's events plus the office's rows) and lists only events that have not ended, in the church's own time zone (`churchDateKey`), soonest first, at most six. An event stays through its last day. With nothing coming it says so and points to the calendar, where past years live. "Add all" counts and saves only the listed events. The church record's past events are not deleted: they are the calendar's history (DR-1587).
+Parish Life reads the merged calendar (the church record's events plus the office's rows) and lists only events that have not ended, in the church's own time zone (`churchDateKey`), soonest first, at most six. An event stays through its last day. With nothing coming it says so and points to the calendar, where past years live. "Add all" counts and saves only the listed events. Nothing is deleted. Darrell added the same day: "We like to keep historical events and activities etc..." So what has ended is listed under a "Past events" fold on the same card, newest first, without the add-to-calendar buttons, and stays in the calendar's past years (DR-1587).
 
 The general rule this sets: a dated item on a screen expires at render against today; it does not wait for someone to notice and edit text.
 

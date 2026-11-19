@@ -1,6 +1,6 @@
 // DR-1595: Parish Life lists only what has not ended, read from the calendar.
 import { describe, it, expect } from 'vitest';
-import { parishLifeEvents, PARISH_LIFE_LIMIT } from '../lib/parish-life.js';
+import { parishLifeEvents, parishLifePast, PARISH_LIFE_LIMIT } from '../lib/parish-life.js';
 import { fromAnnounced, mergeEvents } from '../lib/church-calendar.js';
 import { COLG_DEFAULT_CHURCH } from '../lib/default-church.js';
 
@@ -36,5 +36,15 @@ describe('Parish Life shows what is coming (DR-1595)', () => {
     expect(parishLifeEvents(many, '2026-12-01')).toHaveLength(PARISH_LIFE_LIMIT);
     expect(parishLifeEvents(many, 'not a day')).toEqual([]);
     expect(parishLifeEvents(null, '2026-12-01')).toEqual([]);
+  });
+
+  it('history is kept: what has ended is listed under Past events, newest first', () => {
+    const events = mergeEvents(fromAnnounced(COLG_DEFAULT_CHURCH.announcedEvents));
+    expect(parishLifePast(events, '2026-11-19').map((e) => e.name)).toEqual(['Gospel Fest', '77th National Assembly — Positioned for Purpose']);
+    expect(parishLifePast([assembly], '2026-07-16')).toEqual([]);
+    expect(parishLifePast([assembly], '2026-07-17').map((e) => e.id)).toEqual(['a']);
+    const all = [assembly, fest, advent];
+    const today = '2026-09-01';
+    expect(parishLifePast(all, today).length + parishLifeEvents(all, today).length).toBe(all.length);
   });
 });
