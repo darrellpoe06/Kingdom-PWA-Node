@@ -10,9 +10,9 @@
 // DERIVED from the tokens that occur in the reader places (DR-0734).
 //
 // WHERE THE WORD CAME FROM. Darrell SPOKE this teaching on 2026-09-24 at
-// 4:57pm and marked it "Lesson." It was first built as sov29 under DR-0634 on
+// 4:57pm and marked it "Lesson." It was first built as sov29 under its own decision record on
 // PR #1814 (branch claude/lesson-the-song-that-goes-with-you). It never
-// landed: the sov29 slot and the DR-0634 number went to other work, and the
+// landed: the sov29 slot and that record number went to other work, and the
 // branch has no merge base with today's main. CLAUDE.md, Spoken Teachings Are
 // Build Input: his spoken word is not dropped. This is the rebuild on fresh
 // main, on a new week number and a new record (DR-1578). His framing leads,
