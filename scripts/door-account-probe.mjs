@@ -69,6 +69,15 @@ export async function prepareDoorAccountPage(page, { size, theme, collapsed, sig
     ([sz, th, col, key, sess]) => {
       try {
         localStorage.setItem('poetech.help.tour.v1', 'seen');
+        // The Arrivals list opens itself once per session for a signed-in reader
+        // and covers the page (components/ArrivalsBell.jsx); a person closes it
+        // first, so the probe starts past it, as it starts past the help tour.
+        sessionStorage.setItem('poetech:arrivals-opened-on-launch', '1');
+        // The "Who's using this device?" picker covers the page until a profile
+        // is chosen once (poe-current-profile); the probe has chosen Family.
+        localStorage.setItem('poe-current-profile', 'family');
+        // And the signed-in welcome card (SelfServeWelcome), dismissed once.
+        localStorage.setItem('poe-selfserve-welcomed', '1');
         localStorage.setItem('poe-text-size', sz);
         localStorage.setItem('poe-theme-pref', th);
         localStorage.setItem('poe-header-collapsed', col ? '1' : '0');
@@ -110,9 +119,23 @@ export async function measureDoorAccount(page, { signedIn }) {
     const account = ctl.closest('[data-testid="door-account"]');
     const under = [];
     const overlap = (a, b) => Math.min(a.right, b.right) - Math.max(a.left, b.left) > 1 && Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 1;
+    // What is ON SCREEN of a control: its box cut by every ancestor that clips
+    // (a tab scrolled out of the tab strip's scroll box is not under anything).
+    const shown = (el) => {
+      const b = R(el);
+      let c = { left: b.left, right: b.right, top: b.top, bottom: b.bottom };
+      for (let a = el.parentElement; a && a !== document.body; a = a.parentElement) {
+        const cs = getComputedStyle(a);
+        if (cs.overflowX !== 'visible' || cs.overflowY !== 'visible') {
+          const ab = R(a);
+          c = { left: Math.max(c.left, ab.left), right: Math.min(c.right, ab.right), top: Math.max(c.top, ab.top), bottom: Math.min(c.bottom, ab.bottom) };
+        }
+      }
+      return c;
+    };
     for (const el of header.querySelectorAll('button, a, input, select')) {
       if (account.contains(el) || el.contains(ctl) || !visible(el)) continue;
-      if (overlap(r, R(el))) under.push((el.getAttribute('data-testid') || el.getAttribute('aria-label') || el.textContent || el.tagName).trim().slice(0, 24));
+      if (overlap(r, shown(el))) under.push((el.getAttribute('data-testid') || el.getAttribute('aria-label') || el.textContent || el.tagName).trim().slice(0, 24));
     }
     for (const el of header.querySelectorAll('h1, [data-testid="top-brand-name"], [data-testid="top-brand-tagline"]')) {
       if (!el.firstChild || !visible(el)) continue;
