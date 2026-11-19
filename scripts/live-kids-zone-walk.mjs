@@ -178,10 +178,46 @@ await stop('storybook-jonah', async () => {
   await page.waitForSelector('[data-testid="storybook-verse"]', { timeout: 30000 });
   const verse = await page.locator('[data-testid="storybook-verse"]').innerText();
   if (!/Jonah/.test(verse)) throw new Error('page 1 does not carry the verse');
-  await click('storybook-next');
-  const p2 = await page.locator('[data-testid="storybook"]').getAttribute('data-page');
-  if (p2 !== '1') throw new Error(`next page did not turn (page=${p2})`);
-  return `page1 verse ${verse.length} chars; turned to page 2`;
+  // Every page, turned the way a child does (Darrell, 2026-11-19, the J2 release):
+  // each page shows ITS OWN scene, really loaded, beside a verse from the Word.
+  const seen = [];
+  for (let n = 1; n <= 8; n += 1) {
+    const at = await page.locator('[data-testid="storybook"]').getAttribute('data-page');
+    if (at !== String(n - 1)) throw new Error(`page ${n}: the book is on page ${Number(at) + 1}`);
+    const shot = `jonah-${n}`;
+    await page
+      .waitForFunction(
+        (id) => {
+          const i = document.querySelector(`.kz-scene img[data-shot="${id}"]`);
+          return !!(i && i.complete && i.naturalWidth > 0);
+        },
+        shot,
+        { timeout: 20000 }
+      )
+      .catch(() => {});
+    const img = await page.evaluate((id) => {
+      const i = document.querySelector(`.kz-scene img[data-shot="${id}"]`);
+      return i ? { w: i.naturalWidth, src: i.getAttribute('src') || '' } : null;
+    }, shot);
+    if (!img || img.w < 1) throw new Error(`page ${n}: scene ${shot} did not load`);
+    const v = (await page.locator('[data-testid="storybook-verse"]').innerText()).trim();
+    if (v.length < 20) throw new Error(`page ${n}: no verse on the page`);
+    seen.push(`${n}:${img.src.split('/').pop()}`);
+    if (n < 8) await click('storybook-next');
+  }
+  return `8 pages turned, each with its own scene (${seen.join(' ')})`;
+});
+
+await stop('memory-verse-jonah', async () => {
+  await click('kids-back');
+  await click('kids-tab-games');
+  await click('tile-memory');
+  await click('memory-pick-jonah');
+  await page.waitForSelector('[data-testid="memory-game"], [data-testid="memory-unavailable"]', { timeout: 30000 });
+  const ref = await page.locator('[data-testid="memory-section"]').getAttribute('data-verse');
+  const game = await page.locator('[data-testid="memory-game"]').count();
+  if (!game || ref !== 'Jonah 2:9') throw new Error(`memory game=${game} verse=${ref}`);
+  return `memory verse ${ref}, the fill-in game open`;
 });
 
 await stop('word-builder', async () => {

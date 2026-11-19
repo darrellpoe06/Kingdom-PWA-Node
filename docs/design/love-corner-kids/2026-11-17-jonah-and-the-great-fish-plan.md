@@ -67,13 +67,13 @@ git status
 
 `jonah-1.png` through `jonah-8.png`, 16:9, at least 1600 × 900, PNG or JPEG, the two approved children present as witnesses exactly as the artwork brief describes each scene (`2026-11-13-character-artwork-brief.md`, §3d): the dock at Joppa; the ship in the wind; the great fish the LORD prepared, calm and strong, never a monster; Jonah praying inside the fish (no guides on this page); the fish setting Jonah on dry sand; the gate of Nineveh; the people in sackcloth with the king; morning over the spared city. Same faces, hair, skin and wardrobe as the five approved images; no magic, no occult sign, no gore.
 
-### 4b. Audio narration (8 to 11 files)
+### 4b. Audio narration (8 files)
 
-One recording per page, `jonah-p1.m4a` through `jonah-p8.m4a` (AAC or MP3, mono, 44.1 kHz, about 128 kbps, under 1 MB each): the reader reads the KJV verse exactly as printed on the page, a short pause, then the guide's caption exactly as printed. Optional: `jonah-q1.m4a` to `jonah-q3.m4a` for the three questions. A quiet room, the same reader for all eight, a second of silence at each end. Claude writes the manifest and the captions; sentence timings are optional (the reader's own highlighting carries the page without them).
+One recording per page under `narration/`, `jonah-p1.m4a` through `jonah-p8.m4a` (AAC or MP3, mono, 44.1 kHz, about 128 kbps, under 1 MB each): the reader reads the KJV verse exactly as printed on the page, a short pause, then the guide's caption exactly as printed. Optional: `jonah-q1.m4a` to `jonah-q3.m4a` for the three questions. A quiet room, the same reader for all eight, a second of silence at each end. Claude writes the manifest and the captions; sentence timings are optional (the reader's own highlighting carries the page without them).
 
 ### 4c. Animated video (1 file, plus one still)
 
-`jonah.mp4`: 16:9, 1080p, H.264 video with AAC audio, 5 to 8 minutes, with a `jonah-poster.jpg` key frame. **Where it lives:** the app is served from Cloudflare Pages, whose documented per-file limit is 25 MiB, so a finished episode does not go in the repository. Two roads, both already in the architecture: the NAS serving the file through the same-origin transport (the sovereign road, Caddy-served like the tax feature), or an unlisted YouTube upload (already supported by the Theater today). The plan builds for both; Darrell names which when the video exists.
+`episodes/jonah.mp4`: 16:9, 1080p, H.264 video with AAC audio, 5 to 8 minutes, with an `episodes/jonah-poster.jpg` key frame. **Where it lives:** the app is served from Cloudflare Pages, whose documented per-file limit is 25 MiB, so a finished episode does not go in the repository. Two roads, both already in the architecture: the NAS serving the file through the same-origin transport (the sovereign road, Caddy-served like the tax feature), or an unlisted YouTube upload (already supported by the Theater today). The plan builds for both; Darrell names which when the video exists.
 
 ## 5. What does not change
 
@@ -83,7 +83,10 @@ Every game, lesson, quiz, the Grown-Ups tab, Teens Zone, the church home, the re
 
 Shipped in the same PR as this plan, every piece of §3 J1: `lib/kids/trail.js` (the five stops, lit from rows, next/locked/soon, the tap rule), `components/kids/AdventureTrail.jsx` (the trail on the Badges tab, Jonah in full and the other books compact, and the next stop on the Kids home), `components/kids/StoryOrder.jsx` (Put the story in order, a tile on the Games grid), the storybook's page turn, swipe, arrow keys, Read to me, sentence highlight and Learn the verse, the Theater's `<video>` road with poster and captions beside YouTube, the storybooks' verses in Word Builder and the memory verse game, three badges from rows, and records written by the order game, the memory game, Who am I? and the file player. The caption script for the episode is `jonah-episode-captions.en.vtt` beside this plan, generated from the in-repo KJV, timed as a draft. The live walk gained the order game and the trail as stops.
 
-## 5b. The Theater plays today, and the movie is cut from the folder (2026-11-18, DR-1531)
+## 5b. J2 as built (2026-11-18): the folder publishes (DR-1527)
+
+The exact deliverables, with the KJV per page and the narration script, are in `2026-11-18-jonah-production-brief.md` beside this plan. `scripts/kids-landed-manifest.mjs` writes what is in the kids folder to `app/src/lib/kids/landed.json` before every build; the registry derives from it: a scene file lands its page, a recording under `narration/` narrates its page (played by Hear this page and Read to me, with cued or estimated sentence highlighting), a poster under `episodes/` reads IN PRODUCTION, a video there publishes the episode into the Theater's own player with captions. Nothing is published by a status string.
+## 5c. The Theater plays today, and the movie is cut from the folder (2026-11-18, DR-1531)
 
 Darrell, on the live Theater showing three COMING SOON rows: "Theater?!" and "Let's make the movies, why wait?" Two things shipped the same day:
 
@@ -95,7 +98,7 @@ Darrell, on the live Theater showing three COMING SOON rows: "Theater?!" and "Le
 node scripts/kids-make-episode.mjs jonah [outDir] [--seconds 6] [--size 1920x1080]
 ```
 
-It reads the storybook registry and the landed manifest and cuts, with ffmpeg: one shot per page from the landed scene (`jonah-N.png`, interim art where a scene is missing) with a slow move and crossfades; the narration (`narration/jonah-pN.m4a`) under its page where it exists, the page held to the recording's length, silence where not; the KJV verse and the caption burned in from the registry (never retyped); `jonah-poster.jpg` from page 3; `jonah.en.vtt` timed to the cut; and `jonah.cut.json`, a sidecar that says plainly whether every page used its landed scene and recording (finished) or not (DRAFT). The script publishes nothing. Proven on this machine with the interim art: 42.4 s, 1920x1080 H.264 + AAC, sidecar marked DRAFT, 0/8 scenes, 0/8 recordings.
+It reads the storybook registry and the landed manifest and cuts, with ffmpeg: one shot per page from the landed scene (`jonah-N.png`, interim art where a scene is missing) with a slow move and crossfades; the narration (`narration/jonah-pN.m4a`) under its page where it exists, the page held to the recording's length, silence where not; the KJV verse and the caption as `jonah.en.vtt` timed to the cut, from the registry (never retyped), which the Theater's own player shows as captions (`--burn` also draws them onto the picture, for a copy that goes where no caption track follows; in the app a burned copy showed every line twice, found on the 2026-11-18 review walk); `jonah-poster.jpg` from page 3; and `jonah.cut.json`, a sidecar that says plainly whether every page used its landed scene and recording (finished) or not (DRAFT). The script publishes nothing. Proven on this machine with the interim art: 42.4 s, 1920x1080 H.264 + AAC, sidecar marked DRAFT, 0/8 scenes, 0/8 recordings.
 
 **What finishes the film, and only Darrell can mint:** the eight scenes and the eight recordings (filenames in section 4). The day they land in the folder, the same command cuts the finished episode; the published file is the one whose sidecar says finished, placed off-repo on the NAS road and named in the episode registry.
 

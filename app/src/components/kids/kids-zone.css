@@ -5,7 +5,7 @@
    The Teens Zone (.tz) wears the house by night. Motion is off under
    prefers-reduced-motion. Every target is 44px or more.
    ============================================================================= */
-.kz{--kz-cream:#FFF6DF;--kz-ink:#2A1A4D;--kz-purple:#5B2DD6;--kz-blue:#2F7BF5;--kz-teal:#19B5A6;--kz-teal-deep:#0E8F82;--kz-coral:#FF7A59;--kz-pink:#FF3D7F;--kz-orange:#FFB020;--kz-orange-deep:#FF7A00;--kz-violet:#8E44F0;--kz-magenta:#D23CFF;--kz-green:#2BB24C;--kz-green-deep:#0E8F3A;--kz-sun:#FFD84D;--kz-butter:#FFE08A;--kz-paper:#fff;
+.kz{--kz-cream:#FFF6DF;--kz-ink:#2A1A4D;--kz-purple:#5B2DD6;--kz-blue:#2F7BF5;--kz-teal:#19B5A6;--kz-teal-deep:#0E8F82;--kz-coral:#FF7A59;--kz-pink:#FF3D7F;--kz-orange:#FFB020;--kz-orange-deep:#FF7A00;--kz-orange-ink:#B24A00;--kz-violet:#8E44F0;--kz-magenta:#D23CFF;--kz-green:#2BB24C;--kz-green-deep:#0E8F3A;--kz-sun:#FFD84D;--kz-butter:#FFE08A;--kz-paper:#fff;
   background:var(--kz-cream);color:var(--kz-ink);border-radius:1.25rem;overflow:hidden;font-family:"DM Sans",system-ui,sans-serif}
 .kz *{box-sizing:border-box}
 .kz-hdr{display:flex;align-items:center;gap:.625rem;padding:.625rem .875rem;background:var(--lc-white,#fff);border-bottom:3px solid var(--lc-gold)}
@@ -62,6 +62,7 @@
 .kz-slot b{font-size:.66rem;letter-spacing:.06em}
 .kz-slot i{font-style:normal;font-weight:700;opacity:.9}
 .kz-scene{width:100%;aspect-ratio:34/15;border-radius:.875rem;overflow:hidden}
+.kz-book .kz-scene{aspect-ratio:16/9} /* a storybook scene is drawn 16:9 (the production brief); the frame matches it, so no edge of the picture is cut */
 .kz-scene .kz-slot,.kz-scene .kz-shot,.kz-scene .kz-interim{width:100%;height:100%;object-fit:cover;border-radius:0}
 .kz-bubble{margin-top:.75rem;display:flex;gap:.625rem;align-items:flex-end}
 .kz-bubble.r{flex-direction:row-reverse}
@@ -108,7 +109,7 @@
 /* ---- storybook ---- */
 .kz-book{margin-top:.75rem;background:#fff;border-radius:1.375rem;border:3px solid var(--kz-orange-deep);overflow:hidden}
 .kz-book .kz-page{padding:.75rem .875rem .875rem}
-.kz-book .kz-pn{display:flex;justify-content:space-between;align-items:center;font-size:.68rem;font-weight:900;color:var(--kz-orange-deep);letter-spacing:.08em;margin-bottom:.375rem}
+.kz-book .kz-pn{display:flex;justify-content:space-between;align-items:center;font-size:.72rem;font-weight:900;color:var(--kz-orange-ink);letter-spacing:.08em;margin-bottom:.375rem}
 .kz-book .kz-v{font-family:var(--lc-display,Georgia,serif);font-size:1.08rem;line-height:1.5;margin:0;color:var(--kz-ink)}
 .kz-book .kz-v.reading{background:#FFF7D6;border-radius:.375rem}
 .kz-book .kz-ref{display:block;font-weight:900;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--lc-red);margin-top:.375rem}
@@ -194,6 +195,7 @@
 .tz .kz-play{background:var(--lc-gold);color:var(--lc-black)}
 .tz .kz-strip,.tz .kz-panel,.tz .kz-gu,.tz .kz-clue,.tz .kz-hint,.tz .kz-book{background:var(--tz-card);border-color:var(--tz-line);color:var(--tz-ink)}
 .tz .kz-strip h3 small{color:var(--lc-gold)}
+.tz .kz-pn{color:var(--kz-orange)}
 .tz .kz-evt{display:flex;gap:.625rem;align-items:center;padding:.5rem 0;border-top:1px solid var(--tz-line);font-size:.84rem}
 .tz .kz-evt:first-of-type{border-top:0}
 .tz .kz-evt .kz-d{width:40px;height:40px;border-radius:10px;background:var(--lc-red);color:#fff;display:grid;place-items:center;font-weight:800;font-family:var(--lc-display,Georgia,serif);flex:0 0 auto}
@@ -230,6 +232,7 @@
 .kz-interim.story.david{--kz-story-a:#8E44F0;--kz-story-b:#FFB020}
 .kz-interim.story::before{content:"";position:absolute;inset:auto 0 0 0;height:55%;background:linear-gradient(180deg,rgba(255,255,255,0),rgba(255,246,223,.35))}
 .kz-interim .kz-interim-bible{position:absolute;left:0;right:0;bottom:0;width:100%;height:auto;object-fit:cover;object-position:50% 100%}
+.kz-book .kz-interim .kz-interim-bible{top:0;height:100%} /* in the 16:9 book frame the temporary picture fills the frame, no band above it */
 .kz-interim .kz-interim-narrator{position:absolute;right:8%;bottom:14%;width:34%;max-width:120px;aspect-ratio:1;border-radius:50%;border:3px solid #fff;box-shadow:0 4px 0 rgba(0,0,0,.18);background:#fff}
 .kz-card .kz-interim,.kz-gamehead .kz-interim,.kz-celebrate .kz-interim{border:3px solid rgba(255,255,255,.8);box-shadow:0 4px 0 rgba(0,0,0,.14)}
 /* tiles: the art is a window at the top of the card; the words never cross it */
@@ -374,3 +377,4 @@
 .tz .kz-stop-btn{color:var(--tz-ink)}
 .tz .yz-verse{color:var(--tz-ink)}
 .tz .lc-small{color:var(--tz-muted)}
+.kz-shelf-thumb img{width:100%;height:100%;object-fit:cover;display:block}

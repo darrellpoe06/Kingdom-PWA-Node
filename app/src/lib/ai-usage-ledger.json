@@ -3880,6 +3880,36 @@
       "wallClockHours": 0.3,
       "estimateWithoutAiHours": 24,
       "notes": "Reserved L336 and DR-1582 on origin with new-lesson.mjs. 294 verse tokens filled from app/public/bible/kjv, none typed. Video not watched; speaker unnamed in the summary and in the lesson; gate 9 of 9 on the first run; re-review 2026-12-19."
+    },
+    {
+      "id": "jonah-j2-landed-manifest",
+      "date": "2026-11-18",
+      "task": "Jonah J2: the landed manifest (the kids folder decides what is landed, narrated, published, in production; prebuild + stale guard), recorded narration in the storybook with cued or estimated sentence highlighting, the Theater playing a file episode from the shelf with poster and captions, the production brief naming every illustration, recording and video file with specs and the KJV per page, the character bible corrected to the approved pair; 11 new tests proven to catch",
+      "drs": [
+        "DR-1527"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.9,
+      "estimateWithoutAiHours": 16,
+      "notes": ""
+    },
+    {
+      "id": "j2-phone-review-gates",
+      "date": "2026-11-18",
+      "task": "The J2 phone review (REV): a signed-in Playwright walk of the real YouthZone on a Pixel 7; found and closed the Great Fish record-shape miss, doubled captions from a burned draft, a 34:15 frame cropping 16:9 scenes, a 2.61:1 page label; three proven-to-catch gates; scenes 1 and 2 placed",
+      "drs": [
+        "DR-1535"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.4,
+      "estimateWithoutAiHours": 10,
+      "notes": ""
     }
   ]
 }

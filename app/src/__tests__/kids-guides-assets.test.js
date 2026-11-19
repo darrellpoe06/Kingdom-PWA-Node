@@ -11,7 +11,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { GUIDES, KIDS_BRAND, SHOT_LIST, listedAssets, assetUrl, KIDS_ASSET_DIR, landedShots } from '../lib/kids/guides.js';
+import { GUIDES, KIDS_BRAND, SHOT_LIST, listedAssets, assetUrl, KIDS_ASSET_DIR, landedShots, landedFile } from '../lib/kids/guides.js';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const DIR = join(HERE, '..', '..', 'public', KIDS_ASSET_DIR);
@@ -61,9 +61,12 @@ describe('the artwork collection', () => {
       expect(described, `${s.id} is not described in the brief`).toBe(true);
     }
   });
-  it('a shot that says it landed is on disk (none has yet)', () => {
-    for (const s of landedShots()) expect(existsSync(join(DIR, `${s.id}.png`)), `${s.id} says landed but is not on disk`).toBe(true);
-    expect(landedShots().length).toBe(0);
+  it('a shot is landed exactly when its file is on disk (the landed manifest decides, DR-1527)', () => {
+    for (const s of landedShots()) expect(existsSync(join(DIR, landedFile(s.id))), `${s.id} says landed but is not on disk`).toBe(true);
+    for (const s of SHOT_LIST) {
+      const here = ['png', 'jpg', 'jpeg', 'webp'].some((ext) => existsSync(join(DIR, `${s.id}.${ext}`)));
+      expect(s.status, `${s.id}: on disk=${here}`).toBe(here ? 'landed' : 'needed');
+    }
   });
   it('no scene in the brief names a fantasy device; the gate trips on one that would', () => {
     const scenes = brief.split('## 3.')[1].split('## 4.')[0];
