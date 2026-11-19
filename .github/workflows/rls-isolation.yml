@@ -78,6 +78,9 @@ jobs:
           - feature: person-doors
             migrations: "0339-each-visit-says-which-app-it-was.sql"
             smokes: "0339-person-doors-smoke.sql"
+          - feature: person-sign-ins
+            migrations: "0340-did-they-get-in-is-on-their-row.sql"
+            smokes: "0340-person-sign-ins-smoke.sql"
           - feature: tv-sharing
             migrations: "0074-tv-circle-sharing.sql 0141-account-unification-person-links.sql"
             smokes: "0074-isolation-smoke.sql"

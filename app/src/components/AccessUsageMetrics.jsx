@@ -45,7 +45,12 @@ import {
   fetchSignupMetrics, summaryTiles, signupRowView, sortSignups,
 } from '../lib/signup-metrics.js';
 import { emptyIndex, loadContactIndex, labelFor, countNamed } from '../lib/contact-names.js';
-import { fetchPersonDoors, indexDoors, doorsView } from '../lib/person-onboarding.js';
+import {
+  fetchPersonDoors, indexDoors, doorsView,
+  fetchPersonSignIns, indexSignIns, signInLine, signInCoverage, needsHelp, invitesWithoutAccount, matchesSearch,
+} from '../lib/person-onboarding.js';
+import { reachOf } from '../lib/signup-metrics.js';
+import { messageLandingHere } from '../lib/app-doors.js';
 import { listMyAdminInstances, addUserToSpace, roleLabel as memberRoleLabel } from '../lib/member-roles.js';
 import { fetchUsageFlow, topViews, viewShare } from '../lib/usage-events.js';
 
@@ -195,6 +200,80 @@ function UsageFold({ userId }) {
   );
 }
 
+// THE PEOPLE WHO ARE STUCK GETTING IN (DR-1592). Darrell 2026-11-19: "how do
+// we help people when they have onboarding issues?! We should be able to see
+// these issues from our data logs." Each entry is a person, the reasons with
+// their times, and the help that already exists: find them in the list (where
+// Usage and the rest of the row live), add them to a space, open a message
+// thread, or reach them at the address they signed up with.
+function reachLinks(rawEmail) {
+  const reach = reachOf(rawEmail, false);
+  if (reach.phoneDoor && reach.phone) {
+    return [{ key: 'call', label: 'Call', href: `tel:+${reach.phone}` }, { key: 'text', label: 'Text', href: `sms:+${reach.phone}` }];
+  }
+  const e = String(rawEmail || '').trim();
+  return e && e.includes('@') ? [{ key: 'email', label: 'Email', href: `mailto:${e}` }] : [];
+}
+const helpBtn = 'text-[0.5625rem] uppercase tracking-wider px-1.5 py-0.5 border border-[#5A5751] text-[#5A5751]';
+
+function NeedsHelp({ list, orphans, byUser, spaces, mask, onFind, onDone }) {
+  const count = list.length + orphans.length;
+  return (
+    <div className="mb-3 border border-[#B85838] bg-[#FAF8F4] p-2.5" data-testid="needs-help">
+      <div className={sectionH + ' mb-1'}>Needs help getting in{count ? ` · ${count}` : ''}</div>
+      {count === 0 ? (
+        <p className={note} data-testid="needs-help-empty">Nobody is stuck right now: every account has got in, has a space, and has opened the apps it was added to.</p>
+      ) : (
+        <ul className="divide-y divide-[#F0E2DA]">
+          {list.map((h) => {
+            const x = byUser.get(h.userId);
+            if (!x) return null;
+            const { r, who } = x;
+            const label = who.shown || r.email;
+            return (
+              <li key={h.userId} className="py-1.5" data-testid="needs-help-person">
+                <div className="text-[0.8125rem] text-[#1A1815]">
+                  {label}{who.shown ? <span className="text-[#5A5751]"> · {r.email}</span> : null}
+                  <span className="ml-1"><CategoryPill label={r.categoryLabel} /></span>
+                </div>
+                <ul className="mt-0.5">
+                  {h.reasons.map((why) => (
+                    <li key={why.code + why.at} className="text-[0.6875rem] text-[#5A5751]" data-testid="needs-help-reason" data-code={why.code}>{why.text}</li>
+                  ))}
+                </ul>
+                <div className="flex flex-wrap items-center gap-2">
+                  <button type="button" className={'mt-1 focus:outline focus:outline-2 focus:outline-[#B85838] ' + helpBtn} data-testid="needs-help-find" onClick={() => onFind(r.rawEmail || label)}>Find in list</button>
+                  <AddToSpace row={r} spaces={spaces} who={who.shown} onDone={onDone} />
+                  {r.userId ? (
+                    <a className={'mt-1 focus:outline focus:outline-2 focus:outline-[#B85838] ' + helpBtn} data-testid="needs-help-message" href={messageLandingHere({ pathname: window.location.pathname, search: window.location.search, peerUserId: r.userId })}>Message</a>
+                  ) : null}
+                  {!mask ? reachLinks(r.rawEmail).map((l) => (
+                    <a key={l.key} className={'mt-1 focus:outline focus:outline-2 focus:outline-[#B85838] ' + helpBtn} data-testid={`needs-help-${l.key}`} href={l.href}>{l.label}</a>
+                  )) : null}
+                </div>
+              </li>
+            );
+          })}
+          {orphans.map((o) => (
+            <li key={o.id} className="py-1.5" data-testid="needs-help-invite">
+              <div className="text-[0.8125rem] text-[#1A1815]">
+                {o.name ? `${o.name} · ` : ''}{reachOf(o.address, mask).text}
+                <span className="ml-1"><CategoryPill label="No account yet" /></span>
+              </div>
+              <div className="text-[0.6875rem] text-[#5A5751]" data-testid="needs-help-reason" data-code="invite-no-account">{o.text}</div>
+              <div className="flex flex-wrap items-center gap-2">
+                {!mask ? reachLinks(o.address).map((l) => (
+                  <a key={l.key} className={'mt-1 focus:outline focus:outline-2 focus:outline-[#B85838] ' + helpBtn} href={l.href}>{l.label}</a>
+                )) : null}
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 function PlatformSignups() {
   const [res, setRes] = useState({ status: 'loading', data: null });
   const [mask, setMask] = useState(false);
@@ -216,11 +295,17 @@ function PlatformSignups() {
   // shown on each row. Its own status: if it cannot be read, the list still
   // shows and the reason is said once, never as "never opened".
   const [doorsRes, setDoorsRes] = useState({ status: 'loading', data: null });
+  // DID THEY GET IN (DR-1592): the sign-in record per person, including the
+  // people with no space whose rows the instance-scoped feed never shows.
+  const [signInsRes, setSignInsRes] = useState({ status: 'loading', data: null });
+  // FIND A PERSON FAST (DR-1592): one word over name, address and phone.
+  const [query, setQuery] = useState('');
   const load = useCallback(async () => {
     setRes((r) => ({ status: 'loading', data: r.data }));
-    const [signups, doorsRead] = await Promise.all([fetchSignupMetrics(), fetchPersonDoors()]);
+    const [signups, doorsRead, signInsRead] = await Promise.all([fetchSignupMetrics(), fetchPersonDoors(), fetchPersonSignIns()]);
     setRes(signups);
     setDoorsRes(doorsRead);
+    setSignInsRes(signInsRead);
   }, []);
   useEffect(() => { load(); }, [load]);
   useEffect(() => {
@@ -253,6 +338,26 @@ function PlatformSignups() {
   const doorsReady = doorsRes.status === 'ready';
   const doorIndex = doorsReady ? indexDoors(doorsRes.data) : null;
   const doorsSince = doorsReady ? (doorsRes.data.door_tracking_since || null) : null;
+  const signInsReady = signInsRes.status === 'ready';
+  const signInIndex = signInsReady ? indexSignIns(signInsRes.data) : null;
+  // Each row's view and the name the viewer knows it by, computed once and
+  // shared by the search, the Needs help list and the list itself.
+  const shaped = rows.map((row) => {
+    const r = signupRowView(row, nowMs, mask);
+    const who = labelFor(contacts, { ownName: r.name, email: r.rawEmail });
+    return { row, r, who };
+  });
+  const byUser = new Map(shaped.filter((x) => x.r.userId).map((x) => [x.r.userId, x]));
+  const helpList = signInsReady
+    ? needsHelp(
+        shaped.map(({ row, r }) => ({ userId: r.userId, created_at: row.created_at, lastActiveAt: row.last_active_at || row.last_sign_in_at || null, category: r.category })),
+        signInIndex,
+        doorsReady ? { index: doorIndex, since: doorsSince } : null,
+        nowMs,
+      )
+    : [];
+  const orphanInvites = signInsReady ? invitesWithoutAccount(signInsRes.data, nowMs) : [];
+  const visible = shaped.filter(({ r, who }) => matchesSearch([who.shown, r.name, r.rawEmail, r.email, r.phone], query));
 
   return (
     <div className="mb-5">
@@ -300,18 +405,52 @@ function PlatformSignups() {
         </p>
       ) : (
         <>
+          {/* NEEDS HELP (DR-1592): the people who are stuck getting in, each
+              with the reason and the time, read from real rows only. */}
+          {signInsReady ? (
+            <NeedsHelp
+              list={helpList}
+              orphans={orphanInvites}
+              byUser={byUser}
+              spaces={spaces}
+              mask={mask}
+              onFind={(text) => setQuery(text)}
+              onDone={load}
+            />
+          ) : signInsRes.status === 'unavailable' ? (
+            <p className={note + ' italic mb-2'} data-testid="needs-help-unavailable">
+              Who needs help getting in could not be read: {(signInsRes.error && signInsRes.error.message) || 'unknown error'}.
+            </p>
+          ) : null}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-2">
             {tiles.map((t) => <Tile key={t.label} label={t.label} value={t.value} sub={t.sub} />)}
           </div>
+          {rows.length > 0 ? (
+            <div className="flex items-center gap-2 mb-2">
+              <input
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Find a person: name, email or phone"
+                aria-label="Find a person by name, email or phone"
+                data-testid="signup-search"
+                className="flex-1 min-w-0 text-[0.8125rem] p-1.5 border border-[#E8E4DC] bg-white"
+              />
+              {query ? (
+                <span className="text-[0.625rem] text-[#5A5751] shrink-0" data-testid="signup-search-count">{visible.length} of {rows.length}</span>
+              ) : null}
+            </div>
+          ) : null}
           {rows.length === 0 ? (
             <p className={note + ' italic'}>No accounts yet — when someone signs up on poetech.us they'll appear here.</p>
           ) : (
             <div className="border border-[#E8E4DC]">
-              {rows.map((row) => {
-                const r = signupRowView(row, nowMs, mask);
+              {visible.length === 0 ? (
+                <p className={note + ' italic px-2.5 py-1.5'} data-testid="signup-search-empty">No account matches “{query}”.</p>
+              ) : null}
+              {visible.map(({ r, who }) => {
                 // The account's own name first; the viewer's contacts fill the
                 // gap or stand beside it, labelled as theirs. Never merged.
-                const who = labelFor(contacts, { ownName: r.name, email: r.rawEmail });
                 return (
                   <div key={r.userId || r.email} className="flex items-center justify-between gap-2 px-2.5 py-1.5 border-b border-[#F2EEE6] last:border-b-0">
                     <div className="min-w-0">
@@ -333,6 +472,10 @@ function PlatformSignups() {
                       <div className="text-[0.625rem] text-[#5A5751]">
                         account created {r.joined} · {r.activeNow ? 'active now' : (r.returned ? `active, last active ${r.lastSeen}` : (r.lastSeen === 'never' ? 'never signed back in' : `last active ${r.lastSeen}`))}
                       </div>
+                      {/* DID THEY GET IN, AND HOW (DR-1592). */}
+                      {signInIndex && r.userId && !r.isOurs ? (
+                        <div className="text-[0.625rem] text-[#5A5751]" data-testid="signup-signin">{signInLine(signInIndex.get(r.userId), nowMs)}</div>
+                      ) : null}
                       {/* WHICH APPS THEY HAVE OPENED, AND WHEN (DR-1591). */}
                       {doorIndex && r.userId && !r.isOurs ? (() => {
                         const dv = doorsView(doorIndex.get(r.userId), doorsSince, nowMs);
@@ -379,6 +522,9 @@ function PlatformSignups() {
             <p className={note + ' italic mt-1'} data-testid="signup-doors-note">
               Which apps each person has opened could not be read: {(doorsRes.error && doorsRes.error.message) || 'unknown error'}.
             </p>
+          ) : null}
+          {rows.length > 0 && signInsReady ? (
+            <p className={note + ' italic mt-1'} data-testid="signup-signin-note">{signInCoverage(signInsRes.data)}</p>
           ) : null}
           {data && data.signups_truncated ? (
             <p className={note + ' italic mt-1'}>Showing the newest {data.signups_shown}. Older accounts are counted in the totals above but not listed.</p>
