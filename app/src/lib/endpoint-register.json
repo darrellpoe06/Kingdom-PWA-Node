@@ -2074,7 +2074,7 @@
       "table": "request_documentation",
       "definedIn": "infra/supabase/migrations-auto/0075-delegated-property-management.sql",
       "rls": true,
-      "policies": 5
+      "policies": 7
     },
     {
       "table": "review_cadences",
@@ -2248,7 +2248,7 @@
       "table": "tenant_maintenance_requests",
       "definedIn": "infra/supabase/migrations-auto/0055-relationship-permissions.sql",
       "rls": true,
-      "policies": 13
+      "policies": 14
     },
     {
       "table": "tenant_members",

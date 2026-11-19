@@ -133,7 +133,7 @@ describe('the door\'s invite form as the landlord meets it', () => {
     await act(async () => { write.click(); });
     expect(sent.roleLabel).toBe('field_worker');
     expect([...sent.capabilities].sort()).toEqual(['docs.add', 'property.history']);
-  });
+  }, 30000); // the first test to import the whole module pays its load
 
   it('unchecking every box kills the button and says why', async () => {
     await mount(() => {});
