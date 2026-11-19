@@ -42,6 +42,7 @@ import ChurchCalendar from './lovecorner/ChurchCalendar.jsx';
 import ChurchCalendarTools from './lovecorner/ChurchCalendarTools.jsx';
 import ChurchCalendarPlanning from './lovecorner/ChurchCalendarPlanning.jsx';
 import { fromAnnounced, fromOfficeRows, mergeEvents } from '../lib/church-calendar.js';
+import { parishLifeEvents } from '../lib/parish-life.js';
 import { useChurchCalendarRows, useCalendarAccess, addCalendarEvents, removeCalendarEvent } from '../lib/church-calendar-sync.js';
 import { churchDateKey } from '../lib/home-week.js';
 import { siteIsTheChurchs } from '../lib/church-site.js';
@@ -215,6 +216,14 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
     () => mergeEvents(fromAnnounced(c.announcedEvents), fromOfficeRows(calendarRows.rows).events),
     [c.announcedEvents, calendarRows.rows]
   );
+  // PARISH LIFE SHOWS WHAT IS COMING (DR-1595). Darrell 2026-11-19, over a
+  // November screen still listing July's assembly and August's Gospel Fest:
+  // "Old events for Parish Life... Ari not noticing obvious reasons for
+  // updating texts?!!!!" The list read the church record's fixed
+  // announcedEvents, which never expire. It now reads the same calendar the
+  // office edits (announced + office rows) and keeps only what has not ended
+  // in the church's own time zone; past events live in the calendar's years.
+  const parishEvents = useMemo(() => parishLifeEvents(calendarEvents, churchDateKey(new Date())), [calendarEvents]);
   const calendarStatus = !siteIsTheChurchs(c.site) ? 'ok' : signedIn ? calendarRows.status : 'signed-out';
   // The office's tools (DR-1586) show only once the role is answered as owner/admin; the database is the real gate.
   const calendarAccess = useCalendarAccess(signedIn && siteIsTheChurchs(c.site));
@@ -378,7 +387,7 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
 
   // "I can only pick on at a time" — so let the whole list go at once.
   const saveAllAnnouncedEvents = () => {
-    (c.announcedEvents || []).forEach((ev) => saveAnnouncedEvent(ev));
+    parishEvents.forEach((ev) => saveAnnouncedEvent(ev));
   };
 
   // Save a one-tap event to the family calendar from a service entry.
@@ -935,9 +944,14 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
         </div>
         <div className="bg-white border border-[#1A1815] p-4">
           <h3 className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold mb-1">Parish Life</h3>
-          {Array.isArray(c.announcedEvents) && c.announcedEvents.length > 0 && (
-            <ul className="text-xs space-y-1.5 mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
-              {c.announcedEvents.map((ev) => (
+          {parishEvents.length === 0 && (
+            <p className="text-xs text-[#5A5751] mb-2" data-testid="parish-life-none">
+              No upcoming events posted yet. Past years are on the church calendar in Times.
+            </p>
+          )}
+          {parishEvents.length > 0 && (
+            <ul className="text-xs space-y-1.5 mb-2" style={{ fontFamily: '"Fraunces", serif' }} data-testid="parish-life-events">
+              {parishEvents.map((ev) => (
                 <li key={ev.id} className="flex items-baseline justify-between gap-2 flex-wrap">
                   <span>
                     <UiIcon name="calendar" /> <strong>{ev.name}</strong>
@@ -957,16 +971,16 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
               ))}
             </ul>
           )}
-          {addEvent && Array.isArray(c.announcedEvents) && c.announcedEvents.length > 1 && (
+          {addEvent && parishEvents.length > 1 && (
             <button
               type="button"
               onClick={saveAllAnnouncedEvents}
-              disabled={c.announcedEvents.every((ev) => savedEventIds.includes(ev.id))}
+              disabled={parishEvents.every((ev) => savedEventIds.includes(ev.id))}
               className="mb-2 text-[0.625rem] uppercase tracking-wider px-2 py-1 min-h-[36px] border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white disabled:opacity-60 focus:outline focus:outline-2 focus:outline-[#B85838]"
             >
-              {c.announcedEvents.every((ev) => savedEventIds.includes(ev.id))
+              {parishEvents.every((ev) => savedEventIds.includes(ev.id))
                 ? '✓ All on your calendar'
-                : `+ Add all ${c.announcedEvents.length} to my calendar`}
+                : `+ Add all ${parishEvents.length} to my calendar`}
             </button>
           )}
           <ul className="text-xs space-y-1.5" style={{ fontFamily: '"Fraunces", serif' }}>
