@@ -2725,7 +2725,7 @@
     {
       "id": "l330-he-healeth-the-broken-in-heart",
       "date": "2026-11-18",
-      "task": "L330 He Healeth the Broken in Heart, from a YouTube conversation Darrell sent with three summaries, all four age bands, shared gate",
+      "task": "L330 He Healeth the Broken in Heart, from a YouTube conversation Darrell sent with six summaries, all four age bands, shared gate",
       "drs": [
         "DR-1567"
       ],
@@ -2735,7 +2735,7 @@
       "costUsd": null,
       "wallClockHours": 0.5,
       "estimateWithoutAiHours": 24,
-      "notes": "Reserved L330 and DR-1567 on origin with new-lesson.mjs. 248 verses filled from app/public/bible/kjv by fill-verses.mjs, none typed. The video was not reachable and not watched; the speakers' claims ride UNCHECKED as theirs, re-review 2026-12-18."
+      "notes": "Reserved L330 and DR-1567 on origin with new-lesson.mjs. 278 verses filled from app/public/bible/kjv by fill-verses.mjs, none typed. The video was not reachable and not watched; the speakers' claims ride UNCHECKED as theirs, re-review 2026-12-18."
     },
     {
       "id": "record-lists-open-to-their-lessons",
