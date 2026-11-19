@@ -1629,6 +1629,21 @@
       "notes": "Darrell: Pace and depth should be sustained unless it is changed."
     },
     {
+      "id": "lane-test-9002",
+      "date": "2026-11-19",
+      "task": "throwaway",
+      "drs": [
+        "DR-9002"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0,
+      "estimateWithoutAiHours": 0,
+      "notes": ""
+    },
+    {
       "id": "dr-1407-one-person-one-house",
       "date": "2026-11-10",
       "task": "Christina's two sign-ins hold the same houses (0319, smoke on Postgres) and the triage card names its reader and what it cannot read",
