@@ -214,7 +214,7 @@ function reachLinks(rawEmail) {
   const e = String(rawEmail || '').trim();
   return e && e.includes('@') ? [{ key: 'email', label: 'Email', href: `mailto:${e}` }] : [];
 }
-const helpBtn = 'text-[0.5625rem] uppercase tracking-wider px-1.5 py-0.5 border border-[#5A5751] text-[#5A5751] focus:outline focus:outline-2 focus:outline-[#B85838]';
+const helpBtn = 'text-[0.5625rem] uppercase tracking-wider px-1.5 py-0.5 border border-[#5A5751] text-[#5A5751]';
 
 function NeedsHelp({ list, orphans, byUser, spaces, mask, onFind, onDone }) {
   const count = list.length + orphans.length;
@@ -242,13 +242,13 @@ function NeedsHelp({ list, orphans, byUser, spaces, mask, onFind, onDone }) {
                   ))}
                 </ul>
                 <div className="flex flex-wrap items-center gap-2">
-                  <button type="button" className={'mt-1 ' + helpBtn} data-testid="needs-help-find" onClick={() => onFind(r.rawEmail || label)}>Find in list</button>
+                  <button type="button" className={'mt-1 focus:outline focus:outline-2 focus:outline-[#B85838] ' + helpBtn} data-testid="needs-help-find" onClick={() => onFind(r.rawEmail || label)}>Find in list</button>
                   <AddToSpace row={r} spaces={spaces} who={who.shown} onDone={onDone} />
                   {r.userId ? (
-                    <a className={'mt-1 ' + helpBtn} data-testid="needs-help-message" href={messageLandingHere({ pathname: window.location.pathname, search: window.location.search, peerUserId: r.userId })}>Message</a>
+                    <a className={'mt-1 focus:outline focus:outline-2 focus:outline-[#B85838] ' + helpBtn} data-testid="needs-help-message" href={messageLandingHere({ pathname: window.location.pathname, search: window.location.search, peerUserId: r.userId })}>Message</a>
                   ) : null}
                   {!mask ? reachLinks(r.rawEmail).map((l) => (
-                    <a key={l.key} className={'mt-1 ' + helpBtn} data-testid={`needs-help-${l.key}`} href={l.href}>{l.label}</a>
+                    <a key={l.key} className={'mt-1 focus:outline focus:outline-2 focus:outline-[#B85838] ' + helpBtn} data-testid={`needs-help-${l.key}`} href={l.href}>{l.label}</a>
                   )) : null}
                 </div>
               </li>
@@ -263,7 +263,7 @@ function NeedsHelp({ list, orphans, byUser, spaces, mask, onFind, onDone }) {
               <div className="text-[0.6875rem] text-[#5A5751]" data-testid="needs-help-reason" data-code="invite-no-account">{o.text}</div>
               <div className="flex flex-wrap items-center gap-2">
                 {!mask ? reachLinks(o.address).map((l) => (
-                  <a key={l.key} className={'mt-1 ' + helpBtn} href={l.href}>{l.label}</a>
+                  <a key={l.key} className={'mt-1 focus:outline focus:outline-2 focus:outline-[#B85838] ' + helpBtn} href={l.href}>{l.label}</a>
                 )) : null}
               </div>
             </li>
