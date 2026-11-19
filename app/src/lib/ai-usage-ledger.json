@@ -127,6 +127,21 @@
       "notes": "17:15:13Z → 17:23:34Z."
     },
     {
+      "id": "church-calendar-office-add-upload",
+      "date": "2026-11-19",
+      "task": "Church calendar: office add form, CSV upload with preview, two-press remove, CSV download",
+      "drs": [
+        "DR-1586"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.5,
+      "estimateWithoutAiHours": 8,
+      "notes": ""
+    },
+    {
       "id": "sov95-he-that-taketh-warning",
       "date": "2026-11-18",
       "task": "Sovereign A.I. week 95 from one word over a forwarded account security alert (thread 1a1f08def44cc672), taught generically for privacy: Word first on Ezekiel 33:4-5 and Nehemiah 13:4-9; every grant of access a gate you opened, the alert the watchman, check through the account and never the link, take back what you no longer use; four hand-written bands, every verse generator-filled from the KJV; the house measured from the support door's own code.",
@@ -436,6 +451,21 @@
       "wallClockHours": 0.6,
       "estimateWithoutAiHours": 7,
       "notes": "Checked one teaching one lesson: the fall is taught in L310 and L319, so only the new teaching was built. Rival's quarter read back via search summaries of its 8-K; the rest tiered as reported. 123 quotations filled from the corpus; gate 9/9; shares first failed and were fixed."
+    },
+    {
+      "id": "home-goes-home-and-the-menu-goes-where-it-says",
+      "date": "2026-11-19",
+      "task": "Three more reports from the Love Corner door on a phone: the bottom bar's Home that did not go home and lit the wrong item, account-menu rows that did not open what they named, and the header title running under its buttons",
+      "drs": [
+        "DR-1579"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.8,
+      "estimateWithoutAiHours": 10,
+      "notes": "Header measured in a real Chromium at 320 to 412px signed in and out; found header buttons at 13px at Big Print (px inside a zoomed chrome region). Home and the menu proven with the real components mounted together; eight tests fail on the old code. Signed-in was a stand-in session. The picture menu on the PoeTech door was not built."
     },
     {
       "id": "sov68-there-shall-be-none-in-the-field",
@@ -994,6 +1024,21 @@
       "notes": "Same session as DR-1361, DR-1370 and DR-1371; four reader-feedback messages with two screenshots. Estimate is this session's own for the reader fold, the voice seam and the gate."
     },
     {
+      "id": "l331-it-doth-not-yet-appear-what-we-shall-be",
+      "date": "2026-11-19",
+      "task": "L331 It Doth Not Yet Appear What We Shall Be, from three more summaries of the conversation behind L330, all four age bands, shared gate",
+      "drs": [
+        "DR-1569"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.4,
+      "estimateWithoutAiHours": 24,
+      "notes": "Reserved L331 and DR-1569 on origin with new-lesson.mjs. 322 verses filled from app/public/bible/kjv by fill-verses.mjs, none typed. Each cited passage read with the verse before it. Video not watched; re-review 2026-12-18."
+    },
+    {
       "id": "ll289-why-the-oppressed-still-call-on-him",
       "date": "2026-11-06",
       "task": "ll289: the fourth send of the evening, Garrison Hayes on why Black Americans still call themselves Christians; research pass, the Word asking the question first and answering it; a 55-case gate; a research row and three further rows filed for the lane",
@@ -1052,6 +1097,21 @@
       "wallClockHours": 0.75,
       "estimateWithoutAiHours": 6,
       "notes": "Darrell's three messages and a screenshot; built across worker restarts."
+    },
+    {
+      "id": "bank10-the-watchman-who-went-quiet",
+      "date": "2026-11-18",
+      "task": "Banking lesson 10 from a forwarded Fintech Takes recap (thread 1a1f08bfcac456b1): Ezekiel 33:6 in both halves, all four bands, generator-filled verses, no party or official named",
+      "drs": [
+        "DR-1563"
+      ],
+      "prs": [],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.8,
+      "estimateWithoutAiHours": 10,
+      "notes": "Teen read above its 6.0 ceiling on first build; bands shortened by hand. Agency site and podcast refused by the proxy; reported tier held. re-review 2026-12-16."
     },
     {
       "id": "dr-1384-read-by-any-road",
@@ -1461,6 +1521,21 @@
       "notes": "Darrell: Lessons with no tests?!"
     },
     {
+      "id": "l333-heavenly-cheat-codes-life-his-way",
+      "date": "2026-11-19",
+      "task": "L333 Heavenly Cheat Codes: Life His Way, from Darrell's own lines over one summary of a conversation, all four age bands, shared gate",
+      "drs": [
+        "DR-1573"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.4,
+      "estimateWithoutAiHours": 24,
+      "notes": "Reserved L333 and DR-1573 on origin with new-lesson.mjs. Verses filled from app/public/bible/kjv by fill-verses.mjs, none typed. The name and two lines are Darrell's; video not watched; re-review 2026-12-18."
+    },
+    {
       "id": "dr-1405-system-built-around-the-king",
       "date": "2026-11-10",
       "task": "rto8 stopped setting a system against the King: the King brings the balance, and a system built around Him carries it; pinned by a test",
@@ -1649,6 +1724,21 @@
       "wallClockHours": 0.3,
       "estimateWithoutAiHours": 12,
       "notes": "Darrell: We need our own mortgage calculator inside our PoeTech App where it makes sense"
+    },
+    {
+      "id": "ll329-what-mean-these-stones",
+      "date": "2026-11-18",
+      "task": "L329 What Mean These Stones, from one forwarded technology-podcast recap, all four age bands, shared gate plus tier, privacy and one-teaching checks",
+      "drs": [
+        "DR-1566"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1,
+      "estimateWithoutAiHours": 24,
+      "notes": "Reserved L329 and DR-1566 on origin with new-lesson.mjs. 104 verses filled from app/public/bible/kjv by fill-verses.mjs, none typed. Placed in Living Lessons (devotional teaching); names L248 for the manna. Recap timeline reported, adaptation established; re-review 2026-12-02. Found sov94's clock drift while building; DR-1564 landed the same pin first, so main's copy was taken."
     },
     {
       "id": "dr-1414-put-not-your-trust-in-princes",
@@ -1850,6 +1940,21 @@
       "notes": "Darrell: Learn tab as a quick link under Soul (More menu screenshot)"
     },
     {
+      "id": "church-calendar-past-years-suggestions",
+      "date": "2026-11-19",
+      "task": "Church calendar: past-years look-back, suggestions through the feedback list, office received list",
+      "drs": [
+        "DR-1587"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.4,
+      "estimateWithoutAiHours": 6,
+      "notes": ""
+    },
+    {
       "id": "dr-1426-ll301-old-men-dream",
       "date": "2026-11-11",
       "task": "L301 Your Old Men Shall Dream Dreams: the Joel 2:28 / Acts 2:17 lesson Darrell sent in, taught from the Word in five bands with a 50-case gate",
@@ -1923,6 +2028,21 @@
       "wallClockHours": 0.3,
       "estimateWithoutAiHours": 2,
       "notes": "Darrell: is it fixed for all months? (November screenshot)"
+    },
+    {
+      "id": "l334-this-i-recall-to-my-mind",
+      "date": "2026-11-19",
+      "task": "L334 This I Recall to My Mind, from further summaries of one conversation, on time, memory and a hard past, all four age bands, shared gate",
+      "drs": [
+        "DR-1574"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.4,
+      "estimateWithoutAiHours": 24,
+      "notes": "Reserved L334 and DR-1574 on origin with new-lesson.mjs. 258 verse tokens filled from app/public/bible/kjv by fill-verses.mjs, none typed. Video not watched; two summaries disagree on one attribution and the lesson leans on neither; re-review 2026-12-18."
     },
     {
       "id": "dr-1430-lessons-in-both-apps",
@@ -2032,6 +2152,21 @@
       "notes": "Christina's go-live brief, then her correction before merge: the $10,000 is a savings goal, not a cushion; only designated money is protected. Two sessions on one brief; restacked on fix/money-three-accounts with only what it lacked. Live 3322/8168 figures unreachable from the sandbox (no NAS road)."
     },
     {
+      "id": "dr-1590-camera-selftest-waits-for-the-gate",
+      "date": "2026-11-19",
+      "task": "A timing race in the camera forwarder's self-test turned an unrelated PR red; the self-test's request helper now asks again on a snapshot busy",
+      "drs": [
+        "DR-1590"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.3,
+      "estimateWithoutAiHours": 3,
+      "notes": "Reproduced by sleeping 0.2 s before the gate's release: 13 checks failed on busy before, none after. Forwarder behavior unchanged. One timed check still fails under the injected sleep and was not hardened."
+    },
+    {
       "id": "poetech-plus-keys-daily",
       "date": "2026-11-12",
       "task": "The PoeTech+ keys workflow runs daily and heals itself: one paste of the key is the only hand step",
@@ -2120,6 +2255,21 @@
       "wallClockHours": 1.2,
       "estimateWithoutAiHours": 12,
       "notes": "Video https://youtu.be/g_gRHW4SJtI sent with one word, Lesson; not watched (no YouTube from this session), built from his summary and said so in every band. Hany Farid and Estonia's AI Leap checked by web search; Karmen Kisel, India and cheating figures not checked and listed. 80 spans filled from the KJV corpus. The gate caught the teen band inverting the ladder (2.77 under youth 3.72); rejoined by hand to 5.42."
+    },
+    {
+      "id": "ll327-let-there-be-search-made",
+      "date": "2026-11-18",
+      "task": "L327: let there be search made, from a forwarded workplace bulletin on federal comment periods (taught generically)",
+      "drs": [
+        "DR-1561"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.8,
+      "estimateWithoutAiHours": 7,
+      "notes": "Forwarded the same day; built the same session."
     },
     {
       "id": "sov91-know-the-state-of-thy-flocks",
@@ -2242,6 +2392,21 @@
       "wallClockHours": 0.6,
       "estimateWithoutAiHours": 4,
       "notes": "Read ceiling + bounded retries; member device never wears the stranger church brand."
+    },
+    {
+      "id": "church-calendar-event-records",
+      "date": "2026-11-19",
+      "task": "Church calendar as event records: week strip, month and year view, office rows read per church",
+      "drs": [
+        "DR-1585"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.2,
+      "estimateWithoutAiHours": 10,
+      "notes": "First of three changes; office add and upload, then past years and suggestions, follow."
     },
     {
       "id": "learning-products-store",
@@ -2618,6 +2783,21 @@
       "notes": "No token meter exposed to this session; tokens and cost are null. The 40-hour estimate without A.I. is for one hour of teaching written five times over (an adult lesson and four age-banded versions, about 15,900 words of authored prose), 62 verses transcribed by hand from a printed KJV, the independent checking of five load-bearing figures, and 54 tests. The band work failed its floors and its reading ladder on the first measurement, as P60 predicts, and every repair was authored by hand rather than swept by a script (DR-1306). Renumbered to DR-1470 after #2658 landed a record on the number first, while this branch was green and in flight; the rename was done by hand on each citation's own surrounding text, never by number, because renumber-decision-record.mjs rewrites by number across the whole tree and the surrendered number's call sites now belong to that landed record."
     },
     {
+      "id": "lesson-ll328",
+      "date": "2026-11-18",
+      "task": "L328 Faithful in that which is least, from a forwarded public school-district newsletter",
+      "drs": [
+        "DR-1565"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.8,
+      "estimateWithoutAiHours": 8,
+      "notes": ""
+    },
+    {
       "id": "sov89-take-thee-again-another-roll",
       "date": "2026-11-18",
       "task": "Sovereign A.I. week 89 built from one word over a forwarded Level Up Coding issue (Redis vs Memcached), all four age bands, 25-case gate",
@@ -2843,6 +3023,21 @@
       "notes": "Gmail thread 1a1d0d054cd67ed2, forwarded 2026-11-12T17:31Z, built 2026-11-13 after the scheduled intake missed it. 45 anchor references, 162 quoted spans, every verse filled from app/public/bible/kjv by scripts/sov81-fill.mjs and none typed. www.itbrew.com, www.copyright.gov and www.php.net refused (403 CONNECT), the law firm's newsroom ENOTFOUND; named in every teaching place with re-review 2026-11-27. Our own record measured: IP register 24 rows (11 human, 13 mixed, 0 generated); 1,895 of 2,980 commits on main carry a co-author line."
     },
     {
+      "id": "l330-he-healeth-the-broken-in-heart",
+      "date": "2026-11-18",
+      "task": "L330 He Healeth the Broken in Heart, from a YouTube conversation Darrell sent with six summaries, all four age bands, shared gate",
+      "drs": [
+        "DR-1567"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.5,
+      "estimateWithoutAiHours": 24,
+      "notes": "Reserved L330 and DR-1567 on origin with new-lesson.mjs. 278 verses filled from app/public/bible/kjv by fill-verses.mjs, none typed. The video was not reachable and not watched; the speakers' claims ride UNCHECKED as theirs, re-review 2026-12-18."
+    },
+    {
       "id": "record-lists-open-to-their-lessons",
       "date": "2026-11-13",
       "task": "The class record's Most studied and Most opportunities lists became closed folds per course, titled, opening onto their lessons oldest first, each one tap to its lesson",
@@ -2856,6 +3051,21 @@
       "wallClockHours": 0.9,
       "estimateWithoutAiHours": 10,
       "notes": "LearnersPanel CourseLessons fold; course-pace studiedLessons/lessonsToGrow from the same standing loop; ChurchLearn openLessonFromList shared with the Latest list. Measured in Chrome at 360 and 412px, Normal and A44: no overflow, taps 44px or more. 9 new tests fail on the old panel; 3 mutations caught."
+    },
+    {
+      "id": "ll332-give-me-this-mountain",
+      "date": "2026-11-19",
+      "task": "Living Lesson L332 from one word over a forwarded public radio newsletter on midlife reinvention (thread 1a1f0906b4bfc2c4): taught from Caleb in Joshua 14, the promise at forty, the years kept, the strength at eighty-five, the ask for the mountain already promised; the set-aside gift and rest before the next assignment; four hand-written bands, every verse generator-filled from the KJV.",
+      "drs": [
+        "DR-1571"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.2,
+      "estimateWithoutAiHours": 10,
+      "notes": "No token meter in this session; tokens and cost are null. The newsletter's arts study, survey and self-check are reported only, not opened; re-review 2026-12-19."
     },
     {
       "id": "sov85-and-it-fell-not",
@@ -2946,6 +3156,21 @@
       "wallClockHours": 1.5,
       "estimateWithoutAiHours": 16,
       "notes": "Root cause traced to the onFallback hand-off speaking an unmatched-gender phone voice and a speak-time URI miss setting no voice. New suite 13 cases, 9 fail on origin/main. My voice blocked: tower studio unarmed (arm run 36796584904) and CI tailnet key invalid (run 43310501087)."
+    },
+    {
+      "id": "dr-1588-kids-zone-reads-the-weeks-lesson",
+      "date": "2026-11-19",
+      "task": "A Kids Zone test that pinned one week's lesson turned main red when two lessons landed; the test now reads the lesson the catalog picks",
+      "drs": [
+        "DR-1588"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.3,
+      "estimateWithoutAiHours": 2,
+      "notes": "Found on PR #2775 shard 3, then on PR #2788 which adds no lesson, which showed main itself was red. Proven to catch by forcing the page to show the heading always. No product code changed."
     },
     {
       "id": "my-voice-on-the-nas",
@@ -3595,6 +3820,21 @@
       "wallClockHours": 0.5,
       "estimateWithoutAiHours": 4,
       "notes": "DR-1534's first live read named the limit rather than the cause. Refused the fifth-receipt move DR-1526 recorded as wrong and built the direct read for road 2 instead. Proven to catch a printed draft; 10 cases, wired into ci.yml. Not run on the NAS -- only Darrell's own ssh can."
+    },
+    {
+      "id": "ll336-the-lie-the-fear-and-the-last-adam",
+      "date": "2026-11-19",
+      "task": "L336 The Lie, the Fear, and the Last Adam, from a summary of a talk on sin as broken trust, the true part affirmed and the over-reach corrected from the Word, all four age bands, shared gate",
+      "drs": [
+        "DR-1582"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.3,
+      "estimateWithoutAiHours": 24,
+      "notes": "Reserved L336 and DR-1582 on origin with new-lesson.mjs. 294 verse tokens filled from app/public/bible/kjv, none typed. Video not watched; speaker unnamed in the summary and in the lesson; gate 9 of 9 on the first run; re-review 2026-12-19."
     }
   ]
 }

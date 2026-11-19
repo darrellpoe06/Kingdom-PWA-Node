@@ -365,12 +365,22 @@ try {
   //      (the words are chrome-capped; the page scales, the bar does not).
   //  18. NOTHING OVERFLOWS the page; the sub-tab strip, where drawn, is a
   //      scroll box with its Show-all when it overflows.
-  // Selftest: the brand name and the search control are hidden; 15 and 16
-  // MUST trip.
+  //  19. THE NAME SITS UNDER NO CONTROL (DR-1579) — the painted name and
+  //      tagline (their glyph runs, clipped to their own boxes) overlap no
+  //      header control. Measured before the fix: the name ran 36px under
+  //      the Aa button at 360px, signed in and out, from 320 to 412px.
+  //  20. EVERY CONTROL STAYS A BUTTON (DR-1579) — each header control is at
+  //      least 36px both ways at every text size. The bar is a chrome region
+  //      (zoomed back by the text-size step), so a size in px SHRINKS: the
+  //      menu, Aa and search buttons measured 20px at Largest and 13px at
+  //      Big Print. Under 360px search rides the menu's sheet (its first
+  //      field) and is not required on the bar.
+  // Selftest: the brand name and the search control are hidden and the round
+  // buttons are forced to 13px; 15, 16 and 20 MUST trip.
   // ---------------------------------------------------------------------------
   const ONE_TAB_CASES = SELFTEST
     ? [{ width: 1812, size: 'normal' }]
-    : [{ width: 320, size: 'normal' }, { width: 390, size: 'normal' }, { width: 1812, size: 'normal' }, { width: 390, size: 'largest' }, { width: 1812, size: 'bigprint' }];
+    : [{ width: 320, size: 'normal' }, { width: 360, size: 'normal' }, { width: 390, size: 'normal' }, { width: 412, size: 'normal' }, { width: 1812, size: 'normal' }, { width: 390, size: 'largest' }, { width: 360, size: 'bigprint' }, { width: 768, size: 'largest' }, { width: 1812, size: 'bigprint' }];
   let oneTabTripped = 0;
   let oneTabMeasured = 0;
   for (const { width, size } of ONE_TAB_CASES) {
@@ -385,7 +395,7 @@ try {
     await page.waitForSelector('[data-testid="lovecorner-header"]', { timeout: 20000 }).catch(() => {});
     if (SELFTEST) {
       // The break: the name gone and the search control gone; 15 and 16 MUST trip.
-      await page.addStyleTag({ content: '[data-testid="lovecorner-header"] .lch-name { display: none !important } [data-testid="lovecorner-header"] [data-testid="lch-search"] { display: none !important }' });
+      await page.addStyleTag({ content: '[data-testid="lovecorner-header"] .lch-name { display: none !important } [data-testid="lovecorner-header"] [data-testid="lch-search"] { display: none !important } [data-testid="lovecorner-header"] .lch-ic { width: 13px !important; height: 13px !important }' });
       await page.evaluate(() => new Promise((r) => setTimeout(r, 100)));
     }
     const om = await page.evaluate(() => {
@@ -401,13 +411,37 @@ try {
       const q = (sel) => header.querySelector(sel);
       const bar = q('.lch-bar');
       const strip = q('[data-testid="lch-strip"] .tab-scroll');
+      // What is PAINTED of a line of words: its glyph run, clipped to its own box.
+      const painted = (el) => {
+        if (!el || !el.firstChild) return null;
+        const range = document.createRange(); range.selectNodeContents(el);
+        const g = range.getBoundingClientRect(); const b = el.getBoundingClientRect();
+        const r = { left: Math.max(g.left, b.left), right: Math.min(g.right, b.right), top: Math.max(g.top, b.top), bottom: Math.min(g.bottom, b.bottom) };
+        return r.right - r.left > 0 && r.bottom - r.top > 0 ? r : null;
+      };
+      const words = [['name', painted(q('.lch-name'))], ['tagline', painted(q('.lch-tag'))]].filter(([, r]) => r);
+      const under = [];
+      const small = [];
+      for (const el of header.querySelectorAll('.lch-bar button')) {
+        if (el.matches('[data-testid="lch-brand"]')) continue;
+        const r = el.getBoundingClientRect();
+        if (!r.width || !r.height) continue;
+        const what = (el.getAttribute('data-testid') || el.getAttribute('aria-label') || 'button').slice(0, 20);
+        if (r.width < 35.5 || r.height < 35.5) small.push(`${what} ${Math.round(r.width)}x${Math.round(r.height)}px`);
+        for (const [k, w] of words) {
+          const x = Math.min(r.right, w.right) - Math.max(r.left, w.left);
+          const y = Math.min(r.bottom, w.bottom) - Math.max(r.top, w.top);
+          if (x > 1 && y > 1) under.push(`the ${k} is ${Math.round(x)}px under ${what}`);
+        }
+      }
       return {
+        under, small,
         vw,
         size: document.documentElement.getAttribute('data-text-size'),
         brand: onScreen(q('[data-testid="lch-brand"] img')) && onScreen(q('[data-testid="lch-brand"] .lch-name')),
         controls: {
           menu: onScreen(q('[data-testid="lch-menu"]')),
-          search: onScreen(q('[data-testid="lch-search"]')),
+          search: vw < 360 ? true : onScreen(q('[data-testid="lch-search"]')),
           bell: onScreen(q('[data-testid="lch-bell"] button')),
           account: onScreen(q('[data-testid="lch-signin"]')) || onScreen(q('[data-testid="lch-avatar"]')),
         },
@@ -425,13 +459,15 @@ try {
     if (!om.brand) fail(`${owhere}: the brand (logo and name) is not on screen (DR-1483)`);
     for (const [k, ok] of Object.entries(om.controls)) if (!ok) fail(`${owhere}: the ${k} control is not on screen (DR-1483)`);
     if (om.barH > 80) fail(`${owhere}: the header bar is ${om.barH}px tall — chrome is capped at every text size (UX-PATTERNS 2b)`);
+    for (const u of om.under) fail(`${owhere}: ${u} (DR-1579)`);
+    for (const c of om.small) fail(`${owhere}: a header control is not a full button — ${c}; 36px is the floor at every text size (DR-1579)`);
     if (om.overflow) fail(`${owhere}: the header or the page overflows horizontally`);
     if (om.strip && om.strip.scroll > om.strip.client + 4 && !om.strip.showAll) fail(`${owhere}: the sub-tab strip overflows (${om.strip.scroll} > ${om.strip.client}) and offers no Show-all control`);
     if (failures === obefore) console.log(`door-header ok  ${owhere} — brand and every control on screen, bar ${om.barH}px, no overflow${om.strip ? `, strip ${om.strip.scroll}/${om.strip.client}` : ''}`);
     else oneTabTripped += failures - obefore;
   }
   if (!SELFTEST && oneTabMeasured !== ONE_TAB_CASES.length) fail(`coverage: ${oneTabMeasured}/${ONE_TAB_CASES.length} door-header cases measured`);
-  if (SELFTEST && oneTabTripped < 2) fail(`selftest: the door-header break tripped ${oneTabTripped} invariants, expected at least 2 — the pass is theater`);
+  if (SELFTEST && oneTabTripped < 3) fail(`selftest: the door-header break tripped ${oneTabTripped} invariants, expected at least 3 — the pass is theater`);
   // ---------------------------------------------------------------------------
   // LESSON READING pass (DR-0406) — the lesson column is MEASURED at the width
   // a reader gets, and nothing is boxed inside a sentence.
