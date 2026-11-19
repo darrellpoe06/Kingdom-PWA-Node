@@ -16,15 +16,15 @@ The newsletter's lead story was a health reporter's own turn at midlife: she not
 
 | what | measured |
 | --- | --- |
-| verses | 133 quoted spans filled by `fill-verses.mjs` from `app/public/bible/kjv`; 0 verse faults; 0 double-quoted spans without a reference |
-| length | adult prose 877 words (quotes excluded); band shares child 0.62, youth 0.66, teen 0.68, senior 0.76 |
-| reading ladder | child 1.5, youth 3.2, teen 4.1, senior 6.5 |
+| verses | 148 quoted spans filled by `fill-verses.mjs` from `app/public/bible/kjv`; 0 verse faults; 0 double-quoted spans without a reference |
+| length | adult 1,609 words with quotations (reader-length band 1,500 to 3,500; a first draft at 1,365 failed `new-lessons-keep-a-reader-length` and was taught longer, not padded), 1,005 prose; band shares child 0.60, youth 0.66, teen 0.68, senior 0.73 |
+| reading ladder | child 1.4, youth 3.2, teen 4.3, senior 6.6 |
 | band overlap | worst pair 0.02 |
 | provenance | the arts study, strengths survey, pleasure self-check and dream research are REPORTED only (no study opened); a lasting loss of pleasure as a warning sign for a doctor is stated as ESTABLISHED |
 
 ## Impact
 
-The middle of life is taught as obedience, not reinvention: the promise at forty (Joshua 14:7; Numbers 13:30; 14:24), the forty-five years called kept (Joshua 14:10), the same strength at eighty-five from Yahweh (Joshua 14:11; Isaiah 40:31; 46:4), the ask for the hardest ground already promised (Joshua 14:12; 15:14), the set-aside gift used for others (1 Peter 4:10; Matthew 25:25), and the worn-out servant fed and rested before he is sent (1 Kings 19:4-7; Mark 6:31). Every band carries the three talk-together directions.
+The middle of life is taught as obedience, not reinvention: the promise at forty (Joshua 14:7; Numbers 13:30; 14:24), the forty-five years called kept (Joshua 14:10), the same strength at eighty-five from Yahweh (Joshua 14:11; Isaiah 40:31; 46:4), the ask for the hardest ground already promised (Joshua 14:12; 15:14), the set-aside gift used for others (1 Peter 4:10; Matthew 25:25), the inheritance named for the children (Joshua 14:9; Deuteronomy 1:36; Joshua 15:17-19; Proverbs 13:22), and the worn-out servant fed and rested before he is sent (1 Kings 19:4-7; Mark 6:31). Every band carries the three talk-together directions.
 
 ## Decision
 
