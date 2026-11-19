@@ -29,6 +29,9 @@ import {
   SUGGESTION_MAX,
 } from '../../lib/church-calendar.js';
 
+// The ring's width and offset; its colour is the app's one global ring (index.css :focus-visible), never set here.
+const FOCUS = 'focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2';
+
 const NEW_IDEA = 'A new idea';
 const ago = (n) => (n === 1 ? 'last year' : `${n} years ago`);
 
@@ -120,7 +123,7 @@ export default function ChurchCalendarPlanning({ events = [], todayKey, signedIn
             <span>Your name (optional)</span>
             <input value={from} onChange={(e) => setFrom(e.target.value)} maxLength={80} data-testid="church-calendar-suggest-from" />
           </label>
-          <button type="submit" className="cc-btn cc-btn-solid" data-testid="church-calendar-suggest-send">
+          <button type="submit" className={`cc-btn cc-btn-solid ${FOCUS}`} data-testid="church-calendar-suggest-send">
             Send it
           </button>
           <p className="cc-note">It goes to the church app’s feedback list, the same one the Feedback button uses, where it is read and answered.</p>
