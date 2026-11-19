@@ -85,7 +85,7 @@ def plan(ep, tim):
         dur = LEAD + sum(x["seconds"] for x in ls) + GAP * max(0, len(ls) - 1) + TAIL
         dur = max(dur, 5.0)
         start = t
-        cur = start + LEAD
+        cur = LEAD  # line times are relative to the beat's own start (mix and vtt add the start once)
         placed = []
         for x in ls:
             placed.append({**x, "at": round(cur, 3)})
