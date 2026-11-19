@@ -103,6 +103,7 @@ export default function OpenerButton({ rows = undefined, fetchImpl = null }) {
 
   const beginHold = useCallback(() => {
     if (!offer) return;
+    if (timer.current) return; // a running hold is kept; a repeated keydown must not restart it
     const at = Date.now();
     setProgress(0);
     setSaid('');

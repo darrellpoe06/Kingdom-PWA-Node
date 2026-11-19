@@ -73,11 +73,11 @@ const HEADER_SCAN_LINES = 10;
 
 // lines: the file's non-empty lines. Returns { headerRow, headers, idx, errors }
 // — errors non-empty when no usable header exists in the scanned window.
-export function findStatementHeader(lines) {
+export function findStatementHeader(lines, delim = detectDelimiter(lines)) {
   let best = null;
   const limit = Math.min(lines.length, HEADER_SCAN_LINES);
   for (let row = 0; row < limit; row += 1) {
-    const cells = parseCsvLine(lines[row]).map((h) => String(h || '').toLowerCase());
+    const cells = parseCsvLine(lines[row], delim).map((h) => String(h || '').toLowerCase());
     const idx = {};
     for (const [kind, re] of Object.entries(HEADER_MATCHERS)) {
       idx[kind] = cells.findIndex((c) => re.test(c));
@@ -141,7 +141,25 @@ export async function statementFileToCsv(file) {
 // bulk importer (many files at once) can reuse the SAME proven mapping per file.
 // Returns { rows: [{date, description, amount, category, ok}], headers, errors }.
 // -----------------------------------------------------------------------------
-export function parseCsvLine(line) {
+// The separator a delimited file uses: a tab when its first lines carry more
+// tabs than commas (a .tsv, or Chase's tab-separated download), else a comma
+// (Christina 2026-11-18: a Chase 7206 TSV read every row as "unreadable date"
+// because each line was one comma-less cell). Counted outside quotes.
+export function detectDelimiter(lines) {
+  let tabs = 0;
+  let commas = 0;
+  for (const line of (lines || []).slice(0, 10)) {
+    let inQ = false;
+    for (const ch of String(line)) {
+      if (ch === '"') inQ = !inQ;
+      else if (!inQ && ch === '\t') tabs += 1;
+      else if (!inQ && ch === ',') commas += 1;
+    }
+  }
+  return tabs > commas ? '\t' : ',';
+}
+
+export function parseCsvLine(line, delim = ',') {
   const out = [];
   let cur = '';
   let inQ = false;
@@ -152,7 +170,7 @@ export function parseCsvLine(line) {
         if (line[i + 1] === '"') { cur += '"'; i += 1; } else inQ = false;
       } else cur += ch;
     } else if (ch === '"') inQ = true;
-    else if (ch === ',') { out.push(cur); cur = ''; } else cur += ch;
+    else if (ch === delim) { out.push(cur); cur = ''; } else cur += ch;
   }
   out.push(cur);
   return out.map((s) => s.trim());
@@ -258,7 +276,8 @@ export function parseDelimitedToRows(text, { flipSign = false } = {}) {
   if (!text || !text.trim()) return { rows: [], headers: [], errors: ['File is empty.'] };
   const lines = text.split(/\r?\n/).filter((l) => l.trim().length > 0);
   if (lines.length === 0) return { rows: [], headers: [], errors: ['File is empty.'] };
-  const { headerRow, headers, idx } = findStatementHeader(lines);
+  const delim = detectDelimiter(lines);
+  const { headerRow, headers, idx } = findStatementHeader(lines, delim);
   const dataLines = lines.slice(headerRow + 1);
   const errors = [];
   if (idx.date === -1) errors.push('No Date column found.');
@@ -276,7 +295,7 @@ export function parseDelimitedToRows(text, { flipSign = false } = {}) {
   const rows = [];
   const rejected = [];
   dataLines.forEach((line, i) => {
-    const cells = parseCsvLine(line);
+    const cells = parseCsvLine(line, delim);
     const date = normalizeDate(cells[idx.date] || '');
     const desc = cells[idx.desc] || '';
     let amt = 0;
