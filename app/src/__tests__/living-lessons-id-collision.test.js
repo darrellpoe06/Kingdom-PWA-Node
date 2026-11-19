@@ -40,16 +40,24 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { join } from 'node:path';
 import { LIVING_LESSONS_MODULES, LIVING_LESSONS_META } from '../lib/living-lessons-class.js';
-import { reservedNumbersOnOrigin, holesNotReserved } from '../../../scripts/lib/reserve-ref.mjs';
+import { reservedNumbersOnOrigin, landedLessonNumbersOnOrigin, holesNotReserved } from '../../../scripts/lib/reserve-ref.mjs';
+import { LIVING_LESSONS_DIR_REL } from '../../../scripts/lib/living-lesson-files.mjs';
 
 // A number reserved on origin (refs/heads/reserve/ll-NNN, DR-1468) is a lesson
 // in flight on its own branch, not a skip (DR-1477): lessons land in any order.
 // Read the way new-lesson.mjs reads them, origin first; offline it excuses none.
 const REPO = join(__dirname, '..', '..', '..');
 let RESERVED = { numbers: new Set(), source: 'none', reason: 'not read yet' };
+// A number main ALREADY CARRIES is not a skip either. Its reservation is swept
+// when it lands, so a branch cut before that landing read it as a hole nobody
+// held, and every open lesson branch went red each time another lesson landed
+// (L324 at 02:25Z and L325 at 03:21Z on 2026-11-19). Read from origin's main;
+// offline it excuses none.
+let LANDED = { numbers: new Set(), source: 'none', reason: 'not read yet' };
 beforeAll(() => {
   RESERVED = reservedNumbersOnOrigin({ kind: 'll', cwd: REPO });
-}, 30_000);
+  LANDED = landedLessonNumbersOnOrigin({ dir: LIVING_LESSONS_DIR_REL, cwd: REPO });
+}, 60_000);
 
 const ID_SHAPE = /^ll(\d+)-[a-z0-9-]+$/;
 
@@ -163,11 +171,12 @@ describe('the numbering gaps are recorded, not hidden — shrink-only ratchet', 
     const highest = Math.max(...claimed);
     const missing = [];
     for (let n = 1; n <= highest; n += 1) if (!claimed.has(n)) missing.push(n);
-    const { holes } = holesNotReserved(missing.filter((n) => !KNOWN_MISSING.includes(n)), RESERVED.numbers);
+    const accounted = new Set([...RESERVED.numbers, ...LANDED.numbers]);
+    const { holes } = holesNotReserved(missing.filter((n) => !KNOWN_MISSING.includes(n)), accounted);
     const unexplained = [...missing.filter((n) => KNOWN_MISSING.includes(n)), ...holes].sort((a, b) => a - b);
     expect(
       unexplained,
-      `unrecorded gap(s) in the lesson numbering — a session skipped a number: ${holes.join(', ')} (reservations read from ${RESERVED.source})`,
+      `unrecorded gap(s) in the lesson numbering — a session skipped a number: ${holes.join(', ')} (reservations read from ${RESERVED.source}; main read from ${LANDED.source})`,
     ).toEqual(KNOWN_MISSING);
   });
 
@@ -225,6 +234,31 @@ describe('PROVEN-TO-CATCH — the gate fails on the exact 2026-09-02 collision',
     expect(holesNotReserved(missing, new Set()).holes).toEqual([307]);
     expect(holesNotReserved(missing, new Set([307])).holes).toEqual([]);
     expect(holesNotReserved(missing, new Set([306, 308])).holes, 'a neighbour’s reservation excuses nothing').toEqual([307]);
+  });
+
+  it('PROVEN TO CATCH: a number main already carries is read from origin and is not a hole; a failed read excuses none', () => {
+    const calls = [];
+    const run = (args) => {
+      calls.push(args.join(' '));
+      if (args[0] === 'rev-parse') return 'true\n';
+      if (args[0] === 'fetch') return '';
+      return ['app/src/lib/living-lessons/ll323-a.js', 'app/src/lib/living-lessons/ll324-b.js', 'app/src/lib/living-lessons/ll325-c-d.js', 'app/src/lib/living-lessons/README.md'].join('\n');
+    };
+    const landed = landedLessonNumbersOnOrigin({ dir: 'app/src/lib/living-lessons', run });
+    expect([...landed.numbers]).toEqual([323, 324, 325]);
+    expect(landed.source).toBe('origin');
+    // A shallow checkout (CI) is fetched at depth 1; a full clone is never made shallow.
+    expect(calls[1]).toContain('--depth=1');
+    const full = [];
+    landedLessonNumbersOnOrigin({ dir: 'x', run: (a) => { full.push(a.join(' ')); return a[0] === 'rev-parse' ? 'false\n' : ''; } });
+    expect(full[1]).not.toContain('--depth');
+    // The branch is behind main by one landed lesson: 325 is not a hole, 326 still is.
+    expect(holesNotReserved([325, 326], new Set()).holes).toEqual([325, 326]);
+    expect(holesNotReserved([325, 326], landed.numbers).holes).toEqual([326]);
+    // Offline, or a refused fetch: nothing is excused.
+    const offline = landedLessonNumbersOnOrigin({ dir: 'x', run: () => { throw new Error('could not resolve host'); } });
+    expect([...offline.numbers]).toEqual([]);
+    expect(offline.source).toBe('none');
   });
 
   it('CATCHES an id that is not shaped like a lesson id at all', () => {
