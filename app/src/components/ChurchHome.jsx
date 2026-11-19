@@ -34,7 +34,7 @@ import ScriptureLibrary from './ScriptureLibrary.jsx';
 import AuthModal from './AuthModal.jsx';
 import { motionBehavior } from '../lib/gentle-motion.js';
 import LoveCornerHome from './lovecorner/LoveCornerHome.jsx';
-import { subscribeChurchHomeSection, takePendingChurchHomeSection, publishChurchHomeSection } from '../lib/church-home-section.js';
+import { subscribeChurchHomeSection, takePendingChurchHomeSection, publishChurchHomeSection, subscribeChurchHomeTop } from '../lib/church-home-section.js';
 import { ChurchGivingChannels } from './ChurchGiving.jsx';
 import { markArrivalsSeen, SCREEN_KINDS } from '../lib/arrivals.js';
 import ChurchOfficeBoard, { useChurchSite } from './lovecorner/ChurchOfficeBoard.jsx';
@@ -79,11 +79,30 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
   // was right and the reader was still at the top of the hero.
   const [askedFor] = useState(() => takePendingChurchHomeSection() || initialSection || null);
   const [section, setSection] = useState(askedFor || 'worship');
-  // The bar reads which section is open (DR-1484); cleared when this home leaves the screen.
+  // WHAT THE BAR IS TOLD IS WHERE THE READER WENT, NOT WHAT THE PAGE DEFAULTS
+  // TO (DR-1579). The strip always has an open section (Worship, by default),
+  // and publishing that default lit WATCH in the bottom bar on a page nobody
+  // had moved: Darrell's screenshot, the Welcome hero at the top and Watch
+  // boxed as selected. A section is published only once the reader asked for
+  // it or tapped it; a page on its own default publishes none, and Home lights.
+  const [chosen, setChosen] = useState(!!askedFor);
+  const pickSection = useCallback((id) => {
+    setChosen(true);
+    setSection(id);
+  }, []);
   useEffect(() => {
-    publishChurchHomeSection(section);
+    publishChurchHomeSection(chosen ? section : null);
     return () => publishChurchHomeSection(null);
-  }, [section]);
+  }, [section, chosen]);
+  // Home (the bar, the logo, the name) puts the page back as it opens.
+  useEffect(
+    () =>
+      subscribeChurchHomeTop(() => {
+        setChosen(false);
+        setSection(initialSection || 'worship');
+      }),
+    [initialSection]
+  );
   // A DOOR LANDS YOU ON THE THING IT NAMES (Darrell 2026-11-13, from the live
   // Love Corner front door): "When pushing latest message we should open to the
   // space with it... All buttons should work and go to the space it's
@@ -113,10 +132,10 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
     () =>
       subscribeChurchHomeSection((id) => {
         if (!id) return;
-        setSection(id);
+        pickSection(id);
         arriveAtSection();
       }),
-    [arriveAtSection]
+    [arriveAtSection, pickSection]
   );
   // The mount road (a launch target's `initialSection`, or a request made
   // before this component existed) arrives the same way. A page that opens on
@@ -1161,7 +1180,7 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
       )}
 
       <div ref={sectionStripRef} data-testid="church-section-strip">
-        <SectionTabs sections={sections} ariaLabel="Church" idBase="church" defaultId={initialSection || 'worship'} activeId={section} onActiveChange={setSection} />
+        <SectionTabs sections={sections} ariaLabel="Church" idBase="church" defaultId={initialSection || 'worship'} activeId={section} onActiveChange={pickSection} />
       </div>
     </div>
   );
