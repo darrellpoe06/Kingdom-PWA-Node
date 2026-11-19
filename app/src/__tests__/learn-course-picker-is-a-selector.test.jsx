@@ -27,6 +27,7 @@ import React from 'react';
 import ChurchLearn from '../components/ChurchLearn.jsx';
 import { rememberedCourseKey, rememberCourseKey, COURSE_MEMORY_KEY } from '../lib/learn-organize.js';
 import { recordPlace, clearPlace } from '../lib/learn-resume.js';
+import { openLessonsArea } from './helpers/learn-areas.js';
 
 let container; let root;
 
@@ -42,7 +43,7 @@ afterEach(() => {
   window.localStorage.clear();
 });
 
-const mount = (props = {}) => act(() => root.render(React.createElement(ChurchLearn, {
+const mountRaw = (props = {}) => act(() => root.render(React.createElement(ChurchLearn, {
   progress: {},
   recordProgress: () => {},
   quizState: {},
@@ -53,6 +54,12 @@ const mount = (props = {}) => act(() => root.render(React.createElement(ChurchLe
   setAgeBand: () => {},
   ...props,
 })));
+// Learn opens on Latest (DR-1606): the reader's first tap is the Lessons tab.
+const mount = (...args) => {
+  const out = mountRaw(...args);
+  openLessonsArea();
+  return out;
+};
 
 const picker = () => container.querySelector('#learn-course-pick');
 const prompt = () => picker().querySelector('option[value=""]');

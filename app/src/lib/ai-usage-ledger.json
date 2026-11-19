@@ -1674,6 +1674,21 @@
       "notes": "Darrell: why can't a system be built to support this?"
     },
     {
+      "id": "test-waits-as-long-as-its-script",
+      "date": "2026-11-19",
+      "task": "research-answered-on-the-nas.test.js takes its child script's 60 s bound; reproduced under CPU contention and proven both ways; 29 sibling files measured",
+      "drs": [
+        "DR-1608"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.3,
+      "estimateWithoutAiHours": 2,
+      "notes": ""
+    },
+    {
       "id": "dr-1406-pace-and-depth-sustained",
       "date": "2026-11-10",
       "task": "Pace and depth stopped being overwritten by the household snapshot: device-personal, never pushed, stripped on pull; pinned by a test",
@@ -2151,6 +2166,21 @@
       "wallClockHours": 1.2,
       "estimateWithoutAiHours": 8,
       "notes": "Darrell: the months are not populating in the next month (Migdal screenshot)"
+    },
+    {
+      "id": "standing-load-proposed",
+      "date": "2026-11-19",
+      "task": "Measured the runner pool's standing load (39 scheduled workflows, the workflow_run heals, Auto-merge's poll) and proposed six Tier C trims",
+      "drs": [
+        "DR-1604"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.4,
+      "estimateWithoutAiHours": 4,
+      "notes": ""
     },
     {
       "id": "dr-1428-two-apps-one-catalog",
@@ -2712,6 +2742,21 @@
       "notes": "Darrell's two screenshots from the Teams tab: a strip of empty squares under a 33-picture note, and an orange frame around the tapped card. Both read from the code: per-id thumbnail asks and a focus: ring on a touch target."
     },
     {
+      "id": "lane-rules-in-context",
+      "date": "2026-11-19",
+      "task": "The delivery lane's rules as one section of docs/CONTEXT.md, with the session note of measurements",
+      "drs": [
+        "DR-1605"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.3,
+      "estimateWithoutAiHours": 3,
+      "notes": ""
+    },
+    {
       "id": "love-corner-front-door-2026-11-12",
       "date": "2026-11-12",
       "task": "The Love Corner redesign: the mockup and plan (PR #2642), then Phase 0 and 1 built on approval - the measured red/black/white/gold palette, the real logo and Bishop Gwin's portrait at web sizes, the front door above the Church home, one list of Church sub-tabs for strip, bar and More sheet, and the TLC Theological Institute card and Slice A landing",
@@ -2889,6 +2934,21 @@
       "wallClockHours": 0.5,
       "estimateWithoutAiHours": 9,
       "notes": "Darrell, spoken: how can someone be good and do nothing at the same time?"
+    },
+    {
+      "id": "ledger-rows-placed",
+      "date": "2026-11-19",
+      "task": "INDEX rows placed off the tail (scripts/index-row.mjs) and tail guards for INDEX and the usage ledger; merge=union tested on GitHub and refuted; placed rows proven to merge on two throwaway PRs",
+      "drs": [
+        "DR-1602"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.6,
+      "estimateWithoutAiHours": 6,
+      "notes": ""
     },
     {
       "id": "dr-1464-ll304-what-righteousness-is",
@@ -3444,6 +3504,21 @@
       "wallClockHours": 1.5,
       "estimateWithoutAiHours": 40,
       "notes": "Gmail thread 1a1885689c5c2ffc, forwarded 2026-10-29T18:38Z (1:38 PM CDT), built 2026-11-13 from the intake backlog. Preview only: blog.bytebytego.com and bytebytego.substack.com refused (403 CONNECT), nothing attributed to the article, re-review 2026-11-27. 43 anchor references, 161 quoted spans, every verse filled from app/public/bible/kjv by scripts/sov82-fill.mjs and none typed. Our own data movement measured and pinned against its source files: 37 postgres_changes listener files, signal-then-read messages with a 15s heartbeat, 5-min Inbound poll, site checker ~67 min measured, ten unpublished tables (June), push_outbox."
+    },
+    {
+      "id": "ci-runs-only-needed-legs",
+      "date": "2026-11-19",
+      "task": "Path-scoped CI legs: a classify job and scripts/ci-legs.mjs skip the PostgreSQL walls, door journeys and (unless the course is pinned) the layout probe for lesson-only pushes; the aggregator accepts only named skips",
+      "drs": [
+        "DR-1601"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.2,
+      "estimateWithoutAiHours": 10,
+      "notes": ""
     },
     {
       "id": "sov83-that-they-may-continue-many-days",
@@ -4093,6 +4168,21 @@
       "wallClockHours": 1.4,
       "estimateWithoutAiHours": 10,
       "notes": ""
+    },
+    {
+      "id": "learn-opens-on-latest",
+      "date": "2026-11-19",
+      "task": "Learn opened on the course list, which asks a newcomer to choose first; it now opens on Latest on every visit",
+      "drs": [
+        "DR-1606"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.3,
+      "estimateWithoutAiHours": 2,
+      "notes": "One-course readers keep the lessons (no strip). Proven to catch: the old first area fails two mounted cases."
     }
   ]
 }
