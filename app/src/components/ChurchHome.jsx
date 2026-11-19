@@ -36,6 +36,7 @@ import { motionBehavior } from '../lib/gentle-motion.js';
 import LoveCornerHome from './lovecorner/LoveCornerHome.jsx';
 import { subscribeChurchHomeSection, takePendingChurchHomeSection, publishChurchHomeSection, subscribeChurchHomeTop } from '../lib/church-home-section.js';
 import { ChurchGivingChannels } from './ChurchGiving.jsx';
+import { markArrivalsSeen, SCREEN_KINDS } from '../lib/arrivals.js';
 import ChurchOfficeBoard, { useChurchSite } from './lovecorner/ChurchOfficeBoard.jsx';
 
 // serviceDate — a feed's ISO `published` as a short calendar date; '' when it
@@ -653,6 +654,7 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
                       type="button"
                       onClick={() => {
                         setChosenVideoId(v.videoId);
+                        markArrivalsSeen(SCREEN_KINDS.church); // playing a recording is looking at it
                         openFloating({ src: worshipPlayerSrc(liveChannelId, v.videoId), title: v.title || 'Past service' });
                       }}
                       className="flex items-center gap-3 flex-1 min-w-0 text-left group focus:outline focus:outline-2 focus:outline-[#B85838]"

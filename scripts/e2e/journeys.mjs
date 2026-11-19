@@ -60,6 +60,17 @@ export const JOURNEYS = Object.freeze([
     what: 'the Create station accepts typed words in the one-voice input and arms Send',
   },
   { id: 'feedback-sheet-opens', runner: 'app-journeys', family: 'top', status: 'active', what: "the dock's Feedback control opens a sheet that takes words" },
+  // Signed in: the runner's stand-in (a minted local session for a fictitious
+  // business-tier person, answered by a stub, never a real account or secret;
+  // scripts/e2e/app-journeys.mjs header). Built 2026-11-19 from its deferral.
+  {
+    id: 'office-assistant-answers',
+    runner: 'app-journeys',
+    family: 'top',
+    module: 'office-assistant',
+    status: 'active',
+    what: 'a signed-in business-tier stand-in opens the TLC Assistant: it mounts with its daily report, and an idea typed into Content is listed back',
+  },
 
   // ── the real schema (scripts/e2e/door-journeys.mjs, DR-0934) ─────────────
   {
@@ -69,17 +80,6 @@ export const JOURNEYS = Object.freeze([
     module: 'properties',
     status: 'active',
     what: 'a stranger books two nights, the family confirms and records money, the next guest finds the nights dark, pictures and the public wall (A1..W1, L1)',
-  },
-
-  // ── deferred, with the date that fires (DR-0075) ─────────────────────────
-  {
-    id: 'office-assistant-answers',
-    runner: 'app-journeys',
-    family: 'top',
-    module: 'office-assistant',
-    status: 'deferred',
-    why: "the TLC Assistant mounts only for a family or business-tier sign-in; the dist-only runner walks signed out, and the signed-in stand-in (a minted JWT, as door-journeys does) is the next increment of the app runner. Re-dated 2026-11-19, when the date reached its day unbuilt and turned every branch red: the build is handed to its own session the same hour, and this date is that build's deadline, not a parking spot",
-    reReview: '2026-11-26',
   },
 ]);
 
