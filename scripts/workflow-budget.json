@@ -216,7 +216,7 @@
       "from": 23276,
       "to": 23279,
       "dr": "DR-1591",
-      "reason": "0337's smoke must be run by a leg (rls-isolation-matrix-guard refuses an orphan smoke): a three-line person-doors leg in rls-isolation.yml with no comment, the walls named in the smoke's own header and DR-1591. Raised to the measured total, not above it."
+      "reason": "0339's smoke must be run by a leg (rls-isolation-matrix-guard refuses an orphan smoke): a three-line person-doors leg in rls-isolation.yml with no comment, the walls named in the smoke's own header and DR-1591. Raised to the measured total, not above it."
     }
   ],
   "totalLines": 23279

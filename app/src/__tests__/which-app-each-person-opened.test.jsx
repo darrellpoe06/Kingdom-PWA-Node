@@ -56,7 +56,7 @@ describe('the door on every usage row (usage-events)', () => {
     expect(ok.inserted[0]).toMatchObject({ kind: 'view', name: 'books' });
     expect(typeof ok.inserted[0].door).toBe('string');
 
-    // PROVEN TO CATCH: before 0337 applies, a row with a door is refused; the
+    // PROVEN TO CATCH: before 0339 applies, a row with a door is refused; the
     // usage must still be written, without the door, and not lost.
     const old = fakeClient({ failDoorColumn: true });
     expect(await m.insertUsageRow({ kind: 'view', name: 'books' }, old)).toBe(true);

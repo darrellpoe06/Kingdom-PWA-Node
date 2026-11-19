@@ -4,7 +4,7 @@
 **Status:** Accepted
 **Tier:** B (additive schema: one nullable column, one governor-only read; the Signups screen gains a line)
 **Type:** feature
-**Area:** `usage_events` (0337), `app/src/lib/usage-events.js`, `app/src/lib/person-onboarding.js`, `app/src/main.jsx`, Admin > Users & usage > Signups
+**Area:** `usage_events` (0339), `app/src/lib/usage-events.js`, `app/src/lib/person-onboarding.js`, `app/src/main.jsx`, Admin > Users & usage > Signups
 **Pairs with:** DR-0843 (0259, when and by whom), DR-0840 (per-person usage), DR-1075 (our probe is not a person), DR-0076 (no painted numbers), DR-1592 (did they get in, and who needs help)
 
 ## Context
@@ -31,11 +31,11 @@ Nothing is removed: every chip, the sort, Mask emails, Refresh, Add to a space a
 
 ## Safety on the way in
 
-A build can reach a person before the lane applies 0337. The insert carries the door; on the one error that names the missing column, the row is written again without it and the page stops sending a door. A test proves the row is not lost.
+A build can reach a person before the lane applies 0339. The insert carries the door; on the one error that names the missing column, the row is written again without it and the page stops sending a door. A test proves the row is not lost.
 
 ## Verification
 
-- `infra/supabase/tests/0337-person-doors-smoke.sql` on PostgreSQL 16 in this sandbox, after 0337 applied twice: PERSON DOORS SMOKE: PASS. Proven to catch: with EXECUTE granted to anon it fails; with the untagged rows dropped from the read it fails on the person whose only rows are old; restored, it passes.
+- `infra/supabase/tests/0339-person-doors-smoke.sql` on PostgreSQL 16 in this sandbox, after 0339 applied twice: PERSON DOORS SMOKE: PASS. Proven to catch: with EXECUTE granted to anon it fails; with the untagged rows dropped from the read it fails on the person whose only rows are old; restored, it passes.
 - `which-app-each-person-opened.test.jsx`: 8 cases, including the missing-column fallback, once-per-person door rows, the calendar not counting door rows, and every existing chip and button still rendering.
 - Not verified against the live database from here: the sandbox has no route to the NAS. After merge, the lane's `db-migrate` run and the `person-doors` isolation leg are the receipts.
 

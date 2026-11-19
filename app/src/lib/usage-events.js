@@ -28,7 +28,7 @@ export function doorKeyHere(loc) {
   } catch { return null; }
 }
 
-// The column arrives with migration 0337, applied by the lane after merge. A
+// The column arrives with migration 0339, applied by the lane after merge. A
 // build that reaches a person before the column does must not lose their
 // usage: on the one error that names the missing column, the row is written
 // again without a door, and this page stops sending one.

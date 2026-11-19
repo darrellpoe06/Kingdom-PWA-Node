@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0337 — each visit says which app it was (DR-1591)
+-- 0339 — each visit says which app it was (DR-1591)
 -- =============================================================================
 -- Darrell, 2026-11-19, on Admin > Users & usage > Signups: "How do I know who
 -- signed up and if and when they got in? Coreyon is supposed to be using the
@@ -34,7 +34,7 @@
 --
 -- IDEMPOTENT: ADD COLUMN IF NOT EXISTS, the check dropped and re-added, CREATE
 -- INDEX IF NOT EXISTS, CREATE OR REPLACE FUNCTION, grants re-applied.
--- Smoke: infra/supabase/tests/0337-person-doors-smoke.sql (ROLLS BACK).
+-- Smoke: infra/supabase/tests/0339-person-doors-smoke.sql (ROLLS BACK).
 -- =============================================================================
 
 ALTER TABLE public.usage_events ADD COLUMN IF NOT EXISTS door text;
@@ -120,12 +120,12 @@ BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM information_schema.columns
      WHERE table_schema = 'public' AND table_name = 'usage_events' AND column_name = 'door'
-  ) THEN RAISE EXCEPTION '0337: usage_events.door is missing'; END IF;
+  ) THEN RAISE EXCEPTION '0339: usage_events.door is missing'; END IF;
   IF NOT EXISTS (
     SELECT 1 FROM pg_constraint WHERE conname = 'usage_events_door_shape'
-  ) THEN RAISE EXCEPTION '0337: the door shape check is missing'; END IF;
+  ) THEN RAISE EXCEPTION '0339: the door shape check is missing'; END IF;
   IF to_regprocedure('public.admin_person_doors()') IS NULL THEN
-    RAISE EXCEPTION '0337: admin_person_doors() is missing';
+    RAISE EXCEPTION '0339: admin_person_doors() is missing';
   END IF;
 END
 $chk$;

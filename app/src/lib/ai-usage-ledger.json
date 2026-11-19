@@ -2923,7 +2923,7 @@
     {
       "id": "person-doors-dr1591",
       "date": "2026-11-19",
-      "task": "Each visit says which app it was: usage_events.door (0337), a door row per signed-in boot including Poe Properties, the governor-only per-person app read, and an Apps line on every Signups row; smoke on PostgreSQL 16 proven to catch twice; existing chips and buttons pinned",
+      "task": "Each visit says which app it was: usage_events.door (0339), a door row per signed-in boot including Poe Properties, the governor-only per-person app read, and an Apps line on every Signups row; smoke on PostgreSQL 16 proven to catch twice; existing chips and buttons pinned",
       "drs": [
         "DR-1591"
       ],
