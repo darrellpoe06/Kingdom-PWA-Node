@@ -113,7 +113,7 @@ export function doorsView(record, since, nowMs, extraKeys = []) {
 }
 
 // =============================================================================
-// DID THEY GET IN (DR-1592): admin_person_sign_ins() (0338)
+// DID THEY GET IN (DR-1592): admin_person_sign_ins() (0340)
 // =============================================================================
 export function fetchPersonSignIns() {
   return governorRead('admin_person_sign_ins');

@@ -1,8 +1,8 @@
 -- =============================================================================
--- 0338 SMOKE — did they get in is on their row (DR-1592)
+-- 0340 SMOKE — did they get in is on their row (DR-1592)
 -- =============================================================================
 -- One transaction; ROLLS BACK. PASS prints 'PERSON SIGN-INS SMOKE: PASS'.
--- Needs: the door-work bootstrap, schema-v1 / v1.1 / v2.1, 0315, then 0338.
+-- Needs: the door-work bootstrap, schema-v1 / v1.1 / v2.1, 0315, then 0340.
 -- The bootstrap's auth.users is a minimal shape, so the GoTrue columns this
 -- read uses are added here (inside the rolled-back transaction), with
 -- GoTrue's own audit table and the invitations table in the shapes they have.
@@ -51,39 +51,39 @@ END
 $shape$;
 
 INSERT INTO auth.users (instance_id, id, aud, role, email, encrypted_password, created_at, updated_at, last_sign_in_at, recovery_sent_at) VALUES
-  ('00000000-0000-0000-0000-000000000000', '00000000-0000-4000-a000-0000000a0338', 'authenticated','authenticated','gov338@test.local',     '', now() - interval '90 days', now(), now() - interval '1 day', NULL),
+  ('00000000-0000-0000-0000-000000000000', '00000000-0000-4000-a000-0000000a0340', 'authenticated','authenticated','gov338@test.local',     '', now() - interval '90 days', now(), now() - interval '1 day', NULL),
   -- stuck: no space, a success 5 days ago, then three failures
-  ('00000000-0000-0000-0000-000000000000', '00000000-0000-4000-a000-0000000b0338', 'authenticated','authenticated','stuck338@test.local',   '', now() - interval '10 days', now(), now() - interval '5 days', NULL),
+  ('00000000-0000-0000-0000-000000000000', '00000000-0000-4000-a000-0000000b0340', 'authenticated','authenticated','stuck338@test.local',   '', now() - interval '10 days', now(), now() - interval '5 days', NULL),
   -- link: asked for a Royalty Link two days ago, never signed in
-  ('00000000-0000-0000-0000-000000000000', '00000000-0000-4000-a000-0000000c0338', 'authenticated','authenticated','link338@test.local',    '', now() - interval '3 days', now(), NULL, now() - interval '2 days'),
+  ('00000000-0000-0000-0000-000000000000', '00000000-0000-4000-a000-0000000c0340', 'authenticated','authenticated','link338@test.local',    '', now() - interval '3 days', now(), NULL, now() - interval '2 days'),
   -- otp: signed in by Royalty Link yesterday; GoTrue's log has it, last_sign_in_at lags
-  ('00000000-0000-0000-0000-000000000000', '00000000-0000-4000-a000-0000000d0338', 'authenticated','authenticated','otp338@test.local',     '', now() - interval '20 days', now(), now() - interval '9 days', NULL)
+  ('00000000-0000-0000-0000-000000000000', '00000000-0000-4000-a000-0000000d0340', 'authenticated','authenticated','otp338@test.local',     '', now() - interval '20 days', now(), now() - interval '9 days', NULL)
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO instances (id, slug, display_name, instance_type) VALUES
-  ('00000000-0000-4000-b000-000000010338', 'poe-family', 'Poe Family', 'family'),
-  ('00000000-0000-4000-b000-000000020338', 'poe-properties', 'Poe Properties', 'business')
+  ('00000000-0000-4000-b000-000000010340', 'poe-family', 'Poe Family', 'family'),
+  ('00000000-0000-4000-b000-000000020340', 'poe-properties', 'Poe Properties', 'business')
 ON CONFLICT DO NOTHING;
 INSERT INTO instance_members (instance_id, user_id, role, display_name)
-SELECT i.id, '00000000-0000-4000-a000-0000000a0338', 'member', 'Gov' FROM instances i WHERE i.slug = 'poe-family'
+SELECT i.id, '00000000-0000-4000-a000-0000000a0340', 'member', 'Gov' FROM instances i WHERE i.slug = 'poe-family'
 ON CONFLICT DO NOTHING;
 INSERT INTO instance_members (instance_id, user_id, role, display_name)
-SELECT i.id, '00000000-0000-4000-a000-0000000d0338', 'member', 'Otp' FROM instances i WHERE i.slug = 'poe-properties'
+SELECT i.id, '00000000-0000-4000-a000-0000000d0340', 'member', 'Otp' FROM instances i WHERE i.slug = 'poe-properties'
 ON CONFLICT DO NOTHING;
 
 -- The hook's rows for the person with no space: instance_id NULL, as 0315 writes them.
 INSERT INTO audit_log (instance_id, user_id, action, entity_type, entity_id, note, at) VALUES
-  (NULL, '00000000-0000-4000-a000-0000000b0338', 'failed-auth', 'auth', '00000000-0000-4000-a000-0000000b0338', 'password verification attempt', now() - interval '6 days'),
-  (NULL, '00000000-0000-4000-a000-0000000b0338', 'login',       'auth', '00000000-0000-4000-a000-0000000b0338', 'password verification attempt', now() - interval '5 days'),
-  (NULL, '00000000-0000-4000-a000-0000000b0338', 'failed-auth', 'auth', '00000000-0000-4000-a000-0000000b0338', 'password verification attempt', now() - interval '2 days'),
-  (NULL, '00000000-0000-4000-a000-0000000b0338', 'failed-auth', 'auth', '00000000-0000-4000-a000-0000000b0338', 'password verification attempt', now() - interval '1 day'),
-  (NULL, '00000000-0000-4000-a000-0000000b0338', 'failed-auth', 'auth', '00000000-0000-4000-a000-0000000b0338', 'password verification attempt', now() - interval '1 hour'),
+  (NULL, '00000000-0000-4000-a000-0000000b0340', 'failed-auth', 'auth', '00000000-0000-4000-a000-0000000b0340', 'password verification attempt', now() - interval '6 days'),
+  (NULL, '00000000-0000-4000-a000-0000000b0340', 'login',       'auth', '00000000-0000-4000-a000-0000000b0340', 'password verification attempt', now() - interval '5 days'),
+  (NULL, '00000000-0000-4000-a000-0000000b0340', 'failed-auth', 'auth', '00000000-0000-4000-a000-0000000b0340', 'password verification attempt', now() - interval '2 days'),
+  (NULL, '00000000-0000-4000-a000-0000000b0340', 'failed-auth', 'auth', '00000000-0000-4000-a000-0000000b0340', 'password verification attempt', now() - interval '1 day'),
+  (NULL, '00000000-0000-4000-a000-0000000b0340', 'failed-auth', 'auth', '00000000-0000-4000-a000-0000000b0340', 'password verification attempt', now() - interval '1 hour'),
   -- the Royalty Link person once failed a password before switching to the link
-  (NULL, '00000000-0000-4000-a000-0000000d0338', 'failed-auth', 'auth', '00000000-0000-4000-a000-0000000d0338', 'password verification attempt', now() - interval '3 days');
+  (NULL, '00000000-0000-4000-a000-0000000d0340', 'failed-auth', 'auth', '00000000-0000-4000-a000-0000000d0340', 'password verification attempt', now() - interval '3 days');
 
 INSERT INTO auth.audit_log_entries (id, payload, created_at) VALUES
-  (gen_random_uuid(), '{"action":"login","actor_id":"00000000-0000-4000-a000-0000000d0338","traits":{"provider":"email"}}', now() - interval '1 day'),
-  (gen_random_uuid(), '{"action":"token_refreshed","actor_id":"00000000-0000-4000-a000-0000000d0338"}', now() - interval '1 hour');
+  (gen_random_uuid(), '{"action":"login","actor_id":"00000000-0000-4000-a000-0000000d0340","traits":{"provider":"email"}}', now() - interval '1 day'),
+  (gen_random_uuid(), '{"action":"token_refreshed","actor_id":"00000000-0000-4000-a000-0000000d0340"}', now() - interval '1 hour');
 
 INSERT INTO property_access_invites (instance_id, email, role_label, display_name, created_at)
 SELECT i.id, v.email, v.role_label, v.display_name, v.created_at
@@ -92,13 +92,13 @@ SELECT i.id, v.email, v.role_label, v.display_name, v.created_at
                ('noaccount338@test.local', 'field_worker', 'Worker', now() - interval '6 days')) AS v(email, role_label, display_name, created_at)
  WHERE i.slug = 'poe-properties';
 INSERT INTO property_access_invites (instance_id, email, role_label, claimed_at, claimed_by)
-SELECT i.id, 'otp338@test.local', 'tenant', now() - interval '2 days', '00000000-0000-4000-a000-0000000d0338'
+SELECT i.id, 'otp338@test.local', 'tenant', now() - interval '2 days', '00000000-0000-4000-a000-0000000d0340'
   FROM instances i WHERE i.slug = 'poe-properties';
 INSERT INTO property_access_invites (instance_id, email, role_label, revoked)
 SELECT i.id, 'gone338@test.local', 'tenant', true FROM instances i WHERE i.slug = 'poe-properties';
 
 SET LOCAL ROLE authenticated;
-SET LOCAL request.jwt.claims = '{"sub":"00000000-0000-4000-a000-0000000b0338","role":"authenticated"}';
+SET LOCAL request.jwt.claims = '{"sub":"00000000-0000-4000-a000-0000000b0340","role":"authenticated"}';
 DO $$
 BEGIN
   PERFORM public.admin_person_sign_ins();
@@ -107,14 +107,14 @@ EXCEPTION WHEN insufficient_privilege THEN
   NULL;
 END $$;
 
-SET LOCAL request.jwt.claims = '{"sub":"00000000-0000-4000-a000-0000000a0338","role":"authenticated"}';
+SET LOCAL request.jwt.claims = '{"sub":"00000000-0000-4000-a000-0000000a0340","role":"authenticated"}';
 DO $$
 DECLARE r jsonb; s jsonb; l jsonb; o jsonb; orphans jsonb;
 BEGIN
   r := public.admin_person_sign_ins();
   IF r->>'gotrue_audit' <> 'read' THEN RAISE EXCEPTION 'GoTrue''s log must be read here, got %', r->>'gotrue_audit'; END IF;
 
-  SELECT e INTO s FROM jsonb_array_elements(r->'people') e WHERE e->>'user_id' = '00000000-0000-4000-a000-0000000b0338';
+  SELECT e INTO s FROM jsonb_array_elements(r->'people') e WHERE e->>'user_id' = '00000000-0000-4000-a000-0000000b0340';
   IF s IS NULL THEN RAISE EXCEPTION 'a person with no space must be read: %', r; END IF;
   IF (s->>'failed_since_success')::int <> 3 THEN RAISE EXCEPTION 'three failures since the success, got %', s; END IF;
   IF (s->>'failed_30d')::int <> 4 THEN RAISE EXCEPTION 'four failures in 30 days, got %', s; END IF;
@@ -124,10 +124,10 @@ BEGIN
     RAISE EXCEPTION 'the unclaimed invitation must be on the account it is addressed to (any case): %', s;
   END IF;
 
-  SELECT e INTO l FROM jsonb_array_elements(r->'people') e WHERE e->>'user_id' = '00000000-0000-4000-a000-0000000c0338';
+  SELECT e INTO l FROM jsonb_array_elements(r->'people') e WHERE e->>'user_id' = '00000000-0000-4000-a000-0000000c0340';
   IF l->>'link_sent_at' IS NULL OR l->>'last_sign_in_at' IS NOT NULL THEN RAISE EXCEPTION 'a link sent and never followed: %', l; END IF;
 
-  SELECT e INTO o FROM jsonb_array_elements(r->'people') e WHERE e->>'user_id' = '00000000-0000-4000-a000-0000000d0338';
+  SELECT e INTO o FROM jsonb_array_elements(r->'people') e WHERE e->>'user_id' = '00000000-0000-4000-a000-0000000d0340';
   IF o->>'gotrue_method' <> 'email' OR o->>'gotrue_login_at' IS NULL THEN RAISE EXCEPTION 'the Royalty Link sign-in must be read from GoTrue: %', o; END IF;
   IF (o->>'failed_since_success')::int <> 0 THEN RAISE EXCEPTION 'a failure before a Royalty Link success is not "since": %', o; END IF;
   IF jsonb_array_length(o->'spaces') <> 1 OR o->'spaces'->0->>'slug' <> 'poe-properties' OR o->'spaces'->0->>'joined_at' IS NULL THEN

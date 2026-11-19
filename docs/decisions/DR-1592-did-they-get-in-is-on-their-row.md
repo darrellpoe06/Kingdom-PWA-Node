@@ -4,7 +4,7 @@
 **Status:** Accepted
 **Tier:** B (one governor-only read; the Signups screen gains a list, a search box and a line per row)
 **Type:** feature
-**Area:** `admin_person_sign_ins()` (0338), `app/src/lib/person-onboarding.js`, `app/src/components/AccessUsageMetrics.jsx` (Platform signups)
+**Area:** `admin_person_sign_ins()` (0340), `app/src/lib/person-onboarding.js`, `app/src/components/AccessUsageMetrics.jsx` (Platform signups)
 **Pairs with:** DR-1336 (0315, sign-ins on the record), DR-1591 (which app each visit was), DR-0829 (Add to a space), DR-0840 (Usage), DR-1075 (our probe), DR-0076, DR-0100
 
 ## Context
@@ -21,7 +21,7 @@ Darrell, 2026-11-19: "How do I know who signed up and if and when they got in?..
 
 ## Decision
 
-1. **`admin_person_sign_ins()`** (0338), for the poe-family circle only. Per account it returns:
+1. **`admin_person_sign_ins()`** (0340), for the poe-family circle only. Per account it returns:
    - `auth.users.last_sign_in_at`, which covers every method;
    - the time a link or code was last emailed, from `recovery_sent_at` / `confirmation_sent_at`;
    - from `audit_log`, including rows with `instance_id` NULL: the last password success, the last failure, failures since the last success of any kind, and failures in 30 days;
@@ -59,7 +59,7 @@ Nothing is removed: the chips, sort, Mask emails, Refresh, Add to a space, Usage
 
 ## Verification
 
-- `infra/supabase/tests/0338-person-sign-ins-smoke.sql` ran on PostgreSQL 16 after 0315 and 0338 were each applied twice, and printed PERSON SIGN-INS SMOKE: PASS.
+- `infra/supabase/tests/0340-person-sign-ins-smoke.sql` ran on PostgreSQL 16 after 0315 and 0340 were each applied twice, and printed PERSON SIGN-INS SMOKE: PASS.
 - Proven to catch, twice:
   - with the reader limited to rows that have an instance, the person with no space loses their failures and the smoke fails;
   - with EXECUTE granted to anon, the smoke fails.

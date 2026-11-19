@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0338 — did they get in is on their row (DR-1592)
+-- 0340 — did they get in is on their row (DR-1592)
 -- =============================================================================
 -- Darrell, 2026-11-19: "How do I know who signed up and if and when they got
 -- in?... how do we help people when they have onboarding issues?!!!!! We should
@@ -45,7 +45,7 @@
 -- them; the screen's Mask emails masks every new place they appear.
 --
 -- IDEMPOTENT: CREATE OR REPLACE FUNCTION, grants re-applied.
--- Smoke: infra/supabase/tests/0338-person-sign-ins-smoke.sql (ROLLS BACK).
+-- Smoke: infra/supabase/tests/0340-person-sign-ins-smoke.sql (ROLLS BACK).
 -- =============================================================================
 
 CREATE OR REPLACE FUNCTION public.admin_person_sign_ins()
@@ -190,7 +190,7 @@ GRANT EXECUTE ON FUNCTION public.admin_person_sign_ins() TO authenticated;
 DO $chk$
 BEGIN
   IF to_regprocedure('public.admin_person_sign_ins()') IS NULL THEN
-    RAISE EXCEPTION '0338: admin_person_sign_ins() is missing';
+    RAISE EXCEPTION '0340: admin_person_sign_ins() is missing';
   END IF;
 END
 $chk$;
