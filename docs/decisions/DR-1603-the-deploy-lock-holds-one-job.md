@@ -9,6 +9,10 @@
 
 ## Context
 
+Darrell, 2026-11-19: "fix our way of orchestrating the work." A merge did not reach the site promptly.
+
+## What was measured
+
 Measured 2026-11-19 from the Actions API: deploy runs took 20 to 66 minutes from creation to finish overnight (03:00 to 08:00Z) and 6 to 11 minutes after 10:00Z. The site ran up to four merges stale.
 
 One run shows where the time goes. Run 44476228421 was created at 06:59:53. Its `deploy` job waited for the previous run's lock until 07:08:50, then for a runner until 07:21:32, and the site was live at 07:27:45. Its four post-deploy jobs (the boot check and three dispatches, about a minute of work together) were created at 07:27:48 and waited for runners until 07:49 to 07:54. The concurrency group was workflow-level, so the run held `cf-pages-deploy` until 07:54:47, and any newer deploy waited 27 minutes behind work that no longer touched the site.
@@ -21,9 +25,11 @@ The lock moves from the workflow to the `deploy` job. The boot check (propagatio
 
 A step after the upload sets `published=true`. The three dispatch jobs (lessons sync, address completer then doors, camera witness) run on `always() && needs.deploy.outputs.published == 'true'`: outside the lock, after every upload, even when the boot check then fails (they ran in parallel with it before). The `deploy` job carries `issues: write` for the incident step.
 
+## Impact
+
 Not done, and why: the brief asked that a waiting deploy not be cancelled unless the newer one has started. GitHub's concurrency has no such mode; with the lock on one short job, the waiting run is replaced only by a run for a newer main, which deploys everything the replaced one would have.
 
-## Proof
+## Verification
 
 `the-deploy-lock-holds-one-job.test.js` reads the real workflow: no workflow-level lock, the deploy job holds `cf-pages-deploy` without cancelling, the boot check is inside it, no other job takes the lock, every dispatch runs on the upload alone, and a failed build files no incident. Proven to catch: the old workflow-level lock and a boot check outside the job are both named. The existing deploy tests (247) pass. The DR-0107 proof is a watched merge of this PR producing a deploy run on main's head, then `site-health.yml` green, recorded on the PR.
 
