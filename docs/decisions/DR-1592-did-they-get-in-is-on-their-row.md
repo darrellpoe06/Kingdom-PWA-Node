@@ -11,7 +11,7 @@
 
 Darrell, 2026-11-19: "How do I know who signed up and if and when they got in?... how do we help people when they have onboarding issues?!!!!! We should be able to see these issues from our data logs etc!!!!!" And then: "Not wanting to lose functions just gain an easy-to-use one."
 
-## SHOULD / ARE / GAPS
+## What was measured (SHOULD / ARE / GAPS)
 
 | SHOULD | ARE (before) | GAP |
 | --- | --- | --- |
@@ -72,4 +72,4 @@ Nothing is removed: the chips, sort, Mask emails, Refresh, Add to a space, Usage
 
 ## Not done
 
-The smoke is not yet wired into `ci.yml`; a separate session owns CI changes today. Church (`colg`) and space invitations other than Poe Properties are not read as open invitations. `re-review: 2026-11-26`.
+The smoke runs as the `person-sign-ins` leg of `rls-isolation.yml` against the real database (rolled back), which is also the first live answer to whether GoTrue's log is readable: the smoke requires `gotrue_audit = read`, so an unreadable log turns that leg red rather than hiding. Church (`colg`) and space invitations other than Poe Properties are not read as open invitations. `re-review: 2026-11-26`.

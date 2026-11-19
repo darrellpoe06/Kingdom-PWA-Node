@@ -21,17 +21,34 @@
 -- =============================================================================
 BEGIN;
 
-ALTER TABLE auth.users ADD COLUMN IF NOT EXISTS last_sign_in_at timestamptz;
-ALTER TABLE auth.users ADD COLUMN IF NOT EXISTS recovery_sent_at timestamptz;
-ALTER TABLE auth.users ADD COLUMN IF NOT EXISTS confirmation_sent_at timestamptz;
-CREATE TABLE IF NOT EXISTS auth.audit_log_entries (
-  instance_id uuid, id uuid PRIMARY KEY, payload json, created_at timestamptz, ip_address varchar(64) DEFAULT ''
-);
-CREATE TABLE IF NOT EXISTS public.property_access_invites (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), instance_id uuid, email text NOT NULL,
-  role_label text NOT NULL, display_name text, claimed_at timestamptz, claimed_by uuid,
-  revoked boolean NOT NULL DEFAULT false, created_at timestamptz NOT NULL DEFAULT now()
-);
+-- On a bare PostgreSQL these shapes are missing and are added here; on the
+-- real database they exist and nothing is touched (an ALTER or CREATE there
+-- would need ownership the smoke's role may not have, even with IF NOT EXISTS).
+DO $shape$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'auth' AND table_name = 'users' AND column_name = 'last_sign_in_at') THEN
+    ALTER TABLE auth.users ADD COLUMN last_sign_in_at timestamptz;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'auth' AND table_name = 'users' AND column_name = 'recovery_sent_at') THEN
+    ALTER TABLE auth.users ADD COLUMN recovery_sent_at timestamptz;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'auth' AND table_name = 'users' AND column_name = 'confirmation_sent_at') THEN
+    ALTER TABLE auth.users ADD COLUMN confirmation_sent_at timestamptz;
+  END IF;
+  IF to_regclass('auth.audit_log_entries') IS NULL THEN
+    CREATE TABLE auth.audit_log_entries (
+      instance_id uuid, id uuid PRIMARY KEY, payload json, created_at timestamptz, ip_address varchar(64) DEFAULT ''
+    );
+  END IF;
+  IF to_regclass('public.property_access_invites') IS NULL THEN
+    CREATE TABLE public.property_access_invites (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(), instance_id uuid, email text NOT NULL,
+      role_label text NOT NULL, display_name text, claimed_at timestamptz, claimed_by uuid,
+      revoked boolean NOT NULL DEFAULT false, created_at timestamptz NOT NULL DEFAULT now()
+    );
+  END IF;
+END
+$shape$;
 
 INSERT INTO auth.users (instance_id, id, aud, role, email, encrypted_password, created_at, updated_at, last_sign_in_at, recovery_sent_at) VALUES
   ('00000000-0000-0000-0000-000000000000', '00000000-0000-4000-a000-0000000a0338', 'authenticated','authenticated','gov338@test.local',     '', now() - interval '90 days', now(), now() - interval '1 day', NULL),
@@ -68,13 +85,17 @@ INSERT INTO auth.audit_log_entries (id, payload, created_at) VALUES
   (gen_random_uuid(), '{"action":"login","actor_id":"00000000-0000-4000-a000-0000000d0338","traits":{"provider":"email"}}', now() - interval '1 day'),
   (gen_random_uuid(), '{"action":"token_refreshed","actor_id":"00000000-0000-4000-a000-0000000d0338"}', now() - interval '1 hour');
 
-INSERT INTO property_access_invites (email, role_label, display_name, created_at) VALUES
-  ('Stuck338@test.local', 'tenant', 'Stuck', now() - interval '4 days'),
-  ('noaccount338@test.local', 'field_worker', 'Worker', now() - interval '6 days');
-INSERT INTO property_access_invites (email, role_label, claimed_at, claimed_by) VALUES
-  ('otp338@test.local', 'tenant', now() - interval '2 days', '00000000-0000-4000-a000-0000000d0338');
-INSERT INTO property_access_invites (email, role_label, revoked) VALUES
-  ('gone338@test.local', 'tenant', true);
+INSERT INTO property_access_invites (instance_id, email, role_label, display_name, created_at)
+SELECT i.id, v.email, v.role_label, v.display_name, v.created_at
+  FROM instances i,
+       (VALUES ('Stuck338@test.local', 'tenant', 'Stuck', now() - interval '4 days'),
+               ('noaccount338@test.local', 'field_worker', 'Worker', now() - interval '6 days')) AS v(email, role_label, display_name, created_at)
+ WHERE i.slug = 'poe-properties';
+INSERT INTO property_access_invites (instance_id, email, role_label, claimed_at, claimed_by)
+SELECT i.id, 'otp338@test.local', 'tenant', now() - interval '2 days', '00000000-0000-4000-a000-0000000d0338'
+  FROM instances i WHERE i.slug = 'poe-properties';
+INSERT INTO property_access_invites (instance_id, email, role_label, revoked)
+SELECT i.id, 'gone338@test.local', 'tenant', true FROM instances i WHERE i.slug = 'poe-properties';
 
 SET LOCAL ROLE authenticated;
 SET LOCAL request.jwt.claims = '{"sub":"00000000-0000-4000-a000-0000000b0338","role":"authenticated"}';
@@ -114,7 +135,9 @@ BEGIN
   END IF;
   IF jsonb_array_length(o->'open_invites') <> 0 THEN RAISE EXCEPTION 'a claimed invitation is not open: %', o; END IF;
 
-  orphans := r->'invites_without_account';
+  -- The real database may hold real invitations; only this smoke's addresses are judged.
+  SELECT coalesce(jsonb_agg(e), '[]'::jsonb) INTO orphans
+    FROM jsonb_array_elements(r->'invites_without_account') e WHERE e->>'address' LIKE '%338@test.local';
   IF jsonb_array_length(orphans) <> 1 OR orphans->0->>'address' <> 'noaccount338@test.local' THEN
     RAISE EXCEPTION 'exactly the unclaimed invitation with no account must be listed apart, got %', orphans;
   END IF;

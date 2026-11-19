@@ -115,12 +115,20 @@ export function doorsView(record, since, nowMs, extraKeys = []) {
 // =============================================================================
 // DID THEY GET IN (DR-1592): admin_person_sign_ins() (0338)
 // =============================================================================
-export function fetchPersonSignIns() { return governorRead('admin_person_sign_ins'); }
+export function fetchPersonSignIns() {
+  return governorRead('admin_person_sign_ins');
+}
 
-const ms = (iso) => { const t = Date.parse(iso || ''); return Number.isNaN(t) ? null : t; };
+const ms = (iso) => {
+  const t = Date.parse(iso || '');
+  return Number.isNaN(t) ? null : t;
+};
 const latest = (...isos) => {
   let best = null;
-  for (const v of isos) { const t = ms(v); if (t != null && (best == null || t > best.t)) best = { t, iso: v }; }
+  for (const v of isos) {
+    const t = ms(v);
+    if (t != null && (best == null || t > best.t)) best = { t, iso: v };
+  }
   return best ? best.iso : null;
 };
 
@@ -164,7 +172,8 @@ export function signInLine(rec, nowMs) {
   const parts = [];
   if (rec.successAt) parts.push(`Last got in ${relativeTime(rec.successAt, nowMs)}${rec.method ? ` by ${methodLabel(rec.method)}` : ''}`);
   else parts.push('Has never got in');
-  if (rec.failedSinceSuccess > 0) parts.push(`${rec.failedSinceSuccess} failed ${rec.failedSinceSuccess === 1 ? 'try' : 'tries'} since (last ${relativeTime(rec.lastFailedAt, nowMs)})`);
+  if (rec.failedSinceSuccess > 0)
+    parts.push(`${rec.failedSinceSuccess} failed ${rec.failedSinceSuccess === 1 ? 'try' : 'tries'} since (last ${relativeTime(rec.lastFailedAt, nowMs)})`);
   else if (rec.failed30d > 0) parts.push(`${rec.failed30d} failed in 30 days, none since`);
   const linkT = ms(rec.linkSentAt);
   const okT = ms(rec.successAt);
@@ -192,8 +201,8 @@ export function signInCoverage(data) {
 // ── NEEDS HELP ───────────────────────────────────────────────────────────────
 // Each rule reads real rows only, and each reason carries its time. A rule
 // whose record could not be read says nothing rather than guessing.
-export const QUIET_DAYS = 14;          // was active, then nothing for this long
-export const DOOR_GRACE_DAYS = 3;      // added to a space; give them this long to open its app
+export const QUIET_DAYS = 14; // was active, then nothing for this long
+export const DOOR_GRACE_DAYS = 3; // added to a space; give them this long to open its app
 const DAY = 86400000;
 
 const MEMBER_DOOR_FOR_SLUG = new Map();
@@ -222,20 +231,36 @@ export function needsHelp(people, signIns, doors, nowMs) {
     if (rec) {
       // 2. Failed sign-ins with no success since.
       if (rec.failedSinceSuccess > 0 && rec.lastFailedAt && nowMs - ms(rec.lastFailedAt) <= 30 * DAY) {
-        reasons.push({ code: 'failing', at: rec.lastFailedAt, text: `${rec.failedSinceSuccess} failed sign-in ${rec.failedSinceSuccess === 1 ? 'try' : 'tries'} with no success since (last ${relativeTime(rec.lastFailedAt, nowMs)}).` });
+        reasons.push({
+          code: 'failing',
+          at: rec.lastFailedAt,
+          text: `${rec.failedSinceSuccess} failed sign-in ${rec.failedSinceSuccess === 1 ? 'try' : 'tries'} with no success since (last ${relativeTime(rec.lastFailedAt, nowMs)}).`,
+        });
       }
       // 3. A sign-in link went out and nobody used it.
       const linkT = ms(rec.linkSentAt);
       if (linkT != null && (okT == null || linkT > okT) && nowMs - linkT > 3600000 && nowMs - linkT <= 30 * DAY) {
-        reasons.push({ code: 'link-unused', at: rec.linkSentAt, text: `A sign-in link was emailed ${relativeTime(rec.linkSentAt, nowMs)} and no sign-in followed.` });
+        reasons.push({
+          code: 'link-unused',
+          at: rec.linkSentAt,
+          text: `A sign-in link was emailed ${relativeTime(rec.linkSentAt, nowMs)} and no sign-in followed.`,
+        });
       }
       // 4. Got in, but has no space to be in.
       if (okT != null && rec.spaces.length === 0) {
-        reasons.push({ code: 'no-space', at: rec.successAt, text: `Got in ${relativeTime(rec.successAt, nowMs)} but has no space yet, so there is nothing for them inside.` });
+        reasons.push({
+          code: 'no-space',
+          at: rec.successAt,
+          text: `Got in ${relativeTime(rec.successAt, nowMs)} but has no space yet, so there is nothing for them inside.`,
+        });
       }
       // 5a. Invited to Poe Properties and the invitation is not claimed.
       for (const inv of rec.openInvites) {
-        reasons.push({ code: 'invite-open', at: inv.created_at, text: `Invited to ${doorLabel(inv.door || 'properties')}${inv.role_label ? ` as ${String(inv.role_label).replace('_', ' ')}` : ''} ${relativeTime(inv.created_at, nowMs)}; the invitation is not claimed yet.` });
+        reasons.push({
+          code: 'invite-open',
+          at: inv.created_at,
+          text: `Invited to ${doorLabel(inv.door || 'properties')}${inv.role_label ? ` as ${String(inv.role_label).replace('_', ' ')}` : ''} ${relativeTime(inv.created_at, nowMs)}; the invitation is not claimed yet.`,
+        });
       }
       // 5b. Added to a space whose app they have never opened.
       if (doors && doors.since) {
@@ -251,13 +276,21 @@ export function needsHelp(people, signIns, doors, nowMs) {
           const o = opened && opened.doors.get(d.key);
           if (o && ms(o.lastAt) >= fromT) continue;
           const joinedAfter = (ms(sp.joined_at) || 0) > sinceT;
-          reasons.push({ code: 'door-unopened', at: sp.joined_at || doors.since, text: `In ${d.label}${sp.joined_at ? ` since ${relativeTime(sp.joined_at, nowMs)}` : ''}, but has not opened the ${d.label} app ${joinedAfter ? 'since being added' : `since door tracking began on ${dayLabel(doors.since)}`}.` });
+          reasons.push({
+            code: 'door-unopened',
+            at: sp.joined_at || doors.since,
+            text: `In ${d.label}${sp.joined_at ? ` since ${relativeTime(sp.joined_at, nowMs)}` : ''}, but has not opened the ${d.label} app ${joinedAfter ? 'since being added' : `since door tracking began on ${dayLabel(doors.since)}`}.`,
+          });
         }
       }
     }
     // 6. Was active, then went quiet.
     if (active != null && created != null && active - created > 5 * 60000 && nowMs - active > QUIET_DAYS * DAY) {
-      reasons.push({ code: 'quiet', at: new Date(active).toISOString(), text: `Was active, last seen ${relativeTime(new Date(active).toISOString(), nowMs)}.` });
+      reasons.push({
+        code: 'quiet',
+        at: new Date(active).toISOString(),
+        text: `Was active, last seen ${relativeTime(new Date(active).toISOString(), nowMs)}.`,
+      });
     }
     if (reasons.length) {
       reasons.sort((a, b) => (ms(b.at) || 0) - (ms(a.at) || 0));
@@ -270,13 +303,15 @@ export function needsHelp(people, signIns, doors, nowMs) {
 /** Unclaimed invitations to an address with no account: asked in, never arrived. */
 export function invitesWithoutAccount(data, nowMs) {
   const rows = data && Array.isArray(data.invites_without_account) ? data.invites_without_account : [];
-  return rows.filter((r) => r && r.address).map((r) => ({
-    id: r.id || r.address,
-    address: String(r.address),
-    name: r.display_name || null,
-    at: r.created_at || null,
-    text: `Invited to ${doorLabel(r.door || 'properties')}${r.role_label ? ` as ${String(r.role_label).replace('_', ' ')}` : ''} ${relativeTime(r.created_at, nowMs)}; no account with this address yet.`,
-  }));
+  return rows
+    .filter((r) => r && r.address)
+    .map((r) => ({
+      id: r.id || r.address,
+      address: String(r.address),
+      name: r.display_name || null,
+      at: r.created_at || null,
+      text: `Invited to ${doorLabel(r.door || 'properties')}${r.role_label ? ` as ${String(r.role_label).replace('_', ' ')}` : ''} ${relativeTime(r.created_at, nowMs)}; no account with this address yet.`,
+    }));
 }
 
 // ── FIND A PERSON FAST ───────────────────────────────────────────────────────
@@ -287,7 +322,9 @@ const digitsOf = (s) => String(s || '').replace(/\D+/g, '');
  * Every word typed must match somewhere. Empty matches all.
  */
 export function matchesSearch(fields, query) {
-  const q = String(query || '').trim().toLowerCase();
+  const q = String(query || '')
+    .trim()
+    .toLowerCase();
   if (!q) return true;
   const hay = (fields || []).filter(Boolean).map((f) => String(f).toLowerCase());
   const hayDigits = (fields || []).map(digitsOf).filter(Boolean);
