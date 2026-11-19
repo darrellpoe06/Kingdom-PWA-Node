@@ -3805,6 +3805,21 @@
       "wallClockHours": 0.5,
       "estimateWithoutAiHours": 4,
       "notes": "DR-1534's first live read named the limit rather than the cause. Refused the fifth-receipt move DR-1526 recorded as wrong and built the direct read for road 2 instead. Proven to catch a printed draft; 10 cases, wired into ci.yml. Not run on the NAS -- only Darrell's own ssh can."
+    },
+    {
+      "id": "ll336-the-lie-the-fear-and-the-last-adam",
+      "date": "2026-11-19",
+      "task": "L336 The Lie, the Fear, and the Last Adam, from a summary of a talk on sin as broken trust, the true part affirmed and the over-reach corrected from the Word, all four age bands, shared gate",
+      "drs": [
+        "DR-1582"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.3,
+      "estimateWithoutAiHours": 24,
+      "notes": "Reserved L336 and DR-1582 on origin with new-lesson.mjs. 294 verse tokens filled from app/public/bible/kjv, none typed. Video not watched; speaker unnamed in the summary and in the lesson; gate 9 of 9 on the first run; re-review 2026-12-19."
     }
   ]
 }
