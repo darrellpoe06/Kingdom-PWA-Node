@@ -175,9 +175,20 @@ export function planWrite(doc, { known = {} } = {}) {
     case 'card-statement':
     case 'loan-statement': {
       const rows = accountId ? newRowsFor(rx, accountId, known.transactions) : { txns: ledgerRows(rx), duplicates: 0 };
+      // A bank download is reviewed row by row like a screenshot (Christina
+      // 2026-11-18: "Before I approve imported transactions, I want to see which
+      // are new, which are duplicates, which need review, and which could not be
+      // imported"): each row's status against the books, and every source row
+      // the reader could not read, with its reason. A statement's rows are owed
+      // amounts (sign flipped on write), so only a plain download gets statuses.
+      const download = x.doc_type === 'transactions-export';
       return {
         kind: 'transactions', accountId: accountId || null, createAccount, rows: rows.txns, duplicates: rows.duplicates,
         summary: x.summary, due: x.dates.due, statement: x.doc_type !== 'transactions-export',
+        ...(download ? {
+          rowStatuses: rowStatuses(x.line_items, doc.rowDecisions, learned, accountId ? rows.txns : null),
+          unreadable: ((doc.read && doc.read.rejected) || []).map((r) => ({ line: r.line, reason: r.reason, raw: String(r.raw || '').slice(0, 160) })),
+        } : {}),
       };
     }
     case 'bank-statement':
