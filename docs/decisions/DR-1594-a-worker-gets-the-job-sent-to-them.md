@@ -20,6 +20,13 @@ Four places where that chain left a worker with nothing:
 3. **A job sent by name before the worker signed in** carries `assigned_to_label` only, and nothing filled `assigned_to` when they did.
 4. **Invites already written** with no capability stay empty on the live database.
 
+## What was measured
+
+- `PropertiesApp.jsx` PeopleTab on main 020636a: `const [caps, setCaps] = useState([])`, reset to `[]` on role change and after send; PoeTech's `people-placement.js:88` sent `['property.history', 'docs.add']` for the same role.
+- Every SELECT policy on `tenant_maintenance_requests` (0150:215, 0260:215) and `request_documentation` (0150:263, 0260:235): none names `assigned_to`; 0310:72 `user_is_assigned_to_request()` was used only for `property_photos`.
+- `claim_property_access()` (0151) writes `assigned_to` nowhere; `dispatchRecord` sets `assignedTo: worker.userId || null`.
+- `loadMyGrants` (cloud.js:163) selected `delegated_capabilities` with no grantee filter; 0075:93 lets an owner read every row of the instance; `realRole` reads grants before ownership.
+
 ## Decision
 
 1. **The form starts checked.** A 1099 worker starts with the field worker's whole ceiling; a manager with the set "People you know" sends (no balance adjustment). Unchecking every box disables the button and says why, and `inviteToProperties` refuses `no-capabilities` before the row exists. Tenants and household members are unchanged (they hold no grant).
