@@ -127,6 +127,21 @@
       "notes": "17:15:13Z → 17:23:34Z."
     },
     {
+      "id": "church-calendar-office-add-upload",
+      "date": "2026-11-19",
+      "task": "Church calendar: office add form, CSV upload with preview, two-press remove, CSV download",
+      "drs": [
+        "DR-1586"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.5,
+      "estimateWithoutAiHours": 8,
+      "notes": ""
+    },
+    {
       "id": "sov95-he-that-taketh-warning",
       "date": "2026-11-18",
       "task": "Sovereign A.I. week 95 from one word over a forwarded account security alert (thread 1a1f08def44cc672), taught generically for privacy: Word first on Ezekiel 33:4-5 and Nehemiah 13:4-9; every grant of access a gate you opened, the alert the watchman, check through the account and never the link, take back what you no longer use; four hand-written bands, every verse generator-filled from the KJV; the house measured from the support door's own code.",
@@ -1506,6 +1521,21 @@
       "notes": "Darrell: Lessons with no tests?!"
     },
     {
+      "id": "l333-heavenly-cheat-codes-life-his-way",
+      "date": "2026-11-19",
+      "task": "L333 Heavenly Cheat Codes: Life His Way, from Darrell's own lines over one summary of a conversation, all four age bands, shared gate",
+      "drs": [
+        "DR-1573"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.4,
+      "estimateWithoutAiHours": 24,
+      "notes": "Reserved L333 and DR-1573 on origin with new-lesson.mjs. Verses filled from app/public/bible/kjv by fill-verses.mjs, none typed. The name and two lines are Darrell's; video not watched; re-review 2026-12-18."
+    },
+    {
       "id": "dr-1405-system-built-around-the-king",
       "date": "2026-11-10",
       "task": "rto8 stopped setting a system against the King: the King brings the balance, and a system built around Him carries it; pinned by a test",
@@ -1878,6 +1908,21 @@
       "wallClockHours": 0.4,
       "estimateWithoutAiHours": 2.5,
       "notes": "Darrell: Learn tab as a quick link under Soul (More menu screenshot)"
+    },
+    {
+      "id": "church-calendar-past-years-suggestions",
+      "date": "2026-11-19",
+      "task": "Church calendar: past-years look-back, suggestions through the feedback list, office received list",
+      "drs": [
+        "DR-1587"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.4,
+      "estimateWithoutAiHours": 6,
+      "notes": ""
     },
     {
       "id": "dr-1426-ll301-old-men-dream",
@@ -2287,6 +2332,21 @@
       "wallClockHours": 0.6,
       "estimateWithoutAiHours": 4,
       "notes": "Read ceiling + bounded retries; member device never wears the stranger church brand."
+    },
+    {
+      "id": "church-calendar-event-records",
+      "date": "2026-11-19",
+      "task": "Church calendar as event records: week strip, month and year view, office rows read per church",
+      "drs": [
+        "DR-1585"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.2,
+      "estimateWithoutAiHours": 10,
+      "notes": "First of three changes; office add and upload, then past years and suggestions, follow."
     },
     {
       "id": "learning-products-store",
@@ -3021,6 +3081,21 @@
       "wallClockHours": 1.5,
       "estimateWithoutAiHours": 16,
       "notes": "Root cause traced to the onFallback hand-off speaking an unmatched-gender phone voice and a speak-time URI miss setting no voice. New suite 13 cases, 9 fail on origin/main. My voice blocked: tower studio unarmed (arm run 36796584904) and CI tailnet key invalid (run 43310501087)."
+    },
+    {
+      "id": "dr-1588-kids-zone-reads-the-weeks-lesson",
+      "date": "2026-11-19",
+      "task": "A Kids Zone test that pinned one week's lesson turned main red when two lessons landed; the test now reads the lesson the catalog picks",
+      "drs": [
+        "DR-1588"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.3,
+      "estimateWithoutAiHours": 2,
+      "notes": "Found on PR #2775 shard 3, then on PR #2788 which adds no lesson, which showed main itself was red. Proven to catch by forcing the page to show the heading always. No product code changed."
     },
     {
       "id": "my-voice-on-the-nas",
