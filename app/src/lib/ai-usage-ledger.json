@@ -2122,6 +2122,21 @@
       "notes": "Video https://youtu.be/g_gRHW4SJtI sent with one word, Lesson; not watched (no YouTube from this session), built from his summary and said so in every band. Hany Farid and Estonia's AI Leap checked by web search; Karmen Kisel, India and cheating figures not checked and listed. 80 spans filled from the KJV corpus. The gate caught the teen band inverting the ladder (2.77 under youth 3.72); rejoined by hand to 5.42."
     },
     {
+      "id": "ll327-let-there-be-search-made",
+      "date": "2026-11-18",
+      "task": "L327: let there be search made, from a forwarded workplace bulletin on federal comment periods (taught generically)",
+      "drs": [
+        "DR-1561"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.8,
+      "estimateWithoutAiHours": 7,
+      "notes": "Forwarded the same day; built the same session."
+    },
+    {
       "id": "sov91-know-the-state-of-thy-flocks",
       "date": "2026-11-18",
       "task": "Sovereign A.I. week 91 from one word over a forwarded ByteByteGo excerpt of Evals for AI Engineers (Shankar and Husain): Word first on Proverbs 27:23 and Lamentations 3:40, the three gulfs and the analyze-measure-improve cycle taught in our words, four hand-written bands, every verse generator-filled from the KJV, and the NAS lesson builder's own week read against the book (six silent days, four of seven on one problem, a rule already given, a count with no place, the checker checked).",
@@ -2871,6 +2886,21 @@
       "wallClockHours": 0.9,
       "estimateWithoutAiHours": 10,
       "notes": "LearnersPanel CourseLessons fold; course-pace studiedLessons/lessonsToGrow from the same standing loop; ChurchLearn openLessonFromList shared with the Latest list. Measured in Chrome at 360 and 412px, Normal and A44: no overflow, taps 44px or more. 9 new tests fail on the old panel; 3 mutations caught."
+    },
+    {
+      "id": "ll332-give-me-this-mountain",
+      "date": "2026-11-19",
+      "task": "Living Lesson L332 from one word over a forwarded public radio newsletter on midlife reinvention (thread 1a1f0906b4bfc2c4): taught from Caleb in Joshua 14, the promise at forty, the years kept, the strength at eighty-five, the ask for the mountain already promised; the set-aside gift and rest before the next assignment; four hand-written bands, every verse generator-filled from the KJV.",
+      "drs": [
+        "DR-1571"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.2,
+      "estimateWithoutAiHours": 10,
+      "notes": "No token meter in this session; tokens and cost are null. The newsletter's arts study, survey and self-check are reported only, not opened; re-review 2026-12-19."
     },
     {
       "id": "sov85-and-it-fell-not",
