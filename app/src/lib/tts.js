@@ -359,7 +359,48 @@ export function loadTTSPrefs(store = (typeof localStorage !== 'undefined' ? loca
   }
 }
 
-/** Persist per-device prefs. Never throws. */
+// ONE SPEED ON THE DEVICE, HEARD BY EVERY READER (DR-1575). Darrell
+// 2026-11-18, with "Faster" picked in the Personalize sheet: "The reading
+// speeds etc don't work... fix it". Traced: every useTextToSpeech() keeps its
+// own copy of these prefs, read from storage ONCE when it mounts. The sheet
+// wrote the new speed to storage and nothing told the readers already on the
+// page (the Read button, the sheet's own Test, an open lesson), so they kept
+// reading at the speed they mounted with, and the next thing any of them saved
+// wrote its old copy back over the pick. The voice pick never had this hole
+// (lib/reading-voice.js broadcasts); the speed did. Every save now tells every
+// subscriber in this tab, and the 'storage' event carries it to other tabs.
+const _prefListeners = new Set();
+let _prefNoticeQueued = false;
+/** Hear every change to this device's saved reading prefs. Returns the unsubscribe. */
+export function subscribeTTSPrefs(fn) {
+  if (typeof fn !== 'function') return () => {};
+  _prefListeners.add(fn);
+  const onStorage = (e) => { if (e && e.key === STORAGE_KEY) fn(loadTTSPrefs()); };
+  const win = typeof window !== 'undefined' && window.addEventListener ? window : null;
+  if (win) win.addEventListener('storage', onStorage);
+  return () => {
+    _prefListeners.delete(fn);
+    if (win) win.removeEventListener('storage', onStorage);
+  };
+}
+/**
+ * Tell every subscriber what the store holds now. Queued to a microtask and
+ * coalesced: saves happen inside React state updaters, and a listener that
+ * sets another component's state in the middle of that render is refused by
+ * React. Subscribers are handed the STORED prefs, never the caller's object.
+ */
+function announceTTSPrefs() {
+  if (_prefNoticeQueued || !_prefListeners.size) return;
+  _prefNoticeQueued = true;
+  const run = () => {
+    _prefNoticeQueued = false;
+    const now = loadTTSPrefs();
+    _prefListeners.forEach((fn) => { try { fn(now); } catch (_) { /* one listener never stops the rest */ } });
+  };
+  if (typeof queueMicrotask === 'function') queueMicrotask(run); else Promise.resolve().then(run);
+}
+
+/** Persist per-device prefs and tell every reader on the page. Never throws. */
 export function saveTTSPrefs(prefs, store = (typeof localStorage !== 'undefined' ? localStorage : undefined)) {
   try {
     if (store) store.setItem(STORAGE_KEY, JSON.stringify({
@@ -368,6 +409,16 @@ export function saveTTSPrefs(prefs, store = (typeof localStorage !== 'undefined'
       voiceURI: prefs && typeof prefs.voiceURI === 'string' ? prefs.voiceURI : null,
     }));
   } catch (e) { /* private mode / quota — non-fatal, prefs still apply this session */ }
+  // Only the device's own store is the one the readers on the page share.
+  if (typeof localStorage !== 'undefined' && store === localStorage) announceTTSPrefs();
+}
+
+/** Save ONE reading speed over whatever the store holds now, keeping the voice and pitch. */
+export function saveTTSRate(rate) {
+  const now = loadTTSPrefs();
+  const next = { ...now, rate: clampRate(rate) };
+  saveTTSPrefs(next);
+  return next.rate;
 }
 
 /**
@@ -952,6 +1003,18 @@ export function useTextToSpeech() {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [supported, voices]);
+
+  // A speed picked ANYWHERE on this device reaches this reader (DR-1575): the
+  // Personalize sheet, another reader's chips, another tab. The engine takes
+  // the new speed at once (it restarts the sentence being spoken at it), and
+  // this copy follows the store, so a later save from here can never write an
+  // old speed back. The voice is not touched here: a reading keeps the voice
+  // it started in (DR-0654), and picks travel by lib/reading-voice.js.
+  useEffect(() => subscribeTTSPrefs((now) => {
+    const eng = engineRef.current;
+    if (eng && Number.isFinite(now.rate) && Math.abs((Number(eng.rate) || 0) - now.rate) > 0.001) eng.setRate(now.rate);
+    setPrefs((prev) => (prev.rate === now.rate && prev.pitch === now.pitch && prev.voiceURI === now.voiceURI ? prev : now));
+  }), []);
 
   // Cancel any speech if the component using the hook unmounts.
   useEffect(() => {
