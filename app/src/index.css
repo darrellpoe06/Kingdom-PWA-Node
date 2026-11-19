@@ -982,6 +982,17 @@ html[data-reader-rails="sides"] header[data-read-skip] {
 .cc-item-meta,.cc-item-detail{font-size:.85rem;line-height:1.4;color:#5a5751;overflow-wrap:anywhere}
 .cc-empty,.cc-note{margin:.375rem 0 0;font-size:.85rem;line-height:1.5;color:#5a5751}
 .cc-note{margin-top:.625rem;padding-top:.5rem;border-top:1px dashed var(--lc-line,#e6e0d6)}
+.cc-btn-solid{background:#1a1815;color:#fff}
+.cc-tools{margin-top:.75rem;padding-top:.625rem;border-top:1px solid var(--lc-line,#e6e0d6)}
+.cc-tools-row,.cc-remove{display:flex;flex-wrap:wrap;gap:.375rem;align-items:center}
+.cc-form{display:flex;flex-direction:column;gap:.5rem;margin-top:.625rem}
+.cc-form .cc-note{border-top:0;padding-top:0;margin-top:0}
+.cc-field{display:flex;flex-direction:column;gap:.1875rem;font-size:.85rem;color:#1a1815}
+.cc-field input,.cc-field textarea{min-height:44px;padding:.375rem .5rem;font-size:1rem;border:1px solid #5a5751;border-radius:.5rem;background:#fff;color:#1a1815;max-width:100%}
+.cc-rejects{margin:.25rem 0 .5rem;padding-left:1.125rem;font-size:.85rem;line-height:1.5;color:#1a1815}
+.cc-said{margin:.5rem 0 0;font-size:.9rem;line-height:1.5;font-weight:600}
+.cc-said.is-good{color:#3d5226}
+.cc-said.is-bad{color:#1a1815;border-left:4px solid #1a1815;padding-left:.5rem}
 .lc-office-strip{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(min(100%,14rem),18rem);gap:.625rem;overflow-x:auto;padding-bottom:.25rem;scroll-snap-type:x proximity}
 .lc-office-strip .lc-office-fig{scroll-snap-align:start}
 .lc-office-strip .lc-office-pic img{max-height:22rem}

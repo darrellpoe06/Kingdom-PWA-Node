@@ -39,8 +39,9 @@ import { ChurchGivingChannels } from './ChurchGiving.jsx';
 import { markArrivalsSeen, SCREEN_KINDS } from '../lib/arrivals.js';
 import ChurchOfficeBoard, { useChurchSite } from './lovecorner/ChurchOfficeBoard.jsx';
 import ChurchCalendar from './lovecorner/ChurchCalendar.jsx';
+import ChurchCalendarTools from './lovecorner/ChurchCalendarTools.jsx';
 import { fromAnnounced, fromOfficeRows, mergeEvents } from '../lib/church-calendar.js';
-import { useChurchCalendarRows } from '../lib/church-calendar-sync.js';
+import { useChurchCalendarRows, useCalendarAccess, addCalendarEvents, removeCalendarEvent } from '../lib/church-calendar-sync.js';
 import { churchDateKey } from '../lib/home-week.js';
 import { siteIsTheChurchs } from '../lib/church-site.js';
 
@@ -195,6 +196,13 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
     [c.announcedEvents, calendarRows.rows]
   );
   const calendarStatus = !siteIsTheChurchs(c.site) ? 'ok' : signedIn ? calendarRows.status : 'signed-out';
+  // The office's tools (DR-1586) show only once the role is answered as owner/admin; the database is the real gate.
+  const calendarAccess = useCalendarAccess(signedIn && siteIsTheChurchs(c.site));
+  const removeOfficeEvent = async (ev) => {
+    const r = await removeCalendarEvent(ev.rowId);
+    if (r && r.removed) calendarRows.reload();
+    return r;
+  };
   const showingDefaultHome = c.isDefaultHome === true;
   const fieldCls = 'w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]';
   const labelCls = 'text-[0.5625rem] uppercase tracking-wider text-[#5A5751]';
@@ -992,7 +1000,10 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
         status={calendarStatus}
         onSave={addEvent ? saveAnnouncedEvent : null}
         savedIds={savedEventIds}
-      />
+        onRemove={calendarAccess.canManage ? removeOfficeEvent : null}
+      >
+        <ChurchCalendarTools events={calendarEvents} canManage={calendarAccess.canManage} onAdd={addCalendarEvents} onChanged={calendarRows.reload} />
+      </ChurchCalendar>
       <ChurchOfficeBoard digest={office} />
       {/* SERVICE TIMES + SAVE TO CALENDAR */}
       {(c.services || []).length > 0 && (

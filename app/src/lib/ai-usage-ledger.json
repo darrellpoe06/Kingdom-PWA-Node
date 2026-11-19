@@ -112,6 +112,21 @@
       "notes": "17:15:13Z → 17:23:34Z."
     },
     {
+      "id": "church-calendar-office-add-upload",
+      "date": "2026-11-19",
+      "task": "Church calendar: office add form, CSV upload with preview, two-press remove, CSV download",
+      "drs": [
+        "DR-1586"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.5,
+      "estimateWithoutAiHours": 8,
+      "notes": ""
+    },
+    {
       "id": "sov95-he-that-taketh-warning",
       "date": "2026-11-18",
       "task": "Sovereign A.I. week 95 from one word over a forwarded account security alert (thread 1a1f08def44cc672), taught generically for privacy: Word first on Ezekiel 33:4-5 and Nehemiah 13:4-9; every grant of access a gate you opened, the alert the watchman, check through the account and never the link, take back what you no longer use; four hand-written bands, every verse generator-filled from the KJV; the house measured from the support door's own code.",

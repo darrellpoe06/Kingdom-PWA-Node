@@ -35,7 +35,23 @@ const SOURCE_NOTE = {
   loading: 'Reading the office’s events…',
 };
 
-function EventLine({ ev, onSave, saved }) {
+function EventLine({ ev, onSave, saved, onRemove }) {
+  // Removing is two presses on purpose: the first asks, the second does it (no browser prompt).
+  const [asking, setAsking] = useState(false);
+  const [gone, setGone] = useState('');
+  const remove = async () => {
+    setGone('working');
+    let r;
+    try {
+      r = await onRemove(ev);
+    } catch {
+      r = null;
+    }
+    if (!r || !r.removed) {
+      setGone('failed');
+      setAsking(false);
+    }
+  };
   return (
     <li className="cc-item" data-testid="church-calendar-item" data-source={ev.source}>
       <div className="cc-item-main">
@@ -54,11 +70,34 @@ function EventLine({ ev, onSave, saved }) {
           {saved ? '✓ On your calendar' : '+ Calendar'}
         </button>
       )}
+      {onRemove && ev.source === 'office' && ev.rowId && (
+        <span className="cc-remove">
+          {!asking ? (
+            <button type="button" className="cc-btn" onClick={() => setAsking(true)} aria-label={`Remove ${ev.name} from the church calendar`} data-testid="church-calendar-remove">
+              Remove
+            </button>
+          ) : (
+            <>
+              <button type="button" className="cc-btn cc-btn-solid" onClick={remove} disabled={gone === 'working'} data-testid="church-calendar-remove-yes">
+                {gone === 'working' ? 'Removing…' : 'Yes, remove it for everyone'}
+              </button>
+              <button type="button" className="cc-btn" onClick={() => setAsking(false)} disabled={gone === 'working'} data-testid="church-calendar-remove-no">
+                Keep it
+              </button>
+            </>
+          )}
+          {gone === 'failed' && (
+            <span className="cc-said is-bad" role="alert">
+              It could not be removed. It is still on the calendar.
+            </span>
+          )}
+        </span>
+      )}
     </li>
   );
 }
 
-export default function ChurchCalendar({ events = [], services = [], todayKey, status = 'ok', onSave = null, savedIds = [] }) {
+export default function ChurchCalendar({ events = [], services = [], todayKey, status = 'ok', onSave = null, savedIds = [], onRemove = null, children = null }) {
   const dated = isDateKey(todayKey);
   const [picked, setPicked] = useState(todayKey);
   const [view, setView] = useState('week');
@@ -232,7 +271,7 @@ export default function ChurchCalendar({ events = [], services = [], todayKey, s
       {agenda.length > 0 ? (
         <ul className="cc-list" data-testid="church-calendar-agenda">
           {agenda.map((ev) => (
-            <EventLine key={ev.id} ev={ev} onSave={onSave} saved={savedIds.includes(ev.id)} />
+            <EventLine key={ev.id} ev={ev} onSave={onSave} saved={savedIds.includes(ev.id)} onRemove={onRemove} />
           ))}
         </ul>
       ) : (
@@ -245,6 +284,7 @@ export default function ChurchCalendar({ events = [], services = [], todayKey, s
           {note}
         </p>
       )}
+      {children}
     </section>
   );
 }
