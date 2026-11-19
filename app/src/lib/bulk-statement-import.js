@@ -126,8 +126,31 @@ export function planAccountImport(rows, accountId, existingTxns = []) {
 //   fallbackAccountId: optional — where unmatched files go IF the user picked one
 // Returns { routed: [{accountId, accountName, count, txns}], unrouted: [{name,count,reason}],
 //           duplicates, totalNew, totalRows }.
+// The same transaction from two kinds of source: a banking-app screenshot row
+// carries no balance, a downloaded CSV/TSV row carries the bank's running
+// balance, and the balance is part of the content key, so the two never met and
+// the row was added twice (Christina 2026-11-18: a TSV of rows already imported
+// from a screenshot). Existing rows are pooled by the key WITHOUT the balance,
+// apart by whether they carry one; a new row whose exact key is not in the books
+// is still the same transaction when the pool on the OTHER side has an unused
+// row with the same account, date, amount and description. One existing row
+// answers for one new row, so genuine same-day twins both survive.
+function crossSourcePool(existingTxns) {
+  const pool = new Map(); // noBalKey -> { withBal, withoutBal }
+  for (const t of existingTxns || []) {
+    if (!t || !t.accountId || !t.date) continue;
+    const k = txnDedupeKey(t.accountId, { ...t, balance: null });
+    const e = pool.get(k) || { withBal: 0, withoutBal: 0 };
+    if (t.balance == null || t.balance === '') e.withoutBal += 1;
+    else e.withBal += 1;
+    pool.set(k, e);
+  }
+  return pool;
+}
+
 export function planBulkImport(files, accounts = [], existingTxns = [], fallbackAccountId = null) {
   const seen = seedSeen(existingTxns);
+  const cross = crossSourcePool(existingTxns);
   const routed = {};
   const unrouted = [];
   let duplicates = 0;
@@ -156,6 +179,13 @@ export function planBulkImport(files, accounts = [], existingTxns = [], fallback
       fileOcc.set(cKey, idx + 1); // advance for EVERY row (dup or kept) so twins get #0,#1
       const occKey = cKey + '#' + idx;
       if ((fitKey && seen.has(fitKey)) || seen.has(occKey)) { duplicates += 1; continue; }
+      {
+        const hasBal = r.balance != null && r.balance !== '';
+        const pk = txnDedupeKey(accId, { ...r, balance: null });
+        const e = cross.get(pk);
+        const side = hasBal ? 'withoutBal' : 'withBal';
+        if (e && e[side] > 0) { e[side] -= 1; duplicates += 1; continue; }
+      }
       if (fitKey) seen.add(fitKey);
       seen.add(occKey);
       const bucket = routed[accId] || (routed[accId] = { accountId: accId, accountName: (acc && acc.name) || accId, count: 0, txns: [] });
