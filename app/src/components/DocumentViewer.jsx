@@ -12,6 +12,8 @@
 // the person for a file that is not on the server.
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Modal from './Modal.jsx';
+import { usePictureZoom, ZoomControls, ZoomPane } from './PictureZoom.jsx';
+import { MAX_CANVAS_PX } from '../lib/picture-zoom.js';
 import {
   documentKind, urlSource, fetchDocument, readDocx, loadPdfjs, viewerFailureText,
 } from '../lib/document-viewer.js';
@@ -33,7 +35,7 @@ export function normalizeResolved(r) {
   return { ok: false, reason: 'unknown' };
 }
 
-function PdfPages({ blob, title }) {
+function PdfPages({ blob, title, zoom = 1 }) {
   const [pdf, setPdf] = useState(null);
   const [err, setErr] = useState('');
   const [shown, setShown] = useState(PDF_FIRST_PAGES);
@@ -57,7 +59,7 @@ function PdfPages({ blob, title }) {
   const pages = Array.from({ length: Math.min(shown, pdf.numPages) }, (_, i) => i + 1);
   return (
     <div className="space-y-3" data-testid="viewer-pdf" data-pages={pdf.numPages}>
-      {pages.map((n) => <PdfPage key={n} pdf={pdf} n={n} title={title} />)}
+      {pages.map((n) => <PdfPage key={n} pdf={pdf} n={n} title={title} zoom={zoom} />)}
       {pdf.numPages > shown && (
         <div className="text-center">
           <button type="button" onClick={() => setShown((s) => s + PDF_FIRST_PAGES)} className={`${QUIET} ${RING}`} data-testid="viewer-pdf-more">
@@ -69,7 +71,7 @@ function PdfPages({ blob, title }) {
   );
 }
 
-function PdfPage({ pdf, n, title }) {
+function PdfPage({ pdf, n, title, zoom = 1 }) {
   const ref = useRef(null);
   useEffect(() => {
     let task = null;
@@ -81,7 +83,10 @@ function PdfPage({ pdf, n, title }) {
       const box = canvas.parentElement ? canvas.parentElement.clientWidth || 800 : 800;
       const base = page.getViewport({ scale: 1 });
       const ratio = (typeof window !== 'undefined' && window.devicePixelRatio) || 1;
-      const viewport = page.getViewport({ scale: (box / base.width) * ratio });
+      // Drawn at the width it is shown at (the zoom pane widens the box), so a
+      // page made larger is drawn sharper, up to what a phone's canvas allows.
+      const want = (box / base.width) * ratio;
+      const viewport = page.getViewport({ scale: Math.min(want, MAX_CANVAS_PX / base.width) });
       canvas.width = viewport.width;
       canvas.height = viewport.height;
       canvas.style.width = '100%';
@@ -89,7 +94,7 @@ function PdfPage({ pdf, n, title }) {
       try { await task.promise; } catch { /* cancelled on close */ }
     })();
     return () => { alive = false; if (task) { try { task.cancel(); } catch { /* done */ } } };
-  }, [pdf, n]);
+  }, [pdf, n, zoom]);
   return <canvas ref={ref} className="block w-full bg-white border border-[#E8E4DC]" aria-label={`${title}, page ${n}`} />;
 }
 
@@ -186,6 +191,8 @@ export default function DocumentViewer({ title = 'Document', name = '', resolve,
   }, [resolve, name]);
 
   const saveName = name || title;
+  const z = usePictureZoom();
+  const zoomable = state.phase !== 'loading' && state.phase !== 'failed' && (state.kind === 'image' || state.kind === 'pdf');
   const ways = (state.objectUrl || state.url) ? (
     <div className="flex flex-wrap gap-2" data-testid="viewer-ways">
       {state.url && <a href={state.url} target="_blank" rel="noopener noreferrer" className={`${QUIET} ${RING} inline-flex items-center`} data-testid="viewer-new-tab">Open in a new tab</a>}
@@ -202,9 +209,17 @@ export default function DocumentViewer({ title = 'Document', name = '', resolve,
   } else if (state.phase === 'failed') {
     body = <p className="text-sm text-[#991B1B] leading-relaxed" role="status" style={SERIF} data-testid="viewer-failed" data-reason={state.reason}>{viewerFailureText(state.reason, `“${title}”`)}</p>;
   } else if (state.kind === 'image') {
-    body = <img src={state.objectUrl} alt={title} className="block w-full h-auto object-contain" data-testid="viewer-image" />;
+    body = (
+      <ZoomPane zoom={z.zoom} label={`${title}, at ${z.label}`}>
+        <img src={state.objectUrl} alt={title} className="block w-full h-auto object-contain" data-testid="viewer-image" />
+      </ZoomPane>
+    );
   } else if (state.kind === 'pdf') {
-    body = <PdfPages blob={state.blob} title={title} />;
+    body = (
+      <ZoomPane zoom={z.zoom} label={`${title}, at ${z.label}`}>
+        <PdfPages blob={state.blob} title={title} zoom={z.zoom} />
+      </ZoomPane>
+    );
   } else if (state.kind === 'text') {
     body = <pre className="whitespace-pre-wrap break-words text-sm text-[#1A1815] bg-white border border-[#E8E4DC] p-3" data-testid="viewer-text">{state.text}</pre>;
   } else if (state.kind === 'docx') {
@@ -231,6 +246,8 @@ export default function DocumentViewer({ title = 'Document', name = '', resolve,
       <div className="space-y-4" data-testid="document-viewer">
         <h2 className="pr-12 text-base text-[#1A1815] break-words" style={{ ...SERIF, fontWeight: 600 }}>{title}</h2>
         {record && <RecordPanel record={record} title={title} state={state} fingerprint={fingerprint} />}
+        {/* A picture or a PDF page is pixels: text size cannot reach its lettering, so the page itself is made larger (DR-1575). */}
+        {zoomable && <ZoomControls z={z} what={state.kind === 'pdf' ? 'pages' : 'picture'} />}
         {body}
         {ways}
       </div>
