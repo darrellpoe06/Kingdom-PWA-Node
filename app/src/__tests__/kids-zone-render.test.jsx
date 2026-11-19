@@ -17,6 +17,8 @@ import Storybook from '../components/kids/Storybook.jsx';
 import { COLG_DEFAULT_CHURCH } from '../lib/default-church.js';
 import { SHOT_LIST } from '../lib/kids/guides.js';
 import { STORYBOOKS } from '../lib/kids/storybooks.js';
+import { weeklyLesson } from '../lib/youth-zone.js';
+import { moduleFor, leadLines } from '../components/kids/GrownUps.jsx';
 
 vi.mock('../lib/engagement-sync.js', () => ({
   uploadTriviaAnswer: vi.fn(async () => ({})),
@@ -137,7 +139,16 @@ describe('the tiles open real things', () => {
     expect(q('[data-testid="who-am-i"]')).toBeTruthy();
     expect(qa('[data-testid^="name-"]').length).toBe(4);
     click(q('[data-testid="kids-tab-grownups"]'));
-    expect(q('[data-testid="grownups-lesson"]').textContent).toContain('How to lead it');
+    // The week's lesson is the catalog's own pick for MON, and the pick moves
+    // whenever a lesson lands (week index modulo the catalog's length). So the
+    // page is read against that lesson: its title always, and its leading
+    // notes exactly when the lesson wrote some. A lesson with no howToRun shows
+    // no heading for notes it does not have.
+    const pick = weeklyLesson('kids', MON);
+    const how = leadLines(moduleFor(pick)).how;
+    const shown = q('[data-testid="grownups-lesson"]').textContent;
+    expect(shown).toContain(pick.title);
+    expect(shown.includes('How to lead it')).toBe(how.length > 0);
     expect(q('[data-testid="grownups-progress"]').textContent).toContain('Sign in');
     click(q('[data-testid="kids-tab-badges"]'));
     expect(q('[data-testid="badge-shelf"]').getAttribute('data-earned')).toBe('0');
