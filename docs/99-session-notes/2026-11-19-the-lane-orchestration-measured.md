@@ -80,3 +80,15 @@ Scheduled (from the cron lines; jobs per run is the jobs defined):
 Note: none of Deploy freshness's last 100 runs (4.8 hours) was a `schedule` run; all were `workflow_run`. Its five-minute cron did not fire in that window, or fired and was not listed. Not explained here.
 
 re-review: 2026-12-03 (repeat these measurements a week after DR-1601 to DR-1603 land).
+
+## Addendum, 17:45Z: what landed and what it measured
+
+**The deploy lock (DR-1603, #2821, merged 16:32:27).** First deploy on the one-job lock, run 44567238699 on `19c5b2f`: created 16:32:27, job started 16:39:55 (runner wait), live 16:46:09, boot check passed 16:46:48, lock released 16:46:51. The three dispatches ran outside the lock. site-health run 44568237020 on main `ac3036e` (includes the change): success 17:07:22.
+
+**Placed rows (DR-1602).** #2820 (DR-1602) landed 17:19, then #2822 (DR-1604, DR-1605, rows placed) landed 17:38. Neither was re-synced with main for a ledger conflict. Between them, #2808 and #2816 (DR-1606) also landed. A trial merge of #2819 against each new main reported no conflict. Before: #2819 itself had two real conflicts this morning (the workflow register, then an INDEX row appended at the tail by #2811).
+
+**Ghost runs inflate the queue count.** At 15:57Z, 13 of the 42 runs listed as queued had zero jobs: one from 2026-08-19 (Auto-open PR 32212287286) and twelve from 2026-11-11 20:35–20:47Z. They hold no runner and no concurrency group: rls-isolation completed runs 652 to 658 after them. The cancel API refuses them ("409 Cannot cancel a workflow run that has not been queued yet"). Only `POST /actions/runs/{id}/force-cancel` or the Actions UI clears them. Read "queued" counts with them taken out.
+
+**Proposed, added to DR-1604's list (Tier C, nothing changed): an urgent PR jumps the queue.** While an open PR carries an `urgent` label, the scheduled workflows that only observe (the health witnesses, not deploy freshness, site health or migrate freshness) skip their run with a one-line reason. When no `urgent` PR is open they run as now. To ship it needs one shared guard step, proof that it catches (the `urgent` label skips a witness, no label runs it, and the three named heals never skip), and a `hold` PR. Raised by the parent session at 15:55Z, when the work-order fix #2808 sat queued 40 minutes.
+
+**Two duplicate deploy triggers per merge, measured.** For #2820's merge, Auto-merge's heal dispatch (44575885023) and the push event (44575886782) each created a deploy run within one second. The push run was cancelled at once in the same pending slot. Harmless, but it is item 3 of DR-1604 seen live.
