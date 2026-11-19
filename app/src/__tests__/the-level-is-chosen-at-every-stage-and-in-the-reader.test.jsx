@@ -28,6 +28,7 @@ import { setReadTarget, getReadTarget, clearReadTarget } from '../lib/read-targe
 import { startIndexForFraction } from '../lib/read-follow.js';
 import { buildCatalogCourseDescriptors } from '../lib/learn-catalog.js';
 import ChurchLearn from '../components/ChurchLearn.jsx';
+import { openLessonsArea } from './helpers/learn-areas.js';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -92,6 +93,7 @@ describe('the real lesson: one row, in the Open stage, wired to the remembered b
       extraCourses, progress: {}, toggleModule: () => {}, quizState: {}, recordQuiz: () => {},
       learnLevel: 'auto', setLearnLevel: () => {}, ageBand: 'adult', setAgeBand,
     }));
+    openLessonsArea(); // Learn opens on Latest (DR-1606)
     // Living Lessons specifically: it is what `defaultCourse` opened before, and
     // it is the course that counts in LESSONS, so "Start this lesson" exists.
     const rows = [...host.querySelectorAll('[data-testid="course-choice-list"] button[data-course]')];

@@ -41,6 +41,7 @@ import {
 } from '../lib/course-duration.js';
 import { RATE_STEPS } from '../lib/tts.js';
 import { SPOKEN_WPM } from '../lib/lesson-flow.js';
+import { openLessonsArea } from './helpers/learn-areas.js';
 
 describe('the speeds come FROM the app’s own rate control', () => {
   it('offers exactly the two he asked for, and they are real steps', () => {
@@ -165,10 +166,16 @@ let container, root;
 beforeEach(() => { container = document.createElement('div'); document.body.appendChild(container); root = createRoot(container); });
 afterEach(() => { act(() => root.unmount()); container.remove(); });
 const extraCourses = buildCatalogCourseDescriptors();
-const render = (props = {}) => act(() => root.render(createElement(ChurchLearn, {
+const renderRaw = (props = {}) => act(() => root.render(createElement(ChurchLearn, {
   extraCourses, progress: {}, toggleModule: () => {}, quizState: {}, recordQuiz: () => {},
   learnLevel: 'auto', setLearnLevel: () => {}, ageBand: 'adult', setAgeBand: () => {}, ...props,
 })));
+// Learn opens on Latest (DR-1606): the reader's first tap is the Lessons tab.
+const render = (...args) => {
+  const out = renderRaw(...args);
+  openLessonsArea();
+  return out;
+};
 // LEARN'S ALL-COURSES VIEW OPENS ON THE ONE LIST NOW (DR-1183). Darrell
 // 2026-10-21: "It's like a title page saying your inside living lessons...
 // only have that sortable list when it is chosen". Nothing is open on that

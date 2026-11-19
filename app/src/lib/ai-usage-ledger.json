@@ -18,6 +18,9 @@
     },
     "claude-fable-5-2": {
       "note": "The Claude session model on 2026-11-10 (Anthropic). Per-task tokens are not exposed by the harness."
+    },
+    "unrecorded": {
+      "note": "A Claude Code session whose standing instructions keep model identifiers out of pushed files; the session's model is in its own transcript, not on this record. Per-task tokens are not exposed by the harness."
     }
   },
   "sessions": [
@@ -172,6 +175,21 @@
       "wallClockHours": 0.3,
       "estimateWithoutAiHours": 8,
       "notes": "17:23:34Z → 17:41:35Z including gitleaks built from source and the fixture allowlist fix."
+    },
+    {
+      "id": "sov98-he-wrought-a-work-on-the-wheels",
+      "date": "2026-11-19",
+      "task": "Sovereign A.I. week 98 from one word over a forwarded technology newsletter (thread 1a1f090d679841cd): Word first on Jeremiah 18:2-6, the potter's hands on the clay as the wheel turns; directing as it unfolds versus ordering and hoping; the speed-for-quality cost counted with Luke 14:28; the honesty line that a generated person is not a person (Genesis 2:7, Jeremiah 10:14); four hand-written bands, every verse generator-filled from the KJV; the house measured from the generator's own code.",
+      "drs": [
+        "DR-1576"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.5,
+      "estimateWithoutAiHours": 12,
+      "notes": "No token meter in this session; tokens and cost are null. The tool is reported through a newsletter recap and was not used; whether it works as described is not verified; re-review 2026-12-03."
     },
     {
       "id": "d5-error-text",
@@ -387,6 +405,21 @@
       "wallClockHours": 1.23,
       "estimateWithoutAiHours": 24,
       "notes": "Measured first commit 17:01:19Z to merge 18:14:53Z on claude/what-cannot-be-patched-is-removed (7 commits); the authoring before the first commit is not on the record. Estimate entered by the Ways session for a 1,309-line lesson with 55 gate cases, not the authoring session's own."
+    },
+    {
+      "id": "workers-get-their-work-orders",
+      "date": "2026-11-19",
+      "task": "1099 workers were not getting work orders: invite boxes start checked and an empty worker invite is refused; 0337 lets the assigned worker read and document the job, claims jobs sent by name at sign-in, and backfills empty field_worker invites to the ceiling; smoke proven to catch on local PostgreSQL 16",
+      "drs": [
+        "DR-1594"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.2,
+      "estimateWithoutAiHours": 10,
+      "notes": ""
     },
     {
       "id": "seven-gates-not-two",
@@ -711,6 +744,21 @@
       "notes": "No token meter in this session; tokens and cost are null. Vendor product features are the newsletter's report, not checked against vendor pages. How many Funnel requests land on an unintended service is not measured; re-review 2026-12-02."
     },
     {
+      "id": "sov99-the-song-that-goes-with-you",
+      "date": "2026-11-19",
+      "task": "Sovereign A.I. week 99 rebuilt from Darrell's spoken teaching of 2026-09-24 (PR #1814, original DR-0634, never landed): Word first on Proverbs 6:22 and Exodus 33:14; the song in the night, the faithful servant, the Word unbound; bright line that no tool is the presence of Yahweh; four hand-written bands, every verse generator-filled from the KJV corpus; house pinned to tts.js and TTSControl.jsx",
+      "drs": [
+        "DR-1578"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1,
+      "estimateWithoutAiHours": 10,
+      "notes": "No token meter in this session; tokens and cost are null. His phone test of leaving a tab and switching apps is not verified; re-review 2026-12-03."
+    },
+    {
       "id": "repo-documents-the-proof-of-the-work",
       "date": "2026-11-06",
       "task": "Documents in the admin console: every decision, Way, foundation and session note readable by its own location; the standard that the NAS initiates every road",
@@ -805,6 +853,21 @@
       "wallClockHours": 0.2,
       "estimateWithoutAiHours": 1,
       "notes": ""
+    },
+    {
+      "id": "dr-1599-malcolm-x-in-the-title",
+      "date": "2026-11-19",
+      "task": "The Malcolm X lesson (L337) carries his name in its title so it can be found",
+      "drs": [
+        "DR-1599"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.1,
+      "estimateWithoutAiHours": 0.5,
+      "notes": "Title and the band-opening title changed; id, number and text unchanged; lesson gate green."
     },
     {
       "id": "the-in-flight-view-has-an-age",
@@ -1037,6 +1100,21 @@
       "wallClockHours": 0.75,
       "estimateWithoutAiHours": 8,
       "notes": "Same session as DR-1361, DR-1370 and DR-1371; four reader-feedback messages with two screenshots. Estimate is this session's own for the reader fold, the voice seam and the gate."
+    },
+    {
+      "id": "dr-1595-parish-life-shows-what-is-coming",
+      "date": "2026-11-19",
+      "task": "Parish Life listed July and August events in November; it now reads the church calendar and lists only events that have not ended",
+      "drs": [
+        "DR-1595"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.3,
+      "estimateWithoutAiHours": 2,
+      "notes": "Traced to a list rendering the church record's fixed announcedEvents with no date check. Proven to catch with the record's own events on 2026-11-19. No schema."
     },
     {
       "id": "l331-it-doth-not-yet-appear-what-we-shall-be",
@@ -1581,6 +1659,21 @@
       "notes": "Darrell: why can't a system be built to support this?"
     },
     {
+      "id": "test-waits-as-long-as-its-script",
+      "date": "2026-11-19",
+      "task": "research-answered-on-the-nas.test.js takes its child script's 60 s bound; reproduced under CPU contention and proven both ways; 29 sibling files measured",
+      "drs": [
+        "DR-1608"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.3,
+      "estimateWithoutAiHours": 2,
+      "notes": ""
+    },
+    {
       "id": "dr-1406-pace-and-depth-sustained",
       "date": "2026-11-10",
       "task": "Pace and depth stopped being overwritten by the household snapshot: device-personal, never pushed, stripped on pull; pinned by a test",
@@ -1861,6 +1954,21 @@
       "notes": "Darrell: How could I have 99% and not have read it"
     },
     {
+      "id": "deploy-lock-one-job",
+      "date": "2026-11-19",
+      "task": "The deploy lock moves to the deploy job, which now runs the boot check; dispatches run outside it on the upload; measured from run 44476228421",
+      "drs": [
+        "DR-1603"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.5,
+      "estimateWithoutAiHours": 5,
+      "notes": ""
+    },
+    {
       "id": "dr-1419-course-list-standing",
       "date": "2026-11-10",
       "task": "The Learn course picker says each course's standing, the list in numbers, and the two nearest wins",
@@ -2030,6 +2138,21 @@
       "notes": "Darrell: the months are not populating in the next month (Migdal screenshot)"
     },
     {
+      "id": "standing-load-proposed",
+      "date": "2026-11-19",
+      "task": "Measured the runner pool's standing load (39 scheduled workflows, the workflow_run heals, Auto-merge's poll) and proposed six Tier C trims",
+      "drs": [
+        "DR-1604"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.4,
+      "estimateWithoutAiHours": 4,
+      "notes": ""
+    },
+    {
       "id": "dr-1428-two-apps-one-catalog",
       "date": "2026-11-11",
       "task": "Lesson links open in the lesson's own app; spiritual lessons free everywhere, child level and first lesson free, rigorous PoeTech levels PoeTech+ (rule built, enforcement off); brand follows the lesson",
@@ -2178,6 +2301,21 @@
       "wallClockHours": 0.4,
       "estimateWithoutAiHours": 5,
       "notes": "Darrell's screenshot: 2 of 51 beside courses read in full at 100%"
+    },
+    {
+      "id": "sov97-the-staff-of-this-broken-reed",
+      "date": "2026-11-19",
+      "task": "Sovereign A.I. week 97 from one word over a forwarded business newsletter (thread 1a1f08f5aa0b9f68): two outages in one week, a national ground stop and a cloud provider's outage, read as one story of leaning. Word first on Isaiah 36:6 and Ezekiel 29:6-7 (the broken reed that pierces the hand), leaning told apart from trading (Isaiah 30-31), the aging system and the new load through Matthew 9:16-17, Hezekiah's order (Isaiah 37:14-15, 20); four hand-written bands, every verse generator-filled from the KJV; the house measured from its own records and workflow folder.",
+      "drs": [
+        "DR-1572"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 2,
+      "estimateWithoutAiHours": 12,
+      "notes": "No token meter in this session; tokens and cost are null. Both outages documented by several reports read through search (article hosts refused by this session's network); the newsletter's country count, dollar figure and the ground stop's root cause are reported or unverified; re-review 2026-12-03."
     },
     {
       "id": "dr-1435-money-reserve-trace-day-boundary",
@@ -2484,6 +2622,21 @@
       "notes": "Measured first: the curriculum export inflates every course by facilitator notes, quiz and age rewrites (2.55M words against 1.98M of book body); counting it would have overstated every answer. Found that the ledger counted book sales while grant_book_entitlement was called nowhere, and that the seam read metadata.productId while the server wrote metadata.product. The Acrobat share link Darrell sent could not be reached from this sandbox (host outside the allowlist; the allow request was declined), so that document is listed as awaiting its source, with no product painted over it."
     },
     {
+      "id": "worker-my-work-orders-and-bell",
+      "date": "2026-11-19",
+      "task": "1099 workers see every job sent to them: My work orders across every door (my_assigned_work_orders), Fixed / Not fixed / a picture from the list, and a job-new arrival on the bell; watcher test proven to catch",
+      "drs": [
+        "DR-1597"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.8,
+      "estimateWithoutAiHours": 8,
+      "notes": ""
+    },
+    {
       "id": "sovereign-storefront",
       "date": "2026-11-12",
       "task": "The sovereign storefront: a public store surface with the seller's face, books, bundles, courses, open workshops and the membership; the server's open list instead of a build flag; one catalog entry shape for fixed, pay-what-you-want and bundle pricing mirrored between the store and the checkout function; Stripe promotion codes; instant delivery on return from Stripe through /api/deliver with the EPUB built on the device",
@@ -2557,6 +2710,21 @@
       "wallClockHours": 0.3,
       "estimateWithoutAiHours": 6,
       "notes": "Darrell's two screenshots from the Teams tab: a strip of empty squares under a 33-picture note, and an orange frame around the tapped card. Both read from the code: per-id thumbnail asks and a focus: ring on a touch target."
+    },
+    {
+      "id": "lane-rules-in-context",
+      "date": "2026-11-19",
+      "task": "The delivery lane's rules as one section of docs/CONTEXT.md, with the session note of measurements",
+      "drs": [
+        "DR-1605"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.3,
+      "estimateWithoutAiHours": 3,
+      "notes": ""
     },
     {
       "id": "love-corner-front-door-2026-11-12",
@@ -2738,6 +2906,21 @@
       "notes": "Darrell, spoken: how can someone be good and do nothing at the same time?"
     },
     {
+      "id": "ledger-rows-placed",
+      "date": "2026-11-19",
+      "task": "INDEX rows placed off the tail (scripts/index-row.mjs) and tail guards for INDEX and the usage ledger; merge=union tested on GitHub and refuted; placed rows proven to merge on two throwaway PRs",
+      "drs": [
+        "DR-1602"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.6,
+      "estimateWithoutAiHours": 6,
+      "notes": ""
+    },
+    {
       "id": "dr-1464-ll304-what-righteousness-is",
       "date": "2026-11-13",
       "task": "L304 What Righteousness Is: precept upon precept, seven facets as jewels",
@@ -2871,6 +3054,21 @@
       "wallClockHours": 1.4,
       "estimateWithoutAiHours": 32,
       "notes": "Gmail thread 1a1e43310d023259, forwarded issue dated 2026-11-16, built 2026-11-18. Each tool's limits and defaults taught as reported and unranked; redis.io, memcached.org, valkey.io and docs.immich.app refused the session network (ENOTFOUND), re-review 2026-12-18. 30 anchor references, 122 quoted spans, every verse filled from app/public/bible/kjv by scripts/sov89-fill.mjs and none typed. Our house measured: no Redis or Memcached in the app or our NAS code; Valkey 9 in infra/nas-immich/docker-compose.yml:53-56 on defaults (no maxmemory, no policy, no volume); SearXNG limiter off for want of a Valkey; sw.js per-build Cache Storage; clip-cache.js LRU at 300 MB, downloads held, two in flight. Valkey memory on the NAS not measured."
+    },
+    {
+      "id": "person-doors-dr1591",
+      "date": "2026-11-19",
+      "task": "Each visit says which app it was: usage_events.door (0339), a door row per signed-in boot including Poe Properties, the governor-only per-person app read, and an Apps line on every Signups row; smoke on PostgreSQL 16 proven to catch twice; existing chips and buttons pinned",
+      "drs": [
+        "DR-1591"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.2,
+      "estimateWithoutAiHours": 10,
+      "notes": ""
     },
     {
       "id": "sov79-promotion-cometh-not-from-the-east",
@@ -3276,6 +3474,21 @@
       "wallClockHours": 1.5,
       "estimateWithoutAiHours": 40,
       "notes": "Gmail thread 1a1885689c5c2ffc, forwarded 2026-10-29T18:38Z (1:38 PM CDT), built 2026-11-13 from the intake backlog. Preview only: blog.bytebytego.com and bytebytego.substack.com refused (403 CONNECT), nothing attributed to the article, re-review 2026-11-27. 43 anchor references, 161 quoted spans, every verse filled from app/public/bible/kjv by scripts/sov82-fill.mjs and none typed. Our own data movement measured and pinned against its source files: 37 postgres_changes listener files, signal-then-read messages with a 15s heartbeat, 5-min Inbound poll, site checker ~67 min measured, ten unpublished tables (June), push_outbox."
+    },
+    {
+      "id": "ci-runs-only-needed-legs",
+      "date": "2026-11-19",
+      "task": "Path-scoped CI legs: a classify job and scripts/ci-legs.mjs skip the PostgreSQL walls, door journeys and (unless the course is pinned) the layout probe for lesson-only pushes; the aggregator accepts only named skips",
+      "drs": [
+        "DR-1601"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.2,
+      "estimateWithoutAiHours": 10,
+      "notes": ""
     },
     {
       "id": "sov83-that-they-may-continue-many-days",
@@ -3925,6 +4138,21 @@
       "wallClockHours": 1.4,
       "estimateWithoutAiHours": 10,
       "notes": ""
+    },
+    {
+      "id": "learn-opens-on-latest",
+      "date": "2026-11-19",
+      "task": "Learn opened on the course list, which asks a newcomer to choose first; it now opens on Latest on every visit",
+      "drs": [
+        "DR-1606"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.3,
+      "estimateWithoutAiHours": 2,
+      "notes": "One-course readers keep the lessons (no strip). Proven to catch: the old first area fails two mounted cases."
     }
   ]
 }

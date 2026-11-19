@@ -338,6 +338,13 @@
       "why": "The Overview (DR-1530) is its own module (PortfolioTab.jsx, portfolio.js, portfolio-cloud.js); the shell of the module pays only its wiring: one import and one case line. Raised to the measured size, not above it."
     },
     {
+      "file": "app/src/modules/properties/PropertiesApp.jsx",
+      "from": 2684,
+      "to": 2693,
+      "date": "2026-11-19",
+      "why": "A 1099 worker's work orders on every door (DR-1594) are their own files (MyWorkOrders.jsx, lib/assigned-work.js); the shell pays only its wiring: two imports, the list's state and its read, the worker-by-assignment role line, and the card's three render lines. Raised to the measured size, not above it."
+    },
+    {
       "file": "app/src/lib/sovereign-ai-class.js",
       "from": 13372,
       "to": 13589,
@@ -420,16 +427,37 @@
       "to": 15744,
       "date": "2026-11-19",
       "why": "sov96 (He shall order the lamps continually, DR-1570) adds one lesson to this file after sov95 (DR-1564) landed; the same reason as every raise above it -- the lesson corpus lives in JavaScript until DR-1339’s lesson-content-out-of-JS re-review. The twenty-ninth raise of this ceiling, measured with wc -l on the spliced file (15744), never by hand."
+    },
+    {
+      "file": "app/src/lib/sovereign-ai-class.js",
+      "from": 15744,
+      "to": 15925,
+      "date": "2026-11-19",
+      "why": "sov97 (The staff of this broken reed, DR-1572) adds one lesson to this file, stacked on sov96 (DR-1570); the same reason as every raise above it -- the lesson corpus lives in JavaScript until DR-1339’s lesson-content-out-of-JS re-review, whose date (2026-11-19) is today and is not decided by this lesson. The thirtieth raise of this ceiling, measured with wc -l on the spliced file (15925), never by hand."
+    },
+    {
+      "file": "app/src/lib/sovereign-ai-class.js",
+      "from": 15925,
+      "to": 16108,
+      "date": "2026-11-19",
+      "why": "sov98 (He wrought a work on the wheels, DR-1576) adds one lesson to this file after sov97 (DR-1572) landed; the same reason as every raise above it -- the lesson corpus lives in JavaScript until DR-1339’s lesson-content-out-of-JS re-review. The thirty-first raise of this ceiling, measured with wc -l on the spliced file (16108), never by hand."
+    },
+    {
+      "file": "app/src/lib/sovereign-ai-class.js",
+      "from": 16108,
+      "to": 16289,
+      "date": "2026-11-19",
+      "why": "sov99 (The song that goes with you, DR-1578) adds one lesson to this file after sov98 (DR-1576) landed: Darrell's spoken teaching of 2026-09-24, rebuilt from PR #1814 which never landed; the same reason as every raise above it -- the lesson corpus lives in JavaScript until DR-1339’s lesson-content-out-of-JS re-review. Measured with wc -l on the spliced file (16289), never by hand."
     }
   ],
   "budgets": {
     "app/src/lib/living-lessons-class.js": 33072,
-    "app/src/lib/sovereign-ai-class.js": 15744,
+    "app/src/lib/sovereign-ai-class.js": 16289,
     "app/src/lib/world-issues-class.js": 6789,
     "app/src/components/ChurchLearn.jsx": 6012,
     "app/src/modules/properties/DoorTabs.jsx": 3352,
     "app/src/components/Rentals.jsx": 3220,
-    "app/src/modules/properties/PropertiesApp.jsx": 2684,
+    "app/src/modules/properties/PropertiesApp.jsx": 2693,
     "app/src/components/TTSControl.jsx": 2630,
     "app/src/lib/cameras.js": 2029,
     "app/src/lib/godhead-study.js": 1993,

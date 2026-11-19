@@ -22,6 +22,7 @@ import { createRoot } from 'react-dom/client';
 import { getReadTarget, clearReadTarget } from '../lib/read-target.js';
 import { buildFollowMap, segmentRange } from '../lib/read-follow.js';
 import ChurchLearn from '../components/ChurchLearn.jsx';
+import { openLessonsArea } from './helpers/learn-areas.js';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -40,10 +41,16 @@ afterEach(() => {
   window.localStorage.clear();
 });
 
-const mount = () => act(() => root.render(createElement(ChurchLearn, {
+const mountRaw = () => act(() => root.render(createElement(ChurchLearn, {
   progress: {}, toggleModule: () => {}, quizState: {}, recordQuiz: () => {},
   learnLevel: 'auto', setLearnLevel: () => {}, ageBand: 'adult', setAgeBand: () => {},
 })));
+// Learn opens on Latest (DR-1606): the reader's first tap is the Lessons tab.
+const mount = (...args) => {
+  const out = mountRaw(...args);
+  openLessonsArea();
+  return out;
+};
 const button = (text) => [...box.querySelectorAll('button')].find((b) => (b.textContent || '').includes(text));
 // LEARN'S ALL-COURSES VIEW OPENS ON THE ONE LIST NOW (DR-1183): no course is
 // open until one is chosen, so opening a lesson takes the reader's own first

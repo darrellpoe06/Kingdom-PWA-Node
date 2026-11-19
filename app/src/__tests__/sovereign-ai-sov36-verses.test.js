@@ -654,10 +654,14 @@ describe('sov36 - proven-to-catch: the gate fails on a drifted verse, an unattri
     expect(orderProblem(SOVEREIGN_AI_MODULES.filter((w) => w.id !== SOV36_ID))).toBe('sov36 missing');
     // A week filed OUT OF ORDER is still caught, which is the thing that
     // matters; a week filed after 36 in the right place is not a fault.
+    // The future week is DERIVED, one past the highest week in the course: a
+    // literal (it was sov99) collides with the real week once the course
+    // reaches it, as it did on 2026-11-19 when sov99 (DR-1578) landed.
+    const futureWeek = `sov${Math.max(...SOVEREIGN_AI_MODULES.map((w) => Number(/^sov(\d+)/.exec(w.id)?.[1] || 0))) + 1}-a-week-from-the-future`;
     const shuffled = [...SOVEREIGN_AI_MODULES];
-    shuffled.splice(shuffled.length - 1, 0, { id: 'sov99-a-week-from-the-future' });
+    shuffled.splice(shuffled.length - 1, 0, { id: futureWeek });
     expect(orderProblem(shuffled)).toMatch(/weeks do not ascend/);
-    const appended = [...SOVEREIGN_AI_MODULES, { id: 'sov99-a-week-from-the-future' }];
+    const appended = [...SOVEREIGN_AI_MODULES, { id: futureWeek }];
     expect(orderProblem(appended), 'a later week filed IN ORDER is not a fault').toBeNull();
     const outOfOrder = [SOVEREIGN_AI_MODULES[1], SOVEREIGN_AI_MODULES[0], ...SOVEREIGN_AI_MODULES.slice(2)];
     expect(orderProblem(outOfOrder)).toMatch(/weeks do not ascend/);

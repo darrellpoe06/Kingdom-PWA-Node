@@ -25,6 +25,7 @@ import { act } from 'react-dom/test-utils';
 import React from 'react';
 import ChurchLearn from '../components/ChurchLearn.jsx';
 import { pendingRead, clearRead } from '../lib/read-target.js';
+import { openLessonsArea } from './helpers/learn-areas.js';
 
 let container; let root;
 beforeEach(() => {
@@ -44,6 +45,7 @@ const mount = (props = {}) => {
     learnLevel: 'auto', setLearnLevel: () => {}, ageBand: 'adult', setAgeBand: () => {},
     ...props,
   })));
+  openLessonsArea(); // Learn opens on Latest (DR-1606)
   // LEARN OPENS ON THE ONE LIST (DR-1183), and the by-title index waits for a
   // chosen course like the rest of the course's blocks (DR-1182). So the
   // index these cases drive is reached the way a reader reaches it: one tap

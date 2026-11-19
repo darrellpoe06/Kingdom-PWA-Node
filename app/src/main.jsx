@@ -194,6 +194,11 @@ const __standalone = __params.get('join') === '1' || __params.get('invites') ===
   || !!__params.get('biz')
   || !!__params.get('room')
   || __params.get('oauth_popup') === '1';
+// WHICH APP A SIGNED-IN PERSON OPENED (DR-1591): one usage row per person per
+// page load, for the doors that are member apps (the PoeTech shell and the
+// doors it boots as, and Poe Properties, which never loads the shell). Lazy,
+// fire-and-forget, never throws into a boot.
+const __noteDoor = () => { import('./lib/usage-events.js').then(({ noteDoorOpen }) => { noteDoorOpen(); }).catch(() => {}); };
 const __root = ReactDOM.createRoot(document.getElementById('root'));
 if (__params.get('oauth_popup') === '1') {
   // We ARE the Google sign-in popup (see lib/oauth-popup.js). The session was
@@ -313,6 +318,7 @@ if (__params.get('oauth_popup') === '1') {
   // tenant downloads a property-management app, not the family platform. The
   // PoeTech shell mounts the SAME module at ?view=properties, so both apps stay
   // on the same rows with no second store to fall out of sync.
+  __noteDoor();
   import('./components/PropertiesDoor.jsx').then(({ default: PropertiesDoor }) => {
     __root.render(<React.StrictMode><ErrorBoundary><PropertiesDoor /></ErrorBoundary></React.StrictMode>);
   }).catch((err) => { console.warn('properties door boot failed:', err); showBootFallback(document.getElementById('root'), { error: err }); });
@@ -341,6 +347,7 @@ if (__params.get('oauth_popup') === '1') {
   // so the one-time attendee's registration carries into their new app membership.
   // No-op when nothing is parked. Self-contained; does not touch the monolith.
   import('./lib/conference-link.js').then(({ wirePendingConferenceLink }) => { wirePendingConferenceLink(); }).catch(() => {});
+  __noteDoor();
 
   // The app-wide ALERT LAYER, in its own root beside the app's.
   //
