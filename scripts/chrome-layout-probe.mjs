@@ -200,6 +200,8 @@ let deviceFailuresBefore = 0;
 let deviceMeasured = 0;
 let wordsFailuresBefore = 0;
 let wordsMeasured = 0;
+let sheetsFailuresBefore = 0;
+let sheetsMeasured = 0;
 // COVERAGE, counted — not assumed (DR-0323). This probe reported `exit 0` on
 // 2026-09-03 having measured only 8 of its 11 views: no failure was raised, so
 // the run read as a clean pass while a third of the surfaces — including the
@@ -1563,6 +1565,128 @@ try {
   }
   if (wordsMeasured !== WORDS_WIDTHS.length * WORDS_SIZES.length) fail(`coverage: ${wordsMeasured}/${WORDS_WIDTHS.length * WORDS_SIZES.length} words cases measured`);
 
+  // ---------------------------------------------------------------------------
+  // SHEETS pass (DR-1575) — the Love Corner's two sheets are MEASURED open.
+  //
+  // Darrell 2026-11-18, the ALL menu and the Personalize sheet on a tablet in
+  // the night theme at a large text size: "Look okay? Accessibility?" Measured
+  // before the fix, in this Chromium: the shared Modal's white card showed as
+  // a 21 to 25px white frame round a dark sheet; the close was #5A5751 on
+  // #120909 (2.73:1), grew to 121px at Big Print and sat over the sheet's
+  // first control; the sheet was a second scroll box inside the dialog's own;
+  // the speed row hid three to seven of its eight speeds; the Youth Zone
+  // glyph drew at 7.5px beside a 13.5px median. No test opened either sheet
+  // in a browser, so none of it could fail a build. Both sheets are opened on
+  // the door at a phone and a tablet width, at Normal, Largest and Big Print:
+  //  S1. ONE SURFACE — the dialog panel is the sheet's own colour and the
+  //      sheet starts within 2px of the panel's edge (no frame).
+  //  S2. THE CLOSE READS AND STAYS A BUTTON — 4.5:1 or better against what is
+  //      painted behind it, 44 to 48px both ways at every text size, and over
+  //      no control in the sheet.
+  //  S3. ONE SCROLL BOX — one scrolling element in the dialog, and scrolled
+  //      to its end the last control is whole inside the panel.
+  //  S4. NOTHING CUT OFF — every speed is drawn whole inside the sheet (all
+  //      eight), and no tile label runs past its tile.
+  //  S5. ICONS ONE SIZE — no tile glyph is under 60% of the median glyph.
+  // Selftest: the white padded card, the grey bare close and the one-line
+  // speed strip are put back; S1, S2 and S4 MUST trip.
+  // ---------------------------------------------------------------------------
+  sheetsFailuresBefore = failures;
+  const SHEET_CASES = SELFTEST
+    ? [{ width: 390, height: 844, size: 'bigprint' }]
+    : [390, 1024].flatMap((width) => ['normal', 'largest', 'bigprint'].map((size) => ({ width, height: width === 390 ? 844 : 768, size })));
+  const SHEETS = [
+    { key: 'all', open: '[data-testid="lch-menu"]', sheet: '[data-testid="lch-all-features"]' },
+    { key: 'personalize', open: '[data-testid="lch-text-size"]', sheet: '[data-testid="lch-personalize-sheet"]' },
+  ];
+  for (const { width, height, size } of SHEET_CASES) for (const sh of SHEETS) {
+    const page = await browser.newPage({ viewport: { width, height } });
+    await page.addInitScript((k) => {
+      try {
+        localStorage.setItem('poetech.help.tour.v1', 'seen');
+        localStorage.setItem('poe-text-size', k);
+        localStorage.setItem('poe-theme-pref:lovecorner', 'night');
+        localStorage.setItem('poe-theme-pref', 'night');
+      } catch { /* private mode */ }
+    }, size);
+    await page.goto(`${origin}${BASE}/?lovecorner=1&view=church`, { waitUntil: 'networkidle', timeout: CHROME_IDLE_CAP_MS }).catch(() => {});
+    await page.waitForSelector('[data-testid="lovecorner-header"]', { timeout: 20000 }).catch(() => {});
+    const where = `sheet ${sh.key} ${size}@${width}px`;
+    const opened = await page.locator(sh.open).click({ timeout: 8000 }).then(() => page.waitForSelector(sh.sheet, { timeout: 8000 })).then(() => true).catch(() => false);
+    if (!opened) { await page.close(); fail(`${where}: the sheet never opened`); continue; }
+    if (SELFTEST) {
+      await page.addStyleTag({ content: '.modal-sheet { background: #fff !important; padding: 24px !important } .modal-sheet-x { color: #5A5751 !important; background: transparent !important; border: 0 !important; width: 121px !important; height: 121px !important } .lch-seg { display: inline-flex !important; overflow: hidden !important; width: auto !important; max-width: 100% !important } .lch-seg-btn { flex: 0 0 auto !important; white-space: nowrap !important }' });
+    }
+    await page.evaluate(() => new Promise((r) => setTimeout(r, 250)));
+    const m = await page.evaluate(() => {
+      const lum = (c) => { const v = (c.match(/[\d.]+/g) || []).map(Number); const f = (x) => { x /= 255; return x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; }; return { L: 0.2126 * f(v[0]) + 0.7152 * f(v[1]) + 0.0722 * f(v[2]), a: v.length > 3 ? v[3] : 1 }; };
+      const solid = (el) => { for (let e = el; e; e = e.parentElement) { const c = getComputedStyle(e).backgroundColor; if (lum(c).a > 0.5) return c; } return 'rgb(255, 255, 255)'; };
+      const ratio = (a, b) => { const [hi, lo] = a > b ? [a, b] : [b, a]; return Math.round(((hi + 0.05) / (lo + 0.05)) * 100) / 100; };
+      const dlg = [...document.querySelectorAll('[role="dialog"]')].pop();
+      const sheet = dlg && dlg.querySelector('.lch-sheet');
+      const x = dlg && dlg.querySelector('button[aria-label="Close"]');
+      if (!dlg || !sheet || !x) return { none: true };
+      const dr = dlg.getBoundingClientRect();
+      const sr = sheet.getBoundingClientRect();
+      const xr = x.getBoundingClientRect();
+      const ownBg = getComputedStyle(x).backgroundColor;
+      let behind = ownBg;
+      if (lum(ownBg).a <= 0.5) {
+        x.style.visibility = 'hidden';
+        behind = solid(document.elementFromPoint(xr.left + xr.width / 2, xr.top + xr.height / 2));
+        x.style.visibility = '';
+      }
+      const over = [];
+      for (const el of sheet.querySelectorAll('input, select, button, a, h2')) {
+        const r = el.getBoundingClientRect();
+        if (!r.width || !r.height) continue;
+        const ox = Math.min(r.right, xr.right) - Math.max(r.left, xr.left);
+        const oy = Math.min(r.bottom, xr.bottom) - Math.max(r.top, xr.top);
+        if (ox > 2 && oy > 2) over.push(`${(el.getAttribute('data-testid') || el.tagName).toString().slice(0, 24)} (${Math.round(ox)}x${Math.round(oy)}px)`);
+      }
+      const scrollers = [dlg, ...dlg.querySelectorAll('*')].filter((el) => /auto|scroll/.test(getComputedStyle(el).overflowY) && el.scrollHeight > el.clientHeight + 1);
+      for (const el of scrollers) el.scrollTop = el.scrollHeight;
+      const controls = [...sheet.querySelectorAll('button, a, input, select')].filter((el) => el.getBoundingClientRect().height > 0);
+      const last = controls[controls.length - 1];
+      const lr = last ? last.getBoundingClientRect() : null;
+      const dr2 = dlg.getBoundingClientRect();
+      const sr2 = sheet.getBoundingClientRect();
+      const rates = [...sheet.querySelectorAll('[data-testid^="lch-rate-"]')];
+      const cut = rates.filter((b) => { const r = b.getBoundingClientRect(); const seg = b.parentElement.getBoundingClientRect(); return r.right > Math.min(seg.right, sr2.right) + 1 || r.left < Math.max(seg.left, sr2.left) - 1 || b.scrollWidth > b.clientWidth + 1; }).map((b) => b.textContent.trim().slice(0, 16));
+      const labels = [...sheet.querySelectorAll('.lch-tile')].filter((t) => { const s = t.querySelector('span'); if (!s) return false; const a = t.getBoundingClientRect(); const b = s.getBoundingClientRect(); return b.right > a.right + 1 || b.left < a.left - 1; }).map((t) => t.textContent.trim().slice(0, 16));
+      const inks = [...sheet.querySelectorAll('.lch-tile svg')].map((svg) => { const g = svg.getBBox(); const r = svg.getBoundingClientRect(); return { id: svg.closest('.lch-tile').getAttribute('data-testid'), ink: Math.max(g.width, g.height) / 24 * r.width }; });
+      const sorted = inks.map((i) => i.ink).sort((a, b) => a - b);
+      const median = sorted.length ? sorted[Math.floor(sorted.length / 2)] : 0;
+      return {
+        size: document.documentElement.getAttribute('data-text-size'),
+        panelBg: getComputedStyle(dlg).backgroundColor, sheetBg: solid(sheet),
+        inset: Math.round(Math.max(sr.left - dr.left, sr.top - dr.top)),
+        close: { w: Math.round(xr.width), h: Math.round(xr.height), contrast: ratio(lum(getComputedStyle(x).color).L, lum(behind).L), over },
+        scrollers: scrollers.length,
+        lastWhole: !lr || (lr.bottom <= dr2.bottom + 1 && lr.top >= dr2.top - 1),
+        rates: rates.length, cut, labels,
+        smallIcons: inks.filter((i) => median && i.ink < median * 0.6).map((i) => `${i.id} ${Math.round(i.ink * 10) / 10}px of a ${Math.round(median * 10) / 10}px median`),
+      };
+    });
+    await page.close();
+    if (m.none) { fail(`${where}: no dialog, sheet or close was found`); continue; }
+    if (m.size !== size) { fail(`${where}: data-text-size="${m.size}" — the size never applied, nothing was measured`); continue; }
+    const before = failures;
+    sheetsMeasured += 1;
+    if (m.panelBg !== m.sheetBg || m.inset > 2) fail(`${where}: the panel is ${m.panelBg} round a ${m.sheetBg} sheet set in ${m.inset}px — a frame, not one surface (S1)`);
+    if (m.close.contrast < 4.5) fail(`${where}: the close reads at ${m.close.contrast}:1 against what is behind it; 4.5:1 is the floor (S2)`);
+    if (m.close.w < 44 || m.close.h < 44 || m.close.w > 48 || m.close.h > 48) fail(`${where}: the close is ${m.close.w}x${m.close.h}px; it is 44 to 48px at every text size (S2)`);
+    for (const o of m.close.over) fail(`${where}: the close sits over ${o} (S2)`);
+    if (m.scrollers > 1) fail(`${where}: ${m.scrollers} scroll boxes inside the dialog; there is one (S3)`);
+    if (!m.lastWhole) fail(`${where}: scrolled to the end, the last control is still cut by the panel (S3)`);
+    if (sh.key === 'personalize' && m.rates !== 8) fail(`${where}: ${m.rates} speeds drawn, 8 expected (S4)`);
+    for (const c of m.cut) fail(`${where}: the speed "${c}" is cut off (S4)`);
+    for (const c of m.labels) fail(`${where}: the tile label "${c}" runs past its tile (S4)`);
+    for (const c of m.smallIcons) fail(`${where}: a tile glyph is undersized — ${c} (S5)`);
+    if (failures === before) console.log(`sheet ok  ${where} — one surface, close ${m.close.w}x${m.close.h}px at ${m.close.contrast}:1 over nothing, ${m.scrollers} scroll box, nothing cut off${sh.key === 'personalize' ? `, ${m.rates} speeds` : ''}`);
+  }
+  if (!SELFTEST && sheetsMeasured !== SHEET_CASES.length * SHEETS.length) fail(`coverage: ${sheetsMeasured}/${SHEET_CASES.length * SHEETS.length} sheet cases measured`);
+
   await browser.close();
 
 
@@ -1581,7 +1705,10 @@ if (SELFTEST) {
   // The device pass (DR-0678/DR-0679): the subtab row hidden must trip.
   const deviceTripped = wordsFailuresBefore - deviceFailuresBefore;
   // The words pass (DR-1539): the hero column at 12px and 40px tiles must trip.
-  const wordsTripped = failures - wordsFailuresBefore;
+  const wordsTripped = sheetsFailuresBefore - wordsFailuresBefore;
+  // The sheets pass (DR-1575): the white card, the grey bare close and the
+  // one-line speed strip put back must trip S1, S2 and S4.
+  const sheetsTripped = failures - sheetsFailuresBefore;
   const lessonTripped = tsFailuresBefore - lessonFailuresBefore;
   const chromeTripped = lessonFailuresBefore;
   // The lesson pass now trips SEVEN ways: width-short, boxed control, a wall of
@@ -1589,11 +1716,11 @@ if (SELFTEST) {
   // with the text, and floaters on the comfort bar (DR-0438).
   // The lesson-chrome pass (DR-0816) must trip BOTH ways: the block grown and
   // the title's type grown.
-  if (failures > 0 && chromeTripped > 0 && lessonTripped >= 7 && tsTripped >= 2 && readerTripped >= 1 && lessonChromeTripped >= 2 && deviceTripped >= 1 && wordsTripped >= 2) {
-    console.log(`SELFTEST-BREAK OK — the probe CAN fail (${failures} tripped: ${chromeTripped} chrome, ${lessonTripped} lesson, ${tsTripped} textscale, ${readerTripped} reader, ${lessonChromeTripped} lesson-chrome, ${deviceTripped} device, ${wordsTripped} words)`);
+  if (failures > 0 && chromeTripped > 0 && lessonTripped >= 7 && tsTripped >= 2 && readerTripped >= 1 && lessonChromeTripped >= 2 && deviceTripped >= 1 && wordsTripped >= 2 && sheetsTripped >= 3) {
+    console.log(`SELFTEST-BREAK OK — the probe CAN fail (${failures} tripped: ${chromeTripped} chrome, ${lessonTripped} lesson, ${tsTripped} textscale, ${readerTripped} reader, ${lessonChromeTripped} lesson-chrome, ${deviceTripped} device, ${wordsTripped} words, ${sheetsTripped} sheets)`);
     process.exit(0);
   }
-  console.error(`SELFTEST-BREAK FAILED — a deliberate break tripped nothing (chrome: ${chromeTripped}, lesson: ${lessonTripped}, textscale: ${tsTripped}, reader: ${readerTripped}, lesson-chrome: ${lessonChromeTripped}, device: ${deviceTripped}, words: ${wordsTripped}); the probe is theater`);
+  console.error(`SELFTEST-BREAK FAILED — a deliberate break tripped nothing (chrome: ${chromeTripped}, lesson: ${lessonTripped}, textscale: ${tsTripped}, reader: ${readerTripped}, lesson-chrome: ${lessonChromeTripped}, device: ${deviceTripped}, words: ${wordsTripped}, sheets: ${sheetsTripped}); the probe is theater`);
   process.exit(1);
 }
 // The coverage assertion. A short run is a FAILED run, however clean its
@@ -1609,7 +1736,7 @@ if (measured !== expectedChrome) {
   console.error(`COVERAGE FAIL — measured ${lessonMeasured} of ${expectedLesson} lesson widths. A lesson that never rendered is not a pass.`);
   failures += 1;
 } else {
-  console.log(`coverage ok  ${measured}/${expectedChrome} chrome cases, ${lessonMeasured}/${expectedLesson} lesson cases, ${tsMeasured} text-scale cases, ${readerMeasured} reader cases, ${lessonChromeMeasured} lesson-chrome cases, ${deviceMeasured} device cases, ${wordsMeasured} words cases measured.`);
+  console.log(`coverage ok  ${measured}/${expectedChrome} chrome cases, ${lessonMeasured}/${expectedLesson} lesson cases, ${tsMeasured} text-scale cases, ${readerMeasured} reader cases, ${lessonChromeMeasured} lesson-chrome cases, ${deviceMeasured} device cases, ${wordsMeasured} words cases, ${sheetsMeasured} sheet cases measured.`);
 }
 
 process.exit(failures > 0 ? 1 : 0);

@@ -219,7 +219,7 @@ export function AllFeaturesSheet({
   const courseHits = searchCourses(q);
   const build = typeof __BUILD_SHA__ !== 'undefined' ? String(__BUILD_SHA__).slice(0, 7) : '';
   return (
-    <Modal open={open} onClose={onClose} label="All features" maxWidthClass="max-w-md" initialFocusRef={searchFirst ? inputRef : null}>
+    <Modal open={open} onClose={onClose} label="All features" maxWidthClass="max-w-md" initialFocusRef={searchFirst ? inputRef : null} variant="sheet" theme={theme}>
       <div className="lch-sheet" data-theme={theme || undefined} data-testid="lch-all-features">
         <label className="lch-search">
           <span className="sr-only">Search tabs and courses</span>

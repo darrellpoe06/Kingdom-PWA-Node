@@ -13,6 +13,17 @@
 //   - body scroll locked while open (the page behind doesn't drift)
 //   - rendered through a portal to <body> so stacking/overflow can't clip it
 //
+// TWO SHAPES, ONE PRIMITIVE (DR-1575). `variant="card"` (the default) is the
+// white padded card every auth/account surface uses. `variant="sheet"` is for
+// content that brings its own themed surface (the Love Corner's All-features
+// and Personalize sheets): the portal lands on <body>, OUTSIDE the shell's
+// themed wrapper, so the card's white padding showed as a thick white frame
+// around a dark sheet, with a grey × on near-black (measured 2.73:1) hanging
+// over the sheet's first control. A sheet panel carries the caller's `theme`
+// itself, has no padding of its own, is the ONE scroll box (the sheet inside
+// no longer scrolls within it), and its × is a 44px chrome button that never
+// grows with the text size and never scrolls away.
+//
 // Presentational + self-contained. It renders nothing unless `open`. The caller
 // owns the content and the onClose handler. Unbreakable by design: no network,
 // no app state; if children throw, the app-wide ErrorBoundary still wraps it.
@@ -32,7 +43,10 @@ export default function Modal({
   closeLabel = 'Close',
   initialFocusRef = null,
   maxWidthClass = 'max-w-sm',
+  variant = 'card',
+  theme = null,
 }) {
+  const isSheet = variant === 'sheet';
   const panelRef = useRef(null);
   const restoreRef = useRef(null);
 
@@ -110,18 +124,41 @@ export default function Modal({
         aria-labelledby={labelledBy}
         aria-label={labelledBy ? undefined : label}
         tabIndex={-1}
-        className={`relative bg-white border border-[#1A1815] w-full ${maxWidthClass} max-h-[92vh] overflow-y-auto p-5 sm:p-6 shadow-2xl focus:outline-none`}
+        data-theme={isSheet && theme ? theme : undefined}
+        data-modal-variant={isSheet ? 'sheet' : 'card'}
+        className={
+          isSheet
+            ? `modal-sheet relative w-full ${maxWidthClass} shadow-2xl focus:outline-none`
+            : `relative bg-white border border-[#1A1815] w-full ${maxWidthClass} max-h-[92vh] overflow-y-auto p-5 sm:p-6 shadow-2xl focus:outline-none`
+        }
         style={{ fontFamily: '"DM Sans", system-ui, sans-serif' }}
       >
         <button
           type="button"
           onClick={close}
           aria-label={closeLabel}
-          className="absolute top-2.5 right-2.5 w-11 h-11 min-h-[44px] flex items-center justify-center text-2xl leading-none text-[#5A5751] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]"
+          data-testid="modal-close"
+          className={
+            isSheet
+              ? 'modal-sheet-x'
+              : 'absolute top-2.5 right-2.5 w-11 h-11 min-h-[44px] flex items-center justify-center text-2xl leading-none text-[#5A5751] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]'
+          }
         >
-          ×
+          {isSheet ? (
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
+              <path d="M6 6l12 12M18 6L6 18" />
+            </svg>
+          ) : (
+            '×'
+          )}
         </button>
-        {children}
+        {isSheet ? (
+          <div className="modal-sheet-scroll" data-testid="modal-sheet-scroll">
+            {children}
+          </div>
+        ) : (
+          children
+        )}
       </div>
     </div>,
     document.body,
