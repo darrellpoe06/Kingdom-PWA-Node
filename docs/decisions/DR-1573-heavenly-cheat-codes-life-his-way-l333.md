@@ -19,10 +19,11 @@ One summary Darrell sent of a few minutes of the Welch and Duval conversation de
 | the video | never watched (proxy 403 on YouTube from the sandbox); one written summary was read |
 | whose words | the name and the two added lines are Darrell's, stated in the lesson in all four bands and in `UNCHECKED`; the speaker's term, activation codes, is named as his |
 | verses | 300 tokens filled by `fill-verses.mjs` from `app/public/bible/kjv`, none typed; 0 verse faults |
-| length | adult prose 1,384 words |
-| band shares | child 0.56, youth 0.68, teen 0.75, senior 0.79 (floor 0.5 / 0.6) |
-| reading ladder | child 0.6, youth 3.0, teen 3.7, senior 5.8 (child ceiling 5.0) |
-| band overlap | worst pair 0.07 (ceiling 0.5) |
+| length | adult prose 1,399 words |
+| points | 9, one per movement, read by `lessonPoints` |
+| band shares | child 0.57, youth 0.68, teen 0.74, senior 0.79 (floor 0.5 / 0.6) |
+| reading ladder | child 0.5, youth 2.8, teen 3.7, senior 5.4 (child ceiling 5.0) |
+| band overlap | worst pair 0.09 (ceiling 0.5) |
 | gate | 8 of 9 on the first run: the senior band had a heading reading OUR LORD in our own voice. Reworded to name Jesus; 9 of 9, and the doubled-word guard green |
 
 ## Impact
