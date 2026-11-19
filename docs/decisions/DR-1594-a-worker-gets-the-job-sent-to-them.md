@@ -30,10 +30,12 @@ Four places where that chain left a worker with nothing:
    - A trigger on the claim: open jobs in the invite's instance whose `assigned_to_label` matches the invited name (trimmed, any case) and have no account become the worker's. When two people in that instance were invited under one name, nothing is matched. 0262's `door_events` trigger records each assignment on the job's timeline.
 3. **The backfill, by Darrell's explicit direction for the workers he invited:** every NOT revoked `field_worker` invite with no capability gets the ceiling; every worker who already claimed one is granted the ceiling on the invite's scope (else `'*'`). An existing grant row is left as it is, so a deliberate `deny` stays. Revoked invites, other roles, and anything outside the ceiling are not touched. Workers who already signed in are given the jobs sent to their name before they did.
 
+4. **The owner stays the owner.** 0075 lets an owner read every grant in his instance, and `loadMyGrants` did not filter by grantee. The app reads the role grants-first, so a landlord whose workers held grants would have met the worker's face in his own app. This had stayed hidden only because his workers' invites were empty. The read now names the signed-in person (`grantee_user_id = me`), and signed-out reads nothing.
+
 ## Verification
 
 - `infra/supabase/tests/0337-worker-assigned-jobs-smoke.sql`, on PostgreSQL 16 after the ci.yml door-work chain plus 0151/0306/0310/0337: PASS. Without 0337 it fails at "W1 reads his job on door H"; without the claim trigger at "the job sent by name was not given"; without the backfill at "the claimed empty invite now carries {}". With 0337 applied, the 0260, 0264, 0306 and 0310 smokes still PASS.
-- `a-worker-gets-the-job-sent-to-them.test.jsx` (14): with the role change reset to `[]` again, the two screen tests fail.
+- `a-worker-gets-the-job-sent-to-them.test.jsx` (17): with the role change reset to `[]` again, the two screen tests fail; with the grant read unfiltered, the owner test fails.
 
 ## Not done
 

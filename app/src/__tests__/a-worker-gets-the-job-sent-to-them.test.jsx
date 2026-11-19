@@ -23,7 +23,7 @@ import {
   ROLE_CEILING, DEFAULT_INVITE_CAPS, defaultInviteCapabilities, inviteGrantsNothing,
 } from '../modules/properties/model.js';
 import { whyNotReady } from '../modules/properties/people.js';
-import { inviteToProperties } from '../modules/properties/cloud.js';
+import { inviteToProperties, loadMyGrants } from '../modules/properties/cloud.js';
 import { PROPERTY_PLACEMENTS } from '../lib/people-placement.js';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
@@ -92,6 +92,45 @@ describe('a worker invited with nothing checked is refused before it is written'
     expect(inserted).toBe(1);
     const tenant = await inviteToProperties({ instanceId: 'i', phone: '5635550338', roleLabel: 'tenant', capabilities: [] }, client);
     expect(tenant.ok).toBe(true);
+  });
+});
+
+// ── 2b. THE OWNER STAYS THE OWNER ───────────────────────────────────────────
+describe('a worker\'s grants never make the landlord a worker', () => {
+  // 0075 lets an owner read EVERY grant in his instance. The role is read
+  // grants-first, so before this a landlord whose workers held grants met
+  // the worker's face in his own app. The backfill in 0337 creates exactly
+  // those rows, so the read is narrowed to the signed-in person's own.
+  const fake = (rows, uid) => {
+    const calls = [];
+    return {
+      calls,
+      auth: { getUser: async () => ({ data: { user: uid ? { id: uid } : null } }) },
+      from: () => ({ select: () => ({ eq: async (col, v) => { calls.push([col, v]); return { data: rows.filter((r) => r[col] === v), error: null }; } }) }),
+    };
+  };
+  const rows = [
+    { grantee_user_id: 'worker', scope_ref: '*', capability: 'docs.add', setting: 'allow', role_label: 'field_worker' },
+    { grantee_user_id: 'worker', scope_ref: '*', capability: 'property.history', setting: 'allow', role_label: 'field_worker' },
+  ];
+
+  it('PROVEN-TO-CATCH: the owner reads no grant of his own, though he can read his workers\'', async () => {
+    const c = fake(rows, 'owner');
+    const r = await loadMyGrants(c);
+    expect(c.calls).toEqual([['grantee_user_id', 'owner']]);
+    expect(r).toMatchObject({ ok: true, grants: [] });
+  });
+
+  it('the worker reads his own', async () => {
+    const r = await loadMyGrants(fake(rows, 'worker'));
+    expect(r.grants.sort()).toEqual(['docs.add', 'property.history']);
+    expect(r.roleLabel).toBe('field_worker');
+  });
+
+  it('signed out reads nothing, and is not a failed read', async () => {
+    const c = fake(rows, null);
+    expect(await loadMyGrants(c)).toMatchObject({ ok: true, grants: [] });
+    expect(c.calls).toEqual([]);
   });
 });
 
