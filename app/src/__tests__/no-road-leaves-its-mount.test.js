@@ -17,14 +17,28 @@ import { makeFunnelProxy, escapesMount, ROAD_HEADER, ROAD_VALUE } from '../../fu
 import { onRequest as n8nRoad } from '../../functions/n8n/[[path]].js';
 
 const FUNNEL = 'https://poetech.tail5a2f35.ts.net';
-const ESCAPES = [['..', 'rest', 'owner', 'setup'], ['%2e%2e', 'setup'], ['.%2E', 'signin'], ['%2E.', 'rest'], ['.', 'x'], ['a%2f..%2fb'], ['a%5c..'], ['%E0%A4%A']];
+const ESCAPES = [
+  ['..', 'rest', 'owner', 'setup'],
+  ['%2e%2e', 'setup'],
+  ['.%2E', 'signin'],
+  ['%2E.', 'rest'],
+  ['.', 'x'],
+  ['a%2f..%2fb'],
+  ['a%5c..'],
+  ['%E0%A4%A'],
+];
 
 const realFetch = globalThis.fetch;
-afterEach(() => { globalThis.fetch = realFetch; });
+afterEach(() => {
+  globalThis.fetch = realFetch;
+});
 
 function road(segments) {
   const seen = [];
-  globalThis.fetch = async (url) => { seen.push(String(url)); return new Response('{}', { status: 200, headers: { 'content-type': 'application/json' } }); };
+  globalThis.fetch = async (url) => {
+    seen.push(String(url));
+    return new Response('{}', { status: 200, headers: { 'content-type': 'application/json' } });
+  };
   const onRequest = makeFunnelProxy({ upstreamPrefix: '/sb', label: 'sovereign-supabase' });
   const req = new Request('https://poetech.us/sb/' + segments.join('/'));
   return onRequest({ request: req, params: { path: segments } }).then((res) => ({ res, seen }));
@@ -68,7 +82,10 @@ describe('the /n8n road is closed', () => {
   for (const p of ['setup', 'signin', 'rest/owner/setup', 'form/abc', 'webhook/imported-transactions', '']) {
     it(`/n8n/${p} answers 410 and fetches nothing`, async () => {
       const seen = [];
-      globalThis.fetch = async (u) => { seen.push(String(u)); return new Response('x'); };
+      globalThis.fetch = async (u) => {
+        seen.push(String(u));
+        return new Response('x');
+      };
       for (const method of ['GET', 'POST']) {
         const res = await n8nRoad({ request: new Request('https://poetech.us/n8n/' + p, { method }), params: { path: p ? p.split('/') : [] } });
         expect(res.status).toBe(410);
