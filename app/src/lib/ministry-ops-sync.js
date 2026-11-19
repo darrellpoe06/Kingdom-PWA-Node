@@ -58,7 +58,8 @@ export function subscribeOps(onChange) {
     if (!session || cancelled) return;
     const myUserId = session.user.id;
     const fetchAll = async () => {
-      const { data, error } = await supabase.from('ministry_ops').select('*').order('week_of', { ascending: false });
+      // Rows filed under the calendar ministry are the church calendar's events (DR-1585, lib/church-calendar.js), not ops work.
+      const { data, error } = await supabase.from('ministry_ops').select('*').neq('ministry', 'calendar').order('week_of', { ascending: false });
       if (error) { console.warn('[ministry-ops] fetch failed:', error); return null; }
       return (data || []).map((r) => toOpsShape(r, myUserId));
     };
