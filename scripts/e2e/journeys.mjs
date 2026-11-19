@@ -78,8 +78,8 @@ export const JOURNEYS = Object.freeze([
     family: 'top',
     module: 'office-assistant',
     status: 'deferred',
-    why: 'the TLC Assistant mounts only for a family or business-tier sign-in; the dist-only runner walks signed out, and the signed-in stand-in (a minted JWT, as door-journeys does) is the next increment of the app runner',
-    reReview: '2026-11-19',
+    why: 'RE-DATED 2026-11-19, said plainly: the increment was not picked up before its date, and on the date this entry turned every open pull request red for a reason unrelated to its change. What is owed is unchanged: the TLC Assistant mounts only for a family or business-tier sign-in, the dist-only runner walks signed out, and the signed-in stand-in (a minted JWT, as door-journeys does) is the next increment of the app runner. One week, not two, because nothing blocks it but the hour.',
+    reReview: '2026-11-26',
   },
 ]);
 
