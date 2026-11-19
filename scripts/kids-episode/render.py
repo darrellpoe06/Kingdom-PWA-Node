@@ -17,7 +17,14 @@
 Output: <out>/jonah.mp4 (1920x1080, H.264 + AAC), jonah.en.vtt, jonah-poster.jpg,
 jonah.cut.json (what each beat is made from, how long, from which voice).
 """
-import json, os, re, subprocess, sys, shutil
+
+import json
+import os
+import re
+import shutil
+import subprocess
+import sys
+
 import numpy as np
 import soundfile as sf
 
@@ -25,7 +32,7 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 KIDS = os.path.join(ROOT, "app", "public", "lovecorner", "kids")
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-import sound  # noqa: E402
+import sound
 
 FPS = 30
 W, H = 1920, 1080
@@ -58,7 +65,7 @@ CAMERA = {
 
 
 def run(cmd):
-    r = subprocess.run(cmd, capture_output=True, text=True)
+    r = subprocess.run(cmd, capture_output=True, text=True, check=False)
     if r.returncode != 0:
         sys.stderr.write(r.stderr[-3000:])
         raise SystemExit(f"ffmpeg failed: {' '.join(cmd[:6])} ...")
@@ -70,7 +77,17 @@ def load_timings(ep, narr):
         for b in ep["beats"]:
             for i, l in enumerate(b["lines"]):
                 n = len(l["text"].split())
-                lines.append({"beat": b["id"], "line": i, "file": None, "seconds": round(n / (2.2 if l["kind"] == "kjv" else 2.5), 2), "kind": l["kind"], "ref": l.get("ref"), "text": l["text"]})
+                lines.append(
+                    {
+                        "beat": b["id"],
+                        "line": i,
+                        "file": None,
+                        "seconds": round(n / (2.2 if l["kind"] == "kjv" else 2.5), 2),
+                        "kind": l["kind"],
+                        "ref": l.get("ref"),
+                        "text": l["text"],
+                    }
+                )
         return {"voice": "placeholder (silent)", "lines": lines}
     return json.load(open(os.path.join(narr, "timings.json")))
 
@@ -90,7 +107,9 @@ def plan(ep, tim):
         for x in ls:
             placed.append({**x, "at": round(cur, 3)})
             cur += x["seconds"] + GAP
-        beats.append({**b, "start": round(start, 3), "dur": round(dur, 3), "lines": placed})
+        beats.append(
+            {**b, "start": round(start, 3), "dur": round(dur, 3), "lines": placed}
+        )
         t = start + dur - XF
     total = beats[-1]["start"] + beats[-1]["dur"]
     return beats, total
@@ -105,76 +124,135 @@ def beat_video(b, out, draft):
     src = os.path.join(KIDS, scene)
     z0, z1, x0, x1, y0, y1 = CAMERA.get(b["id"], (1.0, 1.12, 0.5, 0.5, 0.5, 0.5))
     d = b["dur"]
-    n = int(round(d * FPS))
+    n = round(d * FPS)
     up = 2304 if draft else 2880
     # zoompan works on the upscaled still; p = progress 0..1 with an ease-in-out
-    p = f"(0.5-0.5*cos(PI*on/{max(n-1,1)}))"
+    p = f"(0.5-0.5*cos(PI*on/{max(n - 1, 1)}))"
     z = f"({z0}+({z1}-{z0})*{p})"
     x = f"max(0,min(iw-iw/zoom,({x0}+({x1}-{x0})*{p})*iw-iw/zoom/2))"
     y = f"max(0,min(ih-ih/zoom,({y0}+({y1}-{y0})*{p})*ih-ih/zoom/2))"
     base = f"[0:v]scale={up}:-2,setsar=1,zoompan=z='{z}':x='{x}':y='{y}':d={n}:s={W}x{H}:fps={FPS},format=yuv420p"
     amb = b["ambience"]
-    fx = []
-    inputs = ["-i", src]  # ONE still frame: zoompan makes d frames from each input frame
+    inputs = [
+        "-i",
+        src,
+    ]  # ONE still frame: zoompan makes d frames from each input frame
     graph = base + "[bg]"
     last = "bg"
     if amb in ("storm", "storm-calm"):
         th = thunder_times(d)
-        flash = "+".join(f"between(t,{a},{a+0.09})*0.42+between(t,{a+0.16},{a+0.22})*0.25" for a in th)
+        flash = "+".join(
+            f"between(t,{a},{a + 0.09})*0.42+between(t,{a + 0.16},{a + 0.22})*0.25"
+            for a in th
+        )
         graph += f";[{last}]eq=brightness='{flash}':saturation=0.85:eval=frame[lit]"
         last = "lit"
         # rain: sparse bright noise, streaked by a directional blur, screened on top
-        op = "0.42" if amb == "storm" else f"'max(0.05,0.42-0.40*t/{d})'"
-        graph += (f";color=black:s={W}x{H}:r={FPS}:d={d},noise=alls=100:allf=t+u,format=gray,"
-                  f"lutyuv=y='if(gt(val,247),255,0)',dblur=angle=75:radius=28,eq=contrast=2.2:brightness=0.06,format=gbrp[rain]"
-                  f";[{last}]format=gbrp[base];[base][rain]blend=all_mode=screen:all_opacity={0.38 if amb == 'storm' else 0.22}[wet]")
+        graph += (
+            f";color=black:s={W}x{H}:r={FPS}:d={d},noise=alls=100:allf=t+u,format=gray,"
+            f"lutyuv=y='if(gt(val,247),255,0)',dblur=angle=75:radius=28,eq=contrast=2.2:brightness=0.06,format=gbrp[rain]"
+            f";[{last}]format=gbrp[base];[base][rain]blend=all_mode=screen:all_opacity={0.38 if amb == 'storm' else 0.22}[wet]"
+        )
         last = "wet"
     elif amb == "underwater":
-        graph += (f";[{last}]eq=brightness='0.035*sin(2*PI*t/5)':eval=frame[pulse]"
-                  f";color=black:s={W}x{H}:r={FPS}:d={d},noise=alls=100:allf=t+u,format=gray,lutyuv=y='if(gt(val,252),255,0)',"
-                  f"gblur=sigma=2.2,eq=contrast=3:brightness=0.05,format=gbrp[motes]"
-                  f";[pulse]format=gbrp[pb];[pb][motes]blend=all_mode=screen:all_opacity=0.35[sea]")
+        graph += (
+            f";[{last}]eq=brightness='0.035*sin(2*PI*t/5)':eval=frame[pulse]"
+            f";color=black:s={W}x{H}:r={FPS}:d={d},noise=alls=100:allf=t+u,format=gray,lutyuv=y='if(gt(val,252),255,0)',"
+            f"gblur=sigma=2.2,eq=contrast=3:brightness=0.05,format=gbrp[motes]"
+            f";[pulse]format=gbrp[pb];[pb][motes]blend=all_mode=screen:all_opacity=0.35[sea]"
+        )
         last = "sea"
     elif amb in ("morning", "theme"):
         graph += f";[{last}]format=gbrp,split[a][b];[b]gblur=sigma=18[glow];[a][glow]blend=all_mode=screen:all_opacity=0.22[bloom]"
         last = "bloom"
     elif amb == "evening":
-        graph += f";[{last}]colorbalance=rs=0.06:bs=-0.06:rm=0.04,eq=saturation=0.9[eve]"
+        graph += (
+            f";[{last}]colorbalance=rs=0.06:bs=-0.06:rm=0.04,eq=saturation=0.9[eve]"
+        )
         last = "eve"
     elif amb in ("sea", "shore", "harbor"):
         graph += f";[{last}]eq=brightness='0.02*sin(2*PI*t/3.2)':eval=frame[shim]"
         last = "shim"
     # titles
     if b["id"] == "intro":
-        graph += (f";[{last}]drawbox=x=0:y=ih*0.67:w=iw:h=ih*0.23:color=black@0.45:t=fill:enable='gte(t,0.8)'"
-                  f",drawtext=fontfile={FONT}:text='Jonah and the Great Fish':fontsize=96:fontcolor=white:"
-                  f"borderw=5:bordercolor=0x2A1440:x=(w-text_w)/2:y=h*0.70:alpha='min(1,max(0,(t-1.0)/1.2))*min(1,max(0,({d}-t-0.6)/1.0))'"
-                  f",drawtext=fontfile={FONT}:text='The Love Corner Bible Adventures':fontsize=46:fontcolor=0xFFD86B:borderw=4:bordercolor=0x2A1440:"
-                  f"x=(w-text_w)/2:y=h*0.70+110:alpha='min(1,max(0,(t-1.8)/1.2))*min(1,max(0,({d}-t-0.6)/1.0))'[ttl]")
+        graph += (
+            f";[{last}]drawbox=x=0:y=ih*0.67:w=iw:h=ih*0.23:color=black@0.45:t=fill:enable='gte(t,0.8)'"
+            f",drawtext=fontfile={FONT}:text='Jonah and the Great Fish':fontsize=96:fontcolor=white:"
+            f"borderw=5:bordercolor=0x2A1440:x=(w-text_w)/2:y=h*0.70:alpha='min(1,max(0,(t-1.0)/1.2))*min(1,max(0,({d}-t-0.6)/1.0))'"
+            f",drawtext=fontfile={FONT}:text='The Love Corner Bible Adventures':fontsize=46:fontcolor=0xFFD86B:borderw=4:bordercolor=0x2A1440:"
+            f"x=(w-text_w)/2:y=h*0.70+110:alpha='min(1,max(0,(t-1.8)/1.2))*min(1,max(0,({d}-t-0.6)/1.0))'[ttl]"
+        )
         last = "ttl"
     if b["id"] == "outro":
-        graph += (f";[{last}]drawbox=x=0:y=ih*0.69:w=iw:h=ih*0.22:color=black@0.45:t=fill:enable='gte(t,1.6)'"
-                  f",drawtext=fontfile={FONT}:text='Salvation is of the LORD.':fontsize=84:fontcolor=white:borderw=5:bordercolor=0x2A1440:"
-                  f"x=(w-text_w)/2:y=h*0.72:alpha='min(1,max(0,(t-2.0)/1.2))'"
-                  f",drawtext=fontfile={FONT}:text='Jonah 2\\:9 (KJV)':fontsize=44:fontcolor=0xFFD86B:borderw=4:bordercolor=0x2A1440:x=(w-text_w)/2:y=h*0.72+100:"
-                  f"alpha='min(1,max(0,(t-2.6)/1.2))'[ttl]")
+        graph += (
+            f";[{last}]drawbox=x=0:y=ih*0.69:w=iw:h=ih*0.22:color=black@0.45:t=fill:enable='gte(t,1.6)'"
+            f",drawtext=fontfile={FONT}:text='Salvation is of the LORD.':fontsize=84:fontcolor=white:borderw=5:bordercolor=0x2A1440:"
+            f"x=(w-text_w)/2:y=h*0.72:alpha='min(1,max(0,(t-2.0)/1.2))'"
+            f",drawtext=fontfile={FONT}:text='Jonah 2\\:9 (KJV)':fontsize=44:fontcolor=0xFFD86B:borderw=4:bordercolor=0x2A1440:x=(w-text_w)/2:y=h*0.72+100:"
+            f"alpha='min(1,max(0,(t-2.6)/1.2))'[ttl]"
+        )
         last = "ttl"
     graph += f";[{last}]format=yuv420p,vignette=angle=PI/5,format=yuv420p[v]"
-    run(["ffmpeg", "-y", "-loglevel", "error", *inputs, "-filter_complex", graph, "-map", "[v]", "-r", str(FPS),
-         "-c:v", "libx264", "-preset", "ultrafast", "-crf", "20" if draft else "14", "-pix_fmt", "yuv420p", out])
+    run(
+        [
+            "ffmpeg",
+            "-y",
+            "-loglevel",
+            "error",
+            *inputs,
+            "-filter_complex",
+            graph,
+            "-map",
+            "[v]",
+            "-r",
+            str(FPS),
+            "-c:v",
+            "libx264",
+            "-preset",
+            "ultrafast",
+            "-crf",
+            "20" if draft else "14",
+            "-pix_fmt",
+            "yuv420p",
+            out,
+        ]
+    )
 
 
 def chain(segs, beats, out):
+    if len(segs) == 1:  # one scene: nothing to cross-fade
+        shutil.copyfile(segs[0], out)
+        return
     args = ["ffmpeg", "-y", "-loglevel", "error"]
     for s in segs:
         args += ["-i", s]
     g, last = [], "0:v"
     for k in range(1, len(segs)):
         off = beats[k]["start"]
-        trans = "fade" if k in (1, len(segs) - 1) else ("dissolve" if k % 2 else "smoothleft")
-        g.append(f"[{last}][{k}:v]xfade=transition={trans}:duration={XF}:offset={off}[x{k}]")
+        trans = (
+            "fade"
+            if k in (1, len(segs) - 1)
+            else ("dissolve" if k % 2 else "smoothleft")
+        )
+        g.append(
+            f"[{last}][{k}:v]xfade=transition={trans}:duration={XF}:offset={off}[x{k}]"
+        )
         last = f"x{k}"
-    args += ["-filter_complex", ";".join(g), "-map", f"[{last}]", "-c:v", "libx264", "-preset", "medium", "-crf", "19", "-pix_fmt", "yuv420p", out]
+    args += [
+        "-filter_complex",
+        ";".join(g),
+        "-map",
+        f"[{last}]",
+        "-c:v",
+        "libx264",
+        "-preset",
+        "medium",
+        "-crf",
+        "19",
+        "-pix_fmt",
+        "yuv420p",
+        out,
+    ]
     run(args)
 
 
@@ -182,7 +260,9 @@ def resample(a, sr_from):
     if sr_from == SR:
         return a
     n = int(len(a) * SR / sr_from)
-    return np.interp(np.linspace(0, len(a) - 1, n), np.arange(len(a)), a).astype(np.float32)
+    return np.interp(np.linspace(0, len(a) - 1, n), np.arange(len(a)), a).astype(
+        np.float32
+    )
 
 
 def mix(beats, total, narr, out_wav):
@@ -197,21 +277,28 @@ def mix(beats, total, narr, out_wav):
                 a = a.mean(axis=1)
             a = resample(a, sr)
             i = int(l["at"] * SR) + int(b["start"] * SR)
-            voice[i:i + len(a)] += a[: max(0, n - i)]
+            voice[i : i + len(a)] += a[: max(0, n - i)]
     # level the voice: speech RMS to about -19 dBFS whatever the voice model's own level
     speech = voice[np.abs(voice) > 0.01]
     if speech.size:
-        rms = float(np.sqrt(np.mean(speech ** 2)))
+        rms = float(np.sqrt(np.mean(speech**2)))
         voice *= (10 ** (-19 / 20)) / max(rms, 1e-6)
     amb = np.zeros(n, np.float32)
     for b in beats:
-        a = sound.ambience(b["ambience"], b["dur"], thunder_times(b["dur"]) if b["ambience"].startswith("storm") else ()).astype(np.float32)
+        a = sound.ambience(
+            b["ambience"],
+            b["dur"],
+            thunder_times(b["dur"]) if b["ambience"].startswith("storm") else (),
+        ).astype(np.float32)
         i = int(b["start"] * SR)
-        amb[i:i + len(a)] += a[: max(0, n - i)]
+        amb[i : i + len(a)] += a[: max(0, n - i)]
     # the score: one original orchestral cue per scene (score.py), laid at the scene's start;
     # scenes overlap by the crossfade, so each cue's fade-out meets the next one's fade-in
     mus = np.zeros(n, np.float32)
-    import score, tempfile
+    import tempfile
+
+    import score
+
     for b in beats:
         with tempfile.TemporaryDirectory() as d:
             w = os.path.join(d, "cue.wav")
@@ -219,19 +306,23 @@ def mix(beats, total, narr, out_wav):
             a, sr = sf.read(w, dtype="float32")
         a = resample(a.mean(axis=1) if a.ndim > 1 else a, sr)
         i = int(b["start"] * SR)
-        mus[i:i + len(a)] += a[: max(0, n - i)]
-    mus /= max(1e-6, float(np.sqrt(np.mean(mus[np.abs(mus) > 0.001] ** 2))) / 0.12)  # music bed near -18 dBFS before ducking
+        mus[i : i + len(a)] += a[: max(0, n - i)]
+    mus /= max(
+        1e-6, float(np.sqrt(np.mean(mus[np.abs(mus) > 0.001] ** 2))) / 0.12
+    )  # music bed near -18 dBFS before ducking
     # moments: sound effects placed on the story's own beats (sound.py, all synthesized)
     for b in beats:
         for fx, at in sound.moments(b):
             i = int((b["start"] + at) * SR)
-            amb[i:i + len(fx)] += fx[: max(0, n - i)]
+            amb[i : i + len(fx)] += fx[: max(0, n - i)]
     # duck the music and ambience under the voice (smoothed envelope)
     env = np.abs(voice)
     k = int(0.25 * SR)
     env = np.convolve(env, np.ones(k) / k, mode="same")
     talk = np.clip(env / (env.max() or 1) * 8, 0, 1)
-    duck = 1 - 0.72 * talk  # the voice always leads: the music drops about 11 dB under speech
+    duck = (
+        1 - 0.72 * talk
+    )  # the voice always leads: the music drops about 11 dB under speech
     m = voice * 1.0 + mus * 0.55 * duck + amb * 0.16 * (1 - 0.35 * talk)
     m = m / max(1.0, np.max(np.abs(m)) / 0.95)
     sf.write(out_wav, np.stack([m, m], axis=1), SR)
@@ -270,15 +361,20 @@ def vtt(beats, out):
                 lines += [str(k), f"{ts(t)} --> {ts(t + dt)}", c, ""]
                 k += 1
                 t += dt
-    open(out, "w").write("\n".join(lines))
+    with open(out, "w") as fh:
+        fh.write("\n".join(lines))
 
 
 def main():
     ep_path, narr, outd = sys.argv[1], sys.argv[2], sys.argv[3]
     draft = "--draft" in sys.argv
-    ep = json.load(open(ep_path))
+    with open(ep_path) as fh:
+        ep = json.load(fh)
     tim = load_timings(ep, narr)
-    only = next((a.split("=", 1)[1].split(",") for a in sys.argv if a.startswith("--beats=")), None)
+    only = next(
+        (a.split("=", 1)[1].split(",") for a in sys.argv if a.startswith("--beats=")),
+        None,
+    )
     if only:
         ep = {**ep, "beats": [b for b in ep["beats"] if b["id"] in only]}
     beats, total = plan(ep, tim)
@@ -301,17 +397,94 @@ def main():
     mp4 = os.path.join(outd, f"{ep['id']}.mp4")
     # broadcast loudness for online video: -16 LUFS integrated, true peak -1.5 dB
     lw = os.path.join(work, "mix-loud.wav")
-    run(["ffmpeg", "-y", "-loglevel", "error", "-i", wav, "-af", "loudnorm=I=-16:TP=-1.5:LRA=11", "-ar", str(SR), lw])
+    run(
+        [
+            "ffmpeg",
+            "-y",
+            "-loglevel",
+            "error",
+            "-i",
+            wav,
+            "-af",
+            "loudnorm=I=-16:TP=-1.5:LRA=11",
+            "-ar",
+            str(SR),
+            lw,
+        ]
+    )
     wav = lw
-    run(["ffmpeg", "-y", "-loglevel", "error", "-i", vid, "-i", wav, "-i", cap, "-map", "0:v", "-map", "1:a", "-map", "2:s",
-         "-c:v", "copy", "-c:a", "aac", "-b:a", "160k", "-c:s", "mov_text", "-metadata:s:s:0", "language=eng",
-         "-shortest", "-movflags", "+faststart", mp4])
+    run(
+        [
+            "ffmpeg",
+            "-y",
+            "-loglevel",
+            "error",
+            "-i",
+            vid,
+            "-i",
+            wav,
+            "-i",
+            cap,
+            "-map",
+            "0:v",
+            "-map",
+            "1:a",
+            "-map",
+            "2:s",
+            "-c:v",
+            "copy",
+            "-c:a",
+            "aac",
+            "-b:a",
+            "160k",
+            "-c:s",
+            "mov_text",
+            "-metadata:s:s:0",
+            "language=eng",
+            "-shortest",
+            "-movflags",
+            "+faststart",
+            mp4,
+        ]
+    )
     poster = os.path.join(outd, f"{ep['id']}-poster.jpg")
-    run(["ffmpeg", "-y", "-loglevel", "error", "-ss", f"{beats[min(4, len(beats) - 1)]["start"] + beats[min(4, len(beats) - 1)]["dur"] / 2}", "-i", vid, "-frames:v", "1", "-q:v", "3", poster])
-    json.dump({"voice": tim.get("voice"), "total": round(total, 2),
-               "beats": [{"id": b["id"], "scene": b["scene"], "start": b["start"], "dur": b["dur"], "lines": len(b["lines"])} for b in beats]},
-              open(os.path.join(outd, f"{ep['id']}.cut.json"), "w"), indent=1)
-    print(f"done {mp4} total {total:.1f}s ({total/60:.1f} min)")
+    run(
+        [
+            "ffmpeg",
+            "-y",
+            "-loglevel",
+            "error",
+            "-ss",
+            f"{beats[min(4, len(beats) - 1)]['start'] + beats[min(4, len(beats) - 1)]['dur'] / 2}",
+            "-i",
+            vid,
+            "-frames:v",
+            "1",
+            "-q:v",
+            "3",
+            poster,
+        ]
+    )
+    with open(os.path.join(outd, f"{ep['id']}.cut.json"), "w") as fh:
+        json.dump(
+            {
+                "voice": tim.get("voice"),
+                "total": round(total, 2),
+                "beats": [
+                    {
+                        "id": b["id"],
+                        "scene": b["scene"],
+                        "start": b["start"],
+                        "dur": b["dur"],
+                        "lines": len(b["lines"]),
+                    }
+                    for b in beats
+                ],
+            },
+            fh,
+            indent=1,
+        )
+    print(f"done {mp4} total {total:.1f}s ({total / 60:.1f} min)")
 
 
 if __name__ == "__main__":
