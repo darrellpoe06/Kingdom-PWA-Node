@@ -108,7 +108,7 @@ const HELD = [
 
 // Held as whole files/dirs (no live string to scan, but still wired to live n8n).
 const HELD_PATHS = [
-  { path: 'app/functions/n8n/[[path]].js', why: 'the legacy /n8n transport to the still-running NAS n8n. No app code calls it (N8N_BASE is gone), but traffic from outside the bundle cannot be measured from here. Held until proven unused.' },
+  { path: 'app/functions/n8n/[[path]].js', why: 'CLOSED 2026-11-19 (DR-1607): answers a signed 410 and forwards nothing. It forwarded ANY path to the n8n root (editor, REST, first-run /setup). Kept only so the legacy route answers Gone instead of falling through to the SPA; delete it with the NAS n8n container.' },
   { path: 'infra/n8n', why: 'the NAS stack source: its docker-compose.yml also runs the live ntfy and Ollama containers, plus the property-history bridge script and restic backup. Held until those are proven on their own sovereign homes.' },
   { path: 'docs/00-foundations/n8n-workflows/18-imported-transactions-api.json', why: 'downloaded by the held nas-rotate-bearer.yml -> scripts/nas-update-wf18-bearer-guard.sh, the rotation control for the wf18 bank-PII webhook that may still be live.' },
   { path: '.github/workflows/nas-rotate-bearer.yml', why: 'rotation control for the possibly-live wf18 bearer; held with its script and export.' },
