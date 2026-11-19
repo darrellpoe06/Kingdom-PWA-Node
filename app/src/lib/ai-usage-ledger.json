@@ -1940,6 +1940,21 @@
       "notes": ""
     },
     {
+      "id": "ll338-not-with-eyeservice",
+      "date": "2026-11-19",
+      "task": "L338 Not with Eyeservice, from one chart on remote work, taught as faithful work when no one is watching, all four age bands, shared gate",
+      "drs": [
+        "DR-1584"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.3,
+      "estimateWithoutAiHours": 24,
+      "notes": "Reserved L338 and DR-1584 on origin with new-lesson.mjs. 259 verse tokens filled from app/public/bible/kjv, none typed. The chart has no numbers and its replies are carried as its author's; first gate run caught a quiz question in the generic title, reworded; re-review 2026-12-19."
+    },
+    {
       "id": "courses-fully-completed",
       "date": "2026-11-12",
       "task": "Courses fully completed counts the row's own best pass and each course names the exams still owed",
