@@ -17,6 +17,7 @@
 //   - in demo mode nothing is written anywhere
 // =============================================================================
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { TABLE_READER_VERSION, isTableRead } from '../lib/books-intake-read.js';
 import UiIcon from './UiIcon.jsx';
 import Modal from './Modal.jsx';
 import { intakeStore } from '../lib/books-intake-store.js';
@@ -159,10 +160,10 @@ function SnapshotRows({ doc, x, onDecide, busy }) {
         <summary className="cursor-pointer text-[#5A5751]">{`${list.length} row${list.length === 1 ? '' : 's'} read from the screen (not added yet)`}</summary>
         <ul className="mt-1 space-y-0.5" style={MONO}>
           {list.map((r, i) => (
-            <li key={`${r.date || r.openDate}-${r.description}-${i}`} className="flex gap-2" data-testid="intake-snapshot-row">
+            <li key={`${r.date || r.openDate}-${r.description}-${i}`} className="flex flex-wrap items-baseline gap-x-2" data-testid="intake-snapshot-row">
               <span className="w-[5.5rem] shrink-0 text-[#5A5751]">{r.date || (r.openDate ? `${r.openDate} · day needed` : 'day needed')}</span>
-              <span className="flex-1 min-w-0 break-words text-[#1A1815]">{r.description}{r.pending ? ' · pending' : ''}{r.category === 'transfer' ? ' · transfer' : r.category === 'debt-payment' ? ' · debt payment' : ''}</span>
-              <span className={`shrink-0 ${r.signUnknown || r.amountUnclear ? 'text-[#8B6F47]' : 'text-[#1A1815]'}`}>{r.amountUnclear ? 'amount unclear' : r.signUnknown ? `${money(Math.abs(r.amount))} · in or out?` : `${r.amount < 0 ? '\u2212' : '+'}${money(Math.abs(r.amount))}`}</span>
+              <span className="order-last w-full whitespace-normal break-words text-[#1A1815]" data-testid="intake-row-description">{r.description}{r.pending ? ' · pending' : ''}{r.category === 'transfer' ? ' · transfer' : r.category === 'debt-payment' ? ' · debt payment' : ''}</span>
+              <span className={`ml-auto shrink-0 ${r.signUnknown || r.amountUnclear ? 'text-[#8B6F47]' : 'text-[#1A1815]'}`}>{r.amountUnclear ? 'amount unclear' : r.signUnknown ? `${money(Math.abs(r.amount))} · in or out?` : `${r.amount < 0 ? '\u2212' : '+'}${money(Math.abs(r.amount))}`}</span>
               <RowFigures r={r} />
             </li>
           ))}
@@ -197,8 +198,8 @@ function SnapshotRows({ doc, x, onDecide, busy }) {
                 <input type="checkbox" checked={s.status === 'new'} disabled={!can || dup} onChange={(e) => onDecide(doc, { [s.index]: e.target.checked ? { exclude: false, category: (doc.rowDecisions || {})[s.index]?.category, ...(held ? { addAnyway: true } : {}) } : { exclude: true } })} aria-label={`Add ${r.description}`} data-testid={`intake-row-add-${s.index}`} />
                 <span className="w-[5.5rem] shrink-0 text-[#5A5751]">{r.date}</span>
               </label>
-              <span className="flex-1 min-w-[8rem] break-words text-[#1A1815]">{r.description}{r.pending ? ' \u00b7 pending' : ''}{dup ? ' \u00b7 already in the books' : ''}{needsReview(s) ? ' \u00b7 needs review' : ''}</span>
-              <span className="shrink-0 text-[#1A1815]">{`${r.amount < 0 ? '\u2212' : '+'}${money(Math.abs(r.amount))}`}</span>
+              <span className="ml-auto shrink-0 text-[#1A1815]">{`${r.amount < 0 ? '\u2212' : '+'}${money(Math.abs(r.amount))}`}</span>
+              <span className="w-full pl-6 whitespace-normal break-words text-[#1A1815]" data-testid="intake-row-description">{r.description}{r.pending ? ' \u00b7 pending' : ''}{dup ? ' \u00b7 already in the books' : ''}{needsReview(s) ? ' \u00b7 needs review' : ''}</span>
               <RowFigures r={r} />
               {s.pendingMatch && (
                 <span className="w-full pl-6 text-[0.625rem] text-[#8B6F47]" data-testid={`intake-row-pending-match-${s.index}`}>
@@ -334,8 +335,20 @@ export default function BooksUpload({ hint = null, data = {}, debts = [], demo =
     cloudKeep: demo ? null : async (file, doc) => (await import('../lib/books-intake-cloud.js')).keepOriginalInCloud(file, doc),
   }), [store, known, hint, demo, readerDeps]);
 
+  // The latest context, read by refresh without re-running it on every change.
+  const ctxRef = useRef(ctx);
+  ctxRef.current = ctx;
+
   const refresh = useCallback(async () => {
-    const list = await store.listDocs().catch(() => []);
+    let list = await store.listDocs().catch(() => []);
+    // A download read before the table reader was fixed is read again from its
+    // kept file, so it shows its rows instead of a stale "screenshot" label.
+    // Reading only: nothing is added to the books until approved.
+    const stale = list.filter((d) => d && d.status !== 'added' && d.blob && isTableRead(d.read) && d.read.readerVersion !== TABLE_READER_VERSION);
+    if (stale.length) {
+      for (const d of stale) await processDoc(d, ctxRef.current).catch(() => null);
+      list = await store.listDocs().catch(() => list);
+    }
     setDocs(list);
     setTeach(await store.listTeach().catch(() => []));
     reportBooksUploadCount(queueSummary(list).waiting);

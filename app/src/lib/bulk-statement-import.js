@@ -148,9 +148,33 @@ function crossSourcePool(existingTxns) {
   return pool;
 }
 
+// A screenshot and the bank's download print the same transaction with
+// different text: the download adds the bank's reference ("Zelle payment to TLC
+// JPM99ab12") where the app screen shows "Zelle payment to TLC" (Christina
+// 2026-11-19). Same account, day and amount, one side without a running balance
+// and the other with one, and one description the other's opening words: the
+// same transaction. Anything less certain is left for her to review.
+const normDesc = (d) => String(d || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+function wordPrefix(a, b) {
+  const [s, l] = a.length <= b.length ? [a, b] : [b, a];
+  return s.length >= 4 && (l === s || l.startsWith(s + ' '));
+}
+function nearPool(existingTxns) {
+  const pool = new Map(); // account|date|amount -> [{ desc, hasBal, used }]
+  for (const t of existingTxns || []) {
+    if (!t || !t.accountId || !t.date) continue;
+    const k = [t.accountId, t.date, (Number(t.amount) || 0).toFixed(2)].join('|');
+    const list = pool.get(k) || [];
+    list.push({ desc: normDesc(t.description || t.desc), hasBal: !(t.balance == null || t.balance === ''), used: false });
+    pool.set(k, list);
+  }
+  return pool;
+}
+
 export function planBulkImport(files, accounts = [], existingTxns = [], fallbackAccountId = null) {
   const seen = seedSeen(existingTxns);
   const cross = crossSourcePool(existingTxns);
+  const near = nearPool(existingTxns);
   const routed = {};
   const unrouted = [];
   let duplicates = 0;
@@ -184,7 +208,16 @@ export function planBulkImport(files, accounts = [], existingTxns = [], fallback
         const pk = txnDedupeKey(accId, { ...r, balance: null });
         const e = cross.get(pk);
         const side = hasBal ? 'withoutBal' : 'withBal';
-        if (e && e[side] > 0) { e[side] -= 1; duplicates += 1; continue; }
+        const list = near.get([accId, r.date, (Number(r.amount) || 0).toFixed(2)].join('|')) || [];
+        const d = normDesc(r.description || r.desc);
+        if (e && e[side] > 0) {
+          e[side] -= 1; duplicates += 1;
+          const same = list.find((x) => !x.used && x.hasBal !== hasBal && x.desc === d);
+          if (same) same.used = true; // one existing row answers for one new row
+          continue;
+        }
+        const hit = list.find((x) => !x.used && x.hasBal !== hasBal && wordPrefix(x.desc, d));
+        if (hit) { hit.used = true; duplicates += 1; continue; }
       }
       if (fitKey) seen.add(fitKey);
       seen.add(occKey);

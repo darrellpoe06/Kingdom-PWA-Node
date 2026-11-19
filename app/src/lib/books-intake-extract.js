@@ -448,7 +448,19 @@ export function layoutKeyOf({ doc_type, institution, headerSignature = '', text 
 export function extractDocument(read = {}, source = {}, { hint = null, forceType = null, asOf = null, balanceKind = null, signs = null } = {}) {
   const base = emptyExtraction(source);
   const text = String(read.text || '');
-  const cls = forceType ? { doc_type: forceType, confidence: 1, ranked: [forceType] } : classifyText(text, { hint, rows: read.rows });
+  // A downloaded file (CSV / TSV / spreadsheet / OFX) is a table, never a
+  // picture of a banking app (Christina 2026-11-19: her Chase7206 TSV was
+  // labelled "Banking app screenshot" with no rows). A screenshot is read by
+  // OCR; only that read can be one.
+  const table =
+    ['text', 'spreadsheet', 'ofx'].includes(read.method) &&
+    (/\.(csv|tsv|ofx|qfx|xlsx?)$/i.test(String((source && source.name) || '')) || (read.rows && read.rows.length > 0) || /date/.test(String(read.headerSignature || '')));
+  const force = table && forceType === 'account-snapshot' ? null : forceType;
+  let cls = force ? { doc_type: force, confidence: 1, ranked: [force] } : classifyText(text, { hint, rows: read.rows });
+  if (table && cls.doc_type === 'account-snapshot') {
+    const ranked = cls.ranked.filter((t) => t !== 'account-snapshot');
+    cls = { doc_type: 'transactions-export', confidence: Math.min(cls.confidence, 0.5), ranked: ['transactions-export', ...ranked.filter((t) => t !== 'transactions-export')] };
+  }
   const partial = extractorFor(cls.doc_type)({ text, rows: read.rows || [], asOf, signs }) || {};
   const out = {
     ...base, ...partial,

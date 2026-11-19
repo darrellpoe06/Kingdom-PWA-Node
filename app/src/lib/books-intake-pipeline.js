@@ -23,7 +23,7 @@
 // The write step is a PLAN plus injected sinks, so demo mode and tests can
 // prove that nothing is written: in demo the sinks are never called.
 // =============================================================================
-import { readAnyFile } from './books-intake-read.js';
+import { readAnyFile, TABLE_READER_VERSION, isTableRead } from './books-intake-read.js';
 import { extractDocument } from './books-intake-extract.js';
 import { matchDocument, newRowsFor, proposedAccount, ledgerRows, resolveEntity, matchPostedToPending } from './books-intake-match.js';
 import { reconcileExtraction } from './books-intake-reconcile.js';
@@ -67,6 +67,8 @@ function answersOf(doc) {
 export async function processDoc(doc, ctx) {
   const { store, known = {}, hint = null, reader = readAnyFile, readerDeps = {}, today } = ctx;
   let read = doc.read || null;
+  // A download read by an older table reader is read again from the kept file.
+  if (read && isTableRead(read) && read.readerVersion !== TABLE_READER_VERSION && doc.blob) read = null;
   let readError = null;
   if (!read) {
     try { read = await reader(doc.blob, readerDeps); } catch (e) { readError = (e && e.message) || 'unreadable'; }
