@@ -139,16 +139,17 @@ describe('the tiles open real things', () => {
     expect(q('[data-testid="who-am-i"]')).toBeTruthy();
     expect(qa('[data-testid^="name-"]').length).toBe(4);
     click(q('[data-testid="kids-tab-grownups"]'));
-    // The week's lesson is the catalog's own pick for MON, and the pick moves
-    // whenever a lesson lands (week index modulo the catalog's length). So the
-    // page is read against that lesson: its title always, and its leading
-    // notes exactly when the lesson wrote some. A lesson with no howToRun shows
-    // no heading for notes it does not have.
+    // The week's lesson is the catalog's own pick for MON, chosen only among
+    // lessons that carry facilitator notes (DR-1576), so the page ALWAYS leads
+    // with them, however many lessons land and wherever the rotation falls.
     const pick = weeklyLesson('kids', MON);
     const how = leadLines(moduleFor(pick)).how;
     const shown = q('[data-testid="grownups-lesson"]').textContent;
     expect(shown).toContain(pick.title);
-    expect(shown.includes('How to lead it')).toBe(how.length > 0);
+    expect(how.length).toBeGreaterThan(0);
+    expect(shown).toContain('How to lead it');
+    expect(shown).toContain(how[0]);
+    expect(shown).not.toContain('carries no facilitator notes');
     expect(q('[data-testid="grownups-progress"]').textContent).toContain('Sign in');
     click(q('[data-testid="kids-tab-badges"]'));
     expect(q('[data-testid="badge-shelf"]').getAttribute('data-earned')).toBe('0');
