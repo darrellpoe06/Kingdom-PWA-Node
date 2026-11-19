@@ -16,7 +16,7 @@ Traced (DR-0219): `tenant_messages` is one thread per tenancy that the tenant, h
 ## What was measured
 
 - `tenant_messages_read` (0150:241): owner/admin/member, the tenant, the household, `message.tenant` delegates and `user_is_enabled_worker`; the table has no audience column, so every row is the tenant thread.
-- No table on main held a conversation the tenant could not read.
+- No group conversation about a door on main excluded its tenant (one-to-one direct messages are a separate feature and unchanged).
 - `property_systems.location_note` (0156:154) exists; its read policy (0156:207) is instance members only, so a tenant was never shown it.
 
 ## Decision
