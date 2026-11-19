@@ -162,9 +162,9 @@ export async function loadMyDoors(client = supabase) {
 /** Every capability grant this person actually holds (their own rows only). */
 export async function loadMyGrants(client = supabase) {
   try {
-    const { data, error } = await client
-      .from('delegated_capabilities')
-      .select('scope_ref, capability, setting, role_label');
+    // MINE only (DR-1594): an owner reads every grant in his instance (0075), and his workers' grants must never make him a worker.
+    const me = await userId(client); if (!me) return ok({ grants: [], byScope: {}, roleLabel: null });
+    const { data, error } = await client.from('delegated_capabilities').select('scope_ref, capability, setting, role_label').eq('grantee_user_id', me);
     if (error) return no('read-failed', error);
     const rows = (data || []).filter((r) => r.setting === 'allow');
     return ok({
