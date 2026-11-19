@@ -4,7 +4,7 @@
     "functions": 31,
     "nasServices": 7,
     "nasRoutes": 33,
-    "tables": 327,
+    "tables": 330,
     "tablesWithoutRls": 1
   },
   "functions": [
@@ -1943,6 +1943,24 @@
       "definedIn": "infra/supabase/migrations-auto/0153-property-timeline-photos.sql",
       "rls": true,
       "policies": 5
+    },
+    {
+      "table": "property_staff_chat_members",
+      "definedIn": "infra/supabase/migrations-auto/0338-the-landlord-and-his-workers-talk-apart-from-the-tenant.sql",
+      "rls": true,
+      "policies": 1
+    },
+    {
+      "table": "property_staff_chats",
+      "definedIn": "infra/supabase/migrations-auto/0338-the-landlord-and-his-workers-talk-apart-from-the-tenant.sql",
+      "rls": true,
+      "policies": 1
+    },
+    {
+      "table": "property_staff_messages",
+      "definedIn": "infra/supabase/migrations-auto/0338-the-landlord-and-his-workers-talk-apart-from-the-tenant.sql",
+      "rls": true,
+      "policies": 2
     },
     {
       "table": "property_system_events",

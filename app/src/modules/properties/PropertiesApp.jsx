@@ -39,6 +39,9 @@ import { formatPhone } from '../../lib/member-contact.js';
 import { DoorCamerasTab, TenantCamerasTab } from './DoorCameras.jsx';
 import DoorPictures from './DoorPictures.jsx';
 import AccessMatrix from './AccessMatrix.jsx';
+import WorkerReach from './WorkerReach.jsx';
+import StaffChat from './StaffChat.jsx';
+import WhereThingsAre from './WhereThingsAre.jsx';
 import { pickPreviewDoor, previewScope, previewDoorData, previewSeesPhoto } from './preview.js';
 import { setDoorCameraGrant } from './door-cameras.js';
 import { stageFromRecord, confirmDraft, tenancyRowFromDraft, vacantUnitRow } from './staging.js';
@@ -1495,7 +1498,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
 
       {realRole === 'field_worker' && showsMyWork(activeTab, face.tabs.find((t) => t.id === activeTab)?.locked) && (
         <MyWorkOrders jobs={openAssigned(assigned.jobs)} state={assigned.state} canOpen={(j) => [...doors, ...rentals].some((d) => d.id === jobDoorId(j))}
-          onOpen={(j) => { setActiveId(jobDoorId(j)); setTab('jobs'); }} post={postJobDoc} onDone={refresh} />
+          onOpen={(j) => { setActiveId(jobDoorId(j)); setTab('jobs'); }} post={postJobDoc} onDone={refresh} me={me} names={speakerNames} />
       )}
       {(() => {
         const current = face.tabs.find((t) => t.id === activeTab);
@@ -1503,7 +1506,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
           return <Card title={current.label}><Empty>{current.lockReason}</Empty></Card>;
         }
         switch (activeTab) {
-          case 'door': return <DoorCard door={tenantFace && seen.vacant ? null : activeDoor} vacant={tenantFace && seen.vacant} since={tenantFace ? seen.since : null} />;
+          case 'door': return <><DoorCard door={tenantFace && seen.vacant ? null : activeDoor} vacant={tenantFace && seen.vacant} since={tenantFace ? seen.since : null} />{activeDoor && <WhereThingsAre tenancyId={activeDoor.id} />}</>;
           // THE PICTURES OF THIS PLACE (DR-1199). The tenant reads no rentals
           // row, so the door's id comes from door_of_my_tenancy (askDoorId),
           // the same lookup the cameras and the wall use; the pictures and
@@ -1766,8 +1769,9 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
           case 'dispatch':
             return <DispatchTab door={activeDoor} rental={activeRental} open={openWork} workers={workers} onDispatch={dispatchJob} />;
           case 'thread':
-            return <ThreadTab messages={seen.messages} names={speakerNames} onSend={sendMessage}
-              unread={unreadNote(record.unreadable)} />;
+            return (<>{!tenantFace && <StaffChat rentalId={askDoorId} me={me} canRun={role === 'owner' || role === 'manager'} invites={invites} names={speakerNames} instanceId={(activeRental || activeDoor)?.instance_id || null} livesHere={(uid) => doors.some((d) => d.rental_ref === activeRental?.slug && d.tenant_user_id === uid)} />}
+              <ThreadTab messages={seen.messages} names={speakerNames} onSend={sendMessage} title={tenantFace ? 'Messages' : 'Tenant group chat · the tenant sees everything here'}
+              unread={unreadNote(record.unreadable)} /></>);
           case 'history':
             return <HistoryTab history={history} onNote={addNote}
               unread={unreadNote(record.unreadable)} unseen={unseenByThisFace(role, grants, { since: seen.since })} />;
@@ -1880,6 +1884,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
               }} />
               {/* WHO SEES WHAT (DR-1198): the evaluated matrix, read where
                   people are invited, one face at a time. */}
+              {realRole === 'owner' && !previewing && <WorkerReach invites={invites} instanceId={(activeRental || activeDoor)?.instance_id || seat?.instance_id || null} reloadKey={reloadKey} />}
               {(role === 'owner' || role === 'manager') && <AccessMatrix />}
             </>);
           default:
@@ -2345,10 +2350,10 @@ function DispatchTab({ door, rental, open, workers = [], onDispatch }) {
   );
 }
 
-function ThreadTab({ messages, names = null, onSend, unread = null }) {
+function ThreadTab({ messages, names = null, onSend, unread = null, title = 'Messages' }) {
   const [body, setBody] = useState('');
   return (
-    <Card title="Messages">
+    <Card title={title}>
       {unread && <p className="text-xs text-[#9B2C1E] mb-2" style={serif} data-testid="thread-unread">{unread}</p>}
       <div className="max-h-80 overflow-y-auto mb-2">
         {messages.length === 0 ? <Empty>No messages yet.</Empty> : messages.map((m) => (

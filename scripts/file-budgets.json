@@ -345,6 +345,20 @@
       "why": "A 1099 worker's work orders on every door (DR-1594) are their own files (MyWorkOrders.jsx, lib/assigned-work.js); the shell pays only its wiring: two imports, the list's state and its read, the worker-by-assignment role line, and the card's three render lines. Raised to the measured size, not above it."
     },
     {
+      "file": "app/src/modules/properties/PropertiesApp.jsx",
+      "from": 2693,
+      "to": 2695,
+      "date": "2026-11-19",
+      "why": "The landlord's 'are your 1099 workers getting their jobs' panel (DR-1594) is its own files (WorkerReach.jsx, worker-reach.js, worker-reach-cloud.js); the shell pays one import and one render line. Raised to the measured size, not above it."
+    },
+    {
+      "file": "app/src/modules/properties/PropertiesApp.jsx",
+      "from": 2695,
+      "to": 2698,
+      "date": "2026-11-19",
+      "why": "The staff group chat and 'where things are' (DR-1598) are their own files (StaffChat.jsx, WhereThingsAre.jsx, staff-chat.js); the shell pays two imports and the Messages case's wrapper line. Raised to the measured size, not above it."
+    },
+    {
       "file": "app/src/lib/sovereign-ai-class.js",
       "from": 13372,
       "to": 13589,
@@ -457,7 +471,7 @@
     "app/src/components/ChurchLearn.jsx": 6012,
     "app/src/modules/properties/DoorTabs.jsx": 3352,
     "app/src/components/Rentals.jsx": 3220,
-    "app/src/modules/properties/PropertiesApp.jsx": 2693,
+    "app/src/modules/properties/PropertiesApp.jsx": 2698,
     "app/src/components/TTSControl.jsx": 2630,
     "app/src/lib/cameras.js": 2029,
     "app/src/lib/godhead-study.js": 1993,

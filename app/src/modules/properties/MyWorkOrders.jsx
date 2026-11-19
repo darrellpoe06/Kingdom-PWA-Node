@@ -19,6 +19,7 @@ import React, { useEffect, useState } from 'react';
 import { jobWhere, jobMapHref, SEEN_EVENT, JOB_KINDS } from '../../lib/assigned-work.js';
 import { compressImageFile, isLikelyImageFile } from '../../lib/image.js';
 import { FULL_MAX_WIDTH, FULL_QUALITY } from './DoorTabs.jsx';
+import StaffChat from './StaffChat.jsx';
 
 const serif = { fontFamily: '"Fraunces", serif' };
 const BTN =
@@ -30,8 +31,9 @@ const PROOF = {
   'photos-and-video': 'Pictures and a video of the finished work are required before it is paid: add the picture here and the video from the door',
 };
 
-function Job({ job, canOpen, onOpen, onDocument }) {
+function Job({ job, canOpen, onOpen, onDocument, me = null, names = null }) {
   const [note, setNote] = useState('');
+  const [talking, setTalking] = useState(false);
   const [busy, setBusy] = useState(false);
   const [said, setSaid] = useState('');
   const map = jobMapHref(job);
@@ -142,11 +144,25 @@ function Job({ job, canOpen, onOpen, onDocument }) {
             Open the door
           </button>
         )}
+        {job.rental_id && (
+          <button
+            type="button"
+            className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border bg-white text-[#1A1815] border-[#E8E4DC] hover:border-[#1A1815] focus:outline focus:outline-2 focus:outline-[#2F5D50] disabled:opacity-40"
+            onClick={() => setTalking((t) => !t)}
+          >
+            {talking ? 'Close the staff chat' : 'Talk with the landlord (staff only)'}
+          </button>
+        )}
       </div>
       {said && (
         <p className="text-xs text-[#5A5751] mt-1" style={serif} role="status">
           {said}
         </p>
+      )}
+      {talking && (
+        <div className="mt-2">
+          <StaffChat rentalId={job.rental_id} me={me} names={names} />
+        </div>
       )}
     </div>
   );
@@ -181,6 +197,8 @@ export default function MyWorkOrders({
   onOpen = () => {},
   post = async () => ({ ok: false }),
   onDone = () => {},
+  me = null,
+  names = null,
 }) {
   const onDocument = async (job, doc) => {
     const r = await post(jobDocRow(job, doc));
@@ -209,7 +227,7 @@ export default function MyWorkOrders({
             : 'Nothing is assigned to you right now. When a job is sent to you it appears here, on every door, and the bell rings.'}
         </p>
       ) : (
-        jobs.map((j) => <Job key={j.id} job={j} canOpen={canOpen(j)} onOpen={onOpen} onDocument={onDocument} />)
+        jobs.map((j) => <Job key={j.id} job={j} canOpen={canOpen(j)} onOpen={onOpen} onDocument={onDocument} me={me} names={names} />)
       )}
     </section>
   );
