@@ -42,7 +42,10 @@ export const WIDTHS = [320, 360, 390, 412, 768, 1024, 1440];
 /** Every case of the full matrix. */
 export function fullMatrix() {
   const out = [];
-  for (const width of WIDTHS) for (const size of SIZES) for (const theme of THEMES) for (const collapsed of [true, false]) for (const signedIn of [true, false]) out.push({ width, size, theme, collapsed, signedIn });
+  for (const width of WIDTHS)
+    for (const size of SIZES)
+      for (const theme of THEMES)
+        for (const collapsed of [true, false]) for (const signedIn of [true, false]) out.push({ width, size, theme, collapsed, signedIn });
   return out;
 }
 
@@ -104,7 +107,13 @@ export async function measureDoorAccount(page, { signedIn }) {
     const vh = window.innerHeight;
     const ctl = document.querySelector(s);
     const header = ctl && ctl.closest('header');
-    if (!ctl || !header) return { none: true, vw, size: document.documentElement.getAttribute('data-text-size'), theme: document.querySelector('[data-theme]')?.getAttribute('data-theme') };
+    if (!ctl || !header)
+      return {
+        none: true,
+        vw,
+        size: document.documentElement.getAttribute('data-text-size'),
+        theme: document.querySelector('[data-theme]')?.getAttribute('data-theme'),
+      };
     const R = (el) => el.getBoundingClientRect();
     const r = R(ctl);
     const hr = R(header);
@@ -135,7 +144,8 @@ export async function measureDoorAccount(page, { signedIn }) {
     };
     for (const el of header.querySelectorAll('button, a, input, select')) {
       if (account.contains(el) || el.contains(ctl) || !visible(el)) continue;
-      if (overlap(r, shown(el))) under.push((el.getAttribute('data-testid') || el.getAttribute('aria-label') || el.textContent || el.tagName).trim().slice(0, 24));
+      if (overlap(r, shown(el)))
+        under.push((el.getAttribute('data-testid') || el.getAttribute('aria-label') || el.textContent || el.tagName).trim().slice(0, 24));
     }
     for (const el of header.querySelectorAll('h1, [data-testid="top-brand-name"], [data-testid="top-brand-tagline"]')) {
       if (!el.firstChild || !visible(el)) continue;
@@ -149,7 +159,14 @@ export async function measureDoorAccount(page, { signedIn }) {
       vh,
       size: document.documentElement.getAttribute('data-text-size'),
       theme: header.closest('[data-theme]')?.getAttribute('data-theme') || null,
-      ctl: { left: Math.round(r.left), right: Math.round(r.right), top: Math.round(r.top), bottom: Math.round(r.bottom), w: Math.round(r.width), h: Math.round(r.height) },
+      ctl: {
+        left: Math.round(r.left),
+        right: Math.round(r.right),
+        top: Math.round(r.top),
+        bottom: Math.round(r.bottom),
+        w: Math.round(r.width),
+        h: Math.round(r.height),
+      },
       pic: pr ? { w: Math.round(pr.width), h: Math.round(pr.height) } : null,
       header: { top: Math.round(hr.top), bottom: Math.round(hr.bottom) },
       inCollapsedRow: !!ctl.closest('[data-testid="top-nav-account"]'),
@@ -192,10 +209,13 @@ export function judgeDoorAccount(m, c) {
   if (m.none) return ['A1: no account control rendered'];
   if (m.size !== c.size) return [`data-text-size="${m.size}", expected ${c.size}; nothing was measured`];
   const k = m.ctl;
-  if (k.left < 0 || k.right > m.vw + 1 || k.top < 0 || k.bottom > m.vh + 1) out.push(`A1: the control is off screen (${k.left}..${k.right} x ${k.top}..${k.bottom} of ${m.vw}x${m.vh})`);
-  if (k.top < m.header.top - 1 || k.bottom > m.header.bottom + 1) out.push(`A1: the control is outside the header (${k.top}..${k.bottom}, header ${m.header.top}..${m.header.bottom})`);
+  if (k.left < 0 || k.right > m.vw + 1 || k.top < 0 || k.bottom > m.vh + 1)
+    out.push(`A1: the control is off screen (${k.left}..${k.right} x ${k.top}..${k.bottom} of ${m.vw}x${m.vh})`);
+  if (k.top < m.header.top - 1 || k.bottom > m.header.bottom + 1)
+    out.push(`A1: the control is outside the header (${k.top}..${k.bottom}, header ${m.header.top}..${m.header.bottom})`);
   if (m.vw - k.right > 96) out.push(`A1: the control is ${m.vw - k.right}px from the right edge (96px at most: the top right)`);
-  if (c.collapsed !== m.inCollapsedRow) out.push(`A1: header ${c.collapsed ? 'collapsed' : 'open'} but the control ${m.inCollapsedRow ? 'is' : 'is not'} in the collapsed row`);
+  if (c.collapsed !== m.inCollapsedRow)
+    out.push(`A1: header ${c.collapsed ? 'collapsed' : 'open'} but the control ${m.inCollapsedRow ? 'is' : 'is not'} in the collapsed row`);
   if (k.w < 35.5 || k.h < 35.5) out.push(`A2: the control is ${k.w}x${k.h}px; 36px is the floor`);
   if (m.pic && (m.pic.w < 35.5 || m.pic.h < 35.5)) out.push(`A2: the picture is ${m.pic.w}x${m.pic.h}px; 36px is the floor`);
   for (const u of m.under) out.push(`A3: ${u} overlaps the account control`);
@@ -211,7 +231,8 @@ export function judgeDoorAccount(m, c) {
   return out;
 }
 
-export const caseName = (c) => `door-account@${c.width}px [${c.size}, ${c.theme}, ${c.collapsed ? 'collapsed' : 'open'}, ${c.signedIn ? 'signed in' : 'signed out'}]`;
+export const caseName = (c) =>
+  `door-account@${c.width}px [${c.size}, ${c.theme}, ${c.collapsed ? 'collapsed' : 'open'}, ${c.signedIn ? 'signed in' : 'signed out'}]`;
 
 export const PROBE_PATH = '/poetech-app/?view=overview';
 
@@ -226,7 +247,16 @@ if (isMain) {
     console.error(`door-account-probe: no index.html in ${DIST}; build the app first`);
     process.exit(2);
   }
-  const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png', '.woff2': 'font/woff2', '.webmanifest': 'application/manifest+json' };
+  const MIME = {
+    '.html': 'text/html',
+    '.js': 'text/javascript',
+    '.css': 'text/css',
+    '.json': 'application/json',
+    '.svg': 'image/svg+xml',
+    '.png': 'image/png',
+    '.woff2': 'font/woff2',
+    '.webmanifest': 'application/manifest+json',
+  };
   const server = createServer((req, res) => {
     let p = decodeURIComponent(new URL(req.url, 'http://x').pathname);
     if (p.startsWith('/poetech-app')) p = p.slice('/poetech-app'.length) || '/';
@@ -259,7 +289,9 @@ if (isMain) {
       failed += 1;
       for (const e of errs) console.error(`FAIL ${caseName(c)}: ${e}`);
     } else {
-      console.log(`ok   ${caseName(c)} control ${m.ctl.w}x${m.ctl.h}${m.pic ? ` pic ${m.pic.w}x${m.pic.h}` : ''} right-gap ${m.vw - m.ctl.right} top ${m.ctl.top}${m.menu ? ` menu ${m.menu.rows.length} rows, ${m.menu.left}..${m.menu.right}, rows>=${m.menu.minRowH}px` : ''}`);
+      console.log(
+        `ok   ${caseName(c)} control ${m.ctl.w}x${m.ctl.h}${m.pic ? ` pic ${m.pic.w}x${m.pic.h}` : ''} right-gap ${m.vw - m.ctl.right} top ${m.ctl.top}${m.menu ? ` menu ${m.menu.rows.length} rows, ${m.menu.left}..${m.menu.right}, rows>=${m.menu.minRowH}px` : ''}`
+      );
     }
   }
   await browser.close();

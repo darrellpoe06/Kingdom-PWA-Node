@@ -65,8 +65,20 @@ const { POETECH_ACCOUNT_ROWS, poetechAccountRows, rowHasPlace, viewIdsOf } = awa
 const SHELL = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'poe-financial-mvp-v28.jsx'), 'utf8');
 
 // The reader's tabs as the shell hands them: [id, label] pairs with the separator.
-const FAMILY_TABS = [['overview', 'Big Picture'], ['about', 'About'], ['__sep__', null], ['messages', 'Messages'], ['church', 'Church'], ['admin', 'Admin']];
-const MEMBER_TABS = [['overview', 'Big Picture'], ['about', 'About'], ['__sep__', null], ['messages', 'Messages']];
+const FAMILY_TABS = [
+  ['overview', 'Big Picture'],
+  ['about', 'About'],
+  ['__sep__', null],
+  ['messages', 'Messages'],
+  ['church', 'Church'],
+  ['admin', 'Admin'],
+];
+const MEMBER_TABS = [
+  ['overview', 'Big Picture'],
+  ['about', 'About'],
+  ['__sep__', null],
+  ['messages', 'Messages'],
+];
 
 let container, root;
 const mount = (el) => {
@@ -103,7 +115,15 @@ function door(tabs = FAMILY_TABS) {
 
 describe('DR-1600 rows: each one has a real place on the PoeTech door, or it is not offered', () => {
   it('a family reader with every tab gets the seven rows, in order', () => {
-    expect(poetechAccountRows(viewIdsOf(FAMILY_TABS)).map((r) => r.key)).toEqual(['profile', 'church', 'messages', 'subscription', 'personalize', 'admin', 'logout']);
+    expect(poetechAccountRows(viewIdsOf(FAMILY_TABS)).map((r) => r.key)).toEqual([
+      'profile',
+      'church',
+      'messages',
+      'subscription',
+      'personalize',
+      'admin',
+      'logout',
+    ]);
   });
   it('a row whose view the reader is not drawn is left out (no Admin, no My Church for a member without them)', () => {
     const keys = poetechAccountRows(viewIdsOf(MEMBER_TABS)).map((r) => r.key);
@@ -271,7 +291,9 @@ describe('DR-1600 the collapsed header keeps the picture', () => {
 
 describe('DR-1600 the shell mounts the picture at the top right, open and collapsed', () => {
   it('open: the picture sits OUTSIDE the wrapping controls row, as its last item, so it holds the top right', () => {
-    expect(SHELL).toContain('<div className="flex items-start justify-end gap-2 sm:gap-3 min-w-0"><div className="flex items-center gap-2 sm:gap-3 flex-1 flex-wrap justify-end');
+    expect(SHELL).toContain(
+      '<div className="flex items-start justify-end gap-2 sm:gap-3 min-w-0"><div className="flex items-center gap-2 sm:gap-3 flex-1 flex-wrap justify-end'
+    );
     expect(SHELL).toContain('</div>{!isIsolatedPreview() && <HeaderAuthButton door={accountDoor} />}</div>');
   });
   it('collapsed: the nav row is handed the compact picture', () => {
