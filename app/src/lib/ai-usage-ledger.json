@@ -2047,6 +2047,21 @@
       "notes": "Christina's go-live brief, then her correction before merge: the $10,000 is a savings goal, not a cushion; only designated money is protected. Two sessions on one brief; restacked on fix/money-three-accounts with only what it lacked. Live 3322/8168 figures unreachable from the sandbox (no NAS road)."
     },
     {
+      "id": "dr-1590-camera-selftest-waits-for-the-gate",
+      "date": "2026-11-19",
+      "task": "A timing race in the camera forwarder's self-test turned an unrelated PR red; the self-test's request helper now asks again on a snapshot busy",
+      "drs": [
+        "DR-1590"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.3,
+      "estimateWithoutAiHours": 3,
+      "notes": "Reproduced by sleeping 0.2 s before the gate's release: 13 checks failed on busy before, none after. Forwarder behavior unchanged. One timed check still fails under the injected sleep and was not hardened."
+    },
+    {
       "id": "poetech-plus-keys-daily",
       "date": "2026-11-12",
       "task": "The PoeTech+ keys workflow runs daily and heals itself: one paste of the key is the only hand step",
