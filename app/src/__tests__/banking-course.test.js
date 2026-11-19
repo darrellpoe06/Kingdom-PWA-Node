@@ -199,10 +199,17 @@ describe('it teaches something its siblings did not', () => {
     // Deuteronomy 8, Ecclesiastes 11, Jeremiah 9, Matthew 7, Proverbs 23 and
     // Psalms 62 were all absent from every other course in this department, and
     // the check above proves it still.
+    // The seven added 2026-11-18 are bank10's (DR-1563), each measured against
+    // the live sibling-chapter set before it was chosen: Ecclesiastes 8,
+    // Ezekiel 33, Isaiah 56, John 1, Mark 13, Numbers 32 and Psalms 82 were
+    // absent from every other course in this department. Galatians 6 (what is
+    // sown is reaped) was the first reach and is Kingdom Economics', so it was
+    // left out rather than shared.
     expect(chapters).toEqual([
       '1 Timothy 6', '2 Kings 12', 'Amos 8', 'Deuteronomy 8', 'Ecclesiastes 11',
-      'Exodus 22', 'Genesis 41', 'Jeremiah 9', 'Matthew 7', 'Nehemiah 5',
-      'Proverbs 23', 'Proverbs 6', 'Psalms 62',
+      'Ecclesiastes 8', 'Exodus 22', 'Ezekiel 33', 'Genesis 41', 'Isaiah 56',
+      'Jeremiah 9', 'John 1', 'Mark 13', 'Matthew 7', 'Nehemiah 5', 'Numbers 32',
+      'Proverbs 23', 'Proverbs 6', 'Psalms 62', 'Psalms 82',
     ]);
   });
 });
@@ -255,8 +262,9 @@ describe('the line this course holds (DR-0098 / DR-0100)', () => {
 });
 
 describe('the shape every course in this catalog has (DR-0509)', () => {
-  it('carries nine lessons, each with both bands, six benefits and two stories', () => {
-    expect(BANKING_MODULES).toHaveLength(9);
+  it('carries ten lessons, each with both bands, six benefits and two stories', () => {
+    // Re-pinned 2026-11-18 (DR-1563): bank10, the watchman who went quiet, is the tenth.
+    expect(BANKING_MODULES).toHaveLength(10);
     for (const m of BANKING_MODULES) {
       expect(m.levels.teen, `${m.id} has no teen band`).toBeTruthy();
       expect(m.levels.senior, `${m.id} has no senior band`).toBeTruthy();
@@ -274,7 +282,7 @@ describe('the shape every course in this catalog has (DR-0509)', () => {
 
   it('builds a schedule, a progress summary and a markdown export', () => {
     const rows = buildBankingSchedule(null);
-    expect(rows).toHaveLength(9);
+    expect(rows).toHaveLength(10);
     expect(rows[0].week).toBe(1);
     expect(bankingProgressSummary({}).done).toBe(0);
     const md = exportBankingCurriculumMarkdown(null);
@@ -303,11 +311,11 @@ describe('the shape every course in this catalog has (DR-0509)', () => {
 });
 
 describe('it is registered and reachable — built means surfaced (DR-0065)', () => {
-  it('is in the catalog, under its department, with all nine lessons', () => {
+  it('is in the catalog, under its department, with all ten lessons', () => {
     const row = LEARN_CATALOG.find((e) => e.key === 'banking');
     expect(row, 'banking is not registered in LEARN_CATALOG').toBeTruthy();
     expect(row.meta.category).toBe('Kingdom Life & Stewardship');
-    expect(row.buildScheduleRows()).toHaveLength(9);
+    expect(row.buildScheduleRows()).toHaveLength(10);
     expect(row.tutorCourseMeta).toBe(BANKING_TUTOR_META);
   });
 

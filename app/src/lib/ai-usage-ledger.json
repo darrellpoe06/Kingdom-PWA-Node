@@ -127,6 +127,21 @@
       "notes": "17:15:13Z → 17:23:34Z."
     },
     {
+      "id": "church-calendar-office-add-upload",
+      "date": "2026-11-19",
+      "task": "Church calendar: office add form, CSV upload with preview, two-press remove, CSV download",
+      "drs": [
+        "DR-1586"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.5,
+      "estimateWithoutAiHours": 8,
+      "notes": ""
+    },
+    {
       "id": "sov95-he-that-taketh-warning",
       "date": "2026-11-18",
       "task": "Sovereign A.I. week 95 from one word over a forwarded account security alert (thread 1a1f08def44cc672), taught generically for privacy: Word first on Ezekiel 33:4-5 and Nehemiah 13:4-9; every grant of access a gate you opened, the alert the watchman, check through the account and never the link, take back what you no longer use; four hand-written bands, every verse generator-filled from the KJV; the house measured from the support door's own code.",
@@ -1084,6 +1099,21 @@
       "notes": "Darrell's three messages and a screenshot; built across worker restarts."
     },
     {
+      "id": "bank10-the-watchman-who-went-quiet",
+      "date": "2026-11-18",
+      "task": "Banking lesson 10 from a forwarded Fintech Takes recap (thread 1a1f08bfcac456b1): Ezekiel 33:6 in both halves, all four bands, generator-filled verses, no party or official named",
+      "drs": [
+        "DR-1563"
+      ],
+      "prs": [],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.8,
+      "estimateWithoutAiHours": 10,
+      "notes": "Teen read above its 6.0 ceiling on first build; bands shortened by hand. Agency site and podcast refused by the proxy; reported tier held. re-review 2026-12-16."
+    },
+    {
       "id": "dr-1384-read-by-any-road",
       "date": "2026-11-10",
       "task": "A passed exam, Done, or every part seen finishes the reading with its version so the list shows READ; a 4-case gate, proven to catch",
@@ -1491,6 +1521,21 @@
       "notes": "Darrell: Lessons with no tests?!"
     },
     {
+      "id": "l333-heavenly-cheat-codes-life-his-way",
+      "date": "2026-11-19",
+      "task": "L333 Heavenly Cheat Codes: Life His Way, from Darrell's own lines over one summary of a conversation, all four age bands, shared gate",
+      "drs": [
+        "DR-1573"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.4,
+      "estimateWithoutAiHours": 24,
+      "notes": "Reserved L333 and DR-1573 on origin with new-lesson.mjs. Verses filled from app/public/bible/kjv by fill-verses.mjs, none typed. The name and two lines are Darrell's; video not watched; re-review 2026-12-18."
+    },
+    {
       "id": "dr-1405-system-built-around-the-king",
       "date": "2026-11-10",
       "task": "rto8 stopped setting a system against the King: the King brings the balance, and a system built around Him carries it; pinned by a test",
@@ -1865,6 +1910,21 @@
       "notes": "Darrell: Learn tab as a quick link under Soul (More menu screenshot)"
     },
     {
+      "id": "church-calendar-past-years-suggestions",
+      "date": "2026-11-19",
+      "task": "Church calendar: past-years look-back, suggestions through the feedback list, office received list",
+      "drs": [
+        "DR-1587"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.4,
+      "estimateWithoutAiHours": 6,
+      "notes": ""
+    },
+    {
       "id": "dr-1426-ll301-old-men-dream",
       "date": "2026-11-11",
       "task": "L301 Your Old Men Shall Dream Dreams: the Joel 2:28 / Acts 2:17 lesson Darrell sent in, taught from the Word in five bands with a 50-case gate",
@@ -2045,6 +2105,21 @@
       "wallClockHours": 3.5,
       "estimateWithoutAiHours": 16,
       "notes": "Christina's go-live brief, then her correction before merge: the $10,000 is a savings goal, not a cushion; only designated money is protected. Two sessions on one brief; restacked on fix/money-three-accounts with only what it lacked. Live 3322/8168 figures unreachable from the sandbox (no NAS road)."
+    },
+    {
+      "id": "dr-1590-camera-selftest-waits-for-the-gate",
+      "date": "2026-11-19",
+      "task": "A timing race in the camera forwarder's self-test turned an unrelated PR red; the self-test's request helper now asks again on a snapshot busy",
+      "drs": [
+        "DR-1590"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.3,
+      "estimateWithoutAiHours": 3,
+      "notes": "Reproduced by sleeping 0.2 s before the gate's release: 13 checks failed on busy before, none after. Forwarder behavior unchanged. One timed check still fails under the injected sleep and was not hardened."
     },
     {
       "id": "poetech-plus-keys-daily",
@@ -2287,6 +2362,21 @@
       "wallClockHours": 0.6,
       "estimateWithoutAiHours": 4,
       "notes": "Read ceiling + bounded retries; member device never wears the stranger church brand."
+    },
+    {
+      "id": "church-calendar-event-records",
+      "date": "2026-11-19",
+      "task": "Church calendar as event records: week strip, month and year view, office rows read per church",
+      "drs": [
+        "DR-1585"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.2,
+      "estimateWithoutAiHours": 10,
+      "notes": "First of three changes; office add and upload, then past years and suggestions, follow."
     },
     {
       "id": "learning-products-store",
@@ -2661,6 +2751,21 @@
       "wallClockHours": 2.1,
       "estimateWithoutAiHours": 40,
       "notes": "No token meter exposed to this session; tokens and cost are null. The 40-hour estimate without A.I. is for one hour of teaching written five times over (an adult lesson and four age-banded versions, about 15,900 words of authored prose), 62 verses transcribed by hand from a printed KJV, the independent checking of five load-bearing figures, and 54 tests. The band work failed its floors and its reading ladder on the first measurement, as P60 predicts, and every repair was authored by hand rather than swept by a script (DR-1306). Renumbered to DR-1470 after #2658 landed a record on the number first, while this branch was green and in flight; the rename was done by hand on each citation's own surrounding text, never by number, because renumber-decision-record.mjs rewrites by number across the whole tree and the surrendered number's call sites now belong to that landed record."
+    },
+    {
+      "id": "lesson-ll328",
+      "date": "2026-11-18",
+      "task": "L328 Faithful in that which is least, from a forwarded public school-district newsletter",
+      "drs": [
+        "DR-1565"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.8,
+      "estimateWithoutAiHours": 8,
+      "notes": ""
     },
     {
       "id": "sov89-take-thee-again-another-roll",
