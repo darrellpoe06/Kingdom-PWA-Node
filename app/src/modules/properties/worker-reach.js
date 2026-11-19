@@ -17,7 +17,10 @@ import { personName, personContact } from './people.js';
 import { CAPABILITY_LABELS, ROLE_CEILING } from './model.js';
 
 const OPEN = ['submitted', 'received', 'scheduled', 'in-progress'];
-const norm = (s) => String(s || '').trim().toLowerCase();
+const norm = (s) =>
+  String(s || '')
+    .trim()
+    .toLowerCase();
 
 /**
  * One row per 1099 worker invited to this instance (not revoked), deduplicated
@@ -25,16 +28,17 @@ const norm = (s) => String(s || '').trim().toLowerCase();
  * they could not be read); `jobs` are work orders (null when unreadable).
  */
 export function workerReach(invites = [], { instanceId = null, grants = null, jobs = null } = {}) {
-  const rows = (Array.isArray(invites) ? invites : []).filter((i) => i && !i.revoked
-    && i.role_label === 'field_worker' && (!instanceId || !i.instance_id || i.instance_id === instanceId));
+  const rows = (Array.isArray(invites) ? invites : []).filter(
+    (i) => i && !i.revoked && i.role_label === 'field_worker' && (!instanceId || !i.instance_id || i.instance_id === instanceId)
+  );
   const byPerson = new Map();
   for (const i of rows) {
     const c = personContact(i);
     const key = c.phone || (c.kind === 'email' ? c.label : '') || i.id;
     const prev = byPerson.get(key);
     // A claimed row beats an unclaimed one; otherwise the newest invitation.
-    if (!prev || (!prev.claimed_by && i.claimed_by)
-      || (!!prev.claimed_by === !!i.claimed_by && String(i.created_at || '') > String(prev.created_at || ''))) byPerson.set(key, i);
+    if (!prev || (!prev.claimed_by && i.claimed_by) || (!!prev.claimed_by === !!i.claimed_by && String(i.created_at || '') > String(prev.created_at || '')))
+      byPerson.set(key, i);
   }
   const nameCount = new Map();
   for (const i of byPerson.values()) {
@@ -46,10 +50,12 @@ export function workerReach(invites = [], { instanceId = null, grants = null, jo
     const userId = i.claimed_by || null;
     const name = personName(i);
     const label = norm(i.display_name);
-    const held = grants == null ? null : grants
-      .filter((g) => g && userId && g.grantee_user_id === userId && g.setting === 'allow'
-        && ROLE_CEILING.field_worker.includes(g.capability))
-      .map((g) => g.capability);
+    const held =
+      grants == null
+        ? null
+        : grants
+            .filter((g) => g && userId && g.grantee_user_id === userId && g.setting === 'allow' && ROLE_CEILING.field_worker.includes(g.capability))
+            .map((g) => g.capability);
     const open = jobs == null ? null : jobs.filter((j) => j && OPEN.includes(j.status));
     const theirs = open == null ? null : open.filter((j) => userId && j.assigned_to === userId);
     const waitingByName = open == null ? null : open.filter((j) => !j.assigned_to && label && norm(j.assigned_to_label) === label);
@@ -81,19 +87,31 @@ function verdict({ i, name, userId, asked, held, theirs, waitingByName, sharedNa
   }
   if (!userId) {
     const n = waitingByName || 0;
-    return { state: 'waiting', reason: `${name} has not signed in yet. They sign in ${how} and open Poe Properties once${n === 1 ? '; the job sent to their name becomes theirs then' : n ? `; the ${n} jobs sent to their name become theirs then` : ''}.` };
+    return {
+      state: 'waiting',
+      reason: `${name} has not signed in yet. They sign in ${how} and open Poe Properties once${n === 1 ? '; the job sent to their name becomes theirs then' : n ? `; the ${n} jobs sent to their name become theirs then` : ''}.`,
+    };
   }
   if (held == null || theirs == null) {
     return { state: 'unknown', reason: `${name} signed in, but their permissions or jobs could not be read just now. Nothing is concluded from that.` };
   }
   if (!held.length && !theirs.length) {
-    return { state: 'blocked', reason: `${name} signed in, but holds no permission and has no job assigned, so they see nothing. Take the invitation away and invite them again with the boxes checked.` };
+    return {
+      state: 'blocked',
+      reason: `${name} signed in, but holds no permission and has no job assigned, so they see nothing. Take the invitation away and invite them again with the boxes checked.`,
+    };
   }
   if (waitingByName && sharedName) {
-    return { state: 'blocked', reason: `${waitingByName} job${waitingByName === 1 ? ' was' : 's were'} sent to the name "${name}", which two people share, so ${waitingByName === 1 ? 'it was' : 'they were'} not given to either. Send ${waitingByName === 1 ? 'it' : 'them'} again from Dispatch, choosing the person.` };
+    return {
+      state: 'blocked',
+      reason: `${waitingByName} job${waitingByName === 1 ? ' was' : 's were'} sent to the name "${name}", which two people share, so ${waitingByName === 1 ? 'it was' : 'they were'} not given to either. Send ${waitingByName === 1 ? 'it' : 'them'} again from Dispatch, choosing the person.`,
+    };
   }
   if (!theirs.length) {
     return { state: 'idle', reason: `${name} can sign in and see their work, but nothing open is assigned to them. Send a job from Dispatch.` };
   }
-  return { state: 'ok', reason: `${name} has ${theirs.length} open job${theirs.length === 1 ? '' : 's'} assigned. They are listed under My work orders and on the bell when the app is open.` };
+  return {
+    state: 'ok',
+    reason: `${name} has ${theirs.length} open job${theirs.length === 1 ? '' : 's'} assigned. They are listed under My work orders and on the bell when the app is open.`,
+  };
 }

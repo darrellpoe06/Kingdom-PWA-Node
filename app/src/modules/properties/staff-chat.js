@@ -22,8 +22,12 @@ const no = (reason, error) => ({ ok: false, reason, error: (error && error.messa
 export const STAFF_CHAT_TIMEOUT_MS = 8000;
 const bounded = (p) => {
   let t;
-  return Promise.race([p, new Promise((r) => { t = setTimeout(() => r({ timedOut: true }), STAFF_CHAT_TIMEOUT_MS); })])
-    .finally(() => clearTimeout(t));
+  return Promise.race([
+    p,
+    new Promise((r) => {
+      t = setTimeout(() => r({ timedOut: true }), STAFF_CHAT_TIMEOUT_MS);
+    }),
+  ]).finally(() => clearTimeout(t));
 };
 const missing = (e) => /does not exist|schema cache/i.test(String((e && e.message) || e || ''));
 
@@ -35,7 +39,9 @@ export async function openStaffChat(rentalId, client = supabase) {
     if (res.timedOut) return no('timeout');
     if (res.error) return no(missing(res.error) ? 'not-enabled-yet' : 'read-failed', res.error);
     return ok({ chatId: res.data || null });
-  } catch (e) { return no('unexpected', e); }
+  } catch (e) {
+    return no('unexpected', e);
+  }
 }
 
 /** The members (active and removed: the list keeps both) and the messages of one chat. */
@@ -43,13 +49,21 @@ export async function loadStaffChat(chatId, client = supabase) {
   if (!chatId) return no('no-chat');
   try {
     const [m, msg] = await Promise.all([
-      bounded(client.from('property_staff_chat_members').select('id, user_id, display_name, added_by, added_at, removed_by, removed_at').eq('chat_id', chatId).order('added_at', { ascending: true })),
+      bounded(
+        client
+          .from('property_staff_chat_members')
+          .select('id, user_id, display_name, added_by, added_at, removed_by, removed_at')
+          .eq('chat_id', chatId)
+          .order('added_at', { ascending: true })
+      ),
       bounded(client.from('property_staff_messages').select('id, sender_user_id, body, sent_at').eq('chat_id', chatId).order('sent_at', { ascending: true })),
     ]);
     if (m.timedOut || msg.timedOut) return no('timeout');
     if (m.error || msg.error) return no('read-failed', m.error || msg.error);
     return ok({ members: m.data || [], messages: msg.data || [] });
-  } catch (e) { return no('unexpected', e); }
+  } catch (e) {
+    return no('unexpected', e);
+  }
 }
 
 export async function sendStaffMessage({ chatId, body, userId }, client = supabase) {
@@ -61,7 +75,9 @@ export async function sendStaffMessage({ chatId, body, userId }, client = supaba
     const res = await bounded(client.from('property_staff_messages').insert({ chat_id: chatId, sender_user_id: userId, body: text, instance_id: null }));
     if (res.timedOut) return no('timeout');
     return res.error ? no('write-failed', res.error) : ok();
-  } catch (e) { return no('unexpected', e); }
+  } catch (e) {
+    return no('unexpected', e);
+  }
 }
 
 export async function addStaffMember({ chatId, userId, name }, client = supabase) {
@@ -70,7 +86,9 @@ export async function addStaffMember({ chatId, userId, name }, client = supabase
     if (res.timedOut) return no('timeout');
     if (res.error) return no('refused', res.error);
     return res.data === 'added' || res.data === 'already' ? ok({ result: res.data }) : no(res.data || 'refused');
-  } catch (e) { return no('unexpected', e); }
+  } catch (e) {
+    return no('unexpected', e);
+  }
 }
 
 export async function removeStaffMember({ chatId, userId }, client = supabase) {
@@ -79,7 +97,9 @@ export async function removeStaffMember({ chatId, userId }, client = supabase) {
     if (res.timedOut) return no('timeout');
     if (res.error) return no('refused', res.error);
     return res.data === 'removed' ? ok() : no(res.data || 'refused');
-  } catch (e) { return no('unexpected', e); }
+  } catch (e) {
+    return no('unexpected', e);
+  }
 }
 
 /** Where things are in this tenancy's home: the systems the landlord shared (name, kind, where). */
@@ -90,7 +110,9 @@ export async function loadWhereThingsAre(tenancyId, client = supabase) {
     if (res.timedOut) return no('timeout');
     if (res.error) return no(missing(res.error) ? 'not-enabled-yet' : 'read-failed', res.error);
     return ok({ things: res.data || [] });
-  } catch (e) { return no('unexpected', e); }
+  } catch (e) {
+    return no('unexpected', e);
+  }
 }
 
 // ── pure ────────────────────────────────────────────────────────────────────
@@ -106,7 +128,11 @@ export function activeMembers(members = []) {
  * the list, never a tenant or household member of this door. The database
  * refuses those too; the list does not offer them.
  */
-export function addableToStaffChat(invites = [], members = [], { instanceId = null, livesHere = () => false, nameOf = (i) => i.display_name || 'Someone' } = {}) {
+export function addableToStaffChat(
+  invites = [],
+  members = [],
+  { instanceId = null, livesHere = () => false, nameOf = (i) => i.display_name || 'Someone' } = {}
+) {
   const on = new Set(activeMembers(members).map((m) => m.user_id));
   const seen = new Set();
   const out = [];

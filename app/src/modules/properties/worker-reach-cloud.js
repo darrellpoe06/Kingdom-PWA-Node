@@ -16,13 +16,19 @@ const bounded = (p) => Promise.race([p, new Promise((resolve) => setTimeout(() =
 export async function loadWorkerGrants(instanceId, client = supabase) {
   if (!instanceId) return { ok: false, reason: 'no-space' };
   try {
-    const res = await bounded(client.from('delegated_capabilities')
-      .select('grantee_user_id, scope_ref, capability, setting, role_label')
-      .eq('instance_id', instanceId).eq('role_label', 'field_worker'));
+    const res = await bounded(
+      client
+        .from('delegated_capabilities')
+        .select('grantee_user_id, scope_ref, capability, setting, role_label')
+        .eq('instance_id', instanceId)
+        .eq('role_label', 'field_worker')
+    );
     if (!res || res.ok === false) return { ok: false, reason: (res && res.reason) || 'read-failed' };
     if (res.error) return { ok: false, reason: 'read-failed' };
     return { ok: true, grants: res.data || [] };
-  } catch { return { ok: false, reason: 'unexpected' }; }
+  } catch {
+    return { ok: false, reason: 'unexpected' };
+  }
 }
 
 /** Both reads at once: grants and work orders, each null when it could not be read. */
