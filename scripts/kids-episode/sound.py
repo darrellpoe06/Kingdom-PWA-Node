@@ -189,6 +189,57 @@ def ambience(name, sec, thunder_at=()):
     return norm(x, 0.7)
 
 
+def splash():
+    t = t_axis(1.6)
+    body = lp(rng.standard_normal(len(t)), 2500) * np.exp(-t * 3.2)
+    thump = np.sin(2 * np.pi * 70 * t) * np.exp(-t * 9) * 1.5
+    return norm(body + thump, 0.8).astype(np.float32)
+
+
+def whale():
+    # a gentle, deep call as the great fish rises: low, slow, never a roar
+    t = t_axis(3.2)
+    f = 110 - 35 * (t / t[-1]) + 6 * np.sin(2 * np.pi * 0.9 * t)
+    ph = 2 * np.pi * np.cumsum(f) / SR
+    x = (np.sin(ph) + 0.35 * np.sin(2 * ph)) * np.hanning(len(t))
+    return norm(lp(x, 900), 0.55).astype(np.float32)
+
+
+def bubbles(sec=3.0):
+    t = t_axis(sec)
+    out = np.zeros(len(t))
+    for _ in range(int(sec * 5)):
+        i = rng.integers(0, len(t) - SR // 8)
+        k = SR // 10
+        tt = np.arange(k) / SR
+        f0 = rng.uniform(500, 1100)
+        out[i:i + k] += np.sin(2 * np.pi * (f0 * tt + 900 * tt ** 2)) * np.exp(-tt * 40)
+    return norm(out, 0.35).astype(np.float32)
+
+
+def whoosh(sec=1.4):
+    t = t_axis(sec)
+    n = rng.standard_normal(len(t))
+    x = bp(n, 300, 3000) * np.sin(np.pi * t / sec) ** 2
+    return norm(x, 0.5).astype(np.float32)
+
+
+def moments(beat):
+    """(sound, seconds into the beat) for the story's own moments."""
+    out = []
+    lines = beat.get("lines", [])
+    if beat["id"] != "intro":
+        out.append((whoosh(), max(0.0, beat["dur"] - 1.3)))  # carries into the next scene
+    for l in lines:
+        if l.get("ref") == "Jonah 1:15":
+            out.append((splash(), l["at"] + 2.6))  # "cast him forth into the sea"
+    if beat["ambience"] == "sea":
+        out.append((whale(), 0.8))
+    if beat["ambience"] == "underwater":
+        out.append((bubbles(), 0.3))
+    return out
+
+
 if __name__ == "__main__":
     kind = sys.argv[1]
     if kind == "music":

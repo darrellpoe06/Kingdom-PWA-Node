@@ -208,15 +208,31 @@ def mix(beats, total, narr, out_wav):
         a = sound.ambience(b["ambience"], b["dur"], thunder_times(b["dur"]) if b["ambience"].startswith("storm") else ()).astype(np.float32)
         i = int(b["start"] * SR)
         amb[i:i + len(a)] += a[: max(0, n - i)]
-    mus = sound.music(total + 1).astype(np.float32)[:n]
-    mus = np.pad(mus, (0, n - len(mus)))
+    # the score: one original orchestral cue per scene (score.py), laid at the scene's start;
+    # scenes overlap by the crossfade, so each cue's fade-out meets the next one's fade-in
+    mus = np.zeros(n, np.float32)
+    import score, tempfile
+    for b in beats:
+        with tempfile.TemporaryDirectory() as d:
+            w = os.path.join(d, "cue.wav")
+            score.render(b.get("music") or b["ambience"], b["dur"], w)
+            a, sr = sf.read(w, dtype="float32")
+        a = resample(a.mean(axis=1) if a.ndim > 1 else a, sr)
+        i = int(b["start"] * SR)
+        mus[i:i + len(a)] += a[: max(0, n - i)]
+    mus /= max(1e-6, float(np.sqrt(np.mean(mus[np.abs(mus) > 0.001] ** 2))) / 0.12)  # music bed near -18 dBFS before ducking
+    # moments: sound effects placed on the story's own beats (sound.py, all synthesized)
+    for b in beats:
+        for fx, at in sound.moments(b):
+            i = int((b["start"] + at) * SR)
+            amb[i:i + len(fx)] += fx[: max(0, n - i)]
     # duck the music and ambience under the voice (smoothed envelope)
     env = np.abs(voice)
     k = int(0.25 * SR)
     env = np.convolve(env, np.ones(k) / k, mode="same")
     talk = np.clip(env / (env.max() or 1) * 8, 0, 1)
-    duck = 1 - 0.6 * talk
-    m = voice * 1.0 + mus * 0.18 * duck + amb * 0.16 * (1 - 0.35 * talk)
+    duck = 1 - 0.72 * talk  # the voice always leads: the music drops about 11 dB under speech
+    m = voice * 1.0 + mus * 0.55 * duck + amb * 0.16 * (1 - 0.35 * talk)
     m = m / max(1.0, np.max(np.abs(m)) / 0.95)
     sf.write(out_wav, np.stack([m, m], axis=1), SR)
 
@@ -262,6 +278,9 @@ def main():
     draft = "--draft" in sys.argv
     ep = json.load(open(ep_path))
     tim = load_timings(ep, narr)
+    only = next((a.split("=", 1)[1].split(",") for a in sys.argv if a.startswith("--beats=")), None)
+    if only:
+        ep = {**ep, "beats": [b for b in ep["beats"] if b["id"] in only]}
     beats, total = plan(ep, tim)
     os.makedirs(outd, exist_ok=True)
     work = os.path.join(outd, ".work")
@@ -288,7 +307,7 @@ def main():
          "-c:v", "copy", "-c:a", "aac", "-b:a", "160k", "-c:s", "mov_text", "-metadata:s:s:0", "language=eng",
          "-shortest", "-movflags", "+faststart", mp4])
     poster = os.path.join(outd, f"{ep['id']}-poster.jpg")
-    run(["ffmpeg", "-y", "-loglevel", "error", "-ss", f"{beats[4]['start'] + beats[4]['dur'] / 2}", "-i", vid, "-frames:v", "1", "-q:v", "3", poster])
+    run(["ffmpeg", "-y", "-loglevel", "error", "-ss", f"{beats[min(4, len(beats) - 1)]["start"] + beats[min(4, len(beats) - 1)]["dur"] / 2}", "-i", vid, "-frames:v", "1", "-q:v", "3", poster])
     json.dump({"voice": tim.get("voice"), "total": round(total, 2),
                "beats": [{"id": b["id"], "scene": b["scene"], "start": b["start"], "dur": b["dur"], "lines": len(b["lines"])} for b in beats]},
               open(os.path.join(outd, f"{ep['id']}.cut.json"), "w"), indent=1)
