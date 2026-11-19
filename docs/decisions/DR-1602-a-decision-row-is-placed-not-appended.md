@@ -9,6 +9,10 @@
 
 ## Context
 
+Darrell, 2026-11-19, after a night of lessons that took minutes to write and hours to land: "fix our way of orchestrating the work." Part of that was decision PRs knocking each other back to the start of the queue.
+
+## What was measured
+
 Measured 2026-11-19: every landing made the other open PRs conflict, only in `docs/decisions/INDEX.md` and `app/src/lib/ai-usage-ledger.json`. Resolving took a merge of main and a push, which restarted that PR's CI at the back of the queue (#2788 was re-synced five times). Every branch appended its row at the end of the live table, the same spot.
 
 `.gitattributes` names a `dr-ledger` merge driver for INDEX.md. Tested the same day on throwaway PRs against throwaway bases (never main): with `merge=union`, git's own built-in driver, set for both files on the base and both branches, the second PR still answered "405 Pull Request has merge conflicts" (#2815), the same as its control without it (#2813). GitHub's PR merge runs no merge driver.
@@ -19,11 +23,11 @@ A row is placed, not appended. `node scripts/index-row.mjs --add '<row>'` insert
 
 Two checks keep it: `business-systems-guard` names any row numbered DR-1607 or higher in the table's last 40 rows, and `ai-usage-ledger --check` names any entry for DR-1607 or higher in the ledger's last 40. Both say how to fix it (delete the row or entry and re-add it with the tool). Every number already reserved when this was written (to DR-1606, some on open PRs from other sessions) keeps the spot its branch gave it, so no in-flight PR turns red; no history is rewritten.
 
-## Proof
+## Verification
 
 On GitHub: two throwaway PRs, each adding a row with `index-row` and an entry with the ledger's placement, both merged into one base (#2817, #2818); the base then held both rows and a valid ledger with both entries. `two-decisions-merge-without-a-conflict.test.js` (7 tests) does the same with real `git merge` and no merge driver, on the real INDEX.md and ledger; proven to catch: two tail appends conflict. Consecutive numbers land on adjacent slots twice in the next 200 records (a conflict then needs both in flight at once).
 
-## Not changed
+## Impact
 
 `resolve-ledger-conflicts.mjs` still resolves a conflict that does happen, and refuses what it refused. `claim-decision-number.mjs` still reserves the number. The `dr-ledger` attribute stays for local merges, with a comment that GitHub ignores it.
 
