@@ -61,6 +61,9 @@
 # resolve-ledger-conflicts.test.js); keep-prs-current.yml configures it in CI.
 # To use it locally, once per clone:
 #   git config merge.dr-ledger.driver "node scripts/resolve-ledger-conflicts.mjs --driver %O %A %B"
+# GITHUB'S PR MERGE RUNS NO MERGE DRIVER (tested 2026-11-19: even git's built-in
+# merge=union conflicted, #2815), so rows are PLACED off the tail by
+# scripts/index-row.mjs (DR-1602) and two record PRs no longer touch one spot.
 # Either way, `node scripts/resolve-ledger-conflicts.mjs` after a conflicted
 # `git merge` resolves INDEX.md + legibility-health.json and verifies both.
 docs/decisions/INDEX.md merge=dr-ledger

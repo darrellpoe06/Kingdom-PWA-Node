@@ -23,6 +23,7 @@ import { createRoot } from 'react-dom/client';
 import { act } from 'react-dom/test-utils';
 import React from 'react';
 import ChurchLearn from '../components/ChurchLearn.jsx';
+import { openLessonsArea } from './helpers/learn-areas.js';
 
 let container; let root;
 beforeEach(() => {
@@ -35,11 +36,17 @@ afterEach(() => {
   container.remove();
 });
 
-const render = (props = {}) => act(() => root.render(React.createElement(ChurchLearn, {
+const renderRaw = (props = {}) => act(() => root.render(React.createElement(ChurchLearn, {
   progress: {}, recordProgress: () => {}, quizState: {}, recordQuiz: () => {},
   learnLevel: 'auto', setLearnLevel: () => {}, ageBand: 'adult', setAgeBand: () => {},
   ...props,
 })));
+// Learn opens on Latest (DR-1606): the reader's first tap is the Lessons tab.
+const render = (...args) => {
+  const out = renderRaw(...args);
+  openLessonsArea();
+  return out;
+};
 // LEARN'S ALL-COURSES VIEW OPENS ON THE ONE LIST NOW (DR-1183). Darrell
 // 2026-10-21: "It's like a title page saying your inside living lessons...
 // only have that sortable list when it is chosen". Nothing is open on that

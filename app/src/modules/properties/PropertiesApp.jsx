@@ -20,7 +20,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   resolveFace, buildHistory, newestFirst, forThisTenancy, tenancyHasTenant, buildJobDoc, buildTenancyNote, changeSummary,
   unseenByThisFace, unreadNote,
-  DOC_FOLLOWUPS, FOLLOWUP_LABELS, CAPABILITY_LABELS, ROLE_CEILING,
+  DOC_FOLLOWUPS, FOLLOWUP_LABELS, CAPABILITY_LABELS, ROLE_CEILING, defaultInviteCapabilities,
   canPostToBooks, rentRecordToBookEntry, unpostedRent, alreadyInBooks, coLivingTag } from './model.js';
 import {
   claimPropertyAccess, loadMyDoors, loadMyGrants, loadMyHousehold, loadDoorRecord,
@@ -1861,7 +1861,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
                 // invite — payload.email is empty on that path.
                 const who = payload.displayName || payload.email || formatPhone(payload.phone) || 'them';
                 const howIn = payload.phone ? 'with that cell number' : `to ${payload.email}`;
-                say(res.ok ? `${who} is on this door. They get access the moment they sign in ${howIn}.` : `Not written: ${res.reason}`);
+                say(res.ok ? `${who} is on this door. They get access the moment they sign in ${howIn}.` : `Not written: ${res.reason === 'no-capabilities' ? 'check at least one thing they may do' : res.reason}`);
                 if (res.ok) refresh();
               }}
               onRevoke={async (person) => {
@@ -2466,11 +2466,11 @@ function PeopleTab({ door, place, invites = [], onInvite, onRevoke }) {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [roleLabel, setRoleLabel] = useState('tenant');
-  const [caps, setCaps] = useState([]);
+  const [caps, setCaps] = useState(() => defaultInviteCapabilities('tenant')); // start CHECKED for a worker (DR-1594)
   const ceiling = ROLE_CEILING[roleLabel] || [];
   const toggle = (c) => setCaps((prev) => (prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]));
   const identified = by === 'phone' ? !!phoneLoginEmail(phone) : email.includes('@');
-  const blocked = whyNotReady({ name, identified, by, door: !!place });
+  const blocked = whyNotReady({ name, identified, by, door: !!place, role: roleLabel, caps });
   const { people, removed } = useMemo(
     () => peopleOnDoor(invites, { instanceId: door?.instance_id || null, tenancyId: door?.id || null, scopeRef: door?.rental_ref || null }),
     [invites, door],
@@ -2527,7 +2527,7 @@ function PeopleTab({ door, place, invites = [], onInvite, onRevoke }) {
         <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" placeholder="their email" aria-label="Their email"
           className="w-full text-sm border border-[#E8E4DC] px-2 py-2 mb-2" style={serif} />
       )}
-      <select value={roleLabel} onChange={(e) => { setRoleLabel(e.target.value); setCaps([]); }} aria-label="What they are"
+      <select value={roleLabel} onChange={(e) => { setRoleLabel(e.target.value); setCaps(defaultInviteCapabilities(e.target.value)); }} aria-label="What they are"
         className="text-xs border border-[#E8E4DC] px-2 py-2 bg-white mb-2" style={serif}>
         <option value="tenant">Tenant (the lease signer)</option>
         <option value="household">Household member (their family)</option>
@@ -2538,7 +2538,7 @@ function PeopleTab({ door, place, invites = [], onInvite, onRevoke }) {
         <div className="mb-2">
           {ceiling.map((c) => (
             <label key={c} className="flex items-center gap-2 text-xs py-1" style={serif}>
-              <input type="checkbox" checked={caps.includes(c)} onChange={() => toggle(c)} />
+              <input type="checkbox" checked={caps.includes(c)} onChange={() => toggle(c)} data-testid={`invite-cap-${c}`} />
               <span>{CAPABILITY_LABELS[c] || c}</span>
             </label>
           ))}
@@ -2548,7 +2548,7 @@ function PeopleTab({ door, place, invites = [], onInvite, onRevoke }) {
         <Btn tone="primary" disabled={!!blocked}
           onClick={() => {
             onInvite({ email: by === 'email' ? email : '', phone: by === 'phone' ? phone : '', roleLabel, capabilities: caps, displayName: name.trim() });
-            setName(''); setEmail(''); setPhone(''); setCaps([]);
+            setName(''); setEmail(''); setPhone(''); setCaps(defaultInviteCapabilities(roleLabel));
           }}>
           Write the invitation
         </Btn>

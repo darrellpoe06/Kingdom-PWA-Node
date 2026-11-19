@@ -23,6 +23,7 @@ import { createRoot } from 'react-dom/client';
 import ChurchLearn from '../components/ChurchLearn.jsx';
 import { buildCatalogCourseDescriptors, LEARN_CATALOG } from '../lib/learn-catalog.js';
 import { learnDepartments, departmentId } from '../lib/learn-organize.js';
+import { openLessonsArea } from './helpers/learn-areas.js';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -36,11 +37,17 @@ beforeEach(() => {
 afterEach(() => { act(() => root.unmount()); container.remove(); window.localStorage.clear(); });
 
 const extraCourses = buildCatalogCourseDescriptors();
-const mount = (props = {}) =>
+const mountRaw = (props = {}) =>
   act(() => root.render(createElement(ChurchLearn, {
     extraCourses, progress: {}, toggleModule: () => {}, quizState: {}, recordQuiz: () => {},
     learnLevel: 'auto', setLearnLevel: () => {}, ageBand: 'adult', setAgeBand: () => {}, ...props,
   })));
+// Learn opens on Latest (DR-1606): the reader's first tap is the Lessons tab.
+const mount = (...args) => {
+  const out = mountRaw(...args);
+  openLessonsArea();
+  return out;
+};
 const deptTabs = () => [...container.querySelectorAll('#learn-dept-panel-all, [id^="learn-dept-tab-"]')].filter((el) => el.getAttribute('role') === 'tab');
 const clickTab = (label) => {
   const tab = deptTabs().find((b) => (b.textContent || '').trim() === label);

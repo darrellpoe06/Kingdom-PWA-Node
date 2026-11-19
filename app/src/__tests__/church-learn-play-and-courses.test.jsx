@@ -26,6 +26,7 @@ import { createElement } from 'react';
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import ChurchLearn from '../components/ChurchLearn.jsx';
+import { openLessonsArea } from './helpers/learn-areas.js';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -63,9 +64,15 @@ afterEach(() => {
 
 // isGovernor deliberately omitted/false — this is the member and staff view,
 // the one the gate was hiding the reader from.
-const mount = (props = {}) => act(() => root.render(createElement(ChurchLearn, {
+const mountRaw = (props = {}) => act(() => root.render(createElement(ChurchLearn, {
   course: AI, extraCourses: [LIVING], ...props,
 })));
+// Learn opens on Latest (DR-1606): the reader's first tap is the Lessons tab.
+const mount = (...args) => {
+  const out = mountRaw(...args);
+  openLessonsArea();
+  return out;
+};
 
 // LEARN OPENS ON THE ONE LIST NOW (DR-1183). Darrell 2026-10-21: "It's like a
 // title page saying your inside living lessons... only have that sortable list

@@ -38,6 +38,7 @@ import React from 'react';
 import ChurchLearn from '../components/ChurchLearn.jsx';
 import { buildCatalogCourseDescriptors } from '../lib/learn-catalog.js';
 import { courseCrossListedCount } from '../lib/learn-crosslist.js';
+import { openLessonsArea } from './helpers/learn-areas.js';
 
 let container; let root;
 
@@ -53,7 +54,7 @@ afterEach(() => {
 
 const CATALOG = buildCatalogCourseDescriptors();
 
-const mount = (props = {}) => act(() => root.render(React.createElement(ChurchLearn, {
+const mountRaw = (props = {}) => act(() => root.render(React.createElement(ChurchLearn, {
   progress: {},
   recordProgress: () => {},
   quizState: {},
@@ -64,6 +65,12 @@ const mount = (props = {}) => act(() => root.render(React.createElement(ChurchLe
   setAgeBand: () => {},
   ...props,
 })));
+// Learn opens on Latest (DR-1606): the reader's first tap is the Lessons tab.
+const mount = (...args) => {
+  const out = mountRaw(...args);
+  openLessonsArea();
+  return out;
+};
 
 // Document order of two nodes: true when a comes before b.
 const isBefore = (a, b) =>

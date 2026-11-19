@@ -19,6 +19,7 @@ import { lessonQuery } from '../lib/lesson-links.js';
 import { initialChurchView } from '../lib/nav-history.js';
 import { buildHealthyLivingSchedule, HEALTHY_LIVING_META } from '../lib/healthy-living-course.js';
 import { buildSelfPacedDescriptors } from '../lib/learn-catalog.js';
+import { openLessonsArea } from './helpers/learn-areas.js';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -36,11 +37,17 @@ beforeEach(() => {
 });
 afterEach(() => { act(() => root.unmount()); container.remove(); window.localStorage.clear(); setSearch(''); });
 
-const mount = () => act(() => root.render(createElement(ChurchLearn, {
+const mountRaw = () => act(() => root.render(createElement(ChurchLearn, {
   progress: {}, toggleModule: () => {}, quizState: {}, recordQuiz: () => {},
   learnLevel: 'auto', setLearnLevel: () => {}, ageBand: 'adult', setAgeBand: () => {},
   extraCourses: buildSelfPacedDescriptors({}),
 })));
+// Learn opens on Latest (DR-1606): the reader's first tap is the Lessons tab.
+const mount = (...args) => {
+  const out = mountRaw(...args);
+  openLessonsArea();
+  return out;
+};
 
 const text = () => container.textContent || '';
 
@@ -48,7 +55,7 @@ describe('the recipient opens the link and the lesson is there', () => {
   it('a lesson link opens that course AND that lesson’s own space', () => {
     const lesson = buildHealthyLivingSchedule()[1];
     setSearch(lessonQuery({ courseKey: HEALTHY_LIVING_META.key, lessonId: lesson.id }));
-    mount();
+    mountRaw(); // a recipient makes no extra tap: the link alone must land (DR-1606)
     expect(container.querySelector('#learn-h').textContent).toBe(HEALTHY_LIVING_META.title);
     expect(text()).toContain(lesson.title);
     // The lesson's own space: its card is on screen and the index is not.
@@ -59,8 +66,9 @@ describe('the recipient opens the link and the lesson is there', () => {
 
   it('a course link opens the course (no lesson space forced)', () => {
     setSearch(lessonQuery({ courseKey: HEALTHY_LIVING_META.key }));
-    mount();
+    mountRaw(); // no extra tap: a course link opens on the course's lessons, not Latest (DR-1606)
     expect(container.querySelector('#learn-h').textContent).toBe(HEALTHY_LIVING_META.title);
+    expect(container.querySelector('#learn-area-tab-lessons').getAttribute('aria-selected')).toBe('true');
   });
 
   it('with no link at all, Learn opens on the ONE LIST and no course', () => {

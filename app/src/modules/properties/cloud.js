@@ -11,11 +11,10 @@
 // user_is_tenant / user_is_tenancy_household / user_is_enabled_worker /
 // user_delegated_can (0075 + 0150). RLS is the gate (DR-0060) — this file cannot
 // widen it and never tries. A person with no access gets [] , not an error.
-//
-// Injectable client (`client = supabase`) so every path is testable with a fake.
-// Never throws: every function returns { ok, ... } with an honest reason.
+// Injectable client (`client = supabase`), testable with a fake; never throws: every function returns { ok, ... } with an honest reason.
 // =============================================================================
 import supabase, { phoneLoginEmail, normalizePhone } from '../../lib/supabase.js';
+import { inviteGrantsNothing } from './model.js';
 
 const ok = (extra = {}) => ({ ok: true, ...extra });
 const no = (reason, error) => ({ ok: false, reason, error: (error && error.message) || undefined });
@@ -163,9 +162,9 @@ export async function loadMyDoors(client = supabase) {
 /** Every capability grant this person actually holds (their own rows only). */
 export async function loadMyGrants(client = supabase) {
   try {
-    const { data, error } = await client
-      .from('delegated_capabilities')
-      .select('scope_ref, capability, setting, role_label');
+    // MINE only (DR-1594): an owner reads every grant in his instance (0075), and his workers' grants must never make him a worker.
+    const me = await userId(client); if (!me) return ok({ grants: [], byScope: {}, roleLabel: null });
+    const { data, error } = await client.from('delegated_capabilities').select('scope_ref, capability, setting, role_label').eq('grantee_user_id', me);
     if (error) return no('read-failed', error);
     const rows = (data || []).filter((r) => r.setting === 'allow');
     return ok({
@@ -543,6 +542,7 @@ export function inviteIdentity({ email, phone }) {
 export async function inviteToProperties({ instanceId, email, phone, roleLabel, tenancyId, scopeRef, capabilities, displayName, relationship }, client = supabase) {
   const id = inviteIdentity({ email, phone });
   if (!id.ok) return no(id.reason);
+  if (inviteGrantsNothing(roleLabel, capabilities || [])) return no('no-capabilities'); // signs in to nothing (DR-1594)
   try {
     const uid = await userId(client);
     const { data, error } = await client.from('property_access_invites').insert({
