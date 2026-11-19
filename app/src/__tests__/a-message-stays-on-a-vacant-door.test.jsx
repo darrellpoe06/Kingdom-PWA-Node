@@ -232,7 +232,7 @@ describe('a message sent on a door nobody lives in yet', () => {
   it('PROVEN-TO-CATCH: it is still there after it is sent', async () => {
     await openMessagesOnTheVacantDoor();
 
-    const box = container.querySelector('textarea');
+    const box = container.querySelector('textarea[aria-label="Write a message"]'); // the TENANT thread's box; the staff chat has its own (DR-1598)
     expect(box, 'no message box on the Messages tab').toBeTruthy();
     await typeInto(box, 'Microwave and exhaust fan go in Thursday.');
     await tapText(/^Send$/i);

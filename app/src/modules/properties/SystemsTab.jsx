@@ -205,6 +205,12 @@ export function SystemsTab({
                         {loggingFor === r.system.id ? 'Close' : 'Record'}
                       </Btn>
                       <Btn disabled={busy} onClick={() => retire(r.system)}>Retire</Btn>
+                      {/* WHERE THINGS ARE (DR-1598): the tenant is told the name and the place, nothing else. */}
+                      <Btn disabled={busy || !r.system.location_note} data-testid={`share-system-${r.system.id}`}
+                        title={r.system.location_note ? '' : 'Add where it is first'}
+                        onClick={() => onPatch?.(r.system.id, { share_with_tenant: !r.system.share_with_tenant })}>
+                        {!r.system.location_note ? 'Add where it is to share it' : r.system.share_with_tenant ? 'Tenant sees where it is ✓' : 'Show the tenant where it is'}
+                      </Btn>
                     </div>
                   )}
                 </div>

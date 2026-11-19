@@ -19,6 +19,7 @@ import React, { useEffect, useState } from 'react';
 import { jobWhere, jobMapHref, SEEN_EVENT, JOB_KINDS } from '../../lib/assigned-work.js';
 import { compressImageFile, isLikelyImageFile } from '../../lib/image.js';
 import { FULL_MAX_WIDTH, FULL_QUALITY } from './DoorTabs.jsx';
+import StaffChat from './StaffChat.jsx';
 
 const serif = { fontFamily: '"Fraunces", serif' };
 const BTN = 'text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border bg-white text-[#1A1815] border-[#E8E4DC] '
@@ -26,8 +27,9 @@ const BTN = 'text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] bor
 const PRIORITY = { urgent: 'Urgent: same day', high: 'High: within 3 days', normal: 'This week', low: 'When convenient' };
 const PROOF = { photos: 'Pictures of the finished work are required before it is paid: add one below, then press Fixed', 'photos-and-video': 'Pictures and a video of the finished work are required before it is paid: add the picture here and the video from the door' };
 
-function Job({ job, canOpen, onOpen, onDocument }) {
+function Job({ job, canOpen, onOpen, onDocument, me = null, names = null }) {
   const [note, setNote] = useState('');
+  const [talking, setTalking] = useState(false);
   const [busy, setBusy] = useState(false);
   const [said, setSaid] = useState('');
   const map = jobMapHref(job);
@@ -69,8 +71,10 @@ function Job({ job, canOpen, onOpen, onDocument }) {
             onChange={(e) => { const f = e.target.files && e.target.files[0]; e.target.value = ''; picture(f); }} />
         </label>
         {canOpen && <button type="button" className={BTN} onClick={() => onOpen(job)}>Open the door</button>}
+        {job.rental_id && <button type="button" className={BTN} onClick={() => setTalking((t) => !t)}>{talking ? 'Close the staff chat' : 'Talk with the landlord (staff only)'}</button>}
       </div>
       {said && <p className="text-xs text-[#5A5751] mt-1" style={serif} role="status">{said}</p>}
+      {talking && <div className="mt-2"><StaffChat rentalId={job.rental_id} me={me} names={names} /></div>}
     </div>
   );
 }
@@ -97,7 +101,7 @@ export function jobDocRow(job = {}, { outcome = null, note = '', imageData = nul
  * jobs: open assigned jobs (openAssigned). state: 'ok' | 'loading' | a failure
  * reason. canOpen(job) says whether this worker can open the job's door.
  */
-export default function MyWorkOrders({ jobs = [], state = 'ok', canOpen = () => false, onOpen = () => {}, post = async () => ({ ok: false }), onDone = () => {} }) {
+export default function MyWorkOrders({ jobs = [], state = 'ok', canOpen = () => false, onOpen = () => {}, post = async () => ({ ok: false }), onDone = () => {}, me = null, names = null }) {
   const onDocument = async (job, doc) => {
     const r = await post(jobDocRow(job, doc));
     if (r && r.ok) onDone();
@@ -116,7 +120,7 @@ export default function MyWorkOrders({ jobs = [], state = 'ok', canOpen = () => 
       )}
       {jobs.length === 0
         ? <p className="text-xs text-[#5A5751]" style={serif}>{state === 'loading' ? 'Reading your work orders…' : 'Nothing is assigned to you right now. When a job is sent to you it appears here, on every door, and the bell rings.'}</p>
-        : jobs.map((j) => <Job key={j.id} job={j} canOpen={canOpen(j)} onOpen={onOpen} onDocument={onDocument} />)}
+        : jobs.map((j) => <Job key={j.id} job={j} canOpen={canOpen(j)} onOpen={onOpen} onDocument={onDocument} me={me} names={names} />)}
     </section>
   );
 }
