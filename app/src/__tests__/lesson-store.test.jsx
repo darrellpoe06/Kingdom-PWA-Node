@@ -23,6 +23,7 @@ import {
 import { lessonToRows } from '../lib/curriculum-rows.js';
 import ChurchLearn from '../components/ChurchLearn.jsx';
 import { rememberCourseKey } from '../lib/learn-organize.js';
+import { openLessonsArea } from './helpers/learn-areas.js';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -147,6 +148,7 @@ describe('the reader says what a preview is, and where its review is', () => {
     rememberCourseKey('preview-course');
     await act(async () => { root.render(createElement(ChurchLearn, { extraCourses: [extra] })); });
     await settle();
+    openLessonsArea(); // Learn opens on Latest (DR-1606)
     const badges = host.querySelectorAll('[data-lesson-preview]');
     expect(badges.length).toBe(1);
     expect(badges[0].textContent).toContain(PREVIEW_LABEL);
