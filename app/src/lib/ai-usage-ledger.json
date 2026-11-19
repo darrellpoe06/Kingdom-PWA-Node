@@ -425,6 +425,21 @@
       "notes": "Measured first commit 17:54:54Z to merge 19:17:20Z on claude/there-shall-be-none-in-the-field (8 commits); the authoring before the first commit is not on the record. Estimate entered by the Ways session for a 1,151-line lesson with 31 gate cases, not the authoring session's own."
     },
     {
+      "id": "lesson-ll324",
+      "date": "2026-11-18",
+      "task": "L324 Filled to Devise Cunning Works: one Living Lesson from a forwarded call for arts and humanities proposals (thread 1a1ef8f50df1ee14)",
+      "drs": [
+        "DR-1554"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.8,
+      "estimateWithoutAiHours": 10,
+      "notes": "Scaffolded by new-lesson.mjs; 122 verses filled from the corpus; band shares fixed after first draft failed."
+    },
+    {
       "id": "app-does-what-it-advertises",
       "date": "2026-11-18",
       "task": "The app does what it advertises: an Aa text-size button on every screen in the Love Corner header; the church's giving channels with QR codes in the Give & Serve panel (one shared component with the Give popup); the Ask Ari card asks and opens the week's lesson with Ari answering; three tests",
