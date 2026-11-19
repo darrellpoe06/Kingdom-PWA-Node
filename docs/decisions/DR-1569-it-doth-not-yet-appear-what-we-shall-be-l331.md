@@ -19,10 +19,11 @@ After L330 was in review, Darrell sent three more summaries of the same conversa
 | the video | never watched (proxy 403 on YouTube from the sandbox); only the summaries were read |
 | the cited passages | each one opened in the KJV corpus and read with the verse before it: Exodus 34:6 before 34:7, James 1:5-6 before 1:8, Jeremiah 29:10 before 29:11, Luke 22:31 with 22:32, Matthew 13:13 with 13:16 |
 | verses | 322 quoted spans filled by `fill-verses.mjs` from `app/public/bible/kjv`, none typed; 0 verse faults; 0 double-quoted spans without a reference |
-| length | adult prose 1,460 words |
-| band shares | child 0.54, youth 0.66, teen 0.73, senior 0.82 (floor 0.5 / 0.6) |
-| reading ladder | child 1.0, youth 3.3, teen 4.2, senior 6.9 (child ceiling 5.0) |
-| band overlap | worst pair 0.08 (ceiling 0.5) |
+| length | adult prose 1,472 words |
+| points | 9, one per movement, read by `lessonPoints` |
+| band shares | child 0.55, youth 0.66, teen 0.73, senior 0.82 (floor 0.5 / 0.6) |
+| reading ladder | child 0.9, youth 3.1, teen 4.3, senior 6.4 (child ceiling 5.0) |
+| band overlap | worst pair 0.09 (ceiling 0.5) |
 | gate | 9 of 9 cases green on the first run and again after the third summary was added |
 
 ## Impact

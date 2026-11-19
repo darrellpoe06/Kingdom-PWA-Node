@@ -19,9 +19,10 @@ The conversation covers consciousness, trauma and seeing through the mind of Chr
 | the video | never watched: `youtube.com/oembed` for the link returned a proxy 403 from the sandbox. What was read is the six summaries Darrell pasted. |
 | already built? | no. `_CkuygjcL8s` and the speakers' names appear nowhere in `app/src/lib`; Psalms 147:3 is quoted elsewhere in `living-lessons-class.js` and `sovereign-ai-class.js`, which a verse may be (DR-1317); the nearest subject by title is L52, on how a lie is wired in, a different teaching. |
 | verses | 278 quoted spans filled by `fill-verses.mjs` from `app/public/bible/kjv`, none typed; 0 verse faults; 0 double-quoted spans without a reference |
-| length | adult prose 1,720 words |
+| length | adult prose 1,733 words |
+| points | 9, one per movement, read by `lessonPoints` |
 | band shares | child 0.54, youth 0.64, teen 0.78, senior 0.84 (floor 0.5 / 0.6) |
-| reading ladder | child 0.3, youth 3.0, teen 3.9, senior 6.6 (child ceiling 5.0) |
+| reading ladder | child 0.2, youth 2.7, teen 3.9, senior 6.0 (child ceiling 5.0) |
 | band overlap | worst pair 0.06 (ceiling 0.5) |
 | gate | 9 of 9 cases green on the first run, and again after each addition |
 | lane time | not claimed: the sandbox clock read 23:45Z at the reservation and 23:51Z well after the gate ran, so it is not a trustworthy stopwatch; the PR open and merge times are the measure |
