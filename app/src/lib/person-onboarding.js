@@ -38,7 +38,9 @@ async function governorRead(fn, body = {}) {
   }
 }
 
-export function fetchPersonDoors() { return governorRead('admin_person_doors'); }
+export function fetchPersonDoors() {
+  return governorRead('admin_person_doors');
+}
 
 // ── doors ────────────────────────────────────────────────────────────────────
 
@@ -91,13 +93,21 @@ export function doorsView(record, since, nowMs, extraKeys = []) {
     if (!d) return { key, label, opened: false, firstAt: null, lastAt: null, text: `${label}: never` };
     const first = relativeTime(d.firstAt, nowMs);
     const last = relativeTime(d.lastAt, nowMs);
-    return { key, label, opened: true, firstAt: d.firstAt, lastAt: d.lastAt, text: first === last ? `${label}: ${first}` : `${label}: first ${first}, last ${last}` };
+    return {
+      key,
+      label,
+      opened: true,
+      firstAt: d.firstAt,
+      lastAt: d.lastAt,
+      text: first === last ? `${label}: ${first}` : `${label}: first ${first}, last ${last}`,
+    };
   });
   const before = record && record.before;
   let note;
   if (!since) note = 'Which app a visit was in is recorded from this release on; nothing has been recorded with its app yet.';
   else note = `"Never" means not since door tracking began on ${dayLabel(since)}.`;
-  if (before) note += ` ${before.n} earlier ${before.n === 1 ? 'visit was' : 'visits were'} recorded before door tracking began (last ${relativeTime(before.lastAt, nowMs)}), so which app ${before.n === 1 ? 'it was' : 'they were'} is not known.`;
+  if (before)
+    note += ` ${before.n} earlier ${before.n === 1 ? 'visit was' : 'visits were'} recorded before door tracking began (last ${relativeTime(before.lastAt, nowMs)}), so which app ${before.n === 1 ? 'it was' : 'they were'} is not known.`;
   const beforeText = before ? `${before.n} earlier ${before.n === 1 ? 'visit' : 'visits'}, app not recorded (last ${relativeTime(before.lastAt, nowMs)})` : '';
   return { doors: rows, note, beforeText };
 }

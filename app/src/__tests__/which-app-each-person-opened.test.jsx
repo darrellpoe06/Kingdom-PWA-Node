@@ -32,13 +32,17 @@ describe('the door on every usage row (usage-events)', () => {
       from: () => ({
         insert: (row) => {
           inserted.push(row);
-          if (failDoorColumn && 'door' in row) return Promise.resolve({ error: { code: 'PGRST204', message: "Could not find the 'door' column of 'usage_events' in the schema cache" } });
+          if (failDoorColumn && 'door' in row)
+            return Promise.resolve({ error: { code: 'PGRST204', message: "Could not find the 'door' column of 'usage_events' in the schema cache" } });
           return Promise.resolve({ error: null });
         },
       }),
       auth: {
         getSession: async () => ({ data: { session } }),
-        onAuthStateChange: (fn) => { listeners.push(fn); return { data: { subscription: { unsubscribe: () => {} } } }; },
+        onAuthStateChange: (fn) => {
+          listeners.push(fn);
+          return { data: { subscription: { unsubscribe: () => {} } } };
+        },
       },
     };
     return client;
@@ -140,12 +144,22 @@ const H = vi.hoisted(() => ({ signups: [], doors: null }));
 vi.mock('../lib/access-metrics-sync.js', () => ({
   fetchAccessSnapshot: async () => ({ signedIn: true, instances: [], members: [], presence: [], invites: [], subscriptions: [], domains: [], errors: {} }),
   currentBuild: () => ({ sha: 'test', time: null }),
-  restRpc: async (fn) => (fn === 'admin_person_doors' ? { data: H.doors, error: H.doors ? null : { message: 'function admin_person_doors() does not exist', code: '42883' } } : { data: null, error: null }),
+  restRpc: async (fn) =>
+    fn === 'admin_person_doors'
+      ? { data: H.doors, error: H.doors ? null : { message: 'function admin_person_doors() does not exist', code: '42883' } }
+      : { data: null, error: null },
   readSnapshotToken: () => 'tok',
 }));
-vi.mock('../lib/signup-metrics.js', async (orig) => ({ ...(await orig()), fetchSignupMetrics: async () => ({ status: 'ready', data: { summary: { total_accounts: H.signups.length }, signups: H.signups } }) }));
+vi.mock('../lib/signup-metrics.js', async (orig) => ({
+  ...(await orig()),
+  fetchSignupMetrics: async () => ({ status: 'ready', data: { summary: { total_accounts: H.signups.length }, signups: H.signups } }),
+}));
 vi.mock('../lib/contacts-store.js', () => ({ cachedContacts: () => [], loadMyContacts: async () => ({ ok: true, rows: [], reason: '' }) }));
-vi.mock('../lib/member-roles.js', async (orig) => ({ ...(await orig()), listMyAdminInstances: async () => [{ instanceId: 'i-1', slug: 'poe-properties', displayName: 'Poe Properties', instanceType: 'business' }], addUserToSpace: async () => ({ ok: true, status: 'added', role: 'member' }) }));
+vi.mock('../lib/member-roles.js', async (orig) => ({
+  ...(await orig()),
+  listMyAdminInstances: async () => [{ instanceId: 'i-1', slug: 'poe-properties', displayName: 'Poe Properties', instanceType: 'business' }],
+  addUserToSpace: async () => ({ ok: true, status: 'added', role: 'member' }),
+}));
 vi.mock('../modules/properties/cloud.js', () => ({ inviteToProperties: async () => ({ ok: true }) }));
 vi.mock('../lib/supabase.js', () => ({
   default: { auth: { getSession: async () => ({ data: { session: null } }) } },
@@ -162,17 +176,34 @@ const ROWS = [
 ];
 
 describe('the Signups list says which apps each person opened, and loses nothing', () => {
-  let container; let root;
-  afterEach(() => { if (root) act(() => root.unmount()); if (container) container.remove(); root = container = null; H.signups = []; H.doors = null; });
+  let container;
+  let root;
+  afterEach(() => {
+    if (root) act(() => root.unmount());
+    if (container) container.remove();
+    root = container = null;
+    H.signups = [];
+    H.doors = null;
+  });
   async function mount() {
-    container = document.createElement('div'); document.body.appendChild(container);
-    await act(async () => { root = createRoot(container); root.render(createElement(AccessUsageMetrics)); });
-    for (let i = 0; i < 8; i += 1) await act(async () => { await Promise.resolve(); });
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    await act(async () => {
+      root = createRoot(container);
+      root.render(createElement(AccessUsageMetrics));
+    });
+    for (let i = 0; i < 8; i += 1)
+      await act(async () => {
+        await Promise.resolve();
+      });
   }
 
   it('each row names the apps, with "never" where never, and the reading rule once', async () => {
     H.signups = ROWS;
-    H.doors = { door_tracking_since: D(6), people: [{ user_id: 'u-c', doors: [{ door: 'properties', first_at: D(3), last_at: D(2), n: 4 }], before_tracking: null }] };
+    H.doors = {
+      door_tracking_since: D(6),
+      people: [{ user_id: 'u-c', doors: [{ door: 'properties', first_at: D(3), last_at: D(2), n: 4 }], before_tracking: null }],
+    };
     await mount();
     const lines = Array.from(container.querySelectorAll('[data-testid="signup-doors"]')).map((n) => n.textContent);
     expect(lines).toHaveLength(2);
@@ -186,14 +217,27 @@ describe('the Signups list says which apps each person opened, and loses nothing
     H.doors = null;
     await mount();
     expect(container.querySelectorAll('[data-testid="signup-doors"]').length).toBe(0);
-    expect(container.querySelector('[data-testid="signup-doors-note"]').textContent).toContain('could not be read: function admin_person_doors() does not exist');
+    expect(container.querySelector('[data-testid="signup-doors-note"]').textContent).toContain(
+      'could not be read: function admin_person_doors() does not exist'
+    );
   });
 
   it('every existing chip and button is still there', async () => {
     H.signups = ROWS;
     await mount();
     const text = container.textContent;
-    for (const chip of ['Signups', 'At the doors', 'Bots & blocks', 'People you know', "What's used", 'When & by whom', 'Who has access', 'Counts & activity', 'Update signals', 'Invites & access']) {
+    for (const chip of [
+      'Signups',
+      'At the doors',
+      'Bots & blocks',
+      'People you know',
+      "What's used",
+      'When & by whom',
+      'Who has access',
+      'Counts & activity',
+      'Update signals',
+      'Invites & access',
+    ]) {
       expect(text).toContain(chip);
     }
     expect(container.querySelectorAll('[data-testid="signup-add-to-space"]').length).toBe(2);

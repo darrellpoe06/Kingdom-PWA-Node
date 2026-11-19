@@ -11,7 +11,7 @@
 
 Darrell, 2026-11-19, on Admin > Users & usage > Signups: "How do I know who signed up and if and when they got in? Coreyon is supposed to be using the Poe Properties App... he may also want the Love Corner App... as well as the PoeTech App... how do I know?" Then: "Not wanting to lose functions just gain an easy-to-use one."
 
-## What was traced
+## What was measured
 
 | question | answer, from the code |
 | --- | --- |
@@ -37,8 +37,8 @@ A build can reach a person before the lane applies 0337. The insert carries the 
 
 - `infra/supabase/tests/0337-person-doors-smoke.sql` on PostgreSQL 16 in this sandbox, after 0337 applied twice: PERSON DOORS SMOKE: PASS. Proven to catch: with EXECUTE granted to anon it fails; with the untagged rows dropped from the read it fails on the person whose only rows are old; restored, it passes.
 - `which-app-each-person-opened.test.jsx`: 8 cases, including the missing-column fallback, once-per-person door rows, the calendar not counting door rows, and every existing chip and button still rendering.
-- Not verified against the live database from here: the sandbox has no route to the NAS. After merge, the lane's `db-migrate` run is the receipt.
+- Not verified against the live database from here: the sandbox has no route to the NAS. After merge, the lane's `db-migrate` run and the `person-doors` isolation leg are the receipts.
 
 ## Not done
 
-The smoke is not yet wired into `ci.yml`; a separate session owns CI changes today. `re-review: 2026-11-26`.
+The smoke runs as the `person-doors` leg of `rls-isolation.yml` (one matrix row, no job logic changed), against the real database in a rolled-back transaction, after each migration apply and daily. Reading the live screen after the first door rows land is the next look. `re-review: 2026-11-26`.
