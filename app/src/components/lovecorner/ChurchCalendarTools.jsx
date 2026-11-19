@@ -88,7 +88,8 @@ export default function ChurchCalendarTools({ events = [], canManage = false, on
     const f = e.target.files && e.target.files[0];
     setSaid({ kind: '', text: '' });
     if (!f) return setRead(null);
-    if (f.size > MAX_FILE_BYTES) return setRead({ ok: false, error: 'The file is larger than this reader takes (512 KB). Split it by year.', fileName: f.name });
+    if (f.size > MAX_FILE_BYTES)
+      return setRead({ ok: false, error: 'The file is larger than this reader takes (512 KB). Split it by year.', fileName: f.name });
     let text;
     try {
       text = await f.text();
@@ -112,7 +113,13 @@ export default function ChurchCalendarTools({ events = [], canManage = false, on
             <button type="button" className="cc-btn" aria-expanded={open === 'add'} onClick={() => toggle('add')} data-testid="church-calendar-add-open">
               Add an event
             </button>
-            <button type="button" className="cc-btn" aria-expanded={open === 'upload'} onClick={() => toggle('upload')} data-testid="church-calendar-upload-open">
+            <button
+              type="button"
+              className="cc-btn"
+              aria-expanded={open === 'upload'}
+              onClick={() => toggle('upload')}
+              data-testid="church-calendar-upload-open"
+            >
               Upload events
             </button>
           </>
@@ -164,10 +171,15 @@ export default function ChurchCalendarTools({ events = [], canManage = false, on
       {canManage && open === 'upload' && (
         <div className="cc-form" data-testid="church-calendar-upload">
           <p className="cc-note">
-            A spreadsheet saved as CSV. The first row names the columns: <b>date</b> and <b>name</b> are required; <b>end_date</b>, <b>time</b>, <b>place</b> and <b>note</b> are
-            optional. Dates read as 2026-11-21 or 11/21/2026. Past years are welcome: they are how next year is planned.
+            A spreadsheet saved as CSV. The first row names the columns: <b>date</b> and <b>name</b> are required; <b>end_date</b>, <b>time</b>, <b>place</b>{' '}
+            and <b>note</b> are optional. Dates read as 2026-11-21 or 11/21/2026. Past years are welcome: they are how next year is planned.
           </p>
-          <button type="button" className="cc-btn cc-btn-quiet" onClick={() => download('church-calendar-template.csv', CSV_TEMPLATE)} data-testid="church-calendar-template">
+          <button
+            type="button"
+            className="cc-btn cc-btn-quiet"
+            onClick={() => download('church-calendar-template.csv', CSV_TEMPLATE)}
+            data-testid="church-calendar-template"
+          >
             Download a blank file with the column names
           </button>
           <label className="cc-field">
@@ -197,8 +209,18 @@ export default function ChurchCalendarTools({ events = [], canManage = false, on
                 </ul>
               )}
               <div className="cc-tools-row">
-                <button type="button" className="cc-btn cc-btn-solid" disabled={busy || read.fresh.length === 0} onClick={() => file(read.fresh, clearFile)} data-testid="church-calendar-file-add">
-                  {busy ? 'Adding…' : read.fresh.length === 0 ? 'Nothing new to add' : `Add ${read.fresh.length} ${read.fresh.length === 1 ? 'event' : 'events'} to the church calendar`}
+                <button
+                  type="button"
+                  className="cc-btn cc-btn-solid"
+                  disabled={busy || read.fresh.length === 0}
+                  onClick={() => file(read.fresh, clearFile)}
+                  data-testid="church-calendar-file-add"
+                >
+                  {busy
+                    ? 'Adding…'
+                    : read.fresh.length === 0
+                      ? 'Nothing new to add'
+                      : `Add ${read.fresh.length} ${read.fresh.length === 1 ? 'event' : 'events'} to the church calendar`}
                 </button>
                 <button type="button" className="cc-btn" onClick={clearFile} disabled={busy} data-testid="church-calendar-file-cancel">
                   Cancel, add nothing
@@ -210,7 +232,11 @@ export default function ChurchCalendarTools({ events = [], canManage = false, on
       )}
 
       {said.text && (
-        <p className={`cc-said ${said.kind === 'bad' ? 'is-bad' : 'is-good'}`} role={said.kind === 'bad' ? 'alert' : 'status'} data-testid="church-calendar-said">
+        <p
+          className={`cc-said ${said.kind === 'bad' ? 'is-bad' : 'is-good'}`}
+          role={said.kind === 'bad' ? 'alert' : 'status'}
+          data-testid="church-calendar-said"
+        >
           {said.text}
         </p>
       )}

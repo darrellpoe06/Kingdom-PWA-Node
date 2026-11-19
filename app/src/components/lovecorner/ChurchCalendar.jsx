@@ -73,7 +73,13 @@ function EventLine({ ev, onSave, saved, onRemove }) {
       {onRemove && ev.source === 'office' && ev.rowId && (
         <span className="cc-remove">
           {!asking ? (
-            <button type="button" className="cc-btn" onClick={() => setAsking(true)} aria-label={`Remove ${ev.name} from the church calendar`} data-testid="church-calendar-remove">
+            <button
+              type="button"
+              className="cc-btn"
+              onClick={() => setAsking(true)}
+              aria-label={`Remove ${ev.name} from the church calendar`}
+              data-testid="church-calendar-remove"
+            >
               Remove
             </button>
           ) : (
@@ -97,7 +103,16 @@ function EventLine({ ev, onSave, saved, onRemove }) {
   );
 }
 
-export default function ChurchCalendar({ events = [], services = [], todayKey, status = 'ok', onSave = null, savedIds = [], onRemove = null, children = null }) {
+export default function ChurchCalendar({
+  events = [],
+  services = [],
+  todayKey,
+  status = 'ok',
+  onSave = null,
+  savedIds = [],
+  onRemove = null,
+  children = null,
+}) {
   const dated = isDateKey(todayKey);
   const [picked, setPicked] = useState(todayKey);
   const [view, setView] = useState('week');

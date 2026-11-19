@@ -30,10 +30,27 @@ describe('reading a CSV', () => {
     expect(got.ok).toBe(true);
     expect(got.rejected).toEqual([]);
     expect(got.events).toHaveLength(1);
-    expect(got.events[0]).toMatchObject({ name: 'Fall Revival', date: '2025-10-12', endDate: '2025-10-14', time: '7:00 PM', place: 'Sanctuary', detail: 'Three nights', source: 'office' });
+    expect(got.events[0]).toMatchObject({
+      name: 'Fall Revival',
+      date: '2025-10-12',
+      endDate: '2025-10-14',
+      time: '7:00 PM',
+      place: 'Sanctuary',
+      detail: 'Three nights',
+      source: 'office',
+    });
   });
   it('rejects each malformed row with its line and the reason, and still reads the good ones', () => {
-    const csv = ['date,name,end_date', '2025-12-24,Christmas Eve service,', ',No date here,', 'someday,Bad date,', '2025-12-31,,', '2025-12-31,Watch Night,2025-12-30', '2025-12-31,Watch Night,13/45/2025', '2025-12-24,christmas eve SERVICE,'].join('\n');
+    const csv = [
+      'date,name,end_date',
+      '2025-12-24,Christmas Eve service,',
+      ',No date here,',
+      'someday,Bad date,',
+      '2025-12-31,,',
+      '2025-12-31,Watch Night,2025-12-30',
+      '2025-12-31,Watch Night,13/45/2025',
+      '2025-12-24,christmas eve SERVICE,',
+    ].join('\n');
     const got = parseEventsCsv(csv);
     expect(got.ok).toBe(true);
     expect(got.events.map((e) => e.name)).toEqual(['Christmas Eve service']);
@@ -68,12 +85,21 @@ describe('reading a CSV', () => {
     expect(dupes).toHaveLength(1);
   });
   it('a download is the upload’s own format: it reads back to the same events', () => {
-    const ev = [makeEvent({ name: 'Dinner, with "pie"', date: '2025-11-22', endDate: '2025-11-23', time: '5:00 PM', place: 'Fellowship hall', detail: 'Bring a dish' })];
+    const ev = [
+      makeEvent({ name: 'Dinner, with "pie"', date: '2025-11-22', endDate: '2025-11-23', time: '5:00 PM', place: 'Fellowship hall', detail: 'Bring a dish' }),
+    ];
     const csv = eventsToCsv(ev);
     expect(csv.split('\r\n')[0]).toBe('date,name,end_date,time,place,note');
     const back = parseEventsCsv(csv);
     expect(back.rejected).toEqual([]);
-    expect(back.events[0]).toMatchObject({ name: ev[0].name, date: ev[0].date, endDate: ev[0].endDate, time: ev[0].time, place: ev[0].place, detail: ev[0].detail });
+    expect(back.events[0]).toMatchObject({
+      name: ev[0].name,
+      date: ev[0].date,
+      endDate: ev[0].endDate,
+      time: ev[0].time,
+      place: ev[0].place,
+      detail: ev[0].detail,
+    });
   });
   it('a downloaded cell cannot run as a spreadsheet formula', () => {
     expect(eventsToCsv([makeEvent({ name: '=HYPERLINK("x")', date: '2025-01-01' })])).toContain(`"'=HYPERLINK(""x"")"`);
@@ -98,7 +124,10 @@ function fakeClient({ session = { user: { id: 'u1' } }, insertError = null } = {
       },
       delete: () => {
         const filters = [];
-        const q = { eq: (k, v) => (filters.push([k, v]), q), then: (ok) => Promise.resolve({ error: null }).then((r) => (deletes.push({ table, filters }), ok(r))) };
+        const q = {
+          eq: (k, v) => (filters.push([k, v]), q),
+          then: (ok) => Promise.resolve({ error: null }).then((r) => (deletes.push({ table, filters }), ok(r))),
+        };
         return q;
       },
     }),
@@ -125,8 +154,18 @@ describe('the office files events', () => {
     });
   });
   it('a filed row reads back as the same event', () => {
-    const row = toCalendarRow(makeEvent({ name: 'Revival', date: '2025-10-12', endDate: '2025-10-14', time: '7:00 PM', detail: 'Three nights' }), { tenantId: 't', userId: 'u' });
-    expect(fromOfficeRows([{ id: 'r1', ...row }]).events[0]).toMatchObject({ name: 'Revival', date: '2025-10-12', endDate: '2025-10-14', time: '7:00 PM', detail: 'Three nights', rowId: 'r1' });
+    const row = toCalendarRow(makeEvent({ name: 'Revival', date: '2025-10-12', endDate: '2025-10-14', time: '7:00 PM', detail: 'Three nights' }), {
+      tenantId: 't',
+      userId: 'u',
+    });
+    expect(fromOfficeRows([{ id: 'r1', ...row }]).events[0]).toMatchObject({
+      name: 'Revival',
+      date: '2025-10-12',
+      endDate: '2025-10-14',
+      time: '7:00 PM',
+      detail: 'Three nights',
+      rowId: 'r1',
+    });
   });
   it('PROVEN TO CATCH: with no church resolved, or signed out, nothing is sent', async () => {
     // Break: default the instance (or send without one) and a row lands in no church, or someone else's.
@@ -146,7 +185,10 @@ describe('the office files events', () => {
     expect(client.inserts).toEqual([]);
   });
   it('says refused when the database says no, and how many went in before a stall', async () => {
-    expect(await addCalendarEvents([EV], { client: fakeClient({ insertError: { code: '42501' } }), resolveChurch: church('c') })).toEqual({ skipped: 'refused', saved: 0 });
+    expect(await addCalendarEvents([EV], { client: fakeClient({ insertError: { code: '42501' } }), resolveChurch: church('c') })).toEqual({
+      skipped: 'refused',
+      saved: 0,
+    });
     const many = Array.from({ length: INSERT_CHUNK + 1 }, (_, i) => makeEvent({ name: `E${i}`, date: '2025-01-01' }));
     const client = fakeClient();
     let n = 0;

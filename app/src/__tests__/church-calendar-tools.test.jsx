@@ -81,7 +81,13 @@ describe('ChurchCalendarTools', () => {
     type(q('church-calendar-add-place'), 'Fellowship hall');
     await tap(q('church-calendar-add-submit'));
     expect(onAdd).toHaveBeenCalledTimes(1);
-    expect(onAdd.mock.calls[0][0][0]).toMatchObject({ name: 'Harvest Dinner', date: '2026-11-21', time: '5:00 PM', place: 'Fellowship hall', source: 'office' });
+    expect(onAdd.mock.calls[0][0][0]).toMatchObject({
+      name: 'Harvest Dinner',
+      date: '2026-11-21',
+      time: '5:00 PM',
+      place: 'Fellowship hall',
+      source: 'office',
+    });
     expect(onChanged).toHaveBeenCalledTimes(1);
     expect(q('church-calendar-said').textContent).toBe('Added: Harvest Dinner, Saturday, November 21, 2026.');
     expect(q('church-calendar-add-name').value).toBe('');
@@ -152,7 +158,18 @@ describe('ChurchCalendarTools', () => {
 
 describe('removing an office event', () => {
   const office = fromOfficeRows([{ id: 'r1', ministry: 'calendar', title: 'Harvest Dinner', week_of: '2026-11-19' }]).events;
-  const mountCal = (props) => act(() => root.render(createElement(ChurchCalendar, { events: [...EVENTS, ...office], services: [], todayKey: '2026-11-19', ...props, key: (props && props.todayKey) || 'thu' })));
+  const mountCal = (props) =>
+    act(() =>
+      root.render(
+        createElement(ChurchCalendar, {
+          events: [...EVENTS, ...office],
+          services: [],
+          todayKey: '2026-11-19',
+          ...props,
+          key: (props && props.todayKey) || 'thu',
+        })
+      )
+    );
   it('takes two presses; "Keep it" keeps it; only the second press removes', async () => {
     const onRemove = vi.fn(async () => ({ removed: true }));
     mountCal({ onRemove });
