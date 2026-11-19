@@ -27,10 +27,37 @@ import { DM_UNREAD_EVENT } from './notify-readiness.js';
 import {
   ARRIVALS_EVENT, ARRIVALS_SEEN_EVENT, lessonArrivals, queueArrivals, feedbackArrivals, messageArrival,
   combineArrivals, loadSeen, saveSeen, markSeen, unseenArrivals, arrivalCount, badgeText, ringableIds, newSince,
-  arrivalNotification, arrivalLanding, catalogArrivals, catalogSince,
+  arrivalNotification, arrivalLanding, catalogArrivals, catalogSince, serviceArrivals,
+  markIdSeen, peekArrivalOpened, clearArrivalOpened,
 } from './arrivals.js';
 
 export const ARRIVALS_HEARTBEAT_MS = 60000;
+/** The channel feed is read at most this often: /api/church-recent holds it ten minutes, so asking sooner only spends requests. */
+export const SERVICES_REFRESH_MS = 10 * 60000;
+/** A feed read that has not answered by now is dropped; the last picture stands. */
+export const SERVICES_TIMEOUT_MS = 8000;
+
+/**
+ * Read the church channel's recordings through the same-origin relay. Returns
+ * parseYoutubeFeed() entries, or null when the read failed or timed out (the
+ * caller keeps what it had; a failed read never empties the bell).
+ */
+export async function fetchChannelServices({ fetchImpl, channelId, parse, timeoutMs = SERVICES_TIMEOUT_MS } = {}) {
+  if (typeof fetchImpl !== 'function' || !/^UC[A-Za-z0-9_-]{22}$/.test(String(channelId || ''))) return null;
+  const ctl = typeof AbortController === 'function' ? new AbortController() : null;
+  const timer = ctl ? setTimeout(() => ctl.abort(), timeoutMs) : null;
+  try {
+    const res = await fetchImpl(`/api/church-recent?channel=${encodeURIComponent(channelId)}`, ctl ? { signal: ctl.signal } : undefined);
+    if (!res || !res.ok) return null;
+    const xml = await res.text();
+    const videos = parse(xml, 15);
+    return Array.isArray(videos) && videos.length ? videos : null;
+  } catch {
+    return null;
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
 
 /** The latest picture, for a bell that mounts after the first event. */
 export function currentArrivals(win = typeof window !== 'undefined' ? window : undefined) {
@@ -71,6 +98,12 @@ const defaultLoaders = {
   // The catalog of every lesson and the day it landed (lesson-dates.json, CI
   // re-derived from git): new lessons ring whether or not a row names them.
   catalog: async () => (await import('./lesson-dates.js')).datedLessons,
+  // The church channel's own recordings (the feed the Past sermons tab plays
+  // from): a new service rings for every signed-in person.
+  services: async () => {
+    const [{ parseYoutubeFeed }, { COLG_DEFAULT_CHURCH }] = await Promise.all([import('./youtube-feed.js'), import('./default-church.js')]);
+    return (fetchImpl) => fetchChannelServices({ fetchImpl, channelId: COLG_DEFAULT_CHURCH.youtubeChannelId, parse: parseYoutubeFeed });
+  },
 };
 
 /**
@@ -114,7 +147,8 @@ export function startArrivalsWatch(win = typeof window !== 'undefined' ? window 
     const state = {
       uid,
       seen: loadSeen(win.localStorage, uid),
-      parts: { message: null, lessons: [], queue: [], feedback: [], catalog: [] },
+      parts: { message: null, lessons: [], queue: [], feedback: [], catalog: [], services: [] },
+      servicesAt: 0,
       since: catalogSince(win.localStorage, uid),
       known: [],
       primed: false,
@@ -145,6 +179,17 @@ export function startArrivalsWatch(win = typeof window !== 'undefined' ? window 
         const datedLessons = await loaders.catalog();
         if (!cancelled) state.parts.catalog = catalogArrivals(datedLessons(), { since: state.since });
       } catch { /* the last catalog picture stands */ }
+      // The church channel, at most once per SERVICES_REFRESH_MS, with its own
+      // timeout: a slow or failed feed never holds up or empties the rest.
+      const now = Date.now();
+      if (now - state.servicesAt >= SERVICES_REFRESH_MS) {
+        state.servicesAt = now;
+        try {
+          const readServices = await loaders.services();
+          const videos = await readServices(typeof win.fetch === 'function' ? win.fetch.bind(win) : undefined);
+          if (!cancelled && videos) state.parts.services = serviceArrivals(videos, { since: state.since });
+        } catch { /* the last channel picture stands */ }
+      }
       try {
         const fetchMyLessons = await loaders.lessons();
         const res = await fetchMyLessons({ supabase: client });
@@ -162,6 +207,14 @@ export function startArrivalsWatch(win = typeof window !== 'undefined' ? window 
         const fb = await fetchMyFeedback(client);
         if (!cancelled && fb && fb.ok) state.parts.feedback = feedbackArrivals(fb.items);
       } catch { /* a read that fails leaves the last picture standing */ }
+      // The arrival the person tapped before this page loaded (arrivals.js,
+      // OPENED_KEY): marked seen once this watcher holds it, then forgotten.
+      const opened = peekArrivalOpened(win.sessionStorage);
+      if (!cancelled && opened && combineArrivals(state.parts).some((it) => it.id === opened)) {
+        state.seen = markIdSeen(state.seen, opened);
+        saveSeen(win.localStorage, uid, state.seen);
+        clearArrivalOpened(win.sessionStorage);
+      }
       if (!cancelled) publish(state);
     };
     // Publish the message part at once (the DM watcher may already have fired),

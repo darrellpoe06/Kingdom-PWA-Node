@@ -20,8 +20,8 @@ const item = (over = {}) => ({
 });
 
 describe('every kind, read from the rows each screen already reads', () => {
-  it('names the seven kinds and which screen marks which seen', () => {
-    expect(ARRIVAL_KINDS).toEqual(['message', 'lesson-ready', 'lesson-review', 'lesson-published', 'review-queue', 'feedback', 'lesson-new']);
+  it('names the eight kinds and which screen marks which seen', () => {
+    expect(ARRIVAL_KINDS).toEqual(['message', 'lesson-ready', 'lesson-review', 'lesson-published', 'review-queue', 'feedback', 'lesson-new', 'service-new']);
     expect(SCREEN_KINDS.learn).toEqual(['lesson-new']);
     expect(SCREEN_KINDS['your-lessons']).toEqual(['lesson-ready', 'lesson-review', 'lesson-published']);
     expect(SCREEN_KINDS.lesson, 'opening the lesson itself is looking at its arrival (DR-1253)').toEqual(['lesson-published']);

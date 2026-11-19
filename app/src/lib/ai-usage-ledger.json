@@ -1726,6 +1726,21 @@
       "notes": "0335's first live read named the gate and still could not decide the fix: the quotation gate refuses five different things calling for opposite work, and one of them is Darrell's call on how a lesson is written. Checked first that the prompt already states the rules and that previous_failures does reach attempt 2, so more retries was never the obvious answer. Proven to catch the adversary's name reaching the receipt."
     },
     {
+      "id": "a-new-service-rings-the-bell",
+      "date": "2026-11-19",
+      "task": "Arrivals gains a new-service kind read from the church channel feed; a tap marks one item seen",
+      "drs": [
+        "DR-1568"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.4,
+      "estimateWithoutAiHours": 6,
+      "notes": "Reads the feed the Past sermons tab already plays. Closed-phone push not built, re-review 2026-12-03."
+    },
+    {
       "id": "dr-1420-record-in-readers-name",
       "date": "2026-11-10",
       "task": "The learner record is headed by the reader's name with who they are in the household beneath it; an exam average is no longer badged Mastered",
