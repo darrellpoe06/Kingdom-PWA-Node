@@ -221,14 +221,21 @@ describe('our own house: every claim the lesson makes is still true of the recor
     const at = '5d16069df';
     if (git(['cat-file', '-e', `${at}^{commit}`]) === null) return;
     const count = (extra) => Number(git(['rev-list', '--count', '--first-parent', ...extra, at]));
-    expect(count(['--since=2026-10-19'])).toBe(429);
+    // 2026-11-18 (L329, DR-1566): a bare --since=2026-10-19 lets git fill the
+    // missing time with the CURRENT clock time, so the window slid through the
+    // day (428 at 23:30Z, 444 at midnight) and this test went red by the hour.
+    // The measurement was taken near 22:00Z; 429 holds for any cutoff from
+    // 21:40:48Z to 22:57:33Z on 10-19, so the window is pinned to 22:00Z. The
+    // measured numbers are unchanged; only the clock was taken out of the test.
+    const WINDOW = '--since=2026-10-19T22:00:00Z';
+    expect(count([WINDOW])).toBe(429);
     expect(count(['--since=2026-11-18T00:00:00Z'])).toBe(45);
     expect(count([])).toBe(2859);
     const subjects = (extra) => git(['log', '--first-parent', '--format=%s', ...extra, at]).split('\n');
-    expect(subjects(['--since=2026-10-19']).filter((s) => /^revert/i.test(s)).length).toBe(0);
+    expect(subjects([WINDOW]).filter((s) => /^revert/i.test(s)).length).toBe(0);
     expect(subjects([]).filter((s) => /^revert/i.test(s)).length).toBe(4);
-    expect(subjects(['--since=2026-10-19']).filter((s) => /^fix/i.test(s)).length).toBe(4);
-    expect(subjects(['--since=2026-10-19']).filter((s) => /\bfix/i.test(s)).length).toBe(12);
+    expect(subjects([WINDOW]).filter((s) => /^fix/i.test(s)).length).toBe(4);
+    expect(subjects([WINDOW]).filter((s) => /\bfix/i.test(s)).length).toBe(12);
     for (const p of TEACHING_PLACES) expect(place(MODULE, p), p).toMatch(/429|four hundred and twenty[- ]nine/);
   });
 

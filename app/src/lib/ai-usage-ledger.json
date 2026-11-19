@@ -1546,6 +1546,21 @@
       "notes": "Darrell: We need our own mortgage calculator inside our PoeTech App where it makes sense"
     },
     {
+      "id": "ll329-what-mean-these-stones",
+      "date": "2026-11-18",
+      "task": "L329 What Mean These Stones, from one forwarded technology-podcast recap, all four age bands, shared gate plus tier, privacy and one-teaching checks; sov94 commit-count window pinned off the clock",
+      "drs": [
+        "DR-1566"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1,
+      "estimateWithoutAiHours": 24,
+      "notes": "Reserved L329 and DR-1566 on origin with new-lesson.mjs. 104 verses filled from app/public/bible/kjv by fill-verses.mjs, none typed. Placed in Living Lessons (devotional teaching); names L248 for the manna. Recap timeline reported, adaptation established; re-review 2026-12-02. Found sov94's bare --since date drifting with the clock (428 at 23:30Z) and pinned it to 22:00Z, which reproduces the measured 429."
+    },
+    {
       "id": "dr-1414-put-not-your-trust-in-princes",
       "date": "2026-11-10",
       "task": "L300, a Living Lesson built from the election email Darrell forwarded on 2026-10-22 with one word over it: Lesson. Four bands plus the adult teaching, 42 verses verbatim from disk, non-partisan enforced by a gate, movements renumbered so all five texts render 1..8, and a 46-check gate proven to catch on the live module.",
