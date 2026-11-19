@@ -24,7 +24,7 @@
 // =============================================================================
 import { parseStatementSummary } from './debt-history.js';
 import { accountFragment } from './bank-formats.js';
-import { parseAmount } from './statement-import.js';
+import { parseAmount, findStatementHeader } from './statement-import.js';
 import { readSnapshotRows } from './snapshot-rows.js';
 
 export const DOC_TYPES = Object.freeze([
@@ -243,12 +243,25 @@ function statementCommon({ text }) {
   };
 }
 
+// A download's own account digits live ABOVE its column headings ("Account
+// ending in 7206"), never in its rows: a balance like 7,024.13 or a
+// "Transfer from Chase 3322" row is not the file's account (2026-11-18: every
+// Chase 7206 download read "7024" from a running balance and asked which
+// account; a balance that happened to match another account's digits would
+// have routed the whole file there). With no digits above the headings, the
+// file name decides (Chase names it Chase7206_Activity_YYYYMMDD.CSV).
+function downloadPreamble(text = '') {
+  const lines = String(text).split(/\r?\n/).filter((l) => l.trim());
+  if (!lines.length) return '';
+  const h = findStatementHeader(lines);
+  return h && h.headerRow > 0 ? lines.slice(0, h.headerRow).join('\n') : '';
+}
 registerExtractor('transactions-export', ({ rows = [], text = '' }) => {
   const dates = rows.map((r) => r.date).filter(Boolean).sort();
   return {
     line_items: rows.map((r) => ({ date: r.date, description: r.description, amount: Number(r.amount) || 0, ...(r.balance != null ? { balance: r.balance } : {}), ...(r.fitid ? { fitid: r.fitid } : {}) })),
     dates: { period_start: dates[0] || null, period_end: dates[dates.length - 1] || null, document: dates[dates.length - 1] || null },
-    account_hint: { last4: accountFragment(text), institution: institutionOf(text) },
+    account_hint: { last4: accountFragment(downloadPreamble(text)) || null, institution: institutionOf(text) },
   };
 });
 registerExtractor('card-statement', statementCommon);
@@ -435,7 +448,19 @@ export function layoutKeyOf({ doc_type, institution, headerSignature = '', text 
 export function extractDocument(read = {}, source = {}, { hint = null, forceType = null, asOf = null, balanceKind = null, signs = null } = {}) {
   const base = emptyExtraction(source);
   const text = String(read.text || '');
-  const cls = forceType ? { doc_type: forceType, confidence: 1, ranked: [forceType] } : classifyText(text, { hint, rows: read.rows });
+  // A downloaded file (CSV / TSV / spreadsheet / OFX) is a table, never a
+  // picture of a banking app (Christina 2026-11-19: her Chase7206 TSV was
+  // labelled "Banking app screenshot" with no rows). A screenshot is read by
+  // OCR; only that read can be one.
+  const table =
+    ['text', 'spreadsheet', 'ofx'].includes(read.method) &&
+    (/\.(csv|tsv|ofx|qfx|xlsx?)$/i.test(String((source && source.name) || '')) || (read.rows && read.rows.length > 0) || /date/.test(String(read.headerSignature || '')));
+  const force = table && forceType === 'account-snapshot' ? null : forceType;
+  let cls = force ? { doc_type: force, confidence: 1, ranked: [force] } : classifyText(text, { hint, rows: read.rows });
+  if (table && cls.doc_type === 'account-snapshot') {
+    const ranked = cls.ranked.filter((t) => t !== 'account-snapshot');
+    cls = { doc_type: 'transactions-export', confidence: Math.min(cls.confidence, 0.5), ranked: ['transactions-export', ...ranked.filter((t) => t !== 'transactions-export')] };
+  }
   const partial = extractorFor(cls.doc_type)({ text, rows: read.rows || [], asOf, signs }) || {};
   const out = {
     ...base, ...partial,

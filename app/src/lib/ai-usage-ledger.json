@@ -18,6 +18,9 @@
     },
     "claude-fable-5-2": {
       "note": "The Claude session model on 2026-11-10 (Anthropic). Per-task tokens are not exposed by the harness."
+    },
+    "unrecorded": {
+      "note": "A Claude Code session whose standing instructions keep model identifiers out of pushed files; the session's model is in its own transcript, not on this record. Per-task tokens are not exposed by the harness."
     }
   },
   "sessions": [
@@ -2193,6 +2196,21 @@
       "wallClockHours": 0.4,
       "estimateWithoutAiHours": 5,
       "notes": "Darrell's screenshot: 2 of 51 beside courses read in full at 100%"
+    },
+    {
+      "id": "sov97-the-staff-of-this-broken-reed",
+      "date": "2026-11-19",
+      "task": "Sovereign A.I. week 97 from one word over a forwarded business newsletter (thread 1a1f08f5aa0b9f68): two outages in one week, a national ground stop and a cloud provider's outage, read as one story of leaning. Word first on Isaiah 36:6 and Ezekiel 29:6-7 (the broken reed that pierces the hand), leaning told apart from trading (Isaiah 30-31), the aging system and the new load through Matthew 9:16-17, Hezekiah's order (Isaiah 37:14-15, 20); four hand-written bands, every verse generator-filled from the KJV; the house measured from its own records and workflow folder.",
+      "drs": [
+        "DR-1572"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 2,
+      "estimateWithoutAiHours": 12,
+      "notes": "No token meter in this session; tokens and cost are null. Both outages documented by several reports read through search (article hosts refused by this session's network); the newsletter's country count, dollar figure and the ground stop's root cause are reported or unverified; re-review 2026-12-03."
     },
     {
       "id": "dr-1435-money-reserve-trace-day-boundary",

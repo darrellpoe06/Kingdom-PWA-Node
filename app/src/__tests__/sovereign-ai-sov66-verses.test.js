@@ -354,7 +354,7 @@ describe('sov66 — the ground is MEASURED, and no verse was dropped for being u
 
   // The ten chapters measured UNTOUCHED at anchor level anywhere in the
   // department, which is where the whole spine of this teaching lives.
-  const FREE = ['Ezekiel 38', 'Jeremiah 49', 'Judges 18', 'Judges 8', 'Nahum 3', 'Zephaniah 2', 'Isaiah 36', 'Job 8', 'Amos 6', '1 Corinthians 10'];
+  const FREE = ['Ezekiel 38', 'Jeremiah 49', 'Judges 18', 'Judges 8', 'Nahum 3', 'Zephaniah 2', 'Job 8', 'Amos 6', '1 Corinthians 10'];
   // The twenty-one chapters measured SHARED, each with a lesson that really holds
   // it. This is the DR-1317 shape: a shared foundation is recorded, not vetoed.
   const SHARED = {
@@ -374,6 +374,12 @@ describe('sov66 — the ground is MEASURED, and no verse was dropped for being u
     // not a defect; DR-1317 records a shared foundation and never vetoes it, so
     // neither lesson's reading moved.
     'Obadiah 1': 'sov79',
+    // MOVED FROM FREE TO SHARED 2026-11-19, the same shape again: sov97 (The
+    // staff of this broken reed, DR-1572) anchors Isaiah 36:6 itself, the reed
+    // this lesson carries as the Word's other witness to 2 Kings 18:21. A
+    // measurement that changed, not a defect; DR-1317 records a shared
+    // foundation and never vetoes it, so neither lesson's reading moved.
+    'Isaiah 36': 'sov97',
   };
 
   it('ANTI-VACUITY: the department really holds a large chapter set, so an empty set cannot fake a pass', () => {
@@ -422,9 +428,13 @@ describe('sov66 — the ground is MEASURED, and no verse was dropped for being u
     expect(b, 'Isaiah 36:6 does not carry the shared clause').toContain(shared);
     expect(a).toContain('so is Pharaoh king of Egypt');
     expect(b).toContain('so is Pharaoh king of Egypt');
-    // And the witness taken here is free, which is why it was available.
+    // And the witness taken here was free when it was taken, which is why it
+    // was available. Re-pinned 2026-11-19: sov97 (DR-1572) has since anchored
+    // Isaiah 36:6 as its own frame, so the chapter is now shared with exactly
+    // that one week and no other; the reading here did not move.
     const others = [...SOVEREIGN_AI_MODULES, ...MODULES, ...AI_LEGAL_BLUEPRINT_MODULES].filter((m) => m.id !== ID);
-    expect(others.some((m) => anchorRefs(m).some((r) => chapterKey(r) === 'Isaiah 36'))).toBe(false);
+    const isaiah36 = others.filter((m) => anchorRefs(m).some((r) => chapterKey(r) === 'Isaiah 36')).map((m) => m.id);
+    expect(isaiah36).toEqual(['sov97-the-staff-of-this-broken-reed']);
     // And the chapter it vacated really is held by the neighbour whose gate
     // refused it, so the reason recorded above is a measurement.
     expect(others.some((m) => m.id.startsWith('sov65-') && anchorRefs(m).some((r) => chapterKey(r) === '2 Kings 18'))).toBe(true);
