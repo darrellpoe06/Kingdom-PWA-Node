@@ -188,6 +188,8 @@ describe('Read to me', () => {
     const tts = fakeTts();
     await mountBook({ useTts: tts.useTts });
     await flush();
+    vi.useFakeTimers({ toFake: ['Date'] }); // only the clock: React's own scheduler keeps its real timers
+    const later = () => vi.advanceTimersByTime(1000);
     const book = STORYBOOKS[0];
     // Page 3 (Jonah 1:17) has two sentences, so the lit sentence can move.
     click(q('[data-testid="storybook-next"]'));
@@ -203,11 +205,13 @@ describe('Read to me', () => {
     expect(q('[data-testid="storybook-verse"] .kz-sent.on').getAttribute('data-sentence')).toBe('1');
     expect(q('[data-testid="storybook-verse"]').textContent).toBe(VERSES['Jonah 1:17']);
     // The verse ends: the caption is read, and lit in the bubble.
+    later();
     act(() => tts.set({ status: 'idle' }));
     expect(tts.spoken[1]).toBe(book.pages[2].caption);
     expect(q('[data-testid="storybook-caption"] .kz-sent.on')).toBeTruthy();
     expect(q('[data-testid="storybook-verse"] .kz-sent.on')).toBeNull();
     // The caption ends: the page turns and the next verse is read.
+    later();
     act(() => tts.set({ status: 'idle' }));
     expect(q('[data-testid="storybook"]').getAttribute('data-page')).toBe('3');
     expect(tts.spoken[2]).toBe('Words of Jonah 2:1 for the test.');
@@ -224,6 +228,18 @@ describe('Read to me', () => {
     expect(tts.spoken.length).toBe(n);
     expect(q('[data-testid="storybook"]').getAttribute('data-page')).toBe('3');
     expect(q('[data-testid="storybook-reader-bar"]')).toBeNull();
+  });
+  it('PROVEN-TO-CATCH: a reader that ends at once produced no audio, so Read to me stops and says so instead of racing through the book', async () => {
+    const tts = fakeTts();
+    await mountBook({ useTts: tts.useTts });
+    await flush();
+    click(q('[data-testid="storybook-read-to-me"]'));
+    expect(tts.spoken.length).toBe(1);
+    act(() => tts.set({ status: 'idle' })); // no time passed: nothing was heard
+    expect(q('[data-testid="storybook"]').getAttribute('data-auto')).toBe('false');
+    expect(q('[data-testid="storybook"]').getAttribute('data-page')).toBe('0');
+    expect(tts.spoken.length).toBe(1);
+    expect(q('[data-testid="storybook-reader-quiet"]').textContent).toMatch(/went quiet/);
   });
   it('Hear this page reads this page only and does not start the whole book; without a reader both are disabled', async () => {
     const tts = fakeTts();

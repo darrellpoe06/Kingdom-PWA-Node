@@ -155,6 +155,15 @@ export async function readPdf(file, { pdfjs = null, ocr = ocrRoute, token = null
  * Read any file. Returns { text, rows?, headerSignature?, rowReconciliation?, method }.
  * Throws only when the file truly cannot be read; the caller keeps it stored.
  */
+// The version of the table reader. A stored download read by an older reader
+// (before the tab-separated fix, #2760) is read again rather than trusted: its
+// rows were lost, and an old read must not keep the file misfiled.
+export const TABLE_READER_VERSION = 2;
+/** True when a stored read came from a download (CSV / TSV / spreadsheet / OFX). */
+export function isTableRead(read) {
+  return !!read && ['text', 'spreadsheet', 'ofx'].includes(read.method);
+}
+
 export async function readAnyFile(file, deps = {}) {
   const kind = kindOf(file);
   if (kind === 'pdf') return (deps.readPdf || readPdf)(file, deps);
@@ -179,6 +188,7 @@ export async function readAnyFile(file, deps = {}) {
       headerSignature,
       rowReconciliation: rec ? { total: rec.sourceTotal, ingested: rec.ingested, rejected: rec.rejected } : null,
       method: kind === 'spreadsheet' ? 'spreadsheet' : (headerSignature === 'ofx' ? 'ofx' : 'text'),
+      readerVersion: TABLE_READER_VERSION,
     };
   }
   throw new Error('unrecognised file');
