@@ -30,7 +30,7 @@ jobs:
       - name: Install the voice
         run: |
           sudo apt-get update -qq && sudo apt-get install -y -qq espeak-ng >/dev/null
-          pip install -q "kokoro>=0.9" soundfile "misaki[en]"
+          pip install -q "$(grep '^kokoro==' infra/requirements-ci.txt)" "$(grep '^soundfile==' infra/requirements-ci.txt)"
       - name: Audition sample
         run: python3 scripts/kids-episode/narrate.py scripts/kids-episode/jonah.episode.json out/sample-${{ matrix.voice }} ${{ matrix.voice }} --sample
       - name: Full narration
