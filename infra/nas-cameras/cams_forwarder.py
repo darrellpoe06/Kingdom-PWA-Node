@@ -4737,7 +4737,7 @@ def _selftest():
     port = fwd.server_address[1]
     threading.Thread(target=fwd.serve_forever, daemon=True).start()
 
-    def call(method, path, body=None, auth=None, read=True, extra=None):
+    def call_once(method, path, body=None, auth=None, read=True, extra=None):
         c = HTTPConnection("127.0.0.1", port, timeout=8)
         headers = {"Content-Type": "application/json"}
         if auth is not None:
@@ -4750,6 +4750,26 @@ def _selftest():
         hdrs = {k.lower(): v for k, v in r.getheaders()}
         c.close()
         return r.status, hdrs, data
+
+    # THE SNAPSHOT GATE IS LET GO AFTER THE ANSWER IS WRITTEN (DR-1590). This
+    # server runs with max_snap=1 and _snap releases snap_gate in a finally,
+    # which runs after the response has reached the socket. A check that asks
+    # for a frame straight after another frame can therefore arrive while the
+    # last handler still holds the gate, and read 503 {"error": "busy",
+    # "max_inflight": 1} for a camera that is not busy. It happened on a loaded
+    # CI runner (PR #2796, 2026-11-19 07:53Z); with a 0.2 s sleep put before the
+    # release, thirteen checks fail the same way. No check here asks two frames
+    # at once, so a snapshot "busy" is only ever that hand-over: it is asked
+    # again, for at most three seconds. The live-view "busy" carries no
+    # max_inflight and is never retried, so that check still reads the first
+    # answer.
+    def call(method, path, body=None, auth=None, read=True, extra=None):
+        deadline = time.time() + 3.0
+        while True:
+            status, hdrs, data = call_once(method, path, body=body, auth=auth, read=read, extra=extra)
+            if not (read and status == 503 and b'"max_inflight"' in data) or time.time() >= deadline:
+                return status, hdrs, data
+            time.sleep(0.02)
 
     B = "Bearer " + token
 
