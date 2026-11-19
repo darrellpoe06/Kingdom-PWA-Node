@@ -18,7 +18,8 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { join } from 'node:path';
 import { LIVING_LESSONS_MODULES } from '../lib/living-lessons-class.js';
-import { reservedNumbersOnOrigin, holesNotReserved } from '../../../scripts/lib/reserve-ref.mjs';
+import { reservedNumbersOnOrigin, landedLessonNumbersOnOrigin, holesNotReserved } from '../../../scripts/lib/reserve-ref.mjs';
+import { LIVING_LESSONS_DIR_REL } from '../../../scripts/lib/living-lesson-files.mjs';
 
 // A NUMBER RESERVED ON ORIGIN IS IN FLIGHT, NOT A HOLE (DR-1477). L307 and L308
 // were built side by side on 2026-11-13, each on a number reserved as
@@ -29,9 +30,18 @@ import { reservedNumbersOnOrigin, holesNotReserved } from '../../../scripts/lib/
 // Offline the set is empty and excuses nothing, so the check fails closed.
 const REPO = join(__dirname, '..', '..', '..');
 let RESERVED = { numbers: new Set(), source: 'none', reason: 'not read yet' };
+// A NUMBER MAIN ALREADY CARRIES IS NOT A HOLE EITHER (DR-1580, DR-1588). A
+// reservation is swept when its lesson lands, so a branch cut before the
+// landing read that number as held by nobody. living-lessons-id-collision
+// learned this in DR-1580; this file asked the same question and did not, and
+// went red on a branch behind main when L327 and L332 landed (2026-11-19).
+// Read the same way: the lesson file names on origin's main. A failed read is
+// an empty set and excuses nothing.
+let LANDED = { numbers: new Set(), source: 'none', reason: 'not read yet' };
 beforeAll(() => {
   RESERVED = reservedNumbersOnOrigin({ kind: 'll', cwd: REPO });
-}, 30_000);
+  LANDED = landedLessonNumbersOnOrigin({ dir: LIVING_LESSONS_DIR_REL, cwd: REPO });
+}, 60_000);
 
 /** The numeric part of a lesson id: `ll241-advice…` -> 241. Null if unnumbered. */
 export function lessonNumber(id) {
@@ -191,9 +201,9 @@ describe('Living Lessons — the lesson number is unique', () => {
     const excused = [...KNOWN_GAPS, ...FOLDED_NUMBERS];
     const { held, holes: appeared } = holesNotReserved(
       gaps.filter((n) => !excused.includes(n)),
-      RESERVED.numbers
+      new Set([...RESERVED.numbers, ...LANDED.numbers])
     );
-    expect(appeared, `a lesson number nobody claims is a hole a reader can fall into (reservations read from ${RESERVED.source}${RESERVED.reason ? `: ${RESERVED.reason}` : ''})`).toEqual([]);
+    expect(appeared, `a lesson number nobody claims is a hole a reader can fall into (reservations read from ${RESERVED.source}${RESERVED.reason ? `: ${RESERVED.reason}` : ''}; main read from ${LANDED.source})`).toEqual([]);
     // SHRINK-ONLY, UNCHANGED. KNOWN_GAPS is still measured against its own
     // length alone: it may lose entries and never gain them, which is the whole
     // ratchet. A folded number is counted separately because it is a different

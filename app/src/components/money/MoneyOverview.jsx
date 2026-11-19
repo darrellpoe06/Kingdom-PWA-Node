@@ -35,6 +35,7 @@ import UiIcon from '../UiIcon.jsx';
 import HelpButton from '../HelpButton.jsx';
 import { buildSafeToSpend, extraDebtCapacity, PERIODS } from '../../lib/safe-to-spend.js';
 import MoneyComingUp from './MoneyComingUp.jsx';
+import BankReconcile from './BankReconcile.jsx';
 import { moneySettings, patchMoneyPlan, setupSteps, syncStatus, balanceSource } from '../../lib/money-plan.js';
 import { goalsSync } from '../../lib/goals-sync.js';
 import { loadRecurringDecisions } from '../../lib/recurring-decisions.js';
@@ -220,6 +221,9 @@ export default function MoneyOverview({ money }) {
               ['Savings reserved', L.savingsReserved, 'entered'],
               ['Minimum cash cushion', L.minCushion, 'entered'],
               ['Other commitments', L.otherCommitments, 'projected'],
+              // Money held for someone else (Christiana's $55 for her tithe) is
+              // inside Other commitments; named on its own while any is held.
+              ...(L.heldForOthers > 0 ? [['Held for someone else', L.heldForOthers, 'set aside until passed along']] : []),
               ['Expected income (on its day)', L.expectedIncome, 'projected'],
               ['Projected lowest balance', L.projectedLowest.amount, 'projected', L.projectedLowest.date],
             ].map(([label, value, kind, note]) => (
@@ -263,6 +267,8 @@ export default function MoneyOverview({ money }) {
           <div className="mt-2 text-[0.6875rem]">Books last updated {data.meta && data.meta.lastUpdated ? data.meta.lastUpdated : '—'}.</div>
         </details>
       </section>
+
+      <BankReconcile data={data} entities={entities} currentDate={currentDate} show={show} />
 
       {!unavailable && <MoneyComingUp result={result} extra={extra} show={show} onReview={() => go('bills')} entities={entities} settings={settings} data={data} asOf={currentDate} onSaveReserve={(id, amount) => { const next = { ...(settings.reserveByEntity || {}) }; if (amount == null) delete next[id]; else next[id] = amount; save({ reserveByEntity: next }); }}
         onSaveReserveGoal={(id, amount) => { const next = { ...(settings.reserveGoalByEntity || {}) }; if (amount == null) delete next[id]; else next[id] = amount; save({ reserveGoalByEntity: next }); }}

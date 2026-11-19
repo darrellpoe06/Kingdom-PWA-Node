@@ -17,6 +17,8 @@ import Storybook from '../components/kids/Storybook.jsx';
 import { COLG_DEFAULT_CHURCH } from '../lib/default-church.js';
 import { SHOT_LIST, landedFile } from '../lib/kids/guides.js';
 import { STORYBOOKS } from '../lib/kids/storybooks.js';
+import { weeklyLesson } from '../lib/youth-zone.js';
+import { moduleFor, leadLines } from '../components/kids/GrownUps.jsx';
 
 vi.mock('../lib/engagement-sync.js', () => ({
   uploadTriviaAnswer: vi.fn(async () => ({})),
@@ -137,7 +139,17 @@ describe('the tiles open real things', () => {
     expect(q('[data-testid="who-am-i"]')).toBeTruthy();
     expect(qa('[data-testid^="name-"]').length).toBe(4);
     click(q('[data-testid="kids-tab-grownups"]'));
-    expect(q('[data-testid="grownups-lesson"]').textContent).toContain('How to lead it');
+    // The week's lesson is the catalog's own pick for MON, chosen only among
+    // lessons that carry facilitator notes (DR-1576), so the page ALWAYS leads
+    // with them, however many lessons land and wherever the rotation falls.
+    const pick = weeklyLesson('kids', MON);
+    const how = leadLines(moduleFor(pick)).how;
+    const shown = q('[data-testid="grownups-lesson"]').textContent;
+    expect(shown).toContain(pick.title);
+    expect(how.length).toBeGreaterThan(0);
+    expect(shown).toContain('How to lead it');
+    expect(shown).toContain(how[0]);
+    expect(shown).not.toContain('carries no facilitator notes');
     expect(q('[data-testid="grownups-progress"]').textContent).toContain('Sign in');
     click(q('[data-testid="kids-tab-badges"]'));
     expect(q('[data-testid="badge-shelf"]').getAttribute('data-earned')).toBe('0');

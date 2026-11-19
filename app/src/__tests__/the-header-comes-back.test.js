@@ -123,16 +123,19 @@ describe('the door wears its own header, and the probe measures it (DR-1483; the
   });
 
   it('measures the door at 320, 390 and the Fold, and at the bottom-bar sizes', () => {
-    expect(PROBE).toMatch(
-      /\{ width: 320, size: 'normal' \}, \{ width: 390, size: 'normal' \}, \{ width: 1812, size: 'normal' \}, \{ width: 390, size: 'largest' \}, \{ width: 1812, size: 'bigprint' \}/
-    );
+    // Widened by DR-1579: every common phone width, and a big-text case on a
+    // phone and on a tablet, where the px-sized buttons had shrunk.
+    for (const c of ["{ width: 320, size: 'normal' }", "{ width: 360, size: 'normal' }", "{ width: 390, size: 'normal' }", "{ width: 412, size: 'normal' }", "{ width: 1812, size: 'normal' }", "{ width: 390, size: 'largest' }", "{ width: 360, size: 'bigprint' }", "{ width: 768, size: 'largest' }", "{ width: 1812, size: 'bigprint' }"]) {
+      expect(PROBE, c).toContain(c);
+    }
     expect(PROBE).toMatch(/\/\?lovecorner=1&view=church/);
     expect(PROBE).toMatch(/waitForSelector\('\[data-testid="lovecorner-header"\]'/);
   });
 
-  it('the self-test hides the name and the search control, and demands two trips', () => {
+  it('the self-test hides the name and the search control, shrinks the buttons, and demands three trips', () => {
     expect(PROBE).toMatch(/\.lch-name \{ display: none !important \}/);
     expect(PROBE).toMatch(/\[data-testid="lch-search"\] \{ display: none !important \}/);
-    expect(PROBE).toMatch(/oneTabTripped < 2/);
+    expect(PROBE).toMatch(/\.lch-ic \{ width: 13px !important; height: 13px !important \}/);
+    expect(PROBE).toMatch(/oneTabTripped < 3/);
   });
 });

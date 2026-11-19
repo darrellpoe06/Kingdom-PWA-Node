@@ -88,9 +88,11 @@ export default function GarageHeaderButton({ token: given = undefined, fetchImpl
   }, []);
   const beginHold = useCallback(() => {
     if (!door || busy || rest) return;
+    // A hold already running is KEPT: a held key repeats keydown, and restarting
+    // the clock on each repeat meant a held key could never finish (2026-11-18).
+    if (timer.current) return;
     const at = Date.now();
     setSaid('');
-    if (timer.current) clearInterval(timer.current);
     timer.current = setInterval(() => {
       setProgress(holdProgress({ startedAt: at }));
       if (holdComplete({ startedAt: at })) {

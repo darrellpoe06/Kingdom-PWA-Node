@@ -132,11 +132,43 @@ export function weeklyVerse(doorKey, now = new Date()) {
   return weeklyPick(versesFor(doorKey), now);
 }
 
+/**
+ * The facilitator's lines, as the lesson wrote them, split on its own " | "
+ * joins (DR-1508). Shared by the Grown-ups page (what it renders) and the
+ * weekly pick (what it may choose), so the two can never disagree.
+ */
+export function leadLines(module) {
+  const f = (module && module.facilitator) || {};
+  const how = String(f.howToRun || '')
+    .split(' | ')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const prompts = Array.isArray(f.discussionPrompts) ? f.discussionPrompts : [];
+  return { how, prompts, points: Array.isArray(f.talkingPoints) ? f.talkingPoints : [] };
+}
+
+/** True when a module carries real "how to lead it" notes for a grown-up. */
+export function hasLeadNotes(module) {
+  return leadLines(module).how.length > 0;
+}
+
+/**
+ * The week's module from a course list: the deterministic week rotation over
+ * ONLY the modules that carry facilitator notes, so the Grown-ups page always
+ * has "How to lead it" whatever lessons land. The whole list is the fallback
+ * only when no module carries notes (the page then says so honestly).
+ */
+export function weeklyModule(modules, now = new Date()) {
+  if (!Array.isArray(modules) || modules.length === 0) return null;
+  const led = modules.filter(hasLeadNotes);
+  return weeklyPick(led.length ? led : modules, now);
+}
+
 /** This week's lesson for a door: a REAL module of the door's course, with the course key for the link. */
 export function weeklyLesson(doorKey, now = new Date()) {
   const d = YOUTH_DOORS.find((x) => x.key === normalizeDoor(doorKey));
-  const modules = d.courseKey === 'little-learners' ? LITTLE_LEARNERS_MODULES : LIVING_LESSONS_MODULES;
-  const m = weeklyPick(modules, now);
+  const list = d.courseKey === 'little-learners' ? LITTLE_LEARNERS_MODULES : LIVING_LESSONS_MODULES;
+  const m = weeklyModule(list, now);
   if (!m) return null;
   return { courseKey: d.courseKey, lessonId: m.id, title: m.title || m.id, bigIdea: m.bigIdea || '' };
 }

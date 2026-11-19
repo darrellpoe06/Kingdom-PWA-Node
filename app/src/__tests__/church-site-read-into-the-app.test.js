@@ -57,6 +57,7 @@ const WHOLE_PAGE = `<!DOCTYPE html><html><head><title>CURRENT EVENTS - THE LOVE 
 <script>var nav = 1;</script></head><body><div class="wsite-menu-wrap"><a href="/calendar.html">CALENDAR</a></div>
 ${EVENTS_HTML}
 <script>_W.slideshows = [{"images":[{"url":"/uploads/6/0/6/7/6067835/battle-cry-sunday-veterans-flyer-3.jpg"},{"url":"/uploads/6/0/6/7/6067835/thanksgiving-dinner-2026.jpg"}]}];</script>
+<div style="background-image:url(/uploads/6/0/6/7/6067835/background-images/126418131.jpg)"></div>
 <div id="footer"><div class="paragraph">CONTACT US 312 E. Bradley Avenue</div></div></body></html>`;
 
 const relay = (page, html, images = []) => ({
@@ -192,7 +193,7 @@ describe("the relay's walls (functions/api/church-site.js)", () => {
       expect(assetUrl(bad)).toBeNull();
     }
   });
-  it('hands the client the content region without scripts, and every flyer the whole page names, icons left out', () => {
+  it('hands the client the content region without scripts, and every flyer the whole page names, icons and the theme background left out (the live read of 2026-11-18 16:17Z carried /background-images/126418131.jpg)', () => {
     const region = contentRegion(WHOLE_PAGE);
     expect(region.startsWith('<div id="wsite-content">')).toBe(true);
     expect(region).not.toMatch(/<script|CONTACT US|wsite-menu-wrap/);

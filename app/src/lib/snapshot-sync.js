@@ -40,10 +40,21 @@ const PHOTO_KEYS = ['lifePhotos'];
 // never pushed, and an incoming snapshot never overwrites them.
 export const DEVICE_PREF_KEYS = ['learnAgeBand', 'learnLevel'];
 
-/** A snapshot's data with this device's own preferences removed, so applying it keeps them. */
+// ONE PERSON'S RECORD (2026-11-19, DR-1577). Darrell, on his wife's record
+// reading 143 lessons and 91 exams: "My wife doesn't read lessons... what or
+// where does these numbers come from?" What a person has read and how they
+// scored lived in the app's data object, which rides this one-row-per-household
+// snapshot, so one member's reading arrived on every member's device, and the
+// record catch-up (DR-1450) then filed it under whoever was signed in. A
+// person's reading crosses devices by their OWN rows in learner_lesson_records
+// and by no other road. These keys are never pushed, and an incoming snapshot
+// that still carries them (older rows do) never lands them on this device.
+export const PERSONAL_RECORD_KEYS = ['classProgress', 'classQuiz', 'classMine', 'classOwner'];
+
+/** A snapshot's data with this device's own preferences and personal record removed, so applying it keeps them. */
 export function withoutDevicePrefs(snapData) {
   const out = { ...(snapData || {}) };
-  for (const k of DEVICE_PREF_KEYS) delete out[k];
+  for (const k of [...DEVICE_PREF_KEYS, ...PERSONAL_RECORD_KEYS]) delete out[k];
   return out;
 }
 
@@ -84,7 +95,7 @@ export function stripPhotoBytes(node) {
 // Returns null (with a warning) if the result is still implausibly large.
 export function buildSnapshotPayload({ data, pressure, snowballSort, snowballExtra, debtSnowballSort, debtSnowballExtra, theme }) {
   const cleaned = { ...(data || {}) };
-  for (const k of [...TABLE_SYNCED_KEYS, ...PRIVATE_KEYS, ...PHOTO_KEYS, ...DEVICE_PREF_KEYS]) delete cleaned[k];
+  for (const k of [...TABLE_SYNCED_KEYS, ...PRIVATE_KEYS, ...PHOTO_KEYS, ...DEVICE_PREF_KEYS, ...PERSONAL_RECORD_KEYS]) delete cleaned[k];
   const stripped = stripPhotoBytes(cleaned);
   const payload = { v: 1, data: stripped, pressure, snowballSort, snowballExtra, debtSnowballSort, debtSnowballExtra, theme };
   try {

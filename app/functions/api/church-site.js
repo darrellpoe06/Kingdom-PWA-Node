@@ -82,7 +82,7 @@ export function uploadPictures(html) {
   const seen = new Set();
   for (const m of String(html || '').matchAll(UPLOADS_RE)) {
     const path = m[0].replace(/\?.*$/, '');
-    if (/\/published\/icons8|\/editor\/|na-logo/i.test(path) || seen.has(path)) continue;
+    if (/\/published\/icons8|\/editor\/|\/background-images\/|na-logo/i.test(path) || seen.has(path)) continue;
     seen.add(path);
     out.push(path);
   }
