@@ -165,8 +165,14 @@ describe('both cloud playback sites are wired, not just one', () => {
   it('a speed change while a clip is playing reaches that clip', () => {
     // An audio element takes a live rate change mid-play, unlike an utterance,
     // so the chip must be audible immediately rather than at the next clip.
-    expect(src).toMatch(/const setRate = useCallback\(/);
-    expect(src).toMatch(/applyClipRate\(a, (?:r|residualRate\(r, [\w.]+\))\)/);
+    // The setter lives in lib/use-clip-rate.js since DR-1575 (the hook file
+    // was at its line budget); the hook must still hand out THAT setter.
+    const setter = readFileSync(join(process.cwd(), 'src', 'lib', 'use-clip-rate.js'), 'utf8');
+    expect(src).toMatch(/const setRate = useClipRate\(\{ tts, rateRef, queueRef, audioRef, audioSpeedRef, setNotice \}\)/);
+    expect(setter).toMatch(/const setRate = useCallback\(/);
+    expect(setter).toMatch(/applyClipRate\(a, (?:r|residualRate\(r, [\w.]+\))\)/);
+    // A speed picked somewhere else (the Personalize sheet) reaches the clip too.
+    expect(setter).toMatch(/\}, \[tts\.rate, toClip\]\);/);
     expect(src, 'the hook still hands out the raw setter, so a clip never hears the change')
       .not.toMatch(/setRate: tts\.setRate/);
   });
