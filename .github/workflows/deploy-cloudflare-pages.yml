@@ -54,11 +54,8 @@ on:
     branches: [main]
   workflow_dispatch: {}
 
-# One production deploy at a time. Do NOT cancel an in-flight deploy: a partial
-# publish is worse than waiting. A newer push simply queues behind the current.
-concurrency:
-  group: cf-pages-deploy
-  cancel-in-progress: false
+# One production deploy at a time, never cancelled mid-publish; the lock is on
+# the `deploy` job (DR-1603), and a waiting run is replaced only by a newer main.
 
 permissions:
   contents: read
@@ -67,6 +64,14 @@ jobs:
   deploy:
     name: build + deploy to Cloudflare Pages
     runs-on: ubuntu-latest
+    # THE LOCK HOLDS ONE JOB (DR-1603): build, upload and boot check. Workflow-level, it
+    # waited on post-deploy jobs (run 44476228421: live 07:27, lock held to 07:54).
+    concurrency:
+      group: cf-pages-deploy
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      issues: write
     # Gate: the variable is ON and this serves poetech.us (see the header).
     # It is now an OFF-SWITCH, not a pending cutover — clearing it stops the
     # live site advancing, which is the worst outcome there is (DR-0107).
@@ -81,6 +86,7 @@ jobs:
       # boot-check race the vendor/monolith chunks and false-fail (filing bogus
       # incidents + phone pushes) — the transient deploy failures this hardens.
       assets: ${{ steps.sentinel.outputs.assets }}
+      published: ${{ steps.published.outputs.published }}
     defaults:
       run:
         working-directory: app
@@ -321,29 +327,18 @@ jobs:
           # this a PRODUCTION deployment (the custom domain serves production).
           command: pages deploy dist --project-name=poetech-app --branch=main
 
-  # ---------------------------------------------------------------------------
-  # The deploy is not done until the served app BOOTS (DR-0139). CI-green and
-  # the curl probe both missed the 2026-07-10 class: the shell + assets served
-  # 200 while the family photographed recovery screens — nothing ever EXECUTED
-  # the JavaScript. This job loads the real production URL in headless Chrome
-  # (preinstalled on the runner) and fails loudly — filing the incident ledger —
-  # if the app shows a recovery screen instead of mounting. Non-required check:
-  # it never blocks the merge lane; it makes a broken serve VISIBLE in minutes.
-  # ---------------------------------------------------------------------------
-  verify-boot:
-    name: verify the served app boots (real browser)
-    needs: deploy
-    if: ${{ vars.CF_PAGES_ENABLED == 'true' }}
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      issues: write
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 22
+      - name: Mark the upload done (the dispatches below run even if the boot check then fails)
+        id: published
+        run: echo "published=true" >> "$GITHUB_OUTPUT"
+      # The deploy is not done until the served app BOOTS (DR-0139). CI-green and
+      # the curl probe both missed the 2026-07-10 class: the shell + assets served
+      # 200 while the family photographed recovery screens — nothing ever EXECUTED
+      # the JavaScript. These steps load the real production URL in headless Chrome
+      # (preinstalled on the runner) and fails loudly — filing the incident ledger —
+      # if the app shows a recovery screen instead of mounting. Non-required check:
+      # it never blocks the merge lane; it makes a broken serve VISIBLE in minutes.
       - name: Install playwright-core (drives the runner's installed Chrome)
+        working-directory: .
         run: npm install --no-save playwright-core@1
       # ------------------------------------------------------------------------
       # Propagation gate (incident #722, DR-0153 §2): for minutes after an
@@ -355,8 +350,10 @@ jobs:
       # failure path below files it on the ledger.
       # ------------------------------------------------------------------------
       - name: Wait for the domain to serve this deploy (measured propagation window)
+        id: propagate
+        working-directory: .
         env:
-          ASSETS: ${{ needs.deploy.outputs.assets }}
+          ASSETS: ${{ steps.sentinel.outputs.assets }}
         run: |
           if [ -z "$ASSETS" ]; then
             echo "no asset sentinel from the build — skipping the gate (boot-check below is still the judge)" | tee -a "$GITHUB_STEP_SUMMARY"
@@ -388,12 +385,15 @@ jobs:
           done
           echo "all boot chunks served as JavaScript — propagation complete" | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Boot-check production (domain + pages.dev origin + the Moore door + the Church tab)
+        id: boot
+        working-directory: .
         # ?view=church added 2026-07-10 after the family photographed a white
         # screen on the Church tab during a deploy window — the tab the church
         # actually lives in is now proven booting on every deploy, not assumed.
         run: node scripts/boot-check.mjs https://poetech.us/poetech-app/ https://poetech-app.pages.dev/poetech-app/ "https://poetech.us/poetech-app/?moore=1" "https://poetech.us/poetech-app/?view=church"
       - name: File the failing observation on the incident ledger
-        if: failure()
+        if: ${{ failure() && (steps.propagate.outcome == 'failure' || steps.boot.outcome == 'failure') }}
+        working-directory: .
         env:
           GH_TOKEN: ${{ github.token }}
           N8N_BEARER: ${{ secrets.VITE_N8N_BEARER }}
@@ -456,7 +456,7 @@ jobs:
   dispatch-lessons-sync:
     name: dispatch the NAS lesson sync (after a successful deploy)
     needs: deploy
-    if: ${{ vars.CF_PAGES_ENABLED == 'true' }}
+    if: ${{ always() && needs.deploy.outputs.published == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 3
     permissions:
@@ -483,7 +483,7 @@ jobs:
   place-doors:
     name: dispatch the address completer, which then places the doors (after a successful deploy)
     needs: deploy
-    if: ${{ vars.CF_PAGES_ENABLED == 'true' }}
+    if: ${{ always() && needs.deploy.outputs.published == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 3
     permissions:
@@ -510,7 +510,7 @@ jobs:
   dispatch-camera-health:
     name: dispatch the camera road witness (after a successful deploy)
     needs: deploy
-    if: ${{ vars.CF_PAGES_ENABLED == 'true' }}
+    if: ${{ always() && needs.deploy.outputs.published == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 3
     permissions:
