@@ -890,14 +890,17 @@ jobs:
       # THE JOURNEYS (DR-1346, from DR-1330 D2): a person's walks on the same
       # build — a shared lesson link lands on the lesson, Learn opens a lesson
       # by taps, the dock tabs and money sections open by taps, Create takes
-      # typed words, the feedback sheet opens. Registry: scripts/e2e/journeys.mjs;
-      # the coverage guard runs in the guards leg. The two planted faults run
-      # first and each must be caught (DR-0076 §3).
+      # typed words, the feedback sheet opens, the TLC Assistant mounts for a minted business-tier stand-in.
+      # Registry: scripts/e2e/journeys.mjs; the coverage guard runs in the guards leg.
+      # The three planted faults run first and each must be caught (DR-0076 §3).
       - name: Proven to catch — a shared link to a lesson that does not exist must fail its journey
         run: node scripts/e2e/app-journeys.mjs --only=lesson-link-lands,create-takes-words --break=link
         working-directory: ${{ github.workspace }}
       - name: Proven to catch — taps that cannot land must fail every tapping journey
         run: node scripts/e2e/app-journeys.mjs --break=taps
+        working-directory: ${{ github.workspace }}
+      - name: Proven to catch — with the signed-in stand-in withheld the Assistant never mounts, and its journey must fail
+        run: node scripts/e2e/app-journeys.mjs --only=office-assistant-answers,create-takes-words --break=signin
         working-directory: ${{ github.workspace }}
       - name: The journeys — every registered walk on the built app
         run: node scripts/e2e/app-journeys.mjs
