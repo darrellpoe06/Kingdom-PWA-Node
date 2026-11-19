@@ -14,7 +14,7 @@
 //
 // ONE TEACHING, ONE LESSON (DR-0610). sov28 quotes Jeremiah 18:4 once (iteration
 // is not failure); ll67 teaches why A.I. is not a soul; sov58 that a rehearsal is
-// not the world; ll329 (DR-1566) is the same newsletter's other episode. This
+// not the world; ll329 (PR #2777) is the same newsletter's other episode. This
 // week owns the wheel itself: hands on the work while it turns.
 //
 // THE RESIDUAL GAP, STATED (DR-0076 section 8). This file proves each quotation

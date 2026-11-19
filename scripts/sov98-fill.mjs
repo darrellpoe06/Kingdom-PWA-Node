@@ -20,7 +20,7 @@
 // The neighbors are DECLARED in the lesson, not avoided: sov28 quotes
 // Jeremiah 18:4 once, to say iteration is not failure; ll67 teaches why A.I.
 // is not a soul; sov58 teaches that a rehearsal is not the world. The same
-// newsletter's four-years episode is ll329 (DR-1566) and is not re-taught.
+// newsletter's four-years episode is ll329 (PR #2777) and is not re-taught.
 // This week owns ONE thing: the potter's hands stay on the work while the
 // wheel turns - directing as it unfolds, not ordering a result and hoping -
 // with the honesty line that a generated person is not a person.
