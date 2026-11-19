@@ -210,7 +210,14 @@
       "to": 23276,
       "dr": "DR-1346",
       "reason": "ci.yml surface-sweep leg gains one three-line step: the app journeys' third planted fault (--break=signin), which withholds the signed-in stand-in so the TLC Assistant never mounts and office-assistant-answers must fail (DR-0076 section 3: proven to catch). The journey itself was the dated deferral that turned the guards red on 2026-11-19. Raised to the measured total, not above it."
+    },
+    {
+      "date": "2026-11-19",
+      "from": 23276,
+      "to": 23312,
+      "dr": "DR-1527",
+      "reason": "kids-episode-narration.yml (35 lines): speaks a Bible Adventures episode script with the open Kokoro voice (Apache-2.0) on a runner, because the sandbox cannot reach Hugging Face; the Jonah episode's narration is timed from it. A new capability (the episode road DR-1527 named), not a longer version of one; one-shot on push, timeout and concurrency as its brakes. Its first draft was 47 lines with a 54-line copy-back companion; the companion was deleted and the header folded to two lines. Raised to the measured total, not above it."
     }
   ],
-  "totalLines": 23276
+  "totalLines": 23312
 }

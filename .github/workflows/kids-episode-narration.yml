@@ -1,13 +1,9 @@
 name: Kids episode narration (Kokoro voice render)
-# Renders the narration of a Bible Adventures episode on a GitHub runner, where
-# the open Kokoro voice model (Apache-2.0) can be downloaded; the sandbox cannot
-# reach Hugging Face. A one-shot render, never on a timer: budget = the job
-# timeout, lock = the concurrency group (a new push waits, it never stacks).
+# One-shot on push: speaks a Bible Adventures episode script with Kokoro
+# (Apache-2.0) where Hugging Face is reachable; budget = timeout, lock = concurrency.
 on:
   push:
-    paths:
-      - 'scripts/kids-episode/**'
-      - '.github/workflows/kids-episode-narration.yml'
+    paths: ['scripts/kids-episode/**', '.github/workflows/kids-episode-narration.yml']
   workflow_dispatch: {}
 permissions:
   contents: read
@@ -27,14 +23,11 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Install the voice
-        run: |
+      - run: |
           sudo apt-get update -qq && sudo apt-get install -y -qq espeak-ng >/dev/null
           pip install -q "$(grep '^kokoro==' infra/requirements-ci.txt)" "$(grep '^soundfile==' infra/requirements-ci.txt)"
-      - name: Audition sample
-        run: python3 scripts/kids-episode/narrate.py scripts/kids-episode/jonah.episode.json out/sample-${{ matrix.voice }} ${{ matrix.voice }} --sample
-      - name: Full narration
-        run: python3 scripts/kids-episode/narrate.py scripts/kids-episode/jonah.episode.json out/full-${{ matrix.voice }} ${{ matrix.voice }}
+      - run: python3 scripts/kids-episode/narrate.py scripts/kids-episode/jonah.episode.json out/sample-${{ matrix.voice }} ${{ matrix.voice }} --sample
+      - run: python3 scripts/kids-episode/narrate.py scripts/kids-episode/jonah.episode.json out/full-${{ matrix.voice }} ${{ matrix.voice }}
       - uses: actions/upload-artifact@v4
         with:
           name: jonah-narration-${{ matrix.voice }}
