@@ -22,7 +22,19 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 const INDEX = readFileSync(join(ROOT, 'docs/decisions/INDEX.md'), 'utf8');
 const LEDGER = readFileSync(join(ROOT, 'app/src/lib/ai-usage-ledger.json'), 'utf8');
 const row = (n) => `| [DR-${n}](DR-${n}-x.md) | **Row ${n}.** test | accepted | A | test | TEST |`;
-const entry = (n) => ({ id: `t-${n}`, date: '2026-11-19', task: 't', drs: [`DR-${n}`], prs: [], model: 'unrecorded', tokens: null, costUsd: null, wallClockHours: 0, estimateWithoutAiHours: 0, notes: '' });
+const entry = (n) => ({
+  id: `t-${n}`,
+  date: '2026-11-19',
+  task: 't',
+  drs: [`DR-${n}`],
+  prs: [],
+  model: 'unrecorded',
+  tokens: null,
+  costUsd: null,
+  wallClockHours: 0,
+  estimateWithoutAiHours: 0,
+  notes: '',
+});
 
 /** Append at the tail of the live table: what every branch did before. */
 function appendRow(text, r) {
@@ -54,7 +66,10 @@ function mergesClean(sideA, sideB) {
   writeFileSync(join(dir, 'd/ledger.json'), LEDGER);
   git('add', '.');
   git('commit', '-qm', 'base');
-  for (const [name, side] of [['a', sideA], ['b', sideB]]) {
+  for (const [name, side] of [
+    ['a', sideA],
+    ['b', sideB],
+  ]) {
     git('checkout', '-q', '-b', name, 'main');
     writeFileSync(join(dir, 'd/INDEX.md'), side.index);
     writeFileSync(join(dir, 'd/ledger.json'), side.ledger);
