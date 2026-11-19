@@ -80,6 +80,8 @@ import { tenancyRowForDoor, tenancyForTenantInvite, advertisedPriceFollows } fro
 import { areaKeyFor, describeAddress, linkToAddress } from './addressing.js';
 import { addressNow, useAddress } from './use-address.js';
 import supabase, { phoneLoginEmail } from '../../lib/supabase.js';
+import MyWorkOrders, { showsMyWork } from './MyWorkOrders.jsx';
+import { loadMyAssignedWork, openAssigned, jobDoorId } from '../../lib/assigned-work.js';
 import PortfolioTab from './PortfolioTab.jsx';
 import { boundedRead, deadlineIn, READ_TIMEOUT_MS, OPTIONAL_TIMEOUT_MS as CLAIM_TIMEOUT_MS } from '../../lib/bounded-read.js';
 import { POE_PROPERTIES, LAUNCH_PLAN, OPPORTUNITIES, CONSTRAINTS } from './config.js';
@@ -331,6 +333,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
   // THEIRS and a dispatch is assigned to a real user id (DR-0837).
   const [invites, setInvites] = useState([]);
   const [me, setMe] = useState(null);
+  const [assigned, setAssigned] = useState({ state: 'loading', jobs: [] }); // the jobs sent to me, on every door (DR-1594)
   // Drafts the caller read from the family's own records (Drive/Gmail). The
   // module never fetches them itself — the shell hands them in, so this surface
   // has no opinion about WHERE a record lives, only about not asserting it.
@@ -759,6 +762,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
     if (rawHousehold.some((m) => m.tenancy_id === activeDoor?.id)) return 'household';
     if (rawGrants.includes('request.manage') || rawGrants.includes('rentroll.view')) return 'manager';
     if (rawGrants.includes('docs.add') || rawGrants.includes('property.history')) return 'field_worker';
+    if (assigned.jobs.length > 0 && !rawRentals.length && !seatIsOwner(seat)) return 'field_worker'; // sent a job, no grant (DR-1594)
     // A LANDLORD IS A LANDLORD BEFORE HE HAS A TENANT (fixed 2026-08-27). This
     // branch used to require `activeDoor`, i.e. an existing TENANCY — so an
     // owner with 12 properties and no tenancy rows fell through to 'tenant' and
@@ -775,7 +779,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
       return surface === 'poetech' ? 'owner' : 'tenant';
     }
     return 'tenant';
-  }, [rawGrants, rawHousehold, activeDoor, surface, rawRentals, seat]);
+  }, [rawGrants, rawHousehold, activeDoor, surface, rawRentals, seat, assigned]);
   const role = previewing ? viewAs : realRole;
 
   // The landlord's faces read every tenancy this door has had (DR-1167); the
@@ -889,6 +893,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
   );
 
   const refresh = () => setReloadKey((k) => k + 1);
+  useEffect(() => { let live = true; loadMyAssignedWork(supabase).then((r) => { if (live) setAssigned((p) => (r.ok ? { state: 'ok', jobs: r.jobs } : { state: r.reason, jobs: p.jobs })); }); return () => { live = false; }; }, [reloadKey, me]);
   const workers = useMemo(() => workerRoster(invites, { instanceId: workDoor?.instanceId || null }), [invites, workDoor]);
   // The name this worker was invited under, so a job assigned by name before
   // they ever signed in is still theirs.
@@ -1488,6 +1493,10 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
         </div>
       )}
 
+      {realRole === 'field_worker' && showsMyWork(activeTab, face.tabs.find((t) => t.id === activeTab)?.locked) && (
+        <MyWorkOrders jobs={openAssigned(assigned.jobs)} state={assigned.state} canOpen={(j) => [...doors, ...rentals].some((d) => d.id === jobDoorId(j))}
+          onOpen={(j) => { setActiveId(jobDoorId(j)); setTab('jobs'); }} post={postJobDoc} onDone={refresh} />
+      )}
       {(() => {
         const current = face.tabs.find((t) => t.id === activeTab);
         if (current?.locked) {

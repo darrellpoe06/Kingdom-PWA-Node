@@ -24,6 +24,7 @@
 import { supabase, onAuthChange } from './supabase.js';
 import { applyAppBadge, applyTitleBadge } from './dm-notify.js';
 import { DM_UNREAD_EVENT } from './notify-readiness.js';
+import { jobArrivals } from './assigned-work.js';
 import {
   ARRIVALS_EVENT, ARRIVALS_SEEN_EVENT, lessonArrivals, queueArrivals, feedbackArrivals, messageArrival,
   combineArrivals, loadSeen, saveSeen, markSeen, unseenArrivals, arrivalCount, badgeText, ringableIds, newSince,
@@ -100,6 +101,8 @@ const defaultLoaders = {
   catalog: async () => (await import('./lesson-dates.js')).datedLessons,
   // The church channel's own recordings (the feed the Past sermons tab plays
   // from): a new service rings for every signed-in person.
+  // The work orders sent to a 1099 worker (DR-1594); [] for everyone else.
+  jobs: async () => (await import('./assigned-work.js')).loadMyAssignedWork,
   services: async () => {
     const [{ parseYoutubeFeed }, { COLG_DEFAULT_CHURCH }] = await Promise.all([import('./youtube-feed.js'), import('./default-church.js')]);
     return (fetchImpl) => fetchChannelServices({ fetchImpl, channelId: COLG_DEFAULT_CHURCH.youtubeChannelId, parse: parseYoutubeFeed });
@@ -147,7 +150,7 @@ export function startArrivalsWatch(win = typeof window !== 'undefined' ? window 
     const state = {
       uid,
       seen: loadSeen(win.localStorage, uid),
-      parts: { message: null, lessons: [], queue: [], feedback: [], catalog: [], services: [] },
+      parts: { message: null, lessons: [], queue: [], feedback: [], catalog: [], services: [], jobs: [] },
       servicesAt: 0,
       since: catalogSince(win.localStorage, uid),
       known: [],
@@ -190,6 +193,12 @@ export function startArrivalsWatch(win = typeof window !== 'undefined' ? window 
           if (!cancelled && videos) state.parts.services = serviceArrivals(videos, { since: state.since });
         } catch { /* the last channel picture stands */ }
       }
+      // A work order sent to me, on its own: a failed read keeps the last list.
+      try {
+        const loadJobs = await loaders.jobs();
+        const j = await loadJobs(client);
+        if (!cancelled && j && j.ok) state.parts.jobs = jobArrivals(j.jobs);
+      } catch { /* the last job picture stands */ }
       try {
         const fetchMyLessons = await loaders.lessons();
         const res = await fetchMyLessons({ supabase: client });

@@ -34,6 +34,8 @@
 //                    lessons" -- every kind above needs a row of the person's own,
 //                    and the lessons built from his emailed requests (sov41-46,
 //                    pm13, car1-6) never had one, so they never rang.
+//   job-new          a work order was sent to you, a 1099 worker (DR-1594):
+//                    one per open job my_assigned_work_orders() returns
 //   service-new      a recording landed on the church channel (the channel's own
 //                    public feed through /api/church-recent, the feed the Past
 //                    sermons tab plays from). Darrell 2026-11-18: "when BG has a
@@ -50,9 +52,10 @@ import { arrivalText } from './notify-readiness.js';
 import { buildStageTimes } from './lesson-pipeline.js';
 import { currentDoor, messageLandingHere } from './app-doors.js';
 import { lessonQuery } from './lesson-links.js';
+import { jobLanding } from './assigned-work.js';
 import { LIVING_LESSONS_KEY } from './lessons-for-situation.js';
 
-export const ARRIVAL_KINDS = Object.freeze(['message', 'lesson-ready', 'lesson-review', 'lesson-published', 'review-queue', 'feedback', 'lesson-new', 'service-new']);
+export const ARRIVAL_KINDS = Object.freeze(['message', 'lesson-ready', 'lesson-review', 'lesson-published', 'review-queue', 'feedback', 'lesson-new', 'service-new', 'job-new']);
 
 /** The kinds a screen marks seen when it opens. One source for every screen. */
 export const SCREEN_KINDS = Object.freeze({
@@ -65,6 +68,8 @@ export const SCREEN_KINDS = Object.freeze({
   lesson: ['lesson-published'],
   // The Church surface, where the recording plays (DR-1506).
   church: ['service-new'],
+  // A 1099 worker's own work orders, opened in Poe Properties (DR-1594).
+  'properties-jobs': ['job-new'],
 });
 
 // ── new in the catalog ───────────────────────────────────────────────────────
@@ -276,8 +281,8 @@ export function messageArrival({ count = 0, newest = null } = {}) {
 }
 
 /** Every arrival, newest first. An item with no time sorts last, never first. */
-export function combineArrivals({ message = null, lessons = [], queue = [], feedback = [], catalog = [], services = [] } = {}) {
-  const all = [...(message ? [message] : []), ...lessons, ...queue, ...feedback, ...catalog, ...services];
+export function combineArrivals({ message = null, lessons = [], queue = [], feedback = [], catalog = [], services = [], jobs = [] } = {}) {
+  const all = [...(message ? [message] : []), ...lessons, ...queue, ...feedback, ...catalog, ...services, ...jobs];
   return all.sort((a, b) => {
     if (a.at && b.at) return a.at < b.at ? 1 : a.at > b.at ? -1 : 0;
     if (a.at) return -1;
@@ -397,6 +402,7 @@ export function newSince(items, knownIds) {
 export function arrivalLanding({ pathname = '', search = '', item } = {}) {
   if (!item) return null;
   if (item.kind === 'message') return messageLandingHere({ pathname, search, peerUserId: item.peerUserId });
+  if (item.kind === 'job-new') return jobLanding(item); // the Poe Properties door, whichever door he is in (DR-1594)
   const door = currentDoor(pathname, search).path;
   if (item.screen === 'your-lessons') return `${door}?view=create&panel=your-lessons`;
   if (item.screen === 'decide') return `${door}?view=create&panel=decide`;

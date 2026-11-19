@@ -338,6 +338,13 @@
       "why": "The Overview (DR-1530) is its own module (PortfolioTab.jsx, portfolio.js, portfolio-cloud.js); the shell of the module pays only its wiring: one import and one case line. Raised to the measured size, not above it."
     },
     {
+      "file": "app/src/modules/properties/PropertiesApp.jsx",
+      "from": 2684,
+      "to": 2693,
+      "date": "2026-11-19",
+      "why": "A 1099 worker's work orders on every door (DR-1594) are their own files (MyWorkOrders.jsx, lib/assigned-work.js); the shell pays only its wiring: two imports, the list's state and its read, the worker-by-assignment role line, and the card's three render lines. Raised to the measured size, not above it."
+    },
+    {
       "file": "app/src/lib/sovereign-ai-class.js",
       "from": 13372,
       "to": 13589,
@@ -450,7 +457,7 @@
     "app/src/components/ChurchLearn.jsx": 6012,
     "app/src/modules/properties/DoorTabs.jsx": 3352,
     "app/src/components/Rentals.jsx": 3220,
-    "app/src/modules/properties/PropertiesApp.jsx": 2684,
+    "app/src/modules/properties/PropertiesApp.jsx": 2693,
     "app/src/components/TTSControl.jsx": 2630,
     "app/src/lib/cameras.js": 2029,
     "app/src/lib/godhead-study.js": 1993,
