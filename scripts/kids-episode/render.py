@@ -105,7 +105,7 @@ def beat_video(b, out, draft):
     z0, z1, x0, x1, y0, y1 = CAMERA.get(b["id"], (1.0, 1.12, 0.5, 0.5, 0.5, 0.5))
     d = b["dur"]
     n = int(round(d * FPS))
-    up = 2880 if draft else 3840
+    up = 2304 if draft else 2880
     # zoompan works on the upscaled still; p = progress 0..1 with an ease-in-out
     p = f"(0.5-0.5*cos(PI*on/{max(n-1,1)}))"
     z = f"({z0}+({z1}-{z0})*{p})"
@@ -114,7 +114,7 @@ def beat_video(b, out, draft):
     base = f"[0:v]scale={up}:-2,setsar=1,zoompan=z='{z}':x='{x}':y='{y}':d={n}:s={W}x{H}:fps={FPS},format=yuv420p"
     amb = b["ambience"]
     fx = []
-    inputs = ["-loop", "1", "-framerate", str(FPS), "-t", f"{d}", "-i", src]
+    inputs = ["-i", src]  # ONE still frame: zoompan makes d frames from each input frame
     graph = base + "[bg]"
     last = "bg"
     if amb in ("storm", "storm-calm"):
@@ -125,17 +125,17 @@ def beat_video(b, out, draft):
         # rain: sparse bright noise, streaked by a directional blur, screened on top
         op = "0.42" if amb == "storm" else f"'max(0.05,0.42-0.40*t/{d})'"
         graph += (f";color=black:s={W}x{H}:r={FPS}:d={d},noise=alls=100:allf=t+u,format=gray,"
-                  f"lutyuv=y='if(gt(val,247),255,0)',dblur=angle=75:radius=28,eq=contrast=2.2:brightness=0.06,format=yuv420p[rain]"
-                  f";[{last}][rain]blend=all_mode=screen:all_opacity={0.38 if amb == 'storm' else 0.22}[wet]")
+                  f"lutyuv=y='if(gt(val,247),255,0)',dblur=angle=75:radius=28,eq=contrast=2.2:brightness=0.06,format=gbrp[rain]"
+                  f";[{last}]format=gbrp[base];[base][rain]blend=all_mode=screen:all_opacity={0.38 if amb == 'storm' else 0.22}[wet]")
         last = "wet"
     elif amb == "underwater":
         graph += (f";[{last}]eq=brightness='0.035*sin(2*PI*t/5)':eval=frame[pulse]"
                   f";color=black:s={W}x{H}:r={FPS}:d={d},noise=alls=100:allf=t+u,format=gray,lutyuv=y='if(gt(val,252),255,0)',"
-                  f"gblur=sigma=2.2,eq=contrast=3:brightness=0.05,format=yuv420p[motes]"
-                  f";[pulse][motes]blend=all_mode=screen:all_opacity=0.35[sea]")
+                  f"gblur=sigma=2.2,eq=contrast=3:brightness=0.05,format=gbrp[motes]"
+                  f";[pulse]format=gbrp[pb];[pb][motes]blend=all_mode=screen:all_opacity=0.35[sea]")
         last = "sea"
     elif amb in ("morning", "theme"):
-        graph += f";[{last}]split[a][b];[b]gblur=sigma=18,eq=brightness=0.04[glow];[a][glow]blend=all_mode=screen:all_opacity=0.22[bloom]"
+        graph += f";[{last}]format=gbrp,split[a][b];[b]gblur=sigma=18[glow];[a][glow]blend=all_mode=screen:all_opacity=0.22[bloom]"
         last = "bloom"
     elif amb == "evening":
         graph += f";[{last}]colorbalance=rs=0.06:bs=-0.06:rm=0.04,eq=saturation=0.9[eve]"
@@ -156,9 +156,9 @@ def beat_video(b, out, draft):
                   f",drawtext=fontfile={FONT}:text='Jonah 2\\:9 (KJV)':fontsize=44:fontcolor=0xFFD86B:borderw=4:bordercolor=0x2A1440:x=(w-text_w)/2:y=h*0.72+100:"
                   f"alpha='min(1,max(0,(t-2.6)/1.2))'[ttl]")
         last = "ttl"
-    graph += f";[{last}]vignette=angle=PI/5,noise=alls=3:allf=t,format=yuv420p[v]"
+    graph += f";[{last}]format=yuv420p,vignette=angle=PI/5,format=yuv420p[v]"
     run(["ffmpeg", "-y", "-loglevel", "error", *inputs, "-filter_complex", graph, "-map", "[v]", "-r", str(FPS),
-         "-c:v", "libx264", "-preset", "veryfast" if draft else "medium", "-crf", "24" if draft else "18", "-pix_fmt", "yuv420p", out])
+         "-c:v", "libx264", "-preset", "ultrafast", "-crf", "20" if draft else "14", "-pix_fmt", "yuv420p", out])
 
 
 def chain(segs, beats, out):
@@ -195,6 +195,11 @@ def mix(beats, total, narr, out_wav):
             a = resample(a, sr)
             i = int(l["at"] * SR) + int(b["start"] * SR)
             voice[i:i + len(a)] += a[: max(0, n - i)]
+    # level the voice: speech RMS to about -19 dBFS whatever the voice model's own level
+    speech = voice[np.abs(voice) > 0.01]
+    if speech.size:
+        rms = float(np.sqrt(np.mean(speech ** 2)))
+        voice *= (10 ** (-19 / 20)) / max(rms, 1e-6)
     amb = np.zeros(n, np.float32)
     for b in beats:
         a = sound.ambience(b["ambience"], b["dur"], thunder_times(b["dur"]) if b["ambience"].startswith("storm") else ()).astype(np.float32)
