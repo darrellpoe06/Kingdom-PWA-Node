@@ -51,7 +51,8 @@ CAMERA = {
     "b7": (1.16, 1.02, 0.60, 0.50, 0.40, 0.48),
     "b8": (1.02, 1.16, 0.45, 0.55, 0.52, 0.50),
     "b9": (1.00, 1.14, 0.60, 0.62, 0.45, 0.42),
-    "b10": (1.15, 1.35, 0.30, 0.22, 0.42, 0.40),
+    # Jonah 4: Jonah alone, from behind, over the city (Jonah 4:5); tight enough to leave the guides out of frame
+    "b10": (2.30, 2.45, 0.22, 0.20, 0.22, 0.20),
     "outro": (1.12, 1.00, 0.50, 0.50, 0.45, 0.48),
 }
 
@@ -145,13 +146,15 @@ def beat_video(b, out, draft):
         last = "shim"
     # titles
     if b["id"] == "intro":
-        graph += (f";[{last}]drawtext=fontfile={FONT}:text='Jonah and the Great Fish':fontsize=96:fontcolor=white:"
+        graph += (f";[{last}]drawbox=x=0:y=ih*0.67:w=iw:h=ih*0.23:color=black@0.45:t=fill:enable='gte(t,0.8)'"
+                  f",drawtext=fontfile={FONT}:text='Jonah and the Great Fish':fontsize=96:fontcolor=white:"
                   f"borderw=5:bordercolor=0x2A1440:x=(w-text_w)/2:y=h*0.70:alpha='min(1,max(0,(t-1.0)/1.2))*min(1,max(0,({d}-t-0.6)/1.0))'"
                   f",drawtext=fontfile={FONT}:text='The Love Corner Bible Adventures':fontsize=46:fontcolor=0xFFD86B:borderw=4:bordercolor=0x2A1440:"
                   f"x=(w-text_w)/2:y=h*0.70+110:alpha='min(1,max(0,(t-1.8)/1.2))*min(1,max(0,({d}-t-0.6)/1.0))'[ttl]")
         last = "ttl"
     if b["id"] == "outro":
-        graph += (f";[{last}]drawtext=fontfile={FONT}:text='Salvation is of the LORD.':fontsize=84:fontcolor=white:borderw=5:bordercolor=0x2A1440:"
+        graph += (f";[{last}]drawbox=x=0:y=ih*0.69:w=iw:h=ih*0.22:color=black@0.45:t=fill:enable='gte(t,1.6)'"
+                  f",drawtext=fontfile={FONT}:text='Salvation is of the LORD.':fontsize=84:fontcolor=white:borderw=5:bordercolor=0x2A1440:"
                   f"x=(w-text_w)/2:y=h*0.72:alpha='min(1,max(0,(t-2.0)/1.2))'"
                   f",drawtext=fontfile={FONT}:text='Jonah 2\\:9 (KJV)':fontsize=44:fontcolor=0xFFD86B:borderw=4:bordercolor=0x2A1440:x=(w-text_w)/2:y=h*0.72+100:"
                   f"alpha='min(1,max(0,(t-2.6)/1.2))'[ttl]")
@@ -266,7 +269,8 @@ def main():
     segs = []
     for b in beats:
         s = os.path.join(work, f"{b['id']}.mp4")
-        beat_video(b, s, draft)
+        if not ("--reuse" in sys.argv and os.path.exists(s)):
+            beat_video(b, s, draft)
         segs.append(s)
         print(f"beat {b['id']:6s} {b['dur']:6.2f}s  scene={b['scene']}", flush=True)
     vid = os.path.join(work, "video.mp4")
@@ -276,6 +280,10 @@ def main():
     cap = os.path.join(outd, f"{ep['id']}.en.vtt")
     vtt(beats, cap)
     mp4 = os.path.join(outd, f"{ep['id']}.mp4")
+    # broadcast loudness for online video: -16 LUFS integrated, true peak -1.5 dB
+    lw = os.path.join(work, "mix-loud.wav")
+    run(["ffmpeg", "-y", "-loglevel", "error", "-i", wav, "-af", "loudnorm=I=-16:TP=-1.5:LRA=11", "-ar", str(SR), lw])
+    wav = lw
     run(["ffmpeg", "-y", "-loglevel", "error", "-i", vid, "-i", wav, "-i", cap, "-map", "0:v", "-map", "1:a", "-map", "2:s",
          "-c:v", "copy", "-c:a", "aac", "-b:a", "160k", "-c:s", "mov_text", "-metadata:s:s:0", "language=eng",
          "-shortest", "-movflags", "+faststart", mp4])
