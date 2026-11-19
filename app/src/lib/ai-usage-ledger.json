@@ -3071,6 +3071,21 @@
       "notes": "Reserved L309 and DR-1479 on origin with new-lesson.mjs and claim-decision-number through intermittent 503s. 157 verses filled from app/public/bible/kjv by fill-verses.mjs, none typed. Every personal detail of the source emails withheld; the second thread was not read back (session permission check), re-review 2026-11-27."
     },
     {
+      "id": "lane-test-9001",
+      "date": "2026-11-19",
+      "task": "throwaway",
+      "drs": [
+        "DR-9001"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0,
+      "estimateWithoutAiHours": 0,
+      "notes": ""
+    },
+    {
       "id": "sov84-the-body-hath-many-members",
       "date": "2026-11-13",
       "task": "Sovereign A.I. week 84 from one forwarded newsletter and one typed word",
