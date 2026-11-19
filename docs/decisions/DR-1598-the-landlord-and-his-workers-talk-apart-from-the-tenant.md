@@ -13,6 +13,12 @@ Darrell, 2026-11-19: *"Land lords and owners should be able to see their 1099 wo
 
 Traced (DR-0219): `tenant_messages` is one thread per tenancy that the tenant, household, landlord, a manager with `message.tenant`, and a worker the door enabled all read and write (0150). Nothing was ever written there as staff-only, so no existing row is exposed. What did not exist was a chat a tenant cannot read. `property_systems` already holds each system's `location_note`; nothing showed it to the tenant.
 
+## What was measured
+
+- `tenant_messages_read` (0150:241): owner/admin/member, the tenant, the household, `message.tenant` delegates and `user_is_enabled_worker`; the table has no audience column, so every row is the tenant thread.
+- No table on main held a conversation the tenant could not read.
+- `property_systems.location_note` (0156:154) exists; its read policy (0156:207) is instance members only, so a tenant was never shown it.
+
 ## Decision
 
 1. **The tenant group chat is `tenant_messages`, unchanged.** Every existing message stays where its readers see it. On staff faces it is now titled "Tenant group chat · the tenant sees everything here".
