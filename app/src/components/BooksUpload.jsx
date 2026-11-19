@@ -17,6 +17,7 @@
 //   - in demo mode nothing is written anywhere
 // =============================================================================
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { TABLE_READER_VERSION, isTableRead } from '../lib/books-intake-read.js';
 import UiIcon from './UiIcon.jsx';
 import Modal from './Modal.jsx';
 import { intakeStore } from '../lib/books-intake-store.js';
@@ -101,7 +102,7 @@ function DocCard({ doc, onAnswer, onConfirm, onDecide, busy, demo, today, acctNa
           {x.line_items.length > 0 && (<><span className="text-[#5A5751]">Lines</span><span className="text-[#1A1815]">{x.line_items.length}{doc.plan && doc.plan.duplicates ? ` · ${doc.plan.duplicates} already in the books` : ''}</span></>)}
         </div>
       )}
-      {x && x.doc_type === 'account-snapshot' && <SnapshotRows doc={doc} x={x} onDecide={onDecide} busy={busy || demo} />}
+      {x && (x.doc_type === 'account-snapshot' || (x.doc_type === 'transactions-export' && doc.plan && doc.plan.rowStatuses)) && <SnapshotRows doc={doc} x={x} onDecide={onDecide} busy={busy || demo} />}
       {doc.plan && doc.plan.held && <p className="text-[0.6875rem] text-[#8B6F47]" data-testid="intake-held">Held: {doc.plan.reason}.</p>}
       {doc.recon && x && x.doc_type !== 'unknown' && (
         <p className={`text-[0.6875rem] ${doc.recon.status === 'mismatch' ? 'text-[#7A1F1F]' : doc.recon.status === 'reconciled' ? 'text-[#5A6E3D]' : 'text-[#8B6F47]'}`}>{doc.recon.note}</p>
@@ -150,7 +151,7 @@ function DocCard({ doc, onAnswer, onConfirm, onDecide, busy, demo, today, acctNa
 // first, then the built-in ones; yours to change), and rows already in the
 // books marked so. Approve adds exactly the boxed rows, as categorized.
 function SnapshotRows({ doc, x, onDecide, busy }) {
-  const statuses = doc.plan && doc.plan.kind === 'snapshot' ? doc.plan.rowStatuses || null : null;
+  const statuses = doc.plan && (doc.plan.kind === 'snapshot' || doc.plan.kind === 'transactions') ? doc.plan.rowStatuses || null : null;
   if (!statuses) {
     const list = x.preview_items || [];
     if (!list.length) return null;
@@ -159,10 +160,10 @@ function SnapshotRows({ doc, x, onDecide, busy }) {
         <summary className="cursor-pointer text-[#5A5751]">{`${list.length} row${list.length === 1 ? '' : 's'} read from the screen (not added yet)`}</summary>
         <ul className="mt-1 space-y-0.5" style={MONO}>
           {list.map((r, i) => (
-            <li key={`${r.date || r.openDate}-${r.description}-${i}`} className="flex gap-2" data-testid="intake-snapshot-row">
+            <li key={`${r.date || r.openDate}-${r.description}-${i}`} className="flex flex-wrap items-baseline gap-x-2" data-testid="intake-snapshot-row">
               <span className="w-[5.5rem] shrink-0 text-[#5A5751]">{r.date || (r.openDate ? `${r.openDate} · day needed` : 'day needed')}</span>
-              <span className="flex-1 min-w-0 break-words text-[#1A1815]">{r.description}{r.pending ? ' · pending' : ''}{r.category === 'transfer' ? ' · transfer' : r.category === 'debt-payment' ? ' · debt payment' : ''}</span>
-              <span className={`shrink-0 ${r.signUnknown || r.amountUnclear ? 'text-[#8B6F47]' : 'text-[#1A1815]'}`}>{r.amountUnclear ? 'amount unclear' : r.signUnknown ? `${money(Math.abs(r.amount))} · in or out?` : `${r.amount < 0 ? '\u2212' : '+'}${money(Math.abs(r.amount))}`}</span>
+              <span className="order-last w-full whitespace-normal break-words text-[#1A1815]" data-testid="intake-row-description">{r.description}{r.pending ? ' · pending' : ''}{r.category === 'transfer' ? ' · transfer' : r.category === 'debt-payment' ? ' · debt payment' : ''}</span>
+              <span className={`ml-auto shrink-0 ${r.signUnknown || r.amountUnclear ? 'text-[#8B6F47]' : 'text-[#1A1815]'}`}>{r.amountUnclear ? 'amount unclear' : r.signUnknown ? `${money(Math.abs(r.amount))} · in or out?` : `${r.amount < 0 ? '\u2212' : '+'}${money(Math.abs(r.amount))}`}</span>
               <RowFigures r={r} />
             </li>
           ))}
@@ -171,12 +172,18 @@ function SnapshotRows({ doc, x, onDecide, busy }) {
     );
   }
   const adding = statuses.filter((s) => s.status === 'new').length;
+  // The four answers before Approve (Christina 2026-11-18): new, already in the
+  // books, needing review, and source rows that could not be read at all.
+  const alreadyIn = statuses.filter((s) => s.status === 'duplicate').length;
+  const review = statuses.filter((s) => needsReview(s)).length;
+  const unreadable = (doc.plan && doc.plan.unreadable) || [];
   const can = !!onDecide && !busy;
   const all = (exclude) => onDecide(doc, Object.fromEntries(statuses.filter((s) => s.status !== 'duplicate').map((s) => [s.index, exclude ? { exclude: true } : {}])));
   return (
     <div className="text-[0.6875rem]" data-testid="intake-snapshot-rows">
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-[#5A5751]" data-testid="intake-rows-summary">{adding} of {statuses.length} row{statuses.length === 1 ? '' : 's'} will be added{doc.plan.duplicates ? ` · ${doc.plan.duplicates} already in the books` : ''}</span>
+        <span className="w-full text-[#1A1815]" data-testid="intake-rows-counts">{`New ${adding} \u00b7 Already in the books ${alreadyIn} \u00b7 Need review ${review} \u00b7 Could not be read ${unreadable.length}`}</span>
         {onDecide && <button type="button" disabled={!can} onClick={() => all(false)} data-testid="intake-rows-all" className="min-h-[36px] px-2.5 border border-[#1A1815] text-[#1A1815] disabled:opacity-40">Add all</button>}
         {onDecide && <button type="button" disabled={!can} onClick={() => all(true)} data-testid="intake-rows-none" className="min-h-[36px] px-2.5 border border-[#1A1815] text-[#1A1815] disabled:opacity-40">Add none</button>}
       </div>
@@ -191,8 +198,8 @@ function SnapshotRows({ doc, x, onDecide, busy }) {
                 <input type="checkbox" checked={s.status === 'new'} disabled={!can || dup} onChange={(e) => onDecide(doc, { [s.index]: e.target.checked ? { exclude: false, category: (doc.rowDecisions || {})[s.index]?.category, ...(held ? { addAnyway: true } : {}) } : { exclude: true } })} aria-label={`Add ${r.description}`} data-testid={`intake-row-add-${s.index}`} />
                 <span className="w-[5.5rem] shrink-0 text-[#5A5751]">{r.date}</span>
               </label>
-              <span className="flex-1 min-w-[8rem] break-words text-[#1A1815]">{r.description}{r.pending ? ' \u00b7 pending' : ''}{dup ? ' \u00b7 already in the books' : ''}</span>
-              <span className="shrink-0 text-[#1A1815]">{`${r.amount < 0 ? '\u2212' : '+'}${money(Math.abs(r.amount))}`}</span>
+              <span className="ml-auto shrink-0 text-[#1A1815]">{`${r.amount < 0 ? '\u2212' : '+'}${money(Math.abs(r.amount))}`}</span>
+              <span className="w-full pl-6 whitespace-normal break-words text-[#1A1815]" data-testid="intake-row-description">{r.description}{r.pending ? ' \u00b7 pending' : ''}{dup ? ' \u00b7 already in the books' : ''}{needsReview(s) ? ' \u00b7 needs review' : ''}</span>
               <RowFigures r={r} />
               {s.pendingMatch && (
                 <span className="w-full pl-6 text-[0.625rem] text-[#8B6F47]" data-testid={`intake-row-pending-match-${s.index}`}>
@@ -220,8 +227,24 @@ function SnapshotRows({ doc, x, onDecide, busy }) {
         })}
       </ul>
       <UnclearRows list={x.preview_items} />
+      {unreadable.length > 0 && (
+        <ul className="mt-1 space-y-0.5 text-[#7A1F1F]" style={MONO} data-testid="intake-unreadable-rows">
+          {unreadable.map((u, i) => (
+            <li key={`${u.line}-${i}`} data-testid="intake-unreadable-row">{`Line ${u.line} could not be read (${u.reason}): ${u.raw}`}</li>
+          ))}
+        </ul>
+      )}
     </div>
   );
+}
+
+// A row that will be added but should be looked at first: no category yet,
+// the reader's label disagrees with your remembered rule, or it has the same
+// amount as a pending charge already in the books.
+function needsReview(s) {
+  if (!s || s.status !== 'new') return false;
+  const r = s.row || {};
+  return !r.category || r.category === 'other' || !!r.categoryConflict || !!(s.pendingMatch && s.pendingMatch.strength === 'possible');
 }
 
 // What the screen printed for a row, beside the amount taken: the bank's
@@ -312,8 +335,20 @@ export default function BooksUpload({ hint = null, data = {}, debts = [], demo =
     cloudKeep: demo ? null : async (file, doc) => (await import('../lib/books-intake-cloud.js')).keepOriginalInCloud(file, doc),
   }), [store, known, hint, demo, readerDeps]);
 
+  // The latest context, read by refresh without re-running it on every change.
+  const ctxRef = useRef(ctx);
+  ctxRef.current = ctx;
+
   const refresh = useCallback(async () => {
-    const list = await store.listDocs().catch(() => []);
+    let list = await store.listDocs().catch(() => []);
+    // A download read before the table reader was fixed is read again from its
+    // kept file, so it shows its rows instead of a stale "screenshot" label.
+    // Reading only: nothing is added to the books until approved.
+    const stale = list.filter((d) => d && d.status !== 'added' && d.blob && isTableRead(d.read) && d.read.readerVersion !== TABLE_READER_VERSION);
+    if (stale.length) {
+      for (const d of stale) await processDoc(d, ctxRef.current).catch(() => null);
+      list = await store.listDocs().catch(() => list);
+    }
     setDocs(list);
     setTeach(await store.listTeach().catch(() => []));
     reportBooksUploadCount(queueSummary(list).waiting);
