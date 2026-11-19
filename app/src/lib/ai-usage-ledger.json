@@ -1386,6 +1386,21 @@
       "notes": "Darrell: Lessons with no tests?!"
     },
     {
+      "id": "l333-heavenly-cheat-codes-life-his-way",
+      "date": "2026-11-19",
+      "task": "L333 Heavenly Cheat Codes: Life His Way, from Darrell's own lines over one summary of a conversation, all four age bands, shared gate",
+      "drs": [
+        "DR-1573"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.4,
+      "estimateWithoutAiHours": 24,
+      "notes": "Reserved L333 and DR-1573 on origin with new-lesson.mjs. Verses filled from app/public/bible/kjv by fill-verses.mjs, none typed. The name and two lines are Darrell's; video not watched; re-review 2026-12-18."
+    },
+    {
       "id": "dr-1405-system-built-around-the-king",
       "date": "2026-11-10",
       "task": "rto8 stopped setting a system against the King: the King brings the balance, and a system built around Him carries it; pinned by a test",
