@@ -18,6 +18,10 @@ The month and year view (DR-1585) already reaches any year. Nothing told a reade
 - **No channel in the database carries a member's words to the church office.** `church_voice` and `inquiries` are household-scoped. The one pipe that crosses instances is the feedback list (`addFeedback` then `uploadFeedback`), already used the same way for class interest (`lib/church-classes.js`, a text tag and an extractor).
 - **Signed out, `uploadFeedback` sends nothing**, so a signed-out suggestion would stay on the device.
 
+## Impact
+
+Staff and parishioners see, on the calendar itself, what earlier years held at the time of year now coming up, once earlier years are on record; today the section says none are. A signed-in parishioner can send a suggestion or a comment about an event in time for it to matter, and gets a reference for it. The feedback list gains rows tagged as calendar suggestions; nothing else in it changes.
+
 ## Decision
 
 1. **"This time of year, in past years"**: every event from a year before today's whose same month and day falls from today through 60 days ahead, with the year it was held, how long ago, and the date it would fall on this time round. The window crosses a year end; February 29 lands on February 28 where there is none. This year's own events are never listed as past.

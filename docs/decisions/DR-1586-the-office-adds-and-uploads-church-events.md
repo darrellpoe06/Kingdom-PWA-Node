@@ -18,6 +18,10 @@ DR-1585 made the calendar read event records, including rows the church office f
 - **The upload format.** The office keeps its calendar in spreadsheets and documents. CSV is the one file every spreadsheet writes. An .ics reader was considered and left out: it adds recurrence rules and time zones the record does not hold, and no .ics from the church exists to test against. `re-review: 2026-12-17`, when the office has used the upload.
 - **History on record in the repository is 2026 only** (DR-1585). The upload is the path for earlier years; no historical event was seeded, because none could be traced to a real record.
 
+## Impact
+
+The church office (owner or admin of the church instance) can put an event, or a whole year of them, on the calendar from the app, and every signed-in member of that church sees it. Members see no form. Anyone can take the calendar away as a file. A mistaken upload cannot land silently: nothing is filed until the count is confirmed, and each filed event can be removed. Ops items are untouched.
+
 ## Decision
 
 1. **Add an event:** a form (name, date, optional last day, time, place, note) shown to the church office only. An event already on the calendar that day under the same name is not added twice.

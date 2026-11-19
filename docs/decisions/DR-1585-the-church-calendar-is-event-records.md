@@ -20,6 +20,10 @@ The month's calendar on the church screen was one picture from the church websit
 - **History in the repository is thin.** Nothing dated before 2026 for the church's calendar is on record anywhere in the repo. None is invented.
 - **Text size** sets the root font size (`lib/text-size.js`), so rem sizes scale and pictures do not.
 
+## Impact
+
+Everyone who opens Church, Times sees the week and the month as text that grows with the text-size setting, and can tap any day. Signed-in members of the church also see events the office has filed; signed out, the church record's own events and services still show, and the surface says the office's are missing. Nothing changes for the Ministry Ops board except that calendar rows no longer appear on it. No one's saved calendar entries are touched.
+
 ## Decision
 
 1. **A calendar event is a record:** name, date, optional last day, time, place, note, and its source (`announced`, `office`, `service`). Pure model in `lib/church-calendar.js`; a row with no real date is dropped and counted, never guessed.
