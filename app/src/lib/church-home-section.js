@@ -71,3 +71,28 @@ export function subscribeCurrentChurchHomeSection(fn) {
   watchers.add(fn);
   return () => watchers.delete(fn);
 }
+
+// HOME MEANS THE DOOR'S STARTING PLACE (DR-1579). Darrell 2026-11-18: "Bottom
+// left home button should work... bring it back home... same as the logo
+// header etc... back to the original location for the start.... When you click
+// watch... it moves... home should go back to the top." Home in the bar, the
+// logo and the name in the header all ask for the same thing: the Church home
+// as it opens, with no section asked for. Any waiting section request is
+// dropped (a Home tap is newer than it), and a mounted home puts its strip
+// back on its opening section. Scrolling the page is the caller's (the store
+// never reaches the DOM).
+const topListeners = new Set();
+export function requestChurchHomeTop() {
+  pending = null;
+  for (const fn of [...topListeners]) {
+    try {
+      fn();
+    } catch {
+      /* a listener's error never blocks the rest */
+    }
+  }
+}
+export function subscribeChurchHomeTop(fn) {
+  topListeners.add(fn);
+  return () => topListeners.delete(fn);
+}
