@@ -11,11 +11,10 @@
 // user_is_tenant / user_is_tenancy_household / user_is_enabled_worker /
 // user_delegated_can (0075 + 0150). RLS is the gate (DR-0060) — this file cannot
 // widen it and never tries. A person with no access gets [] , not an error.
-//
-// Injectable client (`client = supabase`) so every path is testable with a fake.
-// Never throws: every function returns { ok, ... } with an honest reason.
+// Injectable client (`client = supabase`), testable with a fake; never throws: every function returns { ok, ... } with an honest reason.
 // =============================================================================
 import supabase, { phoneLoginEmail, normalizePhone } from '../../lib/supabase.js';
+import { inviteGrantsNothing } from './model.js';
 
 const ok = (extra = {}) => ({ ok: true, ...extra });
 const no = (reason, error) => ({ ok: false, reason, error: (error && error.message) || undefined });
@@ -543,6 +542,7 @@ export function inviteIdentity({ email, phone }) {
 export async function inviteToProperties({ instanceId, email, phone, roleLabel, tenancyId, scopeRef, capabilities, displayName, relationship }, client = supabase) {
   const id = inviteIdentity({ email, phone });
   if (!id.ok) return no(id.reason);
+  if (inviteGrantsNothing(roleLabel, capabilities || [])) return no('no-capabilities'); // signs in to nothing (DR-1594)
   try {
     const uid = await userId(client);
     const { data, error } = await client.from('property_access_invites').insert({
