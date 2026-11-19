@@ -36,6 +36,10 @@ describe('where Learn opens — the rule', () => {
     expect(learnLandingArea(2)).toBe('latest');
     expect(learnLandingArea(51)).toBe('latest');
   });
+  it('opens on the lessons when the visit opens on a department (a chosen course)', () => {
+    expect(learnLandingArea(51, { inDepartment: true })).toBe('lessons');
+    expect(learnLandingArea(51, { inDepartment: false })).toBe('latest');
+  });
   it('opens on the lessons when there is one course (no strip to come back by)', () => {
     expect(learnLandingArea(1)).toBe('lessons');
     expect(learnLandingArea(0)).toBe('lessons');
@@ -72,6 +76,19 @@ describe('where Learn opens — mounted', () => {
     mount();
     expect(selected() && selected().id).toBe('learn-area-tab-latest');
     expect(container.textContent).toMatch(/newest lessons of every course/i);
+  });
+
+  it('a visit that opens on a department lands on its lessons, not Latest', () => {
+    act(() =>
+      root.render(
+        createElement(ChurchLearn, {
+          course: course('a', 'Learning A.I. The Way', 8),
+          extraCourses: [course('b', 'Living Lessons from the Word', 12)],
+          initialDept: 'the-eternal-algorithms',
+        })
+      )
+    );
+    expect(selected() && selected().id).toBe('learn-area-tab-lessons');
   });
 
   it('every other area is still one tap away, and Lessons still shows the courses', () => {

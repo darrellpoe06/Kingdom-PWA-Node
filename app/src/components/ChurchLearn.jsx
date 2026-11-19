@@ -42,7 +42,7 @@
 // the SAME 16px baseline (text-[10px] -> text-[0.625rem]): pixel-identical at Normal,
 // but scaling to ~1.5x at Largest. New reading text here uses rem, never px.
 import React, { useState, useRef, useMemo, useCallback } from 'react';
-import { LEARN_LANDING_AREA, learnLandingArea } from '../lib/learn-landing.js';
+import { LEARN_LANDING_AREA, useLearnLanding } from '../lib/learn-landing.js';
 import {
   CLASS_META, PROPOSED_COHORT_START, SESSION_FLOW,
   buildSchedule, progressSummary, exportCurriculumMarkdown, formatClassDate,
@@ -4381,17 +4381,11 @@ export default function ChurchLearn({
   // Picker order (DR-0121: derived groups, live counts), kept on this device (DR-0686).
   const [courseSort, setCourseSortState] = useState(() => rememberedCourseSort() || DEFAULT_COURSE_SORT);
   const setCourseSort = (k) => { setCourseSortState(k); rememberCourseSort(k); };
-  // THE AREAS OF LEARN ARE SUB-TABS, NOT A LONG SCROLL (DR-1190). Darrell
-  // 2026-10-21: "we need to be using subtabs not long scrolling except on the
-  // lessons we have an option and it defaults to scroll... All other locations
-  // we expect users to be using need to be able to be seen." One area is on
-  // screen at a time; the Lessons area (the default) is the one that scrolls.
-  // Navigation only -- the blocks keep their place in the page and their
-  // order, each gated by the area it belongs to, so nothing moved, it waits.
-  // ...and Learn OPENS ON LATEST (DR-1606): a newcomer lands on the newest
-  // lessons with ▶ Play, not on a list of courses to choose from. Corrected to
-  // Lessons below when there is only one course (no strip to come back by).
-  const [learnArea, setLearnAreaState] = useState(LEARN_LANDING_AREA);
+  // THE AREAS OF LEARN ARE SUB-TABS, NOT A LONG SCROLL (DR-1190): "we need to be
+  // using subtabs not long scrolling". One area on screen at a time; Lessons is
+  // the one that scrolls. Navigation only: every block keeps its place, gated
+  // by its area.
+  const [learnArea, setLearnAreaState] = useState(LEARN_LANDING_AREA); // opens on Latest (DR-1606)
   const findFocusPending = React.useRef(false);
   const setLearnArea = (id) => { setLearnAreaState(id); };
   React.useEffect(() => {
@@ -4527,9 +4521,6 @@ export default function ChurchLearn({
   // lesson that names its Scripture opens with it, quoted from the in-app KJV.
   // And the stories a lesson was missing join it (lib/lesson-side-stories.js).
   const courses = withSideStories(withWordQuotes(withLessonDates(useCurriculumOverlay([aiCourse, ...(broadcastCourse ? [broadcastCourse] : []), ...builtExtras, ...eternalCourses]))));
-  // One course: no area strip, so no way back from Latest; open on its lessons
-  // (DR-1606). Set during render, so the first paint is already right.
-  if (learnArea === LEARN_LANDING_AREA && learnLandingArea(courses.length) !== LEARN_LANDING_AREA) setLearnAreaState(learnLandingArea(courses.length));
   const chosenCourse = activeKey != null ? courses.find((c) => c.key === activeKey) : null;
   const courseChosen = !!chosenCourse;
   // THE DEFAULT COURSE IS LIVING LESSONS (Darrell 2026-09-11: "let the default
@@ -4563,6 +4554,7 @@ export default function ChurchLearn({
   // course's lessons; the Courses tab is where everything lives.
   const [deptId, setDeptId] = useState(() => initialDept || 'all');
   const dept = departments.find((d) => d.id === deptId) || null;
+  useLearnLanding(learnArea, setLearnAreaState, courses.length, !!dept); // where a visit opens (DR-1606)
   // THE ETERNAL ALGORITHMS STUDY STAYS WITH THE LESSONS on its department tab
   // (DR-1190): the old Church route lands on that tab and finds the study
   // above the course, and the course's progress bar survives on every
@@ -4661,8 +4653,7 @@ export default function ChurchLearn({
   // old shelf did before it moved into the picker.
   const openCourseKey = (k) => {
     if (!k) return;
-    // Choosing a course shows its lessons, from whichever area it was chosen.
-    setLearnAreaState('lessons');
+    setLearnAreaState('lessons'); // a chosen course shows its lessons (DR-1606)
     if (gatheredCourses.some((r) => r.courseKey === k)) {
       setDeptId('all');
       setResumeOpenGuide(false);
@@ -4694,7 +4685,7 @@ export default function ChurchLearn({
       return;
     }
     linkAppliedRef.current = true;
-    setActiveKey(target.key);
+    setActiveKey(target.key); setLearnAreaState('lessons'); // a link to a course opens it (DR-1606)
     if (deepLink.lessonId && (target.schedule || []).some((m) => m.id === deepLink.lessonId)) {
       // The same real path a "Resume →" tap drives: the lesson's own space,
       // guide open, scrolled to the top.
@@ -4948,6 +4939,7 @@ export default function ChurchLearn({
                 setResumeLessonId(null);
                 setResumeOpenGuide(false);
                 setDeptId(id);
+                setLearnAreaState('lessons'); // a department shows its lessons (DR-1606)
               }}
               sections={[
                 { id: 'all', label: 'Courses', explain: `Every course in one place · ${courses.length} courses · ${totalLessons} lessons · ${countWords(totalReadings)} readings counting every age version. Pick a course and its lessons follow.`, render: () => null },
@@ -5159,11 +5151,8 @@ export default function ChurchLearn({
             what `organizeCourses` did, and why "Title A-Z" produced eleven
             little lists instead of one. Every row is one tap into that
             course. */}
-        {/* THE AREA STRIP (DR-1190): one row of sub-tabs under the picker. Only
-            the open area renders below it. Learn opens on Latest (DR-1606); Lessons is the only
-            long scroll; Continue, Latest, Find, Record and Downloads are each one
-            tap, so what a reader needs is seen, never found by scrolling past
-            everything else. */}
+        {/* THE AREA STRIP (DR-1190): one row of sub-tabs; only the open area
+            renders below it, each one tap. Learn opens on Latest (DR-1606). */}
         {courses.length > 1 && !lessonFocus && (() => {
           const continueCount = (dept ? inProgress.filter((it) => it.course.key === active.key) : inProgress).length;
           const areaNoun = String((unitLabels(active.meta) || {}).noun || 'lesson');

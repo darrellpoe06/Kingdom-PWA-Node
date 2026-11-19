@@ -21,6 +21,7 @@ import { createRoot } from 'react-dom/client';
 import { setReadTarget, clearReadTarget, getReadTarget, subscribeReadTarget } from '../lib/read-target.js';
 import { buildLessonArc, readAloudTextFromArc } from '../lib/lesson-flow.js';
 import ChurchLearn from '../components/ChurchLearn.jsx';
+import { openLessonsArea } from './helpers/learn-areas.js';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -128,11 +129,17 @@ describe('readAloudTextFromArc — the WHOLE lesson, audience-only', () => {
 });
 
 describe('Learn — the open lesson registers itself as the one full reading', () => {
-  const mountLearn = () =>
+  const mountLearnRaw = () =>
     act(() => root.render(createElement(ChurchLearn, {
       progress: {}, toggleModule: () => {}, quizState: {}, recordQuiz: () => {},
       learnLevel: 'auto', setLearnLevel: () => {}, ageBand: 'adult', setAgeBand: () => {},
     })));
+  // Learn opens on Latest (DR-1606): the reader's first tap is the Lessons tab.
+  const mountLearn = (...args) => {
+    const out = mountLearnRaw(...args);
+    openLessonsArea();
+    return out;
+  };
   const button = (text) => [...container.querySelectorAll('button')].find((b) => (b.textContent || '').includes(text));
 
   it('opening a lesson guide registers THAT one lesson, full text; closing clears it', () => {
