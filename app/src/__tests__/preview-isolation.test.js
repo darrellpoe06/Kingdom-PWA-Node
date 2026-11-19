@@ -63,7 +63,10 @@ describe('a preview is the TEST HOUSEHOLD: fictional, device-only, no sign-in', 
   it('the shell boots its persona through previewSamplePersona, hides the header sign-in on an isolated preview, opens the gate for the test household, saves under the preview key, purges real snapshots first, and passes the four self-fetching tabs their mode', () => {
     const shell = read('src/poe-financial-mvp-v28.jsx');
     expect(shell).toContain("if (!sp.has('demo')) return previewSamplePersona(window.location.hostname, null)");
-    expect(shell).toContain('{!isIsolatedPreview() && <HeaderAuthButton />}');
+    // Both mounts of the picture (the open header's top right and the collapsed row, DR-1600) stay off an isolated preview.
+    expect(shell).toContain('{!isIsolatedPreview() && <HeaderAuthButton door={accountDoor} />}');
+    expect(shell).toContain('account={!isIsolatedPreview() && <HeaderAuthButton door={accountDoor} compact />}');
+    expect((shell.match(/<HeaderAuthButton\b/g) || []).length).toBe((shell.match(/isIsolatedPreview\(\) && <HeaderAuthButton\b/g) || []).length);
     expect(shell).toContain("if (isAnyDemoMode || isIsolatedPreview()) return 'family';");
     expect(shell).toContain('if (isIsolatedPreview() && !reviewerMode) { (async () => { await purgePreviewSnapshots(window.storage); await loadSavedSnapshot(); setLoaded(true); })(); return; }');
     // the public-host / reviewer boot line is pinned word-for-word by reviewer-mode.test.js; the preview branch sits ABOVE it, so it never runs on a preview
