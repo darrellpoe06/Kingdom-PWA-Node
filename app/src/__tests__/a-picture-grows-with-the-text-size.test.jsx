@@ -131,7 +131,12 @@ describe('the shared pieces every viewer uses', () => {
     let z;
     function Host() {
       z = usePictureZoom();
-      return createElement('div', null, createElement(ZoomControls, { z, what: 'pages' }), createElement(ZoomPane, { zoom: z.zoom, label: 'A page' }, createElement('p', null, 'page')));
+      return createElement(
+        'div',
+        null,
+        createElement(ZoomControls, { z, what: 'pages' }),
+        createElement(ZoomPane, { zoom: z.zoom, label: 'A page' }, createElement('p', null, 'page'))
+      );
     }
     act(() => {
       setTextSize('larger');

@@ -125,7 +125,11 @@ afterEach(() => {
 });
 
 const mountBoth = async () => {
-  act(() => root.render(createElement('div', null, createElement(Reader), createElement(PersonalizeSheet, { open: true, onClose: () => {}, theme: 'night', setTheme: () => {} }))));
+  act(() =>
+    root.render(
+      createElement('div', null, createElement(Reader), createElement(PersonalizeSheet, { open: true, onClose: () => {}, theme: 'night', setTheme: () => {} }))
+    )
+  );
   await flush();
 };
 
@@ -186,7 +190,17 @@ describe('a speed picked in Personalize reaches a reader already on the page', (
     act(() => reader.setRate(4));
     await flush();
     expect(second.rate).toBe(4);
-    act(() => root.render(createElement('div', null, createElement(Reader), createElement(Second), createElement(PersonalizeSheet, { open: true, onClose: () => {}, theme: 'night', setTheme: () => {} }))));
+    act(() =>
+      root.render(
+        createElement(
+          'div',
+          null,
+          createElement(Reader),
+          createElement(Second),
+          createElement(PersonalizeSheet, { open: true, onClose: () => {}, theme: 'night', setTheme: () => {} })
+        )
+      )
+    );
     await flush();
     expect(q('[data-testid="lch-rate-4"]').getAttribute('aria-checked')).toBe('true');
   });
@@ -271,7 +285,18 @@ describe('the sheets are one themed panel, not a dark sheet in a white frame', (
     assertSheet(q('[role="dialog"]'));
   });
   it('All features', async () => {
-    act(() => root.render(createElement(AllFeaturesSheet, { open: true, onClose: () => {}, churchTabs: churchSubTabs({ signedIn: false }), churchView: 'home', onGo: () => {}, theme: 'night' })));
+    act(() =>
+      root.render(
+        createElement(AllFeaturesSheet, {
+          open: true,
+          onClose: () => {},
+          churchTabs: churchSubTabs({ signedIn: false }),
+          churchView: 'home',
+          onGo: () => {},
+          theme: 'night',
+        })
+      )
+    );
     await flush();
     assertSheet(q('[role="dialog"]'));
   });
