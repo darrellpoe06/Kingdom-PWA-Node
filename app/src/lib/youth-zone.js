@@ -203,12 +203,18 @@ export function matchesBlank(input, answer) {
 
 /** A learner row from any of the shapes the sync returns, in one shape. */
 export function normalizeRecord(r = {}) {
+  // Three shapes reach here: a row from the database (snake_case), a row the
+  // sync layer already flattened (camelCase), and the record the app itself
+  // writes before any round trip (`quiz: { passed, pct }`, the shape the
+  // storybook, the order game and the trail hand to countDone). A badge that
+  // reads only the first two goes dark for the record just earned (DR-0076).
+  const quiz = r.quiz && typeof r.quiz === 'object' ? r.quiz : {};
   return {
     lessonId: r.lessonId ?? r.lesson_id ?? null,
     courseKey: r.courseKey ?? r.course_key ?? null,
     completedAt: r.completedAt ?? r.completed_at ?? null,
-    quizPassed: r.quizPassed ?? r.quiz_passed ?? null,
-    quizPct: r.quizPct ?? r.quiz_pct ?? null,
+    quizPassed: r.quizPassed ?? r.quiz_passed ?? quiz.passed ?? null,
+    quizPct: r.quizPct ?? r.quiz_pct ?? quiz.pct ?? null,
     ageBand: r.ageBand ?? r.age_band ?? null,
   };
 }

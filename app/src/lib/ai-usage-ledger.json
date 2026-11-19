@@ -453,6 +453,21 @@
       "notes": "One commit 18:41:24Z on claude/stale-proofs-of-a-removed-refusal, merged 18:55:21Z: only the commit-to-merge span is measurable. Estimate entered by the Ways session for 7 files, +110/-11, not the authoring session's own."
     },
     {
+      "id": "sov96-he-shall-order-the-lamps-continually",
+      "date": "2026-11-19",
+      "task": "Sovereign A.I. week 96 from one word over a forwarded system design newsletter (thread 1a1daf286df06d06): one idea of five, Kubernetes' declared desired state and its reconciling controllers; Word first on Exodus 25:40 and Leviticus 24:3-4, the inspection of Exodus 39:42-43 and the fresh copy of 2 Kings 22; four hand-written bands, every verse generator-filled from the KJV; the house measured from services.json, registry.json, services-sync.sh and DR-1119.",
+      "drs": [
+        "DR-1570"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.5,
+      "estimateWithoutAiHours": 12,
+      "notes": "No token meter in this session; tokens and cost are null. The newsletter is reported; the controller loop documented from the Kubernetes docs; whether the NAS loop fires today is not verified (no road from this session); re-review 2026-12-03."
+    },
+    {
       "id": "ll320-go-to-the-ant-keep-your-own-work-when-a-rival-falls",
       "date": "2026-11-18",
       "task": "L320: go to the ant, keep your own work when a rival falls, from a forwarded business newsletter",
@@ -1679,6 +1694,21 @@
       "notes": "No token meter in this session; tokens and cost are null. PR number recorded after push."
     },
     {
+      "id": "ll337-not-far-from-the-kingdom",
+      "date": "2026-11-19",
+      "task": "L337 Not Far from the Kingdom, from summaries of a 1964 interview of Malcolm X and the question whether he moved toward Christ, all four age bands, shared gate",
+      "drs": [
+        "DR-1583"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.3,
+      "estimateWithoutAiHours": 24,
+      "notes": "Reserved L337 and DR-1583 on origin with new-lesson.mjs. 272 verse tokens filled from app/public/bible/kjv, none typed. Video not watched; his claims named as his; his death and religion stated from general knowledge and listed in UNCHECKED; first gate run caught a quiz option in the generic name, reworded; re-review 2026-12-19."
+    },
+    {
       "id": "dr-1411-ll299-read-with-the-heart",
       "date": "2026-11-10",
       "task": "L299 Read with the Heart, a spoken teaching built the day it was spoken: four bands, two parables, eight questions, 33 verses read from the KJV, 47-case gate",
@@ -2133,6 +2163,21 @@
       "wallClockHours": 0.6,
       "estimateWithoutAiHours": 8,
       "notes": ""
+    },
+    {
+      "id": "ll338-not-with-eyeservice",
+      "date": "2026-11-19",
+      "task": "L338 Not with Eyeservice, from one chart on remote work, taught as faithful work when no one is watching, all four age bands, shared gate",
+      "drs": [
+        "DR-1584"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.3,
+      "estimateWithoutAiHours": 24,
+      "notes": "Reserved L338 and DR-1584 on origin with new-lesson.mjs. 259 verse tokens filled from app/public/bible/kjv, none typed. The chart has no numbers and its replies are carried as its author's; first gate run caught a quiz question in the generic title, reworded; re-review 2026-12-19."
     },
     {
       "id": "courses-fully-completed",
@@ -3865,6 +3910,36 @@
       "wallClockHours": 0.3,
       "estimateWithoutAiHours": 24,
       "notes": "Reserved L336 and DR-1582 on origin with new-lesson.mjs. 294 verse tokens filled from app/public/bible/kjv, none typed. Video not watched; speaker unnamed in the summary and in the lesson; gate 9 of 9 on the first run; re-review 2026-12-19."
+    },
+    {
+      "id": "jonah-j2-landed-manifest",
+      "date": "2026-11-18",
+      "task": "Jonah J2: the landed manifest (the kids folder decides what is landed, narrated, published, in production; prebuild + stale guard), recorded narration in the storybook with cued or estimated sentence highlighting, the Theater playing a file episode from the shelf with poster and captions, the production brief naming every illustration, recording and video file with specs and the KJV per page, the character bible corrected to the approved pair; 11 new tests proven to catch",
+      "drs": [
+        "DR-1527"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.9,
+      "estimateWithoutAiHours": 16,
+      "notes": ""
+    },
+    {
+      "id": "j2-phone-review-gates",
+      "date": "2026-11-18",
+      "task": "The J2 phone review (REV): a signed-in Playwright walk of the real YouthZone on a Pixel 7; found and closed the Great Fish record-shape miss, doubled captions from a burned draft, a 34:15 frame cropping 16:9 scenes, a 2.61:1 page label; three proven-to-catch gates; scenes 1 and 2 placed",
+      "drs": [
+        "DR-1535"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.4,
+      "estimateWithoutAiHours": 10,
+      "notes": ""
     }
   ]
 }
