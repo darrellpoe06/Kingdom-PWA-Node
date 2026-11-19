@@ -42,7 +42,9 @@ const ENTITIES = [
   { id: 'e-poeprops', name: 'Poe Properties LLC', type: 'business' },
 ];
 // Already in the books from her screenshot: the $837 tithe.
-const IN_BOOKS = [{ id: 'shot-1', accountId: 'a-7206', date: '2026-11-15', description: 'Zelle payment to TLC', amount: -837, category: 'tithe', source: 'screenshot' }];
+const IN_BOOKS = [
+  { id: 'shot-1', accountId: 'a-7206', date: '2026-11-15', description: 'Zelle payment to TLC', amount: -837, category: 'tithe', source: 'screenshot' },
+];
 // What the stored copy looked like after the pre-#2760 read: every line one cell.
 const staleDoc = () => ({
   id: 'doc-stale',
@@ -57,7 +59,9 @@ const staleDoc = () => ({
   read: {
     text: TSV,
     rows: [],
-    rejected: TSV.split('\n').slice(1).map((raw, i) => ({ line: i + 2, reason: 'unreadable-date', raw })),
+    rejected: TSV.split('\n')
+      .slice(1)
+      .map((raw, i) => ({ line: i + 2, reason: 'unreadable-date', raw })),
     headerSignature: '',
     method: 'text',
   },
@@ -111,8 +115,23 @@ describe('the stored Chase7206 TSV is read again from its kept file', () => {
     const store = memoryStore();
     let reads = 0;
     const d = { ...staleDoc(), read: null };
-    const first = await processDoc(d, { store, known: { accounts: ACCOUNTS, entities: ENTITIES, transactions: [] }, reader: async (f) => { reads += 1; const { readAnyFile } = await import('../lib/books-intake-read.js'); return readAnyFile(f); } });
-    await processDoc(first, { store, known: { accounts: ACCOUNTS, entities: ENTITIES, transactions: [] }, reader: async () => { reads += 1; throw new Error('should not re-read'); } });
+    const first = await processDoc(d, {
+      store,
+      known: { accounts: ACCOUNTS, entities: ENTITIES, transactions: [] },
+      reader: async (f) => {
+        reads += 1;
+        const { readAnyFile } = await import('../lib/books-intake-read.js');
+        return readAnyFile(f);
+      },
+    });
+    await processDoc(first, {
+      store,
+      known: { accounts: ACCOUNTS, entities: ENTITIES, transactions: [] },
+      reader: async () => {
+        reads += 1;
+        throw new Error('should not re-read');
+      },
+    });
     expect(reads).toBe(1);
   });
 });
