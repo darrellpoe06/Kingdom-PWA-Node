@@ -15,7 +15,7 @@ import TextSizeControl from '../TextSizeControl.jsx';
 import ReadingVoiceControl from '../ReadingVoiceControl.jsx';
 import { THEMES, CHURCH_DEFAULT_THEME } from '../../lib/theme-css.js';
 import { setTextSize, DEFAULT_TEXT_SIZE } from '../../lib/text-size.js';
-import { RATE_STEPS, loadTTSPrefs, saveTTSPrefs, DEFAULT_RATE } from '../../lib/tts.js';
+import { RATE_STEPS, loadTTSPrefs, saveTTSRate, DEFAULT_RATE } from '../../lib/tts.js';
 
 const FOCUS = 'focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#CFA63C]';
 
@@ -36,11 +36,12 @@ export default function PersonalizeSheet({ open, onClose, theme, setTheme, isOwn
       setRate(DEFAULT_RATE);
     }
   }, [open]);
+  // The pick is saved AND told to every reader already on the page (the Read
+  // button, the Test below, an open lesson): tts.js announces each save (DR-1575).
   const pickRate = (v) => {
     setRate(v);
     try {
-      const p = loadTTSPrefs();
-      saveTTSPrefs({ ...p, rate: v });
+      saveTTSRate(v);
     } catch (_) {
       /* no store */
     }
@@ -51,8 +52,8 @@ export default function PersonalizeSheet({ open, onClose, theme, setTheme, isOwn
     pickRate(DEFAULT_RATE);
   };
   return (
-    <Modal open={open} onClose={onClose} label="Personalize My App" maxWidthClass="max-w-md">
-      {/* The Modal portals to <body>, outside the shell's themed wrapper, so the sheet carries the theme scope itself. */}
+    <Modal open={open} onClose={onClose} label="Personalize My App" maxWidthClass="max-w-md" variant="sheet" theme={theme}>
+      {/* The Modal portals to <body>, outside the shell's themed wrapper, so the Modal's sheet panel and the sheet both carry the theme scope. */}
       <div className="lch-sheet" data-theme={theme || undefined} data-testid="lch-personalize-sheet">
         <h2 className="lch-sheet-h">🎨 Personalize My App</h2>
         <section aria-labelledby="lch-p-theme">
@@ -113,6 +114,7 @@ export default function PersonalizeSheet({ open, onClose, theme, setTheme, isOwn
                   data-testid={`lch-rate-${s.value}`}
                 >
                   {s.name}
+                  <small>{s.label}</small>
                 </button>
               ))}
             </span>

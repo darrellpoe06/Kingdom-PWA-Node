@@ -137,7 +137,8 @@ const ICONS = {
   ),
   // four-point sparkle — Eternal Algorithms (was ✦)
   sparkle: (
-    <path d="M12 3.5c.6 3.4 1.1 3.9 4.5 4.5-3.4.6-3.9 1.1-4.5 4.5-.6-3.4-1.1-3.9-4.5-4.5 3.4-.6 3.9-1.1 4.5-4.5Z" fill="currentColor" stroke="none" />
+    // 18 of the 24 units, centred, like every other glyph: it was 9 units in the top half, so it drew at half the size of its neighbours (measured 7.5px beside 13.5px in a 20px tile icon, DR-1575)
+    <path d="M12 3c1.2 6.2 2.8 7.8 9 9-6.2 1.2-7.8 2.8-9 9-1.2-6.2-2.8-7.8-9-9 6.2-1.2 7.8-2.8 9-9Z" fill="currentColor" stroke="none" />
   ),
   // pushpin — pinned-entry marker (was 📌)
   pin: (
