@@ -63,4 +63,5 @@
 #   git config merge.dr-ledger.driver "node scripts/resolve-ledger-conflicts.mjs --driver %O %A %B"
 # Either way, `node scripts/resolve-ledger-conflicts.mjs` after a conflicted
 # `git merge` resolves INDEX.md + legibility-health.json and verifies both.
-docs/decisions/INDEX.md merge=dr-ledger
+docs/decisions/INDEX.md merge=union
+app/src/lib/ai-usage-ledger.json merge=union
