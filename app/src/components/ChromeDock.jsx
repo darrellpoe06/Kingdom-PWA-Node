@@ -46,7 +46,7 @@ import { useComfortCollapsed, useInReader } from '../lib/comfort-bar.js';
 import { useDeviceClass } from '../lib/use-device-class.js';
 import { BOTTOM_NAV, NAV_ICONS, NAV_WORDS } from '../lib/nav-items.jsx';
 import { CHURCH_BOTTOM_NAV, CHURCH_TAB_ICONS, churchTabGroups } from '../lib/church-tabs.jsx';
-import { requestChurchHomeSection, readChurchHomeSection, subscribeCurrentChurchHomeSection } from '../lib/church-home-section.js';
+import { requestChurchHomeSection, requestChurchHomeTop, readChurchHomeSection, subscribeCurrentChurchHomeSection } from '../lib/church-home-section.js';
 import { MONEY_BOTTOM_NAV, moneyMoreSections, sectionFor } from '../lib/money-nav.js';
 import { pageBy, showsPageChips } from '../lib/tv-paging.js';
 import { motionBehavior } from '../lib/gentle-motion.js';
@@ -228,6 +228,11 @@ export default function ChromeDock({ onFeedback, feedbackOpen = false, church = 
     setMoreOpen(false);
     if (t.section) requestChurchHomeSection(t.section);
     if (nav && nav.onNavigate) nav.onNavigate('church', null, t.churchView);
+    // Home is the door's starting place: no section asked for, the top of the page (DR-1579).
+    if (t.key === 'church-home') {
+      requestChurchHomeTop();
+      scrollPageToTop();
+    }
   };
   const tabActive = (t) => nav && nav.view === t.view && (!t.home || (nav.homeView || 'current') === t.home);
   const goTab = (t) => {

@@ -228,6 +228,28 @@ export function mergeRecordsIntoState(records = [], { progress = {}, quizState =
   return { progress: nextProgress, quizState: nextQuiz };
 }
 
+/**
+ * The device's reading maps for ONE account (DR-1577): this account's own rows,
+ * plus what this account itself did on this device that its rows do not hold
+ * yet. Anything else the device was carrying (another household member's
+ * reading that rode the old shared snapshot) is dropped. Pure.
+ */
+export function deviceStateForAccount({ records = [], userId = null, progress = {}, quizState = {}, madeHere = null } = {}) {
+  const made = madeHere || {};
+  const own = (records || []).filter((r) => r && userId && r.userId === userId);
+  // The device's own copy is kept for a lesson this account did here, and for
+  // a lesson this account's own rows already name (the device copy still wins
+  // there: it is what the person is looking at). Nothing else is kept.
+  const mine = new Set([...Object.keys(made).filter((id) => made[id]), ...own.map((r) => r.lessonId).filter(Boolean)]);
+  const keepProgress = {};
+  const keepQuiz = {};
+  for (const id of mine) {
+    if (progress && progress[id]) keepProgress[id] = progress[id];
+    if (quizState && quizState[id]) keepQuiz[id] = quizState[id];
+  }
+  return mergeRecordsIntoState(own, { progress: keepProgress, quizState: keepQuiz });
+}
+
 function summarize(records) {
   const lessonsRead = records.filter((r) => !!r.completedAt).length;
   const tested = records.filter((r) => r.quizPct !== null && r.quizPct !== undefined);
@@ -335,7 +357,13 @@ export function aggregateLearnerRecords(rows = [], { courseTotals = null } = {})
 // his record rows lack, so it can be filed until the record holds it. Pure.
 // Only facts the record lacks are named: a score the record already has is
 // never sent twice (the wall appends every sent attempt to the ledger).
-export function deviceFactsMissingFromRecord({ records = [], userId = null, progress = {}, quizState = {}, courseOf = () => null, max = 25 } = {}) {
+export function deviceFactsMissingFromRecord({ records = [], userId = null, progress = {}, quizState = {}, courseOf = () => null, max = 25, madeHere = null } = {}) {
+  // ONLY WHAT THIS ACCOUNT DID ON THIS DEVICE (DR-1577). `madeHere` is the
+  // set of lesson ids this account itself marked read or answered here. A
+  // fact the device holds from anyone else (another member of the household,
+  // an older shared snapshot, the Governor's read of every learner) is never
+  // filed under this account. Omitted = the old behaviour, for the pure tests.
+  const allowed = madeHere ? new Set(Array.isArray(madeHere) ? madeHere : Object.keys(madeHere).filter((k) => madeHere[k])) : null;
   const mine = new Map();
   for (const r of records || []) {
     if (!r || !r.lessonId) continue;
@@ -349,12 +377,14 @@ export function deviceFactsMissingFromRecord({ records = [], userId = null, prog
   };
   for (const [lessonId, at] of Object.entries(progress || {})) {
     if (!lessonId || !at) continue;
+    if (allowed && !allowed.has(lessonId)) continue;
     const r = mine.get(lessonId);
     if (r && r.completedAt) continue;
     entry(lessonId).completedAt = iso(at) || new Date().toISOString();
   }
   for (const [lessonId, q] of Object.entries(quizState || {})) {
     if (!lessonId || !q || !Number.isFinite(q.pct)) continue;
+    if (allowed && !allowed.has(lessonId)) continue;
     const r = mine.get(lessonId);
     if (r && Number.isFinite(r.quizPct)) continue;
     entry(lessonId).quiz = { pct: q.pct, passed: !!q.passed, at: q.at || null, attempts: Number.isFinite(q.attempts) && q.attempts > 0 ? q.attempts : 1 };

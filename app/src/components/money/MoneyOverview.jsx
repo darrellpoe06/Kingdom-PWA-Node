@@ -35,6 +35,7 @@ import UiIcon from '../UiIcon.jsx';
 import HelpButton from '../HelpButton.jsx';
 import { buildSafeToSpend, extraDebtCapacity, PERIODS } from '../../lib/safe-to-spend.js';
 import MoneyComingUp from './MoneyComingUp.jsx';
+import BankReconcile from './BankReconcile.jsx';
 import { moneySettings, patchMoneyPlan, setupSteps, syncStatus, balanceSource } from '../../lib/money-plan.js';
 import { goalsSync } from '../../lib/goals-sync.js';
 import { loadRecurringDecisions } from '../../lib/recurring-decisions.js';
@@ -266,6 +267,8 @@ export default function MoneyOverview({ money }) {
           <div className="mt-2 text-[0.6875rem]">Books last updated {data.meta && data.meta.lastUpdated ? data.meta.lastUpdated : '—'}.</div>
         </details>
       </section>
+
+      <BankReconcile data={data} entities={entities} currentDate={currentDate} show={show} />
 
       {!unavailable && <MoneyComingUp result={result} extra={extra} show={show} onReview={() => go('bills')} entities={entities} settings={settings} data={data} asOf={currentDate} onSaveReserve={(id, amount) => { const next = { ...(settings.reserveByEntity || {}) }; if (amount == null) delete next[id]; else next[id] = amount; save({ reserveByEntity: next }); }}
         onSaveReserveGoal={(id, amount) => { const next = { ...(settings.reserveGoalByEntity || {}) }; if (amount == null) delete next[id]; else next[id] = amount; save({ reserveGoalByEntity: next }); }}

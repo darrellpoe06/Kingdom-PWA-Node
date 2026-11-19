@@ -23,7 +23,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { saveLearnerRecord, subscribeLearnerRecords, requestLearnerRecordsRefresh } from './learner-records-sync.js';
-import { mergeRecordsIntoState, deviceFactsMissingFromRecord } from './learner-records.js';
+import { mergeRecordsIntoState, deviceFactsMissingFromRecord, deviceStateForAccount } from './learner-records.js';
 import { listPlaces } from './learn-resume.js';
 import { accountName } from './learner-identity.js';
 
@@ -42,6 +42,17 @@ export function useLearnerRecords({ authSession = null, demo = false, ageBand = 
   // When each lesson was last sent by the catch-up, so a failed save is tried
   // again later, never in a burst (DR-1450).
   const lastCatchUp = useRef(new Map());
+
+  // WHO DID IT HERE (DR-1577). A lesson this account itself marked read or
+  // answered on this device is noted under the account's own id, so the
+  // catch-up below files only that, never what the device was merely carrying.
+  const markMadeHere = useCallback((classMine, lessonId) => {
+    const uid = who.current.authSession?.user?.id;
+    if (!uid || who.current.demo || !lessonId) return classMine || {};
+    const all = { ...(classMine || {}) };
+    all[uid] = { ...(all[uid] || {}), [lessonId]: true };
+    return all;
+  }, []);
 
   // A record that cannot be filed never breaks the read (best-effort by design).
   const keep = useCallback((lessonId, courseKey, extra) => {
@@ -74,13 +85,13 @@ export function useLearnerRecords({ authSession = null, demo = false, ageBand = 
         if (!p[moduleId]) p[moduleId] = new Date().toISOString();
         // A reading files with its evidence (0316): this road is only ever a finished reading.
         keep(moduleId, courseKey, { completedAt: p[moduleId], versionsRead, readEvidenceAt: new Date().toISOString() });
-        return { ...d, classProgress: p };
+        return { ...d, classProgress: p, classMine: markMadeHere(d.classMine, moduleId) };
       }
       if (p[moduleId]) delete p[moduleId]; else p[moduleId] = new Date().toISOString();
       keep(moduleId, courseKey, { completedAt: p[moduleId] || null });
-      return { ...d, classProgress: p };
+      return { ...d, classProgress: p, classMine: markMadeHere(d.classMine, moduleId) };
     });
-  }, [setData, keep]);
+  }, [setData, keep, markMadeHere]);
 
   const recordClassQuiz = useCallback((moduleId, result, courseKey) => {
     if (typeof setData !== 'function') return;
@@ -120,9 +131,9 @@ export function useLearnerRecords({ authSession = null, demo = false, ageBand = 
           ...(thisTry.integrity ? { taken: thisTry.integrity } : {}),
         },
       });
-      return { ...d, classQuiz: { ...(d.classQuiz || {}), [moduleId]: next } };
+      return { ...d, classQuiz: { ...(d.classQuiz || {}), [moduleId]: next }, classMine: markMadeHere(d.classMine, moduleId) };
     });
-  }, [setData, keep]);
+  }, [setData, keep, markMadeHere]);
 
   // His record comes back on whatever device he signs in on, and the
   // Governor's copy arrives the same way. The device copy WINS on a module it
@@ -138,12 +149,15 @@ export function useLearnerRecords({ authSession = null, demo = false, ageBand = 
       const d0 = dataRef.current;
       if (d0) {
         const placesCourse = new Map(listPlaces().map((p) => [p.lessonId, p.courseKey]));
+        const uid0 = who.current.authSession?.user?.id || null;
         const missing = deviceFactsMissingFromRecord({
           records: records || [],
-          userId: who.current.authSession?.user?.id || null,
+          userId: uid0,
           progress: d0.classProgress || {},
           quizState: d0.classQuiz || {},
           courseOf: (id) => placesCourse.get(id) || null,
+          // Only what this account itself did here is ever filed (DR-1577).
+          madeHere: (uid0 && (d0.classMine || {})[uid0]) || {},
         });
         const t = Date.now();
         for (const m of missing) {
@@ -157,7 +171,24 @@ export function useLearnerRecords({ authSession = null, demo = false, ageBand = 
       }
       if (typeof setData !== 'function') return;
       setData((d) => {
-        const merged = mergeRecordsIntoState(records || [], {
+        const uid = who.current.authSession?.user?.id || null;
+        // THE DEVICE HOLDS ONE PERSON'S RECORD (DR-1577). `records` is every
+        // learner's when this account is the Governor, so only this account's
+        // own rows may enter the device's maps. And the first time this account
+        // is seen on this device, the maps are rebuilt from its own rows plus
+        // what it did here, dropping anything carried from someone else.
+        const own = (records || []).filter((r) => r && uid && r.userId === uid);
+        if (uid && d.classOwner !== uid) {
+          const rebuilt = deviceStateForAccount({
+            records: records || [],
+            userId: uid,
+            progress: d.classProgress || {},
+            quizState: d.classQuiz || {},
+            madeHere: (d.classMine || {})[uid] || {},
+          });
+          return { ...d, classProgress: rebuilt.progress, classQuiz: rebuilt.quizState, classOwner: uid };
+        }
+        const merged = mergeRecordsIntoState(own, {
           progress: d.classProgress || {},
           quizState: d.classQuiz || {},
         });
