@@ -214,10 +214,17 @@
     {
       "date": "2026-11-19",
       "from": 23276,
-      "to": 23374,
+      "to": 23279,
+      "dr": "DR-1591",
+      "reason": "0339's smoke must be run by a leg (rls-isolation-matrix-guard refuses an orphan smoke): a three-line person-doors leg in rls-isolation.yml with no comment, the walls named in the smoke's own header and DR-1591. Raised to the measured total, not above it."
+    },
+    {
+      "date": "2026-11-19",
+      "from": 23279,
+      "to": 23377,
       "dr": "DR-1596",
       "reason": "One NEW workflow, church-site-archive.yml (91 lines): the daily reader Darrell asked for so the church office never has to archive by hand. Its keep job reads the public church site with the app's own parser and keeps each new calendar, letter and flyer on the NAS over the tailnet road the deploy walks; its walls job proves migration 0342 on a bare PostgreSQL for a pull request touching it, so the smoke runs in CI without editing ci.yml while another session reworks the lane. Budget (timeouts, a picture cap) and a single-instance lock, per the three-brakes rule as amended. A new step of an existing Way, not a longer version of one. Plus six lines in rls-isolation.yml: one matrix leg naming the 0342 smoke, because the matrix guard holds that a smoke no leg runs proves nothing. Raised to the measured total, not above it."
     }
   ],
-  "totalLines": 23374
+  "totalLines": 23377
 }

@@ -729,6 +729,21 @@
       "notes": "No token meter in this session; tokens and cost are null. Vendor product features are the newsletter's report, not checked against vendor pages. How many Funnel requests land on an unintended service is not measured; re-review 2026-12-02."
     },
     {
+      "id": "sov99-the-song-that-goes-with-you",
+      "date": "2026-11-19",
+      "task": "Sovereign A.I. week 99 rebuilt from Darrell's spoken teaching of 2026-09-24 (PR #1814, original DR-0634, never landed): Word first on Proverbs 6:22 and Exodus 33:14; the song in the night, the faithful servant, the Word unbound; bright line that no tool is the presence of Yahweh; four hand-written bands, every verse generator-filled from the KJV corpus; house pinned to tts.js and TTSControl.jsx",
+      "drs": [
+        "DR-1578"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1,
+      "estimateWithoutAiHours": 10,
+      "notes": "No token meter in this session; tokens and cost are null. His phone test of leaving a tab and switching apps is not verified; re-review 2026-12-03."
+    },
+    {
       "id": "repo-documents-the-proof-of-the-work",
       "date": "2026-11-06",
       "task": "Documents in the admin console: every decision, Way, foundation and session note readable by its own location; the standard that the NAS initiates every road",
@@ -823,6 +838,21 @@
       "wallClockHours": 0.2,
       "estimateWithoutAiHours": 1,
       "notes": ""
+    },
+    {
+      "id": "dr-1599-malcolm-x-in-the-title",
+      "date": "2026-11-19",
+      "task": "The Malcolm X lesson (L337) carries his name in its title so it can be found",
+      "drs": [
+        "DR-1599"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.1,
+      "estimateWithoutAiHours": 0.5,
+      "notes": "Title and the band-opening title changed; id, number and text unchanged; lesson gate green."
     },
     {
       "id": "the-in-flight-view-has-an-age",
@@ -1055,6 +1085,21 @@
       "wallClockHours": 0.75,
       "estimateWithoutAiHours": 8,
       "notes": "Same session as DR-1361, DR-1370 and DR-1371; four reader-feedback messages with two screenshots. Estimate is this session's own for the reader fold, the voice seam and the gate."
+    },
+    {
+      "id": "dr-1595-parish-life-shows-what-is-coming",
+      "date": "2026-11-19",
+      "task": "Parish Life listed July and August events in November; it now reads the church calendar and lists only events that have not ended",
+      "drs": [
+        "DR-1595"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.3,
+      "estimateWithoutAiHours": 2,
+      "notes": "Traced to a list rendering the church record's fixed announcedEvents with no date check. Proven to catch with the record's own events on 2026-11-19. No schema."
     },
     {
       "id": "l331-it-doth-not-yet-appear-what-we-shall-be",
@@ -2919,6 +2964,21 @@
       "wallClockHours": 1.4,
       "estimateWithoutAiHours": 32,
       "notes": "Gmail thread 1a1e43310d023259, forwarded issue dated 2026-11-16, built 2026-11-18. Each tool's limits and defaults taught as reported and unranked; redis.io, memcached.org, valkey.io and docs.immich.app refused the session network (ENOTFOUND), re-review 2026-12-18. 30 anchor references, 122 quoted spans, every verse filled from app/public/bible/kjv by scripts/sov89-fill.mjs and none typed. Our house measured: no Redis or Memcached in the app or our NAS code; Valkey 9 in infra/nas-immich/docker-compose.yml:53-56 on defaults (no maxmemory, no policy, no volume); SearXNG limiter off for want of a Valkey; sw.js per-build Cache Storage; clip-cache.js LRU at 300 MB, downloads held, two in flight. Valkey memory on the NAS not measured."
+    },
+    {
+      "id": "person-doors-dr1591",
+      "date": "2026-11-19",
+      "task": "Each visit says which app it was: usage_events.door (0339), a door row per signed-in boot including Poe Properties, the governor-only per-person app read, and an Apps line on every Signups row; smoke on PostgreSQL 16 proven to catch twice; existing chips and buttons pinned",
+      "drs": [
+        "DR-1591"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.2,
+      "estimateWithoutAiHours": 10,
+      "notes": ""
     },
     {
       "id": "sov79-promotion-cometh-not-from-the-east",
