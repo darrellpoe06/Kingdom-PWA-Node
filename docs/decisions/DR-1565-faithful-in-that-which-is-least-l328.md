@@ -26,10 +26,8 @@ household detail is taught; nothing says whether any child attends.
   different purpose (where its policies live) and is not taught or linked here.
 - **Provenance:** reported, the district's own figures; the state report card
   and the special education audit were not opened (named in `UNCHECKED`).
-- **The church:** the hiring day's host, The Church of the Living God, is
-  named once as a reported fact in the adult lesson and the senior band; no
-  claim is made for the church. The gate's `voiceAllow` keeps its proper name
-  from reading as a generic title in our voice.
+- **The church:** the hiring day's host, The Church of the Living God, is named
+  once (adult, senior) as a reported fact; `voiceAllow` keeps its proper name.
 
 ## Decision
 
@@ -47,16 +45,14 @@ household detail is taught; nothing says whether any child attends.
 
 ## Impact
 
-L328 joins the catalog by auto-discovery: the Word on earning trust again,
-taught from a public letter, with no household detail and no figure unmarked.
+L328 joins the catalog by auto-discovery; no household detail, no figure unmarked.
 
 ## Verification
 
 - L328 gate **11/11**: five-span spine in all five texts, 131 quotations all
   filled from the corpus, Yahweh in our voice, talk-together in every place,
-  band shares 0.53/0.62/0.65/0.68, a rising ladder, overlap 0.01, and a
-  particular check that figures stay marked reported and no thread id or link
-  reaches the lesson.
+  band shares 0.53/0.62/0.65/0.68, a rising ladder, overlap 0.01; figures stay
+  marked reported, and no thread id or link reaches the lesson.
 - **Caught, not claimed:** the first run failed the teen band share (0.57) and
   the talk-together directions (teen parents, senior children). Each fixed;
   the title gate, the catalog verse gate and the related suites re-run.
