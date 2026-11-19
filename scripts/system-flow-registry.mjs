@@ -1862,7 +1862,7 @@ const NODES = [
     ],
     reads: [
       { res: 'db:property_staff_messages', file: 'app/src/modules/properties/staff-chat.js', token: "from('property_staff_messages').select" },
-      { res: 'db:property_staff_chat_members', file: 'app/src/modules/properties/staff-chat.js', token: "from('property_staff_chat_members').select" },
+      { res: 'db:property_staff_chat_members', file: 'app/src/modules/properties/staff-chat.js', token: "from('property_staff_chat_members')" },
       { res: 'db:property_systems', file: 'app/src/modules/properties/staff-chat.js', token: "rpc('where_things_are'" },
       { res: 'db:property_staff_chats', file: 'app/src/modules/properties/staff-chat.js', token: "rpc('open_staff_chat'" },
     ],
