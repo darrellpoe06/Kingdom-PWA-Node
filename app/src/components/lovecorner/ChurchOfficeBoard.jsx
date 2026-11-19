@@ -7,6 +7,7 @@
 // =============================================================================
 import React, { useEffect, useRef, useState } from 'react';
 import { loadChurchSite, digestHasNews, siteIsTheChurchs } from '../../lib/church-site.js';
+import { usePictureZoom, ZoomControls } from '../PictureZoom.jsx';
 
 const FOCUS = 'focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]';
 
@@ -53,6 +54,37 @@ function Picture({ item, alt, caption, onOpen, testid }) {
       </button>
       <figcaption className="lc-office-cap">{caption}</figcaption>
     </figure>
+  );
+}
+
+/**
+ * The picture, full screen. It opens at the reader's own text-size step (a
+ * picture's lettering cannot be re-set, so the picture itself is made bigger,
+ * DR-1575), Larger and Smaller are on screen, and the box scrolls both ways.
+ */
+function FullPicture({ open, onClose, closeRef }) {
+  const z = usePictureZoom();
+  return (
+    <div
+      className="lc-office-full"
+      role="dialog"
+      aria-modal="true"
+      aria-label={open.alt}
+      data-testid="church-office-full"
+      onKeyDown={(e) => {
+        if (e.key === 'Escape') onClose();
+      }}
+    >
+      <div className="lc-office-bar">
+        <ZoomControls z={z} tone="dark" />
+        <button ref={closeRef} type="button" className={`lc-office-close ${FOCUS}`} onClick={onClose} data-testid="church-office-close">
+          Close ×
+        </button>
+      </div>
+      <div className="lc-office-scroll" data-testid="church-office-scroll" tabIndex={0} role="group" aria-label={`${open.alt}, at ${z.label}. Scroll to see all of it.`}>
+        <img src={open.src} alt={open.alt} style={{ width: `${Math.round(z.zoom * 100)}%` }} data-testid="church-office-full-img" />
+      </div>
+    </div>
   );
 }
 
@@ -109,23 +141,7 @@ export default function ChurchOfficeBoard({ digest, heading = 'From the church o
           )}
         </div>
       )}
-      {open && (
-        <div
-          className="lc-office-full"
-          role="dialog"
-          aria-modal="true"
-          aria-label={open.alt}
-          data-testid="church-office-full"
-          onKeyDown={(e) => {
-            if (e.key === 'Escape') setOpen(null);
-          }}
-        >
-          <button ref={closeRef} type="button" className={`lc-office-close ${FOCUS}`} onClick={() => setOpen(null)} data-testid="church-office-close">
-            Close ×
-          </button>
-          <img src={open.src} alt={open.alt} />
-        </div>
-      )}
+      {open && <FullPicture open={open} onClose={() => setOpen(null)} closeRef={closeRef} />}
     </section>
   );
 }
