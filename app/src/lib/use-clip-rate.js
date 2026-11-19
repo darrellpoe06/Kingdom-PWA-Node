@@ -22,24 +22,33 @@ import { residualRate } from './voice-service.js';
 export function useClipRate({ tts, rateRef, queueRef, audioRef, audioSpeedRef, setNotice }) {
   const clipRateRef = useRef(tts.rate);
   // Put a speed on whatever clip is playing; returns the measurement for a lone element.
-  const toClip = useCallback((r) => {
-    clipRateRef.current = r;
-    // The clip queue owns its element: it re-applies the remainder on every
-    // piece and on this change, or the next paragraph snaps back to the old speed.
-    if (queueRef.current) { queueRef.current.setRate(r); return null; }
-    const a = audioRef.current;
-    // An audio element takes a live rate change mid-play, unlike an utterance,
-    // so this is audible at once, and it is MEASURED, never assumed (DR-0076).
-    return a ? applyClipRate(a, residualRate(r, audioSpeedRef.current)) : null;
-  }, [queueRef, audioRef, audioSpeedRef]);
+  const toClip = useCallback(
+    (r) => {
+      clipRateRef.current = r;
+      // The clip queue owns its element: it re-applies the remainder on every
+      // piece and on this change, or the next paragraph snaps back to the old speed.
+      if (queueRef.current) {
+        queueRef.current.setRate(r);
+        return null;
+      }
+      const a = audioRef.current;
+      // An audio element takes a live rate change mid-play, unlike an utterance,
+      // so this is audible at once, and it is MEASURED, never assumed (DR-0076).
+      return a ? applyClipRate(a, residualRate(r, audioSpeedRef.current)) : null;
+    },
+    [queueRef, audioRef, audioSpeedRef]
+  );
 
   /** Set the read speed, and carry it to a clip already playing. */
-  const setRate = useCallback((r) => {
-    rateRef.current = r;
-    tts.setRate(r);
-    const msg = clipRateNotice(toClip(r));
-    if (msg) setNotice(msg);
-  }, [tts, rateRef, toClip, setNotice]);
+  const setRate = useCallback(
+    (r) => {
+      rateRef.current = r;
+      tts.setRate(r);
+      const msg = clipRateNotice(toClip(r));
+      if (msg) setNotice(msg);
+    },
+    [tts, rateRef, toClip, setNotice]
+  );
 
   useEffect(() => {
     const r = tts.rate;
