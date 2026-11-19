@@ -221,10 +221,14 @@ describe('our own house: every claim the lesson makes is still true of the code'
     expect(MODULE.lesson).toMatch(/his own phone, leaving a tab and switching apps - is not verified here/);
   });
 
-  it('provenance: the generator names PR #1814 and DR-0634, and fills every verse from the KJV on disk', () => {
+  it('provenance: the generator names PR #1814 and its never-landed record, and fills every verse from the KJV on disk', () => {
     const g = src('scripts/sov99-fill.mjs');
     expect(g).toMatch(/PR #1814/);
-    expect(g).toMatch(/DR-0634/);
+    // The original record (written for PR #1814) never landed, so the generator
+    // names it without its number: decision-citation-guard fails any cited DR
+    // that has no file (re-pinned 2026-11-19 when sov99 met main).
+    expect(g).toMatch(/first built as sov29 under its own decision record/);
+    expect(g).toMatch(/never\s+(\/\/\s+)?landed/);
     expect(g).toMatch(/import \{ kjvText \} from '\.\/lib\/kjv\.mjs'/);
     expect(g).toMatch(/return `"\$\{t\}" \(\$\{r\}\)`/);
   });
