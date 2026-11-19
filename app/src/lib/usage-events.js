@@ -13,6 +13,51 @@
 // =============================================================================
 import { supabase } from './supabase.js';
 import { restRpc, readSnapshotToken } from './access-metrics-sync.js';
+import { currentDoor } from './app-doors.js';
+
+// WHICH APP THE ROW CAME FROM (DR-1591). Darrell 2026-11-19: "Coreyon is
+// supposed to be using the Poe Properties App... how do I know?" Every row now
+// carries the door key the page booted as (app-doors.js currentDoor): poetech,
+// lovecorner, properties, tlc, moore. Read from the page's own location, so it
+// is the app the person actually has open, never a guess from their spaces.
+export function doorKeyHere(loc) {
+  try {
+    const l = loc || (typeof window !== 'undefined' ? window.location : null);
+    if (!l) return null;
+    return currentDoor(l.pathname, l.search).key || null;
+  } catch { return null; }
+}
+
+// The column arrives with migration 0337, applied by the lane after merge. A
+// build that reaches a person before the column does must not lose their
+// usage: on the one error that names the missing column, the row is written
+// again without a door, and this page stops sending one.
+let doorColumnMissing = false;
+const namesDoorColumn = (error) => {
+  const m = `${(error && error.message) || ''} ${(error && error.details) || ''}`.toLowerCase();
+  return m.includes('door') && (m.includes('column') || (error && error.code === 'PGRST204'));
+};
+const INSERT_TIMEOUT_MS = 10000;
+const bounded = (q) => {
+  try {
+    if (q && typeof q.abortSignal === 'function' && typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function') {
+      return q.abortSignal(AbortSignal.timeout(INSERT_TIMEOUT_MS));
+    }
+  } catch { /* an unbounded write is still fire-and-forget */ }
+  return q;
+};
+export async function insertUsageRow(row, client = supabase, doorKey) {
+  const door = doorColumnMissing ? null : (doorKey === undefined ? doorKeyHere() : doorKey);
+  const withDoor = door ? { ...row, door } : row;
+  let { error } = await bounded(client.from('usage_events').insert(withDoor));
+  if (error && door && namesDoorColumn(error)) {
+    doorColumnMissing = true;
+    ({ error } = await bounded(client.from('usage_events').insert(row)));
+  }
+  return !error;
+}
+/** Tests only: forget that the column was missing. */
+export function resetDoorColumnForTests() { doorColumnMissing = false; }
 
 export async function recordView(name) {
   const v = String(name || '').trim();
@@ -20,8 +65,7 @@ export async function recordView(name) {
   try {
     const { data } = await supabase.auth.getSession();
     if (!data || !data.session) return false;
-    const { error } = await supabase.from('usage_events').insert({ kind: 'view', name: v });
-    return !error;
+    return await insertUsageRow({ kind: 'view', name: v });
   } catch { return false; }
 }
 
@@ -82,8 +126,7 @@ export async function recordUse(feature) {
   try {
     const { data } = await supabase.auth.getSession();
     if (!data || !data.session) return false;
-    const { error } = await supabase.from('usage_events').insert({ kind: 'use', name: v });
-    return !error;
+    return await insertUsageRow({ kind: 'use', name: v });
   } catch { return false; }
 }
 
@@ -103,4 +146,43 @@ export async function fetchFeatureUse(days = 90) {
     if (error) { console.warn('[usage-events] feature use fetch failed:', error); return null; }
     return data || null;
   } catch (err) { console.warn('[usage-events] feature use fetch failed:', err); return null; }
+}
+
+// THE DOOR WAS OPENED, BY A SIGNED-IN PERSON (DR-1591). One kind='door' row per
+// person per page load, written when the door boots with a session or the
+// moment someone signs in inside it. The Poe Properties door boots without the
+// PoeTech shell, so before this it wrote no usage row at all: a tenant could
+// live in that app and the governor's screen would say they never came.
+// kind='door' is read by nothing that counts tabs (usage_flow_metrics reads
+// 'view'; the calendar drops 'door'), so no existing number moves.
+//
+// Never throws, never blocks the boot. The session read is bounded so a tab
+// holding the auth lock cannot strand it (DR-0076: an async step has a ceiling).
+const SESSION_WAIT_MS = 8000;
+export function noteDoorOpen({ client = supabase, loc } = {}) {
+  const seen = new Set();
+  const door = doorKeyHere(loc);
+  if (!door) return () => {};
+  const record = async (session) => {
+    const uid = session && session.user && session.user.id;
+    if (!uid || seen.has(uid)) return false;
+    seen.add(uid);
+    try { return await insertUsageRow({ kind: 'door', name: door }, client, door); } catch { return false; }
+  };
+  let unsub = () => {};
+  try {
+    const sub = client.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') record(session);
+    });
+    const s = sub && sub.data && sub.data.subscription;
+    if (s && typeof s.unsubscribe === 'function') unsub = () => s.unsubscribe();
+  } catch { /* no listener: the session read below still records */ }
+  try {
+    let timer;
+    const timeout = new Promise((resolve) => { timer = setTimeout(() => resolve(null), SESSION_WAIT_MS); });
+    Promise.race([client.auth.getSession(), timeout])
+      .then((res) => { clearTimeout(timer); return record(res && res.data && res.data.session); })
+      .catch(() => {});
+  } catch { /* a metric may never break a boot */ }
+  return unsub;
 }

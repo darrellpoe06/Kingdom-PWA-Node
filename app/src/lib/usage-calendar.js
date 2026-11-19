@@ -20,7 +20,9 @@ const weekdayOf = (iso) => new Date(`${iso}T00:00:00Z`).getUTCDay();
 export function cleanRows(rows = []) {
   return (Array.isArray(rows) ? rows : [])
     .map((r) => ({ userId: String((r && r.user_id) || ''), day: isoDay(r && r.day), kind: String((r && r.kind) || 'view'), n: Number((r && r.n) || 0) }))
-    .filter((r) => r.userId && r.day && r.n > 0);
+    // kind='door' (DR-1591) says which app was opened, once per page load; it
+    // is not a tab open or a use, so the calendar's numbers never count it.
+    .filter((r) => r.userId && r.day && r.n > 0 && r.kind !== 'door');
 }
 
 /**

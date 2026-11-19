@@ -2906,6 +2906,21 @@
       "notes": "Gmail thread 1a1e43310d023259, forwarded issue dated 2026-11-16, built 2026-11-18. Each tool's limits and defaults taught as reported and unranked; redis.io, memcached.org, valkey.io and docs.immich.app refused the session network (ENOTFOUND), re-review 2026-12-18. 30 anchor references, 122 quoted spans, every verse filled from app/public/bible/kjv by scripts/sov89-fill.mjs and none typed. Our house measured: no Redis or Memcached in the app or our NAS code; Valkey 9 in infra/nas-immich/docker-compose.yml:53-56 on defaults (no maxmemory, no policy, no volume); SearXNG limiter off for want of a Valkey; sw.js per-build Cache Storage; clip-cache.js LRU at 300 MB, downloads held, two in flight. Valkey memory on the NAS not measured."
     },
     {
+      "id": "person-doors-dr1591",
+      "date": "2026-11-19",
+      "task": "Each visit says which app it was: usage_events.door (0337), a door row per signed-in boot including Poe Properties, the governor-only per-person app read, and an Apps line on every Signups row; smoke on PostgreSQL 16 proven to catch twice; existing chips and buttons pinned",
+      "drs": [
+        "DR-1591"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.2,
+      "estimateWithoutAiHours": 10,
+      "notes": ""
+    },
+    {
       "id": "sov79-promotion-cometh-not-from-the-east",
       "date": "2026-11-13",
       "task": "Sovereign A.I. week 79 built from one word over a forwarded business digest, all four age bands, 51-case gate",
