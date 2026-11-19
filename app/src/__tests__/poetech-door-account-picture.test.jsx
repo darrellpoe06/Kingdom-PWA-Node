@@ -279,6 +279,9 @@ describe('DR-1600 the collapsed header keeps the picture', () => {
     const slot = q('top-nav-account');
     expect(slot, 'the collapsed row drops the picture').toBeTruthy();
     expect(slot.querySelector('[data-testid="the-picture"]')).toBeTruthy();
+    // From lg the sidebar takes the tabs and nothing else in the row grows; the
+    // slot takes the slack so the picture holds the right edge (measured: x=377 at 1812px without it).
+    expect(slot.className).toMatch(/\bml-auto\b/);
     const chevron = container.querySelector('button[aria-expanded="false"]');
     expect(slot.compareDocumentPosition(chevron) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(q('top-nav-tabs').compareDocumentPosition(slot) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();

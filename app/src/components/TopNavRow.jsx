@@ -47,7 +47,10 @@ export function loneTab(children) {
 // the bottom bar at Largest or Big Print, so the picture stays at the top at
 // every text size.
 export default function TopNavRow({ hatch = null, navHistory = {}, collapsed = false, onToggleHeader, brandName = '', brandTagline = '', home = null, tabsHidden = false, account = null, children }) {
-  const acct = collapsed && account ? <div data-testid="top-nav-account" className="shrink-0 self-center px-1">{account}</div> : null;
+  // `ml-auto`: from `lg` the sidebar carries the tabs and the strip steps aside,
+  // so nothing in this row grows; measured at 1812px the chevron sat at x=377.
+  // The account takes the slack, so it and the chevron hold the right edge.
+  const acct = collapsed && account ? <div data-testid="top-nav-account" className="ml-auto shrink-0 self-center px-1">{account}</div> : null;
   const lone = loneTab(children);
   // ONE WAY BACK PER PHONE ROW (DR-0640). When the collapsed row sits inside
   // the one-tab row, its "Show header" button and this chevron do the same
