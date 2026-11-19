@@ -57,10 +57,15 @@ describe('where Learn opens — mounted', () => {
     container.remove();
     window.localStorage.clear();
   });
-  const mount = () => act(() => root.render(createElement(ChurchLearn, {
-    course: course('a', 'Learning A.I. The Way', 8),
-    extraCourses: [course('b', 'Living Lessons from the Word', 12)],
-  })));
+  const mount = () =>
+    act(() =>
+      root.render(
+        createElement(ChurchLearn, {
+          course: course('a', 'Learning A.I. The Way', 8),
+          extraCourses: [course('b', 'Living Lessons from the Word', 12)],
+        })
+      )
+    );
   const selected = () => container.querySelector('[data-testid="learn-areas"] [aria-selected="true"]');
 
   it('THE REPORTED CASE: a reader arriving at Learn sees Latest, selected, with its list', () => {
@@ -73,13 +78,17 @@ describe('where Learn opens — mounted', () => {
     mount();
     const tab = container.querySelector('#learn-area-tab-lessons');
     expect(tab).toBeTruthy();
-    act(() => { tab.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+    act(() => {
+      tab.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
     expect(selected().id).toBe('learn-area-tab-lessons');
   });
 
   it('a second visit lands on Latest again, not where the last visit left off', () => {
     mount();
-    act(() => { container.querySelector('#learn-area-tab-find').dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+    act(() => {
+      container.querySelector('#learn-area-tab-find').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
     expect(selected().id).toBe('learn-area-tab-find');
     act(() => root.unmount());
     root = createRoot(container);
