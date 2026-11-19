@@ -2184,6 +2184,21 @@
       "notes": "Read ceiling + bounded retries; member device never wears the stranger church brand."
     },
     {
+      "id": "church-calendar-event-records",
+      "date": "2026-11-19",
+      "task": "Church calendar as event records: week strip, month and year view, office rows read per church",
+      "drs": [
+        "DR-1585"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.2,
+      "estimateWithoutAiHours": 10,
+      "notes": "First of three changes; office add and upload, then past years and suggestions, follow."
+    },
+    {
       "id": "learning-products-store",
       "date": "2026-11-12",
       "task": "One teaching, three ways to hold it: the course book line measured on the live registry (which courses are a book), the self-paced course with a walk-through video slot per section, the in-person workshop seat priced by knowledge type, place, format and demand, sold through the existing Stripe seam at the event row's price; the book entitlement the webhook never granted is now handed over",
