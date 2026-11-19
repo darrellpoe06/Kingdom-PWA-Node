@@ -104,14 +104,14 @@ describe('index-row places a row off the tail', () => {
   });
 
   it('the guard passes a placed row and names an appended one', () => {
-    expect(tailFindings(placeRow(INDEX, row(1607)))).toEqual([]);
-    expect(tailFindings(appendRow(INDEX, row(1607)))[0]).toMatch(/DR-1607/);
+    expect(tailFindings(placeRow(INDEX, row(9607)))).toEqual([]);
+    expect(tailFindings(appendRow(INDEX, row(9607)))[0]).toMatch(/DR-9607/);
     expect(tailFindings(appendRow(INDEX, row(PLACED_FROM - 1)))).toEqual([]);
   });
 
   it('the ledger check names an entry appended at the tail and passes one placed by --add', () => {
-    expect(tailEntryFindings(JSON.parse(appendEntry(LEDGER, entry(1607))))[0]).toMatch(/t-1607/);
-    expect(tailEntryFindings(JSON.parse(placeEntry(LEDGER, entry(1607))))).toEqual([]);
+    expect(tailEntryFindings(JSON.parse(appendEntry(LEDGER, entry(9607))))[0]).toMatch(/t-9607/);
+    expect(tailEntryFindings(JSON.parse(placeEntry(LEDGER, entry(9607))))).toEqual([]);
   });
 });
 
