@@ -17,7 +17,17 @@
 // replaced by words saying so.
 // =============================================================================
 import React, { useMemo, useState } from 'react';
-import { comingUpFromPastYears, upcomingEvents, yearsOnRecord, suggestionText, extractCalendarSuggestions, whenLine, longDate, partsOf, SUGGESTION_MAX } from '../../lib/church-calendar.js';
+import {
+  comingUpFromPastYears,
+  upcomingEvents,
+  yearsOnRecord,
+  suggestionText,
+  extractCalendarSuggestions,
+  whenLine,
+  longDate,
+  partsOf,
+  SUGGESTION_MAX,
+} from '../../lib/church-calendar.js';
 
 const NEW_IDEA = 'A new idea';
 const ago = (n) => (n === 1 ? 'last year' : `${n} years ago`);
@@ -34,7 +44,11 @@ export default function ChurchCalendarPlanning({ events = [], todayKey, signedIn
   const [said, setSaid] = useState({ kind: '', text: '' });
   const thisYear = todayKey ? partsOf(todayKey).year : 0;
   const pastYears = years.filter((y) => y.year < thisYear);
-  const topics = [NEW_IDEA, ...soon.map((e) => `${e.name} (${whenLine(e)}, ${partsOf(e.date).year})`), ...past.map((p) => `${p.event.name} (held ${partsOf(p.event.date).year})`)];
+  const topics = [
+    NEW_IDEA,
+    ...soon.map((e) => `${e.name} (${whenLine(e)}, ${partsOf(e.date).year})`),
+    ...past.map((p) => `${p.event.name} (held ${partsOf(p.event.date).year})`),
+  ];
 
   const send = (e) => {
     e.preventDefault();
@@ -63,7 +77,9 @@ export default function ChurchCalendarPlanning({ events = [], todayKey, signedIn
                 <span className="cc-item-meta">
                   Held {whenLine(p.event)}, {partsOf(p.event.date).year} ({ago(p.yearsAgo)}){p.event.place ? ` · ${p.event.place}` : ''}
                 </span>
-                <span className="cc-item-detail">The same time this year would be around {longDate(p.around)}. It is not on this year’s calendar unless it is listed above.</span>
+                <span className="cc-item-detail">
+                  The same time this year would be around {longDate(p.around)}. It is not on this year’s calendar unless it is listed above.
+                </span>
               </div>
             </li>
           ))}
@@ -111,7 +127,11 @@ export default function ChurchCalendarPlanning({ events = [], todayKey, signedIn
         </form>
       )}
       {said.text && (
-        <p className={`cc-said ${said.kind === 'bad' ? 'is-bad' : 'is-good'}`} role={said.kind === 'bad' ? 'alert' : 'status'} data-testid="church-calendar-suggest-said">
+        <p
+          className={`cc-said ${said.kind === 'bad' ? 'is-bad' : 'is-good'}`}
+          role={said.kind === 'bad' ? 'alert' : 'status'}
+          data-testid="church-calendar-suggest-said"
+        >
           {said.text}
         </p>
       )}

@@ -8,13 +8,29 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { createElement, act } from 'react';
 import { createRoot } from 'react-dom/client';
 import ChurchCalendarPlanning from '../components/lovecorner/ChurchCalendarPlanning.jsx';
-import { comingUpFromPastYears, upcomingEvents, yearsOnRecord, suggestionText, extractCalendarSuggestions, fromAnnounced, makeEvent, CALENDAR_SUGGESTION_TAG } from '../lib/church-calendar.js';
+import {
+  comingUpFromPastYears,
+  upcomingEvents,
+  yearsOnRecord,
+  suggestionText,
+  extractCalendarSuggestions,
+  fromAnnounced,
+  makeEvent,
+  CALENDAR_SUGGESTION_TAG,
+} from '../lib/church-calendar.js';
 import { COLG_DEFAULT_CHURCH as C } from '../lib/default-church.js';
 
 const THU = '2026-11-19';
 const ev = (name, date, extra = {}) => makeEvent({ name, date, ...extra });
 // Fixture rows for the logic only: they stand for what an office upload would file. None ships in the app.
-const PAST = [ev('Fixture A', '2025-12-05'), ev('Fixture B', '2024-12-05'), ev('Fixture C', '2025-11-18'), ev('Fixture D', '2025-01-10'), ev('Fixture E', '2025-06-01'), ev('Fixture F', '2026-12-01')];
+const PAST = [
+  ev('Fixture A', '2025-12-05'),
+  ev('Fixture B', '2024-12-05'),
+  ev('Fixture C', '2025-11-18'),
+  ev('Fixture D', '2025-01-10'),
+  ev('Fixture E', '2025-06-01'),
+  ev('Fixture F', '2026-12-01'),
+];
 
 describe('this time of year, in past years', () => {
   it('finds past-year events whose same day falls in the next 60 days, soonest first, and says how long ago', () => {
@@ -51,13 +67,19 @@ describe('this time of year, in past years', () => {
 
 describe('a suggestion', () => {
   it('is one tagged line; with no words there is nothing to send', () => {
-    expect(suggestionText({ about: 'Gospel Fest', text: '  Start earlier  ', from: 'Sis. Jones' })).toBe('[Calendar suggestion] Sis. Jones · About: Gospel Fest · Start earlier');
+    expect(suggestionText({ about: 'Gospel Fest', text: '  Start earlier  ', from: 'Sis. Jones' })).toBe(
+      '[Calendar suggestion] Sis. Jones · About: Gospel Fest · Start earlier'
+    );
     expect(suggestionText({ text: 'A fall picnic' })).toBe('[Calendar suggestion] A parishioner · About: A new idea · A fall picnic');
     expect(suggestionText({ about: 'X', text: '   ' })).toBe('');
   });
   it('is pulled back out of a feedback list: only tagged rows, each once, newest first, words intact', () => {
     const items = [
-      { id: 'f1', text: suggestionText({ about: 'Gospel Fest', text: 'Start earlier · and add parking', from: 'Sis. Jones' }), createdAt: '2026-11-18T10:00:00Z' },
+      {
+        id: 'f1',
+        text: suggestionText({ about: 'Gospel Fest', text: 'Start earlier · and add parking', from: 'Sis. Jones' }),
+        createdAt: '2026-11-18T10:00:00Z',
+      },
       { id: 'f2', text: 'The app is slow on my phone', createdAt: '2026-11-19T10:00:00Z' },
       { id: 'f1', text: 'dup', createdAt: '2026-11-18T10:00:00Z' },
       { id: 'f3', text: `${CALENDAR_SUGGESTION_TAG} A parishioner · About: A new idea · A fall picnic`, submittedAt: '2026-11-19T12:00:00Z' },
@@ -77,11 +99,13 @@ const q = (id) => host.querySelector(`[data-testid="${id}"]`);
 const tap = (el) => act(async () => el.click());
 const type = (el, value) =>
   act(() => {
-    const proto = el.tagName === 'TEXTAREA' ? HTMLTextAreaElement.prototype : el.tagName === 'SELECT' ? HTMLSelectElement.prototype : HTMLInputElement.prototype;
+    const proto =
+      el.tagName === 'TEXTAREA' ? HTMLTextAreaElement.prototype : el.tagName === 'SELECT' ? HTMLSelectElement.prototype : HTMLInputElement.prototype;
     Object.getOwnPropertyDescriptor(proto, 'value').set.call(el, value);
     el.dispatchEvent(new Event(el.tagName === 'SELECT' ? 'change' : 'input', { bubbles: true }));
   });
-const mount = (props = {}) => act(() => root.render(createElement(ChurchCalendarPlanning, { events: fromAnnounced(C.announcedEvents), todayKey: THU, ...props })));
+const mount = (props = {}) =>
+  act(() => root.render(createElement(ChurchCalendarPlanning, { events: fromAnnounced(C.announcedEvents), todayKey: THU, ...props })));
 beforeEach(() => {
   host = document.createElement('div');
   document.body.appendChild(host);
@@ -96,7 +120,9 @@ describe('ChurchCalendarPlanning', () => {
   it('with only 2026 on record it says there is nothing to compare with and how that gets filled; it lists no example', () => {
     mount();
     expect(q('church-calendar-past')).toBeNull();
-    expect(q('church-calendar-past-empty').textContent).toMatch(/No events from past years are on record yet.*When the church office uploads past years’ calendars/);
+    expect(q('church-calendar-past-empty').textContent).toMatch(
+      /No events from past years are on record yet.*When the church office uploads past years’ calendars/
+    );
     expect(q('church-calendar-years').textContent).toBe('Dated events on record: 2026 (2).');
   });
   it('shows a past-year event with the year it was held, and never says it will happen', () => {
@@ -124,7 +150,11 @@ describe('ChurchCalendarPlanning', () => {
     type(q('church-calendar-suggest-text'), 'Could it start at 5?');
     type(q('church-calendar-suggest-from'), 'Bro. Lee');
     await tap(q('church-calendar-suggest-send'));
-    expect(onSuggest).toHaveBeenCalledWith({ area: 'church', category: 'feature-request', text: '[Calendar suggestion] Bro. Lee · About: Fixture Soon (Dec 24, 2026) · Could it start at 5?' });
+    expect(onSuggest).toHaveBeenCalledWith({
+      area: 'church',
+      category: 'feature-request',
+      text: '[Calendar suggestion] Bro. Lee · About: Fixture Soon (Dec 24, 2026) · Could it start at 5?',
+    });
     expect(q('church-calendar-suggest-said').textContent).toBe('Sent to the church app’s feedback list (reference fb-123). Thank you for helping plan.');
     expect(q('church-calendar-suggest-text').value).toBe('');
   });
@@ -140,7 +170,9 @@ describe('ChurchCalendarPlanning', () => {
     expect(q('church-calendar-suggest-text').value).toBe('A fall picnic');
   });
   it('the office sees the suggestions that reached its feedback list; a member does not', () => {
-    const feedback = [{ id: 'f1', text: suggestionText({ about: 'Gospel Fest', text: 'Start earlier', from: 'Sis. Jones' }), createdAt: '2026-11-18T10:00:00Z' }];
+    const feedback = [
+      { id: 'f1', text: suggestionText({ about: 'Gospel Fest', text: 'Start earlier', from: 'Sis. Jones' }), createdAt: '2026-11-18T10:00:00Z' },
+    ];
     mount({ canManage: false, feedback });
     expect(q('church-calendar-received')).toBeNull();
     mount({ canManage: true, feedback });
