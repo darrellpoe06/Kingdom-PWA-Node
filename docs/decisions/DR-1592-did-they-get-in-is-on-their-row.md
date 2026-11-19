@@ -21,31 +21,12 @@ Darrell, 2026-11-19: "How do I know who signed up and if and when they got in?..
 
 ## Decision
 
-1. **`admin_person_sign_ins()`** (0340), for the poe-family circle only. Per account it returns:
-   - `auth.users.last_sign_in_at`, which covers every method;
-   - the time a link or code was last emailed, from `recovery_sent_at` / `confirmation_sent_at`;
-   - from `audit_log`, including rows with `instance_id` NULL: the last password success, the last failure, failures since the last success of any kind, and failures in 30 days;
-   - GoTrue's own `auth.audit_log_entries` `login` rows (180 days) with their provider, read dynamically and fenced, so a missing or unreadable table is reported and does not fail the read;
-   - every space with its role and join time;
-   - unclaimed, unrevoked Poe Properties invitations addressed to this account.
+1. **`admin_person_sign_ins()`** (0340), poe-family only. Per account: `auth.users.last_sign_in_at` (every method); when a link or code was last emailed (`recovery_sent_at` / `confirmation_sent_at`); from `audit_log`, rows with `instance_id` NULL included, the last password success, the last failure, failures since the last success of any kind and failures in 30 days; GoTrue's own `auth.audit_log_entries` `login` rows (180 days) with their provider, read dynamically and fenced so a missing or unreadable table is reported, not fatal; every space with role and join time; unclaimed, unrevoked Poe Properties invitations addressed to the account. Top level: `invites_without_account`.
+2. **Each row** gets a sign-in line ("Last got in yesterday by email", "3 failed tries since (last yesterday)", "sign-in link sent 2d ago, not used"), and one note under the list says which methods are and are not recorded.
+3. **Needs help**, at the top of Signups, built only from these rows, each reason with its time: never came back (after a day); failed tries with no success since (30 days); a link emailed and not followed (after an hour, within 30 days); got in but has no space; an unclaimed Poe Properties invitation; in a space whose app they have not opened (3-day grace, counted from door tracking, DR-1591, or from being added); active, then quiet for 14 days; an invitation to an address with no account. Our own probe is never listed. Help is what already exists: Find in list, Add to a space, Message, and Call, Text or Email at the address on record. No credential reset is invented.
+4. **Search** over the name shown, the address and the phone digits, however typed. **Mask emails** masks every new place and hides the call, text and email links.
 
-   At the top level it also returns `invites_without_account`.
-2. **Each row** gets a sign-in line, for example "Last got in yesterday by email", "3 failed tries since (last yesterday)" or "sign-in link sent 2d ago, not used". One note under the list says which methods are and are not recorded.
-3. **Needs help**, at the top of Signups. It is built only from these rows, and each reason carries its time:
-   - created an account and never came back (after a day);
-   - failed tries with no success since (last 30 days);
-   - a link emailed and not followed (after an hour, within 30 days);
-   - got in but has no space;
-   - an unclaimed Poe Properties invitation;
-   - in a space whose app they have not opened, after a 3-day grace, counted from door tracking (DR-1591) or from being added;
-   - was active, then quiet for 14 days;
-   - an invitation to an address with no account.
-
-   Our own probe is never listed. The help actions are the ones that already exist: Find in list (where Usage and the rest of the row live), Add to a space, Message (the existing DM landing), and Call, Text or Email at the address on record. No credential reset is invented: none exists that keeps verification, and building one is a separate decision.
-4. **Search** over the name shown, the address and the phone digits, however they are typed.
-5. **Mask emails** masks every new place an address appears and hides the call, text and email links.
-
-Nothing is removed: the chips, sort, Mask emails, Refresh, Add to a space, Usage and the Endpoints & stores feed are unchanged and pinned by a test.
+Nothing is removed: chips, sort, Mask emails, Refresh, Add to a space, Usage and the Endpoints & stores feed are unchanged and pinned by a test.
 
 ## What is and is not recorded
 
@@ -59,16 +40,9 @@ Nothing is removed: the chips, sort, Mask emails, Refresh, Add to a space, Usage
 
 ## Verification
 
-- `infra/supabase/tests/0340-person-sign-ins-smoke.sql` ran on PostgreSQL 16 after 0315 and 0340 were each applied twice, and printed PERSON SIGN-INS SMOKE: PASS.
-- Proven to catch, twice:
-  - with the reader limited to rows that have an instance, the person with no space loses their failures and the smoke fails;
-  - with EXECUTE granted to anon, the smoke fails.
-- `who-needs-help-getting-in.test.jsx`: 18 cases, at least one proven-to-catch case per rule, including the person whose only rows have no space, the probe never listed, the unreadable record that invents nobody, Mask hiding the new places, and every existing chip and button still rendering.
-- **Not verified against the live database:** the sandbox has no route to the NAS. These are unknown until the first live read:
-  - whether `auth.audit_log_entries` exists and can be read by the function's owner;
-  - which provider names GoTrue writes for a Royalty Link sign-in.
-
-  Either way the screen says what it found: the coverage note quotes the `gotrue_audit` status.
+- `infra/supabase/tests/0340-person-sign-ins-smoke.sql` on PostgreSQL 16, 0315 and 0340 each applied twice: PERSON SIGN-INS SMOKE: PASS. Proven to catch twice: a reader limited to rows with an instance fails it (the person with no space loses their failures), and so does EXECUTE granted to anon.
+- `who-needs-help-getting-in.test.jsx`: 18 cases, at least one proven-to-catch per rule. The legibility guard caught an unmapped Needs help background (`#FDF6F2`, light under light text in the night themes); it uses the mapped `#FAF8F4`.
+- **Not verified against the live database** (no route from the sandbox): whether `auth.audit_log_entries` is readable by the function's owner, and which provider name GoTrue writes for a Royalty Link sign-in. The coverage note quotes the `gotrue_audit` status either way.
 
 ## Not done
 
