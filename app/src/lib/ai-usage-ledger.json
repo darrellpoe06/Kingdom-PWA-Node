@@ -297,6 +297,21 @@
       "notes": "Built on three runner probes of the site's real markup; 21 tests; the live read is the re-review."
     },
     {
+      "id": "sov94-a-bag-with-holes",
+      "date": "2026-11-18",
+      "task": "Sovereign A.I. week 94 from one word over a forwarded ByteByteGo roundup (thread 1a1cb80997812109): Word first on Haggai 1:6 and 2 Chronicles 24:13; throughput without a defect rate as the one new teaching, the newsletter's figures as reported and the filing left out; four hand-written bands, every verse generator-filled from the KJV; the house examined by its own git history (429 merges in 30 days, 0 reverts, and why that zero measures nothing in a house that repairs forward). Stacked on sov93 for contiguous weeks.",
+      "drs": [
+        "DR-1562"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.5,
+      "estimateWithoutAiHours": 14,
+      "notes": "No token meter in this session; tokens and cost are null. The newsletter's figures are its report, not checked against GitHub or Anthropic. Escaped defects on main are not counted; re-review 2026-12-02."
+    },
+    {
       "id": "sov67-what-cannot-be-patched",
       "date": "2026-11-05",
       "task": "Lesson sov67: the removing of those things that are made (another session's work, ledgered at the first merge after DR-1347)",
@@ -331,6 +346,21 @@
       "notes": "One squash commit 17:40:55Z, merged 17:53:17Z: only the commit-to-merge span is measurable. Estimate entered by the Ways session for 10 files, +333/-47, not the authoring session's own."
     },
     {
+      "id": "sov92-the-voice-is-jacobs-voice",
+      "date": "2026-11-18",
+      "task": "Sovereign A.I. week 92 from one word over a forwarded IT Brew issue, Cheating the system: Word first on Genesis 27:22 and Ephesians 6:6, CheatBench taught as reported (honest work, honeypot, three kinds of cheating) with no rate and no ranking, four hand-written bands, every verse generator-filled from the KJV, and the house examined by its own files (test skips, the run-alone rule, the 25th ceiling raise, the verse fill).",
+      "drs": [
+        "DR-1559"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.5,
+      "estimateWithoutAiHours": 14,
+      "notes": "No token meter in this session; tokens and cost are null. arxiv.org did not resolve from this sandbox, so the paper was never read; secondary reports conflict on rates and release date, so none is printed. Whether any agent here has weakened a check is not measured; re-review 2026-12-02."
+    },
+    {
       "id": "a-proof-of-a-removed-refusal",
       "date": "2026-11-05",
       "task": "Five stale proofs of a removed refusal re-pointed (another session's work, ledgered at merge)",
@@ -346,6 +376,21 @@
       "wallClockHours": 0.23,
       "estimateWithoutAiHours": 3,
       "notes": "One commit 18:41:24Z on claude/stale-proofs-of-a-removed-refusal, merged 18:55:21Z: only the commit-to-merge span is measurable. Estimate entered by the Ways session for 7 files, +110/-11, not the authoring session's own."
+    },
+    {
+      "id": "ll320-go-to-the-ant-keep-your-own-work-when-a-rival-falls",
+      "date": "2026-11-18",
+      "task": "L320: go to the ant, keep your own work when a rival falls, from a forwarded business newsletter",
+      "drs": [
+        "DR-1544"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.6,
+      "estimateWithoutAiHours": 7,
+      "notes": "Checked one teaching one lesson: the fall is taught in L310 and L319, so only the new teaching was built. Rival's quarter read back via search summaries of its 8-K; the rest tiered as reported. 123 quotations filled from the corpus; gate 9/9; shares first failed and were fixed."
     },
     {
       "id": "sov68-there-shall-be-none-in-the-field",
@@ -544,6 +589,21 @@
       "wallClockHours": 0.75,
       "estimateWithoutAiHours": 30,
       "notes": "Measured from his first correction message 13:33Z to the last commit 14:15Z on claude/integrity-lesson-n55fvt, in one session that also carried five History Lesson links, two dead transcript roads diagnosed (TS_AUTHKEY expired 2026-11-04; the sandbox refused by the proxy for the NAS, the tailnet and youtube.com), and the Supabase reads that located the idle NAS trickle. Tokens and dollars null: no meter was exposed to this session. Estimate is this session's own for a 284th Living Lesson with five reader versions, two parables, 77 anchors over 403 spans fetched verbatim, a 55-case gate, two catalog-wide gates proven to catch, 268 corrections across seven lessons, a NAS pipeline source with four tests, a workflow input, and a decision record."
+    },
+    {
+      "id": "sov93-the-porter-and-the-course",
+      "date": "2026-11-18",
+      "task": "Sovereign A.I. week 93 from one word over a forwarded Level Up Coding issue, API Gateway vs Load Balancer: Word first on 2 Chronicles 23:19 and 1 Chronicles 27:1, the three questions and the two components taught plainly, four hand-written bands, every verse generator-filled from the KJV, and the house examined by its own files (the same-origin road, the Funnel path table, a lock on each door, no load balancer, three fall-throughs to a stranger).",
+      "drs": [
+        "DR-1560"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.2,
+      "estimateWithoutAiHours": 14,
+      "notes": "No token meter in this session; tokens and cost are null. Vendor product features are the newsletter's report, not checked against vendor pages. How many Funnel requests land on an unintended service is not measured; re-review 2026-12-02."
     },
     {
       "id": "repo-documents-the-proof-of-the-work",
@@ -996,6 +1056,21 @@
       "notes": "Found while reading the Gmail intake queue for the next oldest-first lesson: 39 uncaptured threads, nine of the first thirty already shipped. Measured the cause rather than assuming it - lesson-mail-watch.yml has 480 runs from 2026-08-25 to 2026-11-09 and every sampled run was an honest no-op, so the automated Gmail door has never once opened. The estimate without AI is the cost of noticing at all: the fact was visible only in the raw log of run 480."
     },
     {
+      "id": "ll323-count-the-cost-before-you-build",
+      "date": "2026-11-18",
+      "task": "L323 Count the Cost Before You Build, from one forwarded job-application email, all four age bands, shared gate plus privacy and one-teaching checks",
+      "drs": [
+        "DR-1549"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.8,
+      "estimateWithoutAiHours": 24,
+      "notes": "Reserved L323 and DR-1549 on origin with new-lesson.mjs. 102 verses filled from app/public/bible/kjv by fill-verses.mjs, none typed. Built only what L309 did not teach. Every personal detail of the source withheld; practical tier not read back from a publication, re-review 2026-12-02."
+    },
+    {
       "id": "the-resolver-owns-the-budgets",
       "date": "2026-11-10",
       "task": "Teach the ledger resolver to own the two budget ratchets: union the append-only raises and re-base ours onto main's chain",
@@ -1144,6 +1219,21 @@
       "wallClockHours": 0.75,
       "estimateWithoutAiHours": 8,
       "notes": "Spoken the same day; built the same session."
+    },
+    {
+      "id": "ll322-why-should-he-take-away-thy-bed",
+      "date": "2026-11-18",
+      "task": "L322: why should he take away thy bed, from a forwarded lender offer (taught generically)",
+      "drs": [
+        "DR-1547"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.8,
+      "estimateWithoutAiHours": 7,
+      "notes": "Personal money email generalized at intake; no name, lender, amount, rate or date. Built only what Banking bank2-bank4 do not: pledging one's own home for unsecured debt, and payment versus cost. 107 quotations filled from the corpus; gate 10/10."
     },
     {
       "id": "dr-1395-lesson",
@@ -1790,6 +1880,21 @@
       "notes": "The runner road to transcripts was dead (expired tailnet key); reversed per DR-1360"
     },
     {
+      "id": "lesson-ll321-lay-hands-suddenly-on-no-man",
+      "date": "2026-11-18",
+      "task": "L321 Lay Hands Suddenly on No Man: a forwarded newsletter (thread 1a1e490da1c1c750) on a crowd petitioning to restore a leader days after he resigned, taught as restoration of the person versus restoration of the office, and who decides fitness to lead",
+      "drs": [
+        "DR-1545"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.6,
+      "estimateWithoutAiHours": 8,
+      "notes": ""
+    },
+    {
       "id": "courses-fully-completed",
       "date": "2026-11-12",
       "task": "Courses fully completed counts the row's own best pass and each course names the exams still owed",
@@ -1910,6 +2015,21 @@
       "wallClockHours": 1.2,
       "estimateWithoutAiHours": 12,
       "notes": "Video https://youtu.be/g_gRHW4SJtI sent with one word, Lesson; not watched (no YouTube from this session), built from his summary and said so in every band. Hany Farid and Estonia's AI Leap checked by web search; Karmen Kisel, India and cheating figures not checked and listed. 80 spans filled from the KJV corpus. The gate caught the teen band inverting the ladder (2.77 under youth 3.72); rejoined by hand to 5.42."
+    },
+    {
+      "id": "sov91-know-the-state-of-thy-flocks",
+      "date": "2026-11-18",
+      "task": "Sovereign A.I. week 91 from one word over a forwarded ByteByteGo excerpt of Evals for AI Engineers (Shankar and Husain): Word first on Proverbs 27:23 and Lamentations 3:40, the three gulfs and the analyze-measure-improve cycle taught in our words, four hand-written bands, every verse generator-filled from the KJV, and the NAS lesson builder's own week read against the book (six silent days, four of seven on one problem, a rule already given, a count with no place, the checker checked).",
+      "drs": [
+        "DR-1553"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.5,
+      "estimateWithoutAiHours": 14,
+      "notes": "No token meter in this session; tokens and cost are null. oreilly.com, arxiv.org and the newsletter's site gave no answer from this sandbox, so the book stays the newsletter's report. Whether naming the span lowers the builder's failure rate is not measured; re-review 2026-11-25."
     },
     {
       "id": "sov75",
