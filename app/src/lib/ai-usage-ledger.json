@@ -1099,19 +1099,19 @@
       "notes": "Darrell's three messages and a screenshot; built across worker restarts."
     },
     {
-      "id": "ll336-the-lie-the-fear-and-the-last-adam",
-      "date": "2026-11-19",
-      "task": "L336 The Lie, the Fear, and the Last Adam, from a summary of a talk on sin as broken trust, the true part affirmed and the over-reach corrected from the Word, all four age bands, shared gate",
+      "id": "bank10-the-watchman-who-went-quiet",
+      "date": "2026-11-18",
+      "task": "Banking lesson 10 from a forwarded Fintech Takes recap (thread 1a1f08bfcac456b1): Ezekiel 33:6 in both halves, all four bands, generator-filled verses, no party or official named",
       "drs": [
-        "DR-1582"
+        "DR-1563"
       ],
       "prs": [],
-      "model": "claude-fable-5-2",
+      "model": "claude-opus-5",
       "tokens": null,
       "costUsd": null,
-      "wallClockHours": 0.3,
-      "estimateWithoutAiHours": 24,
-      "notes": "Reserved L336 and DR-1582 on origin with new-lesson.mjs. 294 verse tokens filled from app/public/bible/kjv, none typed. Video not watched; speaker unnamed in the summary and in the lesson; gate 9 of 9 on the first run; re-review 2026-12-19."
+      "wallClockHours": 0.8,
+      "estimateWithoutAiHours": 10,
+      "notes": "Teen read above its 6.0 ceiling on first build; bands shortened by hand. Agency site and podcast refused by the proxy; reported tier held. re-review 2026-12-16."
     },
     {
       "id": "dr-1384-read-by-any-road",
@@ -2723,6 +2723,21 @@
       "notes": "No token meter exposed to this session; tokens and cost are null. The 40-hour estimate without A.I. is for one hour of teaching written five times over (an adult lesson and four age-banded versions, about 15,900 words of authored prose), 62 verses transcribed by hand from a printed KJV, the independent checking of five load-bearing figures, and 54 tests. The band work failed its floors and its reading ladder on the first measurement, as P60 predicts, and every repair was authored by hand rather than swept by a script (DR-1306). Renumbered to DR-1470 after #2658 landed a record on the number first, while this branch was green and in flight; the rename was done by hand on each citation's own surrounding text, never by number, because renumber-decision-record.mjs rewrites by number across the whole tree and the surrendered number's call sites now belong to that landed record."
     },
     {
+      "id": "lesson-ll328",
+      "date": "2026-11-18",
+      "task": "L328 Faithful in that which is least, from a forwarded public school-district newsletter",
+      "drs": [
+        "DR-1565"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.8,
+      "estimateWithoutAiHours": 8,
+      "notes": ""
+    },
+    {
       "id": "sov89-take-thee-again-another-roll",
       "date": "2026-11-18",
       "task": "Sovereign A.I. week 89 built from one word over a forwarded Level Up Coding issue (Redis vs Memcached), all four age bands, 25-case gate",
@@ -3745,6 +3760,21 @@
       "wallClockHours": 0.5,
       "estimateWithoutAiHours": 4,
       "notes": "DR-1534's first live read named the limit rather than the cause. Refused the fifth-receipt move DR-1526 recorded as wrong and built the direct read for road 2 instead. Proven to catch a printed draft; 10 cases, wired into ci.yml. Not run on the NAS -- only Darrell's own ssh can."
+    },
+    {
+      "id": "ll336-the-lie-the-fear-and-the-last-adam",
+      "date": "2026-11-19",
+      "task": "L336 The Lie, the Fear, and the Last Adam, from a summary of a talk on sin as broken trust, the true part affirmed and the over-reach corrected from the Word, all four age bands, shared gate",
+      "drs": [
+        "DR-1582"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.3,
+      "estimateWithoutAiHours": 24,
+      "notes": "Reserved L336 and DR-1582 on origin with new-lesson.mjs. 294 verse tokens filled from app/public/bible/kjv, none typed. Video not watched; speaker unnamed in the summary and in the lesson; gate 9 of 9 on the first run; re-review 2026-12-19."
     }
   ]
 }
