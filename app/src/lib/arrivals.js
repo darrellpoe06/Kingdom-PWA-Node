@@ -34,6 +34,11 @@
 //                    lessons" -- every kind above needs a row of the person's own,
 //                    and the lessons built from his emailed requests (sov41-46,
 //                    pm13, car1-6) never had one, so they never rang.
+//   service-new      a recording landed on the church channel (the channel's own
+//                    public feed through /api/church-recent, the feed the Past
+//                    sermons tab plays from). Darrell 2026-11-18: "when BG has a
+//                    new sermon from YouTube... send out a notification to users
+//                    to watch it... So they know."
 //
 // THE SEEN MARK is a set of arrival ids per account, kept in localStorage on
 // THIS DEVICE (said plainly: per device for this first cut; the Messages kind
@@ -47,7 +52,7 @@ import { currentDoor, messageLandingHere } from './app-doors.js';
 import { lessonQuery } from './lesson-links.js';
 import { LIVING_LESSONS_KEY } from './lessons-for-situation.js';
 
-export const ARRIVAL_KINDS = Object.freeze(['message', 'lesson-ready', 'lesson-review', 'lesson-published', 'review-queue', 'feedback', 'lesson-new']);
+export const ARRIVAL_KINDS = Object.freeze(['message', 'lesson-ready', 'lesson-review', 'lesson-published', 'review-queue', 'feedback', 'lesson-new', 'service-new']);
 
 /** The kinds a screen marks seen when it opens. One source for every screen. */
 export const SCREEN_KINDS = Object.freeze({
@@ -58,6 +63,8 @@ export const SCREEN_KINDS = Object.freeze({
   // The lesson itself, opened from its link (DR-1253): a published lesson's
   // arrival is looked at when the lesson is, not only when Your lessons is.
   lesson: ['lesson-published'],
+  // The Church surface, where the recording plays (DR-1506).
+  church: ['service-new'],
 });
 
 // ── new in the catalog ───────────────────────────────────────────────────────
@@ -103,6 +110,42 @@ export function catalogArrivals(lessons, { since = '' } = {}) {
       lessonId: l.lessonId,
     });
     if (out.length >= CATALOG_MAX) break;
+  }
+  return out;
+}
+
+// ── new on the church channel ────────────────────────────────────────────────
+
+/** At most this many channel recordings are listed at once, newest first. */
+export const SERVICE_MAX = 5;
+
+/**
+ * One arrival per recording the church channel's feed carries, published on or
+ * after `since` (a YYYY-MM-DD day), newest first, at most SERVICE_MAX. `videos`
+ * are parseYoutubeFeed() entries. The feed lists every upload, a Sunday
+ * service and a midweek Bible study alike, so the row says "service" and
+ * carries the video's own title; it never guesses who preached. A video with
+ * no readable publish time is left out: an arrival with an invented day would
+ * ring for something old.
+ */
+export function serviceArrivals(videos, { since = '' } = {}) {
+  const out = [];
+  for (const v of Array.isArray(videos) ? videos : []) {
+    if (!v || !v.videoId) continue;
+    const at = iso(v.published);
+    if (!at) continue;
+    const day = new Date(at).toISOString().slice(0, 10);
+    if (since && day < since) continue;
+    out.push({
+      kind: 'service-new',
+      id: `service-new:${v.videoId}`,
+      at: new Date(at).toISOString(),
+      title: `New service to watch: ${String(v.title || '').trim() || 'a new recording'}`,
+      detail: 'On the church channel. Opens in Church, where it plays.',
+      screen: 'church',
+      videoId: v.videoId,
+    });
+    if (out.length >= SERVICE_MAX) break;
   }
   return out;
 }
@@ -233,8 +276,8 @@ export function messageArrival({ count = 0, newest = null } = {}) {
 }
 
 /** Every arrival, newest first. An item with no time sorts last, never first. */
-export function combineArrivals({ message = null, lessons = [], queue = [], feedback = [], catalog = [] } = {}) {
-  const all = [...(message ? [message] : []), ...lessons, ...queue, ...feedback, ...catalog];
+export function combineArrivals({ message = null, lessons = [], queue = [], feedback = [], catalog = [], services = [] } = {}) {
+  const all = [...(message ? [message] : []), ...lessons, ...queue, ...feedback, ...catalog, ...services];
   return all.sort((a, b) => {
     if (a.at && b.at) return a.at < b.at ? 1 : a.at > b.at ? -1 : 0;
     if (a.at) return -1;
@@ -279,6 +322,37 @@ export function markSeen(seen, items, kinds) {
   return { v: 1, ids: list.length > SEEN_CAP ? list.slice(list.length - SEEN_CAP) : list };
 }
 
+/** Mark one item seen by id. Pure: returns the new set. */
+export function markIdSeen(seen, id) {
+  const ids = new Set((seen && seen.ids) || []);
+  if (id) ids.add(String(id));
+  const list = [...ids];
+  return { v: 1, ids: list.length > SEEN_CAP ? list.slice(list.length - SEEN_CAP) : list };
+}
+
+// A tapped arrival that has no screen of its own to mark it. A new service
+// lands on Church, which is the church door's FIRST screen: marking on open
+// would silence the notice before anyone read it, and the bell marks nothing
+// by rule (a glance at the list never silences what it lists). So the tap
+// leaves the item's id for this tab, and the watcher marks that one item seen
+// once it holds it (the page reloads between the tap and the landing).
+export const OPENED_KEY = 'poetech:arrival-opened';
+
+/** Note which arrival was tapped. Only kinds with no marking screen are noted. */
+export function noteArrivalOpened(item, storage) {
+  if (!item || item.kind !== 'service-new' || !item.id || !storage) return false;
+  try { storage.setItem(OPENED_KEY, String(item.id)); return true; } catch { return false; }
+}
+
+/** The tapped arrival's id, if one is waiting; it stays until cleared. */
+export function peekArrivalOpened(storage) {
+  try { return (storage && storage.getItem(OPENED_KEY)) || null; } catch { return null; }
+}
+
+export function clearArrivalOpened(storage) {
+  try { if (storage) storage.removeItem(OPENED_KEY); } catch { /* noop */ }
+}
+
 /** Is this one item still unseen? Messages carry their own read state. */
 export function isUnseen(item, seen) {
   if (!item) return false;
@@ -316,7 +390,7 @@ export function newSince(items, knownIds) {
  * (app-doors.js, DR-0444): a message opens its thread; a lesson that is
  * written or answered opens Your lessons; a lesson that is PUBLISHED opens the
  * lesson itself in Learn (DR-1253); the Governor's queue opens Lessons to
- * decide. Feedback has no
+ * decide; a new recording opens Church, where it plays. Feedback has no
  * URL: its replies live in the Feedback sheet the footer button opens, so the
  * bell presses that button instead (null here).
  */
@@ -326,6 +400,7 @@ export function arrivalLanding({ pathname = '', search = '', item } = {}) {
   const door = currentDoor(pathname, search).path;
   if (item.screen === 'your-lessons') return `${door}?view=create&panel=your-lessons`;
   if (item.screen === 'decide') return `${door}?view=create&panel=decide`;
+  if (item.screen === 'church') return `${door}?view=church`;
   if (item.screen === 'learn' && item.courseKey) return `${door}${lessonQuery({ courseKey: item.courseKey, lessonId: item.lessonId })}`;
   return null;
 }

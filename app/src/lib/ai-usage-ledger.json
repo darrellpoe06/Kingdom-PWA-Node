@@ -685,6 +685,21 @@
       "notes": "Measured worktree creation (16:31:16Z, stat) to the commit (16:54:18Z, git %cI) on claude/a-present-base-can-still-be-stale: 23m02s, which includes the three timed fetches (776/808/965 ms) that replaced my own asserted cost argument with a number, and correcting three DR-1363 citations to DR-1365 after the renumber cascade moved my number. NOT on that clock: #2571's red that exposed it, and the renumber of #2571 off DR-1360 after another session landed that number. Tokens and dollars null: no meter exposed. Estimate is this session's own, not a measurement."
     },
     {
+      "id": "lesson-ll325-god-is-able",
+      "date": "2026-11-18",
+      "task": "L325 Yahweh Is Able: a Living Lesson built from Bishop Gwin's written Wednesday proclamation (2 Corinthians 9:8), his four points and his passages in KJV",
+      "drs": [
+        "DR-1556"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.4,
+      "estimateWithoutAiHours": 6,
+      "notes": "Thread confirmed by subject and date; NKJV wording not compared (KJV only). re-review 2026-12-02."
+    },
+    {
       "id": "ll285-a-light-that-is-not-light",
       "date": "2026-11-06",
       "task": "A light that is not light: Darrell's two spoken messages become ll285 and its 57-case gate; the newsletter pipeline reads every emailed teaching under the light (reading rule, visible-reading gate, one-email-many-lessons split) with 6 builder tests",
@@ -1694,6 +1709,21 @@
       "wallClockHours": 0.6,
       "estimateWithoutAiHours": 5,
       "notes": "0335's first live read named the gate and still could not decide the fix: the quotation gate refuses five different things calling for opposite work, and one of them is Darrell's call on how a lesson is written. Checked first that the prompt already states the rules and that previous_failures does reach attempt 2, so more retries was never the obvious answer. Proven to catch the adversary's name reaching the receipt."
+    },
+    {
+      "id": "a-new-service-rings-the-bell",
+      "date": "2026-11-19",
+      "task": "Arrivals gains a new-service kind read from the church channel feed; a tap marks one item seen",
+      "drs": [
+        "DR-1568"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.4,
+      "estimateWithoutAiHours": 6,
+      "notes": "Reads the feed the Past sermons tab already plays. Closed-phone push not built, re-review 2026-12-03."
     },
     {
       "id": "dr-1420-record-in-readers-name",
