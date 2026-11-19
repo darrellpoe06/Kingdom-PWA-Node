@@ -2978,6 +2978,21 @@
       "notes": "Root cause traced to the onFallback hand-off speaking an unmatched-gender phone voice and a speak-time URI miss setting no voice. New suite 13 cases, 9 fail on origin/main. My voice blocked: tower studio unarmed (arm run 36796584904) and CI tailnet key invalid (run 43310501087)."
     },
     {
+      "id": "dr-1588-kids-zone-reads-the-weeks-lesson",
+      "date": "2026-11-19",
+      "task": "A Kids Zone test that pinned one week's lesson turned main red when two lessons landed; the test now reads the lesson the catalog picks",
+      "drs": [
+        "DR-1588"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.3,
+      "estimateWithoutAiHours": 2,
+      "notes": "Found on PR #2775 shard 3, then on PR #2788 which adds no lesson, which showed main itself was red. Proven to catch by forcing the page to show the heading always. No product code changed."
+    },
+    {
       "id": "my-voice-on-the-nas",
       "date": "2026-11-18",
       "task": "My voice made on the NAS when the tower is dark: Piper + OpenVoice V2 converter service, forwarder fallback, reader names the engine, public-road witness",
