@@ -4,7 +4,7 @@
 **Status:** Accepted
 **Tier:** B (congregation-facing surfaces; no schema, no money moving, no new road)
 **Type:** decision
-**Area:** `app/src/components/Modal.jsx` (the sheet shape); `app/src/components/shell/PersonalizeSheet.jsx`, `LoveCornerMenus.jsx`; `app/src/lib/tts.js`, `use-read-aloud.js`; `app/src/lib/picture-zoom.js`, `app/src/components/PictureZoom.jsx`, `lovecorner/ChurchOfficeBoard.jsx`, `DocumentViewer.jsx`; `app/src/components/UiIcon.jsx`; `app/src/index.css`; `scripts/chrome-layout-probe.mjs` (the sheets pass)
+**Area:** `app/src/components/Modal.jsx` (the sheet shape); `app/src/components/shell/PersonalizeSheet.jsx`, `LoveCornerMenus.jsx`; `app/src/lib/tts.js`, `use-read-aloud.js`, `use-clip-rate.js`; `app/src/lib/picture-zoom.js`, `app/src/components/PictureZoom.jsx`, `lovecorner/ChurchOfficeBoard.jsx`, `DocumentViewer.jsx`; `app/src/components/UiIcon.jsx`; `app/src/index.css`; `scripts/chrome-layout-probe.mjs` (the sheets pass)
 **Sent in by:** Darrell, 2026-11-18, from the live Love Corner door on a foldable tablet, night theme, large text: *"Look okay? Accessibility?"* (the ALL menu and Personalize); *"The reading speeds etc don't work... fix it"*; *"Larger text doesn't enlarge the fonts on the images.... or documents..."*
 **Pairs with:** DR-1483 (the Love Corner header and its sheets), DR-1540 (the Aa button), DR-0654 / DR-1482 (a reading keeps its voice), DR-0438 (chrome never grows), DR-1550 (the church office board), DR-1078 (documents open in the app), DR-0239 dimension 4 (measured, not eyeballed)
 
