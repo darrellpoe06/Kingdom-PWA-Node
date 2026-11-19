@@ -61,7 +61,7 @@ export function nextIdOnDisk(decisionsDir) {
 // scripts/index-row.mjs; these live here so business-systems-guard needs no
 // new import (fixtures copy this lib).
 // ---------------------------------------------------------------------------
-/** Rows from this number on must not sit in the tail. Numbers reserved before DR-1602 landed (to DR-1606) keep the spot their branch gave them. */
+/** Rows from this number on must not sit in the tail. Numbers reserved before DR-1602 landed (up to 1606) keep the spot their branch gave them. */
 export const PLACED_FROM = 1607;
 /** The tail's length; equal to ai-usage-ledger's TAIL_GUARD (a test pins it). */
 export const TAIL_ROWS = 40;
