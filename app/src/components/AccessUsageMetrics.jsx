@@ -45,6 +45,7 @@ import {
   fetchSignupMetrics, summaryTiles, signupRowView, sortSignups,
 } from '../lib/signup-metrics.js';
 import { emptyIndex, loadContactIndex, labelFor, countNamed } from '../lib/contact-names.js';
+import { fetchPersonDoors, indexDoors, doorsView } from '../lib/person-onboarding.js';
 import { listMyAdminInstances, addUserToSpace, roleLabel as memberRoleLabel } from '../lib/member-roles.js';
 import { fetchUsageFlow, topViews, viewShare } from '../lib/usage-events.js';
 
@@ -211,9 +212,15 @@ function PlatformSignups() {
   // from the rows THEY brought in (DR-0736: owner-only at the database, cached
   // on this device), so each viewer sees their own names and nobody else's.
   const [contacts, setContacts] = useState(emptyIndex);
+  // WHICH APPS EACH PERSON HAS OPENED (DR-1591), read beside the list and
+  // shown on each row. Its own status: if it cannot be read, the list still
+  // shows and the reason is said once, never as "never opened".
+  const [doorsRes, setDoorsRes] = useState({ status: 'loading', data: null });
   const load = useCallback(async () => {
     setRes((r) => ({ status: 'loading', data: r.data }));
-    setRes(await fetchSignupMetrics());
+    const [signups, doorsRead] = await Promise.all([fetchSignupMetrics(), fetchPersonDoors()]);
+    setRes(signups);
+    setDoorsRes(doorsRead);
   }, []);
   useEffect(() => { load(); }, [load]);
   useEffect(() => {
@@ -243,6 +250,9 @@ function PlatformSignups() {
   const rows = sortSignupsBy(sortSignups((data && data.signups) || []), sortKey, (r) => signupRowView(r, nowMs, mask));
   const tiles = summaryTiles(summary);
   const namedByContacts = countNamed(contacts, rows, (row) => ({ email: row.email }));
+  const doorsReady = doorsRes.status === 'ready';
+  const doorIndex = doorsReady ? indexDoors(doorsRes.data) : null;
+  const doorsSince = doorsReady ? (doorsRes.data.door_tracking_since || null) : null;
 
   return (
     <div className="mb-5">
@@ -323,6 +333,18 @@ function PlatformSignups() {
                       <div className="text-[0.625rem] text-[#5A5751]">
                         account created {r.joined} · {r.activeNow ? 'active now' : (r.returned ? `active, last active ${r.lastSeen}` : (r.lastSeen === 'never' ? 'never signed back in' : `last active ${r.lastSeen}`))}
                       </div>
+                      {/* WHICH APPS THEY HAVE OPENED, AND WHEN (DR-1591). */}
+                      {doorIndex && r.userId && !r.isOurs ? (() => {
+                        const dv = doorsView(doorIndex.get(r.userId), doorsSince, nowMs);
+                        return (
+                          <div className="text-[0.625rem] text-[#5A5751]" data-testid="signup-doors" title={dv.note}>
+                            {dv.doors.map((d, i) => (
+                              <span key={d.key} className={d.opened ? 'text-[#5A6E3D]' : ''}>{i ? ' · ' : 'Apps: '}{d.text}</span>
+                            ))}
+                            {dv.beforeText ? <span> · {dv.beforeText}</span> : null}
+                          </div>
+                        );
+                      })() : null}
                       {/* WHAT IT IS, on the row (DR-1075). Darrell found the
                           site-health probe here as an unexplained phone number
                           signing in daily and had to ask. A roster that cannot
@@ -348,6 +370,16 @@ function PlatformSignups() {
               })}
             </div>
           )}
+          {/* HOW TO READ THE APPS LINE, said once (DR-1591), or why it is absent. */}
+          {rows.length > 0 && doorsReady ? (
+            <p className={note + ' italic mt-1'} data-testid="signup-doors-note">
+              {doorsView(undefined, doorsSince, nowMs).note}
+            </p>
+          ) : rows.length > 0 && doorsRes.status === 'unavailable' ? (
+            <p className={note + ' italic mt-1'} data-testid="signup-doors-note">
+              Which apps each person has opened could not be read: {(doorsRes.error && doorsRes.error.message) || 'unknown error'}.
+            </p>
+          ) : null}
           {data && data.signups_truncated ? (
             <p className={note + ' italic mt-1'}>Showing the newest {data.signups_shown}. Older accounts are counted in the totals above but not listed.</p>
           ) : null}

@@ -729,6 +729,21 @@
       "notes": "No token meter in this session; tokens and cost are null. Vendor product features are the newsletter's report, not checked against vendor pages. How many Funnel requests land on an unintended service is not measured; re-review 2026-12-02."
     },
     {
+      "id": "sov99-the-song-that-goes-with-you",
+      "date": "2026-11-19",
+      "task": "Sovereign A.I. week 99 rebuilt from Darrell's spoken teaching of 2026-09-24 (PR #1814, original DR-0634, never landed): Word first on Proverbs 6:22 and Exodus 33:14; the song in the night, the faithful servant, the Word unbound; bright line that no tool is the presence of Yahweh; four hand-written bands, every verse generator-filled from the KJV corpus; house pinned to tts.js and TTSControl.jsx",
+      "drs": [
+        "DR-1578"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1,
+      "estimateWithoutAiHours": 10,
+      "notes": "No token meter in this session; tokens and cost are null. His phone test of leaving a tab and switching apps is not verified; re-review 2026-12-03."
+    },
+    {
       "id": "repo-documents-the-proof-of-the-work",
       "date": "2026-11-06",
       "task": "Documents in the admin console: every decision, Way, foundation and session note readable by its own location; the standard that the NAS initiates every road",
@@ -823,6 +838,21 @@
       "wallClockHours": 0.2,
       "estimateWithoutAiHours": 1,
       "notes": ""
+    },
+    {
+      "id": "dr-1599-malcolm-x-in-the-title",
+      "date": "2026-11-19",
+      "task": "The Malcolm X lesson (L337) carries his name in its title so it can be found",
+      "drs": [
+        "DR-1599"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.1,
+      "estimateWithoutAiHours": 0.5,
+      "notes": "Title and the band-opening title changed; id, number and text unchanged; lesson gate green."
     },
     {
       "id": "the-in-flight-view-has-an-age",
@@ -2547,6 +2577,23 @@
       "notes": "Darrell asked whether Payhip was needed or the capability could be sovereign; built sovereign on the existing Stripe seam. payhip.com and the Acrobat document are outside the sandbox allowlist (both allows declined), so both were filed as research items for the NAS lane (7b4128a5, e8294305). Found along the way: the register and the format guard read only tracked files, so a new function or file must be git-added before either regenerates; and a guard read through a pipe reported the pipe's exit, which let a merge commit with conflict markers reach the branch once before the guards were re-run with their real exit codes."
     },
     {
+      "id": "installer-class-exposure-n8n-road",
+      "date": "2026-11-19",
+      "task": "Checked our apps for the Drupal install.php class (SA-CORE-2026-017): no PHP or Drupal; closed the /n8n road (forwarded any path to n8n's editor, REST and first-run setup) and stopped every road leaving its mount through encoded dot segments; proven-to-catch test; research note",
+      "drs": [
+        "DR-1607"
+      ],
+      "prs": [
+        2825
+      ],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.5,
+      "estimateWithoutAiHours": 6,
+      "notes": "Wall clock from the first search to the first push."
+    },
+    {
       "id": "sov76-the-model-in-your-hand",
       "date": "2026-11-12",
       "task": "sov76, the model in your hand: the Sovereign A.I. week built from the ByteByteGo send Darrell forwarded on 2026-10-27 with one word above it, Lesson (Gmail thread 1a17e0a2846ca5b7), taught Word-first from Deuteronomy 30:11-14 in eight movements, with all four age bands, 204 quoted spans filled from the KJV corpus on disk, and a 44-case gate proven to catch five ways",
@@ -2919,6 +2966,21 @@
       "wallClockHours": 1.4,
       "estimateWithoutAiHours": 32,
       "notes": "Gmail thread 1a1e43310d023259, forwarded issue dated 2026-11-16, built 2026-11-18. Each tool's limits and defaults taught as reported and unranked; redis.io, memcached.org, valkey.io and docs.immich.app refused the session network (ENOTFOUND), re-review 2026-12-18. 30 anchor references, 122 quoted spans, every verse filled from app/public/bible/kjv by scripts/sov89-fill.mjs and none typed. Our house measured: no Redis or Memcached in the app or our NAS code; Valkey 9 in infra/nas-immich/docker-compose.yml:53-56 on defaults (no maxmemory, no policy, no volume); SearXNG limiter off for want of a Valkey; sw.js per-build Cache Storage; clip-cache.js LRU at 300 MB, downloads held, two in flight. Valkey memory on the NAS not measured."
+    },
+    {
+      "id": "person-doors-dr1591",
+      "date": "2026-11-19",
+      "task": "Each visit says which app it was: usage_events.door (0339), a door row per signed-in boot including Poe Properties, the governor-only per-person app read, and an Apps line on every Signups row; smoke on PostgreSQL 16 proven to catch twice; existing chips and buttons pinned",
+      "drs": [
+        "DR-1591"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.2,
+      "estimateWithoutAiHours": 10,
+      "notes": ""
     },
     {
       "id": "sov79-promotion-cometh-not-from-the-east",
