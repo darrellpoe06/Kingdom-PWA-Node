@@ -16,6 +16,12 @@ DR-1594 lets a worker READ a job sent to him. Two gaps stayed between that and h
 1. **The worker's job list was per door.** The Work tab's `mine` is `myJobs(openWork, …)`, and `openWork` comes from `loadDoorRecord` of the ONE selected door (PropertiesApp.jsx, `record`). A worker opening the app saw nothing unless he picked the right door, and a door he held no grant for could not be picked at all.
 2. **Nothing told him a job was sent.** The dispatch opens the landlord's own messaging app; if he does not press send, the worker hears nothing.
 
+## What was measured
+
+- PropertiesApp.jsx on main 020636a: the Work tab's `mine = myJobs(openWork, …)`; `openWork` filters `seen.requests`, which come from `loadDoorRecord(workDoor.tenancyId, { rentalId: workDoor.rentalId })` of the selected door only (~786-790).
+- `lib/arrivals.js` ARRIVAL_KINDS on main: message, lesson-ready, lesson-review, lesson-published, review-queue, feedback, lesson-new, service-new; none for a work order.
+- `dispatchJob` (PropertiesApp.jsx ~1030) opens the landlord's messaging app; nothing in the app tells the worker.
+
 ## Decision
 
 1. **My work orders**, first where a worker lands (My doors, My jobs) and on any tab he cannot open: one read of `my_assigned_work_orders()` (0337, his jobs only, with the door's label and street), open jobs urgent first. Each row shows what, where (the street opens in maps), the detail, and any proof needed for payment. He can mark it Fixed or Not fixed, add a note, and add a picture, written as his own documentation (0337's assigned-worker insert). "Open the door" appears only for a door he can open. A person sent a job with no grant is still shown the field worker's face.
