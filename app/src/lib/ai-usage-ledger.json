@@ -1224,6 +1224,21 @@
       "notes": "Darrell 2026-11-13 from the live door; five cases proven to catch"
     },
     {
+      "id": "lane-test-9002",
+      "date": "2026-11-19",
+      "task": "throwaway",
+      "drs": [
+        "DR-9002"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0,
+      "estimateWithoutAiHours": 0,
+      "notes": ""
+    },
+    {
       "id": "the-lesson-lane-says-why-it-is-asleep",
       "date": "2026-11-10",
       "task": "Give two dormant lanes a voice: the lesson-mail watcher says what its dormancy costs, and the email door reports mail-password presence before the tailnet gate",
