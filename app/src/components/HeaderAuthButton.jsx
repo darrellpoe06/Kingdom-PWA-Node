@@ -127,6 +127,8 @@ function DoorAccount({ door, compact, session, profile, profileOpen, setProfileO
           look="poetech"
           testid="door-account-menu"
           rowTestid={(key) => `door-menu-${key}`}
+          floating
+          theme={door.theme}
         />
       )}
       <Modal open={profileOpen} onClose={() => { setProfileOpen(false); close(); }} label="My profile">

@@ -59,6 +59,7 @@ vi.mock('../components/shell/PersonalizeSheet.jsx', () => ({
 
 const { default: HeaderAuthButton } = await import('../components/HeaderAuthButton.jsx');
 const { default: TopNavRow } = await import('../components/TopNavRow.jsx');
+const { floatingMenuBox } = await import('../components/shell/AccountMenu.jsx');
 const { POETECH_ACCOUNT_ROWS, poetechAccountRows, rowHasPlace, viewIdsOf } = await import('../lib/poetech-account-rows.js');
 
 const SHELL = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'poe-financial-mvp-v28.jsx'), 'utf8');
@@ -214,6 +215,34 @@ describe('DR-1600 the picture: signed in, a round button at the top right opens 
     await settle();
     expect(q('door-avatar')).toBeNull();
     expect([...container.querySelectorAll('button')].map((b) => b.textContent)).toContain('Log out');
+  });
+});
+
+describe('DR-1600 the menu floats over the page, outside the zoomed header, inside the screen', () => {
+  it('it opens under the picture, right edges lined up, 272px wide', () => {
+    expect(floatingMenuBox({ bottom: 100, right: 700 }, 768, 1024)).toEqual({ top: 106, left: 428, width: 272, maxHeight: 910 });
+  });
+  it('at 320px it fits whole; on a narrower screen it narrows, never starting left of the screen', () => {
+    const p = floatingMenuBox({ bottom: 60, right: 280 }, 320, 640);
+    expect(p).toMatchObject({ width: 272, left: 8 });
+    const b = floatingMenuBox({ bottom: 60, right: 240 }, 260, 640);
+    expect(b.width).toBe(244);
+    expect(b.left).toBe(8);
+    expect(b.left + b.width).toBeLessThanOrEqual(260 - 8);
+  });
+  it('with little room below, it scrolls rather than running off the bottom', () => {
+    expect(floatingMenuBox({ bottom: 600, right: 300 }, 360, 700).maxHeight).toBe(120);
+    expect(floatingMenuBox({ bottom: 200, right: 300 }, 360, 700).maxHeight).toBe(486);
+  });
+  it('the PoeTech menu is drawn in a layer on <body> carrying the theme, not inside the header', async () => {
+    currentSession = { user: { id: 'u1', email: 'a@example.com' } };
+    mount(createElement(HeaderAuthButton, { door: { ...door(), theme: 'midnight' } }));
+    await settle();
+    click(q('door-avatar'));
+    const menu = document.querySelector('[data-testid="door-account-menu"]');
+    expect(container.contains(menu), 'the menu is inside the header (the zoom shrinks it)').toBe(false);
+    expect(menu.closest('[data-theme]').getAttribute('data-theme')).toBe('midnight');
+    expect(menu.style.position).toBe('fixed');
   });
 });
 
