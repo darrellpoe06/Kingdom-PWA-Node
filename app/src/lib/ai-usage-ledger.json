@@ -144,6 +144,21 @@
       "notes": "17:23:34Z → 17:41:35Z including gitleaks built from source and the fixture allowlist fix."
     },
     {
+      "id": "sov98-he-wrought-a-work-on-the-wheels",
+      "date": "2026-11-19",
+      "task": "Sovereign A.I. week 98 from one word over a forwarded technology newsletter (thread 1a1f090d679841cd): Word first on Jeremiah 18:2-6, the potter's hands on the clay as the wheel turns; directing as it unfolds versus ordering and hoping; the speed-for-quality cost counted with Luke 14:28; the honesty line that a generated person is not a person (Genesis 2:7, Jeremiah 10:14); four hand-written bands, every verse generator-filled from the KJV; the house measured from the generator's own code.",
+      "drs": [
+        "DR-1576"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.5,
+      "estimateWithoutAiHours": 12,
+      "notes": "No token meter in this session; tokens and cost are null. The tool is reported through a newsletter recap and was not used; whether it works as described is not verified; re-review 2026-12-03."
+    },
+    {
       "id": "d5-error-text",
       "date": "2026-11-05",
       "task": "Error-text policy, 26 sites rewritten, guard, reviewer-only detail",
