@@ -12,6 +12,10 @@
 
 His screenshot was the **collapsed** header: "Show header", the brand, "Text size". Since DR-1046 a device with no saved choice opens that way. The account (`HeaderAuthButton`: the face and name opening My profile, Log out under it) rendered only inside the **open** header's wrapping controls row, so on the header most people see there was no picture at all, and when open it sat wherever the row's wrapping put it, not at the top right.
 
+## Impact
+
+A person on the PoeTech door sees their picture at the top right whether the header is open or tucked away, at every text size, and one tap opens a menu whose every row goes to a real place for them. Nothing the old chip did is lost: My profile is the first row and Log Out the last. The Love Corner's menu is unchanged, now drawn by the same frame.
+
 ## Decision
 
 1. **The picture sits at the top right, open or collapsed.** Open: a round 40px picture (and the name from `sm` up) outside the wrapping controls row, as the header's last item. Collapsed: the picture alone in the tab row, right of the tabs and left of the chevron; that row never moves to the big-text bottom bar, so it stays at the top at every text size. Signed out, both places show the same Log in box, now at least 36px tall.

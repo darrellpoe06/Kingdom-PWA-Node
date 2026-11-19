@@ -54,7 +54,7 @@ const LOOKS = {
     out: 'lch-menu-out',
     chip: 'lch-chip',
     chipMuted: 'lch-chip-muted',
-    focus: 'focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#CFA63C]',
+    focus: 'focus:outline-offset-2 focus:outline-[#CFA63C]',
   },
   poetech: {
     menu: 'acct-menu bg-white text-[#1A1815] border border-[#1A1815]',
@@ -64,7 +64,7 @@ const LOOKS = {
     out: 'acct-menu-out text-[#B85838] border-t border-[#E8E4DC]',
     chip: 'acct-chip bg-[#1A1815] text-white',
     chipMuted: 'acct-chip-muted text-[#5A5751]',
-    focus: 'focus:outline focus:outline-2 focus:outline-[#B85838]',
+    focus: 'focus:outline-[#B85838]',
   },
 };
 
@@ -144,7 +144,13 @@ export default function AccountMenu({
       <ul className={L.list}>
         {rows.map((r) => (
           <li role="none" key={r.key}>
-            <button type="button" role="menuitem" onClick={r.onSelect} className={`${L.row} ${r.out ? L.out : ''} ${L.focus}`} data-testid={rowTestid(r.key)}>
+            <button
+              type="button"
+              role="menuitem"
+              onClick={r.onSelect}
+              className={`${L.row} ${r.out ? L.out : ''} focus:outline focus:outline-2 ${L.focus}`}
+              data-testid={rowTestid(r.key)}
+            >
               {r.label}
               {r.chip && <span className={L.chip}>{r.chip}</span>}
               {r.chipMuted && <span className={L.chipMuted}>{r.chipMuted}</span>}
