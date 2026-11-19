@@ -63,6 +63,12 @@ jobs:
       max-parallel: 1
       matrix:
         include:
+          # The church office's posts are kept (DR-1596): a member reads only
+          # their church's archive, only the reader's service role writes it,
+          # one row per content, and a past calendar event is archived, never deleted.
+          - feature: church-site-archive
+            migrations: "0342-what-the-church-office-posts-is-kept.sql"
+            smokes: "0342-church-site-archive-smoke.sql"
           # Sign-ins and failures are on the record (DR-1336): the hook writes
           # 'login' / 'failed-auth' rows, owners read their instance's, members
           # and anon read none, the hook is not callable by the signed-in.

@@ -4,7 +4,7 @@
     "functions": 31,
     "nasServices": 7,
     "nasRoutes": 33,
-    "tables": 327,
+    "tables": 328,
     "tablesWithoutRls": 1
   },
   "functions": [
@@ -953,6 +953,12 @@
       "definedIn": "infra/supabase/migrations-auto/0042-service-program.sql",
       "rls": true,
       "policies": 8
+    },
+    {
+      "table": "church_site_archive",
+      "definedIn": "infra/supabase/migrations-auto/0342-what-the-church-office-posts-is-kept.sql",
+      "rls": true,
+      "policies": 2
     },
     {
       "table": "church_speakers",

@@ -20,8 +20,10 @@ import supabase from './supabase.js';
 import { churchInstanceResolve } from './church-instance.js';
 import { askRole } from './church-access.js';
 import { CALENDAR_MINISTRY, encodeDetail, isDateKey } from './church-calendar.js';
+import { removalOutcome } from './church-archive.js';
 
 export const READ_TIMEOUT_MS = 8000;
+const ROW_COLUMNS = 'id, ministry, title, detail, week_of, member_visible';
 
 const timeout = (ms) => new Promise((resolve) => setTimeout(() => resolve({ timedOut: true }), ms));
 
@@ -34,13 +36,12 @@ export async function readCalendarRows({ client = supabase, resolveChurch = chur
     const church = await Promise.race([resolveChurch(), timeout(timeoutMs)]);
     if (!church || church.timedOut || !church.ok) return none('unavailable');
     if (!church.value) return none('no-church');
-    const read = client
-      .from('ministry_ops')
-      .select('id, ministry, title, detail, week_of, member_visible')
-      .eq('instance_id', church.value)
-      .eq('ministry', CALENDAR_MINISTRY)
-      .order('week_of', { ascending: true });
-    const res = await Promise.race([read, timeout(timeoutMs)]);
+    const read = (cols) =>
+      client.from('ministry_ops').select(cols).eq('instance_id', church.value).eq('ministry', CALENDAR_MINISTRY).order('week_of', { ascending: true });
+    let res = await Promise.race([read(`${ROW_COLUMNS}, archived_at`), timeout(timeoutMs)]);
+    // Until 0342 has applied on the database the app reads, archived_at is not
+    // a column; the calendar still reads, with nothing archived (DR-1596).
+    if (res && !res.timedOut && res.error) res = await Promise.race([read(ROW_COLUMNS), timeout(timeoutMs)]);
     if (!res || res.timedOut || res.error) return none('unavailable');
     return { status: 'ok', rows: Array.isArray(res.data) ? res.data : [] };
   } catch {
@@ -148,17 +149,32 @@ export async function addCalendarEvents(events, { client = supabase, resolveChur
   }
 }
 
-/** Removes one office-filed calendar row. The ministry is named so this can never delete an ops item. */
-export async function removeCalendarEvent(rowId, { client = supabase, timeoutMs = WRITE_TIMEOUT_MS } = {}) {
+/**
+ * The office's Remove (DR-1596). The database decides through
+ * church_calendar_remove(): an event that began before today is ARCHIVED
+ * (kept in history, with who and when), one from today on is deleted.
+ * { removed: true, outcome: 'archived' | 'deleted' } or { skipped: reason }.
+ * Until 0342 has applied, only an event from today on may be deleted the old
+ * way; a past one is refused rather than lost. Never throws.
+ */
+export async function removeCalendarEvent(rowId, { date = '', todayKey = '', client = supabase, timeoutMs = WRITE_TIMEOUT_MS } = {}) {
   if (!rowId) return { skipped: 'invalid' };
   try {
-    const res = await Promise.race([client.from('ministry_ops').delete().eq('id', rowId).eq('ministry', CALENDAR_MINISTRY), timeout(timeoutMs)]);
+    const res = await Promise.race([client.rpc('church_calendar_remove', { row_in: rowId }), timeout(timeoutMs)]);
     if (!res || res.timedOut) return { skipped: 'timeout' };
-    return res.error ? { skipped: 'refused' } : { removed: true };
+    if (!res.error && (res.data === 'archived' || res.data === 'deleted')) return { removed: true, outcome: res.data };
+    if (!res.error || !rpcMissing(res.error)) return { skipped: 'refused' };
+    if (removalOutcome({ date }, todayKey) !== 'delete') return { skipped: 'refused' };
+    const del = await Promise.race([client.from('ministry_ops').delete().eq('id', rowId).eq('ministry', CALENDAR_MINISTRY), timeout(timeoutMs)]);
+    if (!del || del.timedOut) return { skipped: 'timeout' };
+    return del.error ? { skipped: 'refused' } : { removed: true, outcome: 'deleted' };
   } catch {
     return { skipped: 'unavailable' };
   }
 }
+
+// PostgREST names a function it does not have PGRST202.
+const rpcMissing = (error) => error && (error.code === 'PGRST202' || /could not find the function/i.test(String(error.message || '')));
 
 /** Whether to show the office's tools; false until answered. */
 export function useCalendarAccess(enabled, asker = getCalendarAccess) {
