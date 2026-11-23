@@ -165,6 +165,28 @@ def plan_sync(src_index, dst_index):
     return inserts, sorted(updates)
 
 
+def drop_tombstoned(inserts, tombstones):
+    """A DELETED ROW IS NOT A MISSING ROW (DR-1609). The plan above treats every
+    row hosted holds and sovereign lacks as missing, but a row the family
+    DELETED in the app is exactly such a row, so the 6-hourly --commit put it
+    back ("I deleted it and it never leaves", Darrell 2026-11-19). The sovereign
+    database records each delete in content_tombstones (0340); those keys are
+    held back here. Returns (kept, held_back)."""
+    if not tombstones:
+        return list(inserts), []
+    kept = [k for k in inserts if k not in tombstones]
+    held = [k for k in inserts if k in tombstones]
+    return kept, held
+
+
+def read_tombstones(con, table):
+    """The ids deleted on this database for `table` (0340). A database that has
+    not run 0340 yet has no table: that is reported by the caller, never
+    treated as an error that stops the carry."""
+    rows = con.run("SELECT row_id FROM public.content_tombstones WHERE table_name = :t", t=table)
+    return {r[0] for r in rows}
+
+
 def key_expr(key_cols):
     """The SQL that renders a row's key as one text value. Used identically for
     the index read, the row fetch and the update's WHERE, so the three can never
@@ -460,6 +482,18 @@ def sync_table(src, dst, table, commit, remaps=None):
         return i, u, back, len(s_keys), len(d_keys)
 
     inserts, updates, src_key_of, s_count, d_count = plan_now()
+    # Rows deleted on sovereign are never carried back (DR-1609). Only an
+    # id-keyed table can be matched to a tombstone, which is every table the
+    # app deletes from.
+    tombstones = set()
+    if key_cols == ["id"]:
+        try:
+            tombstones = read_tombstones(dst, table)
+        except Exception as e:  # noqa: BLE001 - 0340 not applied yet: say so, carry on
+            out["tombstones_unread"] = str(e)[:120]
+    inserts, held_back = drop_tombstoned(inserts, tombstones)
+    if held_back:
+        out["deleted_held_back"] = len(held_back)
     out.update({"hosted": s_count, "sovereign_before": d_count,
                 "missing": len(inserts), "stale": len(updates),
                 "copied": 0, "updated": 0, "columns": len(cols),
@@ -508,6 +542,7 @@ def sync_table(src, dst, table, commit, remaps=None):
                     out["refused"] += 1
                     out.setdefault("refused_reason", str(e)[:200])
         i2, u2, _, _, d2 = plan_now()
+        i2, _ = drop_tombstoned(i2, tombstones)
         out.update({"sovereign_after": d2, "missing_after": len(i2), "stale_after": len(u2)})
     else:
         out.update({"sovereign_after": d_count, "missing_after": len(inserts),
@@ -653,6 +688,12 @@ def selftest():
     check("a sovereign row with no updated_at yields to a dated hosted edit", upd == ["a"])
     ins, upd = plan_sync({"a": 1}, {"a": 5})
     check("a sovereign edit NEWER than hosted is left alone", upd == [])
+    kept, held = drop_tombstoned(["a", "b", "c"], {"b"})
+    check("CATCHES the 2026-11-19 resurrection: a row deleted on sovereign is "
+          "held back, never carried back in", kept == ["a", "c"] and held == ["b"])
+    kept, held = drop_tombstoned(["a", "b"], set())
+    check("with no tombstones every missing row is still carried",
+          kept == ["a", "b"] and held == [])
     check("insert is conflict-safe (re-runs never duplicate)",
           "ON CONFLICT DO NOTHING" in insert_sql("choir_sermons", ["id", "title"]))
     check("CATCHES the 2026-09-16 break: the insert must not name only the primary "
