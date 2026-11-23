@@ -61,6 +61,7 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+          check-latest: true # newest patched JDK every run, never a cached one (Java4Shell, 2026-11-23)
       - name: Bootstrap the encrypted store keystore once (PASS is the only key)
         run: |
           set -euo pipefail
@@ -150,6 +151,7 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+          check-latest: true # newest patched JDK every run, never a cached one (Java4Shell, 2026-11-23)
 
       - name: Signing keystore (persistent store key if set; else per-run testing key)
         id: keys

@@ -231,7 +231,14 @@
       "to": 23438,
       "dr": "DR-1596",
       "reason": "One NEW workflow, church-site-archive.yml (91 lines): the daily reader Darrell asked for so the church office never has to archive by hand. Its keep job reads the public church site with the app's own parser and keeps each new calendar, letter and flyer on the NAS over the tailnet road the deploy walks; its walls job proves migration 0342 on a bare PostgreSQL for a pull request touching it, so the smoke runs in CI without editing ci.yml while another session reworks the lane. Budget (timeouts, a picture cap) and a single-instance lock, per the three-brakes rule as amended. A new step of an existing Way, not a longer version of one. Plus six lines in rls-isolation.yml: one matrix leg naming the 0342 smoke, because the matrix guard holds that a smoke no leg runs proves nothing. Raised to the measured total, not above it."
+    },
+    {
+      "date": "2026-11-23",
+      "from": 23438,
+      "to": 23441,
+      "dr": "DR-1614",
+      "reason": "Three lines, one per setup-java step in android-package.yml (2) and native-shell.yml (1): check-latest: true, so every run fetches the newest patched Temurin build of its major version instead of a runner-cached one (Java4Shell notice, 2026-11-23). Folded to one line each with the comment inline; the irreducible cost of the fix."
     }
   ],
-  "totalLines": 23438
+  "totalLines": 23441
 }
