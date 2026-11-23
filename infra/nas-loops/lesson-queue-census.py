@@ -446,9 +446,42 @@ def stored_gates(home, limit=400):
     return out
 
 
-def stall_of(row):
+def _stored_site(row, found):
+    """The site the builder's OWN STORED RECORD names, for a row whose reason
+    prose matches no opening in FAILURE_SITES.
+
+    MEASURED 2026-11-23 on the live queue: six rows read `other` while the SAME
+    receipt published `gates: ["quotation"]` for five of them, and the reader
+    then printed `other`'s job -- "the builder's log on the box is the next
+    read" -- advice this receipt had already made false, because the cause was
+    stored, read and printed on the next line. A surface may not contradict
+    itself (DR-0239 surface-says-truth), and it may not send a person to the
+    box for a trip it has already made.
+
+    THE ORDER IS NOT ARBITRARY. exception_of() reads the row's CURRENT
+    build-reason tag, so it names the LAST failure; stored_gates() unions every
+    build a row ever had. A row that failed its gates on attempt 1 and crashed
+    on attempt 2 carries both, and the crash is the later word -- so a stored
+    exception outranks stored gates.
+
+    STILL IDENTITY, NEVER A SHAPE (DR-1522 / DR-1524). Both inputs are already
+    vocabulary: exception_of() returns EXCEPTION_NAMES' own string, and the
+    words published here are this file's own constants. No row prose rides.
+    `found` absent is NOT "no gate failed" (DR-0076 section 8) -- without the
+    builder's records the answer stays `other`.
+    """
+    if exception_of(row):
+        return "crashed"
+    if isinstance(found, dict) and found.get("gates"):
+        return "gates"
+    return "other"
+
+
+def stall_of(row, found=None):
     """For a build-failed row: a word from STALLS, one from SITE_CLASSES, or
-    'other' when its reason matches no site this file knows."""
+    'other' when neither its reason prose nor the builder's stored record names
+    a site. `found` is this row's entry from stored_gates(), or None when the
+    caller did not read them."""
     tags = row.get("tags") or []
     tags = tags if isinstance(tags, list) else []
     for t in tags:
@@ -461,8 +494,8 @@ def stall_of(row):
         for opening, cls in FAILURE_SITES:
             if why.startswith(opening):
                 return cls
-        return "other"
-    return "other"
+        return _stored_site(row, found)
+    return _stored_site(row, found)
 
 
 # WHY A ROW IS STILL WAITING, AND HOW MANY TRIES IT HAS HAD (DR-1515).
@@ -546,6 +579,11 @@ def why_of(row, empty_ids=()):
         # "rate-limited {n} times", in those words, for a `transient` failure
         # too -- so this is the builder's own vocabulary, and asking only for
         # 'rate-limited' here under-reported a row that still had tries left.
+        # DELIBERATELY the one-argument form. This branch asks only whether the
+        # class is one that HEALS ITSELF, and _stored_site() can only ever
+        # answer `crashed`, `gates` or `other` -- never a SELF_HEALING word. So
+        # the stored record cannot change this answer, and handing it in would
+        # imply it could. Pinned by a test, because that is a coupling that bites.
         return "rate-limited" if stall_of(row) in SELF_HEALING else "failed"
     return "ready"
 
@@ -803,8 +841,11 @@ def census_of(rows, now=None, builder=None, code_sha=None, empty_ids=(), gates=N
         by_road[bucket] = by_road.get(bucket, 0) + 1
         shape = shape_of(r)
         by_shape[shape] = by_shape.get(shape, 0) + 1
+        # Read ONCE, before the class is asked for: stall_of() now falls back to
+        # it, and by_stall and the row's own `stall` must be the same answer.
+        found = gates.get(r.get("id")) or {}
         if shape == "build-failed":
-            cls = stall_of(r)
+            cls = stall_of(r, found)
             by_stall[cls] = by_stall.get(cls, 0) + 1
         # WHICH ROWS WAIT, not only how many (DR-1511). The counts could say
         # five teachings waited and never which five, so a session that cannot
@@ -828,14 +869,13 @@ def census_of(rows, now=None, builder=None, code_sha=None, empty_ids=(), gates=N
             "shape": shape,
         }
         if shape == "build-failed":
-            entry["stall"] = stall_of(r)
+            entry["stall"] = stall_of(r, found)
             # THE CAUSE, not only the class (2026-11-18). `other` told a reader
             # that a person was wanted and never what for, and the answer was
             # on the box the whole time. Both of these are vocabulary, never
             # prose: gate NAMES from the builder's stored records, and an
             # exception CLASS NAME the interpreter itself recognises. Absent
             # when unknown -- an absent cause is unread, never "no cause".
-            found = gates.get(r.get("id")) or {}
             if found.get("gates"):
                 entry["gates"] = found["gates"]
             if found.get("kinds"):
