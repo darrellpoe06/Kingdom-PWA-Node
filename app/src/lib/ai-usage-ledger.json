@@ -1629,6 +1629,21 @@
       "notes": "Darrell: Lessons with no tests?!"
     },
     {
+      "id": "sov100-rooms-shalt-thou-make-in-the-ark",
+      "date": "2026-11-23",
+      "task": "Sovereign A.I. week 100 from one word over a forwarded system-design newsletter (thread 1a2087dce8e004bd): Word first on Genesis 6:14 and Psalms 11:3, rooms in one ark on one hull and the foundation they share; virtual machines with separate kernels versus containers on one shared kernel; how far a break-in spreads and what hardening does and does not do; three authored diagrams as Darrell asked; four hand-written bands, every verse generator-filled from the KJV; the house measured from infra/.",
+      "drs": [
+        "DR-1611"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 2,
+      "estimateWithoutAiHours": 14,
+      "notes": "No token meter in this session; tokens and cost are null. The newsletter's speed and cloud claims are reported, not tested; what runs on the home server today is not verified; re-review 2026-12-07."
+    },
+    {
       "id": "l333-heavenly-cheat-codes-life-his-way",
       "date": "2026-11-19",
       "task": "L333 Heavenly Cheat Codes: Life His Way, from Darrell's own lines over one summary of a conversation, all four age bands, shared gate",
