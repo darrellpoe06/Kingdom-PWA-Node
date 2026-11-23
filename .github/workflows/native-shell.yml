@@ -59,6 +59,7 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
+          check-latest: true # newest patched JDK every run, never a cached one (Java4Shell, 2026-11-23)
 
       - name: Install deps
         run: npm ci

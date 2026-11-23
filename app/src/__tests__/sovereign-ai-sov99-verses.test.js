@@ -59,12 +59,11 @@ const QUOTED_FLOOR = 100;
 describe('sov99 is in the catalog and is the whole lesson', () => {
   it('the module exists, as week 99, with all four bands', () => {
     expect(MODULE, `${ID} is in SOVEREIGN_AI_MODULES`).toBeTruthy();
-    // Re-pinned 2026-11-23 (DR-1615): a later week now follows this one
-    // (sov101 on this branch; sov100, DR-1611, may land first), so the pin is
-    // the neighbor, not the tail: the week after 99 is a higher week.
+    // Re-pinned 2026-11-23 (DR-1611): sov100 now follows this week, so the pin
+    // is the neighbor, not the tail. Week 99 sits directly before week 100.
     const at = SOVEREIGN_AI_MODULES.indexOf(MODULE);
     expect(at).toBeGreaterThanOrEqual(0);
-    expect(SOVEREIGN_AI_MODULES[at + 1].id).toMatch(/^sov10[01]-/);
+    expect(SOVEREIGN_AI_MODULES[at + 1].id).toBe('sov100-rooms-shalt-thou-make-in-the-ark');
     for (const b of FOUR_BANDS) {
       expect(typeof MODULE.levels[b]).toBe('string');
       expect(MODULE.levels[b].startsWith(MODULE.title), b).toBe(true);
