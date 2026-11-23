@@ -66,20 +66,26 @@ export default function RecordsLog({
   about = null,         // { what, where, how, helpTopic }
   helpNav = null,       // optional { view, churchView, booksView, setView, ... } forwarded to HelpButton
   defaultSort = 'desc',
+  // The Word (Darrell 2026-11-19): open on EVERY month, each a folder that
+  // opens and closes, with only the newest month open so a newcomer sees the
+  // latest message first and the rest of the library as headings below it.
+  defaultPeriod = null,  // null = auto (newest month only); 'all' = every month
+  openNewestOnly = false, // true = only the newest month starts open
+  // "Letting users know we have videos all the way back to 2014 with a glance
+  // and a scroll" (Darrell 2026-11-19): the full span in one line, and one
+  // chip per year that opens that year's months and scrolls to them.
+  yearIndex = false,
   className = '',
 }) {
-  const [period, setPeriod] = useState(null); // null = auto (newest group)
+  const [period, setPeriod] = useState(defaultPeriod); // null = auto (newest group)
   const [range, setRange] = useState({ from: '', to: '' });
   const [sortDir, setSortDir] = useState(defaultSort);
   const [search, setSearch] = useState('');
   const [facetSel, setFacetSel] = useState({}); // key -> value ('' = all)
   const [aboutOpen, setAboutOpen] = useState(false);
-  const [collapsed, setCollapsed] = useState(() => new Set()); // collapsed group keys
-  const toggleGroup = (key) => setCollapsed((prev) => {
-    const next = new Set(prev);
-    if (next.has(key)) next.delete(key); else next.add(key);
-    return next;
-  });
+  // A month the reader has opened or closed remembers it; every other month
+  // takes the default (all open, or only the newest when openNewestOnly).
+  const [openByKey, setOpenByKey] = useState(() => new Map());
 
   const all = useMemo(() => (Array.isArray(items) ? items : []), [items]);
 
@@ -117,13 +123,59 @@ export default function RecordsLog({
     }
     const windowed = filterRecordsByRange(rows, getDate, sinceMs, untilMs);
     const sorted = sortRecords(windowed, getDate, sortDir);
+    const groups = groupRecords(sorted, getDate, { grain, getAmount });
+    // The newest month SHOWN (by its newest record, whatever the sort order),
+    // so "only the newest open" means the latest message, not the top row.
+    let newestKey = null;
+    let newestGroupMs = null;
+    for (const g of groups) {
+      for (const it of g.records) {
+        const ms = recordMs(it, getDate);
+        if (ms != null && (newestGroupMs == null || ms > newestGroupMs)) { newestGroupMs = ms; newestKey = g.key; }
+      }
+    }
     return {
-      groups: groupRecords(sorted, getDate, { grain, getAmount }),
+      groups,
+      newestKey: newestKey ?? (groups[0] ? groups[0].key : null),
       totals: recordTotals(windowed, getAmount),
       matched: windowed.length,
       scanned: rows.length,
     };
   }, [all, getText, getDate, getAmount, grain, sinceMs, untilMs, sortDir, search, facets, facetSel]);
+
+  const defaultOpen = (key) => !openNewestOnly || grouped.groups.length === 1 || key === grouped.newestKey;
+  const isOpen = (key) => (openByKey.has(key) ? openByKey.get(key) : defaultOpen(key));
+  const toggleGroup = (key) => setOpenByKey((prev) => new Map(prev).set(key, !isOpen(key)));
+  const setAllOpen = (open) => setOpenByKey(new Map(grouped.groups.map((g) => [g.key, open])));
+  const allOpen = grouped.groups.length > 0 && grouped.groups.every((g) => isOpen(g.key));
+
+  // The whole library's span (every record, not only the filtered window), and
+  // the years it covers, newest first, each with its count.
+  const span = useMemo(() => {
+    let lo = null;
+    for (const it of all) { const ms = recordMs(it, getDate); if (ms != null && (lo == null || ms < lo)) lo = ms; }
+    return lo == null || newestMs == null ? null : { from: monthLabelOf(monthKeyOf(lo)), to: monthLabelOf(monthKeyOf(newestMs)) };
+  }, [all, getDate, newestMs]);
+  const years = useMemo(() => {
+    const m = new Map();
+    for (const g of grouped.groups) {
+      if (!isMonthKey(g.key)) continue;
+      const y = g.key.slice(0, 4);
+      m.set(y, (m.get(y) || 0) + g.totals.count);
+    }
+    return [...m.entries()].sort((a, b) => b[0].localeCompare(a[0]));
+  }, [grouped.groups]);
+  const openYear = (y) => {
+    const keys = grouped.groups.filter((g) => g.key.startsWith(y + '-')).map((g) => g.key);
+    setOpenByKey((prev) => { const next = new Map(prev); keys.forEach((k) => next.set(k, true)); return next; });
+    const first = sortDir === 'desc' ? keys[0] : keys[keys.length - 1];
+    if (first && typeof document !== 'undefined') {
+      setTimeout(() => {
+        const el = document.getElementById(`rl-group-${first}`);
+        if (el && el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 0);
+    }
+  };
 
   const periodLabel = (range.from || range.to)
     ? 'range'
@@ -231,7 +283,25 @@ export default function RecordsLog({
         </div>
       ))}
 
-      <div className="text-[0.625rem] text-[#5A5751]">
+      {yearIndex && span && (
+        <div className="space-y-1">
+          <p className="text-[0.75rem] text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
+            Every {countNoun} from <strong>{span.from}</strong> to <strong>{span.to}</strong> · {all.length.toLocaleString()} in all
+          </p>
+          {years.length > 1 && (
+            <div className="flex gap-1.5 overflow-x-auto pb-1" role="group" aria-label="Jump to a year">
+              {years.map(([y, n]) => (
+                <button key={y} type="button" onClick={() => openYear(y)} className={chipCls(false)} title={`Open ${y} (${n} ${countNoun}${n === 1 ? '' : 's'})`}>
+                  {y} <span className="opacity-70">· {n}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="flex flex-wrap items-center gap-2 text-[0.625rem] text-[#5A5751]">
+        <span>
         Showing {grouped.matched.toLocaleString()} of {all.length.toLocaleString()} {countNoun}{all.length === 1 ? '' : 's'} · {periodLabel}
         {getAmount && grouped.totals.hasAmount && (
           <>
@@ -239,6 +309,16 @@ export default function RecordsLog({
             {' · '}<span style={amtStyle('#B85838')}>out {fmtMoney(grouped.totals.out)}</span>
             {' · '}<span style={amtStyle(grouped.totals.net < 0 ? '#B85838' : '#166534')}>net {fmtMoney(grouped.totals.net)}</span>
           </>
+        )}
+        </span>
+        {grouped.groups.length > 1 && (
+          <button
+            type="button"
+            onClick={() => setAllOpen(!allOpen)}
+            className="ml-auto px-2.5 py-1 text-[0.6875rem] uppercase tracking-wider border border-[#E8E4DC] bg-white text-[#1A1815] hover:bg-[#FAF8F4] rounded-md"
+          >
+            {allOpen ? 'Close all' : 'Open all'} {grain === 'day' ? 'days' : 'months'}
+          </button>
         )}
       </div>
 
@@ -249,9 +329,9 @@ export default function RecordsLog({
       ) : (
         <div className="border border-[#E8E4DC] bg-white">
           {grouped.groups.map((g) => {
-            const isCollapsed = collapsed.has(g.key);
+            const isCollapsed = !isOpen(g.key);
             return (
-            <div key={g.key}>
+            <div key={g.key} id={`rl-group-${g.key}`}>
               <button
                 type="button"
                 onClick={() => toggleGroup(g.key)}

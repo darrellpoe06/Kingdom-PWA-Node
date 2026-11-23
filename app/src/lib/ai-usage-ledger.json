@@ -2183,6 +2183,21 @@
       "notes": "Darrell: is it fixed for all months? (November screenshot)"
     },
     {
+      "id": "the-word-newest-month-and-tombstones",
+      "date": "2026-11-23",
+      "task": "The Word opens on All with only the newest month open, every month a folder, Open/Close all, the 2014-to-now span and year chips; a deleted message stays deleted (0340 tombstones, content_sync skips them)",
+      "drs": [
+        "DR-1609"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.5,
+      "estimateWithoutAiHours": 12,
+      "notes": "Root cause of the resurrected draft measured from the code: content_sync.py re-inserts every hosted row sovereign lacks, so a delete on sovereign was undone within six hours."
+    },
+    {
       "id": "l334-this-i-recall-to-my-mind",
       "date": "2026-11-19",
       "task": "L334 This I Recall to My Mind, from further summaries of one conversation, on time, memory and a hard past, all four age bands, shared gate",
