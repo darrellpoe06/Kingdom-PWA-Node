@@ -916,9 +916,12 @@ const NODES = [
     writes: [
       { res: 'db:choir_sermons', token: "from('choir_sermons').insert" },
       { res: 'db:choir_songs', token: "from('choir_songs').insert" },
+      // DR-1609: a delete leaves a tombstone (0340's trigger), so the NAS
+      // content sync never carries the deleted row back.
+      { res: 'db:content_tombstones', token: "from('choir_sermons').delete" },
     ],
     reads: [{ res: 'db:choir_sermons', token: 'choir_sermons' }, { res: 'db:choir_songs', token: 'choir_songs' }],
-    seeds: ['sermon-reader', 'songbook', 'scripture-web', 'library'],
+    seeds: ['sermon-reader', 'songbook', 'scripture-web', 'library', 'content-sync-nas'],
   }),
   // DR-1052: the church names 23 ministries and exactly ONE of them (the choir)
   // could seat a person. 0296 gave every team the roster, and this is the room
@@ -1078,7 +1081,11 @@ const NODES = [
   wf('sovereign-content-sync.yml', {
     id: 'content-sync', name: 'Sovereign content sync (retired → live)',
     purpose: 'Carries rows the NAS pipelines filed on the retired backend to the database the app reads.',
-    reads: [{ res: 'hosted:db', file: 'infra/nas-supabase/content_sync.py', token: 'source' }],
+    reads: [
+      { res: 'hosted:db', file: 'infra/nas-supabase/content_sync.py', token: 'source' },
+      // DR-1609: a row deleted on this database is never carried back.
+      { res: 'db:content_tombstones', file: 'infra/nas-supabase/content_sync.py', token: 'content_tombstones' },
+    ],
     writes: [
       { res: 'db:choir_sermons', file: 'infra/nas-supabase/content_sync.py', token: 'choir_sermons' },
       { res: 'db:video_transcripts', file: 'infra/nas-supabase/content_sync.py', token: 'video_transcripts' },
@@ -1090,7 +1097,7 @@ const NODES = [
   rider('service:content-sync', 'infra/nas-supabase/content_sync.py', {
     id: 'content-sync-nas', name: 'NAS carries new services to the archive',
     purpose: 'Carries rows filed on the hosted copy to the database the app reads, from the NAS itself, so a new month fills without a runner key.',
-    reads: [{ res: 'hosted:db', token: 'source' }],
+    reads: [{ res: 'hosted:db', token: 'source' }, { res: 'db:content_tombstones', token: 'content_tombstones' }],
     writes: [{ res: 'db:choir_sermons', token: 'choir_sermons' }, { res: 'db:video_transcripts', token: 'video_transcripts' }],
     seeds: ['sermon-reader'],
   }),

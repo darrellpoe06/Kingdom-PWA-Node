@@ -486,6 +486,11 @@ function LibraryPanel({ sermons, canEdit, onSave, onDelete, onReuse, onImport, b
           getDate={(s) => s.serviceDate}
           getText={(s) => `${s.title} ${s.scriptureRef || ''} ${s.speaker || ''} ${pointsSearchText(s._points)}`}
           countNoun="message"
+          // Every month is a folder; only the newest starts open, so a newcomer
+          // sees the latest message first (Darrell 2026-11-19).
+          defaultPeriod="all"
+          openNewestOnly
+          yearIndex
           about={THEWORD_ABOUT}
           facets={[
             { key: 'speaker', label: 'speakers', getValue: (s) => s.speaker },
