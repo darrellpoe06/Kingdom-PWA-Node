@@ -26,6 +26,7 @@
 
 import React, { useMemo, useState } from 'react';
 import HelpButton from './HelpButton.jsx';
+import { motionBehavior } from '../lib/gentle-motion.js';
 import {
   sortRecords, filterRecordsByRange, groupRecords, recordTotals, resolvePeriod,
   isMonthKey, monthKeyOf, monthLabelOf, shiftMonthKey, recordMs,
@@ -172,7 +173,8 @@ export default function RecordsLog({
     if (first && typeof document !== 'undefined') {
       setTimeout(() => {
         const el = document.getElementById(`rl-group-${first}`);
-        if (el && el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        // Motion rides gentle-motion.js (DR-0274): an instant cut under reduced motion.
+        try { if (el && el.scrollIntoView) el.scrollIntoView({ behavior: motionBehavior(), block: 'start' }); } catch (e) { /* non-fatal */ }
       }, 0);
     }
   };
