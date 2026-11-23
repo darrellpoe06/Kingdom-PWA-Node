@@ -305,10 +305,13 @@ describe('our own house: every claim the lesson makes is still true of the repos
     const android = src('.github/workflows/android-package.yml');
     const shell = src('.github/workflows/native-shell.yml');
     expect(android).toMatch(/actions\/setup-java@/);
-    expect(android).toMatch(/distribution:\s*temurin\s*\n\s*java-version:\s*'17'/);
+    expect(android).toMatch(/distribution:\s*temurin[\s\S]{0,80}?java-version:\s*'17'/);
     expect(shell).toMatch(/actions\/setup-java@/);
-    expect(shell).toMatch(/distribution:\s*temurin\s*\n\s*java-version:\s*'21'/);
+    expect(shell).toMatch(/distribution:\s*temurin[\s\S]{0,80}?java-version:\s*'21'/);
     expect(MODULE.lesson).toMatch(/One build asks for Temurin 17, and another asks for Temurin 21/);
+    // Corrected 2026-11-23: a fresh runner is not a fresh runtime (a cached copy can lag).
+    expect(MODULE.lesson).toMatch(/a fresh machine is not the same as a fresh runtime/);
+    expect(MODULE.lesson).not.toMatch(/asking for a major version takes the newest build/);
   });
 
   it('the lesson names the gap inside third-party images, and does not claim it closed', () => {
@@ -335,9 +338,9 @@ describe('the four bands, measured on this tree', () => {
   });
 
   it('the measurements are what the record says they are', () => {
-    // MEASURED 2026-11-23 by scripts/sov101-fill.mjs: adult 2,361 prose words;
-    // child 0.534 / youth 0.621 / teen 0.617 / senior 0.706; grades 2.08 <
-    // 4.89 < 5.22 < 9.64. Pinned with tolerance.
+    // MEASURED 2026-11-23 by scripts/sov101-fill.mjs: adult 2,428 prose words;
+    // child 0.527 / youth 0.613 / teen 0.609 / senior 0.698; grades 2.15 <
+    // 4.93 < 5.21 < 9.66. Pinned with tolerance.
     expect(words(MODULE.lesson)).toBeGreaterThanOrEqual(2200);
     const g = Object.fromEntries(FOUR_BANDS.map((b) => [b, fk(MODULE.levels[b])]));
     expect(g.child).toBeLessThanOrEqual(5.0);
