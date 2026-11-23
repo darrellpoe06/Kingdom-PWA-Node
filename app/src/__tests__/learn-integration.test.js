@@ -83,7 +83,11 @@ describe('media links are not dead (clip → SOP, diagram → renderer)', () => 
     // added course diagrams are covered, not just the first few.
     const start = src.indexOf('const DIAGRAMS');
     const end = src.indexOf('function MediaList', start);
-    const diagramBlock = src.slice(start, end > start ? end : start + 12000);
+    // DR-1611: figures authored in lesson-diagrams.jsx are spread into DIAGRAMS,
+    // so their keys count as rendered only while that spread is in the block.
+    const extra = readFileSync(fileURLToPath(new URL('../components/lesson-diagrams.jsx', import.meta.url)), 'utf8');
+    const block = src.slice(start, end > start ? end : start + 12000);
+    const diagramBlock = block.includes('...LESSON_DIAGRAMS') ? block + extra : block;
     const usedKeys = ALL.flatMap((m) => normalizeMedia(m)).filter((x) => x.type === 'diagram').map((x) => x.key);
     expect(usedKeys.length).toBeGreaterThan(0);
     for (const key of usedKeys) expect(diagramBlock).toContain(`'${key}'`);

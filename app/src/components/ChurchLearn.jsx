@@ -161,6 +161,7 @@ import { recordHeadline } from '../lib/record-headline.js';
 import { aggregateLearnerRecords } from '../lib/learner-records.js';
 import PoeTechShowcase from './PoeTechShowcase.jsx'; // DR-1428: a PoeTech subject points home from the Love Corner
 import LessonVideo from './LessonVideo.jsx'; // DR-1448: the lesson's walk-through, when one is recorded
+import { LESSON_DIAGRAMS } from './lesson-diagrams.jsx'; // DR-1611: lesson figures authored outside this file
 
 const fmtDate = formatClassDate;
 
@@ -218,6 +219,7 @@ const diagramBox = (x, y, w, label, sub, fill = '#FAF8F4', stroke = '#1A1815') =
   </g>
 );
 const DIAGRAMS = {
+  ...LESSON_DIAGRAMS,
   'signal-chain': (
     <svg viewBox="0 0 680 80" role="img" aria-label="Signal chain: camera to capture to OBS to encode to stream to screens" className="w-full h-auto">
       <title>The broadcast signal chain</title>
