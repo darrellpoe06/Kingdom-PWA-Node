@@ -1909,6 +1909,21 @@
       "notes": "Darrell: use it for potential properties we are looking to purchase; other users will want it"
     },
     {
+      "id": "sov101-a-little-leaven-leaveneth-the-whole-lump",
+      "date": "2026-11-23",
+      "task": "Sovereign A.I. week 101 from one word over a forwarded security notice (thread 1a208f5960ac285d): Word first on 1 Corinthians 5:6 and Exodus 12:19, a little leaven through the whole lump and the whole house searched; a flaw in a shared Java runtime hiding in applications, container images and appliances; find every copy, exposed services first, patch, restart and rebuild, a dated mitigation while the patch waits, and the watchman who passes the warning on; four hand-written bands, every verse generator-filled from the KJV; the house measured from infra/ and the build workflows.",
+      "drs": [
+        "DR-1615"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 2,
+      "estimateWithoutAiHours": 14,
+      "notes": "No token meter in this session; tokens and cost are null. The notice's CVE details are reported by one notice, not yet checked against each vendor advisory; whether any third-party NAS image bundles Java is not verified; re-review 2026-12-07."
+    },
+    {
       "id": "dr-1415-every-property-and-the-asset",
       "date": "2026-11-10",
       "task": "Every property listed first even with no mortgage on file, figures saved to the record on one button, the asset pay-down view, and the calculator as one row of sub-tabs; measured in Chromium",
