@@ -3611,6 +3611,21 @@
       "notes": "Reserved L311 and DR-1488 on origin. The video was not reachable (www.youtube.com does not resolve in this session), so the lesson is taught from his summary and the Word; Strong's G971 and Josephus not read back (lexicon host does not resolve); re-review 2026-11-27. 183 quoted spans filled from app/public/bible/kjv by fill-verses.mjs, none typed."
     },
     {
+      "id": "java-builds-take-the-patched-jdk",
+      "date": "2026-11-23",
+      "task": "Java4Shell: measured the stack (no NAS image runs Java; only the Android packaging runners), and made each setup-java step fetch the newest patched Temurin build",
+      "drs": [
+        "DR-1614"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.3,
+      "estimateWithoutAiHours": 2,
+      "notes": ""
+    },
+    {
       "id": "ll313-children-are-a-heritage-when-the-school-closes-the-house",
       "date": "2026-11-13",
       "task": "L313 Children Are a Heritage, When the School Closes, the House Still Teaches, from the 1440 Daily Digest Darrell forwarded under one word, Lesson; all four age bands, 15-case gate with four dangers proven to catch",
