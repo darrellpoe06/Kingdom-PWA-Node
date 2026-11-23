@@ -311,6 +311,9 @@ describe('our own house: every claim the lesson makes is still true of the repos
     expect(MODULE.lesson).toMatch(/One build asks for Temurin 17, and another asks for Temurin 21/);
     // Corrected 2026-11-23: a fresh runner is not a fresh runtime (a cached copy can lag).
     expect(MODULE.lesson).toMatch(/a fresh machine is not the same as a fresh runtime/);
+    // MEASURED 2026-11-23 after DR-1614 landed: all three setup-java steps check for the latest.
+    expect((android + shell).match(/check-latest:\s*true/g) || []).toHaveLength(3);
+    expect(MODULE.lesson).toMatch(/all three build steps now tell it to/);
     expect(MODULE.lesson).not.toMatch(/asking for a major version takes the newest build/);
   });
 
@@ -338,8 +341,8 @@ describe('the four bands, measured on this tree', () => {
   });
 
   it('the measurements are what the record says they are', () => {
-    // MEASURED 2026-11-23 by scripts/sov101-fill.mjs: adult 2,428 prose words;
-    // child 0.527 / youth 0.613 / teen 0.609 / senior 0.698; grades 2.15 <
+    // MEASURED 2026-11-23 by scripts/sov101-fill.mjs: adult 2,435 prose words;
+    // child 0.525 / youth 0.610 / teen 0.607 / senior 0.696; grades 2.14 <
     // 4.93 < 5.21 < 9.66. Pinned with tolerance.
     expect(words(MODULE.lesson)).toBeGreaterThanOrEqual(2200);
     const g = Object.fromEntries(FOUR_BANDS.map((b) => [b, fk(MODULE.levels[b])]));
