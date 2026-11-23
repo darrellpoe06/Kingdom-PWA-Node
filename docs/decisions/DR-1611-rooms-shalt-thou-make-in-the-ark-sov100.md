@@ -3,6 +3,7 @@
 **Date:** 2026-11-23 · **Status:** accepted · **Tier:** A · **Area:** Sovereign A.I. week 100; lesson diagrams; the lesson lane
 **Principles:** WORD-FIRST, VERIFICATION-DOCTRINE, THREE-TIERS, TEACH-NOT-DEBATE, FOUR-BANDS, DECISION-RECORDS
 **Reserved:** `refs/heads/reserve/dr-1611` and `refs/heads/reserve/sov100` on origin (empty-value lease), before a word was written.
+**Considered, not built:** `1a20898532b7dbcc`, `1a2089ea14470e9a` — the two sibling forwards from the same morning, named in this record only to say they are separate lessons. `1a20898532b7dbcc` is built by **DR-1612** (L339); `1a2089ea14470e9a` is building on its own branch. Added 2026-11-23: without the declaration `one-thread-one-record-guard.mjs` read the sibling note as a claim.
 
 ## Context
 
