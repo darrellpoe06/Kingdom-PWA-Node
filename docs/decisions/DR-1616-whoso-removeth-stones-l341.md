@@ -6,6 +6,7 @@
 **Type:** lesson
 **Area:** Living Lessons (`app/src/lib/living-lessons/ll341-whoso-removeth-stones.js`, its own file per DR-1468), its gate test
 **Sent in by:** Darrell, a technology newsletter (the issue of 2026-11-23) forwarded with the one word Lesson. Gmail thread `1a208fb97b576d51`
+**Considered, not built:** `1a208f5960ac285d` — the sibling send from the same morning (a Java runtime flaw: find, patch, restart, mitigate), built as its own lesson; named here only to say patching is not taught in this one.
 **Pairs with:** DR-0076, DR-0098, DR-0100 (the report stated as reported, the denied link held as not established), DR-0107 / DR-0125 (the house example), DR-0210, DR-0610, DR-1468 / DR-1477, DR-1572 (sov97, the same outage)
 
 ## Context
