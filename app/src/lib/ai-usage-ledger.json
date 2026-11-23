@@ -2410,6 +2410,21 @@
       "notes": "Darrell's screenshots: Understood 5 of 47 beside Mastered 51 of 923"
     },
     {
+      "id": "l340-wisdom-is-profitable-to-direct",
+      "date": "2026-11-23",
+      "task": "L340 Wisdom Is Profitable to Direct: Living Lesson from a forwarded finance newsletter (thread 1a2089ea14470e9a)",
+      "drs": [
+        "DR-1613"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.6,
+      "estimateWithoutAiHours": 6,
+      "notes": ""
+    },
+    {
       "id": "courses-rewarded",
       "date": "2026-11-12",
       "task": "Courses are rewarded: crown (understood), sword (completed), book (read in full)",
