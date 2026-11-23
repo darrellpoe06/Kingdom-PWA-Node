@@ -454,6 +454,21 @@
       "notes": "No token meter in this session; tokens and cost are null. arxiv.org did not resolve from this sandbox, so the paper was never read; secondary reports conflict on rates and release date, so none is printed. Whether any agent here has weakened a check is not measured; re-review 2026-12-02."
     },
     {
+      "id": "lesson-ll341-whoso-removeth-stones",
+      "date": "2026-11-23",
+      "task": "L341 Whoso Removeth Stones: one Living Lesson from a forwarded newsletter on the air traffic outage, testing before change and business continuity",
+      "drs": [
+        "DR-1616"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.9,
+      "estimateWithoutAiHours": 10,
+      "notes": "Thread 1a208fb97b576d51. Outage and cause reported by one source; A.I. link denied, not established. Bands 0.53/0.63/0.66/0.75 after one pass of taught paragraphs."
+    },
+    {
       "id": "a-proof-of-a-removed-refusal",
       "date": "2026-11-05",
       "task": "Five stale proofs of a removed refusal re-pointed (another session's work, ledgered at merge)",
