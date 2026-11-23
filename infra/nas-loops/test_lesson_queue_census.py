@@ -1230,11 +1230,20 @@ class WhichFailureSiteRefusedTheBuild(unittest.TestCase):
             qc.stall_of(self.failed("transient: Failed to refresh OAuth token")), "transient")
 
     def test_an_UNKNOWN_site_is_still_other_and_is_never_guessed_at(self):
-        # lesson_builder.py:1029 tags an unexpected crash `<Type>: <message>`,
-        # whose opening is a class name and not a fixed literal. The published
-        # limit: such a row reads `other`, narrower than the builder, never
-        # wider -- and the reader says the log is the next read.
-        self.assertEqual(qc.stall_of(self.failed("CalledProcessError: git returned 128")), "other")
+        # SUPERSEDED IN PART, 2026-11-23, and the supersession is the point.
+        # 0334 published a deliberate limit here: a row whose reason opens with
+        # an exception class name rather than a fixed literal read `other`,
+        # "narrower than the builder, never wider". That limit was written
+        # BEFORE 0335 gave this file an identity-safe way to read the class
+        # (exception_of returns EXCEPTION_NAMES' own string), so it is now
+        # obsolete rather than violated: `CalledProcessError: ...` IS
+        # lesson_builder.py:1029's unhandled-crash shape, and `crashed` is the
+        # true site, not a guess.
+        self.assertEqual(
+            qc.stall_of(self.failed("CalledProcessError: git returned 128")), "crashed")
+        # What has NOT changed: a reason that names no site and no exception,
+        # and a row with no reason at all, are still `other`.
+        self.assertEqual(qc.stall_of(self.failed("something nobody has seen before")), "other")
         self.assertEqual(qc.stall_of(self.failed("")), "other")
 
     def test_PROVEN_TO_CATCH_a_class_published_from_the_ROWS_OWN_string(self):
@@ -1307,6 +1316,107 @@ class WhichFailureSiteRefusedTheBuild(unittest.TestCase):
             "classes; a class the SQL does not list is dropped on the public road "
             "and reads as nothing at all",
         )
+
+
+class TheClassIsTheCauseThisReceiptAlreadyRead(unittest.TestCase):
+    """MEASURED on the live queue 2026-11-23, run 45266493452: `Failed because
+    -- other: 6, rate-limited: 1, transient: 1`, the oldest waiting 11 d 8 h --
+    while the SAME receipt published `gates refused: quotation` and `because:
+    span-without-reference` for five of those six rows, one line below. So the
+    summary sent a reader to the builder's log on the box for a cause the
+    receipt had already read, stored and printed. A surface may not contradict
+    itself (DR-0239), and `other` must mean unread, not un-looked-at."""
+
+    def failed(self, reason, **kw):
+        row = {"source": "research-inbox", "created_at": "2026-11-12T12:00:00Z",
+               "tags": ["lesson", "build-failed"] + (["build-reason:" + reason] if reason else [])}
+        row.update(kw)
+        return row
+
+    def test_a_stored_gate_refusal_is_the_site_when_the_prose_names_none(self):
+        row = self.failed("a reason this file has never seen")
+        self.assertEqual(qc.stall_of(row), "other")
+        self.assertEqual(qc.stall_of(row, {"gates": ["quotation"]}), "gates")
+
+    def test_a_stored_exception_outranks_stored_gates_as_the_LATER_word(self):
+        # The live shape of 825019ca: gates refused quotation on one attempt and
+        # the build crashed on another. exception_of reads the row's CURRENT
+        # reason, so the crash is the later word.
+        row = self.failed("RuntimeError: the writer went away")
+        self.assertEqual(qc.stall_of(row, {"gates": ["quotation"]}), "crashed")
+
+    def test_without_the_builders_records_the_answer_stays_other(self):
+        # DR-0076 section 8: absent is not "no gate failed". A caller that could
+        # not read the records gets the prose answer, never a filled-in one.
+        row = self.failed("a reason this file has never seen")
+        for absent in (None, {}, {"gates": []}, "not a dict", 7):
+            self.assertEqual(qc.stall_of(row, absent), "other", repr(absent))
+
+    def test_PROVEN_TO_CATCH_by_stall_disagreeing_with_the_rows_own_stall(self):
+        # THE DEFECT ITSELF. by_stall read the prose and the row's `stall` was
+        # asked for separately, so the summary could say `other` about a row
+        # whose own entry named a cause. They must be one answer.
+        rows = [self.failed("a reason this file has never seen", id="r1")]
+        c = qc.census_of(rows, gates={"r1": {"gates": ["quotation"], "kinds": ["span-without-reference"]}})
+        self.assertEqual(c["by_stall"], {"gates": 1})
+        self.assertEqual(c["waiting"][0]["stall"], "gates")
+        self.assertEqual(c["waiting"][0]["gates"], ["quotation"])
+        self.assertNotIn("other", c["by_stall"])
+
+    def test_the_live_eight_are_each_named_and_none_reads_other(self):
+        # The 2026-11-23 queue, by the shapes that receipt published. Three
+        # crashed, three refused by gates, two heal themselves -- and `other`,
+        # which stood at 6 for eleven days, is gone.
+        rows, gates = [], {}
+        for rid, reason, found in (
+            ("a", "transient: the CLI refreshed its sign-in", {"gates": ["quotation"]}),
+            ("b", "RuntimeError: x", {}),
+            ("c", "RuntimeError: x", {}),
+            ("d", "RuntimeError: x", {"gates": ["quotation"]}),
+            ("e", "unmatched prose", {"gates": ["verse"]}),
+            ("f", "unmatched prose", {"gates": ["quotation", "verse", "voice"]}),
+            ("g", "unmatched prose", {"gates": ["quotation", "verse"]}),
+            ("h", "rate-limited: HTTP 429", {}),
+        ):
+            rows.append(self.failed(reason, id=rid))
+            gates[rid] = found
+        c = qc.census_of(rows, gates=gates)
+        self.assertEqual(c["by_stall"],
+                         {"crashed": 3, "gates": 3, "rate-limited": 1, "transient": 1})
+        self.assertEqual(sum(c["by_stall"].values()), c["by_shape"]["build-failed"])
+
+    def test_PROVEN_TO_CATCH_the_fallback_reaching_why_of(self):
+        # why_of asks only whether the class HEALS ITSELF. The fallback can only
+        # answer crashed/gates/other, so it must never turn a `failed` row into
+        # a `rate-limited` one -- which would tell a reader the builder will
+        # retry a row it has already given up on.
+        # The row is built the way the builder really leaves one: an owner's
+        # created_by (or why_of answers `waits-for-governor` first) AND a
+        # build:failed@ stamp (or attempts is 0 and it answers `ready` first).
+        # Both short-circuit ahead of the branch under test.
+        for reason, found in (("unmatched prose", {"gates": ["quotation"]}),
+                              ("RuntimeError: x", {"gates": ["verse"]})):
+            row = self.failed(reason, id="r", created_by=qc.OWNER_IDS[0])
+            row["tags"].append("build:failed@2026-11-12T12:00:00Z")
+            self.assertEqual(qc.why_of(row), "failed", reason)
+            self.assertEqual(qc.attempts_of(row), 1, reason)
+            self.assertNotIn(qc.stall_of(row, found), qc.SELF_HEALING)
+
+    def test_PROVEN_TO_CATCH_a_leak_through_the_fallback(self):
+        # The fallback must publish this file's own words and nothing of the
+        # row's prose or the gate record's contents beyond gate NAMES.
+        rows = [self.failed("SECRET WORDS from Mary Smith", id="r1")]
+        c = qc.census_of(rows, gates={"r1": {"gates": ["quotation"]}})
+        self.assertEqual(c["by_stall"], {"gates": 1})
+        blob = json.dumps(c)
+        for leak in ("SECRET WORDS", "Mary", "Smith", "build-reason"):
+            self.assertNotIn(leak, blob)
+
+    def test_the_fallback_publishes_only_classes_the_public_road_allows(self):
+        allowed = set(qc.STALLS) | set(qc.SITE_CLASSES) | {"other"}
+        for found in (None, {}, {"gates": ["quotation"]}):
+            for reason in ("unmatched prose", "RuntimeError: x", ""):
+                self.assertIn(qc.stall_of(self.failed(reason), found), allowed)
 
 
 class TheReaderNamesTheJobEachClassAsksFor(unittest.TestCase):
