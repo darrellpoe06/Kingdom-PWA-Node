@@ -7,6 +7,7 @@
 **Area:** Living Lessons (`app/src/lib/living-lessons/ll339-the-profit-of-the-earth-is-for-all.js`, its own file per DR-1468), its gate test
 **Sent in by:** Darrell, a technology newsletter (The Neuron, 2026-11-22) forwarded with the one word Lesson. Gmail thread `1a20898532b7dbcc`
 **Pairs with:** DR-0076, DR-0098, DR-0100 (reported figures stated as reported), DR-0210, DR-0610, DR-1468 / DR-1477, DR-1502 (the maker disclosure)
+**Considered, not built:** `1a2087dce8e004bd`, `1a2089ea14470e9a` — the sibling forwards from the same morning, named in the Context only to say they are separate lessons. `1a2087dce8e004bd` is built by **DR-1611** (sov100); `1a2089ea14470e9a` is building on its own branch. Added 2026-11-23: without the declaration `one-thread-one-record-guard.mjs` read the sibling note as a claim.
 
 ## Context
 
