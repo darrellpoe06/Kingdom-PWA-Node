@@ -3041,6 +3041,21 @@
       "notes": "No token meter exposed to this session; tokens and cost are null. The 40-hour estimate without A.I. is for one hour of teaching written five times over (an adult lesson and four age-banded versions, about 15,900 words of authored prose), 62 verses transcribed by hand from a printed KJV, the independent checking of five load-bearing figures, and 54 tests. The band work failed its floors and its reading ladder on the first measurement, as P60 predicts, and every repair was authored by hand rather than swept by a script (DR-1306). Renumbered to DR-1470 after #2658 landed a record on the number first, while this branch was green and in flight; the rename was done by hand on each citation's own surrounding text, never by number, because renumber-decision-record.mjs rewrites by number across the whole tree and the surrendered number's call sites now belong to that landed record."
     },
     {
+      "id": "lesson-ll339-profit-of-the-earth",
+      "date": "2026-11-23",
+      "task": "L339 The Profit of the Earth Is for All: one Living Lesson from a forwarded newsletter on who gains when an A.I. company goes public",
+      "drs": [
+        "DR-1612"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.8,
+      "estimateWithoutAiHours": 10,
+      "notes": "Thread 1a20898532b7dbcc. Figures reported by one source; maker disclosed in every band. Gate 9/9 after quoting described verses."
+    },
+    {
       "id": "lesson-ll328",
       "date": "2026-11-18",
       "task": "L328 Faithful in that which is least, from a forwarded public school-district newsletter",
