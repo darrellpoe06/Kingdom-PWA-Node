@@ -2470,6 +2470,21 @@
       "notes": "Forwarded the same day; built the same session."
     },
     {
+      "id": "dr-1596-what-the-church-office-posts-is-kept",
+      "date": "2026-11-19",
+      "task": "Every calendar, Letter from BG and flyer the church office posts is kept daily on the NAS by month, one copy per content, shown in Times; a past event the office removes is archived, not deleted",
+      "drs": [
+        "DR-1596"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.5,
+      "estimateWithoutAiHours": 24,
+      "notes": "Migration 0339 with a smoke proven to catch on PostgreSQL 16; a daily reader (Node collector on the app's own parser, Python keeper on the NAS over the tailnet) rehearsed end to end against a mock kong; archive surface and calendar wording tested with their presses."
+    },
+    {
       "id": "sov91-know-the-state-of-thy-flocks",
       "date": "2026-11-18",
       "task": "Sovereign A.I. week 91 from one word over a forwarded ByteByteGo excerpt of Evals for AI Engineers (Shankar and Husain): Word first on Proverbs 27:23 and Lamentations 3:40, the three gulfs and the analyze-measure-improve cycle taught in our words, four hand-written bands, every verse generator-filled from the KJV, and the NAS lesson builder's own week read against the book (six silent days, four of seven on one problem, a rule already given, a count with no place, the checker checked).",
@@ -3444,6 +3459,21 @@
       "wallClockHours": 0.3,
       "estimateWithoutAiHours": 2,
       "notes": "Found on PR #2775 shard 3, then on PR #2788 which adds no lesson, which showed main itself was red. Proven to catch by forcing the page to show the heading always. No product code changed."
+    },
+    {
+      "id": "poetech-door-account-picture",
+      "date": "2026-11-19",
+      "task": "The PoeTech door's account picture at the top right, open and collapsed, opening the Love Corner's menu frame with rows that have a real place on this door",
+      "drs": [
+        "DR-1600"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 2.5,
+      "estimateWithoutAiHours": 14,
+      "notes": "Root cause: the account rendered only in the open header and a device opens collapsed (DR-1046). Measured in Chromium on the built app; the first menu shrank at big text inside the zoomed header and now floats. No schema."
     },
     {
       "id": "my-voice-on-the-nas",

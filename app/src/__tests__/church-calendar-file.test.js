@@ -110,12 +110,19 @@ describe('reading a CSV', () => {
 });
 
 // ── the office's write path (tenancy, DR-0060) ───────────────────────────────
-function fakeClient({ session = { user: { id: 'u1' } }, insertError = null } = {}) {
+function fakeClient({
+  session = { user: { id: 'u1' } },
+  insertError = null,
+  rpc = { data: null, error: { code: 'PGRST202', message: 'Could not find the function' } },
+} = {}) {
   const inserts = [];
   const deletes = [];
+  const rpcs = [];
   return {
     inserts,
     deletes,
+    rpcs,
+    rpc: async (name, args) => (rpcs.push({ name, args }), rpc),
     auth: { getSession: async () => ({ data: { session } }) },
     from: (table) => ({
       insert: async (rows) => {
@@ -196,9 +203,19 @@ describe('the office files events', () => {
     client.from = (t) => ({ ...from(t), insert: (rows) => ((n += 1), n === 1 ? from(t).insert(rows) : new Promise(() => {})) });
     expect(await addCalendarEvents(many, { client, resolveChurch: church('c'), timeoutMs: 20 })).toEqual({ skipped: 'timeout', saved: INSERT_CHUNK });
   });
-  it('a remove names the row AND the calendar ministry, so it can never delete an ops item', async () => {
+  it('a remove asks the database, which archives the past and deletes the future (DR-1596)', async () => {
+    const archived = fakeClient({ rpc: { data: 'archived', error: null } });
+    expect(await removeCalendarEvent('row-9', { client: archived })).toEqual({ removed: true, outcome: 'archived' });
+    expect(archived.rpcs).toEqual([{ name: 'church_calendar_remove', args: { row_in: 'row-9' } }]);
+    expect(archived.deletes).toEqual([]);
+    const deleted = fakeClient({ rpc: { data: 'deleted', error: null } });
+    expect(await removeCalendarEvent('row-9', { client: deleted })).toEqual({ removed: true, outcome: 'deleted' });
+    expect(await removeCalendarEvent('row-9', { client: fakeClient({ rpc: { data: null, error: { code: '42501' } } }) })).toEqual({ skipped: 'refused' });
+    expect(await removeCalendarEvent('', { client: archived })).toEqual({ skipped: 'invalid' });
+  });
+  it('before 0342 applies: a future event deletes naming the row AND the calendar ministry; a past one is refused, never lost', async () => {
     const client = fakeClient();
-    expect(await removeCalendarEvent('row-9', { client })).toEqual({ removed: true });
+    expect(await removeCalendarEvent('row-9', { client, date: '2026-12-06', todayKey: '2026-11-19' })).toEqual({ removed: true, outcome: 'deleted' });
     expect(client.deletes[0]).toEqual({
       table: 'ministry_ops',
       filters: [
@@ -206,7 +223,11 @@ describe('the office files events', () => {
         ['ministry', 'calendar'],
       ],
     });
-    expect(await removeCalendarEvent('', { client })).toEqual({ skipped: 'invalid' });
+    const past = fakeClient();
+    expect(await removeCalendarEvent('row-8', { client: past, date: '2026-08-29', todayKey: '2026-11-19' })).toEqual({ skipped: 'refused' });
+    expect(past.deletes).toEqual([]);
+    // Unknown dates never delete.
+    expect(await removeCalendarEvent('row-7', { client: fakeClient() })).toEqual({ skipped: 'refused' });
   });
   it('shows the office’s tools to owner and admin only; an unanswered role is not a yes', async () => {
     const ask = (value, ok = true) => ({ client: fakeClient(), resolveChurch: church('c'), roleOf: async () => ({ ok, value }) });

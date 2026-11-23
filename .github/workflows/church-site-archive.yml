@@ -1,0 +1,91 @@
+# church-site-archive — every calendar, Letter from BG and flyer the church
+# office posts is kept, daily, so the office never has to archive (DR-1596).
+# A runner reads the public site with the app's own parser; the NAS keeps each
+# picture it has not held (private bucket + one row, migration 0342).
+# Timer-driven, deterministic class (CLAUDE.md, AMENDED 2026-07-29): started by
+# merge. BUDGET: job timeouts, per-request timeouts, a picture cap per run, 12 MB
+# per picture. LOCK: one run at a time. Stop: disable this workflow.
+# The walls job proves 0342 on a bare PostgreSQL for a pull request touching it.
+name: Church site archive (daily)
+
+on:
+  schedule:
+    - cron: '23 10 * * *'   # once a day, early morning in the church's own zone
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'site = the pages as they are now; wayback = recover past months from Internet Archive snapshots'
+        type: choice
+        options: [site, wayback]
+        default: site
+  pull_request:
+    paths:
+      - 'infra/supabase/migrations-auto/0342-what-the-church-office-posts-is-kept.sql'
+      - 'infra/supabase/tests/0342-church-site-archive-smoke.sql'
+      - 'scripts/church-archive-ci-bootstrap.sql'
+      - 'infra/nas-church-archive/**'
+      - '.github/workflows/church-site-archive.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: church-site-archive-${{ github.event_name == 'pull_request' && github.ref || 'keep' }}
+  cancel-in-progress: false
+
+jobs:
+  walls:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      PGHOST: localhost
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+    steps:
+      - uses: actions/checkout@v7
+      - run: bash "$GITHUB_WORKSPACE/scripts/ci-psql.sh"
+      - name: 0342 applies twice and every wall holds; the keeper's selftest passes
+        run: |
+          set -euo pipefail
+          P() { psql -v ON_ERROR_STOP=1 -q --single-transaction "$@"; }
+          P -f scripts/door-work-ci-bootstrap.sql
+          for f in schema-v1.sql schema-v1.1-tenant-join.sql schema-v2.1-infra.sql; do P -f "infra/supabase/$f"; done
+          P -f scripts/church-archive-ci-bootstrap.sql
+          P -f infra/supabase/migrations-auto/0099-ministry-ops.sql
+          for i in 1 2; do P -f infra/supabase/migrations-auto/0342-what-the-church-office-posts-is-kept.sql; done
+          psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0342-church-site-archive-smoke.sql | tee "$RUNNER_TEMP/smoke.txt"
+          grep -q 'CHURCH SITE ARCHIVE SMOKE: PASS' "$RUNNER_TEMP/smoke.txt"
+          python3 infra/nas-church-archive/church_archive_keep.py --selftest
+
+  keep:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      MODE: ${{ inputs.mode || 'site' }}
+      NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Read the church website (the app's own parser)
+        run: node scripts/church-site-archive-collect.mjs --out "$RUNNER_TEMP/archive" --mode "$MODE"
+      - uses: ./.github/actions/join-tailnet
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          authkey: ${{ secrets.TS_AUTHKEY }}
+      - name: Keep what is new on the NAS
+        timeout-minutes: 15
+        run: bash scripts/church-site-archive-over-tailnet.sh "$RUNNER_TEMP/archive"

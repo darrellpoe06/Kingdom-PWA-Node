@@ -35,7 +35,15 @@ const FOCUS = 'focus-visible:outline focus-visible:outline-[3px] focus-visible:o
 const NEW_IDEA = 'A new idea';
 const ago = (n) => (n === 1 ? 'last year' : `${n} years ago`);
 
-export default function ChurchCalendarPlanning({ events = [], todayKey, signedIn = false, canManage = false, onSuggest = null, feedback = [] }) {
+export default function ChurchCalendarPlanning({
+  events = [],
+  todayKey,
+  signedIn = false,
+  canManage = false,
+  onSuggest = null,
+  feedback = [],
+  onArchive = null,
+}) {
   const dated = useMemo(() => events.filter((e) => e.source !== 'service'), [events]);
   const past = useMemo(() => comingUpFromPastYears(dated, todayKey), [dated, todayKey]);
   const soon = useMemo(() => upcomingEvents(dated, todayKey), [dated, todayKey]);
@@ -97,6 +105,11 @@ export default function ChurchCalendarPlanning({ events = [], todayKey, signedIn
       <p className="cc-note" data-testid="church-calendar-years">
         {years.length === 0 ? 'No dated events are on record.' : `Dated events on record: ${years.map((y) => `${y.year} (${y.count})`).join(', ')}.`}
       </p>
+      {onArchive && (
+        <button type="button" className={`cc-btn cc-btn-quiet ${FOCUS}`} onClick={() => onArchive()} data-testid="church-calendar-to-archive">
+          See every month’s calendar, letter and flyers the office posted: the archive
+        </button>
+      )}
 
       <div className="cc-list-h">Suggest an event, or say something about one</div>
       {!signedIn || !onSuggest ? (

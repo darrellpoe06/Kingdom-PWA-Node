@@ -1238,7 +1238,7 @@ export default function PoeFinancialSystem() {
   const isAssistantAcct = !reviewerMode && !isFamilyMember && !!authSession && instanceRoleState.role === 'assistant';
   const isGov = governsHere({ signedIn: !!authSession, reviewerMode, allowlisted: isFamilyMember, role: instanceRoleState.role });  // the ROLE governs, not the address (DR-1106; lib/family-standing.js)
   // ONE LIST, THREE PLACES (DR-1046): the tab strip, the sidebar and the phone's bottom bar all draw lib/nav-items.jsx.
-  const navTabs = navItems({ isAssistantAcct, isFamilyMember, isGovernor: isGov, authSession, isStudyCircle, healthPrograms: data.healthPrograms, userTier: data.userTier, reviewerMode, churchDoorOnly });
+  const navTabs = navItems({ isAssistantAcct, isFamilyMember, isGovernor: isGov, authSession, isStudyCircle, healthPrograms: data.healthPrograms, userTier: data.userTier, reviewerMode, churchDoorOnly }); const accountDoor = { navTabs, setView, setChurchView, theme, setTheme, isOwner: isFamilyMember };/* the picture's menu reads the reader's own tabs (DR-1600) */
   const { homeView } = useHomePrefs();
   const navForDock = { groups: navGroups(navTabs), view, homeView, churchView, churchTabs: churchSubTabs({ signedIn: !!authSession, reviewerMode, officeRole: churchAccess.role, isChurchStaff }), churchHomeSection, onNavigate: (v, home, sub) => { if (home) setHomeView(home); if (sub) setChurchView(sub); setView(v); }, money: view === 'books' ? { booksView, setBooksView } : null };
   const showSideNav = !churchDoorOnly;
@@ -4142,13 +4142,13 @@ ${THEME_CSS}
               </h1>
               <div className="ts-chrome-region text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">{churchBrand ? 'The Church of the Living God' : 'Life · Soul · Money · Family'} <span className="text-[0.5rem] tracking-[0.15em] text-[#5A5751] ml-2 sm:hidden inline-flex items-center gap-1.5" title={`Build time: ${typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : 'unknown'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>build {typeof __BUILD_SHA__ !== 'undefined' ? __BUILD_SHA__ : '????'}<FreshnessDot compact /></span></div>
             </div>
-            <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-end min-w-0 ts-chrome-region ts-escape-hatch header-comfort-row bg-[#FAF8F4]">
+            <div className="flex items-start justify-end gap-2 sm:gap-3 min-w-0"><div className="flex items-center gap-2 sm:gap-3 flex-1 flex-wrap justify-end min-w-0 ts-chrome-region ts-escape-hatch header-comfort-row bg-[#FAF8F4]">
               {/* "Hide ▾" / "Show controls ▴" when this row is the A44 bottom block (DR-0716; components/ComfortBarToggle.jsx). */}
               <ComfortBarToggle />
               {/* GIVE, first in the row, on church surfaces only (rationale in components/ChurchGiving.jsx). */}
               {(churchBrand || view === 'church') && <ChurchGiveHeaderButton church={data.church} floaterPresent={view === 'church'} />}
               {/* Obvious top-right Log in / Log out box, like TLC, on every app (Darrell 2026-07-14). */}
-              {!isIsolatedPreview() && <HeaderAuthButton />}{/* no sign-in on a preview host: its data client reaches nothing (preview isolation) */}
+              {/* The picture sits at the header's TOP RIGHT, outside this wrapping row (DR-1600): see where this row closes. */}
               <AuthBanner />
               {/* Tier PREVIEW — steward/demo only: a real user must never hop the paid tier wall with it (REV-0239). Hidden on the Love Corner door. */}
               {!churchDoorOnly && (isFamilyMember || isAnyDemoMode) && <TierSwitcher userTier={data.userTier} setUserTier={setUserTier} />}
@@ -4215,7 +4215,7 @@ ${THEME_CSS}
                     build time (vite.config.js define block). */}
                 <div className="text-[#B85838] mt-0.5 inline-flex items-center gap-1.5" title={`Build time: ${typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : 'unknown'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>build {typeof __BUILD_SHA__ !== 'undefined' ? __BUILD_SHA__ : '????'}<FreshnessDot /></div>
               </div>
-            </div>
+            </div>{!isIsolatedPreview() && <HeaderAuthButton door={accountDoor} />}</div>{/* no sign-in on a preview host: its data client reaches nothing (preview isolation) */}
           </div>
         </div>
         )}
@@ -4230,7 +4230,7 @@ ${THEME_CSS}
             Darrell built it. DR-0276 rule 3 — always reversible. */}
         {/* The nav row, the header chevron, and on a one-tab door the brand row
             (components/TopNavRow.jsx, DR-0640: "Both places are good... why not"). */}
-        <TopNavRow navHistory={navHistory} tabsHidden={showSideNav} collapsed={headerCollapsed} onToggleHeader={toggleHeaderChrome} brandName={churchBrand ? 'The Love Corner' : 'Family Operating Systems'} brandTagline={churchBrand ? 'The Church of the Living God' : 'Life · Soul · Money · Family'}
+        <TopNavRow account={!isIsolatedPreview() && <HeaderAuthButton door={accountDoor} compact />} navHistory={navHistory} tabsHidden={showSideNav} collapsed={headerCollapsed} onToggleHeader={toggleHeaderChrome} brandName={churchBrand ? 'The Love Corner' : 'Family Operating Systems'} brandTagline={churchBrand ? 'The Church of the Living God' : 'Life · Soul · Money · Family'}
           home={churchDoorOnly && isFamilyMember ? { href: '/poetech-app/?view=overview', label: 'PoeTech app', title: 'Open the whole PoeTech app (every tab)' } : null}
           hatch={<TextSizeEscapeHatch collapsed={headerCollapsed} onShowHeader={toggleHeaderChrome} siteName={churchBrand ? 'The Love Corner' : 'Family Operating Systems'} siteTagline={churchBrand ? 'The Church of the Living God' : 'Life · Soul · Money · Family'} />}>
               {navTabs.map(([id, label]) => {

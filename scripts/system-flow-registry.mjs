@@ -1019,6 +1019,16 @@ const NODES = [
     reads: [{ res: 'db:choir_sermons', token: 'subscribeSermons' }],
     seeds: [],
   }),
+  app('app/src/components/lovecorner/ChurchArchive.jsx', {
+    id: 'church-archive', name: 'Church archive (Times)',
+    purpose: 'Every calendar, Letter from BG and flyer the office posted, by year and month, each opening full size; and the calendar events the office archived instead of deleting (DR-1596).',
+    reads: [
+      { res: 'db:church_site_archive', file: 'app/src/lib/church-archive-sync.js', token: "from('church_site_archive')" },
+      { res: 'db:ministry_ops', file: 'app/src/lib/church-calendar-sync.js', token: "from('ministry_ops')" },
+    ],
+    writes: [{ res: 'db:ministry_ops', file: 'app/src/lib/church-calendar-sync.js', token: "rpc('church_calendar_remove'" }],
+    seeds: [],
+  }),
   app('app/src/components/ChoirSongbook.jsx', {
     id: 'songbook', name: 'Choir songbook + order of service',
     purpose: 'The repertoire, and the songs placed in each service.',
@@ -1310,6 +1320,13 @@ const NODES = [
     id: 'church-site-probe', name: 'Church site probe (read-only)',
     purpose: 'Reads the church\u2019s public website from a runner (the sandbox has no route to it) and prints its pages, headings and any feed, so the announcements-and-events sync (Darrell 2026-11-18) can be built on what the site actually publishes; nothing is written.',
     reads: [{ res: 'site:thechurchofthelivinggod.com', token: 'thechurchofthelivinggod.com' }], writes: [], seeds: [],
+  }),
+  wf('church-site-archive.yml', {
+    id: 'church-site-archive', name: 'Church site archive (daily)',
+    purpose: 'Every calendar, Letter from BG and flyer the church office posts on its website is kept daily on the NAS, by month, one copy per content, so the office never archives by hand (DR-1596).',
+    reads: [{ res: 'site:thechurchofthelivinggod.com', file: 'scripts/church-site-archive-collect.mjs', token: 'SITE_HOST' }],
+    writes: [{ res: 'db:church_site_archive', file: 'infra/nas-church-archive/church_archive_keep.py', token: 'church_site_archive_keep' }],
+    seeds: [],
   }),
   wf('live-link-probe.yml', {
     id: 'live-link-probe', name: 'Live link probe', purpose: 'A real browser opens a shared lesson link.',
@@ -2353,6 +2370,8 @@ const RESOURCES = {
   'db:agent_inbox#voice-transcript': { label: 'spoken lessons written down', proof: { ts: 'created_at', fresh: 30, where: "tags ? 'voice-transcript'", consumed: "tags ? 'mirrored'" } },
   'hosted:lesson-published': { label: 'a member\u2019s lesson marked published by the reader (DR-0639)' },
   'db:agent_inbox#lesson-published': { label: 'members\u2019 lessons published', proof: { ts: 'created_at', fresh: 30, where: "tags ? 'lesson-published'", consumed: "tags ? 'messaged:published'" } },
+  'db:church_site_archive': { label: 'the church office\u2019s calendars, letters and flyers, kept', sink: 'Members of the church read it in the archive under Times, by year and month (DR-1596).' },
+  'db:ministry_ops': { label: 'the church office\u2019s calendar events and ministry operations', sink: 'Members read the calendar and the office reads its operations in the app; an archived event is read in the archive (DR-1596).' },
   'db:direct_messages': { label: 'Messages', sink: 'The member reads the Message in their own Messages thread and may reply; a reply is an ordinary Message to Darrell (DR-0639).' },
   'db:agent_inbox#poetech': { label: 'PoeTech requests relayed to the inbox', proof: { ts: 'created_at', fresh: 60, where: "tags ? 'tell-poetech'" },
     open: { blocker: 'Nothing reads these rows (measured 2026-09-24: no code, NAS job or routine reads the tell-poetech tag). The same words now also reach the feedback queue; this relay retires once a PoeTech request is seen landing there on the live database, not before (never dismantle what may still deliver until its replacement is proven).', reReview: '2026-10-01' } },

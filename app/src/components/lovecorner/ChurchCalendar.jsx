@@ -14,6 +14,7 @@
 // says that instead of looking empty (P15: a surface never goes blank).
 // =============================================================================
 import React, { useMemo, useState } from 'react';
+import { removalOutcome } from '../../lib/church-archive.js';
 import {
   dayAgenda,
   weekDays,
@@ -38,8 +39,10 @@ const SOURCE_NOTE = {
   loading: 'Reading the office’s events…',
 };
 
-function EventLine({ ev, onSave, saved, onRemove }) {
+function EventLine({ ev, onSave, saved, onRemove, todayKey }) {
   // Removing is two presses on purpose: the first asks, the second does it (no browser prompt).
+  // An event that has already happened is ARCHIVED, not deleted (DR-1596): the words say which.
+  const archive = removalOutcome(ev, todayKey) === 'archive';
   const [asking, setAsking] = useState(false);
   const [gone, setGone] = useState('');
   const remove = async () => {
@@ -80,10 +83,10 @@ function EventLine({ ev, onSave, saved, onRemove }) {
               type="button"
               className={`cc-btn ${FOCUS}`}
               onClick={() => setAsking(true)}
-              aria-label={`Remove ${ev.name} from the church calendar`}
+              aria-label={archive ? `Archive ${ev.name}: take it off the calendar and keep it in the archive` : `Remove ${ev.name} from the church calendar`}
               data-testid="church-calendar-remove"
             >
-              Remove
+              {archive ? 'Archive' : 'Remove'}
             </button>
           ) : (
             <>
@@ -94,7 +97,13 @@ function EventLine({ ev, onSave, saved, onRemove }) {
                 disabled={gone === 'working'}
                 data-testid="church-calendar-remove-yes"
               >
-                {gone === 'working' ? 'Removing…' : 'Yes, remove it for everyone'}
+                {gone === 'working'
+                  ? archive
+                    ? 'Archiving…'
+                    : 'Removing…'
+                  : archive
+                    ? 'Yes, archive it: off the calendar, kept in the archive'
+                    : 'Yes, remove it for everyone'}
               </button>
               <button
                 type="button"
@@ -109,7 +118,7 @@ function EventLine({ ev, onSave, saved, onRemove }) {
           )}
           {gone === 'failed' && (
             <span className="cc-said is-bad" role="alert">
-              It could not be removed. It is still on the calendar.
+              {archive ? 'It could not be archived. It is still on the calendar.' : 'It could not be removed. It is still on the calendar.'}
             </span>
           )}
         </span>
@@ -301,7 +310,7 @@ export default function ChurchCalendar({
       {agenda.length > 0 ? (
         <ul className="cc-list" data-testid="church-calendar-agenda">
           {agenda.map((ev) => (
-            <EventLine key={ev.id} ev={ev} onSave={onSave} saved={savedIds.includes(ev.id)} onRemove={onRemove} />
+            <EventLine key={ev.id} ev={ev} onSave={onSave} saved={savedIds.includes(ev.id)} onRemove={onRemove} todayKey={todayKey} />
           ))}
         </ul>
       ) : (

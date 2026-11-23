@@ -13,7 +13,7 @@ import React, { useEffect, useState } from 'react';
 import Modal from '../Modal.jsx';
 import TextSizeControl from '../TextSizeControl.jsx';
 import ReadingVoiceControl from '../ReadingVoiceControl.jsx';
-import { THEMES, CHURCH_DEFAULT_THEME } from '../../lib/theme-css.js';
+import { THEMES, CHURCH_DEFAULT_THEME, DEFAULT_THEME } from '../../lib/theme-css.js';
 import { setTextSize, DEFAULT_TEXT_SIZE } from '../../lib/text-size.js';
 import { RATE_STEPS, loadTTSPrefs, saveTTSRate, DEFAULT_RATE } from '../../lib/tts.js';
 
@@ -26,7 +26,12 @@ export function orderedThemes(themes = THEMES) {
   return [...night, ...cream, ...themes.filter((t) => t.key !== 'night' && t.key !== 'lovecorner')];
 }
 
-export default function PersonalizeSheet({ open, onClose, theme, setTheme, isOwner = false }) {
+// THE SAME SHEET ON THE POETECH DOOR (DR-1600): the picture's menu there opens
+// it as "Appearance & Accessibility". `door="poetech"` lists the themes in the
+// registry's own order, resets to PoeTech's default look (never the church's)
+// and says so; the church door is unchanged.
+export default function PersonalizeSheet({ open, onClose, theme, setTheme, isOwner = false, door = 'church' }) {
+  const poetech = door === 'poetech';
   const [rate, setRate] = useState(DEFAULT_RATE);
   useEffect(() => {
     if (!open) return;
@@ -47,7 +52,7 @@ export default function PersonalizeSheet({ open, onClose, theme, setTheme, isOwn
     }
   };
   const reset = () => {
-    if (setTheme) setTheme(CHURCH_DEFAULT_THEME);
+    if (setTheme) setTheme(poetech ? DEFAULT_THEME : CHURCH_DEFAULT_THEME);
     setTextSize(DEFAULT_TEXT_SIZE);
     pickRate(DEFAULT_RATE);
   };
@@ -61,7 +66,7 @@ export default function PersonalizeSheet({ open, onClose, theme, setTheme, isOwn
             Choose your theme
           </h3>
           <div className="lch-themes" role="radiogroup" aria-label="Theme">
-            {orderedThemes().map((t) => {
+            {(poetech ? THEMES : orderedThemes()).map((t) => {
               const on = theme === t.key;
               return (
                 <button
@@ -126,11 +131,13 @@ export default function PersonalizeSheet({ open, onClose, theme, setTheme, isOwn
             Personal preferences
           </h3>
           <p className="lch-note">
-            Your choice is saved on this phone as you tap it, and your voice follows your account. The church's colors stay the same for everyone else.
+            {poetech
+              ? 'Your choice is saved on this device as you tap it, and your voice follows your account. Nobody else sees your colors change.'
+              : "Your choice is saved on this phone as you tap it, and your voice follows your account. The church's colors stay the same for everyone else."}
           </p>
           <div className="lch-row">
             <button type="button" onClick={reset} className={`lch-pill ${FOCUS}`} data-testid="lch-reset">
-              Reset to the church's look
+              {poetech ? "Reset to PoeTech's look" : "Reset to the church's look"}
             </button>
             <button type="button" onClick={onClose} className={`lch-pill lch-pill-gold ${FOCUS}`} data-testid="lch-done">
               Done

@@ -62,7 +62,7 @@ function Picture({ item, alt, caption, onOpen, testid }) {
  * picture's lettering cannot be re-set, so the picture itself is made bigger,
  * DR-1575), Larger and Smaller are on screen, and the box scrolls both ways.
  */
-function FullPicture({ open, onClose, closeRef }) {
+export function FullPicture({ open, onClose, closeRef }) {
   const z = usePictureZoom();
   return (
     <div

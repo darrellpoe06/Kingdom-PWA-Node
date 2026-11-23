@@ -11,6 +11,7 @@
 // return), so a keyboard and a screen reader get the same door as a finger.
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Modal from '../Modal.jsx';
+import AccountMenu from './AccountMenu.jsx';
 import MyProfile from '../MyProfile.jsx';
 import HelpButton from '../HelpButton.jsx';
 import AppDoorControls from '../AppDoorControls.jsx';
@@ -72,108 +73,63 @@ export function ProfileMenu({
 }) {
   const [profileOpen, setProfileOpen] = useState(false);
   const [giveOpen, setGiveOpen] = useState(false);
-  const ref = useRef(null);
-  useEffect(() => {
-    const onKey = (e) => {
-      if (e.key === 'Escape') onClose();
-    };
-    const onDown = (e) => {
-      const inMenu = ref.current && ref.current.contains(e.target);
-      const onAnchor = anchorRef && anchorRef.current && anchorRef.current.contains(e.target);
-      if (!inMenu && !onAnchor && !profileOpen && !giveOpen) onClose();
-    };
-    document.addEventListener('keydown', onKey);
-    document.addEventListener('mousedown', onDown);
-    return () => {
-      document.removeEventListener('keydown', onKey);
-      document.removeEventListener('mousedown', onDown);
-    };
-  }, [onClose, anchorRef, profileOpen, giveOpen]);
-  useEffect(() => {
-    const first = ref.current && ref.current.querySelector('button');
-    if (first) first.focus();
-  }, []);
   const email = session && session.user && session.user.email;
   const who = isOffice ? 'Church office' : 'Member';
-  const Row = ({ onClick, children, testid, out = false }) => (
-    <li role="none">
-      <button type="button" role="menuitem" onClick={onClick} className={`lch-menu-row ${out ? 'lch-menu-out' : ''} ${FOCUS}`} data-testid={testid}>
-        {children}
-      </button>
-    </li>
-  );
+  // The rows as data, drawn by the shared frame (AccountMenu, DR-1600): the
+  // PoeTech door's picture uses the same frame with its own rows.
+  const rows = [
+    { key: 'profile', label: 'My Profile', onSelect: () => setProfileOpen(true) },
+    { key: 'church', label: 'My Church', chip: isOffice ? 'office' : null, onSelect: () => onGo('my-record') },
+    { key: 'notifications', label: 'Notifications', onSelect: onNotifications },
+    { key: 'subscription', label: 'Subscription', chipMuted: 'PoeTech+', onSelect: onSubscription },
+    // TWO ROWS, EACH GOING WHERE IT SAYS (DR-1579). One row named
+    // "Messages / Contact" opened the church's About section and no
+    // messages at all (Darrell 2026-11-18: "Messages and contacts
+    // don't work"). Messages is the app's own Messages surface, which
+    // this door already carries (the bell's message arrivals land on
+    // it); Contact the church is the About section, where the
+    // address, the phone and the office are.
+    { key: 'messages', label: 'Messages', onSelect: onMessages },
+    {
+      key: 'contact',
+      label: 'Contact the church',
+      onSelect: () => {
+        requestChurchHomeSection('about');
+        onGo('home');
+      },
+    },
+    { key: 'give', label: 'Give', onSelect: () => setGiveOpen(true) },
+    { key: 'all', label: 'Share Our App · Install · Help', onSelect: onAll },
+    { key: 'personalize', label: 'Appearance & Accessibility', onSelect: onPersonalize },
+    ...(canAdmin ? [{ key: 'admin', label: 'Admin', onSelect: onAdmin }] : []),
+    {
+      key: 'logout',
+      label: 'Log Out',
+      out: true,
+      onSelect: () => {
+        try {
+          signOut();
+        } catch (_) {
+          /* ignore */
+        }
+        onClose();
+      },
+    },
+  ];
   return (
     <>
-      <div ref={ref} className="lch-menu" role="menu" aria-label="My account" data-testid="lch-profile-menu">
-        <div className="lch-menu-who">
-          <b>{name}</b>
-          <small>
-            {who}
-            {email ? ` · ${email}` : ''}
-          </small>
-        </div>
-        <ul className="lch-menu-list">
-          <Row onClick={() => setProfileOpen(true)} testid="lch-menu-profile">
-            My Profile
-          </Row>
-          <Row onClick={() => onGo('my-record')} testid="lch-menu-church">
-            My Church{isOffice && <span className="lch-chip">office</span>}
-          </Row>
-          <Row onClick={onNotifications} testid="lch-menu-notifications">
-            Notifications
-          </Row>
-          <Row onClick={onSubscription} testid="lch-menu-subscription">
-            Subscription <span className="lch-chip-muted">PoeTech+</span>
-          </Row>
-          {/* TWO ROWS, EACH GOING WHERE IT SAYS (DR-1579). One row named
-              "Messages / Contact" opened the church's About section and no
-              messages at all (Darrell 2026-11-18: "Messages and contacts
-              don't work"). Messages is the app's own Messages surface, which
-              this door already carries (the bell's message arrivals land on
-              it); Contact the church is the About section, where the
-              address, the phone and the office are. */}
-          <Row onClick={onMessages} testid="lch-menu-messages">
-            Messages
-          </Row>
-          <Row
-            onClick={() => {
-              requestChurchHomeSection('about');
-              onGo('home');
-            }}
-            testid="lch-menu-contact"
-          >
-            Contact the church
-          </Row>
-          <Row onClick={() => setGiveOpen(true)} testid="lch-menu-give">
-            Give
-          </Row>
-          <Row onClick={onAll} testid="lch-menu-all">
-            Share Our App · Install · Help
-          </Row>
-          <Row onClick={onPersonalize} testid="lch-menu-personalize">
-            Appearance &amp; Accessibility
-          </Row>
-          {canAdmin && (
-            <Row onClick={onAdmin} testid="lch-menu-admin">
-              Admin
-            </Row>
-          )}
-          <Row
-            out
-            onClick={() => {
-              try {
-                signOut();
-              } catch (_) {
-                /* ignore */
-              }
-              onClose();
-            }}
-            testid="lch-menu-logout"
-          >
-            Log Out
-          </Row>
-        </ul>
-      </div>
+      <AccountMenu
+        name={name}
+        who={who}
+        email={email}
+        rows={rows}
+        anchorRef={anchorRef}
+        onClose={onClose}
+        hold={profileOpen || giveOpen}
+        look="lovecorner"
+        testid="lch-profile-menu"
+        rowTestid={(key) => `lch-menu-${key}`}
+      />
       <Modal
         open={profileOpen}
         onClose={() => {

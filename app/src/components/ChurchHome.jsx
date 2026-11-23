@@ -37,6 +37,8 @@ import LoveCornerHome from './lovecorner/LoveCornerHome.jsx';
 import { subscribeChurchHomeSection, takePendingChurchHomeSection, publishChurchHomeSection, subscribeChurchHomeTop } from '../lib/church-home-section.js';
 import { ChurchGivingChannels } from './ChurchGiving.jsx';
 import { markArrivalsSeen, SCREEN_KINDS } from '../lib/arrivals.js';
+import ChurchArchive, { goToArchive } from './lovecorner/ChurchArchive.jsx';
+import { useChurchArchiveRows } from '../lib/church-archive-sync.js';
 import ChurchOfficeBoard, { useChurchSite } from './lovecorner/ChurchOfficeBoard.jsx';
 import ChurchCalendar from './lovecorner/ChurchCalendar.jsx';
 import ChurchCalendarTools from './lovecorner/ChurchCalendarTools.jsx';
@@ -229,10 +231,13 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
   // The office's tools (DR-1586) show only once the role is answered as owner/admin; the database is the real gate.
   const calendarAccess = useCalendarAccess(signedIn && siteIsTheChurchs(c.site));
   const removeOfficeEvent = async (ev) => {
-    const r = await removeCalendarEvent(ev.rowId);
+    const r = await removeCalendarEvent(ev.rowId, { date: ev.date, todayKey: churchDateKey(new Date()) });
     if (r && r.removed) calendarRows.reload();
     return r;
   };
+  // THE ARCHIVE (DR-1596): what the office posted on its website, kept daily, and the events it archived.
+  const archiveRows = useChurchArchiveRows(signedIn && siteIsTheChurchs(c.site));
+  const archivedOfficeEvents = useMemo(() => fromOfficeRows(calendarRows.rows).archived, [calendarRows.rows]);
   const showingDefaultHome = c.isDefaultHome === true;
   const fieldCls = 'w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]';
   const labelCls = 'text-[0.5625rem] uppercase tracking-wider text-[#5A5751]';
@@ -1060,7 +1065,11 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
           canManage={calendarAccess.canManage}
           onSuggest={addFeedback}
           feedback={feedback}
+          onArchive={siteIsTheChurchs(c.site) ? goToArchive : null}
         />
+        {siteIsTheChurchs(c.site) && (
+          <ChurchArchive status={signedIn ? archiveRows.status : 'signed-out'} rows={archiveRows.rows} archivedEvents={archivedOfficeEvents} />
+        )}
       </ChurchCalendar>
       <ChurchOfficeBoard digest={office} />
       {/* SERVICE TIMES + SAVE TO CALENDAR */}
