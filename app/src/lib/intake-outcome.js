@@ -196,12 +196,21 @@ export function ledgerIndex(ledger) {
 // which the suite caught. 65 is taken: 11 clear of the true positive and 14
 // below `church`, the nearest word that must NOT qualify.
 //
+// RE-REVIEWED 2026-11-24 (DR-1623, DR-1028's dated re-review, ten days late).
+// The ledger reached 1366 decided records and the edge DR-1028 predicted was
+// crossed: `loop` reached df 66 (one record past 65) and `switch` was already
+// at 68, so the kill-switch note fell to two rare words and DR-0110 answered
+// in DR-0248's place. Measured window now: MUST match needs kill 33,
+// deterministic 41, loop 66 (cap >= 66); MUST NOT match has only website 3 and
+// giv 31 rare, with church 131 and link 133 far above (cap <= 130). 80 is taken:
+// 12 clear of switch, 51 below church. Same direction, same reason: a decided
+// number, re-read on its date.
 // AS THE LEDGER GROWS, `df` only rises, so matching gets HARDER over time, not
 // easier. That is the intended failure direction, and it is the reason this is
 // a decided number with a re-review rather than a derived one.
 // `rareShare` is kept only so a reader can see what the derived form was;
 // nothing reads it.
-export const DECIDED_MATCH = Object.freeze({ minShared: 4, minRareShared: 3, minCoverage: 0.6, minTitleShared: 2, rareMaxDocs: 65, rareShare: 0.1, newerWithin: 0.1 });
+export const DECIDED_MATCH = Object.freeze({ minShared: 4, minRareShared: 3, minCoverage: 0.6, minTitleShared: 2, rareMaxDocs: 80, rareShare: 0.1, newerWithin: 0.1 });
 
 const drNum = (id) => parseInt(String(id || '').replace(/\D/g, ''), 10) || 0;
 

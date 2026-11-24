@@ -482,23 +482,43 @@ export async function linkIdentity(provider) {
  * the session object or null. Best-effort — never throws (blocked/malformed
  * storage → null).
  */
-export function readPersistedSession(store) {
+export function readPersistedSession(store, ownKey) {
   try {
     const ls = store || (typeof window !== 'undefined' ? window.localStorage : null);
     if (!ls || typeof ls.length !== 'number') return null;
+    const parse = (raw) => {
+      if (!raw) return null;
+      let parsed;
+      try { parsed = JSON.parse(raw); } catch (_) { return null; }
+      // v2 stores the session object directly; v1 wrapped it in { currentSession }.
+      const session = parsed && parsed.currentSession ? parsed.currentSession : parsed;
+      return session && session.access_token && session.user ? session : null;
+    };
+    // THE CLIENT'S OWN SLOT ONLY (DR-1617). The cutover left a SECOND
+    // sb-*-auth-token on every device that signed in before it: hosted's
+    // `sb-<ref>-auth-token` beside the sovereign `sb-poetech-auth-token`. The
+    // shape scan returned whichever came first in storage order, so the boot
+    // could paint an OLD session (another person's, on a shared tablet), and
+    // getSession() then reconciled to the real one or to null: signed in,
+    // signed out, signed in, under the wrong name. When the caller knows the
+    // client's key, nothing else is read.
+    // Every real caller reads window storage, so it defaults to the client's
+    // own key; a test handing in its own store keeps the shape scan.
+    const key = ownKey !== undefined ? ownKey : (store ? undefined : ownStorageKey());
+    if (key) return parse(ls.getItem(key));
     for (let i = 0; i < ls.length; i++) {
       const key = ls.key(i);
       if (!key || !/^sb-.*-auth-token$/.test(key)) continue;
-      const raw = ls.getItem(key);
-      if (!raw) continue;
-      let parsed;
-      try { parsed = JSON.parse(raw); } catch (_) { continue; }
-      // v2 stores the session object directly; v1 wrapped it in { currentSession }.
-      const session = parsed && parsed.currentSession ? parsed.currentSession : parsed;
-      if (session && session.access_token && session.user) return session;
+      const session = parse(ls.getItem(key));
+      if (session) return session;
     }
   } catch (_) { /* storage blocked / SecurityError → treat as no session */ }
   return null;
+}
+
+/** The storage slot this client really persists under (supabase-js sets it from the URL). */
+function ownStorageKey() {
+  try { return supabase.auth && typeof supabase.auth.storageKey === 'string' ? supabase.auth.storageKey : undefined; } catch (_) { return undefined; }
 }
 
 /**
@@ -519,6 +539,19 @@ export function resolveInitialSession(emit, { getSession, readStored }) {
     Promise.resolve(getSession())
       .then((res) => {
         const s = res && res.data ? res.data.session : undefined;
+        // A FAILED REFRESH IS NOT A SIGN-OUT (DR-1618). auth-js getSession()
+        // answers { session: null, error } when the access token has expired
+        // and the refresh could not reach the server (TypeError: Failed to
+        // fetch), while the sign-in is still saved on the device. Emitting that
+        // null painted the signed-out front page until the road came back:
+        // signed in, signed out, signed in. A null that carries an error, with
+        // the session still stored, keeps the session; a real sign-out clears
+        // storage, and onAuthStateChange still reports it.
+        if (s === null && res && res.error) {
+          let still;
+          try { still = readStored(); } catch (_) { still = null; }
+          if (still) return;
+        }
         if (s !== undefined) emit(s ?? null); // reconcile with the source of truth
       })
       .catch(() => { /* keep the optimistic read; onAuthStateChange corrects later */ });
@@ -613,6 +646,13 @@ export function onAuthChange(callback) {
   const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
     // Fast path: a live session, or any non-logout event, passes straight
     // through unchanged.
+    // A NULL THAT IS NOT A SIGN-OUT KEEPS THE STORED SESSION (DR-1620). auth-js
+    // emits INITIAL_SESSION with null whenever getSession() errors, a failed
+    // fetch included (GoTrueClient _emitInitialSession), while the sign-in is
+    // still stored. Passing that null painted the signed-out front page and
+    // then the profile picker until the road answered. Only SIGNED_OUT (below,
+    // with its recovery) or an empty store reads as signed out.
+    if (!session && event !== 'SIGNED_OUT' && readPersistedSession()) return;
     if (!isPossibleLogout(event, session)) {
       callback(session ?? null);
       return;

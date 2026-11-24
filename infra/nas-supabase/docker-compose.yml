@@ -73,6 +73,19 @@ services:
       GOTRUE_JWT_SECRET: ${JWT_SECRET}
       GOTRUE_JWT_EXP: 3600
       GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
+      # THE LOGGED-IN-AND-OUT BUG (DR-1617, Darrell 2026-11-24: "The Apps keep
+      # logging me in and out"). Refresh tokens ROTATE; hosted ran a 10-second
+      # reuse interval, a dashboard setting that did not travel with the
+      # cutover (the same class as Google below). GoTrue v2.177.0 has NO
+      # default for it (internal/conf/configuration.go:609), so it ran at 0:
+      # the moment any tab, door or device presented a token another tab had
+      # just rotated, token_refresh.go:196-209 called it an abuse attempt and
+      # REVOKED THE WHOLE TOKEN FAMILY -- every tab and device signed out at
+      # once. The family runs dozens of tabs across three doors on one origin,
+      # so the race was constant. 10s restores hosted's behaviour; rotation
+      # and real reuse detection stay ON outside the window.
+      GOTRUE_SECURITY_REFRESH_TOKEN_ROTATION_ENABLED: "true"
+      GOTRUE_SECURITY_REFRESH_TOKEN_REUSE_INTERVAL: "10"
       # THE INVISIBLE-USERS BUG (measured 2026-08-20, run 32325254572): with
       # no aud configured, GoTrue mints users with aud='' and filters EVERY
       # lookup by aud='' -- the 23 migrated accounts carry hosted's

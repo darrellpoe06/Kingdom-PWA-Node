@@ -188,6 +188,7 @@ import { runVerifiedLedgerSync } from './lib/verified-ledger-sync.js';
 import { parseStatementText, isSpreadsheetFile, spreadsheetFileToCsv } from './lib/statement-import.js';
 import { matchServices } from './lib/matched-services.js';
 import { analyzeSkills } from './lib/skill-analytics.js';
+import { profileForAccount, readSavedProfile, writeSavedProfile, personaName } from './lib/account-profile.js'; // the profile follows the account (DR-1617)
 
 // =============================================================================
 // SEED DATA — v7 adds events array
@@ -1167,10 +1168,10 @@ export default function PoeFinancialSystem() {
     try { return localStorage.getItem('poe-current-profile') || null; }
     catch (e) { return null; }
   });
-  const setProfile = (p) => {
+  const setProfile = (p, uid) => {
     setCurrentProfile(p);
-    // A reviewer's picks never touch this device's SAVED profile (state only).
-    try { if (!reviewerMode) { if (p) localStorage.setItem('poe-current-profile', p); else localStorage.removeItem('poe-current-profile'); } }
+    // A reviewer's picks never touch this device's SAVED profile; a pick is stamped with its account (DR-1617).
+    try { if (!reviewerMode) writeSavedProfile(localStorage, p, uid !== undefined ? uid : (authSession?.user?.id || null)); }
     catch (e) {}
     // Reset entity filter when switching profiles so we never leave it
     // pointing at an entity the new profile can't see.
@@ -1238,7 +1239,7 @@ export default function PoeFinancialSystem() {
   const isAssistantAcct = !reviewerMode && !isFamilyMember && !!authSession && instanceRoleState.role === 'assistant';
   const isGov = governsHere({ signedIn: !!authSession, reviewerMode, allowlisted: isFamilyMember, role: instanceRoleState.role });  // the ROLE governs, not the address (DR-1106; lib/family-standing.js)
   // ONE LIST, THREE PLACES (DR-1046): the tab strip, the sidebar and the phone's bottom bar all draw lib/nav-items.jsx.
-  const navTabs = navItems({ isAssistantAcct, isFamilyMember, isGovernor: isGov, authSession, isStudyCircle, healthPrograms: data.healthPrograms, userTier: data.userTier, reviewerMode, churchDoorOnly });
+  const navTabs = navItems({ isAssistantAcct, isFamilyMember, isGovernor: isGov, authSession, isStudyCircle, healthPrograms: data.healthPrograms, userTier: data.userTier, reviewerMode, churchDoorOnly }); const accountDoor = { navTabs, setView, setChurchView, theme, setTheme, isOwner: isFamilyMember, personName: personaName(personaOf(authSession?.user?.email)) };/* the picture's menu reads the reader's own tabs (DR-1600) */
   const { homeView } = useHomePrefs();
   const navForDock = { groups: navGroups(navTabs), view, homeView, churchView, churchTabs: churchSubTabs({ signedIn: !!authSession, reviewerMode, officeRole: churchAccess.role, isChurchStaff }), churchHomeSection, onNavigate: (v, home, sub) => { if (home) setHomeView(home); if (sub) setChurchView(sub); setView(v); }, money: view === 'books' ? { booksView, setBooksView } : null };
   const showSideNav = !churchDoorOnly;
@@ -1772,24 +1773,23 @@ export default function PoeFinancialSystem() {
   // the SIGNED-IN family and kept currentProfile-gated surfaces (Imported)
   // hidden. Once the owner's hydration completes, load this device's saved
   // profile. Demo states keep their forced profile.
+  const profileResolvedForRef = useRef(null); // the profile follows the ACCOUNT, once per user id (DR-1617, lib/account-profile.js)
   useEffect(() => {
-    if (!authSession || !authHydrated || currentProfile || isAnyDemoMode) return;
+    if (!authSession) { profileResolvedForRef.current = null; return; } if (!authHydrated || isAnyDemoMode) return;
+    const uid = authSession.user?.id || null; if (profileResolvedForRef.current === uid) return; profileResolvedForRef.current = uid;
     // A reviewer gets the self-serve profile a signed-in outside user gets —
     // state only, never reading or writing this device's saved profile.
     if (reviewerMode) { setCurrentProfile('self'); return; }
-    try {
-      const saved = localStorage.getItem('poe-current-profile');
-      if (saved) { setCurrentProfile(saved); return; }
-    } catch (e) { /* localStorage unavailable — fall through to email map */ }
+    const { saved, savedOwner } = readSavedProfile(); const resolved = profileForAccount({ uid, email: authSession.user?.email, saved, savedOwner, familyMap: FAMILY_EMAIL_PROFILES });
+    if (resolved.source === 'saved') { setCurrentProfile(resolved.profile); return; }
     // 2026-06-12 — identity follows the ACCOUNT, not the device: a signed-in
     // owner on a brand-new device shouldn't face the picker (or be greeted
     // as the sanitized persona). Known family emails (FAMILY_EMAIL_PROFILES,
     // module-level) map straight to their profile; unknown emails still get
     // the picker, and now also a self-serve welcome.
-    const email = (authSession.user?.email || '').toLowerCase();
-    const mapped = FAMILY_EMAIL_PROFILES[email];
+    const mapped = resolved.mapped;
     if (mapped) {
-      setProfile(mapped);
+      setProfile(mapped, uid);
       // 2026-06-13 — a signed-in family member is never tier-gated out of their
       // OWN family's data. Christina hit the Real Estate read-only preview and
       // read its upgrade banner as "you need a subscription." Recognized family
@@ -1806,7 +1806,7 @@ export default function PoeFinancialSystem() {
       // profile so the app renders their own data instead of trapping them.
       // 'self' is deliberately NOT in PROFILES (no extra picker button) and is
       // explicitly excluded from the wf18 family-PII gate above.
-      setProfile('self');
+      setProfile('self', uid);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authSession, authHydrated]);
@@ -4085,7 +4085,7 @@ ${THEME_CSS}
         />
       )}
 
-      {!currentProfile && !isAnyDemoMode && !isFirstTimeLanding && view !== 'admin' && !churchDoorOnly && !churchLinkVisit && (
+      {!currentProfile && !isAnyDemoMode && !isFirstTimeLanding && view !== 'admin' && !churchDoorOnly && !churchLinkVisit && !(authSession && profileResolvedForRef.current !== (authSession.user?.id || null)) /* a signed-in account's own profile is still resolving: never the picker (DR-1620) */ && (
         <div role="dialog" aria-modal="true" aria-labelledby="profile-picker-h" className="fixed inset-0 z-50 bg-[#1A1815] flex items-center justify-center p-4">
           <div className="bg-[#FAF8F4] border border-[#1A1815] max-w-md w-full p-6 sm:p-8">
             <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-2">PoeTech · Family OS</div>
@@ -4117,7 +4117,7 @@ ${THEME_CSS}
       {showSideNav && <SideNav items={navTabs} view={view} setView={setView} brandName={churchBrand ? 'The Love Corner' : 'PoeTech'} brandTagline={churchBrand ? 'The Church of the Living God' : 'Life · Soul · Money · Family'} onSettings={toggleHeaderChrome} settingsOpen={!headerCollapsed} churchView={churchView} onQuickLink={(q) => { setChurchView(q.churchView); setView(q.view); }} />}
       <div className="min-w-0 flex-1">
       {/* THE LOVE CORNER DOOR WEARS ITS OWN HEADER (DR-1483; components/shell/LoveCornerHeader.jsx); the family app keeps the one below. */}
-      {churchDoorOnly ? <LoveCornerHeader churchTabs={navForDock.churchTabs} churchView={churchView} setChurchView={setChurchView} view={view} booksView={booksView} setView={setView} setBooksView={setBooksView} church={data.church} isFamilyMember={isFamilyMember} isOffice={!reviewerMode && isChurchOfficeRole(churchAccess.role)} canAdmin={isGov} theme={theme} setTheme={setTheme} onFeedback={() => setFeedbackOpen(true)} /> : (
+      {churchDoorOnly ? <LoveCornerHeader personName={accountDoor.personName} churchTabs={navForDock.churchTabs} churchView={churchView} setChurchView={setChurchView} view={view} booksView={booksView} setView={setView} setBooksView={setBooksView} church={data.church} isFamilyMember={isFamilyMember} isOffice={!reviewerMode && isChurchOfficeRole(churchAccess.role)} canAdmin={isGov} theme={theme} setTheme={setTheme} onFeedback={() => setFeedbackOpen(true)} /> : (
       <header className="ts-safe-sticky border-b border-[#1A1815] bg-[#FAF8F4] sticky z-20 print:hidden" style={{ top: 'var(--lwb-h, 0px)' }} data-read-skip>
         {/* Header vertical padding is CHROME: pinned to fixed px so it does not scale with the root multiplier; HEADER HIDEAWAY: the top block hides when collapsed, only the tab row stays. */}
         {!headerCollapsed && (
@@ -4142,13 +4142,13 @@ ${THEME_CSS}
               </h1>
               <div className="ts-chrome-region text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">{churchBrand ? 'The Church of the Living God' : 'Life · Soul · Money · Family'} <span className="text-[0.5rem] tracking-[0.15em] text-[#5A5751] ml-2 sm:hidden inline-flex items-center gap-1.5" title={`Build time: ${typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : 'unknown'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>build {typeof __BUILD_SHA__ !== 'undefined' ? __BUILD_SHA__ : '????'}<FreshnessDot compact /></span></div>
             </div>
-            <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-end min-w-0 ts-chrome-region ts-escape-hatch header-comfort-row bg-[#FAF8F4]">
+            <div className="flex items-start justify-end gap-2 sm:gap-3 min-w-0"><div className="flex items-center gap-2 sm:gap-3 flex-1 flex-wrap justify-end min-w-0 ts-chrome-region ts-escape-hatch header-comfort-row bg-[#FAF8F4]">
               {/* "Hide ▾" / "Show controls ▴" when this row is the A44 bottom block (DR-0716; components/ComfortBarToggle.jsx). */}
               <ComfortBarToggle />
               {/* GIVE, first in the row, on church surfaces only (rationale in components/ChurchGiving.jsx). */}
               {(churchBrand || view === 'church') && <ChurchGiveHeaderButton church={data.church} floaterPresent={view === 'church'} />}
               {/* Obvious top-right Log in / Log out box, like TLC, on every app (Darrell 2026-07-14). */}
-              {!isIsolatedPreview() && <HeaderAuthButton />}{/* no sign-in on a preview host: its data client reaches nothing (preview isolation) */}
+              {/* The picture sits at the header's TOP RIGHT, outside this wrapping row (DR-1600): see where this row closes. */}
               <AuthBanner />
               {/* Tier PREVIEW — steward/demo only: a real user must never hop the paid tier wall with it (REV-0239). Hidden on the Love Corner door. */}
               {!churchDoorOnly && (isFamilyMember || isAnyDemoMode) && <TierSwitcher userTier={data.userTier} setUserTier={setUserTier} />}
@@ -4215,7 +4215,7 @@ ${THEME_CSS}
                     build time (vite.config.js define block). */}
                 <div className="text-[#B85838] mt-0.5 inline-flex items-center gap-1.5" title={`Build time: ${typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : 'unknown'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>build {typeof __BUILD_SHA__ !== 'undefined' ? __BUILD_SHA__ : '????'}<FreshnessDot /></div>
               </div>
-            </div>
+            </div>{!isIsolatedPreview() && <HeaderAuthButton door={accountDoor} />}</div>{/* no sign-in on a preview host: its data client reaches nothing (preview isolation) */}
           </div>
         </div>
         )}
@@ -4230,7 +4230,7 @@ ${THEME_CSS}
             Darrell built it. DR-0276 rule 3 — always reversible. */}
         {/* The nav row, the header chevron, and on a one-tab door the brand row
             (components/TopNavRow.jsx, DR-0640: "Both places are good... why not"). */}
-        <TopNavRow navHistory={navHistory} tabsHidden={showSideNav} collapsed={headerCollapsed} onToggleHeader={toggleHeaderChrome} brandName={churchBrand ? 'The Love Corner' : 'Family Operating Systems'} brandTagline={churchBrand ? 'The Church of the Living God' : 'Life · Soul · Money · Family'}
+        <TopNavRow account={!isIsolatedPreview() && <HeaderAuthButton door={accountDoor} compact />} map={{ ...navForDock, theme, setTheme, isOwner: isFamilyMember }} navHistory={navHistory} tabsHidden={showSideNav} collapsed={headerCollapsed} onToggleHeader={toggleHeaderChrome} brandName={churchBrand ? 'The Love Corner' : 'Family Operating Systems'} brandTagline={churchBrand ? 'The Church of the Living God' : 'Life · Soul · Money · Family'}
           home={churchDoorOnly && isFamilyMember ? { href: '/poetech-app/?view=overview', label: 'PoeTech app', title: 'Open the whole PoeTech app (every tab)' } : null}
           hatch={<TextSizeEscapeHatch collapsed={headerCollapsed} onShowHeader={toggleHeaderChrome} siteName={churchBrand ? 'The Love Corner' : 'Family Operating Systems'} siteTagline={churchBrand ? 'The Church of the Living God' : 'Life · Soul · Money · Family'} />}>
               {navTabs.map(([id, label]) => {

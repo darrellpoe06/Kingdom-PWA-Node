@@ -916,9 +916,12 @@ const NODES = [
     writes: [
       { res: 'db:choir_sermons', token: "from('choir_sermons').insert" },
       { res: 'db:choir_songs', token: "from('choir_songs').insert" },
+      // DR-1609: a delete leaves a tombstone (0340's trigger), so the NAS
+      // content sync never carries the deleted row back.
+      { res: 'db:content_tombstones', token: "from('choir_sermons').delete" },
     ],
     reads: [{ res: 'db:choir_sermons', token: 'choir_sermons' }, { res: 'db:choir_songs', token: 'choir_songs' }],
-    seeds: ['sermon-reader', 'songbook', 'scripture-web', 'library'],
+    seeds: ['sermon-reader', 'songbook', 'scripture-web', 'library', 'content-sync-nas'],
   }),
   // DR-1052: the church names 23 ministries and exactly ONE of them (the choir)
   // could seat a person. 0296 gave every team the roster, and this is the room
@@ -1019,6 +1022,16 @@ const NODES = [
     reads: [{ res: 'db:choir_sermons', token: 'subscribeSermons' }],
     seeds: [],
   }),
+  app('app/src/components/lovecorner/ChurchArchive.jsx', {
+    id: 'church-archive', name: 'Church archive (Times)',
+    purpose: 'Every calendar, Letter from BG and flyer the office posted, by year and month, each opening full size; and the calendar events the office archived instead of deleting (DR-1596).',
+    reads: [
+      { res: 'db:church_site_archive', file: 'app/src/lib/church-archive-sync.js', token: "from('church_site_archive')" },
+      { res: 'db:ministry_ops', file: 'app/src/lib/church-calendar-sync.js', token: "from('ministry_ops')" },
+    ],
+    writes: [{ res: 'db:ministry_ops', file: 'app/src/lib/church-calendar-sync.js', token: "rpc('church_calendar_remove'" }],
+    seeds: [],
+  }),
   app('app/src/components/ChoirSongbook.jsx', {
     id: 'songbook', name: 'Choir songbook + order of service',
     purpose: 'The repertoire, and the songs placed in each service.',
@@ -1068,7 +1081,11 @@ const NODES = [
   wf('sovereign-content-sync.yml', {
     id: 'content-sync', name: 'Sovereign content sync (retired → live)',
     purpose: 'Carries rows the NAS pipelines filed on the retired backend to the database the app reads.',
-    reads: [{ res: 'hosted:db', file: 'infra/nas-supabase/content_sync.py', token: 'source' }],
+    reads: [
+      { res: 'hosted:db', file: 'infra/nas-supabase/content_sync.py', token: 'source' },
+      // DR-1609: a row deleted on this database is never carried back.
+      { res: 'db:content_tombstones', file: 'infra/nas-supabase/content_sync.py', token: 'content_tombstones' },
+    ],
     writes: [
       { res: 'db:choir_sermons', file: 'infra/nas-supabase/content_sync.py', token: 'choir_sermons' },
       { res: 'db:video_transcripts', file: 'infra/nas-supabase/content_sync.py', token: 'video_transcripts' },
@@ -1080,7 +1097,7 @@ const NODES = [
   rider('service:content-sync', 'infra/nas-supabase/content_sync.py', {
     id: 'content-sync-nas', name: 'NAS carries new services to the archive',
     purpose: 'Carries rows filed on the hosted copy to the database the app reads, from the NAS itself, so a new month fills without a runner key.',
-    reads: [{ res: 'hosted:db', token: 'source' }],
+    reads: [{ res: 'hosted:db', token: 'source' }, { res: 'db:content_tombstones', token: 'content_tombstones' }],
     writes: [{ res: 'db:choir_sermons', token: 'choir_sermons' }, { res: 'db:video_transcripts', token: 'video_transcripts' }],
     seeds: ['sermon-reader'],
   }),
@@ -1317,6 +1334,24 @@ const NODES = [
     purpose: 'Reads the church\u2019s public website from a runner (the sandbox has no route to it) and prints its pages, headings and any feed, so the announcements-and-events sync (Darrell 2026-11-18) can be built on what the site actually publishes; nothing is written.',
     reads: [{ res: 'site:thechurchofthelivinggod.com', token: 'thechurchofthelivinggod.com' }], writes: [], seeds: [],
   }),
+  wf('church-site-archive.yml', {
+    id: 'church-site-archive', name: 'Church site archive (daily)',
+    purpose: 'Every calendar, Letter from BG and flyer the church office posts on its website is kept daily on the NAS, by month, one copy per content, so the office never archives by hand (DR-1596).',
+    reads: [{ res: 'site:thechurchofthelivinggod.com', file: 'scripts/church-site-archive-collect.mjs', token: 'SITE_HOST' }],
+    writes: [{ res: 'db:church_site_archive', file: 'infra/nas-church-archive/church_archive_keep.py', token: 'church_site_archive_keep' }],
+    seeds: [],
+  }),
+  wf('learn-presentation-prepare.yml', {
+    id: 'learn-presentation-prepare', name: 'Learn presentation — prepare new lessons',
+    purpose: 'Every newly published lesson gets a promotional display title, headline and a unique cinematic thumbnail PREPARED FOR APPROVAL; the lesson itself is never edited (integrity baseline before and after), one spend cap per run, OFF until vars.LEARN_PRESENTATION_AUTOPREP is on.',
+    reads: [
+      { res: 'code:lessons', file: 'app/src/lib/learn-presentation/integrity.js', token: 'LEARN_CATALOG' },
+      { res: 'http:api.bfl.ai', file: 'app/scripts/learn-presentation/providers/image.mjs', token: 'BFL_API_KEY' },
+      { res: 'http:api.anthropic.com', file: 'app/scripts/learn-presentation/providers/text.mjs', token: 'ANTHROPIC_API_KEY' },
+    ],
+    writes: [{ res: 'gh:artifact:learn-presentation-review', token: 'learn-presentation-review-' }],
+    seeds: [],
+  }),
   wf('live-link-probe.yml', {
     id: 'live-link-probe', name: 'Live link probe', purpose: 'A real browser opens a shared lesson link.',
     reads: [{ res: 'site:poetech.us', token: 'poetech.us' }], writes: [], seeds: [],
@@ -1528,6 +1563,11 @@ const NODES = [
   wf('funnel-health.yml', {
     id: 'funnel-health', name: 'Public Funnel witness (on the Way 2026-10-20)', purpose: 'Once a day and on dispatch: asks each sovereign mount’s health path through the Funnel from outside and judges only on what comes back (JSON from our door, the Funnel’s own 404, or nothing); on a failure reads where the install stands over the tailnet: the box’s funnel status, the watchdog’s last lines, each door on loopback.',
     reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }, { res: 'http:funnel', token: 'poetech.tail5a2f35.ts.net' }],
+    writes: [{ res: 'gh:incident', token: 'funnel-incident' }], seeds: ['ops-surface'],
+  }),
+  wf('nas-funnel-report.yml', {
+    id: 'nas-funnel-report', name: 'The NAS reports its own Funnel (DR-1619)', purpose: 'Rung by the nas-funnel-report dispatch the NAS sends when its public road is dark (at most every 30 minutes) and when it heals: puts the box’s own Tailscale state, public probe codes, actions and funnel status on the funnel-incident ledger, so the box can be read when the tailnet key is dead and the Funnel is dark.',
+    reads: [{ res: 'event:nas-funnel-report', token: 'types: [nas-funnel-report]' }],
     writes: [{ res: 'gh:incident', token: 'funnel-incident' }], seeds: ['ops-surface'],
   }),
   wf('libraries-health.yml', {
@@ -2142,7 +2182,7 @@ const NODES = [
   }),
   rider('service:funnel', 'infra/nas-loops/loops/funnel_watchdog.py', {
     id: 'funnel', name: 'Public Funnel (the NAS’s front door)', purpose: 'Keeps the recorded sovereign routes served to the app’s proxy.',
-    reads: [{ res: 'nas:services', file: 'infra/nas-loops/services.json', token: 'funnel' }], writes: [{ res: 'http:funnel', token: 'funnel' }], seeds: ['transport'],
+    reads: [{ res: 'nas:services', file: 'infra/nas-loops/services.json', token: 'funnel' }], writes: [{ res: 'http:funnel', token: 'funnel' }, { res: 'event:nas-funnel-report', token: 'REPORT_EVENT = "nas-funnel-report"' }], seeds: ['transport'],
   }),
   rider('loop:funnel-watchdog', 'infra/nas-loops/loops/funnel-watchdog.sh', {
     id: 'funnel-watchdog', name: 'Funnel watchdog (loop)', purpose: 'The same restore on its own clock.',
@@ -2361,6 +2401,8 @@ const RESOURCES = {
   'db:agent_inbox#lesson-published': { label: 'members\u2019 lessons published', proof: { ts: 'created_at', fresh: 30, where: "tags ? 'lesson-published'", consumed: "tags ? 'messaged:published'" } },
   'gh:artifact:jonah-narration': { label: 'Episode narration render', sink: 'A person (or a session) downloads the run artifact to mix the episode; nothing else reads it, and it expires after 14 days.' },
   'file:kids-episode-script': { label: 'Bible Adventures episode script', source: 'Written by hand into the repo (scripts/kids-episode/<id>.episode.json); every KJV line in it is copied from app/public/bible/kjv by the episode builder, never typed.' },
+  'db:church_site_archive': { label: 'the church office\u2019s calendars, letters and flyers, kept', sink: 'Members of the church read it in the archive under Times, by year and month (DR-1596).' },
+  'db:ministry_ops': { label: 'the church office\u2019s calendar events and ministry operations', sink: 'Members read the calendar and the office reads its operations in the app; an archived event is read in the archive (DR-1596).' },
   'db:direct_messages': { label: 'Messages', sink: 'The member reads the Message in their own Messages thread and may reply; a reply is an ordinary Message to Darrell (DR-0639).' },
   'db:agent_inbox#poetech': { label: 'PoeTech requests relayed to the inbox', proof: { ts: 'created_at', fresh: 60, where: "tags ? 'tell-poetech'" },
     open: { blocker: 'Nothing reads these rows (measured 2026-09-24: no code, NAS job or routine reads the tell-poetech tag). The same words now also reach the feedback queue; this relay retires once a PoeTech request is seen landing there on the live database, not before (never dismantle what may still deliver until its replacement is proven).', reReview: '2026-10-01' } },
@@ -2387,6 +2429,7 @@ const RESOURCES = {
   'auth:session#tv': { label: 'a TV’s signed-in session', sink: 'The television keeps it and uses the app as that person; nothing else reads it.' },
 
   'event:use-prompt': { label: '“Put it in the box” (reuse a prompt)' },
+  'event:nas-funnel-report': { label: 'the nas-funnel-report dispatch (the NAS says its public road is dark, or healed) (DR-1619)' },
   'event:lesson-waiting': { label: 'the lesson-waiting dispatch (a lesson row landed, or a build reached a milestone)' },
   'device:family-key': { label: 'the family key on this device' },
   'code:lessons': { label: 'lessons written into the classes' },
@@ -2433,6 +2476,9 @@ const RESOURCES = {
   'cf:pages-api': { label: "Cloudflare's Pages API", source: 'Cloudflare holds the deployment and routing state; this repository can only ask it, and until #2057 nothing ever did.' },
   'hosted:db': { label: 'the retired hosted database' },
   'http:nas-photos': { label: 'photo server on the NAS', route: '/nas-photos' },
+  'http:api.bfl.ai': { label: 'Black Forest Labs image API (FLUX), prepaid credits', source: 'An outside paid provider: generates the text-free thumbnail masters for the Learn presentation pipeline; the workflow spends at most its per-run cap (DR-0076 budget brake).' },
+  'gh:artifact:learn-presentation-review': { label: 'the Learn thumbnail review package (records + composed images)', sink: 'The owner reviews it before approval; approved records are published to the Learn presentation store in a separate, approved step (migration 0343), never automatically.' },
+  'http:api.anthropic.com': { label: 'Anthropic Messages API (lesson display titles)', source: 'An outside provider: writes the promotional title, headline and image prompt from the lesson text; every result is machine-validated and stays in review until a person approves.' },
   'http:voice': { label: 'the reading voice studio', route: '/voice' },
   'http:voice-lite': { label: 'the NAS audio voice (Piper)', route: '/voice-lite' },
   'http:cams': { label: 'the family camera road on the NAS (go2rtc)', route: '/cams' },

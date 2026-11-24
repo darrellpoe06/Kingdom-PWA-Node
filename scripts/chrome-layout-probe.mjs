@@ -59,6 +59,7 @@ import { createServer } from 'node:http';
 import { readFileSync, existsSync } from 'node:fs';
 import { join, extname, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { DOOR_ACCOUNT_CI_CASES, DOOR_ACCOUNT_BREAK_CSS, prepareDoorAccountPage, measureDoorAccount, judgeDoorAccount, caseName } from './door-account-probe.mjs';
 
 const args = process.argv.slice(2).filter((a) => a !== '--selftest-break' && a !== '--sweep');
 const SELFTEST = process.argv.includes('--selftest-break');
@@ -468,6 +469,34 @@ try {
   }
   if (!SELFTEST && oneTabMeasured !== ONE_TAB_CASES.length) fail(`coverage: ${oneTabMeasured}/${ONE_TAB_CASES.length} door-header cases measured`);
   if (SELFTEST && oneTabTripped < 3) fail(`selftest: the door-header break tripped ${oneTabTripped} invariants, expected at least 3 — the pass is theater`);
+  // ---------------------------------------------------------------------------
+  // THE PICTURE AT THE POETECH DOOR'S TOP RIGHT (DR-1600). Darrell 2026-11-19,
+  // the PoeTech app on his tablet with the header collapsed: "What happened to
+  // the image in the top right corner of PoeTech App for getting access like
+  // the Love Corner App?" Invariants A1-A5 and the signed-in stand-in live in
+  // scripts/door-account-probe.mjs (which also runs the full 280-case matrix
+  // by hand); this pass runs its CI subset. Selftest: the picture is shrunk to
+  // 13px and the menu thrown 400px off screen; A2 and A4 MUST trip.
+  // ---------------------------------------------------------------------------
+  const ACCOUNT_CASES = SELFTEST ? [DOOR_ACCOUNT_CI_CASES[0]] : DOOR_ACCOUNT_CI_CASES;
+  let accountTripped = 0;
+  let accountMeasured = 0;
+  for (const c of ACCOUNT_CASES) {
+    const ctx = await browser.newContext({ viewport: { width: c.width, height: c.width >= 768 ? 1024 : 800 } });
+    const page = await ctx.newPage();
+    await prepareDoorAccountPage(page, c);
+    if (SELFTEST) await page.addInitScript((css) => { document.addEventListener('DOMContentLoaded', () => { const st = document.createElement('style'); st.textContent = css; document.head.appendChild(st); }); }, DOOR_ACCOUNT_BREAK_CSS);
+    await page.goto(`${origin}${BASE}/?view=overview`, { waitUntil: 'networkidle', timeout: CHROME_IDLE_CAP_MS }).catch(() => {});
+    const am = await measureDoorAccount(page, c);
+    await ctx.close();
+    const errs = judgeDoorAccount(am, c);
+    if (!am.none && am.size === c.size) accountMeasured += 1;
+    for (const e of errs) fail(`${caseName(c)}: ${e} (DR-1600)`);
+    if (errs.length) accountTripped += errs.length;
+    else console.log(`door-account ok  ${caseName(c)} — control ${am.ctl.w}x${am.ctl.h}px, ${am.vw - am.ctl.right}px from the right${am.menu ? `, menu ${am.menu.rows.length} rows on screen` : ''}`);
+  }
+  if (!SELFTEST && accountMeasured !== ACCOUNT_CASES.length) fail(`coverage: ${accountMeasured}/${ACCOUNT_CASES.length} door-account cases measured`);
+  if (SELFTEST && accountTripped < 2) fail(`selftest: the door-account break tripped ${accountTripped} invariants, expected at least 2 — the pass is theater`);
   // ---------------------------------------------------------------------------
   // LESSON READING pass (DR-0406) — the lesson column is MEASURED at the width
   // a reader gets, and nothing is boxed inside a sentence.

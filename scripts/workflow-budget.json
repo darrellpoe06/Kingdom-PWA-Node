@@ -228,10 +228,45 @@
     {
       "date": "2026-11-19",
       "from": 23340,
-      "to": 23376,
+      "to": 23438,
+      "dr": "DR-1596",
+      "reason": "One NEW workflow, church-site-archive.yml (91 lines): the daily reader Darrell asked for so the church office never has to archive by hand. Its keep job reads the public church site with the app's own parser and keeps each new calendar, letter and flyer on the NAS over the tailnet road the deploy walks; its walls job proves migration 0342 on a bare PostgreSQL for a pull request touching it, so the smoke runs in CI without editing ci.yml while another session reworks the lane. Budget (timeouts, a picture cap) and a single-instance lock, per the three-brakes rule as amended. A new step of an existing Way, not a longer version of one. Plus six lines in rls-isolation.yml: one matrix leg naming the 0342 smoke, because the matrix guard holds that a smoke no leg runs proves nothing. Raised to the measured total, not above it."
+    },
+    {
+      "date": "2026-11-23",
+      "from": 23438,
+      "to": 23441,
+      "dr": "DR-1614",
+      "reason": "Three lines, one per setup-java step in android-package.yml (2) and native-shell.yml (1): check-latest: true, so every run fetches the newest patched Temurin build of its major version instead of a runner-cached one (Java4Shell notice, 2026-11-23). Folded to one line each with the comment inline; the irreducible cost of the fix."
+    },
+    {
+      "date": "2026-11-24",
+      "from": 23441,
+      "to": 23477,
+      "dr": "DR-1619",
+      "reason": "One new 34-line workflow, nas-funnel-report.yml: the receiver for the NAS's own Funnel report (repository_dispatch from funnel_watchdog.py), which puts the box's Tailscale state on the funnel-incident ledger; the only road that reads the box while the tailnet key is dead and the public Funnel is dark. Plus one ci.yml line running its 15 proven-to-catch tests, and one funnel-health.yml line so its witness asks the six rows the watchdog now restores."
+    },
+    {
+      "date": "2026-11-24",
+      "from": 23477,
+      "to": 23537,
+      "dr": "DR-0076",
+      "reason": "learn-presentation-prepare.yml (59 lines, folded from 107; dispatch-only until the full library is approved; its narrative lives in docs/99-session-notes/2026-11-23-learn-presentation-redesign-phase-1-2.md): the only automated road that prepares a title and thumbnail for each newly published lesson, with the three brakes (one spend cap per run, a concurrency group, an OFF switch) and an integrity check before and after. +1 line reconciles main measuring 23478 against 23477 at fecaf8a."
+    },
+    {
+      "date": "2026-11-24",
+      "from": 23537,
+      "to": 23548,
+      "dr": "DR-0076",
+      "reason": "learn-presentation-prepare.yml pilot-1 fix (+11 lines): compose, export, the closing integrity check, the cache save and the artifact upload became separate always() steps so a failure after paid generation never loses the titles, images or spend ledger (pilot 1 lost its export and closing check to one crash); a guard stops the run before any spend when no saved ledger is restored (no double spend, no regeneration). The owner asked for both."
+    },
+    {
+      "date": "2026-11-24",
+      "from": 23548,
+      "to": 23584,
       "dr": "DR-1527",
-      "reason": "kids-episode-narration.yml (36 lines): speaks a Bible Adventures episode script with the open Kokoro voice (Apache-2.0) on a runner, because the sandbox cannot reach Hugging Face; the Jonah episode's narration is timed from it. A new capability (the episode road DR-1527 named), not a longer version of one; one-shot on push, timeout and concurrency as its brakes. Its first draft was 47 lines with a 54-line copy-back companion; the companion was deleted and the header folded to two lines. Raised to the measured total, not above it."
+      "reason": "kids-episode-narration.yml (36 lines): speaks a Bible Adventures episode script with the open Kokoro voice (Apache-2.0) on a runner, because the sandbox cannot reach Hugging Face; the Jonah episode's narration is timed from it. A new capability (the episode road DR-1527 named), not a longer version of one; one-shot on push, timeout and concurrency as its brakes. Raised to the measured total, not above it."
     }
   ],
-  "totalLines": 23376
+  "totalLines": 23584
 }

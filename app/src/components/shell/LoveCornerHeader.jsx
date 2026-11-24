@@ -95,6 +95,7 @@ export default function LoveCornerHeader({
   theme = null,
   setTheme = null,
   onFeedback = null,
+  personName = null,
 }) {
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
@@ -132,7 +133,7 @@ export default function LoveCornerHeader({
     };
   }, [signedIn, menuOpen]);
 
-  const name = headerName(profile, session);
+  const name = headerName(profile, session, personName); // the account's own name before its phone number (DR-1625)
   const openNotifications = () => {
     setMenuOpen(false);
     const btn = bellRef.current && bellRef.current.querySelector('button');
@@ -245,6 +246,7 @@ export default function LoveCornerHeader({
           isOffice={isOffice}
           canAdmin={canAdmin}
           anchorRef={avatarRef}
+          theme={theme}
           onClose={() => setMenuOpen(false)}
           onGo={go}
           onNotifications={openNotifications}

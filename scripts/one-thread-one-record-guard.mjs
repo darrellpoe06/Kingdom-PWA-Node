@@ -129,6 +129,17 @@ export const KNOWN_SHARED_THREADS = [
       + 'and John 1, each on a different verse; titles open on different words. Different landings. '
       + 'The full comparison is in DR-1505; whether the two should be one lesson is Darrell’s call.',
   },
+  {
+    thread: '1a208f5960ac285d',
+    drs: ['DR-1614', 'DR-1615'],
+    why: 'One security forward (the Java4Shell notice, 2026-11-23) with the word Lesson and a second '
+      + 'line, rendered for meaning: also fix our own systems so our stacks are protected. TWO ASKS, two '
+      + 'records, and only ONE is a lesson. DR-1614 is the stack fix (the Android build runners take '
+      + 'the newest patched JDK), not a teaching. DR-1615 is the lesson (sov101, A little leaven '
+      + 'leaveneth the whole lump), which teaches the patching work and measures the house, and cites '
+      + 'DR-1614 as the separate change. No duplicate lesson; no fold to decide. Recorded 2026-11-23; '
+      + 'the comparison is in DR-1615.',
+  },
 ];
 
 /** thread id -> sorted DR ids naming it, for every record in the ledger. */

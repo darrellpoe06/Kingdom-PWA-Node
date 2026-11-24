@@ -1,0 +1,312 @@
+{
+ "schema": "learn-presentation/v1",
+ "generatedBy": "claude-prototype-2026-11-23",
+ "status": "review",
+ "note": "Promotional presentation ONLY. Never edits a lesson. originalTitleAtApproval is a drift check, not a source.",
+ "records": [
+  {
+   "lessonId": "ll338-not-with-eyeservice",
+   "courseKey": "living-lessons",
+   "originalTitleAtApproval": "Not with Eyeservice — faithful work when no one is watching",
+   "displayTitle": "Who Are You When Nobody Is Watching?",
+   "thumbHeadline": "NOBODY'S WATCHING",
+   "promoDescription": "Jesus' parable of the master who went away, the ant with no overseer, and why faithful work is known by its fruit.",
+   "visual": {
+    "prompt": "Cinematic 16:9 photograph, 1280x720 or larger: A Black professional man working faithfully alone in an empty office after hours, warm desk lamp, dark empty desks around him, city lights through the window. Dramatic but natural lighting, high contrast, strong focal point, deep blacks with warm gold and restrained red accents (Love Corner palette). Clean negative space on one side for a 2-5 word headline. No text, no logos, no real person's likeness.",
+    "alt": "A Black professional man working faithfully alone in an empty office after hours, warm desk lamp, dark empty desks around him, city lights through the window."
+   },
+   "image": null,
+   "status": "review",
+   "featured": true,
+   "featuredOrder": 2
+  },
+  {
+   "lessonId": "ll332-give-me-this-mountain",
+   "courseKey": "living-lessons",
+   "originalTitleAtApproval": "Give Me This Mountain — Strength Kept for the Second Half",
+   "displayTitle": "Your Greatest Years May Still Be Ahead",
+   "thumbHeadline": "IT'S NOT TOO LATE",
+   "promoDescription": "Caleb asked for his mountain at eighty-five. Strength kept for the second half of life.",
+   "visual": {
+    "prompt": "Cinematic 16:9 photograph, 1280x720 or larger: A distinguished older Black man standing on a mountain ridge at sunrise, looking out over the valley, strong and at peace. Dramatic but natural lighting, high contrast, strong focal point, deep blacks with warm gold and restrained red accents (Love Corner palette). Clean negative space on one side for a 2-5 word headline. No text, no logos, no real person's likeness.",
+    "alt": "A distinguished older Black man standing on a mountain ridge at sunrise, looking out over the valley, strong and at peace."
+   },
+   "image": null,
+   "status": "review",
+   "featured": true,
+   "featuredOrder": 1
+  },
+  {
+   "lessonId": "ll341-whoso-removeth-stones",
+   "courseKey": "living-lessons",
+   "originalTitleAtApproval": "Whoso Removeth Stones — When One Small Fault Grounds the Flights",
+   "displayTitle": "One Small Mistake Can Ground Everything",
+   "thumbHeadline": "ONE SMALL FAULT",
+   "promoDescription": "When one fault stopped the nation's flights, Ecclesiastes 10:9 already had the lesson: test before you change.",
+   "visual": {
+    "prompt": "Cinematic 16:9 photograph, 1280x720 or larger: A Black systems engineer in a dim operations room watching a wall of screens, an airport departures board behind the glass showing delays. Dramatic but natural lighting, high contrast, strong focal point, deep blacks with warm gold and restrained red accents (Love Corner palette). Clean negative space on one side for a 2-5 word headline. No text, no logos, no real person's likeness.",
+    "alt": "A Black systems engineer in a dim operations room watching a wall of screens, an airport departures board behind the glass showing delays."
+   },
+   "image": null,
+   "status": "review",
+   "featured": false
+  },
+  {
+   "lessonId": "ll340-wisdom-is-profitable-to-direct",
+   "courseKey": "living-lessons",
+   "originalTitleAtApproval": "Wisdom Is Profitable to Direct — strategy, value, and the steward who points the resources",
+   "displayTitle": "Why Wisdom Is Your Greatest Advantage",
+   "thumbHeadline": "SHARPEN THE EDGE",
+   "promoDescription": "Four foundations of value that leaders are now told to learn, and the Word that named them first.",
+   "visual": {
+    "prompt": "Cinematic 16:9 photograph, 1280x720 or larger: A Black woman executive at a boardroom window at dusk, a strategy plan on the glass wall beside her, city skyline below. Dramatic but natural lighting, high contrast, strong focal point, deep blacks with warm gold and restrained red accents (Love Corner palette). Clean negative space on one side for a 2-5 word headline. No text, no logos, no real person's likeness.",
+    "alt": "A Black woman executive at a boardroom window at dusk, a strategy plan on the glass wall beside her, city skyline below."
+   },
+   "image": null,
+   "status": "review",
+   "featured": false
+  },
+  {
+   "lessonId": "ll339-the-profit-of-the-earth-is-for-all",
+   "courseKey": "living-lessons",
+   "originalTitleAtApproval": "The Profit of the Earth Is for All — who gains when a company goes public",
+   "displayTitle": "Who Really Gets Rich When a Company Goes Public?",
+   "thumbHeadline": "WHO GETS RICH?",
+   "promoDescription": "Follow the money of a public offering with Ecclesiastes 5:9 in hand.",
+   "visual": {
+    "prompt": "Cinematic 16:9 photograph, 1280x720 or larger: A cinematic financial district at golden hour with a thoughtful Black investor in the foreground, market charts reflected in glass. Dramatic but natural lighting, high contrast, strong focal point, deep blacks with warm gold and restrained red accents (Love Corner palette). Clean negative space on one side for a 2-5 word headline. No text, no logos, no real person's likeness.",
+    "alt": "A cinematic financial district at golden hour with a thoughtful Black investor in the foreground, market charts reflected in glass."
+   },
+   "image": null,
+   "status": "review",
+   "featured": true,
+   "featuredOrder": 4
+  },
+  {
+   "lessonId": "ll334-this-i-recall-to-my-mind",
+   "courseKey": "living-lessons",
+   "originalTitleAtApproval": "This I Recall to My Mind — time, memory, and what Yahweh does with a hard past",
+   "displayTitle": "How Yahweh Uses Your Painful Past",
+   "thumbHeadline": "YOUR PAST HAS PURPOSE",
+   "promoDescription": "The past does not reopen. What changes is what you call to mind beside it, and what Yahweh makes of it.",
+   "visual": {
+    "prompt": "Cinematic 16:9 photograph, 1280x720 or larger: A Black woman stepping out of a dark doorway into warm morning sunlight, eyes lifted, hopeful. Dramatic but natural lighting, high contrast, strong focal point, deep blacks with warm gold and restrained red accents (Love Corner palette). Clean negative space on one side for a 2-5 word headline. No text, no logos, no real person's likeness.",
+    "alt": "A Black woman stepping out of a dark doorway into warm morning sunlight, eyes lifted, hopeful."
+   },
+   "image": null,
+   "status": "review",
+   "featured": true,
+   "featuredOrder": 3
+  },
+  {
+   "lessonId": "ll333-heavenly-cheat-codes-life-his-way",
+   "courseKey": "living-lessons",
+   "originalTitleAtApproval": "Heavenly Cheat Codes: Life His Way — it is not cheating; it only looks like it because of all the winning",
+   "displayTitle": "The Advantage of Living Yahweh's Way",
+   "thumbHeadline": "IT ONLY LOOKS LIKE CHEATING",
+   "promoDescription": "Joseph, Daniel and David kept coming out ahead. The code was never hidden.",
+   "visual": {
+    "prompt": "Cinematic 16:9 photograph, 1280x720 or larger: A young Black man at a chessboard in a pool of light, calm and confident, mid-winning move. Dramatic but natural lighting, high contrast, strong focal point, deep blacks with warm gold and restrained red accents (Love Corner palette). Clean negative space on one side for a 2-5 word headline. No text, no logos, no real person's likeness.",
+    "alt": "A young Black man at a chessboard in a pool of light, calm and confident, mid-winning move."
+   },
+   "image": null,
+   "status": "review",
+   "featured": false
+  },
+  {
+   "lessonId": "ll331-it-doth-not-yet-appear-what-we-shall-be",
+   "courseKey": "living-lessons",
+   "originalTitleAtApproval": "It Doth Not Yet Appear What We Shall Be — how we were made, what was lost, and what Jesus restores",
+   "displayTitle": "You Were Created for More Than You Can See",
+   "thumbHeadline": "BETTER THAN EDEN",
+   "promoDescription": "How we were made, what was lost, and what Jesus restores at His appearing.",
+   "visual": {
+    "prompt": "Cinematic 16:9 photograph, 1280x720 or larger: A Black family walking together through a lush garden at dawn, light breaking through the trees ahead of them. Dramatic but natural lighting, high contrast, strong focal point, deep blacks with warm gold and restrained red accents (Love Corner palette). Clean negative space on one side for a 2-5 word headline. No text, no logos, no real person's likeness.",
+    "alt": "A Black family walking together through a lush garden at dawn, light breaking through the trees ahead of them."
+   },
+   "image": null,
+   "status": "review",
+   "featured": false
+  },
+  {
+   "lessonId": "sov101-a-little-leaven-leaveneth-the-whole-lump",
+   "courseKey": "sovereign-ai",
+   "originalTitleAtApproval": "A little leaven leaveneth the whole lump - a flaw in a shared runtime, and the watchman who finds every place it lives",
+   "displayTitle": "How One Hidden Flaw Spreads Through Everything",
+   "thumbHeadline": "ONE FLAW. EVERYWHERE.",
+   "promoDescription": "A real security notice about a shared runtime, read beside 1 Corinthians 5:6: find every place it lives.",
+   "visual": {
+    "prompt": "Cinematic 16:9 photograph, 1280x720 or larger: A Black security engineer with a flashlight inspecting rows of server racks in a dark data center, one rack glowing red. Dramatic but natural lighting, high contrast, strong focal point, deep blacks with warm gold and restrained red accents (Love Corner palette). Clean negative space on one side for a 2-5 word headline. No text, no logos, no real person's likeness.",
+    "alt": "A Black security engineer with a flashlight inspecting rows of server racks in a dark data center, one rack glowing red."
+   },
+   "image": null,
+   "status": "review",
+   "featured": false
+  },
+  {
+   "lessonId": "bc2-camera-and-image",
+   "courseKey": "broadcast",
+   "originalTitleAtApproval": "The camera and the image — Chris’s 4K eye",
+   "displayTitle": "Where Every Broadcast Picture Is Born",
+   "thumbHeadline": "IT STARTS AT THE LENS",
+   "promoDescription": "Why the main 4K camera decides what the whole room and the home stream will see.",
+   "visual": {
+    "prompt": "Cinematic 16:9 photograph, 1280x720 or larger: A Black camera operator behind a professional cinema camera in a church sanctuary, pulpit softly lit in the distance. Dramatic but natural lighting, high contrast, strong focal point, deep blacks with warm gold and restrained red accents (Love Corner palette). Clean negative space on one side for a 2-5 word headline. No text, no logos, no real person's likeness.",
+    "alt": "A Black camera operator behind a professional cinema camera in a church sanctuary, pulpit softly lit in the distance."
+   },
+   "image": null,
+   "status": "review",
+   "featured": false
+  },
+  {
+   "lessonId": "lil2-count-the-days-one-to-seven",
+   "courseKey": "little-learners",
+   "originalTitleAtApproval": "Count the Days — Numbers 1 to 7 from Creation",
+   "displayTitle": "Count the Seven Days of Creation",
+   "thumbHeadline": "COUNT TO SEVEN",
+   "promoDescription": "A first counting lesson for little ones, from the days Yahweh made the world.",
+   "visual": {
+    "prompt": "Cinematic 16:9 photograph, 1280x720 or larger: A smiling young Black child holding up fingers to count, outdoors at sunrise with a bright sky and green field. Dramatic but natural lighting, high contrast, strong focal point, deep blacks with warm gold and restrained red accents (Love Corner palette). Clean negative space on one side for a 2-5 word headline. No text, no logos, no real person's likeness.",
+    "alt": "A smiling young Black child holding up fingers to count, outdoors at sunrise with a bright sky and green field."
+   },
+   "image": null,
+   "status": "review",
+   "featured": false
+  },
+  {
+   "lessonId": "mat2-adding-and-taking-away-loaves-fishes-and-gideons-army",
+   "courseKey": "mathematics",
+   "originalTitleAtApproval": "Adding and Taking Away — Loaves, Fishes, Baskets and Gideon’s Army",
+   "displayTitle": "The Math Hidden Inside the Miracles",
+   "thumbHeadline": "5 + 2 = 7",
+   "promoDescription": "Adding with loaves and fishes, subtracting with Gideon's army.",
+   "visual": {
+    "prompt": "Cinematic 16:9 photograph, 1280x720 or larger: A Black child at a wooden table with five bread loaves and two fish, chalk numbers on a slate beside them, warm window light. Dramatic but natural lighting, high contrast, strong focal point, deep blacks with warm gold and restrained red accents (Love Corner palette). Clean negative space on one side for a 2-5 word headline. No text, no logos, no real person's likeness.",
+    "alt": "A Black child at a wooden table with five bread loaves and two fish, chalk numbers on a slate beside them, warm window light."
+   },
+   "image": null,
+   "status": "review",
+   "featured": false
+  },
+  {
+   "lessonId": "rto2-what-rent-to-own-actually-is-and-the-just-weight",
+   "courseKey": "rent-to-own-business",
+   "originalTitleAtApproval": "What Rent to Own Actually Is — The Model, and the Just Weight Laid Beside It",
+   "displayTitle": "What Rent-to-Own Really Costs",
+   "thumbHeadline": "2 TO 3 TIMES RETAIL",
+   "promoDescription": "How the model works, why you can walk away any time, and what the just weight says about the total price.",
+   "visual": {
+    "prompt": "Cinematic 16:9 photograph, 1280x720 or larger: A Black couple in a furniture store looking at a price tag on a sofa, thoughtful, store lights behind them. Dramatic but natural lighting, high contrast, strong focal point, deep blacks with warm gold and restrained red accents (Love Corner palette). Clean negative space on one side for a 2-5 word headline. No text, no logos, no real person's likeness.",
+    "alt": "A Black couple in a furniture store looking at a price tag on a sofa, thoughtful, store lights behind them."
+   },
+   "image": null,
+   "status": "review",
+   "featured": false
+  },
+  {
+   "lessonId": "dev2-name-the-real-record-and-the-real-screen-before-you-code",
+   "courseKey": "development",
+   "originalTitleAtApproval": "Name the Real Record and the Real Screen — The Trace That Runs Before Any Code",
+   "displayTitle": "Before You Code, Find the Real Data",
+   "thumbHeadline": "TRACE IT FIRST",
+   "promoDescription": "A number nobody can trace to a real row is worse than no number at all.",
+   "visual": {
+    "prompt": "Cinematic 16:9 photograph, 1280x720 or larger: A Black software developer at night tracing a glowing data line between two monitors, focused. Dramatic but natural lighting, high contrast, strong focal point, deep blacks with warm gold and restrained red accents (Love Corner palette). Clean negative space on one side for a 2-5 word headline. No text, no logos, no real person's likeness.",
+    "alt": "A Black software developer at night tracing a glowing data line between two monitors, focused."
+   },
+   "image": null,
+   "status": "review",
+   "featured": false
+  },
+  {
+   "lessonId": "pm2-who-should-work",
+   "courseKey": "project-management",
+   "originalTitleAtApproval": "Who should work, and who should not — the span of control, set by a father-in-law",
+   "displayTitle": "Why Doing It All Yourself Is Not Good",
+   "thumbHeadline": "YOU CAN'T DO IT ALONE",
+   "promoDescription": "Jethro's counsel to Moses: the span of control, and who should carry what.",
+   "visual": {
+    "prompt": "Cinematic 16:9 photograph, 1280x720 or larger: A Black team leader at a whiteboard handing off tasks to a diverse team gathered around a table. Dramatic but natural lighting, high contrast, strong focal point, deep blacks with warm gold and restrained red accents (Love Corner palette). Clean negative space on one side for a 2-5 word headline. No text, no logos, no real person's likeness.",
+    "alt": "A Black team leader at a whiteboard handing off tasks to a diverse team gathered around a table."
+   },
+   "image": null,
+   "status": "review",
+   "featured": false
+  },
+  {
+   "lessonId": "succ2-read-before-you-rule",
+   "courseKey": "handed-forward",
+   "originalTitleAtApproval": "Read before you rule — learn on the real books",
+   "displayTitle": "Learn to Read the Money Before You Run It",
+   "thumbHeadline": "READ, DON'T WRECK",
+   "promoDescription": "An heir learns on the family's real books first, in a read-only seat.",
+   "visual": {
+    "prompt": "Cinematic 16:9 photograph, 1280x720 or larger: A young Black man and his father reviewing a ledger together at a kitchen table, lamp light. Dramatic but natural lighting, high contrast, strong focal point, deep blacks with warm gold and restrained red accents (Love Corner palette). Clean negative space on one side for a 2-5 word headline. No text, no logos, no real person's likeness.",
+    "alt": "A young Black man and his father reviewing a ledger together at a kitchen table, lamp light."
+   },
+   "image": null,
+   "status": "review",
+   "featured": false
+  },
+  {
+   "lessonId": "buy2-two-sets-of-weights-in-one-bag",
+   "courseKey": "buying-terms",
+   "originalTitleAtApproval": "Two sets of weights in one bag",
+   "displayTitle": "The Double Standard Hiding in a Bad Deal",
+   "thumbHeadline": "TWO SETS OF WEIGHTS",
+   "promoDescription": "Deuteronomy 25:13 forbids the instrument itself. What that means at the closing table.",
+   "visual": {
+    "prompt": "Cinematic 16:9 photograph, 1280x720 or larger: A brass balance scale on a real estate closing table beside house keys and a signed contract, dramatic side light. Dramatic but natural lighting, high contrast, strong focal point, deep blacks with warm gold and restrained red accents (Love Corner palette). Clean negative space on one side for a 2-5 word headline. No text, no logos, no real person's likeness.",
+    "alt": "A brass balance scale on a real estate closing table beside house keys and a signed contract, dramatic side light."
+   },
+   "image": null,
+   "status": "review",
+   "featured": false
+  },
+  {
+   "lessonId": "stk2-when-you-buy-a-share-the-company-gets-nothing",
+   "courseKey": "stocks",
+   "originalTitleAtApproval": "When you buy a share, the company gets nothing — where shares actually come from",
+   "displayTitle": "When You Buy a Stock, Where Does Your Money Go?",
+   "thumbHeadline": "THE COMPANY GETS NOTHING",
+   "promoDescription": "Primary market, secondary market, and the most widely held false belief about shares.",
+   "visual": {
+    "prompt": "Cinematic 16:9 photograph, 1280x720 or larger: A Black investor looking at a trading screen in a dark room, the glow of market tickers on her face. Dramatic but natural lighting, high contrast, strong focal point, deep blacks with warm gold and restrained red accents (Love Corner palette). Clean negative space on one side for a 2-5 word headline. No text, no logos, no real person's likeness.",
+    "alt": "A Black investor looking at a trading screen in a dark room, the glow of market tickers on her face."
+   },
+   "image": null,
+   "status": "review",
+   "featured": false
+  },
+  {
+   "lessonId": "hist2-the-fatherless-the-widow-and-the-stranger",
+   "courseKey": "history-truth",
+   "originalTitleAtApproval": "The fatherless, the widow and the stranger",
+   "displayTitle": "The Real Measure of a Nation",
+   "thumbHeadline": "THE TRUE MEASURE",
+   "promoDescription": "Reading American history with Deuteronomy 10:18-19 in hand.",
+   "visual": {
+    "prompt": "Cinematic 16:9 photograph, 1280x720 or larger: Documentary-style sepia photograph of a nineteenth-century Black widow with two children on a rural porch, dignified. Dramatic but natural lighting, high contrast, strong focal point, deep blacks with warm gold and restrained red accents (Love Corner palette). Clean negative space on one side for a 2-5 word headline. No text, no logos, no real person's likeness.",
+    "alt": "Documentary-style sepia photograph of a nineteenth-century Black widow with two children on a rural porch, dignified."
+   },
+   "image": null,
+   "status": "review",
+   "featured": false
+  },
+  {
+   "lessonId": "ea-gh-obedience-blessing",
+   "courseKey": "eternal-torah",
+   "originalTitleAtApproval": "Hearken → Blessings Overtake You",
+   "displayTitle": "When Blessing Overtakes You",
+   "thumbHeadline": "HEARKEN FIRST",
+   "promoDescription": "Deuteronomy 28:1-2 as Yahweh's own conditional: hearken, and blessing comes on you.",
+   "visual": {
+    "prompt": "Cinematic 16:9 photograph, 1280x720 or larger: A Black runner on an open road at sunrise, a wide beam of light behind and around him. Dramatic but natural lighting, high contrast, strong focal point, deep blacks with warm gold and restrained red accents (Love Corner palette). Clean negative space on one side for a 2-5 word headline. No text, no logos, no real person's likeness.",
+    "alt": "A Black runner on an open road at sunrise, a wide beam of light behind and around him."
+   },
+   "image": null,
+   "status": "review",
+   "featured": false
+  }
+ ]
+}

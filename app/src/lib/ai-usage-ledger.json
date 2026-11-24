@@ -96,6 +96,23 @@
       "notes": "Reserved L335 and DR-1581 on origin with new-lesson.mjs. Every quotation a kjv token filled from app/public/bible/kjv, none typed. Video not watched; scholars' counts and dates carried as reported in UNCHECKED; first gate run failed on short child and youth bands, lengthened; re-review 2026-12-19."
     },
     {
+      "id": "signed-in-person-is-the-one-named",
+      "date": "2026-11-24",
+      "task": "Sign-in: the apps logged people in and out and named Christina as Darrell; three causes measured (GoTrue reuse interval 0, a leftover auth slot read at boot, a per-device profile) plus the phone account named by its digits; each fixed with a proven-to-catch pin",
+      "drs": [
+        "DR-1617"
+      ],
+      "prs": [
+        2842
+      ],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.7,
+      "estimateWithoutAiHours": 12,
+      "notes": "Three CI fixes on the way: INDEX row placement, the frozen shell budget, this line."
+    },
+    {
       "id": "d2-journeys",
       "date": "2026-11-05",
       "task": "Journey registry, six app journeys, coverage guard",
@@ -454,6 +471,21 @@
       "notes": "No token meter in this session; tokens and cost are null. arxiv.org did not resolve from this sandbox, so the paper was never read; secondary reports conflict on rates and release date, so none is printed. Whether any agent here has weakened a check is not measured; re-review 2026-12-02."
     },
     {
+      "id": "lesson-ll341-whoso-removeth-stones",
+      "date": "2026-11-23",
+      "task": "L341 Whoso Removeth Stones: one Living Lesson from a forwarded newsletter on the air traffic outage, testing before change and business continuity",
+      "drs": [
+        "DR-1616"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.9,
+      "estimateWithoutAiHours": 10,
+      "notes": "Thread 1a208fb97b576d51. Outage and cause reported by one source; A.I. link denied, not established. Bands 0.53/0.63/0.66/0.75 after one pass of taught paragraphs."
+    },
+    {
       "id": "a-proof-of-a-removed-refusal",
       "date": "2026-11-05",
       "task": "Five stale proofs of a removed refusal re-pointed (another session's work, ledgered at merge)",
@@ -559,6 +591,36 @@
       "tokens": null,
       "costUsd": null,
       "wallClockHours": 0.9,
+      "estimateWithoutAiHours": 8,
+      "notes": ""
+    },
+    {
+      "id": "no-session-guesses-an-account",
+      "date": "2026-11-24",
+      "task": "Recorded the two tailnets, their logins and machines, the fix that restored sign-in, and the standing rule that no session guesses an account; memory entry added",
+      "drs": [
+        "DR-1626"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.3,
+      "estimateWithoutAiHours": 3,
+      "notes": ""
+    },
+    {
+      "id": "the-nas-sees-its-own-public-road",
+      "date": "2026-11-24",
+      "task": "The Funnel watchdog was blind (own hostname, 502 read as up, /sb missing); now judges the public road, restores every row, brings Tailscale up, and reports its state to GitHub by repository_dispatch",
+      "drs": [
+        "DR-1619"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.6,
       "estimateWithoutAiHours": 8,
       "notes": ""
     },
@@ -1087,6 +1149,21 @@
       "notes": "Same session as DR-1361 and DR-1370; the video could not be fetched from the cloud, so the public record was searched twice with different phrasings. Estimate is this session's own for a 2,900-word lesson with four bands, two parables, a quiz, a guide and a 56-case gate."
     },
     {
+      "id": "the-love-corner-menu-floats",
+      "date": "2026-11-24",
+      "task": "The Love Corner picture menu was cut off at large text and under the bottom bar, and the picture read (6; the menu floats and scrolls, the header takes the account name",
+      "drs": [
+        "DR-1625"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.4,
+      "estimateWithoutAiHours": 4,
+      "notes": ""
+    },
+    {
       "id": "dr-1372-the-tail-is-a-dropdown",
       "date": "2026-11-06",
       "task": "The lesson timeline/figures and the TALK ABOUT IT TOGETHER tail fold closed as optional dropdowns; the voice reads the teaching and the stories and skips the tail unless asked; a seven-case gate",
@@ -1509,6 +1586,21 @@
       "notes": "Darrell: Storage on the nas, what are we waiting for."
     },
     {
+      "id": "other-means-unread-not-un-looked-at",
+      "date": "2026-11-23",
+      "task": "by_stall said other for six rows whose cause the same receipt had already read, stored and printed one line below",
+      "drs": [
+        "DR-1610"
+      ],
+      "prs": [],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.4,
+      "estimateWithoutAiHours": 3,
+      "notes": "No SQL or reader change: the allowlist already published both classes. Proven to catch 6 ways neutered, 2 on flipped precedence."
+    },
+    {
       "id": "dr-1397-title-never-crushed",
       "date": "2026-11-10",
       "task": "A lesson row's title keeps a 12rem floor in the Latest and course lists, so Continue and Play wrap below it at large text sizes instead of crushing it",
@@ -1627,6 +1719,21 @@
       "wallClockHours": 0.75,
       "estimateWithoutAiHours": 16,
       "notes": "Darrell: Lessons with no tests?!"
+    },
+    {
+      "id": "sov100-rooms-shalt-thou-make-in-the-ark",
+      "date": "2026-11-23",
+      "task": "Sovereign A.I. week 100 from one word over a forwarded system-design newsletter (thread 1a2087dce8e004bd): Word first on Genesis 6:14 and Psalms 11:3, rooms in one ark on one hull and the foundation they share; virtual machines with separate kernels versus containers on one shared kernel; how far a break-in spreads and what hardening does and does not do; three authored diagrams as Darrell asked; four hand-written bands, every verse generator-filled from the KJV; the house measured from infra/.",
+      "drs": [
+        "DR-1611"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 2,
+      "estimateWithoutAiHours": 14,
+      "notes": "No token meter in this session; tokens and cost are null. The newsletter's speed and cloud claims are reported, not tested; what runs on the home server today is not verified; re-review 2026-12-07."
     },
     {
       "id": "l333-heavenly-cheat-codes-life-his-way",
@@ -1819,6 +1926,21 @@
       "notes": "Built on Darrell's relayed words of 2026-11-18 ~12:28Z, that a step waiting on his hand is itself the defect. Reverses DR-1537's deferral while keeping DR-1526's order (the direct read was built first). Proven to catch a person's name in place of an exception class, a marker in body/prompt/fault reaching the census, and a vocabulary dropped from the SQL. Nothing measured live yet."
     },
     {
+      "id": "the-rare-word-cap-is-re-read",
+      "date": "2026-11-24",
+      "task": "DR-1028's overdue re-review: loop crossed the rare-word cap and the kill-switch note answered the wrong record; window re-measured, cap 80",
+      "drs": [
+        "DR-1623"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.3,
+      "estimateWithoutAiHours": 2,
+      "notes": ""
+    },
+    {
       "id": "dr-1412-record-figures-fit",
       "date": "2026-11-10",
       "task": "The learner record's figure rows are sized by their text, so Big Print wraps them instead of running them together; measured in Chromium",
@@ -1892,6 +2014,21 @@
       "wallClockHours": 0.3,
       "estimateWithoutAiHours": 6,
       "notes": "Darrell: use it for potential properties we are looking to purchase; other users will want it"
+    },
+    {
+      "id": "sov101-a-little-leaven-leaveneth-the-whole-lump",
+      "date": "2026-11-23",
+      "task": "Sovereign A.I. week 101 from one word over a forwarded security notice (thread 1a208f5960ac285d): Word first on 1 Corinthians 5:6 and Exodus 12:19, a little leaven through the whole lump and the whole house searched; a flaw in a shared Java runtime hiding in applications, container images and appliances; find every copy, exposed services first, patch, restart and rebuild, a dated mitigation while the patch waits, and the watchman who passes the warning on; four hand-written bands, every verse generator-filled from the KJV; the house measured from infra/ and the build workflows.",
+      "drs": [
+        "DR-1615"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 2,
+      "estimateWithoutAiHours": 14,
+      "notes": "No token meter in this session; tokens and cost are null. The notice's CVE details are reported by one notice, not yet checked against each vendor advisory; whether any third-party NAS image bundles Java is not verified; re-review 2026-12-07."
     },
     {
       "id": "dr-1415-every-property-and-the-asset",
@@ -2183,6 +2320,21 @@
       "notes": "Darrell: is it fixed for all months? (November screenshot)"
     },
     {
+      "id": "the-word-newest-month-and-tombstones",
+      "date": "2026-11-23",
+      "task": "The Word opens on All with only the newest month open, every month a folder, Open/Close all, the 2014-to-now span and year chips; a deleted message stays deleted (0340 tombstones, content_sync skips them)",
+      "drs": [
+        "DR-1609"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.5,
+      "estimateWithoutAiHours": 12,
+      "notes": "Root cause of the resurrected draft measured from the code: content_sync.py re-inserts every hosted row sovereign lacks, so a delete on sovereign was undone within six hours."
+    },
+    {
       "id": "l334-this-i-recall-to-my-mind",
       "date": "2026-11-19",
       "task": "L334 This I Recall to My Mind, from further summaries of one conversation, on time, memory and a hard past, all four age bands, shared gate",
@@ -2410,6 +2562,21 @@
       "notes": "Darrell's screenshots: Understood 5 of 47 beside Mastered 51 of 923"
     },
     {
+      "id": "l340-wisdom-is-profitable-to-direct",
+      "date": "2026-11-23",
+      "task": "L340 Wisdom Is Profitable to Direct: Living Lesson from a forwarded finance newsletter (thread 1a2089ea14470e9a)",
+      "drs": [
+        "DR-1613"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.6,
+      "estimateWithoutAiHours": 6,
+      "notes": ""
+    },
+    {
       "id": "courses-rewarded",
       "date": "2026-11-12",
       "task": "Courses are rewarded: crown (understood), sword (completed), book (read in full)",
@@ -2453,6 +2620,21 @@
       "wallClockHours": 0.8,
       "estimateWithoutAiHours": 7,
       "notes": "Forwarded the same day; built the same session."
+    },
+    {
+      "id": "dr-1596-what-the-church-office-posts-is-kept",
+      "date": "2026-11-19",
+      "task": "Every calendar, Letter from BG and flyer the church office posts is kept daily on the NAS by month, one copy per content, shown in Times; a past event the office removes is archived, not deleted",
+      "drs": [
+        "DR-1596"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.5,
+      "estimateWithoutAiHours": 24,
+      "notes": "Migration 0339 with a smoke proven to catch on PostgreSQL 16; a daily reader (Node collector on the app's own parser, Python keeper on the NAS over the tailnet) rehearsed end to end against a mock kong; archive surface and calendar wording tested with their presses."
     },
     {
       "id": "sov91-know-the-state-of-thy-flocks",
@@ -2515,6 +2697,21 @@
       "notes": "Runner tailnet key expired 2026-11-04; every research-inbox run failed at the join. Same SQL via live-sql local mode."
     },
     {
+      "id": "a-failed-refresh-is-not-a-sign-out",
+      "date": "2026-11-24",
+      "task": "After DR-1617 deployed the app still flipped to the signed-out page on a failed fetch; getSession's null-with-error was read as a sign-out. Kept the stored session; proven-to-catch test",
+      "drs": [
+        "DR-1618"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.3,
+      "estimateWithoutAiHours": 4,
+      "notes": ""
+    },
+    {
       "id": "ledger-adds-off-the-tail",
       "date": "2026-11-18",
       "task": "The ledger adds off the tail: --add places an entry at a slot read from its id, never in the last 40, so waiting lesson PRs stop conflicting with every landing",
@@ -2545,6 +2742,21 @@
       "wallClockHours": 1,
       "estimateWithoutAiHours": 10,
       "notes": "Darrell reviewing as a new user on his phone: I can see all this as a new person with no record. Nothing was exposed (RLS; 0260 asserts it) -- the banner's global headline had a partial list"
+    },
+    {
+      "id": "the-box-was-alive-the-whole-time",
+      "date": "2026-11-24",
+      "task": "Measured the outage onset and that the NAS was online throughout; the watchdog now reports before it heals, bounds the heal, warns before its own tailnet key expires; own profile and picture kept on the device",
+      "drs": [
+        "DR-1624"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.9,
+      "estimateWithoutAiHours": 10,
+      "notes": ""
     },
     {
       "id": "re-review-ratchet",
@@ -2906,6 +3118,21 @@
       "notes": "Darrell, spoken: how can someone be good and do nothing at the same time?"
     },
     {
+      "id": "dr-1627-app-map",
+      "date": "2026-11-24",
+      "task": "A map of where you can go in every app: one searchable sheet mounted in PoeTech, Poe Properties, Moore Divahs and TLC",
+      "drs": [
+        "DR-1627"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.5,
+      "estimateWithoutAiHours": 6,
+      "notes": ""
+    },
+    {
       "id": "ledger-rows-placed",
       "date": "2026-11-19",
       "task": "INDEX rows placed off the tail (scripts/index-row.mjs) and tail guards for INDEX and the usage ledger; merge=union tested on GitHub and refuted; placed rows proven to merge on two throwaway PRs",
@@ -3024,6 +3251,21 @@
       "wallClockHours": 2.1,
       "estimateWithoutAiHours": 40,
       "notes": "No token meter exposed to this session; tokens and cost are null. The 40-hour estimate without A.I. is for one hour of teaching written five times over (an adult lesson and four age-banded versions, about 15,900 words of authored prose), 62 verses transcribed by hand from a printed KJV, the independent checking of five load-bearing figures, and 54 tests. The band work failed its floors and its reading ladder on the first measurement, as P60 predicts, and every repair was authored by hand rather than swept by a script (DR-1306). Renumbered to DR-1470 after #2658 landed a record on the number first, while this branch was green and in flight; the rename was done by hand on each citation's own surrounding text, never by number, because renumber-decision-record.mjs rewrites by number across the whole tree and the surrendered number's call sites now belong to that landed record."
+    },
+    {
+      "id": "lesson-ll339-profit-of-the-earth",
+      "date": "2026-11-23",
+      "task": "L339 The Profit of the Earth Is for All: one Living Lesson from a forwarded newsletter on who gains when an A.I. company goes public",
+      "drs": [
+        "DR-1612"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.8,
+      "estimateWithoutAiHours": 10,
+      "notes": "Thread 1a20898532b7dbcc. Figures reported by one source; maker disclosed in every band. Gate 9/9 after quoting described verses."
     },
     {
       "id": "lesson-ll328",
@@ -3431,6 +3673,36 @@
       "notes": "Found on PR #2775 shard 3, then on PR #2788 which adds no lesson, which showed main itself was red. Proven to catch by forcing the page to show the heading always. No product code changed."
     },
     {
+      "id": "no-outside-system-is-the-only-door",
+      "date": "2026-11-24",
+      "task": "Recorded the tailnet drop and the road decision under DR-1360: restore by LAN SSH, a second NAS-initiated road beside the Funnel, a home road with no outside system",
+      "drs": [
+        "DR-1622"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.3,
+      "estimateWithoutAiHours": 3,
+      "notes": ""
+    },
+    {
+      "id": "poetech-door-account-picture",
+      "date": "2026-11-19",
+      "task": "The PoeTech door's account picture at the top right, open and collapsed, opening the Love Corner's menu frame with rows that have a real place on this door",
+      "drs": [
+        "DR-1600"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 2.5,
+      "estimateWithoutAiHours": 14,
+      "notes": "Root cause: the account rendered only in the open header and a device opens collapsed (DR-1046). Measured in Chromium on the built app; the first menu shrank at big text inside the zoomed header and now floats. No schema."
+    },
+    {
       "id": "my-voice-on-the-nas",
       "date": "2026-11-18",
       "task": "My voice made on the NAS when the tower is dark: Piper + OpenVoice V2 converter service, forwarder fallback, reader names the engine, public-road witness",
@@ -3459,6 +3731,21 @@
       "wallClockHours": 1.6,
       "estimateWithoutAiHours": 40,
       "notes": "Gmail thread 1a1b6e6085128724, forwarded 2026-11-09T13:29Z (7:29 AM Central), built 2026-11-13 draining the intake backlog. Six one-line framework descriptions whole in the email, taught as reported and unranked; the diagram was an image and blog.bytebytego.com refused (403 CONNECT), re-review 2026-11-27. 35 anchor references, 136 quoted spans, every verse filled from app/public/bible/kjv by scripts/sov88-fill.mjs and none typed. Our build measured: DR-0077 lanes, reserve-ref KINDS dr/ll only, capacity-budget live (room 3, wanted 4), HELD_IN_FLIGHT [84,85,86,87], github-ops classifyLane blind to the ledgers, and the landing train at 17:10 UTC (7 of 14 PRs opened that day dirty; ai-usage-ledger.json in 6 of the 7). Hours lost not measured."
+    },
+    {
+      "id": "a-null-that-is-not-a-sign-out",
+      "date": "2026-11-24",
+      "task": "INITIAL_SESSION null on a failed fetch painted the front page and then the profile picker; non-SIGNED_OUT nulls with a stored session are ignored, the picker waits for the account to resolve",
+      "drs": [
+        "DR-1620"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.4,
+      "estimateWithoutAiHours": 5,
+      "notes": ""
     },
     {
       "id": "sov82-how-beautiful-are-the-feet",
@@ -3549,6 +3836,21 @@
       "wallClockHours": 1.5,
       "estimateWithoutAiHours": 32,
       "notes": "Reserved L311 and DR-1488 on origin. The video was not reachable (www.youtube.com does not resolve in this session), so the lesson is taught from his summary and the Word; Strong's G971 and Josephus not read back (lexicon host does not resolve); re-review 2026-11-27. 183 quoted spans filled from app/public/bible/kjv by fill-verses.mjs, none typed."
+    },
+    {
+      "id": "java-builds-take-the-patched-jdk",
+      "date": "2026-11-23",
+      "task": "Java4Shell: measured the stack (no NAS image runs Java; only the Android packaging runners), and made each setup-java step fetch the newest patched Temurin build",
+      "drs": [
+        "DR-1614"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.3,
+      "estimateWithoutAiHours": 2,
+      "notes": ""
     },
     {
       "id": "ll313-children-are-a-heritage-when-the-school-closes-the-house",

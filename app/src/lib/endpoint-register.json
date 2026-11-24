@@ -4,7 +4,7 @@
     "functions": 31,
     "nasServices": 7,
     "nasRoutes": 33,
-    "tables": 327,
+    "tables": 329,
     "tablesWithoutRls": 1
   },
   "functions": [
@@ -955,6 +955,12 @@
       "policies": 8
     },
     {
+      "table": "church_site_archive",
+      "definedIn": "infra/supabase/migrations-auto/0342-what-the-church-office-posts-is-kept.sql",
+      "rls": true,
+      "policies": 2
+    },
+    {
       "table": "church_speakers",
       "definedIn": "infra/supabase/migrations-auto/0037-speaker-canonical-entity.sql",
       "rls": true,
@@ -1037,6 +1043,12 @@
       "definedIn": "infra/supabase/migrations-auto/0066-content-sources-platform-seam.sql",
       "rls": true,
       "policies": 4
+    },
+    {
+      "table": "content_tombstones",
+      "definedIn": "infra/supabase/migrations-auto/0340-a-deleted-message-stays-deleted.sql",
+      "rls": true,
+      "policies": 0
     },
     {
       "table": "contractors_1099",
