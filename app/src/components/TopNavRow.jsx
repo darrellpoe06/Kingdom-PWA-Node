@@ -27,6 +27,7 @@
 //   * with the header open, the header's own wordmark is right above, and the
 //     row carries the lockup too, as he asked.
 // Every other shell (many tabs) renders exactly the row it rendered before.
+import AppMapButton from './shell/AppMapButton.jsx';
 import React from 'react';
 import { TabScroll, NavControls } from './shared.jsx';
 import UiIcon from './UiIcon.jsx';
@@ -46,7 +47,7 @@ export function loneTab(children) {
 // open, the header carries it at its own top right. This row never moves to
 // the bottom bar at Largest or Big Print, so the picture stays at the top at
 // every text size.
-export default function TopNavRow({ hatch = null, navHistory = {}, collapsed = false, onToggleHeader, brandName = '', brandTagline = '', home = null, tabsHidden = false, account = null, children }) {
+export default function TopNavRow({ hatch = null, navHistory = {}, collapsed = false, onToggleHeader, brandName = '', brandTagline = '', home = null, tabsHidden = false, account = null, map = null, children }) {
   // `ml-auto`: from `lg` the sidebar carries the tabs and the strip steps aside,
   // so nothing in this row grows; measured at 1812px the chevron sat at x=377.
   // The account takes the slack, so it and the chevron hold the right edge.
@@ -82,6 +83,8 @@ export default function TopNavRow({ hatch = null, navHistory = {}, collapsed = f
   );
   const back = (
     <div className="pl-1 sm:pl-6 lg:pl-8 flex items-stretch">
+      {/* The menu: everywhere the reader can go, as the Love Corner has it (DR-1627). */}
+      <AppMapButton map={map} />
       <NavControls chrome {...navHistory} />
     </div>
   );

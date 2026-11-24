@@ -43,6 +43,8 @@ import { fetchMessages, sendMessage } from '../lib/business-messages.js';
 import { fetchShowcase, showcaseImageUrl, sortPieces } from '../lib/showcase.js';
 import { motionBehavior } from '../lib/gentle-motion.js';
 import DoorFeedback from './DoorFeedback.jsx';
+import DoorMapButton from './shell/DoorMapButton.jsx';
+import { doorMapGroup } from '../lib/app-map.js';
 import { reportDoorFault, faultSentence, reportIfFailed } from '../lib/door-feedback-sync.js';
 
 const SERIF = { fontFamily: '"Fraunces", serif' };
@@ -711,6 +713,8 @@ export default function MooreDoor({ business = null }) {
           </div>
         )}
         <header className="pt-6 text-center">
+          {/* Every place in this door as one searchable sheet (DR-1627); the sibling businesses stay at the bottom too. */}
+          <div className="flex justify-start"><DoorMapButton appName={BIZ.brand.label} theme={theme} groups={doorMapGroup(BIZ.brand.label, BIZ.tabs, tab, { icon: 'heart' })} onGo={(it) => selectTab(it.id)} /></div>
           <h1 className="text-3xl font-bold text-[#1A1815]" style={SERIF}>{BIZ.brand.label}</h1>
           <p className="mt-1 text-sm text-[#5A5751]">{BIZ.brand.tagline}</p>
           {/* ts-chrome-region + flex-wrap (2026-08-05): un-capped, the theme
