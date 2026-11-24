@@ -1,0 +1,6 @@
+# NAS-side Python runs on the Synology's Python 3.8.15 (DR-0306).
+# Without this, ruff assumes 3.11 and its UP017 fix writes datetime.UTC,
+# which is how bg-message-lessons.py came to fail on import (DR-1648).
+# Only the per-file target is set; every other setting stays ruff's default.
+[per-file-target-version]
+"infra/nas-*/**/*.py" = "py38"

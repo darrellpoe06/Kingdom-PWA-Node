@@ -1,0 +1,223 @@
+{
+ "schema": "learn-art-direction/v2",
+ "why": "Pilot images came out dark (mean luma 37.6/255) because every prompt carried 'deep blacks, warm gold light' and 'dark negative space'. The free grade pass (learn-thumbs/grade.mjs) rescued 10 of 20; these are the lessons it could not rescue (84-91% near-black, gray, or off the department brief), plus the six Explore by Topic covers. Owner direction 2026-11-24: brighter, richer, more diverse color; natural daylight; scenery; expressive, clearly visible faces; meaningful Black representation; a personality per department. Revised the same day on the owner's word: grading only brightens, so the ART DIRECTION itself changes — high-key natural daylight, blue skies, modern well-lit spaces, natural skin tones and natural color; no candlelight, night, silhouettes, sunsets or brown/orange casts. Three samples are generated first; the other thirteen only after the samples are checked. Extended the same day on the owner's word ('use the paid way'): the 10 lessons that had kept their graded v1 pictures, which the owner judged still too dark, get the new art direction too, so all 20 pilot lessons and the 6 topic covers carry it.",
+ "lessons": [
+  {
+   "courseKey": "living-lessons",
+   "lessonId": "ll341-whoso-removeth-stones",
+   "look": "faith",
+   "prompt": "Bright modern airport control tower at midday, panoramic glass windows full of clear blue sky, sunlit runways and a white airliner taxiing outside. A confident Black woman engineer in her forties, crisp white shirt and lanyard, stands at a clean console checking a tablet before making a change, calm expressive face clearly visible, a younger Black male colleague in a sky-blue shirt beside her pointing at the tablet. Fresh natural daylight, vivid blues and whites, airy and hopeful.",
+   "alt": "A Black woman engineer and her colleague check a tablet in a bright airport control tower with planes on a sunlit runway outside.",
+   "people": "fba"
+  },
+  {
+   "courseKey": "sovereign-ai",
+   "lessonId": "sov101-a-little-leaven-leaveneth-the-whole-lump",
+   "look": "tech",
+   "prompt": "Vibrant, brightly lit modern data center aisle with white floors and glossy server racks glowing with electric cyan, teal and violet LED light, crisp bright overhead lighting. A focused Black woman security engineer in her thirties, natural hair, teal jacket, holds a tablet up to a rack, scanning it, her alert expression clearly lit, reflections of colorful light on her face. Dynamic depth, energetic cool color palette, high clarity, futuristic but real.",
+   "alt": "A Black woman security engineer scans a server rack with a tablet in a bright data center glowing with cyan and violet light.",
+   "people": "fba"
+  },
+  {
+   "courseKey": "development",
+   "lessonId": "dev2-name-the-real-record-and-the-real-screen-before-you-code",
+   "look": "tech",
+   "prompt": "Bright, airy modern software studio with floor-to-ceiling windows, city view, green plants and white desks in natural daylight. A smiling Black woman developer in her thirties in a coral top points at a large monitor showing a colorful abstract flow diagram of connected boxes and lines, while a young Black man in a mustard sweater leans in beside her, both engaged and expressive. Clean, modern, energetic, rich color accents of teal, coral and yellow.",
+   "alt": "A Black woman developer points at a colorful diagram on a monitor while a colleague leans in, in a bright, plant-filled studio.",
+   "people": "fba"
+  },
+  {
+   "courseKey": "buying-terms",
+   "lessonId": "buy2-two-sets-of-weights-in-one-bag",
+   "look": "finance",
+   "prompt": "Aspirational sunny afternoon on a tree-lined suburban street: two attractive modern homes side by side with manicured green lawns under a bright blue sky. In the foreground a confident Black couple in their thirties in smart casual clothes stand on the sidewalk comparing details on a tablet with a friendly Black woman real estate agent in a navy blazer, all smiling and engaged, faces clearly visible. Crisp, professional, optimistic, natural color.",
+   "alt": "A Black couple and their real estate agent compare details on a tablet in front of two modern homes on a sunny street.",
+   "people": "fba"
+  },
+  {
+   "courseKey": "stocks",
+   "lessonId": "stk2-when-you-buy-a-share-the-company-gets-nothing",
+   "look": "finance",
+   "prompt": "Bright modern financial district plaza at midday, glass skyscrapers reflecting a clear blue sky, people walking in the sun. A confident Black woman investor in her forties in a tailored camel coat stands in the foreground looking at her phone, which shows an abstract green and blue line chart, a thoughtful half-smile on her clearly lit face. Clean, aspirational, modern, crisp daylight with rich blues and natural skin tones.",
+   "alt": "A Black woman investor checks a chart on her phone in a sunny financial district surrounded by glass towers.",
+   "people": "fba"
+  },
+  {
+   "courseKey": "little-learners",
+   "lessonId": "lil2-count-the-days-one-to-seven",
+   "look": "kids",
+   "prompt": "Joyful, bright storybook-colored photograph: a cheerful Black girl about five years old in a sunny yellow dress sits in a lush green meadow full of colorful wildflowers, both hands raised happily as she counts on her fingers, big open smile. Butterflies, a soft rainbow and fluffy white clouds in a bright blue sky, bright midday sunshine. Vivid, playful, warm, full of wonder at creation.",
+   "alt": "A smiling Black girl in a yellow dress counts on her fingers in a sunny meadow of wildflowers under a rainbow.",
+   "people": "fba"
+  },
+  {
+   "courseKey": "mathematics",
+   "lessonId": "mat2-adding-and-taking-away-loaves-fishes-and-gideons-army",
+   "look": "kids",
+   "prompt": "Bright, cheerful classroom table by a large sunny window: a Black boy and a Black girl about eight years old laugh together as they count five golden bread rolls and two small colorful toy fish beside a wicker basket, with rainbow-colored wooden counting blocks lined up in front of them. A smiling Black woman teacher leans in to help. Vivid primary colors, soft daylight, joyful and educational.",
+   "alt": "Two Black children and their teacher laugh as they count bread rolls, toy fish and colorful blocks at a sunny classroom table.",
+   "people": "fba"
+  },
+  {
+   "courseKey": "project-management",
+   "lessonId": "pm2-who-should-work",
+   "look": "finance",
+   "prompt": "Bright contemporary open-plan office with large windows and a city view in natural daylight. A confident Black man in his forties in a light blue shirt, warm smile, hands a stack of colored sticky notes to a capable young Black woman team lead; beside them, clearly visible and engaged, a Latino man with a beard, an East Asian woman with glasses and a white woman with red hair, all gathered at a glass planning wall covered in neatly tiered rows of yellow, coral, green and blue notes. Energetic, collaborative, modern, clean and colorful.",
+   "alt": "A Black team leader hands sticky notes to a colleague as a mixed team gathers at a colorful planning wall in a bright office.",
+   "people": "mixed"
+  },
+  {
+   "courseKey": "handed-forward",
+   "lessonId": "succ2-read-before-you-rule",
+   "look": "finance",
+   "prompt": "Bright, sunlit family home office with white walls, bookshelves and green plants, afternoon daylight through a big window. A young Black man in his twenties in a light gray sweater studies an open ledger and a laptop at a light oak table, thoughtful and engaged, while his grandmother, a smiling Black woman in her seventies in a colorful patterned blouse, stands beside him with a hand on his shoulder. Hopeful, generational, clean natural color.",
+   "alt": "A young Black man studies the family ledger while his smiling grandmother rests a hand on his shoulder in a sunny home office.",
+   "people": "fba"
+  },
+  {
+   "courseKey": "eternal-torah",
+   "lessonId": "ea-gh-obedience-blessing",
+   "look": "faith",
+   "prompt": "Uplifting bright mid-morning on a lush green hillside path above a wide valley of fields and red, white and purple wildflowers, white clouds in a clear blue sky. A Black woman in her forties in a flowing white and soft blue dress walks forward along the path holding an open Bible against her heart, peaceful joyful expression, face clearly lit. Fresh greens, sky blue and clean natural daylight; hopeful, free and full of blessing.",
+   "alt": "A Black woman holding an open Bible walks a green hillside path at sunrise above a valley of wildflowers.",
+   "people": "fba"
+  },
+  {
+   "courseKey": "living-lessons",
+   "lessonId": "ll338-not-with-eyeservice",
+   "look": "faith",
+   "prompt": "A content, focused Black woman in her thirties in a cobalt blue blouse works at a light oak desk in a bright home office with big windows, white shelves and lush green plants, writing in a planner beside a laptop with a soft, satisfied smile, nobody else in the room; clear daylight, fresh greens and blues.",
+   "alt": "A Black woman works contentedly at her desk in a bright, plant-filled home office.",
+   "people": "fba"
+  },
+  {
+   "courseKey": "living-lessons",
+   "lessonId": "ll332-give-me-this-mountain",
+   "look": "faith",
+   "prompt": "An energetic Black man in his eighties with a white beard, hiking boots and a red jacket stands on a green alpine trail pointing up toward a snow-capped summit with a determined smile, his grandson in his twenties beside him with a backpack, both faces clearly visible; meadow of wildflowers, clear blue sky, crisp daylight.",
+   "alt": "An older Black man in a red jacket points up a mountain trail beside his grandson under a blue sky.",
+   "people": "fba"
+  },
+  {
+   "courseKey": "living-lessons",
+   "lessonId": "ll340-wisdom-is-profitable-to-direct",
+   "look": "faith",
+   "prompt": "Bright modern woodshop with big windows and clean light wood; a Black grandfather in his sixties in a sky-blue shirt guides his granddaughter, about ten, as she sharpens a chisel on a whetstone, both focused and smiling, faces clearly lit; green plants, natural daylight, tidy and inviting.",
+   "alt": "A Black grandfather teaches his granddaughter to sharpen a chisel in a bright woodshop.",
+   "people": "fba"
+  },
+  {
+   "courseKey": "living-lessons",
+   "lessonId": "ll339-the-profit-of-the-earth-is-for-all",
+   "look": "faith",
+   "prompt": "Sunny green wheat field under a big blue sky with white clouds and a red barn in the distance; a Black woman farmer in her forties in a denim shirt and straw hat smiles while checking an abstract chart on a tablet, her teenage son beside her holding a basket of fresh vegetables; vivid greens, natural color.",
+   "alt": "A Black farmer checks a chart on a tablet beside her son in a sunny green field.",
+   "people": "fba"
+  },
+  {
+   "courseKey": "broadcast",
+   "lessonId": "bc2-camera-and-image",
+   "look": "faith",
+   "prompt": "Bright modern church sanctuary during a daytime service, tall windows letting in natural light; a smiling Black woman camera operator in her thirties in a red polo shirt runs a professional broadcast camera on a tripod, the stage and congregation softly blurred behind her; clean whites, light wood, colorful accents.",
+   "alt": "A Black woman operates a broadcast camera in a bright church sanctuary during a daytime service.",
+   "people": "fba"
+  },
+  {
+   "courseKey": "living-lessons",
+   "lessonId": "ll334-this-i-recall-to-my-mind",
+   "look": "faith",
+   "prompt": "A Black grandmother in her seventies sits on a sunny front porch swing with a photo album and an open Bible on her lap, smiling warmly as her teenage granddaughter leans on her shoulder to look at the photos; green lawn, blue hydrangeas, clear blue sky.",
+   "alt": "A smiling Black grandmother shares a photo album and her Bible with her granddaughter on a sunny porch.",
+   "people": "fba"
+  },
+  {
+   "courseKey": "living-lessons",
+   "lessonId": "ll333-heavenly-cheat-codes-life-his-way",
+   "look": "faith",
+   "prompt": "Bright modern kitchen table beside a large window; a Black father in his thirties and his daughter about seven read an open Bible together, the girl pointing at a verse and laughing, the father smiling, faces clearly visible; white walls, green plants, cobalt and yellow accents, clear daylight.",
+   "alt": "A Black father and his young daughter laugh while reading the Bible at a bright kitchen table.",
+   "people": "fba"
+  },
+  {
+   "courseKey": "living-lessons",
+   "lessonId": "ll331-it-doth-not-yet-appear-what-we-shall-be",
+   "look": "faith",
+   "prompt": "A sunny backyard garden gate: a Black father in his fifties warmly embraces his grown son in his twenties, the son's face showing relief and joy, an open white gate, blooming flowers and lush green lawn around them, clear blue sky; welcome and restoration, natural color.",
+   "alt": "A Black father embraces his grown son at a white garden gate on a sunny day.",
+   "people": "fba"
+  },
+  {
+   "courseKey": "rent-to-own-business",
+   "lessonId": "rto2-what-rent-to-own-actually-is-and-the-just-weight",
+   "look": "finance",
+   "prompt": "Bright modern furniture and electronics store with big windows and sunlight; a friendly Black store manager in his forties in a navy polo hands a clear printed agreement to a young Black mother holding her toddler, both smiling, sofas and screens on display behind; clean, welcoming, colorful.",
+   "alt": "A Black store manager hands an agreement to a smiling young mother in a bright furniture store.",
+   "people": "fba"
+  },
+  {
+   "courseKey": "history-truth",
+   "lessonId": "hist2-the-fatherless-the-widow-and-the-stranger",
+   "look": "history",
+   "prompt": "Documentary-style period photograph in clear winter daylight, Southeastern United States in 1838, a wide shot of two families walking side by side along a dirt road through bare trees under a pale blue sky: on the left a Cherokee family, a grandmother in a woven shawl and a turban-style headwrap, a father and two children in period-accurate Cherokee clothing and wool trade blankets; on the right, walking with them, a dignified Black family, a mother, a father and a young child, in plain period clothing. Both families clearly visible, faces solemn and resilient, holding one another; respectful, true natural color.",
+   "alt": "A Cherokee family and a Black family walk side by side along a dirt road through bare winter trees in 1838.",
+   "people": "mixed",
+   "note": "Solemn history: shown with dignity, not as success. African Americans were among the people forced on the removal; owner to review."
+  }
+ ],
+ "topics": [
+  {
+   "key": "faith",
+   "label": "Grow Your Faith",
+   "look": "faith",
+   "prompt": "Inspiring bright morning over a green valley and distant blue mountains under a clear blue sky with white clouds. A small group of Black men, women and children stand together on a grassy hillside with open Bibles, faces clearly visible and lifted in joy, wind in their colorful clothes. Uplifting, wide, open and full of daylight.",
+   "alt": "A Black family and friends hold open Bibles on a hillside at sunrise above a green valley.",
+   "people": "fba"
+  },
+  {
+   "key": "finance",
+   "label": "Finance & Wealth",
+   "look": "finance",
+   "prompt": "Modern bright city skyline under a clear blue midday sky seen through a glass office window. A confident Black woman financial planner in her thirties in a royal blue blazer smiles while reviewing an abstract rising green chart on a tablet with a young Black couple at a clean white table. Aspirational, professional, rich blues and warm daylight.",
+   "alt": "A Black financial planner reviews a rising chart with a young couple in a bright office overlooking the city.",
+   "people": "fba"
+  },
+  {
+   "key": "realestate",
+   "label": "Real Estate",
+   "look": "finance",
+   "prompt": "Sunny day in a beautiful neighborhood of modern homes with green lawns and a blue sky. A joyful Black family, mother, father and two young children, stand on the front steps of their new home as the father holds up a set of house keys, everyone laughing. Bright, aspirational, warm, crisp natural color.",
+   "alt": "A joyful Black family holds up the keys on the front steps of their new home on a sunny day.",
+   "people": "fba"
+  },
+  {
+   "key": "business",
+   "label": "Business & Leadership",
+   "look": "finance",
+   "prompt": "Bright, stylish storefront bakery-cafe on a sunny city street with flowers in window boxes and a colorful awning. A proud Black woman entrepreneur in her thirties in a crisp apron stands in the open doorway smiling, arms relaxed, while customers enjoy coffee at sidewalk tables. Modern, aspirational, vibrant and welcoming.",
+   "alt": "A smiling Black woman entrepreneur stands in the doorway of her sunny storefront cafe.",
+   "people": "fba"
+  },
+  {
+   "key": "tech",
+   "label": "A.I. & Technology",
+   "look": "tech",
+   "prompt": "Bright futuristic technology lab with white surfaces and glowing cyan, magenta and electric blue light. A young Black man engineer in his twenties wearing a light jacket guides a sleek white robotic arm while translucent colorful holographic data shapes float above the workbench, his face lit with focus and excitement. Dynamic, vivid, energetic.",
+   "alt": "A young Black engineer guides a robotic arm beneath colorful holographic shapes in a bright technology lab.",
+   "people": "fba"
+  },
+  {
+   "key": "history-math",
+   "label": "History & Mathematics",
+   "look": "history",
+   "prompt": "Grand, bright modern library hall with tall arched windows, light wood shelves and a large antique globe. A friendly Black man teacher in his fifties in a cardigan shows a curious group of Black children a large globe and colorful geometric shapes on the table, the children leaning in with wide-eyed wonder. Bright daylight, rich greens, blues and reds; educational and inviting.",
+   "alt": "A Black teacher shows a group of curious children a globe and colorful geometric shapes in a sunlit library.",
+   "people": "fba"
+  }
+ ],
+ "samples": [
+  "little-learners::lil2-count-the-days-one-to-seven",
+  "buying-terms::buy2-two-sets-of-weights-in-one-bag",
+  "eternal-torah::ea-gh-obedience-blessing"
+ ],
+ "representation": "DR-1640: African American / Foundational Black American people are in every picture, shown as successful; about 1 in 10 pictures is also inclusive (people of other groups beside them)."
+}

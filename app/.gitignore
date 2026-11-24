@@ -22,3 +22,6 @@ src/lib/.splice-proof-*
 
 # Learn presentation pipeline: job ledger, records and generated masters (never committed)
 .learn-presentation/
+
+# Learn redesign preview assets (dev-only harness; never built or deployed)
+learn-studio-preview/assets/

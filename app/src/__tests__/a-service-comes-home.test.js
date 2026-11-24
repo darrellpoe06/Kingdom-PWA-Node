@@ -63,6 +63,9 @@ const ON_THE_WAY = {
   // Born by the Way (DR-1538): My voice on the NAS's own CPU, behind the same
   // /voice door, witnessed by the same voice witness.
   'voice-clone': { door: 'infra/nas-voice-clone/nas_clone_server.py', witness: 'voice-health.yml' },
+  // Born by the Way (DR-1649): Ari's road. The server existed for four months
+  // with no installer; the house's own readout named the gap.
+  llm: { door: 'infra/nas-llm/llm_server.py', witness: 'llm-road-probe.yml' },
 };
 
 /** Loops born by the Way: no door of their own (their "says why" is the ledger
@@ -131,6 +134,18 @@ const LOOPS_ON_THE_WAY = {
   // witness names it in its loops, install path, cron prefix, the heartbeat
   // receipt, and reads its own last-run.json in the diagnosis.
   'bg-message-lessons': { witness: 'loops-health.yml' },
+  // Born BY the Way (DR-1650, under DR-1360, 2026-11-24): the NAS keeps the
+  // church office's pictures and reads them onto the calendar's days itself,
+  // after the runner road died at the retired tailnet key. loops-health names it
+  // in its loops, its install path, its `church-archive:` cron lines, the
+  // heartbeat receipt, and its own state/church-archive.out in the diagnosis.
+  'church-archive': { witness: 'loops-health.yml' },
+  // Born BY the Way (DR-1360): the NAS pulls the paid Learn pictures from the
+  // learn-presentation artifacts before they expire. loops-health names it in
+  // its loops, its install path, its `learn-thumbs-pull:` cron prefix, the
+  // heartbeat receipt, reds on its own last-run.json saying refused, and reads
+  // that ledger (and whether the token file is there) in the diagnosis.
+  'learn-thumbs-pull': { witness: 'loops-health.yml' },
   // The Funnel watchdog: a loop whose fruit is the public mounts; its witness
   // asks each one through the Funnel from outside (2026-10-20, the audit).
   funnel: { witness: 'funnel-health.yml' },
@@ -299,7 +314,10 @@ describe('a service comes home by one Way (DR-1119)', () => {
   // honestly on the real break and stays quiet otherwise.
   it('a loop with a reader of its own is READ by a surface: step 7, it shows in the app', () => {
     const components = join(ROOT, 'app/src/components');
-    const files = readdirSync(components).filter((f) => f.endsWith('.jsx') || f.endsWith('.js'));
+    // Every component, in every folder: a surface in components/lovecorner/ is as
+    // much "in the app" as one at the top (DR-1650: the church archive's reader is
+    // imported by lovecorner/ChurchArchive.jsx and ChurchCalendar.jsx).
+    const files = readdirSync(components, { recursive: true }).filter((f) => f.endsWith('.jsx') || f.endsWith('.js'));
     const checked = [];
     for (const name of Object.keys(LOOPS_ON_THE_WAY)) {
       const reader = `app/src/lib/${name}.js`;

@@ -109,16 +109,36 @@ SOVEREIGN_MOUNTS = [
     ("/voice", "http://127.0.0.1:8771"),
     ("/voice-lite", "http://127.0.0.1:8772"),
     ("/scribe", "http://127.0.0.1:8791"),
+    # /llm added 2026-11-24 (DR-1649), from the box's own readout (run
+    # 45471214852): no /llm row, and no port answering it. infra/nas-llm/
+    # install.sh starts the door on 8804 and mounts it; this keeps the row.
+    ("/llm", "http://127.0.0.1:8804"),
 ]
 
 TS_CANDIDATES = ["/var/packages/Tailscale/target/bin/tailscale", "tailscale"]
 SYNOPKG = "/usr/syno/bin/synopkg"
 
 
-def probe(url, timeout=None):
+# Cloudflare stands in front of poetech.us and refuses a client that calls
+# itself "Python-urllib" with its own 403, before the Function or the house is
+# asked (measured in run 39477326790). is_up() reads a 403 as an answer from
+# the house, so a probe sent without this name read every outage as up and the
+# watchdog never reported one (DR-1647). Ask as the app does.
+PROBE_UA = (
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) "
+    "Chrome/126.0 Safari/537.36 PoeTech-funnel-watchdog"
+)
+
+
+def probe(url, timeout=None, opener=None):
     """Return the HTTP status code, or 0 on any transport/TLS failure."""
     try:
-        req = urllib.request.Request(url, method="GET")
+        req = urllib.request.Request(
+            url, method="GET", headers={"User-Agent": PROBE_UA}
+        )
+        if opener is not None:
+            with opener(req, timeout=timeout or TIMEOUT) as resp:
+                return resp.status
         with urllib.request.urlopen(req, timeout=timeout or TIMEOUT) as resp:
             return resp.status
     except urllib.error.HTTPError as e:
@@ -363,7 +383,7 @@ def checkout_head(repo=None):
 # This box can. When the public /llm/health is dark it sends ONE readout (the
 # ports that listen here and what each answers) at most every six hours, and
 # one word when it answers again. It mounts nothing and restarts nothing: the
-# port goes into SOVEREIGN_MOUNTS only once this has printed it.
+# port went into SOVEREIGN_MOUNTS only once this had printed it (DR-1649).
 LLM_PUBLIC = os.environ.get("FUNNEL_LLM_PROBE", "https://poetech.us/llm/health")
 LLM_REPORT_SPACING = int(os.environ.get("FUNNEL_LLM_REPORT_SPACING", "21600"))
 LLM_PORT_CAP = 16  # the budget: at most 16 ports, two 3 s asks each

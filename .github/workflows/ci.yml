@@ -345,6 +345,23 @@ jobs:
       - run: npm ci
       - run: npx vitest run --shard=${{ matrix.shard }}/${{ strategy.job-total }}
 
+  # NAS-side Python runs on the NAS's Python 3.8.15 (DR-1648, DR-0306): every
+  # other leg runs 3.11+, which is how datetime.UTC shipped and broke a loop.
+  nas-python38:
+    name: app — NAS Python 3.8 guard
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    container: python:3.8.15-slim
+    steps:
+      - uses: actions/checkout@v7
+      - name: NAS Python 3.8 guard — selftest (must be able to fail)
+        run: python3 scripts/nas-python38-guard.py --selftest
+      - name: NAS Python 3.8 guard — every infra/nas-*/ file compiles, checks and imports on 3.8
+        run: python3 scripts/nas-python38-guard.py
+      - name: nas-loops unit tests on the NAS's Python
+        working-directory: infra/nas-loops
+        run: python3 -m unittest test_heartbeat test_lesson_queue_census test_bg_message_lessons test_funnel_watchdog
+
   # Python selftests, the repo-root guards, the real production build and the
   # browser probes that judge it (SW navigation, read-highlight, scripture).
   probes:
@@ -405,6 +422,7 @@ jobs:
           python3 -m unittest test_heartbeat -v
           python3 -m unittest test_lesson_queue_census -v
           python3 -m unittest test_bg_message_lessons -v
+          python3 -m unittest test_learn_thumbs_pull -v  # DR-1360: the NAS pulls the paid pictures; token never to the blob host
           python3 -m unittest test_funnel_watchdog -v  # DR-1619: the public road, not the box's own name
       # Spoken-lesson Whisper loop proofs (DR-0611): the road (voice row ->
       # transcript row -> cloud copy removed), idempotency by the database, the
@@ -1923,10 +1941,10 @@ jobs:
   app:
     name: app — lint + vitest
     if: always()
-    needs: [guards, vitest, classify, probes, layout, surface-sweep, curriculum, lesson-shares, arrivals-push, contacts-walls, voice-enrollments, dm-device-keys, learner-records, institute-walls, vault-walls, church-onboarding, door-work, door-journeys, auth-events, withdraw-walls]
+    needs: [guards, vitest, classify, nas-python38, probes, layout, surface-sweep, curriculum, lesson-shares, arrivals-push, contacts-walls, voice-enrollments, dm-device-keys, learner-records, institute-walls, vault-walls, church-onboarding, door-work, door-journeys, auth-events, withdraw-walls]
     runs-on: ubuntu-latest
     steps:
-      - name: Every leg passed (lint + guards, every vitest shard, build + probes, layout, every registered surface opens, curriculum, lesson shares, lesson arrival push, contacts walls, voice consent walls, sealed-message device keys walls, learner record walls, church onboarding walls, door work orders, door journeys end to end, withdraw my words walls)
+      - name: Every leg passed (lint + guards, every vitest shard, NAS Python 3.8, build + probes, layout, every registered surface opens, curriculum, lesson shares, lesson arrival push, contacts walls, voice consent walls, sealed-message device keys walls, learner record walls, church onboarding walls, door work orders, door journeys end to end, withdraw my words walls)
         env:
           NEEDS: ${{ toJSON(needs) }}
           CLASSIFY: ${{ needs.classify.result }}

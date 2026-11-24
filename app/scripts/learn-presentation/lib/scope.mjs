@@ -16,8 +16,23 @@
 import { readFileSync } from 'node:fs';
 
 export const PILOT_MAX_LESSONS = 20;
-export const TOTAL_CAP_CENTS = 500; // $5 combined, the owner's pilot approval
-export const FULL_LIBRARY_ENABLED = false;
+// FULL LIBRARY APPROVED by the owner 2026-11-24 ("Redo HIST2 and PM2, then run the
+// full library... we like these looks"), after the 20-lesson pilot on art v2.
+// The pilot's $5 ceiling becomes the library's ceilings, still read from the ledger:
+//   TOTAL_CAP_CENTS        every paid call, text + pictures, across every run;
+//   IMAGE_TOTAL_CAP_CENTS  picture spend only (BFL), held under the BFL credits bought.
+// "all" runs in batches of LIBRARY_BATCH lessons (resumable; one run at a time).
+// OWNER 2026-11-24: "I approve the $60 combined API usage limit and will purchase
+// $55 in BFL credits." Ledger spend at approval, after the -990c refused-submit
+// adjustment: 1343c combined (348c pilot + 1985c batch 1 - 990c), 1080c of it
+// pictures (300c + 1770c - 990c). So: combined = 1343 + 6000; pictures = 1080 + 5500.
+// Measured need: 844 pictures x 6c = 5064c; 774 titles ~ 774-832c. A batch that
+// reaches either cap stops itself with the rest left queued (never overdrawn).
+export const TOTAL_CAP_CENTS = 7343;
+export const IMAGE_TOTAL_CAP_CENTS = 6580;
+export const FULL_LIBRARY_ENABLED = true;
+export const LIBRARY_BATCH = 200;
+export const IMAGE_KINDS = Object.freeze(['image', 'image-v2', 'topic-v2']);
 
 export class ScopeError extends Error {
   constructor(message) {
@@ -45,8 +60,19 @@ export function resolveSpendingScope(only, items, { seedPath }) {
   if (!raw) throw new ScopeError('a spending run must name its lessons: --only seed, or up to 20 lesson ids');
   if (raw.toLowerCase() === 'all') {
     if (!FULL_LIBRARY_ENABLED) throw new ScopeError('the full library is disabled until the owner approves it (FULL_LIBRARY_ENABLED in lib/scope.mjs)');
+    return [...new Map(items.map((it) => [`${it.courseKey}::${it.lessonId}`, it])).values()];
   }
-  const wanted = raw === 'seed' ? seedKeys(seedPath) : [...new Set(raw.split(',').map((s) => s.trim()).filter(Boolean))];
+  const wanted =
+    raw === 'seed'
+      ? seedKeys(seedPath)
+      : [
+          ...new Set(
+            raw
+              .split(',')
+              .map((s) => s.trim())
+              .filter(Boolean)
+          ),
+        ];
   if (!wanted.length) throw new ScopeError('no lessons named');
   if (wanted.length > PILOT_MAX_LESSONS) throw new ScopeError(`at most ${PILOT_MAX_LESSONS} lessons per run; ${wanted.length} were named`);
   const picked = [];
@@ -61,6 +87,29 @@ export function resolveSpendingScope(only, items, { seedPath }) {
   const unique = new Map(picked.map((it) => [`${it.courseKey}::${it.lessonId}`, it]));
   if (unique.size > PILOT_MAX_LESSONS) throw new ScopeError(`at most ${PILOT_MAX_LESSONS} lessons per run`);
   return [...unique.values()];
+}
+
+/** Picture spend so far (every image kind), read from the ledger. */
+export function imageSpentCents(ledger) {
+  let c = 0;
+  for (const j of ledger.jobs.values()) {
+    if (IMAGE_KINDS.includes(j.kind) || (j.kind === 'adjustment' && j.appliesTo === 'image')) c += Number(j.costCents) || 0;
+  }
+  return c;
+}
+
+/**
+ * The next library batch: lessons not yet finished (no succeeded text AND image
+ * job), in mounted order, at most `batch`. Finished lessons are never re-bought.
+ */
+export function nextLibraryBatch(items, ledger, batch = LIBRARY_BATCH) {
+  const done = (it, kind) => {
+    const j = ledger.latestFor(it.courseKey, it.lessonId, kind);
+    // A picture flagged for review (e.g. near-duplicate) is paid and present, not remaining.
+    const ok = kind === 'image' ? ['succeeded', 'needs-review'] : ['succeeded'];
+    return !!j && ok.includes(j.state) && j.contentSha === it.contentSha;
+  };
+  return items.filter((it) => !(done(it, 'text') && done(it, 'image'))).slice(0, batch);
 }
 
 /** What this stage may still spend: the smaller of its own cap and what is left of the combined total. */

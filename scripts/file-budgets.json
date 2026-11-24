@@ -469,13 +469,27 @@
       "to": 16677,
       "date": "2026-11-23",
       "why": "sov101 (A little leaven leaveneth the whole lump, DR-1615) adds one lesson to this file after sov100 (DR-1611) landed: a forwarded security notice on a flaw in a shared Java runtime that hides inside applications, containers and appliances. The same reason as every raise above it -- the lesson corpus lives in JavaScript until DR-1339's lesson-content-out-of-JS re-review. Measured with wc -l on the spliced file (16677), never by hand."
+    },
+    {
+      "file": "app/src/components/ChurchLearn.jsx",
+      "from": 6012,
+      "to": 6013,
+      "date": "2026-11-24",
+      "why": "The redesigned Learn as an owner preview on an opted-in device only (?learnStudio=1): four lines of wiring (the import, the flag state, the early return to LearnStudioPreview, and the one-line button back to it). The preview itself lives in learn-studio/LearnStudioPreview.jsx so this file grows by its wiring only. Raised to the measured size, not above it."
+    },
+    {
+      "file": "app/src/components/ChurchLearn.jsx",
+      "from": 6013,
+      "to": 6014,
+      "date": "2026-11-24",
+      "why": "One line: a dedicated learnStudioDefaultOn prop. The owner's wife opened the app on her phone (a native shell with no address bar, so ?learnStudio=1 can never reach it) and still saw classic Learn. The first fix defaulted the preview on for isGovernor, but that gate covers every class facilitator, not just the owner, and broke church-learn-play-and-courses.test.jsx's Governor-mode Play-button test (the preview has no Play/facilitator panel at all). learnStudioDefaultOn is computed by the shell from the existing FAMILY_EMAIL_PROFILES persona (darrell/christina only), never isGovernor. Raised to the measured size, not above it."
     }
   ],
   "budgets": {
     "app/src/lib/living-lessons-class.js": 33072,
     "app/src/lib/sovereign-ai-class.js": 16677,
     "app/src/lib/world-issues-class.js": 6789,
-    "app/src/components/ChurchLearn.jsx": 6012,
+    "app/src/components/ChurchLearn.jsx": 6014,
     "app/src/modules/properties/DoorTabs.jsx": 3352,
     "app/src/components/Rentals.jsx": 3220,
     "app/src/modules/properties/PropertiesApp.jsx": 2695,

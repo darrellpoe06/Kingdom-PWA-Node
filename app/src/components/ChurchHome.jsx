@@ -38,14 +38,15 @@ import { subscribeChurchHomeSection, takePendingChurchHomeSection, publishChurch
 import { ChurchGivingChannels } from './ChurchGiving.jsx';
 import { markArrivalsSeen, SCREEN_KINDS } from '../lib/arrivals.js';
 import ChurchArchive, { goToArchive } from './lovecorner/ChurchArchive.jsx';
-import { useChurchArchiveRows } from '../lib/church-archive-sync.js';
-import ChurchOfficeBoard, { useChurchSite } from './lovecorner/ChurchOfficeBoard.jsx';
+import { useChurchArchiveRows, signArchivePaths } from '../lib/church-archive-sync.js';
+import ChurchOfficeBoard, { useChurchSite, FullPicture } from './lovecorner/ChurchOfficeBoard.jsx';
 import ChurchCalendar from './lovecorner/ChurchCalendar.jsx';
 import ChurchCalendarTools from './lovecorner/ChurchCalendarTools.jsx';
 import ChurchCalendarPlanning from './lovecorner/ChurchCalendarPlanning.jsx';
-import { fromAnnounced, fromOfficeRows, mergeEvents } from '../lib/church-calendar.js';
+import ChurchCalendarOffice from './lovecorner/ChurchCalendarOffice.jsx';
+import { fromAnnounced, fromOfficeRows, mergeEvents, againDraft } from '../lib/church-calendar.js';
 import { parishLifeEvents, parishLifePast } from '../lib/parish-life.js';
-import { useChurchCalendarRows, useCalendarAccess, addCalendarEvents, removeCalendarEvent } from '../lib/church-calendar-sync.js';
+import { useChurchCalendarRows, useCalendarAccess, addCalendarEvents, postCalendarEvent, removeCalendarEvent } from '../lib/church-calendar-sync.js';
 import { churchDateKey } from '../lib/home-week.js';
 import { siteIsTheChurchs } from '../lib/church-site.js';
 
@@ -235,6 +236,33 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
     if (r && r.removed) calendarRows.reload();
     return r;
   };
+  // WHO ADDS (DR-1644): the office, and the unit leaders it names; "Use
+  // again" opens the add form filled from a past event, a year on.
+  const canPostCalendar = calendarAccess.canManage || (calendarAccess.units || []).length > 0;
+  const [calendarDraft, setCalendarDraft] = useState(null);
+  const reuseEvent = (ev) => {
+    const d = againDraft(ev);
+    if (d) setCalendarDraft({ ...d });
+  };
+  // THE DAY SHOWS ITS PICTURE (DR-1644): the flyer or calendar an event was
+  // read from, from the church's own archive (kept even after the website
+  // takes it down). A picture that cannot be opened says so.
+  const [dayPicture, setDayPicture] = useState(null);
+  const [dayPictureNote, setDayPictureNote] = useState('');
+  const dayPictureClose = useRef(null);
+  const seeEventPicture = async (ev) => {
+    setDayPictureNote('');
+    const urls = await signArchivePaths([ev.picturePath]);
+    const src = urls[ev.picturePath];
+    if (!src) {
+      setDayPictureNote(`The ${ev.readFrom === 'calendar' ? 'calendar' : 'flyer'} for ${ev.name} could not be opened just now. Try again in a moment.`);
+      return;
+    }
+    setDayPicture({ src, alt: `${ev.readFrom === 'calendar' ? 'The office calendar' : 'The flyer'} for ${ev.name}` });
+  };
+  useEffect(() => {
+    if (dayPicture && dayPictureClose.current) dayPictureClose.current.focus();
+  }, [dayPicture]);
   // THE ARCHIVE (DR-1596): what the office posted on its website, kept daily, and the events it archived.
   const archiveRows = useChurchArchiveRows(signedIn && siteIsTheChurchs(c.site));
   const archivedOfficeEvents = useMemo(() => fromOfficeRows(calendarRows.rows).archived, [calendarRows.rows]);
@@ -1056,8 +1084,25 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
         onSave={addEvent ? saveAnnouncedEvent : null}
         savedIds={savedEventIds}
         onRemove={calendarAccess.canManage ? removeOfficeEvent : null}
+        onSeePicture={seeEventPicture}
+        onUseAgain={canPostCalendar ? reuseEvent : null}
       >
-        <ChurchCalendarTools events={calendarEvents} canManage={calendarAccess.canManage} onAdd={addCalendarEvents} onChanged={calendarRows.reload} />
+        {dayPictureNote && (
+          <p className="cc-said is-bad" role="alert" data-testid="church-calendar-picture-note">
+            {dayPictureNote}
+          </p>
+        )}
+        {dayPicture && <FullPicture open={dayPicture} onClose={() => setDayPicture(null)} closeRef={dayPictureClose} />}
+        <ChurchCalendarTools
+          events={calendarEvents}
+          canManage={calendarAccess.canManage}
+          units={calendarAccess.units || []}
+          onAdd={addCalendarEvents}
+          onPost={postCalendarEvent}
+          onChanged={calendarRows.reload}
+          draft={calendarDraft}
+        />
+        <ChurchCalendarOffice canManage={calendarAccess.canManage} todayKey={churchDateKey(new Date())} />
         <ChurchCalendarPlanning
           events={calendarEvents}
           todayKey={churchDateKey(new Date())}

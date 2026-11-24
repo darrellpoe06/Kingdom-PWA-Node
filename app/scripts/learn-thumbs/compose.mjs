@@ -45,6 +45,7 @@ if (!process.env.FONTCONFIG_FILE) {
 }
 const { default: sharp } = await import('sharp');
 const { dHash } = await import('./dhash.mjs');
+const { gradeImage } = await import('./grade.mjs');
 
 // Love Corner palette (app/src/lib/lovecorner-palette.js).
 export const COLORS = Object.freeze({ white: '#FFFFFF', gold: '#CFA63C', black: '#1A1012', red: '#C03222' });
@@ -140,16 +141,16 @@ export function overlaySvg({ lines, size, layout = 'left', department = '', widt
   const tx = -tan * midY;
   const text = lines.map((l, i) => `<text x="${x}" y="${(top + i * lh).toFixed(1)}" fill="${lineColor(i, lines.length)}" text-anchor="${anchor}">${xmlEscape(l.toUpperCase())}</text>`).join('');
   const g0 = left ? '0' : '1';
-  const g1 = left ? '0.68' : '0.32';
+  const g1 = left ? '0.6' : '0.4'; // a light, text-side scrim; the picture stays bright (2026-11-24)
   const brandX = left ? margin : width - margin;
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
   <defs>
     <linearGradient id="side" x1="${g0}" y1="0" x2="${g1}" y2="0">
-      <stop offset="0" stop-color="#000" stop-opacity="0.78"/>
+      <stop offset="0" stop-color="#000" stop-opacity="0.42"/>
       <stop offset="1" stop-color="#000" stop-opacity="0"/>
     </linearGradient>
-    <linearGradient id="foot" x1="0" y1="1" x2="0" y2="0.55">
-      <stop offset="0" stop-color="#000" stop-opacity="0.55"/>
+    <linearGradient id="foot" x1="0" y1="1" x2="0" y2="0.82">
+      <stop offset="0" stop-color="#000" stop-opacity="0.35"/>
       <stop offset="1" stop-color="#000" stop-opacity="0"/>
     </linearGradient>
     <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
@@ -189,7 +190,7 @@ async function exists(p) { try { await access(p); return true; } catch { return 
  */
 export async function composeLesson({
   image, courseKey, lessonId, thumbHeadline, layout = 'left', department = '',
-  outDir, publicBase = '/learn-thumbs', timeoutMs = 60000,
+  outDir, publicBase = '/learn-thumbs', timeoutMs = 60000, look = null,
 }) {
   if (!courseKey || !lessonId) throw new ComposeError('bad-input', 'courseKey and lessonId are required');
   if (!/^[a-z0-9][a-z0-9-]*$/i.test(courseKey) || !/^[a-z0-9][a-z0-9-]*$/i.test(lessonId)) throw new ComposeError('bad-input', 'courseKey and lessonId must be slug-safe');
@@ -219,12 +220,18 @@ export async function composeLesson({
   await mkdir(tmpDir, { recursive: true });
   try {
     const sec = Math.ceil(timeoutMs / 1000);
-    const base = () => sharp(master, { failOn: 'error' }).timeout({ seconds: sec }).rotate();
+    // The grade pass (grade.mjs): bars cropped, exposure and color corrected.
+    // master.<ext> stays the provider's bytes; every derivative is made from the graded picture.
+    let graded = null;
+    if (look) graded = await withTimeout(gradeImage(master, { look }), timeoutMs, 'grade');
+    const source = graded ? graded.buffer : master;
+    const srcMeta = graded ? { width: graded.width } : meta;
+    const base = () => sharp(source, { failOn: 'error' }).timeout({ seconds: sec }).rotate();
     const ext = (meta.format === 'jpeg' ? 'jpg' : meta.format) || 'bin';
     await writeFile(join(tmpDir, `master.${ext}`), master);
 
     // Text-free 16:9 derivatives. Never enlarged past the master.
-    const srcW = meta.width;
+    const srcW = srcMeta.width;
     const files = [];
     for (const w of WIDTHS) {
       const target = Math.min(w, srcW);
@@ -270,6 +277,7 @@ export async function composeLesson({
       sizes: files.map(({ w, width, height, avif, webp }) => ({ w, width, height, avif, webp })),
       ogPath: url('og.jpg'),
       headline: { lines, fontSize: size, font: 'Anton' },
+      ...(graded ? { grade: { look: graded.look, crop: graded.crop, before: graded.before, after: graded.after, params: graded.params } } : {}),
     };
     await writeFile(join(tmpDir, 'manifest.json'), `${JSON.stringify(manifest, null, 1)}\n`);
 
