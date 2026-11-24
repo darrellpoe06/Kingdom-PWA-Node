@@ -131,6 +131,7 @@ class BringUpAndReport(unittest.TestCase):
         self.assertEqual(len(p["actions"]), 12)
         self.assertEqual(len(p["funnel_status"]), 1500)
         self.assertIn("uptime_s", p)
+        json.dumps(p)
 
     def test_uptime_reads_proc_and_never_raises(self):
         with tempfile.NamedTemporaryFile("w", delete=False) as f:
@@ -140,7 +141,6 @@ class BringUpAndReport(unittest.TestCase):
         finally:
             os.unlink(f.name)
         self.assertEqual(fw.uptime_seconds("/nonexistent/uptime"), -1)
-        json.dumps(p)
 
     def test_send_report_posts_one_dispatch_and_no_token_means_not_sent(self):
         seen = {}
