@@ -33,4 +33,10 @@ The child still hears gentle words. The grown-up beside them, and the next perso
 
 ## What is NOT in this record
 
-The cause on the live site is not established, and this record does not claim Ari answers now. Two things remain: an outside-in probe of `poetech.us/llm/health` beside the site's other probes, and a fresh tailnet key for the `funnel-health` witness, which only Darrell can mint. `re-review: 2026-11-26`.
+The cause on the live site is not proven, and this record does not claim Ari answers now. What was measured after the code above was written:
+
+- The public road was dark from 23:09Z on 11-23 to about 14:08Z on 11-24 (recorded on main, #2848). `funnel-health` run 45415930462 at 14:36Z passed: all twelve watched doors answer.
+- `/llm` is not one of the twelve. It is in neither `funnel_watchdog.py SOVEREIGN_MOUNTS` (what the NAS restores after an outage) nor `funnel-health.yml MOUNTS` (what the outside eye asks). After a Funnel reset nothing puts it back and nothing checks it.
+- It was not added here. `infra/nas-llm/README.md` gives port 8791 for the LLM server and the watchdog already gives 8791 to `/scribe`; one of the two is stale, and a wrong port in a script that rewrites the Funnel can close a working door. The box's own reading of what listens where settles it.
+
+Next, in order: read the listening ports on the NAS over the tailnet road; add `/llm` to both lists with the port it really has; watch `funnel-health` ask it. `re-review: 2026-11-26`.
