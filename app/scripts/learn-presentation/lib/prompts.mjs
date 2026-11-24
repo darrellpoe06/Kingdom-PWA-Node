@@ -29,15 +29,47 @@ export const DEPARTMENT_VISUALS = Object.freeze({
 // in the interface and the typography, never as a color filter on the picture.
 // (Pilot 1 put 'deep blacks, warm gold light' here and every image came out dark
 // and brown: mean luma 37.6/255. Owner direction 2026-11-24, DR in the session note.)
-export const BRAND_LOOK = 'Premium cinematic photography: exceptional composition and storytelling, bright natural daylight, high-key exposure, soft open shadows, neutral white balance, true-to-life natural skin tones, vivid natural color (greens, blues, reds), faces clearly visible and well lit, sharp focus, full-frame camera look. Composed like a premium YouTube thumbnail: the main person is large in the frame (medium close-up) on the right, face sharp, expressive and well lit with eyes visible; bright window daylight; clean light interiors or open sky; lush green plants; one bold color accent in clothing (red, cobalt blue or sunny yellow); softly blurred background.';
+export const BRAND_LOOK =
+  'Premium cinematic photography: exceptional composition and storytelling, bright natural daylight, high-key exposure, soft open shadows, neutral white balance, true-to-life natural skin tones, vivid natural color (greens, blues, reds), faces clearly visible and well lit, sharp focus, full-frame camera look. Composed like a premium YouTube thumbnail: the main person is large in the frame (medium close-up) on the right, face sharp, expressive and well lit with eyes visible; bright window daylight; clean light interiors or open sky; lush green plants; one bold color accent in clothing (red, cobalt blue or sunny yellow); softly blurred background.';
 
 // Art-direction words that produced the dark, brown pilot. A v2 prompt holding
 // any of them is refused before a cent is spent (prompts are checked, not trusted).
-export const BANNED_ART_TERMS = Object.freeze(['dim', 'dimly', 'dark', 'darkness', 'shadowy', 'deep black', 'deep shadow', 'candle', 'candlelit', 'oil lamp', 'firelight', 'night', 'nighttime', 'late-night', 'silhouette', 'moody', 'low-key', 'low key', 'sunset', 'dusk', 'golden hour', 'sunrise', 'sepia', 'brown filter', 'orange filter', 'dramatic lighting', 'single light source', 'negative space']);
+export const BANNED_ART_TERMS = Object.freeze([
+  'dim',
+  'dimly',
+  'dark',
+  'darkness',
+  'shadowy',
+  'deep black',
+  'deep shadow',
+  'candle',
+  'candlelit',
+  'oil lamp',
+  'firelight',
+  'night',
+  'nighttime',
+  'late-night',
+  'silhouette',
+  'moody',
+  'low-key',
+  'low key',
+  'sunset',
+  'dusk',
+  'golden hour',
+  'sunrise',
+  'sepia',
+  'brown filter',
+  'orange filter',
+  'dramatic lighting',
+  'single light source',
+  'negative space',
+]);
 
 /** The banned terms a prompt contains (whole words / phrases, case-insensitive). */
 export function bannedArtTerms(prompt) {
-  const s = ` ${String(prompt || '').toLowerCase().replace(/[^a-z0-9-]+/g, ' ')} `;
+  const s = ` ${String(prompt || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9-]+/g, ' ')} `;
   return BANNED_ART_TERMS.filter((t) => s.includes(` ${t} `));
 }
 
@@ -46,8 +78,9 @@ const MAX_LESSON_CHARS = 14000;
 /** The text the model reads: the adult version first, else the nearest age version. Read-only. */
 export function lessonReading(lesson) {
   const levels = lesson && lesson.levels && typeof lesson.levels === 'object' ? lesson.levels : {};
-  const pick = [lesson && lesson.lesson, levels.standard, levels.teen, levels.senior, levels.youth, levels.child]
-    .find((t) => typeof t === 'string' && t.trim());
+  const pick = [lesson && lesson.lesson, levels.standard, levels.teen, levels.senior, levels.youth, levels.child].find(
+    (t) => typeof t === 'string' && t.trim()
+  );
   const text = pick || '';
   return text.length > MAX_LESSON_CHARS ? `${text.slice(0, MAX_LESSON_CHARS)}\n[... lesson continues]` : text;
 }
@@ -62,7 +95,7 @@ export const SYSTEM_PROMPT = [
   '4. promoDescription: 1 to 2 plain sentences saying what the lesson actually teaches.',
   '5. In your OWN words, name the one true God by His covenant name "Yahweh" rather than the generic word "God" (house style). Never alter or paraphrase quoted Scripture, and do not quote Scripture in these fields.',
   '6. Capitalize references to Yahweh, Jesus, the Holy Spirit, the Father, the Son and the Word (Scripture), including He/His/Him for God. Never capitalize satan, lucifer, the devil or the adversary.',
-  '7. imagePrompt: a detailed cinematic 16:9 PHOTOGRAPH prompt for a thumbnail background. Describe subject, setting, action, emotion, lighting, lens and composition. Use bright natural daylight and natural color; keep the main subject in the right half with a bright, uncluttered area on the left for a headline added later. Never a dark, dim, night, candlelit or silhouetted scene. The image itself must contain NO text, letters, numbers, logos, watermarks or signage. Where people appear, show diverse, culturally representative people with meaningful representation of Black men, women, children, families and professionals, with dignified, realistic expressions; never a real or famous person\'s likeness; never a copyrighted character or another creator\'s branding. Never depict Jesus\' face.',
+  "7. imagePrompt: a detailed cinematic 16:9 PHOTOGRAPH prompt for a thumbnail background. Describe subject, setting, action, emotion, lighting, lens and composition. Use bright natural daylight and natural color; keep the main subject in the right half with a bright, uncluttered area on the left for a headline added later. Never a dark, dim, night, candlelit or silhouetted scene. The image itself must contain NO text, letters, numbers, logos, watermarks or signage. Where people appear (owner direction 2026-11-24, DR-1640): African American / Foundational Black American people are in EVERY picture, named plainly in the prompt as Black, across generations (children, families, elders, professionals), shown as capable and successful (owners, leaders, teachers, professionals, thriving families), never as a stereotype of need; about one picture in ten is also inclusive, with people of other groups in the frame beside them; dignified, realistic expressions; never a real or famous person's likeness; never a copyrighted character or another creator's branding. Never depict Jesus' face.",
   '8. imageAlt: one plain sentence describing the image for a screen reader.',
 ].join('\n');
 
@@ -108,7 +141,11 @@ export function parseCopy(raw) {
   const end = s.lastIndexOf('}');
   if (start < 0 || end <= start) throw new CopyParseError('no JSON object in model output');
   let obj;
-  try { obj = JSON.parse(s.slice(start, end + 1)); } catch (e) { throw new CopyParseError(`invalid JSON: ${e.message}`, { cause: e }); }
+  try {
+    obj = JSON.parse(s.slice(start, end + 1));
+  } catch (e) {
+    throw new CopyParseError(`invalid JSON: ${e.message}`, { cause: e });
+  }
   for (const k of KEYS) {
     if (typeof obj[k] !== 'string' || !obj[k].trim()) throw new CopyParseError(`missing or empty "${k}"`);
     obj[k] = obj[k].trim();

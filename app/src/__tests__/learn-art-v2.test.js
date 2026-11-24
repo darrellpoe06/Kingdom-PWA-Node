@@ -8,7 +8,7 @@ import { join, resolve } from 'node:path';
 import { Ledger } from '../../scripts/learn-presentation/lib/ledger.mjs';
 import { Budget } from '../../scripts/learn-presentation/lib/pipeline.mjs';
 import { bannedArtTerms, finalImagePrompt, BRAND_LOOK } from '../../scripts/learn-presentation/lib/prompts.mjs';
-import { loadArt, validateArt, resolveArtScope, runArtV2, readTopics } from '../../scripts/learn-presentation/lib/art-v2.mjs';
+import { loadArt, validateArt, resolveArtScope, runArtV2, readTopics, representation } from '../../scripts/learn-presentation/lib/art-v2.mjs';
 import { remainingCents } from '../../scripts/learn-presentation/lib/scope.mjs';
 
 const ART = loadArt(resolve(__dirname, '../../scripts/learn-presentation/art-direction-v2.json'));
@@ -110,5 +110,24 @@ describe('art direction v2', () => {
     expect(Object.keys(topics).sort()).toEqual(['faith', 'tech']);
     expect(ledger.getRecord('topics', 'faith')).toBeNull();
     expect(JSON.parse(readFileSync(join(dir, 'state', 'topics.json'), 'utf8')).tech.label).toBe('A.I. & Technology');
+  });
+
+  it('DR-1640: African American people in every picture; about 1 in 10 inclusive (proven to catch)', () => {
+    // A picture with no Black people is refused.
+    const noBlack = {
+      ...ART,
+      lessons: [{ ...ART.lessons[0], prompt: 'A smiling woman in a bright office with green plants and a laptop.' }, ...ART.lessons.slice(1)],
+    };
+    expect(validateArt(noBlack).join(' ')).toMatch(/every picture shows African American people/);
+    // An undeclared mix is refused.
+    const undeclared = { ...ART, lessons: [{ ...ART.lessons[0], people: undefined }, ...ART.lessons.slice(1)] };
+    expect(validateArt(undeclared).join(' ')).toMatch(/declare people/);
+    // Inclusive shots stay "at times": a majority-mixed set is refused.
+    const allMixed = { ...ART, lessons: ART.lessons.map((l) => ({ ...l, people: 'mixed' })) };
+    expect(validateArt(allMixed).join(' ')).toMatch(/mixed-group/);
+    // The committed set: every prompt names Black people, and the inclusive share is near 10%.
+    const mix = representation([...ART.lessons, ...ART.topics]);
+    expect(mix.mixedShare).toBeGreaterThan(0);
+    expect(mix.mixedShare).toBeLessThanOrEqual(0.2);
   });
 });

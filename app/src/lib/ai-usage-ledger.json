@@ -1466,6 +1466,21 @@
       "notes": "Spoken the same day; built the same session."
     },
     {
+      "id": "learn-art-v2-representation",
+      "date": "2026-11-24",
+      "task": "Learn pictures: daylight art direction v2, the grade pass, the 20-lesson prototype, and every picture shows African American people succeeding with about 1 in 10 inclusive",
+      "drs": [
+        "DR-1640"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 3,
+      "estimateWithoutAiHours": 24,
+      "notes": "Tokens not metered here. Picture spend is BFL, not tokens: 3 samples 18c + 13 pictures 78c this session, recorded in the pipeline ledger under the 5 USD pilot cap. Proven to catch: 20/20 pilot-1 prompts refused by the dark-art gate; the DR-1640 gate refuses a picture with no Black people."
+    },
+    {
       "id": "a-record-is-one-persons",
       "date": "2026-11-19",
       "task": "A learner record holds one person's reading: reading history leaves the household snapshot, the catch-up files only what the account did on the device",

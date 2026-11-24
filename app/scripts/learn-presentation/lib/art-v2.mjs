@@ -30,6 +30,22 @@ export function loadArt(path) {
   return art;
 }
 
+// DR-1640 (owner, 2026-11-24): African American / Foundational Black American
+// people are in EVERY picture, shown as successful; about 1 in 10 pictures is also
+// inclusive (people of other groups in the frame beside them). Each entry declares
+// `people`: 'fba' (Black cast) | 'mixed' (Black people with other groups).
+export const PEOPLE = Object.freeze(['fba', 'mixed']);
+export const MIXED_TARGET = 0.1;
+export const MIXED_MAX_SHARE = 0.2; // inclusive "at times", never the majority look
+export const MIXED_MIN_SHARE_AT_SCALE = 0.05; // from 50 pictures, inclusive shots must appear
+export const SCALE_MIN = 50;
+
+/** The representation mix of a set of entries. */
+export function representation(entries) {
+  const mixed = entries.filter((e) => e.people === 'mixed').length;
+  return { pictures: entries.length, mixed, mixedShare: entries.length ? mixed / entries.length : 0 };
+}
+
 /** Every problem with the art file. Empty = safe to spend on. */
 export function validateArt(art, { mountedKeys = null } = {}) {
   const problems = [];
@@ -45,10 +61,21 @@ export function validateArt(art, { mountedKeys = null } = {}) {
     if (!String(e.alt || '').trim()) problems.push(`${e.id}: empty alt text`);
     const bad = bannedArtTerms(e.prompt);
     if (bad.length) problems.push(`${e.id}: banned art terms (the dark pilot look): ${bad.join(', ')}`);
+    if (!PEOPLE.includes(e.people)) problems.push(`${e.id}: declare people as fba or mixed (DR-1640)`);
+    if (!/\bBlack\b/.test(e.prompt)) problems.push(`${e.id}: every picture shows African American people, named as Black in the prompt (DR-1640)`);
     if (/\bGod\b/.test(`${e.prompt} ${e.alt}`)) problems.push(`${e.id}: say "Yahweh" in our voice, not "God" (DR-0210)`);
     if (mountedKeys && e.id.indexOf('topic::') !== 0 && !mountedKeys.has(e.id)) problems.push(`${e.id}: not a mounted lesson`);
   }
   for (const s of art.samples || []) if (!seen.has(s)) problems.push(`sample ${s} is not an entry`);
+  const mix = representation([...lessons, ...topics]);
+  if (mix.mixedShare > MIXED_MAX_SHARE)
+    problems.push(
+      `DR-1640: ${Math.round(mix.mixedShare * 100)}% of pictures are mixed-group; about ${MIXED_TARGET * 100}% is the direction (at most ${MIXED_MAX_SHARE * 100}%)`
+    );
+  if (mix.pictures >= SCALE_MIN && mix.mixedShare < MIXED_MIN_SHARE_AT_SCALE)
+    problems.push(
+      `DR-1640: at ${mix.pictures} pictures only ${Math.round(mix.mixedShare * 100)}% are inclusive; about ${MIXED_TARGET * 100}% is the direction`
+    );
   return problems;
 }
 
