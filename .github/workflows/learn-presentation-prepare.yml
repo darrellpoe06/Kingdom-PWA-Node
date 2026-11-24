@@ -1,11 +1,11 @@
 # Learn presentation: prepare a title + cinematic thumbnail for each new lesson, for APPROVAL only (never edits a lesson, never publishes).
-# Brakes: one spend cap per run (titles <= 20%), one run at a time, OFF unless vars.LEARN_PRESENTATION_AUTOPREP == 'on'. Detail: docs/99-session-notes/2026-11-23-learn-presentation-redesign-phase-1-2.md
+# Brakes: $5 combined across all runs, retries included (lib/scope.mjs; titles <= 20% per run), one run at a time, OFF unless vars.LEARN_PRESENTATION_AUTOPREP == 'on'. Detail: docs/99-session-notes/2026-11-23-learn-presentation-redesign-phase-1-2.md
 name: Learn presentation — prepare new lessons
 # Manual (dispatch) only until the owner approves the full library: an automatic run before then would start on the ~974-lesson backlog.
 on:
   workflow_dispatch:
     inputs:
-      only: { description: '"seed" = the 20-lesson pilot (default), "all" = full library (needs approval), or lesson ids', required: true, default: 'seed' }
+      only: { description: '"seed" = the 20 pilot lessons (max 20; the full library is disabled in code until approved)', required: true, default: 'seed' }
       budget_cents: { description: 'Hard spend cap for this whole run, in cents', required: false, default: '500' }
 permissions:
   contents: read
@@ -36,7 +36,7 @@ jobs:
       - name: Titles, images, composition (one cap for the whole run; resumable)
         run: |
           set -euo pipefail
-          [ -n "$ONLY" ] || { echo "only is required: seed, all, or lesson ids"; exit 1; }; SCOPE="--only $ONLY"; [ "$ONLY" != "all" ] || SCOPE=""
+          SCOPE="--only ${ONLY:-seed}" # validated in code: <= 20 real lessons, never "all" (lib/scope.mjs)
           TEXT_CAP=$(( CAP / 5 )); IMAGE_CAP=$(( CAP - TEXT_CAP )); echo "cap ${CAP}c = text ${TEXT_CAP}c + images ${IMAGE_CAP}c"
           CLI="npx vite-node scripts/learn-presentation/cli.mjs"
           $CLI estimate $SCOPE

@@ -351,3 +351,110 @@ describe('prompts, prices and providers', () => {
     expect(out.bytes.length).toBe(3);
   });
 });
+
+// ---------------------------------------------------------------------------
+// The owner's pilot safeguards (2026-11-24): the pilot cannot be widened, and
+// $5 is the combined ceiling, retries and failed tries included.
+// ---------------------------------------------------------------------------
+describe('pilot scope cannot be widened', () => {
+  const SEED_PATH = join(process.cwd(), 'src/lib/learn-presentation/presentation-seed.json');
+  let scope;
+  beforeEach(async () => {
+    scope = await import('../../scripts/learn-presentation/lib/scope.mjs');
+  });
+
+  it('the seed is exactly the 20 approved pilot lessons, all mounted', async () => {
+    const { learnInventory } = await import('../lib/learn-presentation/integrity.js');
+    const real = buildItems(learnInventory());
+    const picked = scope.resolveSpendingScope('seed', real, { seedPath: SEED_PATH });
+    expect(scope.PILOT_MAX_LESSONS).toBe(20);
+    expect(picked).toHaveLength(20);
+    expect(new Set(picked.map((x) => `${x.courseKey}::${x.lessonId}`)).size).toBe(20);
+  });
+
+  it('refuses an empty selection, "all", unknown ids and more than 20', () => {
+    const many = Array.from({ length: 21 }, (_, i) => ({ courseKey: 'c', lessonId: `l${i}` }));
+    const r =
+      (only, its = items) =>
+      () =>
+        scope.resolveSpendingScope(only, its, { seedPath: SEED_PATH });
+    expect(r(undefined)).toThrow(scope.ScopeError);
+    expect(r('')).toThrow(/must name its lessons/);
+    expect(r(true)).toThrow(/must name its lessons/);
+    expect(r('all')).toThrow(/full library is disabled/);
+    expect(r('ALL')).toThrow(/full library is disabled/);
+    expect(r('ll1-a,not-a-lesson')).toThrow(/not mounted lessons: not-a-lesson/);
+    expect(r(many.map((x) => x.lessonId).join(','), many)).toThrow(/at most 20/);
+    expect(scope.FULL_LIBRARY_ENABLED).toBe(false);
+  });
+
+  it('a repeated id is one lesson, not two', () => {
+    const picked = scope.resolveSpendingScope('ll1-a,ll1-a,living-lessons::ll1-a', items, { seedPath: SEED_PATH });
+    expect(picked).toHaveLength(1);
+  });
+
+  it('the combined cap subtracts everything already spent, across runs', () => {
+    expect(scope.TOTAL_CAP_CENTS).toBe(500);
+    expect(scope.remainingCents(400, 0)).toBe(400);
+    expect(scope.remainingCents(400, 300)).toBe(200);
+    expect(scope.remainingCents(null, 480)).toBe(20);
+    expect(scope.remainingCents(400, 900)).toBe(0);
+  });
+});
+
+describe('every try is charged, retries and failures included', () => {
+  it('three failed text tries cost three calls, never zero (proven-to-catch the old release path)', async () => {
+    const p = mockText(() => {
+      throw new ProviderError('busy', { status: 503 });
+    });
+    const l = ledger();
+    const budget = new Budget(100);
+    await textRun(l, p, { items: items.slice(0, 1), budget });
+    expect(p.calls.length).toBe(3);
+    expect(budget.spent).toBe(3);
+    expect(l.spentCents()).toBe(3);
+  });
+
+  it('a retried image is charged per request, and the cap counts the retries', async () => {
+    const l = ledger();
+    await textRun(
+      l,
+      mockText((req) => goodCopy(titleFrom(req.user))),
+      { items: items.slice(0, 2) }
+    );
+    let n = 0;
+    const flaky = mockImage(() => {
+      n += 1;
+      if (n === 1) throw new ProviderError('busy', { status: 503 });
+      return Buffer.from(`img-${n}`);
+    });
+    const budget = new Budget(12);
+    const t = await runImages({
+      items: items.slice(0, 2),
+      ledger: l,
+      provider: flaky,
+      outDir: join(dir, 'img'),
+      batchId: 'b1',
+      concurrency: 1,
+      budget,
+      sleep: noSleep,
+    });
+    // 1 failed try (6c) + 1 success (6c) = 12c reaches the cap; the second lesson is never sent
+    expect(budget.spent).toBe(12);
+    expect(t.done).toBe(1);
+    expect(t.stoppedByBudget).toBe(true);
+    expect(flaky.calls).toBe(2);
+  });
+
+  it('a second run with the same ledger spends nothing on finished lessons', async () => {
+    const l = ledger();
+    const p = mockText((req) => goodCopy(titleFrom(req.user)));
+    await textRun(l, p, { items: items.slice(0, 2) });
+    const before = l.spentCents();
+    const again = mockText((req) => goodCopy(titleFrom(req.user)));
+    const t = await textRun(l, again, { items: items.slice(0, 2) });
+    expect(t.skipped).toBe(2);
+    expect(again.calls.length).toBe(0);
+    expect(l.spentCents()).toBe(before);
+  });
+});

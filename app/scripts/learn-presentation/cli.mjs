@@ -4,6 +4,7 @@
 // Commands: estimate | text | images | status | export | retry-failed
 // See README.md beside this file. Nothing here writes to a lesson.
 // =============================================================================
+import { resolveSpendingScope, remainingCents, ScopeError, TOTAL_CAP_CENTS } from './lib/scope.mjs';
 import process from 'node:process';
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join, dirname, resolve } from 'node:path';
@@ -62,7 +63,16 @@ async function main() {
 
   const inventory = learnInventory();
   const all = buildItems(inventory);
-  const items = selectItems(all, { only: onlyIds(flags), limit: flags.limit ? int(flags.limit) : null });
+  // Spending commands run ONLY on an explicit, validated pilot scope (lib/scope.mjs);
+  // estimate/status/export spend nothing and may look at the whole library.
+  const spending = ['text', 'images', 'retry-failed', 'compose'].includes(cmd);
+  let items;
+  try {
+    items = spending ? resolveSpendingScope(flags.only, all, { seedPath: SEED }) : selectItems(all, { only: onlyIds(flags), limit: flags.limit ? int(flags.limit) : null });
+  } catch (e) {
+    if (e instanceof ScopeError) { log(`refused: ${e.message}`); process.exitCode = 2; return; }
+    throw e;
+  }
 
   if (cmd === 'estimate' || flags['dry-run']) {
     const e = estimate({ lessons: items.length, prices: prices(flags), regenFactor: flags.regen ? Number(flags.regen) : undefined });
@@ -78,7 +88,11 @@ async function main() {
   const ledger = new Ledger(stateDir);
   const courses = coursesForValidation(inventory);
   const concurrency = int(flags.concurrency, 4);
-  const budget = new Budget(flags['budget-cents'] !== undefined ? int(flags['budget-cents']) : null);
+  // The combined ceiling: this stage may spend the smaller of its own cap and
+  // what is left of TOTAL_CAP_CENTS after everything the ledger has recorded.
+  const already = ledger.spentCents();
+  const budget = new Budget(remainingCents(flags['budget-cents'] !== undefined ? int(flags['budget-cents']) : null, already));
+  if (spending && cmd !== 'compose') log(`spend so far ${dollars(already)} of ${dollars(TOTAL_CAP_CENTS)} combined · this stage may spend up to ${dollars(budget.cap)}`);
   const retryFailed = cmd === 'retry-failed';
 
   if (cmd === 'text' || (retryFailed && flags.kind !== 'image')) {

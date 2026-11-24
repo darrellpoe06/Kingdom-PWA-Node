@@ -253,3 +253,18 @@ Verified end to end with no network: synthetic master → `compose` (8 derivativ
 3. **One click:** Actions → "Learn presentation — prepare new lessons" → Run workflow → `only` = `seed`, `budget_cents` = `500`.
 4. About 5 minutes later the run's artifact holds `review-export.json` plus every composed image, already keyed to each lesson ID. Nothing is uploaded or associated by hand.
 5. The 20 are loaded into the prototype and screenshotted for approval.
+
+## 10. Pilot safeguards (owner's direction, 2026-11-24)
+
+Enforced in code (`app/scripts/learn-presentation/lib/scope.mjs`), not only in the workflow form:
+
+| Safeguard | How it is enforced | Proven by |
+|---|---|---|
+| Default scope = the 20 approved pilot lessons | Workflow input `only` is required and defaults to `seed`; `seedKeys()` refuses a seed that is not exactly 20 unique lessons | `the seed is exactly the 20 approved pilot lessons, all mounted` |
+| Max 20 unique lessons | `PILOT_MAX_LESSONS = 20`; duplicates collapse to one | `refuses ... more than 20`, `a repeated id is one lesson` |
+| Empty or invalid selections refused | No scope, or any id that is not a mounted lesson, refuses with exit 2 before any provider is called | `refuses an empty selection, "all", unknown ids` + CLI end-to-end (exit 2) |
+| Full library disabled | `FULL_LIBRARY_ENABLED = false`; `all` is refused; enabling it is a reviewed code change | same test |
+| $5 combined, retries included | `TOTAL_CAP_CENTS = 500` minus everything the ledger records across runs; every try, including retries and failed tries, reserves and is charged its own cost (a failed request may have been billed) | `three failed text tries cost three calls`, `a retried image is charged per request` (both FAIL on the previous code: proven-to-catch) |
+| No duplicate generation | Finished lessons are skipped by the ledger (idempotency key = batch + lesson + kind + content hash) | `a second run with the same ledger spends nothing on finished lessons` |
+
+The combined total persists in the job ledger, which the workflow keeps in the Actions cache between runs. If GitHub evicted that cache the total would restart from zero; the prepaid $10 FLUX balance with auto-replenishment off is the hard backstop.

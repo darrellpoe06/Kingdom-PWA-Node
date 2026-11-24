@@ -98,14 +98,24 @@ export async function runText({ items, ledger, provider, courses, batchId, concu
   const cost = provider.costCents != null ? provider.costCents : 1;
   const avoid = () => Object.values(ledger.records).map((r) => r.displayTitle).filter(Boolean);
 
-  const ask = async (item, feedback) => {
-    const held = budget.reserve(cost);
-    try {
-      const out = await retry(() => withTimeout((signal) => provider.complete({ system: SYSTEM_PROMPT, user: userPrompt({ ...item, feedback, avoidTitles: avoid() }), signal }), timeoutMs, `text ${item.lessonId}`), { attempts: 3, sleep, random });
-      budget.settle(held, out.costCents != null ? out.costCents : cost);
-      return out;
-    } catch (e) { budget.release(held); throw e; }
-  };
+  // Every TRY reserves and is charged on its own, retries and failures
+  // included: a request that reached the provider may have been billed, so a
+  // failed try counts as spent (never released). meter.c is the job's total.
+  const ask = async (item, feedback, meter) =>
+    retry(async () => {
+      const held = budget.reserve(cost);
+      try {
+        const out = await withTimeout((signal) => provider.complete({ system: SYSTEM_PROMPT, user: userPrompt({ ...item, feedback, avoidTitles: avoid() }), signal }), timeoutMs, `text ${item.lessonId}`);
+        const c = out.costCents != null ? out.costCents : cost;
+        budget.settle(held, c);
+        meter.c += c;
+        return out;
+      } catch (e) {
+        budget.settle(held, cost);
+        meter.c += cost;
+        throw e;
+      }
+    }, { attempts: 3, sleep, random });
 
   const check = (item, copy) => {
     const rec = candidateRecord(item, copy);
@@ -123,18 +133,17 @@ export async function runText({ items, ledger, provider, courses, batchId, concu
     const base = { batchId, courseKey: item.courseKey, lessonId: item.lessonId, kind: 'text', contentSha: item.contentSha, idempotencyKey: idempotencyKey({ batchId, ...item, kind: 'text' }), provider: provider.name, model: provider.model };
     const attempts = (d.attempts || 0) + 1;
     ledger.write({ ...base, state: 'running', attempts, leaseUntil: ledger.leaseUntil(), costCents: 0 });
-    let spent = 0;
+    const meter = { c: 0 };
     try {
       let feedback = null;
       for (let pass = 1; pass <= 2; pass += 1) {
-        const out = await ask(item, feedback);
-        spent += out.costCents != null ? out.costCents : cost;
+        const out = await ask(item, feedback, meter);
         let copy;
         try { copy = parseCopy(out.text); } catch (e) { feedback = e.message; continue; }
         const { rec, msgs } = check(item, copy);
         if (!msgs.length) {
           ledger.putRecord({ ...rec, image: null, status: 'review', featured: false, provider: { text: provider.name, model: provider.model }, contentSha: item.contentSha });
-          ledger.write({ ...base, state: 'succeeded', attempts, costCents: spent, leaseUntil: null, lastError: null });
+          ledger.write({ ...base, state: 'succeeded', attempts, costCents: meter.c, leaseUntil: null, lastError: null });
           tally.done += 1;
           log(`text ✓ ${item.courseKey}/${item.lessonId}: ${copy.displayTitle}`);
           return;
@@ -144,17 +153,17 @@ export async function runText({ items, ledger, provider, courses, batchId, concu
           ledger.putRecord({ ...rec, image: null, status: 'draft', featured: false, validation: msgs, contentSha: item.contentSha });
         }
       }
-      ledger.write({ ...base, state: 'needs-review', attempts, costCents: spent, leaseUntil: null, lastError: feedback });
+      ledger.write({ ...base, state: 'needs-review', attempts, costCents: meter.c, leaseUntil: null, lastError: feedback });
       tally.needsReview += 1;
       log(`text ? ${item.courseKey}/${item.lessonId}: ${feedback}`);
     } catch (e) {
       if (e instanceof BudgetExceeded) {
         tally.stoppedByBudget = true;
-        ledger.write({ ...base, state: 'queued', attempts: attempts - 1, costCents: spent, leaseUntil: null, lastError: e.message });
+        ledger.write({ ...base, state: 'queued', attempts: attempts - 1, costCents: meter.c, leaseUntil: null, lastError: e.message });
         log(`budget: ${e.message}`);
         return;
       }
-      ledger.write({ ...base, state: 'failed', attempts, costCents: spent, leaseUntil: null, lastError: String(e && e.message ? e.message : e) });
+      ledger.write({ ...base, state: 'failed', attempts, costCents: meter.c, leaseUntil: null, lastError: String(e && e.message ? e.message : e) });
       tally.failed += 1;
       log(`text ✗ ${item.courseKey}/${item.lessonId}: ${e.message}`);
     }
@@ -187,13 +196,26 @@ export async function runImages({ items, ledger, provider, outDir, batchId, conc
     const base = { batchId, courseKey: item.courseKey, lessonId: item.lessonId, kind: 'image', contentSha: item.contentSha, idempotencyKey: idempotencyKey({ batchId, ...item, kind: 'image' }), provider: provider.name, model: provider.model };
     const attempts = (d.attempts || 0) + 1;
     ledger.write({ ...base, state: 'running', attempts, leaseUntil: ledger.leaseUntil(), costCents: 0 });
-    let held = 0;
+    // Per-TRY reservation, as in Stage A: each generation request (retries
+    // included) reserves its own cost before it is sent, and a failed request
+    // is charged, because the provider may already have billed it.
+    const meter = { c: 0 };
     try {
-      held = budget.reserve(cost);
-      if (bucket) await bucket.take();
-      const out = await retry(() => withTimeout((signal) => provider.generate({ prompt: finalImagePrompt(rec.visual.prompt), signal }), timeoutMs, `image ${item.lessonId}`), { attempts: 3, sleep, random, onRetry: ({ attempt, wait, error }) => log(`image retry ${attempt} ${item.lessonId} in ${wait}ms: ${error.message}`) });
-      budget.settle(held, out.costCents != null ? out.costCents : cost);
-      held = 0;
+      const out = await retry(async () => {
+        const held = budget.reserve(cost);
+        if (bucket) await bucket.take();
+        try {
+          const r = await withTimeout((signal) => provider.generate({ prompt: finalImagePrompt(rec.visual.prompt), signal }), timeoutMs, `image ${item.lessonId}`);
+          const c = r.costCents != null ? r.costCents : cost;
+          budget.settle(held, c);
+          meter.c += c;
+          return r;
+        } catch (e) {
+          budget.settle(held, cost);
+          meter.c += cost;
+          throw e;
+        }
+      }, { attempts: 3, sleep, random, onRetry: ({ attempt, wait, error }) => log(`image retry ${attempt} ${item.lessonId} in ${wait}ms: ${error.message}`) });
       const dir = join(outDir, item.courseKey);
       mkdirSync(dir, { recursive: true });
       const file = join(dir, `${item.lessonId}.${out.ext || 'jpg'}`);
@@ -208,18 +230,17 @@ export async function runImages({ items, ledger, provider, outDir, batchId, conc
       }
       ledger.putRecord({ ...rec, image: { path: relative(outDir, file), sha256: digest, phash, provider: provider.name, model: out.model || provider.model }, imageFlags: flags });
       const state = flags.length ? 'needs-review' : 'succeeded';
-      ledger.write({ ...base, state, attempts, costCents: out.costCents != null ? out.costCents : cost, leaseUntil: null, lastError: flags.length ? flags.join('; ') : null });
+      ledger.write({ ...base, state, attempts, costCents: meter.c, leaseUntil: null, lastError: flags.length ? flags.join('; ') : null });
       if (flags.length) tally.needsReview += 1; else tally.done += 1;
       log(`image ${flags.length ? '?' : '✓'} ${item.courseKey}/${item.lessonId}${flags.length ? `: ${flags.join('; ')}` : ''}`);
     } catch (e) {
-      if (held) budget.release(held);
       if (e instanceof BudgetExceeded) {
         tally.stoppedByBudget = true;
-        ledger.write({ ...base, state: 'queued', attempts: attempts - 1, costCents: 0, leaseUntil: null, lastError: e.message });
+        ledger.write({ ...base, state: 'queued', attempts: attempts - 1, costCents: meter.c, leaseUntil: null, lastError: e.message });
         log(`budget: ${e.message}`);
         return;
       }
-      ledger.write({ ...base, state: 'failed', attempts, costCents: 0, leaseUntil: null, lastError: String(e && e.message ? e.message : e) });
+      ledger.write({ ...base, state: 'failed', attempts, costCents: meter.c, leaseUntil: null, lastError: String(e && e.message ? e.message : e) });
       tally.failed += 1;
       log(`image ✗ ${item.courseKey}/${item.lessonId}: ${e.message}`);
     }
