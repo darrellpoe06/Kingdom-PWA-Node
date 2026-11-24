@@ -145,6 +145,7 @@ export default function KidsAdventure({
   saveRecord = saveLearnerRecord,
   ask = askTutor,
   onBack = null,
+  backLabel = '◀ Back',
   shotList = undefined,
   firstQuestion = '',
 }) {
@@ -282,8 +283,8 @@ export default function KidsAdventure({
           Open in Learn
         </a>
         {onBack && (
-          <button type="button" className={`kz-act plain ${KZ_FOCUS}`} onClick={onBack}>
-            ◀ Back
+          <button type="button" className={`kz-act plain ${KZ_FOCUS}`} onClick={onBack} data-testid="adventure-exit">
+            {backLabel}
           </button>
         )}
       </div>

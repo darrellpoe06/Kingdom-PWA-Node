@@ -120,18 +120,40 @@ export function courseStandingLabel(course, ctx = {}) {
   return `${s.done} of ${total} read · ${Math.floor((s.done / total) * 100)}%`;
 }
 
-/** The whole list in four numbers: how many courses are not started, begun and finished, and the lessons read. */
+/**
+ * The whole list in four numbers: how many courses are not started, begun and finished, and the lessons read.
+ *
+ * ONE LESSON IS ONE LESSON (Darrell 2026-11-24, of this line reading 994 beside
+ * the Latest list's 993: "993 or 994 lessons currently? Can't be both!"). A
+ * lesson carried whole into a second course (`sharedWith`, its home mounted)
+ * is counted ONCE here, at home — the same rule the Latest list keeps
+ * (latestLessons) — and reads as read when either door was read. Each course
+ * still counts its own lessons on its own row; only the library total dedupes.
+ */
 export function libraryStanding(courses, ctx = {}) {
   const list = (Array.isArray(courses) ? courses : []).filter((c) => c && courseLessonCount(c) > 0);
   const out = { courses: list.length, notStarted: 0, inProgress: 0, completed: 0, lessons: 0, lessonsRead: 0 };
+  const mounted = new Set(list.map((c) => c.key));
+  const places = Array.isArray(ctx.places) ? ctx.places : [];
+  const progress = ctx.progress || {};
+  const all = new Set();
+  const read = new Set();
   for (const c of list) {
     const s = courseStanding(c, ctx);
-    out.lessons += courseLessonCount(c);
-    out.lessonsRead += Math.min(s.done, courseLessonCount(c));
+    const doneIds = new Set(places.filter((p) => p && p.courseKey === c.key && p.done === true).map((p) => p.lessonId));
+    (c.schedule || []).forEach((m, i) => {
+      const sw = m && m.sharedWith && typeof m.sharedWith === 'object' ? m.sharedWith : null;
+      const home = sw && sw.course && sw.lesson && sw.course !== c.key && mounted.has(sw.course);
+      const id = home ? `${sw.course}\u0000${sw.lesson}` : `${c.key}\u0000${m && m.id ? m.id : `#${i}`}`;
+      all.add(id);
+      if (m && m.id && (doneIds.has(m.id) || progress[m.id])) read.add(id);
+    });
     if (s.state === 'completed') out.completed += 1;
     else if (s.state === 'in-progress') out.inProgress += 1;
     else out.notStarted += 1;
   }
+  out.lessons = all.size;
+  out.lessonsRead = read.size;
   out.pct = out.lessons ? Math.floor((out.lessonsRead / out.lessons) * 100) : 0;
   return out;
 }

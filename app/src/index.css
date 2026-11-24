@@ -599,6 +599,20 @@ button.lc-tile{cursor:pointer}
 .lc-tracks{display:flex;flex-wrap:wrap;gap:.375rem;margin-top:.625rem}
 .lc-tracks span{font-size:.72rem;font-weight:700;padding:.3rem .625rem;border-radius:999px;background:var(--lc-gold-tint);color:var(--lc-gold-ink);border:1px solid rgba(207,166,60,.5)}
 .lc-inst-btns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.5rem;margin-top:.75rem}
+/* A program's courses open in place (DR-1455 2e; Darrell 2026-11-24 "more intuitive"): one line until asked. */
+.lc-inst-more>summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:.5rem;font-weight:700}
+.lc-inst-more>summary::-webkit-details-marker{display:none}
+.lc-inst-more>summary::after{content:'\25BE';transition:transform .15s ease}
+.lc-inst-more[open]>summary::after{transform:rotate(180deg)}
+@media (prefers-reduced-motion:reduce){.lc-inst-more>summary::after{transition:none}}
+.lc-inst-more>summary.lc-btn{width:100%;justify-content:center}
+/* By age, young to seniors: each a door, not a line of text. Ink on paper with a gold rule (gold is a fill, never the words, on light; red stays reserved, DR-0099). */
+.lc-ages{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.5rem}
+@media (min-width:640px){.lc-ages{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.lc-age{display:flex;flex-direction:column;gap:.125rem;min-height:64px;padding:.5rem .75rem;border-radius:.875rem;background:var(--lc-paper);border:1px solid var(--lc-line);border-left:4px solid var(--lc-gold);color:var(--lc-ink);text-decoration:none}
+.lc-age b{font-family:var(--lc-display);font-size:.95rem}
+.lc-age small{font-size:.75rem}
+.lc-age:hover{border-color:var(--lc-gold)}
 .lc-inst-art{position:absolute;right:.5rem;bottom:-.75rem;width:118px;z-index:0;opacity:.95}
 .lc-band-institute .lc-band-p{max-width:25ch}
 .lc-stack{display:flex;flex-direction:column;gap:.5rem}
