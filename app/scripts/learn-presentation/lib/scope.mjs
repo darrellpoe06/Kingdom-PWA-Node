@@ -68,3 +68,12 @@ export function remainingCents(stageCapCents, ledgerSpentCents, totalCapCents = 
   const left = Math.max(0, totalCapCents - (Number(ledgerSpentCents) || 0));
   return stageCapCents == null ? left : Math.min(Number(stageCapCents), left);
 }
+
+/**
+ * The resolved scope as a Set holding both key forms (lessonId and
+ * courseKey::lessonId). Pilot 1 crashed in compose because it used the raw
+ * --only list (an array, which has no .has()); compose now uses this.
+ */
+export function scopeKeySet(items) {
+  return new Set((items || []).flatMap((it) => [it.lessonId, `${it.courseKey}::${it.lessonId}`]));
+}
