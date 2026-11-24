@@ -4365,6 +4365,7 @@ function ChurchLearnInner({
   signedIn = true,            // DR-0698: the shell passes !!authSession; a signed-out visitor reads and listens, and a download asks for an account
   learnerRecords = null,      // DR-0754: every learner record this account may read (his own, or every learner's for the Governor)
   currentUserId = null,       // which of those records is mine
+  learnStudioDefaultOn = false, // redesigned Learn defaults ON here with no URL (owner-only; never isGovernor -- every facilitator has that)
 }) {
   const [interestSent, setInterestSent] = useState({}); // keyed by course key
   const [helped, setHelped] = useState({}); // keyed by course key
@@ -4919,7 +4920,7 @@ function ChurchLearnInner({
 
   // FULL WIDTH, LIKE EVERY OTHER PAGE (Darrell 2026-09-14: "the lessons are
   // supposed to be the full width of the window... like all pages").
-  const [studioFlag] = useState(isLearnStudioOn), [studio, setStudio] = useState(studioFlag); // owner preview, opted-in device only
+  const [studioFlag] = useState(() => isLearnStudioOn({ defaultOn: learnStudioDefaultOn })), [studio, setStudio] = useState(studioFlag); // owner preview: on by default for the owner's device (no URL needed in the native app), opt-in elsewhere
   if (studio) return <LearnStudioPreview courses={courses} onOpenLesson={(k, id) => { setStudio(false); openLessonFromList(k, id); }} onExit={() => setStudio(false)} />;
   // MEASURED in a real browser at 1440px rather than guessed: window 1440,
   // <main> 1440, and the lesson card 768 -- constrained by exactly this one

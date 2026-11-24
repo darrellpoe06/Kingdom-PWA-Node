@@ -64,9 +64,16 @@ afterEach(() => {
 
 // isGovernor deliberately omitted/false — this is the member and staff view,
 // the one the gate was hiding the reader from.
-const mountRaw = (props = {}) => act(() => root.render(createElement(ChurchLearn, {
-  course: AI, extraCourses: [LIVING], ...props,
-})));
+const mountRaw = (props = {}) =>
+  act(() =>
+    root.render(
+      createElement(ChurchLearn, {
+        course: AI,
+        extraCourses: [LIVING],
+        ...props,
+      })
+    )
+  );
 // Learn opens on Latest (DR-1606): the reader's first tap is the Lessons tab.
 const mount = (...args) => {
   const out = mountRaw(...args);
@@ -132,7 +139,9 @@ describe('▶ Play is there for a member — not only the Governor', () => {
     openCourse('Living Lessons');
     const plays = playButtons();
     expect(plays.length).toBeGreaterThan(0);
-    await act(async () => { plays[plays.length - 1].click(); });
+    await act(async () => {
+      plays[plays.length - 1].click();
+    });
     const txt = container.textContent || '';
     // no presenter chrome
     expect(txt).not.toMatch(/Present on this screen/i);
@@ -181,16 +190,14 @@ describe('which course am I in, and are there others', () => {
 
   it('marks the open course inside the picker itself', () => {
     mount();
-    const selected = Array.from(container.querySelectorAll('#learn-course-pick option'))
-      .filter((o) => /●/.test(o.textContent));
+    const selected = Array.from(container.querySelectorAll('#learn-course-pick option')).filter((o) => /●/.test(o.textContent));
     expect(selected.length, 'exactly one option carries the open-now mark').toBe(1);
     expect(selected[0].textContent).toMatch(/Living Lessons/);
   });
 
   it('still lists every course — highlighting one hides none', () => {
     mount();
-    const opts = Array.from(container.querySelectorAll('#learn-course-pick option'))
-      .map((o) => o.textContent);
+    const opts = Array.from(container.querySelectorAll('#learn-course-pick option')).map((o) => o.textContent);
     expect(opts.some((t) => /Living Lessons/.test(t))).toBe(true);
     expect(opts.some((t) => /Learning A\.I\./.test(t))).toBe(true);
   });
@@ -225,12 +232,43 @@ describe('proven-to-catch (anti-theater)', () => {
     expect(heading).toBe('Choose a course');
     expect(heading).not.toMatch(/Learning A\.I\./);
     // And the list offers both as choices -- A.I. is a row, never the title.
-    const offered = [...container.querySelectorAll('[data-testid="course-choice-list"] button[data-course]')]
-      .map((b) => b.textContent || '');
+    const offered = [...container.querySelectorAll('[data-testid="course-choice-list"] button[data-course]')].map((b) => b.textContent || '');
     expect(offered.some((t) => /Living Lessons/.test(t))).toBe(true);
     expect(offered.some((t) => /Learning A\.I\./.test(t))).toBe(true);
     // `defaultCourse` still decides the fallback when a DEPARTMENT tab opens
     // with no chosen course; that path has no assertion here and is dated in
     // DR-1183 (re-review 2026-10-28).
+  });
+});
+
+// =============================================================================
+// The redesigned Learn: on for the owner's device, off for everyone else
+// =============================================================================
+// Darrell's wife, 2026-11-24, on her phone (the native app, which has no
+// address bar -- ?learnStudio=1 can never reach it): "I still see the
+// original design." The fix defaults the preview on for the owner's device
+// via learnStudioDefaultOn (computed from the shell's own family persona),
+// NEVER from isGovernor, which covers every class facilitator and would also
+// hide the classic Governor tools (Play, the roster, the facilitator panel)
+// that have no equivalent in the preview yet.
+describe('the redesigned Learn defaults on for the owner device, never for every Governor', () => {
+  it('a plain Governor (a facilitator, not the owner) still gets the CLASSIC view, Play included', () => {
+    mount({ isGovernor: true });
+    openCourse('Living Lessons');
+    expect(playButtons().length).toBeGreaterThan(0);
+  });
+
+  it('the owner device (learnStudioDefaultOn) opens straight into the redesigned Learn, no URL needed', () => {
+    mountRaw({ learnStudioDefaultOn: true });
+    expect(container.querySelector('.ls-root')).toBeTruthy();
+    expect(playButtons().length).toBe(0); // the classic reader is not what is shown
+  });
+
+  it('an explicit ?learnStudio=0 on the owner device still shows the classic view', () => {
+    window.history.pushState({}, '', '/?learnStudio=0');
+    mount({ learnStudioDefaultOn: true });
+    openCourse('Living Lessons');
+    expect(playButtons().length).toBeGreaterThan(0);
+    window.history.pushState({}, '', '/');
   });
 });
