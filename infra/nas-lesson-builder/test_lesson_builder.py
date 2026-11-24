@@ -861,6 +861,72 @@ class Gates(unittest.TestCase):
         wrong = gates.canonical_apostrophes({"lesson": typed.replace("master", "lord")})
         self.assertFalse(gates.verse_gate(wrong, CORPUS)["passed"])
 
+    def test_a_speakers_words_lose_their_quotes_and_the_Word_never_does(self):
+        """The mend repairs only the direction it can prove (DR-1641).
+
+        The two mistakes are not equal, so the cases are asymmetric on purpose:
+        a speaker's words keeping their quotes is the harmless outcome (the gate
+        refuses the draft, as it does today), while a verse losing its quotes
+        would print the Word as our own prose. So everything uncertain stays
+        quoted, and only a span the corpus does not hold is mended.
+        """
+        said = 'Bishop Gwin said, "the covenant is not a contract" that day.'
+        out, mended = gates.mend_unreferenced_quotes({"lesson": said}, CORPUS)
+        self.assertEqual(mended, ["the covenant is not a contract"])
+        self.assertEqual(out["lesson"],
+                         "Bishop Gwin said, the covenant is not a contract that day.")
+        # and the draft now passes the gate that had refused it
+        self.assertFalse(gates.quotation_gate({"lesson": said})["passed"])
+        self.assertTrue(gates.quotation_gate(out)["passed"])
+
+        # A REFERENCED span is not touched at all.
+        ref = '"Prove all things" (1 Thessalonians 5:21) is the rule.'
+        out, mended = gates.mend_unreferenced_quotes({"lesson": ref}, CORPUS)
+        self.assertEqual(mended, [])
+        self.assertEqual(out["lesson"], ref)
+
+        # Scripture that FORGOT its reference keeps its quotes: mending it would
+        # mean choosing which verse it is, and a reference is never guessed.
+        forgot = 'He wrote "Prove all things" to them.'
+        out, mended = gates.mend_unreferenced_quotes({"lesson": forgot}, CORPUS)
+        self.assertEqual(mended, [])
+        self.assertEqual(out["lesson"], forgot)
+        self.assertFalse(gates.quotation_gate(out)["passed"])
+
+        # The glyph a writer typed must not decide it: the corpus writes U+2019.
+        straight = 'He wrote "And Joseph\'s master took him" to them.'
+        self.assertTrue(CORPUS.contains_phrase("And Joseph’s master took him"))
+        _, mended = gates.mend_unreferenced_quotes({"lesson": straight}, CORPUS)
+        self.assertEqual(mended, [], "a straight apostrophe must not demote a verse")
+
+        # Nested structures are walked, and non-strings survive untouched.
+        deep = {"levels": {"child": said}, "benefits": [said], "n": 7, "ok": True}
+        out, mended = gates.mend_unreferenced_quotes(deep, CORPUS)
+        self.assertEqual(len(mended), 2)
+        self.assertNotIn('"', out["levels"]["child"])
+        self.assertNotIn('"', out["benefits"][0])
+        self.assertEqual((out["n"], out["ok"]), (7, True))
+
+    def test_proven_to_catch_the_mend_in_both_directions(self):
+        """Neuter each half and a case above must fail."""
+        # (1) mend nothing -> the speaker's words keep their quotes
+        with unittest.mock.patch.object(gates, "QUOTED", re.compile(r"(?!x)x")):
+            _, mended = gates.mend_unreferenced_quotes(
+                {"lesson": 'He said, "the covenant is not a contract" today.'}, CORPUS)
+            self.assertEqual(mended, [])  # the live case asserts one span
+
+        # (2) mend everything -> a verse that forgot its reference is demoted
+        class Blind:
+            def contains_phrase(self, phrase):
+                return False
+        _, mended = gates.mend_unreferenced_quotes(
+            {"lesson": 'He wrote "Prove all things" to them.'}, Blind())
+        self.assertEqual(mended, ["Prove all things"])  # the live case asserts none
+
+        # (3) an unreadable corpus must answer True, never False
+        empty = gates.Corpus(repo=tempfile.mkdtemp())
+        self.assertTrue(empty.contains_phrase("anything at all"))
+
     def test_unresolvable_and_shouted(self):
         self.assertEqual(gates.check_span(CORPUS, "x", "Psalms", "121", "99")["kind"], "unresolvable")
         self.assertEqual(gates.check_span(CORPUS, "Behold, he that keepeth Israel shall NEITHER slumber", "Psalms", "121", "4")["kind"], "shouted")
@@ -943,7 +1009,11 @@ class Stages(unittest.TestCase):
                  (["lesson", "awaiting-review"], OWNER, False),
                  (["lesson", "withdrawn"], OWNER, False),
                  (["lesson", "voice", "voice-transcript", "withdrawn"], OWNER, False),
-                 (["lesson", "build:failed@2026-09-29T00:00:00Z", "build:failed@2026-09-29T01:00:00Z"], OWNER, False)]
+                 # MAX_ATTEMPTS is 4 (DR-1641): two spent attempts still have
+                 # informed retries left, four are spent.
+                 (["lesson", "build:failed@2026-09-29T00:00:00Z", "build:failed@2026-09-29T01:00:00Z"], OWNER, True),
+                 (["lesson", "build:failed@2026-09-29T00:00:00Z", "build:failed@2026-09-29T01:00:00Z",
+                   "build:failed@2026-09-29T02:00:00Z", "build:failed@2026-09-29T03:00:00Z"], OWNER, False)]
         for tags, who, ok in cases:
             self.assertEqual(lb.eligibility(row("r", TEACHING, tags, who))[0], ok, tags)
 
@@ -962,10 +1032,14 @@ class Stages(unittest.TestCase):
         self.assertIn("waiting out the model's limit", why)
         self.assertEqual(lb.eligibility(row("r", TEACHING, two, OWNER), now=at("02:00")), (True, "eligible"),
                          "after the cooldown it is offered again, though two attempts are spent")
-        spent = two + ["build:failed@2026-10-22T02:00:00Z", "build:failed@2026-10-22T02:31:00Z"]
+        # The bound is MAX_ATTEMPTS + RATE_LIMIT_RETRIES, so 6 since DR-1641
+        # raised MAX_ATTEMPTS to 4. The literal is kept deliberately: a case
+        # that read the constants could not catch them being raised to a loop.
+        spent = two + [f"build:failed@2026-10-22T0{h}:00:00Z" for h in (2, 3, 4, 5)]
         ok, why = lb.eligibility(row("r", TEACHING, spent, OWNER), now=at("09:00"))
         self.assertFalse(ok, "PROVEN TO CATCH: the retries are bounded, never a loop")
-        self.assertIn("rate-limited 4 times", why)
+        self.assertIn("rate-limited 6 times", why)
+        self.assertEqual(lb.MAX_ATTEMPTS + lb.RATE_LIMIT_RETRIES, 6)
 
     def test_the_rate_limit_signal_survives_the_200_character_cut(self):
         """DR-1232, measured 2026-10-27 on fifteen rows (lesson_versions.error, read
@@ -1189,12 +1263,21 @@ class Stages(unittest.TestCase):
         with lw.one_at_a_time(os.path.join(d, "cli-local.lock")):
             pass  # a second take after release does not block
 
-    def test_PROVEN_TO_CATCH_a_real_failure_still_stops_at_two(self):
-        tags = ["lesson", "build:failed@2026-10-22T01:00:00Z", "build:failed@2026-10-22T01:01:00Z",
-                "build-reason:no version passed every gate (1 written): verse gate: Numbers 35:11 not verbatim"]
-        self.assertFalse(lb.rate_limited(tags))
-        self.assertEqual(lb.eligibility(row("r", TEACHING, tags, OWNER), now=10 ** 10),
-                         (False, "failed 2 times: left for the hourly Routine"))
+    def test_PROVEN_TO_CATCH_a_real_failure_still_stops_at_the_budget(self):
+        """The budget is 4 since DR-1641 (was 2). The literal is kept on purpose:
+        a case that read MAX_ATTEMPTS could not catch it being raised to a loop."""
+        reason = ("build-reason:no version passed every gate (1 written): "
+                  "verse gate: Numbers 35:11 not verbatim")
+        four = ["lesson"] + [f"build:failed@2026-10-22T0{h}:00:00Z"
+                             for h in (1, 2, 3, 4)] + [reason]
+        self.assertFalse(lb.rate_limited(four))
+        self.assertEqual(lb.eligibility(row("r", TEACHING, four, OWNER), now=10 ** 10),
+                         (False, "failed 4 times: left for the hourly Routine"))
+        self.assertEqual(lb.MAX_ATTEMPTS, 4)
+        # and the attempt before the last one is still offered
+        three = ["lesson"] + [f"build:failed@2026-10-22T0{h}:00:00Z"
+                              for h in (1, 2, 3)] + [reason]
+        self.assertTrue(lb.eligibility(row("r", TEACHING, three, OWNER), now=10 ** 10)[0])
 
     def test_a_withdrawn_row_is_nobody_s_to_build_and_never_waits(self):
         """DR-1142: its person took it back from the lesson door. The reason is

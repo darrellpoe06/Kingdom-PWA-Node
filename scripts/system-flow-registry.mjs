@@ -1335,6 +1335,12 @@ const NODES = [
     id: 'browser-probe', name: 'Browser probe harness (called)', purpose: 'The one job that builds the app, installs Chrome and Playwright, runs a named probe script and uploads its artifact; every browser witness calls it instead of carrying the same forty lines (DR-1342).',
     reads: [{ res: 'gh:call:browser-probe', token: 'workflow_call' }], writes: [], seeds: [],
   }),
+  wf('kids-episode-narration.yml', {
+    id: 'kids-episode-narration', name: 'Kids episode narration (Kokoro voice render)',
+    purpose: 'Speaks a Bible Adventures episode script (the KJV lines copied from the in-repo corpus) with the open Kokoro voice model on a runner, where its weights can be downloaded, one WAV per line plus timings, so the movie and its captions are timed to the voice (Jonah episode, 2026-11-19).',
+    reads: [{ res: 'file:kids-episode-script', token: 'scripts/kids-episode/jonah.episode.json' }],
+    writes: [{ res: 'gh:artifact:jonah-narration', token: 'upload-artifact' }], seeds: [],
+  }),
   wf('church-site-probe.yml', {
     id: 'church-site-probe', name: 'Church site probe (read-only)',
     purpose: 'Reads the church\u2019s public website from a runner (the sandbox has no route to it) and prints its pages, headings and any feed, so the announcements-and-events sync (Darrell 2026-11-18) can be built on what the site actually publishes; nothing is written.',
@@ -2405,6 +2411,8 @@ const RESOURCES = {
   'db:agent_inbox#voice-transcript': { label: 'spoken lessons written down', proof: { ts: 'created_at', fresh: 30, where: "tags ? 'voice-transcript'", consumed: "tags ? 'mirrored'" } },
   'hosted:lesson-published': { label: 'a member\u2019s lesson marked published by the reader (DR-0639)' },
   'db:agent_inbox#lesson-published': { label: 'members\u2019 lessons published', proof: { ts: 'created_at', fresh: 30, where: "tags ? 'lesson-published'", consumed: "tags ? 'messaged:published'" } },
+  'gh:artifact:jonah-narration': { label: 'Episode narration render', sink: 'A person (or a session) downloads the run artifact to mix the episode; nothing else reads it, and it expires after 14 days.' },
+  'file:kids-episode-script': { label: 'Bible Adventures episode script', source: 'Written by hand into the repo (scripts/kids-episode/<id>.episode.json); every KJV line in it is copied from app/public/bible/kjv by the episode builder, never typed.' },
   'db:church_site_archive': { label: 'the church office\u2019s calendars, letters and flyers, kept', sink: 'Members of the church read it in the archive under Times, by year and month (DR-1596).' },
   'db:ministry_ops': { label: 'the church office\u2019s calendar events and ministry operations', sink: 'Members read the calendar and the office reads its operations in the app; an archived event is read in the archive (DR-1596).' },
   'db:direct_messages': { label: 'Messages', sink: 'The member reads the Message in their own Messages thread and may reply; a reply is an ordinary Message to Darrell (DR-0639).' },

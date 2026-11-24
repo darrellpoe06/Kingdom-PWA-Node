@@ -11,6 +11,9 @@ import {
   programStatus,
   availableCourses,
   unresolvedCourseKeys,
+  programCourseList,
+  programAlsoCourses,
+  populationPaths,
   launchState,
   enrollmentCopy,
   ENROLLMENT_STEPS,
@@ -44,6 +47,42 @@ describe('programs name only registered courses', () => {
         LEARN_CATALOG.some((c) => c.key === k),
         k
       ).toBe(true);
+  });
+});
+
+describe('every Word course flows into its program (2026-11-24)', () => {
+  it('the required core is unchanged (DR-1460: the certificate standard moves only by a decision)', () => {
+    expect(Object.fromEntries(PROGRAMS.map((p) => [p.key, p.courseKeys]))).toEqual({
+      'biblical-studies': ['who-he-is', 'made-in-time'],
+      'ministry-leadership': ['church-offices', 'handed-forward'],
+      'christian-education': ['little-learners'],
+    });
+  });
+  it('each program lists its core first, then its open-study courses, all registered', () => {
+    for (const p of PROGRAMS) {
+      const list = programCourseList(p);
+      expect(list.length).toBeGreaterThan(p.courseKeys.length);
+      expect(list.slice(0, p.courseKeys.length).every((x) => x.required)).toBe(true);
+      expect(list.slice(p.courseKeys.length).every((x) => !x.required)).toBe(true);
+    }
+    const ce = PROGRAMS.find((p) => p.key === 'christian-education');
+    expect(programAlsoCourses(ce).map((c) => c.key)).toContain('living-lessons');
+  });
+  it('PROVEN-TO-CATCH: an open-study key that does not exist is reported', () => {
+    expect(unresolvedCourseKeys([{ key: 'g', courseKeys: [], alsoKeys: ['no-such-course'] }])).toEqual(['g:no-such-course']);
+  });
+  it('no market, real-estate or A.I. course is placed in the Institute', () => {
+    const cats = availableCourses().map((x) => x.course.meta.category);
+    for (const bad of ['Stock Market', 'Real Estate', 'A.I. The Way', 'Mathematics']) expect(cats).not.toContain(bad);
+  });
+  it('by age, young to seniors: Little Ones then every AGE_BANDS row, counts measured from the lessons', () => {
+    const living = [
+      { id: 'a', lesson: 'x', levels: { child: 1, senior: 1 } },
+      { id: 'b', lesson: 'x', levels: { teen: 1 } },
+    ];
+    const rows = populationPaths(living, [{ id: 'l1' }]);
+    expect(rows.map((r) => r.key)).toEqual(['little', 'child', 'youth', 'teen', 'adult', 'senior']);
+    expect(Object.fromEntries(rows.map((r) => [r.key, r.count]))).toEqual({ little: 1, child: 1, youth: 0, teen: 1, adult: 2, senior: 1 });
   });
 });
 

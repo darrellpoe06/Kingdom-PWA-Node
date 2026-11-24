@@ -263,10 +263,17 @@
     {
       "date": "2026-11-24",
       "from": 23548,
-      "to": 23557,
+      "to": 23584,
+      "dr": "DR-1527",
+      "reason": "kids-episode-narration.yml (36 lines): speaks a Bible Adventures episode script with the open Kokoro voice (Apache-2.0) on a runner, because the sandbox cannot reach Hugging Face; the Jonah episode's narration is timed from it. A new capability (the episode road DR-1527 named), not a longer version of one; one-shot on push, timeout and concurrency as its brakes. Raised to the measured total, not above it."
+    },
+    {
+      "date": "2026-11-24",
+      "from": 23584,
+      "to": 23593,
       "dr": "DR-1640",
       "reason": "learn-thumbs-pull: the NAS pulls each Learn picture batch (paid work, ~$58 across the library) before GitHub's artifact clock expires it (DR-1360: the NAS initiates the road). ci.yml +1 runs test_learn_thumbs_pull (token never sent to the blob host, unsafe zip paths and digest mismatches refused). loops-health.yml +8 reads its last-run.json, turns red on a refused artifact, and in diagnosis lists the folder and whether the token file is present; the name rides existing lines in the loops list, install map, cron prefix and heartbeat receipt. Two comment blocks were folded to one line each before raising. Raised to the measured total, not above it."
     }
   ],
-  "totalLines": 23557
+  "totalLines": 23593
 }

@@ -2166,6 +2166,21 @@
       "notes": "Reads the feed the Past sermons tab already plays. Closed-phone push not built, re-review 2026-12-03."
     },
     {
+      "id": "the-rule-was-already-his",
+      "date": "2026-11-24",
+      "task": "The builder kept quoting speakers where only Scripture may be quoted; now a span the KJV corpus does not hold loses its quotes deterministically, and a teaching gets four attempts instead of two",
+      "drs": [
+        "DR-1641"
+      ],
+      "prs": [],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.1,
+      "estimateWithoutAiHours": 5,
+      "notes": "The question had been put to Darrell three times; lesson_writer.py had already answered it twice. A span the corpus DOES hold keeps its quotes: a reference is never guessed. Caught 3 ways."
+    },
+    {
       "id": "dr-1420-record-in-readers-name",
       "date": "2026-11-10",
       "task": "The learner record is headed by the reader's name with who they are in the household beneath it; an exam average is no longer badged Mastered",
@@ -2333,6 +2348,28 @@
       "wallClockHours": 0.3,
       "estimateWithoutAiHours": 2,
       "notes": "Darrell: is it fixed for all months? (November screenshot)"
+    },
+    {
+      "id": "institute-kids-library-anchor-squares",
+      "date": "2026-11-24",
+      "task": "Institute courses flow into their programs; the Kids Zone lesson library by age; the library total counts a carried lesson once; the anchor outline moved to the lesson's end and never read; the update notice moved into the bar; Learn by squares built after the research was read; Ari says why he is resting, with a time limit; the store shelf read by area, a long price under the title",
+      "drs": [
+        "DR-1628",
+        "DR-1629",
+        "DR-1630",
+        "DR-1631",
+        "DR-1632",
+        "DR-1633",
+        "DR-1634",
+        "DR-1637"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 3.5,
+      "estimateWithoutAiHours": 40,
+      "notes": "The session model changed mid-session; tokens are not exposed by the harness."
     },
     {
       "id": "the-word-newest-month-and-tombstones",

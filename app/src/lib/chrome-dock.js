@@ -42,6 +42,25 @@ export function getDockSlot() {
   return slotEl && slotEl.isConnected !== false ? slotEl : null;
 }
 
+// IS THE BAR ON THIS PAGE AT ALL? Its reader slot is not always drawn, so a
+// notice that should ride in the bar (the update button, 2026-11-24) asks this
+// instead. Counted, so two mounts and one unmount still read true.
+let dockMounts = 0;
+/** The dock calls this on mount; the returned function is its unmount. */
+export function markDockMounted() {
+  dockMounts += 1;
+  notify();
+  return () => {
+    dockMounts = Math.max(0, dockMounts - 1);
+    notify();
+  };
+}
+const dockIsMounted = () => dockMounts > 0;
+/** React hook: true while a ChromeDock is mounted. */
+export function useDockMounted() {
+  return useSyncExternalStore(subscribe, dockIsMounted, () => false);
+}
+
 /** React hook: the dock's reader slot, re-rendering when it mounts/unmounts. */
 export function useDockSlot() {
   return useSyncExternalStore(subscribe, getDockSlot, () => null);

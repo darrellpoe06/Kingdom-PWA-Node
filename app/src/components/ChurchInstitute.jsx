@@ -31,8 +31,10 @@ import {
   INSTITUTE_META,
   PROGRAMS,
   programCourses,
+  programCourseList,
   programStatus,
   availableCourses,
+  populationPaths,
   launchState,
   enrollmentCopy,
   ENROLLMENT_STEPS,
@@ -65,6 +67,63 @@ function Said({ answer, testid }) {
     <p className="lc-notice" role="status" data-testid={testid}>
       {s}
     </p>
+  );
+}
+
+/** One course row: its title links into Learn (DR-1428), with its category, whether the certificate requires it, and WHO it is for (the course's own meta.audience). */
+function CourseRow({ course, required, testid, n = null, note = null }) {
+  const title = (course.meta && course.meta.title) || course.key;
+  const href = lessonUrl({ courseKey: course.key, course });
+  return (
+    <li className="lc-course" data-testid={testid}>
+      {n != null && (
+        <span className="lc-course-n" aria-hidden="true">
+          {n}
+        </span>
+      )}
+      <span className="min-w-0">
+        <a href={href} className={`lc-course-t ${FOCUS}`}>
+          {title}
+        </a>
+        <small className="lc-small block">
+          {required ? 'Required for the certificate' : 'Open study'}
+          {course.meta && course.meta.category ? ` · ${course.meta.category}` : ''}
+          {note ? ` · ${note}` : ''}
+        </small>
+        {course.meta && course.meta.audience && (
+          <small className="lc-small block" data-testid={`${testid}-audience`}>
+            For {course.meta.audience}
+          </small>
+        )}
+      </span>
+    </li>
+  );
+}
+
+/** The Word by population, young to seniors: each row opens the course it reads, with the measured lesson count. */
+function PopulationPaths({ paths, testid = 'institute-by-age' }) {
+  return (
+    <div className="mt-2" data-testid={testid}>
+      <p className="lc-small">
+        <b>By age, young to seniors.</b> Each lesson carries its own words for each age.
+      </p>
+      <ul className="lc-ages mt-1" aria-label="Lessons by age">
+        {paths.map((r) => (
+          <li key={r.key}>
+            <a
+              href={lessonUrl({ courseKey: r.courseKey })}
+              className={`lc-age ${FOCUS}`}
+              data-testid={`institute-age-${r.key}`}
+              data-count={r.count}
+            >
+              <b>{r.label}</b>
+              <small>ages {r.range}</small>
+              <small>{r.count} lessons ›</small>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 
@@ -399,8 +458,17 @@ export default function ChurchInstitute({
   sync = defaultSync,
 }) {
   const c = resolveChurch(church);
-  const programs = useMemo(() => PROGRAMS.map((p) => ({ ...p, status: programStatus(p), courses: programCourses(p) })), []);
+  const programs = useMemo(
+    () => PROGRAMS.map((p) => ({ ...p, status: programStatus(p), courses: programCourses(p), list: programCourseList(p) })),
+    []
+  );
   const open = useMemo(() => availableCourses(), []);
+  const paths = useMemo(() => populationPaths(), []);
+  /** "also in <program>" for a course a second program names, so a shared course reads where else it lives. */
+  const alsoIn = (courseKey, here) =>
+    PROGRAMS.filter((q) => q.key !== here && [...(q.courseKeys || []), ...(q.alsoKeys || [])].includes(courseKey))
+      .map((q) => `also in ${q.title}`)
+      .join(' · ') || null;
   const [live, setLive] = useState(null);
   const [mine, setMine] = useState([]);
   const [standing, setStanding] = useState({});
@@ -413,6 +481,7 @@ export default function ChurchInstitute({
   const effective = live || settings;
   const state = launchState(effective);
   const [active, setActive] = useState(initialSection);
+  const [only, setOnly] = useState('all'); // the Courses tab's program filter
   const goLearn = () => {
     if (setChurchView) setChurchView('learn');
   };
@@ -488,6 +557,23 @@ export default function ChurchInstitute({
                   <b className="lc-prog-t">{p.title}</b>
                   <p className="lc-p">{p.blurb}</p>
                   <Status kind={p.status} />
+                  {p.list.length > 0 && (
+                    <details className="lc-inst-more mt-2" data-testid={`institute-program-more-${p.key}`}>
+                      <summary className={`lc-btn lc-btn-gold ${FOCUS}`} data-testid={`institute-program-count-${p.key}`}>
+                        Explore {p.list.length} courses
+                      </summary>
+                      <p className="lc-small mt-2">
+                        {p.courses.length} required for the certificate · {p.list.length - p.courses.length} more for open study
+                        {p.byAge ? ' · lessons for every age, young to seniors' : ''}
+                      </p>
+                      <ul className="lc-stack mt-2" aria-label={`${p.title} courses`} data-testid={`institute-program-courses-${p.key}`}>
+                        {p.list.map(({ course, required }) => (
+                          <CourseRow key={course.key} course={course} required={required} testid={`institute-program-${p.key}-course-${course.key}`} />
+                        ))}
+                      </ul>
+                      {p.byAge && <PopulationPaths paths={paths} testid={`institute-by-age-${p.key}`} />}
+                    </details>
+                  )}
                   {p.planned && p.planned.length > 0 && <p className="lc-small">Planned courses: {p.planned.join(' · ')}</p>}
                 </article>
               ))}
@@ -508,31 +594,53 @@ export default function ChurchInstitute({
               In Learn →
             </button>
           </div>
-          <ol className="lc-stack" aria-label="Available courses">
-            {open.map(({ course, program }, i) => {
-              const title = (course.meta && course.meta.title) || course.key;
-              const href = lessonUrl({ courseKey: course.key, course });
-              return (
-                <li key={course.key} className="lc-course" data-testid={`institute-course-${course.key}`}>
-                  <span className="lc-course-n" aria-hidden="true">
-                    {i + 1}
-                  </span>
-                  <span className="min-w-0">
-                    <a href={href} className={`lc-course-t ${FOCUS}`}>
-                      {title}
-                    </a>
-                    <small className="lc-small block">
-                      {program.title}
-                      {course.meta && course.meta.category ? ` · ${course.meta.category}` : ''}
-                    </small>
-                  </span>
-                </li>
-              );
-            })}
-          </ol>
+          <div className="lc-inst-btns" role="group" aria-label="Show courses for" data-testid="institute-course-filter">
+            {[{ key: 'all', title: 'All programs' }, ...programs].map((p) => (
+              <button
+                key={p.key}
+                type="button"
+                aria-pressed={only === p.key}
+                onClick={() => setOnly(p.key)}
+                className={`lc-btn ${only === p.key ? 'lc-btn-gold' : 'lc-btn-ghost'} ${FOCUS}`}
+                data-testid={`institute-course-filter-${p.key}`}
+              >
+                {p.title}
+              </button>
+            ))}
+          </div>
+          {programs.map((p) => {
+            if (only !== 'all' && only !== p.key) return null;
+            // Filtered to one program, it lists EVERY course that program names (shared ones included);
+            // "All programs" lists each course once, under the first program that names it.
+            const mine =
+              only === 'all'
+                ? open.filter((x) => x.program.key === p.key)
+                : p.list.map(({ course, required }) => ({ course, program: p, required }));
+            if (mine.length === 0) return null;
+            return (
+              <section key={p.key} aria-labelledby={`inst-courses-${p.key}`} data-testid={`institute-courses-${p.key}`}>
+                <h4 id={`inst-courses-${p.key}`} className="lc-prog-t mb-1">
+                  {p.title}
+                </h4>
+                <ol className="lc-stack" aria-label={`${p.title} courses`}>
+                  {mine.map(({ course, required }) => (
+                    <CourseRow
+                      key={course.key}
+                      course={course}
+                      required={required}
+                      n={only === 'all' ? open.findIndex((x) => x.course.key === course.key) + 1 : null}
+                      testid={`institute-course-${course.key}`}
+                      note={alsoIn(course.key, p.key)}
+                    />
+                  ))}
+                </ol>
+                {p.byAge && <PopulationPaths paths={paths} testid={`institute-courses-by-age-${p.key}`} />}
+              </section>
+            );
+          })}
           <p className="lc-notice">
-            These courses already exist in the app's Learn tab with lessons, quizzes and read-aloud. The Institute's own survey and doctrine courses are planned
-            and are not listed as available.
+            Every course here already exists in the app's Learn tab with lessons, quizzes and read-aloud. "Required for the certificate" marks a program's core;
+            the rest are open study. The Institute's own survey and doctrine courses are planned and are not listed as available.
           </p>
         </div>
       ),
