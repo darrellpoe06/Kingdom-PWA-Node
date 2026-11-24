@@ -2714,6 +2714,21 @@
       "notes": "Darrell reviewing as a new user on his phone: I can see all this as a new person with no record. Nothing was exposed (RLS; 0260 asserts it) -- the banner's global headline had a partial list"
     },
     {
+      "id": "the-box-was-alive-the-whole-time",
+      "date": "2026-11-24",
+      "task": "Measured the outage onset and that the NAS was online throughout; the watchdog now reports before it heals, bounds the heal, warns before its own tailnet key expires; own profile and picture kept on the device",
+      "drs": [
+        "DR-1624"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.9,
+      "estimateWithoutAiHours": 10,
+      "notes": ""
+    },
+    {
       "id": "re-review-ratchet",
       "date": "2026-11-12",
       "task": "A parked promise is checked against its own date: 54 of 73 re-review dates were past due and the gate only checked their shape",

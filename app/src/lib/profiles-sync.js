@@ -83,13 +83,61 @@ export async function loadProfile(userId) {
   return p;
 }
 
+// MY OWN PROFILE IS KEPT ON MY DEVICE (DR-1624). Darrell 2026-11-24, with the
+// road to the NAS dark: "No longer shows my picture on my image spot!!!! Why?"
+// The picture lives in his profiles row, the read failed, and the header fell
+// to his initial. A person's own profile is theirs: the last good read is kept
+// on the device under their own user id and shown when the read cannot be made
+// (`fromDevice: true`). It is never shown to another account, and a successful
+// read always replaces it, a deleted row included.
+const MY_PROFILE_KEY = (uid) => `poe-my-profile-${uid}`;
+
+export function keepMyProfile(uid, profile, store = typeof localStorage !== 'undefined' ? localStorage : null) {
+  try {
+    if (!store || !uid) return;
+    if (profile) store.setItem(MY_PROFILE_KEY(uid), JSON.stringify(profile));
+    else store.removeItem(MY_PROFILE_KEY(uid));
+  } catch (_) { /* storage full or blocked: the live read still works */ }
+}
+
+export function keptMyProfile(uid, store = typeof localStorage !== 'undefined' ? localStorage : null) {
+  try {
+    if (!store || !uid) return null;
+    const p = JSON.parse(store.getItem(MY_PROFILE_KEY(uid)) || 'null');
+    return p && p.userId === uid ? { ...p, fromDevice: true } : null;
+  } catch (_) { return null; }
+}
+
+// The user id of the sign-in stored on this device, read from the client's own
+// slot. Kept local so the many suites that mock ./supabase.js need no new export.
+function storedUserId() {
+  try {
+    const key = supabase?.auth?.storageKey;
+    if (!key || typeof localStorage === 'undefined') return null;
+    const s = JSON.parse(localStorage.getItem(key) || 'null');
+    return (s && s.user && s.user.id) || null;
+  } catch (_) { return null; }
+}
+
 export async function loadMyProfile() {
-  const { data: { session } = {} } = await supabase.auth.getSession();
-  const uid = session?.user?.id;
+  let uid = null;
+  try {
+    const { data: { session } = {} } = await supabase.auth.getSession();
+    uid = session?.user?.id || null;
+  } catch (_) { /* fall through to the stored session */ }
+  // getSession answers null with an error while a refresh cannot reach the
+  // server (DR-1618); the stored sign-in still says whose device this is.
+  if (!uid) uid = storedUserId();
   if (!uid) return null;
-  const { data, error } = await supabase.from('profiles').select('*').eq('user_id', uid).maybeSingle();
-  if (error) { console.warn('[profiles] own read failed:', error); return null; }
-  return profileShape(data ? { ...data, full_view: true } : null);
+  let data;
+  let error;
+  try {
+    ({ data, error } = await supabase.from('profiles').select('*').eq('user_id', uid).maybeSingle());
+  } catch (e) { error = e; }
+  if (error) { console.warn('[profiles] own read failed:', error); return keptMyProfile(uid); }
+  const p = profileShape(data ? { ...data, full_view: true } : null);
+  keepMyProfile(uid, p);
+  return p;
 }
 
 export async function saveMyProfile(fields) {
@@ -110,5 +158,6 @@ export async function saveMyProfile(fields) {
   if (error) return { saved: false, errors: [humanizeServerError(error, { did: 'Nothing was saved' })] };
   const p = profileShape(Array.isArray(data) ? data[0] : data);
   if (p) cache.set(p.userId, { ...p, fullView: true });
+  if (p) keepMyProfile(p.userId, { ...p, fullView: true });
   return { saved: true, profile: p };
 }
