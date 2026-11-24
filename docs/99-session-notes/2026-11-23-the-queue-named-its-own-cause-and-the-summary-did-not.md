@@ -101,8 +101,9 @@ recording: `why_of` answers `waits-for-governor` before reaching the failed
 branch unless `created_by` is an owner's, and `ready` unless the row carries a
 `build:failed@` stamp. The cases now build the row the way the builder leaves it.
 
-**Not claimed:** nothing is measured live. The receipt is written on the NAS by
-the services-sync pull, so the next firing is the proof. `re-review: 2026-11-30`.
+**Not claimed here:** nothing was measured live when this note was written. The
+proof arrived 2026-11-24T14:07Z, after a 15-hour outage of both roads, and is
+recorded in `2026-11-24-both-roads-shut-then-the-queue-named-its-rows.md`.
 
 ## 5. One overdue re-review closed, as superseded
 
