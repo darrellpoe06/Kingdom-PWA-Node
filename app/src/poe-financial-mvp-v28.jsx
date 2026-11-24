@@ -4085,7 +4085,7 @@ ${THEME_CSS}
         />
       )}
 
-      {!currentProfile && !isAnyDemoMode && !isFirstTimeLanding && view !== 'admin' && !churchDoorOnly && !churchLinkVisit && (
+      {!currentProfile && !isAnyDemoMode && !isFirstTimeLanding && view !== 'admin' && !churchDoorOnly && !churchLinkVisit && !(authSession && profileResolvedForRef.current !== (authSession.user?.id || null)) /* a signed-in account's own profile is still resolving: never the picker (DR-1620) */ && (
         <div role="dialog" aria-modal="true" aria-labelledby="profile-picker-h" className="fixed inset-0 z-50 bg-[#1A1815] flex items-center justify-center p-4">
           <div className="bg-[#FAF8F4] border border-[#1A1815] max-w-md w-full p-6 sm:p-8">
             <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-2">PoeTech · Family OS</div>

@@ -595,6 +595,21 @@
       "notes": ""
     },
     {
+      "id": "the-nas-sees-its-own-public-road",
+      "date": "2026-11-24",
+      "task": "The Funnel watchdog was blind (own hostname, 502 read as up, /sb missing); now judges the public road, restores every row, brings Tailscale up, and reports its state to GitHub by repository_dispatch",
+      "drs": [
+        "DR-1619"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.6,
+      "estimateWithoutAiHours": 8,
+      "notes": ""
+    },
+    {
       "id": "subprocess-budget-tie-and-its-gate",
       "date": "2026-11-05",
       "task": "The subprocess budget tie: fixed in three cases across two test files, gated repo-wide, and the gate's own blind spot closed",
@@ -1879,6 +1894,21 @@
       "wallClockHours": 0.8,
       "estimateWithoutAiHours": 7,
       "notes": "Built on Darrell's relayed words of 2026-11-18 ~12:28Z, that a step waiting on his hand is itself the defect. Reverses DR-1537's deferral while keeping DR-1526's order (the direct read was built first). Proven to catch a person's name in place of an exception class, a marker in body/prompt/fault reaching the census, and a vocabulary dropped from the SQL. Nothing measured live yet."
+    },
+    {
+      "id": "the-rare-word-cap-is-re-read",
+      "date": "2026-11-24",
+      "task": "DR-1028's overdue re-review: loop crossed the rare-word cap and the kill-switch note answered the wrong record; window re-measured, cap 80",
+      "drs": [
+        "DR-1623"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.3,
+      "estimateWithoutAiHours": 2,
+      "notes": ""
     },
     {
       "id": "dr-1412-record-figures-fit",
@@ -3583,6 +3613,21 @@
       "notes": "Found on PR #2775 shard 3, then on PR #2788 which adds no lesson, which showed main itself was red. Proven to catch by forcing the page to show the heading always. No product code changed."
     },
     {
+      "id": "no-outside-system-is-the-only-door",
+      "date": "2026-11-24",
+      "task": "Recorded the tailnet drop and the road decision under DR-1360: restore by LAN SSH, a second NAS-initiated road beside the Funnel, a home road with no outside system",
+      "drs": [
+        "DR-1622"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.3,
+      "estimateWithoutAiHours": 3,
+      "notes": ""
+    },
+    {
       "id": "poetech-door-account-picture",
       "date": "2026-11-19",
       "task": "The PoeTech door's account picture at the top right, open and collapsed, opening the Love Corner's menu frame with rows that have a real place on this door",
@@ -3626,6 +3671,21 @@
       "wallClockHours": 1.6,
       "estimateWithoutAiHours": 40,
       "notes": "Gmail thread 1a1b6e6085128724, forwarded 2026-11-09T13:29Z (7:29 AM Central), built 2026-11-13 draining the intake backlog. Six one-line framework descriptions whole in the email, taught as reported and unranked; the diagram was an image and blog.bytebytego.com refused (403 CONNECT), re-review 2026-11-27. 35 anchor references, 136 quoted spans, every verse filled from app/public/bible/kjv by scripts/sov88-fill.mjs and none typed. Our build measured: DR-0077 lanes, reserve-ref KINDS dr/ll only, capacity-budget live (room 3, wanted 4), HELD_IN_FLIGHT [84,85,86,87], github-ops classifyLane blind to the ledgers, and the landing train at 17:10 UTC (7 of 14 PRs opened that day dirty; ai-usage-ledger.json in 6 of the 7). Hours lost not measured."
+    },
+    {
+      "id": "a-null-that-is-not-a-sign-out",
+      "date": "2026-11-24",
+      "task": "INITIAL_SESSION null on a failed fetch painted the front page and then the profile picker; non-SIGNED_OUT nulls with a stored session are ignored, the picker waits for the account to resolve",
+      "drs": [
+        "DR-1620"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.4,
+      "estimateWithoutAiHours": 5,
+      "notes": ""
     },
     {
       "id": "sov82-how-beautiful-are-the-feet",
