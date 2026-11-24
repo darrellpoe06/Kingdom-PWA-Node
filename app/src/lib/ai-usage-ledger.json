@@ -1766,6 +1766,21 @@
       "notes": "Reserved L333 and DR-1573 on origin with new-lesson.mjs. Verses filled from app/public/bible/kjv by fill-verses.mjs, none typed. The name and two lines are Darrell's; video not watched; re-review 2026-12-18."
     },
     {
+      "id": "a-misquote-is-in-no-corpus",
+      "date": "2026-11-24",
+      "task": "The pass meant to protect Scripture was demoting it: a misquoted verse matches no corpus, so the exact test took its quotes off; the test is now a four-word run of the KJV",
+      "drs": [
+        "DR-1646"
+      ],
+      "prs": [],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.5,
+      "estimateWithoutAiHours": 3,
+      "notes": "Found by the next live receipt, not by review: every row still refused on span-without-reference also carried not-the-verse. Measured separation: misquote keeps a 5-7 word run, a speaker sentence 2-3."
+    },
+    {
       "id": "dr-1405-system-built-around-the-king",
       "date": "2026-11-10",
       "task": "rto8 stopped setting a system against the King: the King brings the balance, and a system built around Him carries it; pinned by a test",

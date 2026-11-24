@@ -122,23 +122,52 @@ class Corpus:
             parts.append(chap[n - 1])
         return norm(" ".join(parts))
 
-    def contains_phrase(self, phrase):
-        """Whether this run of words appears ANYWHERE in the KJV on disk.
+    def echoes_scripture(self, span, min_run=4):
+        """Whether this span sounds like the Word at all -- the only question
+        mend_unreferenced_quotes is allowed to ask (DR-1641).
 
-        Used only to answer one question in one direction: an unreferenced
-        quoted span that is NOT in here cannot be Scripture, so its quotes may
-        be taken off (mend_unreferenced_quotes). Every ambiguity therefore has
-        to answer True, because the two mistakes are not equal: leaving quotes
-        on a speaker's words is harmless -- the gate still refuses the draft,
-        exactly as today -- while taking them off a verse would print the Word
-        as our own prose. So the comparison is the most permissive one that
-        still means anything: case folded, apostrophe glyphs folded (the corpus
-        writes U+2019 and a writer may type a straight one), whitespace
-        normalised. A near-miss matches and is left alone.
+        NOT an exact match, because an exact match is the wrong test. Measured
+        2026-11-24 on the live queue: every row still refused on
+        `span-without-reference` also carried `not-the-verse`, so the writer
+        MISQUOTES Scripture, and a misquote is in no corpus. An exact test
+        therefore called it "not Scripture" and took its quotes off -- the one
+        direction this must never take.
+
+        So the test is the longest contiguous run of words the KJV does hold:
+        measured, a misquoted verse keeps a run of 5 to 7 words, while a
+        speaker's own sentence keeps only 2 or 3. Any run of `min_run` words
+        means "leave it alone". A span too short to have such a run is asked
+        the exact question instead, so a two-word verse is still protected.
+        """
+        w = _fold(span).split()
+        if not w:
+            return True
+        if len(w) <= min_run:
+            return self.contains_phrase(span)
+        blob = self._index()
+        if blob is None:
+            return True
+        return any(" ".join(w[i:i + min_run]) in blob
+                   for i in range(len(w) - min_run + 1))
+
+    def contains_phrase(self, phrase):
+        """Whether this exact run of words appears ANYWHERE in the KJV on disk.
+
+        The comparison is the most permissive one that still means anything:
+        case folded, apostrophe glyphs folded (the corpus writes U+2019 and a
+        writer may type a straight one), whitespace normalised. Every failure
+        answers True, because the two mistakes are not equal -- see
+        echoes_scripture, which is what the mend actually asks.
         """
         p = _fold(phrase)
         if not p:
             return True
+        blob = self._index()
+        return True if blob is None else p in blob
+
+    def _index(self):
+        """The whole KJV, folded, as one string -- or None when it cannot be
+        read. Built once per Corpus."""
         if self._all is None:
             # A book we cannot read is a book we cannot clear a span against,
             # and an absent corpus must not raise: this runs inside the build,
@@ -152,9 +181,9 @@ class Corpus:
                     for chap in doc.get("chapters") or []:
                         blobs.append(_fold(" ".join(chap)))
             except (OSError, ValueError, TypeError):
-                return True
+                return None
             self._all = "\n".join(blobs)
-        return p in self._all
+        return self._all
 
 
 REF_IN_TEXT = re.compile(r"\b((?:[1-3]\s?)?(?:Song of Solomon|[A-Z][a-z]+))\s+(\d+):(\d+(?:\s*-\s*\d+)?)")
@@ -242,7 +271,7 @@ def mend_text_quotes(text, corpus, mended):
             continue  # inside a span already decided
         if SPAN_WITH_REFERENCE.match(str(text), m.start()):
             continue  # carries its reference: never touched
-        if corpus.contains_phrase(m.group(1)):
+        if corpus.echoes_scripture(m.group(1)):
             continue  # is (or may be) the Word: the writer owes it a reference
         out.append(str(text)[last:m.start()])
         out.append(m.group(1))
