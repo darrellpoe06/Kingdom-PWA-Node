@@ -88,6 +88,7 @@ import { POE_PROPERTIES, LAUNCH_PLAN, OPPORTUNITIES, CONSTRAINTS } from './confi
 import { placeDoorsOnTheMap } from './place-on-map.js';
 import { holdTheRecords } from './hold-the-record.js';
 import { PROPERTY_CHANNELS } from '../../lib/nas-photos.js';
+import DoorMapButton, { doorMapGroup } from '../../components/shell/DoorMapButton.jsx';
 
 const ACCENT = '#2F5D50';
 // The books sweep (DR-1211) posts at most this many rent records a pass.
@@ -1389,6 +1390,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
       </div>
 
       <div className="flex flex-wrap gap-1 mb-3">
+        {/* DR-1627: this face's places as one sheet; door only, PoeTech's own menu lists Properties. */ surface === 'door' && <DoorMapButton appName="Poe Properties" groups={doorMapGroup('Poe Properties', face.tabs, activeTab, { icon: 'home' })} onGo={(it) => setTab(it.id)} />}
         {face.tabs.map((t) => (
           <Btn key={t.id} tone={activeTab === t.id ? 'primary' : 'ghost'} onClick={() => setTab(t.id)}>
             {t.label}{t.locked ? ' · locked' : ''}
