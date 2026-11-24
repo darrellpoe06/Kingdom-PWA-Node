@@ -878,7 +878,7 @@ export default function Pulpit() {
   }
 
   return (
-    <div className="max-w-4xl">
+    <div>
       <SectionTitle eyebrow="Church · The Word — Migdal">The Word — Migdal</SectionTitle>
       <p className="text-xs text-[#5A5751] -mt-2 mb-3" style={{ fontFamily: '"Fraunces", serif' }}>
         {canManage
@@ -887,8 +887,9 @@ export default function Pulpit() {
       </p>
 
       {/* BISHOP GWIN'S LATEST, IN BIG (DR-1639): the tab opens on the message
-          to watch, at the width the Church tab's Large player uses; the study
-          tools and the library follow at their reading width. */}
+          to watch at the tab's full width (CONSISTENCY-STANDARD rule 1, DR-0246),
+          like the Church tab's Large player; the study tools and the library
+          follow in their reading column. */}
       <WordLatestMessage feed={channelFresh} channelId={(COLG_DEFAULT_CHURCH.youtubeChannelId || '').trim()} />
 
       <div className="max-w-2xl">

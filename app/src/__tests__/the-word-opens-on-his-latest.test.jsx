@@ -70,13 +70,15 @@ describe('the hero on screen', () => {
   });
 });
 
-describe('The Word tab carries the hero first, wider than its reading column', () => {
+describe('The Word tab carries the hero first, at full width, above its reading column', () => {
   const src = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'components', 'Pulpit.jsx'), 'utf8');
   it('mounts the hero on the feed the tab already reads, before the epigraph and the library', () => {
     const hero = src.indexOf('<WordLatestMessage feed={channelFresh}');
     expect(hero).toBeGreaterThan(0);
     expect(hero).toBeLessThan(src.indexOf('Nehemiah 8 epigraph'));
     expect(hero).toBeLessThan(src.indexOf('<LibraryPanel'));
-    expect(src).toContain('<div className="max-w-4xl">\n      <SectionTitle eyebrow="Church · The Word — Migdal">');
+    // The tab wrapper is full width (DR-0246); the reading column is inside it.
+    expect(src).toContain('<div>\n      <SectionTitle eyebrow="Church · The Word — Migdal">');
+    expect(src.indexOf('<div className="max-w-2xl">')).toBeGreaterThan(hero);
   });
 });

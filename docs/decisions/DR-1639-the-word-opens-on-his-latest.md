@@ -22,7 +22,7 @@ The Word tab is where people come to hear the Bishop's messages, so it should op
 
 1. **The tab opens on Bishop Gwin's latest, at full width.** It uses the same player and skip buttons as the Church tab (`worshipPlayerSrc`, `VideoSkip`), with the message's title, its date, and "Come and hear the Word. Every earlier message is in the library below."
 2. **His latest, not merely the newest.** Guest preachers fill in, so the first feed title naming Gwin is chosen. When none names him, the newest message is shown as "The latest message" and is never claimed as his.
-3. **The tools and the library keep their reading width** (`max-w-2xl`) under the wider hero (`max-w-4xl`).
+3. **The hero takes the tab's full width; the tools and the library keep their reading column** (`max-w-2xl`) inside it. The tab wrapper carries no cap (CONSISTENCY-STANDARD rule 1, DR-0246).
 4. **No feed yet means no hero.** Nothing waits as a dead frame and no failure is claimed. The library fills the tab as before.
 5. **L317 cites this file by line number** and its text is locked by the Learn integrity baseline, so the new import shares a line with its neighbor and the cited lines do not move.
 
