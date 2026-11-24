@@ -4,7 +4,7 @@
 // =============================================================================
 // dHash: shrink to 9×8 greyscale, then one bit per pixel = "is it brighter
 // than its right-hand neighbour". Robust to resizing, recompression and small
-// colour shifts; different scenes land far apart. Compare with hamming():
+// color shifts; different scenes land far apart. Compare with hamming():
 //   0–5   the same picture (re-encoded / resized)
 //   6–12  near-duplicate — send to a person
 //   >12   different pictures

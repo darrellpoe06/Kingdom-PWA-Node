@@ -4,8 +4,13 @@
   "version": "1.0.0",
   "description": "Learn Studio thumbnail compositor and derivative builder (isolated from the PWA bundle).",
   "type": "module",
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20"
+  },
   "dependencies": {
     "sharp": "0.34.5"
+  },
+  "scripts": {
+    "test": "node --test --test-timeout=180000 compose.test.mjs"
   }
 }

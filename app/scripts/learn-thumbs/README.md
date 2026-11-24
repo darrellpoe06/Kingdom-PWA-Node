@@ -110,7 +110,7 @@ That totals **about 1.3–3.9 MB per lesson**. For the whole library:
 `app/src/__tests__/learn-thumbs-compose.test.js` (8 tests) checks:
 
 - The headline renders in Anton.
-- Line stacking and colours match LearnStudio, and short two-word headlines are stacked onto two lines.
+- Line stacking and colors match LearnStudio, and short two-word headlines are stacked onto two lines.
 - Every size and format is written, and the OG image is 1280×720.
 - The manifest has the shape a presentation record needs.
 - The provider's master bytes are kept untouched.

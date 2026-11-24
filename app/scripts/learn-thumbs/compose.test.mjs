@@ -1,28 +1,47 @@
 // =============================================================================
 // The thumbnail compositor makes every asset from one TEXT-FREE master,
-// renders the headline in Anton, and never leaves a half-written lesson
-// (scripts/learn-thumbs — Learn redesign)
+// renders the headline in Anton, and never leaves a half-written lesson.
 // =============================================================================
-// Fixtures are generated in-test (no network, no external images).
-// The compositor carries its own isolated dependency (sharp) in
-// scripts/learn-thumbs/package.json so it never enters the PWA bundle; on a
-// checkout where `npm ci` has not been run in that folder this suite is
-// SKIPPED with the reason printed, never silently passed.
+// Runs with Node's own test runner inside this isolated package, where its one
+// dependency (sharp) is installed: `npm ci && npm test` here. The pilot
+// workflow runs it after installing the compositor and BEFORE any paid call,
+// so a broken compositor stops the run before a cent is spent. (It lives here,
+// not in the app's vitest suite, because the app does not install sharp and a
+// skipped suite would only look like a test.) Fixtures are generated in-test:
+// no network, no external images.
 // =============================================================================
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
-import { existsSync } from 'node:fs';
+import { describe, it, before, after } from 'node:test';
+import assert from 'node:assert/strict';
+import { Buffer } from 'node:buffer';
 import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { pathToFileURL } from 'node:url';
 
-vi.setConfig({ testTimeout: 120000, hookTimeout: 120000 });
+const ARRAY_CONTAINING = Symbol('arrayContaining');
+/** The few matchers these tests use, on node:assert. */
+function expect(actual) {
+  return {
+    toBe: (v) => assert.strictEqual(actual, v),
+    toEqual: (v) => (v && v[ARRAY_CONTAINING] ? v[ARRAY_CONTAINING].forEach((x) => assert.ok(actual.includes(x), `expected ${JSON.stringify(actual)} to contain ${JSON.stringify(x)}`)) : assert.deepStrictEqual(actual, v)),
+    toMatch: (re) => assert.match(String(actual), re),
+    toContain: (v) => assert.ok(actual.includes(v), `expected ${JSON.stringify(actual)} to contain ${JSON.stringify(v)}`),
+    toBeGreaterThan: (v) => assert.ok(actual > v, `expected ${actual} > ${v}`),
+    toBeGreaterThanOrEqual: (v) => assert.ok(actual >= v, `expected ${actual} >= ${v}`),
+    toBeLessThan: (v) => assert.ok(actual < v, `expected ${actual} < ${v}`),
+    toBeLessThanOrEqual: (v) => assert.ok(actual <= v, `expected ${actual} <= ${v}`),
+    rejects: {
+      toMatchObject: async (shape) => {
+        let err = null;
+        try { await actual; } catch (e) { err = e; }
+        assert.ok(err, 'expected the promise to reject');
+        for (const [k, v] of Object.entries(shape)) assert.deepStrictEqual(err[k], v, `rejection ${k}`);
+      },
+    },
+  };
+}
+expect.arrayContaining = (items) => ({ [ARRAY_CONTAINING]: items });
 
-const DIR = join(process.cwd(), 'scripts/learn-thumbs');
-const READY = existsSync(join(DIR, 'node_modules/sharp'));
-if (!READY) console.warn('[learn-thumbs] SKIPPED: run `npm ci` in app/scripts/learn-thumbs to test the compositor.');
-
-describe.skipIf(!READY)('learn-thumbs compositor', () => {
+describe('learn-thumbs compositor', () => {
   let compose;
   let dh;
   let sharp;
@@ -33,14 +52,13 @@ describe.skipIf(!READY)('learn-thumbs compositor', () => {
     return sharp(Buffer.from(svg)).png().toBuffer();
   };
 
-  beforeAll(async () => {
-    compose = await import('../../scripts/learn-thumbs/compose.mjs');
-    dh = await import('../../scripts/learn-thumbs/dhash.mjs');
-    // A runtime path, so vite never tries to resolve sharp on a checkout that has not installed it (the suite is skipped there).
-    ({ default: sharp } = await import(/* @vite-ignore */ pathToFileURL(join(DIR, 'node_modules/sharp/lib/index.js')).href));
+  before(async () => {
+    compose = await import('./compose.mjs');
+    dh = await import('./dhash.mjs');
+    ({ default: sharp } = await import('sharp'));
     out = await mkdtemp(join(tmpdir(), 'learn-thumbs-'));
   });
-  afterAll(async () => {
+  after(async () => {
     if (out) await rm(out, { recursive: true, force: true });
   });
 
@@ -50,7 +68,7 @@ describe.skipIf(!READY)('learn-thumbs compositor', () => {
     expect(r.ratio).toBeLessThan(1.05);
   });
 
-  it('stacks lines exactly as LearnStudio does, and colours only the last line gold', () => {
+  it('stacks lines exactly as LearnStudio does, and colors only the last line gold', () => {
     expect(compose.stackLines('WHO GETS RICH?')).toEqual(['WHO GETS', 'RICH?']);
     expect(compose.stackLines('IT ONLY LOOKS LIKE CHEATING')).toEqual(['IT ONLY', 'LOOKS LIKE', 'CHEATING']);
     expect(compose.stackLines("NOBODY'S WATCHING")).toEqual(["NOBODY'S", 'WATCHING']);
