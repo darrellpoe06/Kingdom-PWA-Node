@@ -5,7 +5,18 @@
 // See README.md beside this file. Nothing here writes to a lesson.
 // =============================================================================
 import { verifyRecovery } from './lib/recovery.mjs';
-import { resolveSpendingScope, remainingCents, ScopeError, TOTAL_CAP_CENTS, scopeKeySet } from './lib/scope.mjs';
+import {
+  resolveSpendingScope,
+  remainingCents,
+  ScopeError,
+  TOTAL_CAP_CENTS,
+  IMAGE_TOTAL_CAP_CENTS,
+  LIBRARY_BATCH,
+  imageSpentCents,
+  nextLibraryBatch,
+  scopeKeySet,
+} from './lib/scope.mjs';
+import { copyFileSync } from 'node:fs';
 import process from 'node:process';
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join, dirname, resolve } from 'node:path';
@@ -39,12 +50,34 @@ const int = (v, d) => (v === undefined || v === true ? d : Number(v));
 function onlyIds(flags) {
   if (!flags.only) return null;
   if (flags.only === 'seed') return JSON.parse(readFileSync(SEED, 'utf8')).records.map((r) => r.lessonId);
-  return String(flags.only).split(',').map((s) => s.trim()).filter(Boolean);
+  return String(flags.only)
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
 }
 
 function prices(flags) {
   return flags.prices ? JSON.parse(readFileSync(resolve(flags.prices), 'utf8')) : DEFAULT_PRICES;
 }
+
+/**
+ * Copy the pictures this run bought into <state>/../outbox/, so the run's
+ * artifact carries only its new pictures (the NAS pulls them; DR-1360).
+ */
+function outboxNew(before, ledger, outDir, log) {
+  const box = resolve(outDir, '..', 'outbox');
+  let n = 0;
+  for (const [k, r] of Object.entries(ledger.records)) {
+    const was = before[k];
+    if (!r.image || !r.image.path || (was && was === r.image.sha256)) continue;
+    const dest = join(box, r.image.path);
+    mkdirSync(dirname(dest), { recursive: true });
+    copyFileSync(join(outDir, r.image.path), dest);
+    n += 1;
+  }
+  if (n) log(`outbox: ${n} new picture(s) -> ${box}`);
+}
+const shaMap = (ledger) => Object.fromEntries(Object.entries(ledger.records).map(([k, r]) => [k, r.image && r.image.sha256]));
 
 /** The compositor's 64-bit dHash, when its sharp install is present; otherwise exact-duplicate checks only. */
 async function loadDHash(log) {
@@ -74,21 +107,52 @@ async function main() {
     const mounted = new Set(all.map((it) => `${it.courseKey}::${it.lessonId}`));
     const problems = validateArt(art, { mountedKeys: mounted });
     for (const p of problems) log(`  ✗ ${p}`);
-    if (problems.length) { log('art direction REFUSED — nothing spent'); process.exitCode = 2; return; }
-    if (cmd === 'art-check') { log(`art direction OK: ${art.lessons.length} lessons, ${art.topics.length} topics, ${(art.samples || []).length} samples`); return; }
+    if (problems.length) {
+      log('art direction REFUSED — nothing spent');
+      process.exitCode = 2;
+      return;
+    }
+    if (cmd === 'art-check') {
+      log(`art direction OK: ${art.lessons.length} lessons, ${art.topics.length} topics, ${(art.samples || []).length} samples`);
+      return;
+    }
     let entries;
-    try { entries = resolveArtScope(flags.only, art); } catch (e) {
-      if (e instanceof ScopeError) { log(`refused: ${e.message}`); process.exitCode = 2; return; }
+    try {
+      entries = resolveArtScope(flags.only, art);
+    } catch (e) {
+      if (e instanceof ScopeError) {
+        log(`refused: ${e.message}`);
+        process.exitCode = 2;
+        return;
+      }
       throw e;
     }
     const ledger = new Ledger(stateDir);
     const already = ledger.spentCents();
-    const budget = new Budget(remainingCents(flags['budget-cents'] !== undefined ? int(flags['budget-cents']) : null, already));
-    log(`spend so far ${dollars(already)} of ${dollars(TOTAL_CAP_CENTS)} combined · art-v2 may spend up to ${dollars(budget.cap)} · ${entries.length} pictures`);
+    const imgLeft = Math.max(0, IMAGE_TOTAL_CAP_CENTS - imageSpentCents(ledger));
+    const budget = new Budget(Math.min(imgLeft, remainingCents(flags['budget-cents'] !== undefined ? int(flags['budget-cents']) : null, already)));
+    log(
+      `spend so far ${dollars(already)} of ${dollars(TOTAL_CAP_CENTS)} combined (pictures ${dollars(imageSpentCents(ledger))} of ${dollars(IMAGE_TOTAL_CAP_CENTS)}) · art-v2 may spend up to ${dollars(budget.cap)} · ${entries.length} pictures`
+    );
+    const beforeArt = shaMap(ledger);
     // raw:false — FLUX raw mode favours candid, muted renders; the new direction wants vivid natural color.
     const provider = String(flags.provider || 'bfl') === 'bfl' ? bflImage({ raw: false }) : imageProvider(String(flags.provider));
-    const t = await runArtV2({ entries, ledger, provider, outDir, stateDir, batchId, concurrency: int(flags.concurrency, 3), maxAttempts: int(flags['max-attempts'], 3), budget, log });
-    log(`art-v2: ${t.done} done · ${t.skipped} already done · ${t.failed} failed${t.stoppedByBudget ? ' · STOPPED AT BUDGET CAP' : ''} · this run ${dollars(budget.spent)} · total ${dollars(ledger.spentCents())}`);
+    const t = await runArtV2({
+      entries,
+      ledger,
+      provider,
+      outDir,
+      stateDir,
+      batchId,
+      concurrency: int(flags.concurrency, 3),
+      maxAttempts: int(flags['max-attempts'], 3),
+      budget,
+      log,
+    });
+    outboxNew(beforeArt, ledger, outDir, log);
+    log(
+      `art-v2: ${t.done} done · ${t.skipped} already done · ${t.failed} failed${t.stoppedByBudget ? ' · STOPPED AT BUDGET CAP' : ''} · this run ${dollars(budget.spent)} · total ${dollars(ledger.spentCents())}`
+    );
     if (t.failed) process.exitCode = 1;
     return;
   }
@@ -97,9 +161,15 @@ async function main() {
   const spending = ['text', 'images', 'retry-failed', 'compose'].includes(cmd);
   let items;
   try {
-    items = spending ? resolveSpendingScope(flags.only, all, { seedPath: SEED }) : selectItems(all, { only: onlyIds(flags), limit: flags.limit ? int(flags.limit) : null });
+    items = spending
+      ? resolveSpendingScope(flags.only, all, { seedPath: SEED })
+      : selectItems(all, { only: onlyIds(flags), limit: flags.limit ? int(flags.limit) : null });
   } catch (e) {
-    if (e instanceof ScopeError) { log(`refused: ${e.message}`); process.exitCode = 2; return; }
+    if (e instanceof ScopeError) {
+      log(`refused: ${e.message}`);
+      process.exitCode = 2;
+      return;
+    }
     throw e;
   }
 
@@ -116,31 +186,65 @@ async function main() {
 
   const ledger = new Ledger(stateDir);
   const courses = coursesForValidation(inventory);
+  // The full library runs in resumable batches: the next unfinished lessons only.
+  if (spending && cmd !== 'compose' && String(flags.only).toLowerCase() === 'all') {
+    items = nextLibraryBatch(items, ledger, int(flags['batch-size'], LIBRARY_BATCH));
+    log(`library batch: ${items.length} unfinished lesson(s) this run`);
+  }
   const concurrency = int(flags.concurrency, 4);
   // The combined ceiling: this stage may spend the smaller of its own cap and
   // what is left of TOTAL_CAP_CENTS after everything the ledger has recorded.
   const already = ledger.spentCents();
   const budget = new Budget(remainingCents(flags['budget-cents'] !== undefined ? int(flags['budget-cents']) : null, already));
-  if (spending && cmd !== 'compose') log(`spend so far ${dollars(already)} of ${dollars(TOTAL_CAP_CENTS)} combined · this stage may spend up to ${dollars(budget.cap)}`);
+  if (spending && cmd !== 'compose')
+    log(`spend so far ${dollars(already)} of ${dollars(TOTAL_CAP_CENTS)} combined · this stage may spend up to ${dollars(budget.cap)}`);
   const retryFailed = cmd === 'retry-failed';
 
   if (cmd === 'text' || (retryFailed && flags.kind !== 'image')) {
     const provider = textProvider(String(flags.provider || 'anthropic'), flags.model ? { model: String(flags.model) } : {});
-    log(`Stage A (text) · ${items.length} lessons · ${provider.name}/${provider.model} · concurrency ${concurrency}${Number.isFinite(budget.cap) ? ` · cap ${dollars(budget.cap)}` : ''}`);
+    log(
+      `Stage A (text) · ${items.length} lessons · ${provider.name}/${provider.model} · concurrency ${concurrency}${Number.isFinite(budget.cap) ? ` · cap ${dollars(budget.cap)}` : ''}`
+    );
     const t = await runText({ items, ledger, provider, courses, batchId, concurrency, maxAttempts: int(flags['max-attempts'], 3), budget, retryFailed, log });
-    log(`text: ${t.done} done · ${t.skipped} skipped · ${t.needsReview} need review · ${t.failed} failed${t.stoppedByBudget ? ' · STOPPED AT BUDGET CAP' : ''} · this run ${dollars(budget.spent)}`);
+    log(
+      `text: ${t.done} done · ${t.skipped} skipped · ${t.needsReview} need review · ${t.failed} failed${t.stoppedByBudget ? ' · STOPPED AT BUDGET CAP' : ''} · this run ${dollars(budget.spent)}`
+    );
   }
   if (cmd === 'images' || (retryFailed && flags.kind !== 'text')) {
     const provider = imageProvider(String(flags.provider || 'bfl'));
     const bucket = new TokenBucket(int(flags['per-minute'], 30));
-    log(`Stage B (images) · ${items.length} lessons · ${provider.name}/${provider.model} · concurrency ${concurrency} · ${int(flags['per-minute'], 30)}/min${Number.isFinite(budget.cap) ? ` · cap ${dollars(budget.cap)}` : ''}`);
+    log(
+      `Stage B (images) · ${items.length} lessons · ${provider.name}/${provider.model} · concurrency ${concurrency} · ${int(flags['per-minute'], 30)}/min${Number.isFinite(budget.cap) ? ` · cap ${dollars(budget.cap)}` : ''}`
+    );
     const perceptualHash = await loadDHash(log);
-    const t = await runImages({ items, ledger, provider, outDir, batchId, concurrency, bucket, maxAttempts: int(flags['max-attempts'], 3), budget, retryFailed, perceptualHash, log });
-    log(`images: ${t.done} done · ${t.skipped} skipped · ${t.waiting} waiting on approved copy · ${t.needsReview} need review · ${t.failed} failed${t.stoppedByBudget ? ' · STOPPED AT BUDGET CAP' : ''} · this run ${dollars(budget.spent)}`);
+    // Pictures never pass their own ceiling (the BFL credits), whatever the run cap.
+    const imgLeft = Math.max(0, IMAGE_TOTAL_CAP_CENTS - imageSpentCents(ledger));
+    if (budget.cap > imgLeft) budget.cap = imgLeft;
+    const beforeImg = shaMap(ledger);
+    const t = await runImages({
+      items,
+      ledger,
+      provider,
+      outDir,
+      batchId,
+      concurrency,
+      bucket,
+      maxAttempts: int(flags['max-attempts'], 3),
+      budget,
+      retryFailed,
+      perceptualHash,
+      log,
+    });
+    outboxNew(beforeImg, ledger, outDir, log);
+    log(
+      `images: ${t.done} done · ${t.skipped} skipped · ${t.waiting} waiting on approved copy · ${t.needsReview} need review · ${t.failed} failed${t.stoppedByBudget ? ' · STOPPED AT BUDGET CAP' : ''} · this run ${dollars(budget.spent)}`
+    );
   }
   if (cmd === 'status' || cmd === 'text' || cmd === 'images' || retryFailed) {
     const s = ledger.summary();
-    log(`\nLedger · ${s.records}/${all.length} lessons have copy · text ${JSON.stringify(s.text)} · image ${JSON.stringify(s.image)} · total spend ${dollars(s.spentCents)}`);
+    log(
+      `\nLedger · ${s.records}/${all.length} lessons have copy · text ${JSON.stringify(s.text)} · image ${JSON.stringify(s.image)} · total spend ${dollars(s.spentCents)}`
+    );
     return;
   }
   if (cmd === 'compose') {
@@ -148,7 +252,9 @@ async function main() {
     // composed 1280x720 share thumbnail, via app/scripts/learn-thumbs. Free:
     // no provider call. Re-runnable: a lesson whose master is unchanged is skipped.
     let composeLesson;
-    try { ({ composeLesson } = await import('../learn-thumbs/compose.mjs')); } catch (e) {
+    try {
+      ({ composeLesson } = await import('../learn-thumbs/compose.mjs'));
+    } catch (e) {
       log(`compose needs the compositor installed: cd scripts/learn-thumbs && npm ci (${e.message})`);
       process.exitCode = 1;
       return;
@@ -159,36 +265,89 @@ async function main() {
     const { lookFor, GRADE_VERSION } = await import('../learn-thumbs/grade.mjs');
     const deptOf = new Map(inventory.map((c) => [c.key, c.department]));
     const base = String(flags['image-base'] || '/learn-thumbs');
-    let done = 0; let skipped = 0; let failed = 0;
+    let done = 0;
+    let skipped = 0;
+    let failed = 0;
     for (const r of Object.values(ledger.records)) {
       if (!r.image || !r.image.path || !r.thumbHeadline) continue;
       if (!want.has(r.lessonId) && !want.has(`${r.courseKey}::${r.lessonId}`)) continue;
       // Every picture is graded (grade.mjs); an ungraded delivery is re-composed, free.
       const look = r.image.look || lookFor(deptOf.get(r.courseKey), r.courseKey);
-      if (r.image.delivery && r.image.delivery.sha256 === r.image.sha256 && r.image.delivery.look === look && r.image.delivery.gradeVersion === GRADE_VERSION) { skipped += 1; continue; }
+      if (r.image.delivery && r.image.delivery.sha256 === r.image.sha256 && r.image.delivery.look === look && r.image.delivery.gradeVersion === GRADE_VERSION) {
+        skipped += 1;
+        continue;
+      }
       try {
-        const m = await composeLesson({ image: join(outDir, r.image.path), courseKey: r.courseKey, lessonId: r.lessonId, thumbHeadline: r.thumbHeadline, layout: flags.layout === 'right' ? 'right' : 'left', department: deptOf.get(r.courseKey) || '', outDir: composedDir, publicBase: base, look });
-        ledger.putRecord({ ...r, image: { ...r.image, delivery: { ...m.image, og: m.ogPath, width: m.width, height: m.height, sha256: m.sha256, dhash: m.dhash, look, gradeVersion: GRADE_VERSION, grade: m.grade && { before: m.grade.before, after: m.grade.after } } } });
+        const m = await composeLesson({
+          image: join(outDir, r.image.path),
+          courseKey: r.courseKey,
+          lessonId: r.lessonId,
+          thumbHeadline: r.thumbHeadline,
+          layout: flags.layout === 'right' ? 'right' : 'left',
+          department: deptOf.get(r.courseKey) || '',
+          outDir: composedDir,
+          publicBase: base,
+          look,
+        });
+        ledger.putRecord({
+          ...r,
+          image: {
+            ...r.image,
+            delivery: {
+              ...m.image,
+              og: m.ogPath,
+              width: m.width,
+              height: m.height,
+              sha256: m.sha256,
+              dhash: m.dhash,
+              look,
+              gradeVersion: GRADE_VERSION,
+              grade: m.grade && { before: m.grade.before, after: m.grade.after },
+            },
+          },
+        });
         done += 1;
-      } catch (e) { failed += 1; log(`compose failed ${r.courseKey}::${r.lessonId}: ${e.code || ''} ${e.message}`); }
+      } catch (e) {
+        failed += 1;
+        log(`compose failed ${r.courseKey}::${r.lessonId}: ${e.code || ''} ${e.message}`);
+      }
     }
     // The Explore by Topic covers (art-v2 topic pictures), graded the same way.
     const { readTopics } = await import('./lib/art-v2.mjs');
     for (const t of Object.values(readTopics(stateDir))) {
       try {
-        await composeLesson({ image: join(outDir, t.image.path), courseKey: 'topics', lessonId: t.key, thumbHeadline: t.label, department: t.label, outDir: composedDir, publicBase: base, look: t.image.look });
+        await composeLesson({
+          image: join(outDir, t.image.path),
+          courseKey: 'topics',
+          lessonId: t.key,
+          thumbHeadline: t.label,
+          department: t.label,
+          outDir: composedDir,
+          publicBase: base,
+          look: t.image.look,
+        });
         done += 1;
-      } catch (e) { failed += 1; log(`compose failed topic ${t.key}: ${e.code || ''} ${e.message}`); }
+      } catch (e) {
+        failed += 1;
+        log(`compose failed topic ${t.key}: ${e.code || ''} ${e.message}`);
+      }
     }
     log(`compose: ${done} composed · ${skipped} unchanged · ${failed} failed -> ${composedDir}`);
     return;
   }
   if (cmd === 'verify-resume') {
     // Free. Runs before any paid call on a resumed run; a failure stops the job.
-    const v = verifyRecovery(ledger, outDir, { minCents: int(flags['min-cents'], 0), minText: int(flags['min-text'], 0), minImages: int(flags['min-images'], 0) });
+    const v = verifyRecovery(ledger, outDir, {
+      minCents: int(flags['min-cents'], 0),
+      minText: int(flags['min-text'], 0),
+      minImages: int(flags['min-images'], 0),
+    });
     log(`recovered: ${v.text} titles · ${v.images} intact images · ${dollars(v.spent)} spent`);
     for (const p of v.problems) log(`  ✗ ${p}`);
-    if (!v.ok) { log('recovery check FAILED — stopping before any spend'); process.exitCode = 3; }
+    if (!v.ok) {
+      log('recovery check FAILED — stopping before any spend');
+      process.exitCode = 3;
+    }
     return;
   }
   if (cmd === 'export') {
@@ -199,8 +358,13 @@ async function main() {
     log(`exported ${out.records.length} records (status: review) -> ${file}`);
     return;
   }
-  log('usage: npx vite-node scripts/learn-presentation/cli.mjs <estimate|text|images|compose|status|verify-resume|export|retry-failed> [--only seed|id,id] [--limit N] [--provider ...] [--budget-cents N] [--concurrency N] [--per-minute N]');
+  log(
+    'usage: npx vite-node scripts/learn-presentation/cli.mjs <estimate|text|images|compose|status|verify-resume|export|retry-failed> [--only seed|id,id] [--limit N] [--provider ...] [--budget-cents N] [--concurrency N] [--per-minute N]'
+  );
   process.exitCode = 2;
 }
 
-main().catch((e) => { process.stderr.write(`${e && e.stack ? e.stack : e}\n`); process.exitCode = 1; });
+main().catch((e) => {
+  process.stderr.write(`${e && e.stack ? e.stack : e}\n`);
+  process.exitCode = 1;
+});

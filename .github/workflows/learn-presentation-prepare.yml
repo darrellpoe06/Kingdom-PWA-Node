@@ -1,11 +1,11 @@
 # Learn presentation: prepare a title + cinematic thumbnail for each new lesson, for APPROVAL only (never edits a lesson, never publishes).
-# Brakes: $5 combined across all runs, retries included (lib/scope.mjs; titles <= 20% per run), one run at a time, OFF unless vars.LEARN_PRESENTATION_AUTOPREP == 'on'. Detail: docs/99-session-notes/2026-11-23-learn-presentation-redesign-phase-1-2.md
-# Manual (dispatch) only until the owner approves the full library. Paid work is saved (cache + artifact) even when a later step fails.
+# Brakes: $95 combined, pictures $68 (under the owner's BFL credits), both read from the ledger, retries included (lib/scope.mjs); per-run cap (titles <= 20%); batches of 200; one run at a time; OFF unless vars.LEARN_PRESENTATION_AUTOPREP == 'on'. Detail: docs/99-session-notes/2026-11-24-learn-redesign-art-direction-v2.md
+# Manual (dispatch) only: the full library (approved 2026-11-24) runs batch by batch. Paid work is saved (cache + artifact) even when a later step fails; the NAS pulls each batch (learn-thumbs-pull, DR-1360).
 name: Learn presentation — prepare new lessons
 on:
   workflow_dispatch:
     inputs:
-      only: { description: '"seed" = the 20 pilot lessons (max 20; library disabled in code). "art:samples" / "art:rest" = the new art direction (art-direction-v2.json) only', required: true, default: 'seed' }
+      only: { description: '"all" = the next batch of 200 unfinished library lessons (approved 2026-11-24; caps in lib/scope.mjs). "seed" = the 20 pilot lessons. "art:..." = art-direction-v2.json entries', required: true, default: 'seed' }
       budget_cents: { description: 'Hard spend cap for this whole run, in cents', required: false, default: '500' }
       fresh_ledger: { description: 'Type "yes" ONLY for a first run with no saved ledger (a missing ledger otherwise stops the run before any spend)', required: false, default: 'no' }
 permissions:
@@ -41,14 +41,14 @@ jobs:
         run: npx vitest run src/__tests__/learn-integrity-baseline.test.js
       - name: Titles and images (one cap for the whole run; resumes, never redoes finished work)
         run: |
-          set -euo pipefail
+          set -euo pipefail; rm -rf .learn-presentation/outbox # each run's artifact carries only its own new pictures (the NAS pulls them, DR-1360)
           SCOPE="--only ${ONLY/#art:*/seed}"; TEXT_CAP=$(( CAP / 5 )); IMAGE_CAP=$(( CAP - TEXT_CAP )); echo "cap ${CAP}c = text ${TEXT_CAP}c + images ${IMAGE_CAP}c"
           $CLI status; [ "${{ github.event.inputs.fresh_ledger }}" = yes ] || $CLI verify-resume --min-cents 98 --min-text 10 --min-images 10 # recovery proven before any spend; scope validated in code (<= 20, never all)
           case "$ONLY" in art:*) $CLI art-v2 --only "${ONLY#art:}" --budget-cents "$CAP" ;; *) $CLI text $SCOPE --budget-cents "$TEXT_CAP"; $CLI images $SCOPE --provider bfl --budget-cents "$IMAGE_CAP" --concurrency 6 --per-minute 30 ;; esac
       - name: Compose thumbnails (free; a failure here never loses paid work)
         if: always()
         continue-on-error: true
-        run: $CLI compose --only "${ONLY/#art:*/seed}"
+        run: if [ "$ONLY" = all ]; then echo "library batch: compose is a separate free step"; else $CLI compose --only "${ONLY/#art:*/seed}"; fi
       - name: Export the review package
         if: always()
         run: $CLI export --to .learn-presentation/review-export.json && $CLI status
@@ -65,6 +65,6 @@ jobs:
           path: |
             app/.learn-presentation/review-export.json
             app/.learn-presentation/composed/
-            app/.learn-presentation/images/
+            app/.learn-presentation/outbox/
             app/.learn-presentation/state/
-          retention-days: 30
+          retention-days: 14
