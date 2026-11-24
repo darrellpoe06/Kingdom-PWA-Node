@@ -6,7 +6,7 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import { createElement, act } from 'react';
 import { createRoot } from 'react-dom/client';
-import Storefront, { DeliveredPanel } from '../components/Storefront.jsx';
+import Storefront, { COURSES_FIRST, PRICE_BESIDE_MAX, DeliveredPanel } from '../components/Storefront.jsx';
 import { SURFACES } from '../surfaces.js';
 import { VALID_VIEWS } from '../lib/nav-history.js';
 import { navItems, NAV_WORDS, NAV_ICONS } from '../lib/nav-items.jsx';
@@ -78,8 +78,16 @@ describe('the shelf', () => {
     expect(h.querySelector('[data-testid="store-profile"]').textContent).toContain(STORE_PROFILE.seller);
     expect(h.querySelector('[data-testid="store-profile"]').textContent).toContain(STORE_PROFILE.tagline);
     expect(h.querySelector('[data-testid="store-counts"]').textContent).toMatch(/2 books · 0 bundles · \d+ courses · 0 workshops open · 1 membership/);
+    // Everything counted is on the shelf: eight courses first, the rest one tap away (DR-1637).
+    const total = Number(h.querySelector('[data-testid="storefront"]').getAttribute('data-total'));
+    const more = h.querySelector('[data-testid="store-courses-more"]');
+    const hidden = Number(more.textContent.match(/other (\d+) courses/)[1]);
+    expect(h.querySelectorAll('[data-testid="store-item"]').length).toBe(total - hidden);
+    expect(h.querySelectorAll('[data-testid="store-item"][data-kind="course"]').length).toBe(COURSES_FIRST);
+    await act(async () => more.dispatchEvent(new MouseEvent('click', { bubbles: true })));
     const items = [...h.querySelectorAll('[data-testid="store-item"]')];
-    expect(items.length).toBe(Number(h.querySelector('[data-testid="storefront"]').getAttribute('data-total')));
+    expect(items.length).toBe(total);
+    expect(h.querySelector('[data-testid="store-courses-more"]')).toBeNull();
     const ll = items.find((i) => i.getAttribute('data-id') === 'prod-living-lessons');
     expect(ll.getAttribute('data-buyable')).toBe('yes');
     expect(ll.querySelector('[data-testid="buy"]').textContent).toBe('Buy $9.99');
@@ -89,6 +97,27 @@ describe('the shelf', () => {
     expect(h.querySelector('[data-testid="store-course"]')).toBeTruthy();
     expect(h.querySelector('[data-testid="store-membership"] [data-testid="poetech-plus"]')).toBeTruthy();
     expect(h.textContent).toMatch(/Have a code\? Enter it on the checkout page/);
+  });
+  it('a sentence of price sits under the title and a word beside it; courses are read by area (DR-1637)', async () => {
+    const h = await draw(createElement(Storefront, { client: fakeClient(), fetchImpl: serverSays({ books: [], subscriptions: [] }), search: '' }));
+    const prices = [...h.querySelectorAll('[data-testid="store-price"]')];
+    for (const p of prices) expect(p.getAttribute('data-placed')).toBe(p.textContent.length > PRICE_BESIDE_MAX ? 'below' : 'beside');
+    expect(prices.some((p) => p.getAttribute('data-placed') === 'below' && /Included with/.test(p.textContent))).toBe(true);
+    expect(prices.some((p) => p.getAttribute('data-placed') === 'beside' && p.textContent === 'Free')).toBe(true);
+    // one price per item, never two
+    for (const it of h.querySelectorAll('[data-testid="store-item"]')) expect(it.querySelectorAll('[data-testid="store-price"]').length).toBe(1);
+    // the areas are the courses' own departments, and their counts add up to every course
+    const areas = [...h.querySelectorAll('[data-testid="store-course-areas"] button')];
+    const n = (b) => Number(b.textContent.match(/· (\d+)$/)[1]);
+    expect(areas[0].textContent).toMatch(/^All areas · \d+$/);
+    expect(areas.slice(1).reduce((t, b) => t + n(b), 0)).toBe(n(areas[0]));
+    // choosing an area shows every course of that area and only those, with no "show more"
+    const pick = areas[1];
+    await act(async () => pick.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+    const shown = [...h.querySelectorAll('[data-testid="store-item"][data-kind="course"]')];
+    expect(shown.length).toBe(n(pick));
+    expect(pick.getAttribute('aria-pressed')).toBe('true');
+    expect(h.querySelector('[data-testid="store-courses-more"]')).toBeNull();
   });
   it('buying posts to /api/checkout with a return path that carries the session id placeholder; a closed book never posts', async () => {
     const calls = [];

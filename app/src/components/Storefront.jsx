@@ -31,6 +31,8 @@ const btn =
   'inline-flex items-center text-xs px-3 py-1.5 min-h-[36px] border font-semibold focus:outline focus:outline-2 focus:outline-[#B85838] disabled:opacity-60';
 const eyebrow = 'text-[0.6875rem] uppercase tracking-wider font-semibold text-[#B85838] mb-1';
 const serif = { fontFamily: '"Fraunces", serif' };
+export const PRICE_BESIDE_MAX = 10;
+export const COURSES_FIRST = 8;
 const nowIso = () => new Date().toISOString();
 const KIND_LABEL = { book: 'Books', bundle: 'Bundles', course: 'Courses', workshop: 'Workshops', membership: 'Membership' };
 const KIND_ORDER = ['book', 'bundle', 'course', 'workshop', 'membership'];
@@ -129,6 +131,23 @@ export default function Storefront({
   const items = useMemo(() => storefrontItems({ books: loadCatalog(), overrides: loadOverrides(), events, open }), [events, open]);
   const counts = useMemo(() => storefrontCounts(items), [items]);
   const grouped = useMemo(() => KIND_ORDER.map((k) => ({ kind: k, items: items.filter((i) => i.kind === k) })).filter((g) => g.items.length), [items]);
+  // THE COURSE SHELF IS READ BY AREA, EIGHT AT A TIME (DR-1637): forty-five
+  // cards in one scroll is the "scroll of death" he named. The areas are the
+  // courses' own departments, counted; a linked course is never hidden.
+  const [area, setArea] = useState('all');
+  const [allCourses, setAllCourses] = useState(false);
+  const courseAreas = useMemo(() => {
+    const m = new Map();
+    for (const i of items) if (i.kind === 'course') m.set(i.course.department, (m.get(i.course.department) || 0) + 1);
+    return [...m.entries()].map(([label, count]) => ({ label, count })).sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
+  }, [items]);
+  const shownOf = (g) => {
+    if (g.kind !== 'course') return g.items;
+    if (area !== 'all') return g.items.filter((i) => i.course.department === area);
+    if (allCourses || (wanted && g.items.some((i) => i.id === wanted))) return g.items;
+    return g.items.slice(0, COURSES_FIRST);
+  };
+  const hiddenCourses = (g) => (g.kind === 'course' && area === 'all' ? g.items.length - shownOf(g).length : 0);
 
   // Two processors, one seam (DR-1451): the server names what is open, the
   // owner's choice first; a second one is offered beside it. The request
@@ -217,8 +236,24 @@ export default function Storefront({
       {grouped.map((g) => (
         <section key={g.kind} className="mb-5" data-testid={`store-${g.kind}`}>
           <div className={eyebrow}>{KIND_LABEL[g.kind]}</div>
+          {g.kind === 'course' && (
+            <div className="flex flex-wrap gap-1 mb-2" role="group" aria-label="Show courses for" data-testid="store-course-areas">
+              {[{ label: 'all', count: g.items.length }, ...courseAreas].map((a) => (
+                <button
+                  key={a.label}
+                  type="button"
+                  aria-pressed={area === a.label}
+                  onClick={() => setArea(a.label)}
+                  className={`${btn} ${area === a.label ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#1A1815] bg-white'}`}
+                  data-testid={`store-area-${a.label === 'all' ? 'all' : a.label.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`}
+                >
+                  {a.label === 'all' ? 'All areas' : a.label} · {a.count}
+                </button>
+              ))}
+            </div>
+          )}
           <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {g.items.map((it) => {
+            {shownOf(g).map((it) => {
               const owned =
                 it.kind === 'book'
                   ? entitledToBook(sub, it.product, nowIsoFn())
@@ -226,6 +261,11 @@ export default function Storefront({
                     ? it.grants.every((id) => entitledToBook(sub, { id, tierIncluded: [] }, nowIsoFn()))
                     : false;
               const highlight = wanted && wanted === it.id;
+              // A WORD OF PRICE SITS BESIDE THE TITLE; A SENTENCE SITS UNDER IT (DR-1637).
+              // "Included with PoeTech+ ($39/mo)" beside a title took the row and
+              // left the title one word to a line (Darrell's screen, 2026-11-24).
+              const price = owned ? 'Yours' : it.priceLabel;
+              const longPrice = String(price || '').length > PRICE_BESIDE_MAX;
               return (
                 <li
                   key={it.id}
@@ -239,11 +279,16 @@ export default function Storefront({
                     <div className="text-2xl" aria-hidden="true">
                       {it.coverEmoji}
                     </div>
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-0">
                       <div className="font-semibold text-[#1A1815]" style={serif}>
                         {it.title}
                       </div>
                       {it.subtitle && <div className="text-[0.6875rem] italic text-[#5A5751]">{it.subtitle}</div>}
+                      {longPrice && (
+                        <div className="text-[0.6875rem] font-semibold text-[#B85838] mt-1" data-testid="store-price" data-placed="below">
+                          {price}
+                        </div>
+                      )}
                       {it.blurb && <p className="text-xs mt-1 text-[#1A1815]">{it.blurb}</p>}
                       {it.kind === 'book' && (
                         <div className="mt-1">
@@ -251,9 +296,11 @@ export default function Storefront({
                         </div>
                       )}
                     </div>
-                    <div className="text-sm font-semibold text-[#B85838]" data-testid="store-price">
-                      {owned ? 'Yours' : it.priceLabel}
-                    </div>
+                    {!longPrice && (
+                      <div className="text-sm font-semibold text-[#B85838] shrink-0" data-testid="store-price" data-placed="beside">
+                        {price}
+                      </div>
+                    )}
                   </div>
                   <div className="flex flex-wrap items-center gap-2 mt-2">
                     {(it.kind === 'book' || it.kind === 'bundle') &&
@@ -341,6 +388,16 @@ export default function Storefront({
               );
             })}
           </ul>
+          {g.kind === 'course' && hiddenCourses(g) > 0 && (
+            <button
+              type="button"
+              onClick={() => setAllCourses(true)}
+              className={`${btn} mt-2 border-[#E8E4DC] text-[#1A1815] bg-white`}
+              data-testid="store-courses-more"
+            >
+              Show the other {hiddenCourses(g)} courses
+            </button>
+          )}
         </section>
       ))}
       {!grouped.length && (
