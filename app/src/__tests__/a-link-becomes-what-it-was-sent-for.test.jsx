@@ -33,6 +33,7 @@ import { fileURLToPath } from 'node:url';
 import {
   researchIntents, noteOf, parseLinkAnswer, lessonRequestBody, buildRequestBody,
   parseCreated, createdBody, MAX_FILED_CHARS, unreadCanFile,
+  intentsToSend, lessonDoorTags,
 } from '../lib/research-create.js';
 import { researchItems } from '../lib/research-items.js';
 
@@ -247,6 +248,37 @@ vi.mock('../lib/agent-inbox-sync.js', () => ({
 vi.mock('../components/ResearchTry.jsx', () => ({ default: () => createElement('div', null, 'ask box') }));
 import ResearchSection from '../components/ResearchSection.jsx';
 
+describe('research is always done for a lesson (DR-1635)', () => {
+  it('a link is always a lesson, whatever is ticked; features adds a build beside it', () => {
+    expect(intentsToSend('https://youtu.be/6GVmsB3PLmY')).toEqual(['lesson']);
+    expect(intentsToSend('https://youtu.be/6GVmsB3PLmY', ['build'])).toEqual(['lesson', 'build']);
+    expect(intentsToSend('https://youtu.be/x features for the PoeTech App')).toEqual(['lesson', 'build']);
+  });
+  it('a question with no link is what was ticked, else research', () => {
+    expect(intentsToSend('what can we run ourselves?')).toEqual([]);
+    expect(intentsToSend('what can we run ourselves?', ['lesson'])).toEqual(['lesson']);
+  });
+  it("the Governor's lesson is researched first, link or not", () => {
+    expect(lessonDoorTags('Faith comes by hearing', true)).toEqual(['research', 'create:lesson']);
+    expect(lessonDoorTags('https://youtu.be/x', true)).toEqual(['research', 'create:lesson']);
+  });
+  it('the lesson request carries his order: what people believe and why, the Word higher, then issues, constraints, opportunities', () => {
+    const body = lessonRequestBody({ itemId: 'x', itemBody: 'https://youtu.be/x', answer: 'words', reading: null });
+    const at = (t) => body.indexOf(t);
+    expect(at('WORD FIRST.')).toBeGreaterThanOrEqual(0);
+    expect(at('1. What people believe about this, and why')).toBeGreaterThan(at('WORD FIRST.'));
+    expect(at('2. What the Word says, which is higher')).toBeGreaterThan(at('1. What people believe'));
+    expect(at('3. The issues, constraints and opportunities')).toBeGreaterThan(at('2. What the Word says'));
+    const fwd = readFileSync(join(ROOT, 'infra/nas-research/research_forwarder.py'), 'utf8');
+    expect(fwd).toMatch(/what people believe about its subject and why, naming who says it/);
+    expect(fwd).toMatch(/the issues it raises/);
+  });
+  it("a member's link is researched; a member's private words go to the Governor first, never to a web search", () => {
+    expect(lessonDoorTags('https://youtu.be/x', false)).toEqual(['research', 'create:lesson']);
+    expect(lessonDoorTags('Someone lied to me and broke a promise', false)).toEqual(['lesson']);
+  });
+});
+
 describe('the Research card', () => {
   let host; let root;
   beforeEach(() => { host = document.createElement('div'); document.body.appendChild(host); root = createRoot(host); store.sent = []; });
@@ -271,6 +303,42 @@ describe('the Research card', () => {
     expect(store.sent).toHaveLength(1);
     expect(store.sent[0].tags).toEqual(['research', 'create:lesson']);
     expect(host.textContent).toMatch(/after the research it becomes a lesson/);
+  });
+
+  // DR-1635: a link is all it takes. Darrell 2026-11-24: "I have a YouTube link
+  // and I want that to be all I need." Before this, a bare link was research only.
+  const typeAndSend = async (text, tick = []) => {
+    const ta = host.querySelector('#research-send');
+    await act(async () => {
+      const set = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value').set;
+      set.call(ta, text);
+      ta.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    for (const t of tick) await act(async () => { q(t).click(); });
+    await act(async () => { host.querySelector('form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); });
+  };
+
+  it('a bare YouTube link with nothing ticked is filed as a lesson (DR-1635)', async () => {
+    store.rows = [];
+    await mount();
+    await typeAndSend('https://youtu.be/6GVmsB3PLmY');
+    expect(store.sent).toHaveLength(1);
+    expect(store.sent[0].tags).toEqual(['research', 'create:lesson']);
+    expect(host.textContent).toMatch(/after the research it becomes a lesson/);
+  });
+
+  it('a link with only features ticked is still a lesson, and a build beside it (DR-1635)', async () => {
+    store.rows = [];
+    await mount();
+    await typeAndSend('https://youtu.be/6GVmsB3PLmY', ['research-for-build']);
+    expect(store.sent[0].tags).toEqual(['research', 'create:lesson', 'create:build']);
+  });
+
+  it('a question with no link and nothing ticked stays research (DR-1635)', async () => {
+    store.rows = [];
+    await mount();
+    await typeAndSend('which of these options can we run ourselves?');
+    expect(store.sent[0].tags).toEqual(['research']);
   });
 
   it('an answered reel shows its source in parts, the whole words, and what was filed; the filed lesson is not offered twice', async () => {

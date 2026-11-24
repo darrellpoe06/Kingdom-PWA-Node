@@ -77,11 +77,34 @@ export function isPreviewHost(hostname) {
 
 /** The connection the data client is built with: the real values on
  *  production and private hosts; a stub that can reach nothing on a preview. */
-export function resolveSupabaseConfig({ hostname = '', url = '', key = '' } = {}) {
+export function resolveSupabaseConfig({ hostname = '', url = '', key = '', search = '' } = {}) {
   if (isPreviewHost(hostname)) {
-    return { url: PREVIEW_STUB_URL, key: PREVIEW_STUB_KEY, isolated: true, reason: `preview host ${hostname}: the data client is isolated from production` };
+    return { url: PREVIEW_STUB_URL, key: PREVIEW_STUB_KEY, isolated: true, preview: true, reason: `preview host ${hostname}: the data client is isolated from production` };
   }
-  return { url: url || '', key: key || '', isolated: false, reason: null };
+  if (isPublicSample(hostname, search)) {
+    return { url: PREVIEW_STUB_URL, key: PREVIEW_STUB_KEY, isolated: true, preview: false, reason: 'the family sample: the data client is isolated from the family\'s data' };
+  }
+  return { url: url || '', key: key || '', isolated: false, preview: false, reason: null };
+}
+
+/** THE FAMILY SAMPLE ON THE PUBLIC SITE (DR-1638). Darrell 2026-11-24: "See
+ *  family sample does not mean potential users can get into see what PoeTech
+ *  App has to offer.... why not?" MEASURED: the front door's link is
+ *  `/?demo=family-of-4`, and the access gate sent every signed-out visitor on
+ *  poetech.us back to the front door without reading `?demo=`, so the link
+ *  reloaded the page it was clicked on.
+ *
+ *  Now a `?demo=` URL on a public host is the sample, opened without a
+ *  session, with the same protection a preview has: the data client is the
+ *  stub that reaches nothing, so no read, write, sign-in or RPC can touch the
+ *  family's data, whoever holds a session in this browser. Unlike a preview,
+ *  nothing is purged: a family member's real sign-in stays stored under its
+ *  own key and is back the moment they leave the sample. The sample never
+ *  saves (isAnyDemoMode), as before. Private hosts are unchanged. */
+export function isPublicSample(hostname, search) {
+  const host = String(hostname || '').toLowerCase().trim();
+  if (!host || isPrivateHost(host)) return false;
+  try { return new URLSearchParams(String(search || '')).has('demo'); } catch (_) { return false; }
 }
 
 /** The sample persona to boot with. On a preview host the URL's `?demo=`
@@ -134,3 +157,4 @@ export function currentHostname() {
   try { return typeof window !== 'undefined' ? (window.location.hostname || '') : ''; } catch (_) { return ''; }
 }
 export function isIsolatedPreview() { return isPreviewHost(currentHostname()); }
+export function isPublicSampleVisit() { try { return isPublicSample(currentHostname(), typeof window !== 'undefined' ? window.location.search : ''); } catch (_) { return false; } }
