@@ -43,3 +43,42 @@ So the permanent service is one the tower starts itself.
    only while someone watches the first night (Tier C).
 
 What it never does: buy anything, publish anything, or write to a lesson.
+
+## One image service for the whole church app (owner, 2026-11-24)
+
+Approved for testing as a SHARED service, not a Learn-only one. Learn is its first
+project; Kids Zone, Bible Adventures, Teens Zone, course covers, lesson illustrations
+and future features join as their own projects. The six Learn comparison samples come
+first, and nothing here authorizes a full-library run before the owner approves it.
+
+**Separate queues, one worker.** Each project has its own queue (`learn`, `kids`,
+`bible-adventures`, `teens`, `courses`, ...). A job is
+`{project, key, prompt, art_direction, seed, size, status}`. The worker takes jobs in a
+fair rotation across projects, so one big backlog never starves the others, and a
+project can be paused on its own.
+
+**Resume without starting over or duplicating.** Every job has a deterministic key:
+the sha256 of project + subject id + the full final prompt + model + size + seed.
+- A job whose key already has a finished picture is never run again (the same rule the
+  paid ledger already enforces: a finished picture is never bought twice).
+- A picture is written to a temp name and renamed into place only when complete, then
+  recorded; a crash mid-picture leaves nothing half-written, and the job simply runs again.
+- A job leased by a worker that died returns to the queue after its lease expires.
+- Changing a prompt makes a NEW key (a new picture), and the old one is kept.
+
+**Each project keeps its own rules.** The art direction, the DR-1640 representation
+check and the banned dark-look terms run per project before a job is queued: Learn uses
+the approved bright photographic style; Kids Zone and Bible Adventures will carry their
+own approved looks once those are decided.
+
+**Dashboard (a surface in the app, read-only to start).** Per project: queued, running,
+completed, failed (with reason), and approval status (review / approved / rejected);
+the GPU (busy or free, which program holds it, temperature); generation time per picture
+and per night; estimated savings against the paid service, computed from the measured
+count times the list price (6 cents a picture today), stated as an estimate. It reads the
+worker's own status file published to the NAS, the same "the house reports first" pattern
+the NAS loops use, so it needs no inbound road.
+
+**Order of work.** (1) the read-only tower probe; (2) the six Learn samples and the
+side-by-side; (3) the owner's decision; (4) only then the shared worker, its queues and
+the dashboard.
