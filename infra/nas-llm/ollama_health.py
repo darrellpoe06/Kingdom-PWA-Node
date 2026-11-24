@@ -101,3 +101,16 @@ def build_health(ps_json, tags_json, version, now=None):
         "any_pinned": any_pinned,
         "generated_at": now.isoformat().replace("+00:00", "Z"),
     }
+
+
+def chat_gate(token, authorization):
+    """Who may talk to the model. None when the family key matches; otherwise
+    (status, error, reason). A door with no key set refuses everyone: it is on
+    the public Funnel, and an unset key must never read as an open door."""
+    import hmac
+
+    if not token:
+        return (503, "not-configured", "this door has no family key set, so it answers nobody")
+    if not hmac.compare_digest(str(authorization or ""), "Bearer " + token):
+        return (401, "unauthorized", "the family key was missing or did not match")
+    return None

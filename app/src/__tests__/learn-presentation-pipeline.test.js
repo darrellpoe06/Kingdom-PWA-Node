@@ -67,7 +67,7 @@ const goodCopy = (t) =>
     displayTitle: COPY[t],
     thumbHeadline: `${COPY[t].split(' ')[0]} HEADLINE NOW`,
     promoDescription: 'What the lesson teaches.',
-    imagePrompt: 'A cinematic scene.',
+    imagePrompt: 'A bright daylight photograph of a smiling Black family at a sunny kitchen table.',
     imageAlt: 'A person at work.',
   });
 
@@ -232,7 +232,13 @@ describe('retries, timeouts and budget', () => {
 describe('quality gates', () => {
   it('a duplicate display title anywhere in the library is rejected to review', async () => {
     const p = mockText(() =>
-      JSON.stringify({ displayTitle: 'The Same Title Every Time', thumbHeadline: 'SAME HEADLINE HERE', promoDescription: 'x', imagePrompt: 'y', imageAlt: 'z' })
+      JSON.stringify({
+        displayTitle: 'The Same Title Every Time',
+        thumbHeadline: 'SAME HEADLINE HERE',
+        promoDescription: 'x',
+        imagePrompt: 'A bright daylight photograph of a smiling Black family at a sunny kitchen table.',
+        imageAlt: 'z',
+      })
     );
     const t = await textRun(ledger(), p, { items: items.slice(0, 2) });
     expect(t).toMatchObject({ done: 1, needsReview: 1 });
@@ -240,7 +246,13 @@ describe('quality gates', () => {
 
   it('validator errors are fed back once, then routed to needs-review as a draft', async () => {
     const p = mockText(() =>
-      JSON.stringify({ displayTitle: 'How God Uses Your Past', thumbHeadline: 'YOUR PAST MATTERS', promoDescription: 'x', imagePrompt: 'y', imageAlt: 'z' })
+      JSON.stringify({
+        displayTitle: 'How God Uses Your Past',
+        thumbHeadline: 'YOUR PAST MATTERS',
+        promoDescription: 'x',
+        imagePrompt: 'A bright daylight photograph of a smiling Black family at a sunny kitchen table.',
+        imageAlt: 'z',
+      })
     );
     const l = ledger();
     const t = await textRun(l, p, { items: items.slice(0, 1) });
@@ -383,11 +395,11 @@ describe('pilot scope cannot be widened', () => {
     expect(r(undefined)).toThrow(scope.ScopeError);
     expect(r('')).toThrow(/must name its lessons/);
     expect(r(true)).toThrow(/must name its lessons/);
-    expect(r('all')).toThrow(/full library is disabled/);
-    expect(r('ALL')).toThrow(/full library is disabled/);
+    // Owner approved the full library 2026-11-24: "all" is every mounted lesson, de-duplicated.
+    expect(r('all')().length).toBe(new Set(items.map((x) => `${x.courseKey}::${x.lessonId}`)).size);
     expect(r('ll1-a,not-a-lesson')).toThrow(/not mounted lessons: not-a-lesson/);
     expect(r(many.map((x) => x.lessonId).join(','), many)).toThrow(/at most 20/);
-    expect(scope.FULL_LIBRARY_ENABLED).toBe(false);
+    expect(scope.FULL_LIBRARY_ENABLED).toBe(true);
   });
 
   it('a repeated id is one lesson, not two', () => {
@@ -396,11 +408,12 @@ describe('pilot scope cannot be widened', () => {
   });
 
   it('the combined cap subtracts everything already spent, across runs', () => {
-    expect(scope.TOTAL_CAP_CENTS).toBe(500);
+    expect(scope.TOTAL_CAP_CENTS).toBe(1343 + 6000); // owner 2026-11-24: $60 more, combined
+    expect(scope.IMAGE_TOTAL_CAP_CENTS).toBe(1080 + 5500); // the $55 of BFL credits bought
     expect(scope.remainingCents(400, 0)).toBe(400);
-    expect(scope.remainingCents(400, 300)).toBe(200);
-    expect(scope.remainingCents(null, 480)).toBe(20);
-    expect(scope.remainingCents(400, 900)).toBe(0);
+    expect(scope.remainingCents(400, scope.TOTAL_CAP_CENTS - 200)).toBe(200);
+    expect(scope.remainingCents(null, scope.TOTAL_CAP_CENTS - 20)).toBe(20);
+    expect(scope.remainingCents(400, scope.TOTAL_CAP_CENTS + 400)).toBe(0);
   });
 });
 
@@ -468,7 +481,13 @@ describe('every try is charged, retries and failures included', () => {
 // below fails on the pilot-1 code.
 // ---------------------------------------------------------------------------
 describe('pilot 1 regressions', () => {
-  const COPY_OBJ = { displayTitle: 'Who Are You When Nobody Is Watching?', thumbHeadline: 'WHO ARE YOU', promoDescription: 'p', imagePrompt: 'i', imageAlt: 'a' };
+  const COPY_OBJ = {
+    displayTitle: 'Who Are You When Nobody Is Watching?',
+    thumbHeadline: 'WHO ARE YOU',
+    promoDescription: 'p',
+    imagePrompt: 'i',
+    imageAlt: 'a',
+  };
   const anthropicReply = (body) => async (url, init) => {
     anthropicReply.last = JSON.parse(init.body);
     return { ok: true, json: async () => body };
@@ -511,13 +530,30 @@ describe('pilot 1 regressions', () => {
     const l = ledger();
     const mk = (lessonId, lastError) => {
       const it = items.find((x) => x.lessonId === lessonId);
-      l.write({ batchId: 'library-v1', courseKey: it.courseKey, lessonId, kind: 'text', contentSha: it.contentSha, idempotencyKey: `library-v1|${lessonId}`, state: 'needs-review', attempts: 1, costCents: 2, lastError });
+      l.write({
+        batchId: 'library-v1',
+        courseKey: it.courseKey,
+        lessonId,
+        kind: 'text',
+        contentSha: it.contentSha,
+        idempotencyKey: `library-v1|${lessonId}`,
+        state: 'needs-review',
+        attempts: 1,
+        costCents: 2,
+        lastError,
+      });
       return it;
     };
     const a = mk('ll1-a', 'no JSON object in model output');
     const b = mk('ll2-b', 'generic-god');
-    expect(l.decide({ courseKey: a.courseKey, lessonId: a.lessonId, kind: 'text', contentSha: a.contentSha })).toMatchObject({ run: true, reason: 'parse-fault' });
-    expect(l.decide({ courseKey: b.courseKey, lessonId: b.lessonId, kind: 'text', contentSha: b.contentSha })).toMatchObject({ run: false, reason: 'needs-review' });
+    expect(l.decide({ courseKey: a.courseKey, lessonId: a.lessonId, kind: 'text', contentSha: a.contentSha })).toMatchObject({
+      run: true,
+      reason: 'parse-fault',
+    });
+    expect(l.decide({ courseKey: b.courseKey, lessonId: b.lessonId, kind: 'text', contentSha: b.contentSha })).toMatchObject({
+      run: false,
+      reason: 'needs-review',
+    });
   });
 
   it('resuming keeps what earlier runs spent: the ledger never forgets a cent (proven-to-catch the overwrite)', async () => {
@@ -561,15 +597,23 @@ describe('pilot 1 regressions', () => {
     expect(text.calls.every((c) => !/Not with Eyeservice|Give Me This Mountain/.test(titleFrom(c.user)))).toBe(true);
     const img = mockImage();
     const l3 = ledger();
-    const ti = await runImages({ items: items.slice(0, 4), ledger: l3, provider: img, outDir: join(dir, 'img'), batchId: 'b1', concurrency: 1, sleep: noSleep });
+    const ti = await runImages({
+      items: items.slice(0, 4),
+      ledger: l3,
+      provider: img,
+      outDir: join(dir, 'img'),
+      batchId: 'b1',
+      concurrency: 1,
+      sleep: noSleep,
+    });
     expect(ti.skipped).toBe(2);
     expect(img.calls).toBe(2);
     expect(l3.spentCents()).toBe(spentBefore + 2 + 12);
   });
 
-  it('with 98c already in the ledger the run may spend at most 402c more', async () => {
+  it('with 98c already in the ledger the run may spend only what is left of the combined cap', async () => {
     const scope = await import('../../scripts/learn-presentation/lib/scope.mjs');
-    expect(scope.remainingCents(null, 98)).toBe(402);
+    expect(scope.remainingCents(null, 98)).toBe(scope.TOTAL_CAP_CENTS - 98);
     expect(scope.remainingCents(400, 98)).toBe(400);
   });
 
@@ -617,5 +661,166 @@ describe('recovery is proven before a resumed run spends anything', () => {
     expect(v.ok).toBe(false);
     expect(v.images).toBe(0);
     expect(v.problems.join(' ')).toMatch(/missing on disk[\s\S]*bytes changed/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Full library (owner approval 2026-11-24): batches, the picture ceiling, and
+// the picture-prompt checks that run BEFORE any picture is bought.
+// ---------------------------------------------------------------------------
+describe('full library brakes', () => {
+  it('the next batch skips finished lessons and never exceeds the batch size', async () => {
+    const scope = await import('../../scripts/learn-presentation/lib/scope.mjs');
+    const l = ledger();
+    const it0 = items[0];
+    for (const kind of ['text', 'image'])
+      l.write({
+        batchId: 'b',
+        courseKey: it0.courseKey,
+        lessonId: it0.lessonId,
+        kind,
+        contentSha: it0.contentSha,
+        idempotencyKey: `b|${it0.lessonId}|${kind}`,
+        state: 'succeeded',
+        costCents: 1,
+      });
+    const next = scope.nextLibraryBatch(items, l, 2);
+    expect(next.map((x) => x.lessonId)).not.toContain(it0.lessonId);
+    expect(next.length).toBeLessThanOrEqual(2);
+  });
+
+  it('picture spend is summed over every image kind for the BFL ceiling', async () => {
+    const scope = await import('../../scripts/learn-presentation/lib/scope.mjs');
+    const l = ledger();
+    l.write({ batchId: 'b', courseKey: 'c', lessonId: 'a', kind: 'image', contentSha: 's', idempotencyKey: 'k1', state: 'succeeded', costCents: 6 });
+    l.write({ batchId: 'b', courseKey: 'c', lessonId: 'a', kind: 'image-v2', contentSha: 's', idempotencyKey: 'k2', state: 'succeeded', costCents: 6 });
+    l.write({
+      batchId: 'b',
+      courseKey: 'topics',
+      lessonId: 'faith',
+      kind: 'topic-v2',
+      contentSha: 's',
+      idempotencyKey: 'k3',
+      state: 'succeeded',
+      costCents: 6,
+    });
+    l.write({ batchId: 'b', courseKey: 'c', lessonId: 'a', kind: 'text', contentSha: 's', idempotencyKey: 'k4', state: 'succeeded', costCents: 2 });
+    expect(scope.imageSpentCents(l)).toBe(18);
+  });
+
+  it('a generated picture prompt in the dark pilot look, or with no Black people, is refused (proven to catch)', async () => {
+    const { pictureProblems } = await import('../../scripts/learn-presentation/lib/pipeline.mjs');
+    expect(pictureProblems('A focused woman at a desk in a dim office, deep black shadows, warm gold light.').join(' ')).toMatch(/dark-terms/);
+    expect(pictureProblems('A bright daylight photograph of a smiling woman at a sunny desk.').join(' ')).toMatch(/no-black-people/);
+    expect(pictureProblems('A bright daylight photograph of a smiling Black woman at a sunny desk.')).toEqual([]);
+  });
+
+  it('a record whose picture prompt misses the rules is never bought', async () => {
+    const l = ledger();
+    const it0 = items[0];
+    l.putRecord({
+      courseKey: it0.courseKey,
+      lessonId: it0.lessonId,
+      status: 'review',
+      contentSha: it0.contentSha,
+      visual: { prompt: 'A dim room at night.', alt: 'a' },
+      image: null,
+    });
+    const calls = [];
+    const provider = {
+      name: 'fake',
+      model: 'f',
+      costCents: 6,
+      async generate() {
+        calls.push(1);
+        return { bytes: Buffer.from('x'), ext: 'jpg' };
+      },
+    };
+    const t = await runImages({ items: [it0], ledger: l, provider, outDir: mkdtempSync(join(tmpdir(), 'img-')), batchId: 'b', budget: new Budget(100) });
+    expect(calls.length).toBe(0);
+    expect(t.waiting).toBe(1);
+    expect(l.spentCents()).toBe(0);
+  });
+});
+
+// Library batch 1 (2026-11-24): the BFL account ran dry mid-run (44x HTTP 402
+// "Insufficient credits", 23x 429 "credit balance is low"). A refused submit is
+// never processed, so it must never be charged; and an empty account must stop
+// the whole run with the lesson left queued, not burn retries on every lesson.
+describe('the provider says no: unbilled, and an empty account stops the run', () => {
+  const goodRecord = (l, it) =>
+    l.putRecord({
+      courseKey: it.courseKey,
+      lessonId: it.lessonId,
+      status: 'review',
+      contentSha: it.contentSha,
+      visual: { prompt: 'A bright daylight photograph of a smiling Black family.', alt: 'a' },
+      image: null,
+    });
+
+  it('402 out of credit: nothing charged, the run stops, the lesson stays queued (proven to catch)', async () => {
+    const l = ledger();
+    const [a, b] = items;
+    goodRecord(l, a);
+    goodRecord(l, b);
+    let calls = 0;
+    const provider = {
+      name: 'fake',
+      model: 'f',
+      costCents: 6,
+      async generate() {
+        calls += 1;
+        const e = new ProviderError('bfl submit: HTTP 402: {"detail":"Insufficient credits"}', {
+          status: 402,
+          retryable: false,
+          billed: false,
+          outOfCredit: true,
+        });
+        throw e;
+      },
+    };
+    const t = await runImages({
+      items: [a, b],
+      ledger: l,
+      provider,
+      outDir: mkdtempSync(join(tmpdir(), 'img-')),
+      batchId: 'b',
+      budget: new Budget(100),
+      concurrency: 1,
+      sleep: async () => {},
+    });
+    expect(l.spentCents()).toBe(0);
+    expect(t.outOfCredit).toBe(true);
+    expect(calls).toBe(1); // no retries against an empty account, no second lesson
+    expect(l.latestFor(a.courseKey, a.lessonId, 'image').state).toBe('queued');
+  });
+
+  it('a 429 refused unprocessed is retried but never charged; a billed failure still is', async () => {
+    const l = ledger();
+    const [a] = items;
+    goodRecord(l, a);
+    let n = 0;
+    const provider = {
+      name: 'fake',
+      model: 'f',
+      costCents: 6,
+      async generate() {
+        n += 1;
+        if (n === 1) throw new ProviderError('bfl submit: HTTP 429', { status: 429, billed: false });
+        if (n === 2) throw new ProviderError('bfl: Error', { retryable: true }); // reached the provider: may be billed
+        return { bytes: Buffer.from('ok'), ext: 'jpg' };
+      },
+    };
+    const t = await runImages({
+      items: [a],
+      ledger: l,
+      provider,
+      outDir: mkdtempSync(join(tmpdir(), 'img-')),
+      batchId: 'b',
+      budget: new Budget(100),
+      sleep: async () => {},
+    });
+    expect(t.done).toBe(1);
+    expect(l.spentCents()).toBe(12); // the billed failure + the success, not the refused 429
   });
 });

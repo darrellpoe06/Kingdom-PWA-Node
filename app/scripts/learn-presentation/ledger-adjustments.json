@@ -1,0 +1,14 @@
+{
+  "schema": "learn-ledger-adjustments/v1",
+  "note": "Append-only, reviewed in git. Each entry is applied to the spend ledger once, as its own row (kind 'adjustment'); the original rows are never edited or deleted. See lib/adjust.mjs.",
+  "adjustments": [
+    {
+      "id": "batch1-refused-submits-2026-11-24",
+      "date": "2026-11-24",
+      "cents": -990,
+      "appliesTo": "image",
+      "reason": "Library batch 1 charged 165 picture requests that BFL refused unprocessed (HTTP 402 'Insufficient credits' and 429 'credit balance is low'); a refused request is never billed. The pipeline then charged every failed try (fixed in commit 46a0296: refusals are billed 0).",
+      "evidence": "Run 45443285162, job 138621017147 log: 130 successes + 98 retries + 67 final failures = 295 tries x 6c = 1770c (the logged 'this run $17.70'); all 98 retries and all 67 failures read HTTP 402 or 429; 165 refused tries x 6c = 990c."
+    }
+  ]
+}

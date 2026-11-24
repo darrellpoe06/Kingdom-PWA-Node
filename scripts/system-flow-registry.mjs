@@ -427,6 +427,18 @@ const NODES = [
     writes: [{ res: 'db:agent_inbox#lesson', token: 'row_for' }],
     seeds: ['lesson-builder'],
   }),
+  // DR-1360: the NAS pulls each learn-presentation review artifact before it
+  // expires and keeps the paid pictures; no runner pushes into the house.
+  rider('service:learn-thumbs-pull', 'infra/nas-loops/learn-thumbs-pull.py', {
+    id: 'learn-thumbs-pull', name: 'The NAS keeps the paid Learn pictures',
+    purpose: 'Once an hour on the services-sync clock the NAS lists the learn-presentation-review artifacts, downloads each new one with its own token (never sent to the blob host), checks the digest, refuses an unsafe zip, and keeps the pictures as masters and the run ledger beside them, never over a different picture.',
+    reads: [
+      { res: 'nas:clock', token: 'services-sync' },
+      { res: 'gh:artifact:learn-presentation-review', token: 'learn-presentation-review-' },
+    ],
+    writes: [{ res: 'nas:learn-thumbs', token: 'def place' }],
+    seeds: [],
+  }),
   rider('service:lesson-queue-census', 'infra/nas-loops/lesson-queue-census.py', {
     id: 'lesson-queue-census', name: 'Lesson queue census (the house counts its own queue)',
     purpose: 'One row per services-sync cycle, patched in place: how many lesson rows wait, by road and by shape, the oldest wait, and the exclusion list used — so the queue is readable with no runner reaching into the NAS and no tailnet key alive (DR-1360). Counts and tag shapes only, never a body.',
@@ -1368,6 +1380,11 @@ const NODES = [
     purpose: 'On dispatch: asks /llm/health from outside, then over the tailnet reads which Funnel mounts exist, which ports listen and which one answers /llm/health, so Ari\u2019s road is added to the watchdog with the port it really has; nothing is restarted, written or mounted.',
     reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }, { res: 'http:llm', token: '/llm/health' }], writes: [], seeds: [],
   }),
+  wf('learn-imagegen-tower.yml', {
+    id: 'learn-imagegen-tower', name: 'Learn image service (tower)',
+    purpose: 'Reads the church 4070 tower (GPU, free VRAM, what else uses the GPU, disk, Docker, any ComfyUI and its models) before the Learn pictures move off the paid service onto our own hardware; read-only, nothing is downloaded, started or changed (DR-1640).',
+    reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }], writes: [], seeds: [],
+  }),
   wf('church-site-archive.yml', {
     id: 'church-site-archive', name: 'Church site archive (witness + walls)',
     purpose: 'Reads the church website from outside with the app\u2019s own parser and prints what the office has posted; proves 0342 and 0343 on a bare PostgreSQL for a pull request. The keeping and reading run on the NAS (DR-1649).',
@@ -2136,6 +2153,10 @@ const NODES = [
     id: 'tax-upload', name: 'Tax archive server', purpose: 'Takes tax documents in and serves the archive back.',
     reads: [{ res: 'http:taxes-upload', token: 'upload' }], writes: [{ res: 'http:taxes', token: 'archive.json' }], seeds: ['books-taxes'],
   }),
+  rider('service:llm', 'infra/nas-llm/llm_server.py', {
+    id: 'llm', name: 'Ari\u2019s road (the house\u2019s own model)', purpose: 'Relays one chat from the app to the house\u2019s own Ollama behind the family key, and says in words why when it cannot (DR-1649).',
+    reads: [{ res: 'nas:services', file: 'infra/nas-loops/services.json', token: 'infra/nas-llm/install.sh' }], writes: [{ res: 'http:llm', token: '/llm/health' }], seeds: ['llm-road-probe'],
+  }),
   rider('service:voice-transport', 'infra/voice-studio/install.sh', {
     id: 'voice-transport', name: 'Voice transport (the road to the studio)', purpose: 'Carries the app’s /voice requests to the studio on the tower.',
     reads: [{ res: 'tower:voice-studio', token: 'tlcmediadpt' }, { res: 'nas:voice-clone', file: 'infra/voice-studio/voice_forwarder.py', token: '127.0.0.1:8773' }], writes: [{ res: 'http:voice', token: '/voice' }], seeds: ['voice-studio'],
@@ -2504,7 +2525,7 @@ const RESOURCES = {
   'gh:release': { label: 'the app release' },
   'gh:review-issue': { label: 'due re-review items', sink: 'A due re-review opens an issue a steward works; the ledger itself is the record.' },
   'site:poetech.us': { label: 'the live site' },
-  'http:llm': { label: 'Ari\u2019s road, /llm, on the NAS', source: 'infra/nas-llm/llm_server.py answers it on the NAS; no installer in this repository starts it or mounts it yet, which the read-only probe exists to measure first (DR-1643).' },
+  'http:llm': { label: 'Ari\u2019s road, /llm, on the NAS', route: '/llm' },
   'site:thechurchofthelivinggod.com': { label: 'the church\u2019s public website', source: 'The church office publishes announcements, events and service times on its own website; the app reads, never writes, there.' },
   'site:preview': { label: 'a branch preview of the app (Vercel), never the live site', source: 'Built by the Vercel GitHub integration from every branch push; nothing in this repository writes it, and it serves no family data (lib/preview-isolation.js).' },
   // Cloudflare's own record of what it believes is deployed. Nothing here can
@@ -2514,6 +2535,7 @@ const RESOURCES = {
   'hosted:db': { label: 'the retired hosted database' },
   'http:nas-photos': { label: 'photo server on the NAS', route: '/nas-photos' },
   'http:api.bfl.ai': { label: 'Black Forest Labs image API (FLUX), prepaid credits', source: 'An outside paid provider: generates the text-free thumbnail masters for the Learn presentation pipeline; the workflow spends at most its per-run cap (DR-0076 budget brake).' },
+  'nas:learn-thumbs': { label: 'the paid Learn pictures kept on the NAS (masters + each run\u2019s ledger)', sink: 'The durable copy of pictures already paid for, kept because the GitHub artifact expires and the runner cache evicts in 7 days; a person reads it at /volume1/PoeTech/learn-thumbs, and a later publish or re-compose step reads the masters from here rather than paying again.' },
   'gh:artifact:learn-presentation-review': { label: 'the Learn thumbnail review package (records + composed images)', sink: 'The owner reviews it before approval; approved records are published to the Learn presentation store in a separate, approved step (migration 0343), never automatically.' },
   'http:api.anthropic.com': { label: 'Anthropic Messages API (lesson display titles)', source: 'An outside provider: writes the promotional title, headline and image prompt from the lesson text; every result is machine-validated and stays in review until a person approves.' },
   'http:voice': { label: 'the reading voice studio', route: '/voice' },

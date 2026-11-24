@@ -109,6 +109,10 @@ SOVEREIGN_MOUNTS = [
     ("/voice", "http://127.0.0.1:8771"),
     ("/voice-lite", "http://127.0.0.1:8772"),
     ("/scribe", "http://127.0.0.1:8791"),
+    # /llm added 2026-11-24 (DR-1649), from the box's own readout (run
+    # 45471214852): no /llm row, and no port answering it. infra/nas-llm/
+    # install.sh starts the door on 8804 and mounts it; this keeps the row.
+    ("/llm", "http://127.0.0.1:8804"),
 ]
 
 TS_CANDIDATES = ["/var/packages/Tailscale/target/bin/tailscale", "tailscale"]
@@ -379,7 +383,7 @@ def checkout_head(repo=None):
 # This box can. When the public /llm/health is dark it sends ONE readout (the
 # ports that listen here and what each answers) at most every six hours, and
 # one word when it answers again. It mounts nothing and restarts nothing: the
-# port goes into SOVEREIGN_MOUNTS only once this has printed it.
+# port went into SOVEREIGN_MOUNTS only once this had printed it (DR-1649).
 LLM_PUBLIC = os.environ.get("FUNNEL_LLM_PROBE", "https://poetech.us/llm/health")
 LLM_REPORT_SPACING = int(os.environ.get("FUNNEL_LLM_REPORT_SPACING", "21600"))
 LLM_PORT_CAP = 16  # the budget: at most 16 ports, two 3 s asks each

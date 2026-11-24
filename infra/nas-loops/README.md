@@ -52,6 +52,45 @@ LOOPS_ARMED=1 node infra/nas-loops/run.mjs --loop=health-check # LIVE (armed; br
 cap-resume/wake gate (a strict superset of brakes). The registry can carry both
 kinds; the dispatcher routes by kind.
 
+A loop whose safe pace is slower than any clock available rides the
+already-armed services-sync clock as a stamp-gated rider in `services.json`
+instead (DR-0277); `learn-thumbs-pull` below is one.
+
+## learn-thumbs-pull (the NAS keeps the paid Learn pictures)
+
+`learn-presentation-prepare.yml` buys lesson pictures in batches and uploads each
+run as the artifact `learn-presentation-review-<run_id>`. Artifacts expire and the
+runner cache evicts in 7 days, so the NAS pulls every new one (DR-1360: the NAS
+starts the road; no runner pushes in).
+
+- **Code:** `learn-thumbs-pull.py` (stdlib only), run by `learn-thumbs-pull-install.sh`,
+  registered in `services.json` (stamp-gated to one pass an hour on the 15-minute
+  services-sync clock; no DSM entry of its own).
+- **Token:** the NAS's own `/volume1/PoeTech/secrets/github-token.txt` (DR-0085). It is
+  sent only to `https://api.github.com`; the 302 to blob storage is followed by hand
+  without it. No token = a named quiet no-op.
+- **Where things land** (`/volume1/PoeTech/learn-thumbs`): pictures from `outbox/` and
+  `images/` under `masters/` (`outbox/<courseKey>/<file>` -> `masters/<courseKey>/<file>`,
+  `images/v2/...` -> `masters/v2/...`); a different picture already at that name is
+  kept and the newcomer gets a `.<sha8>` suffix. `state/` and `review-export.json` go to
+  `runs/<run_id>/`. `state.json` lists every pulled artifact with its sha256;
+  `last-run.json` is the pass ledger; one reel line a pass.
+- **Refuses** a zip with any absolute or `..` path, and an artifact whose bytes do not
+  match GitHub's sha256 digest, writing nothing; after 3 refusals the artifact is set
+  aside with its reason.
+- **Brakes:** 6 artifacts and 2 GB a pass, a 400 s wall clock inside `timeout 420`
+  (under the 480 s rider ceiling), 30 s on API calls, a lockdir in its home.
+- **Proof every paid picture is kept:** each pass reconciles the newest pulled run's
+  cumulative ledger (paid = latest `jobs.jsonl` row per `idempotencyKey`, an image kind,
+  `succeeded` or `needs-review`; bytes from `records.json` `image` + `imageV1` and
+  `topics.json`) against the hashes of everything under `masters/` (cached by path,
+  size and mtime). `reconcile.json` lists expected, present and up to 50 missing. A
+  missing paid picture with no artifact left to bring it makes the pass `incomplete`
+  (exit 3), and loops-health reds it.
+- **Preview:** `python3 infra/nas-loops/learn-thumbs-pull.py --dry-run` lists what it
+  would pull and writes nothing.
+- **Proofs:** `test_learn_thumbs_pull.py` (in `ci.yml`). **Witness:** `loops-health.yml`.
+
 ---
 
 ## Darrell's-hand deploy + arm (the NAS steps)

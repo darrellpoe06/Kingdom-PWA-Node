@@ -3,7 +3,7 @@
   "counts": {
     "functions": 31,
     "nasServices": 7,
-    "nasRoutes": 33,
+    "nasRoutes": 35,
     "tables": 331,
     "tablesWithoutRls": 1
   },
@@ -427,7 +427,15 @@
       "routes": [
         {
           "method": "GET",
+          "route": "/health"
+        },
+        {
+          "method": "GET",
           "route": "/llm/health"
+        },
+        {
+          "method": "POST",
+          "route": "/chat"
         },
         {
           "method": "POST",

@@ -10,14 +10,22 @@
 import { setTimeout, clearTimeout } from 'node:timers';
 
 export class TimeoutError extends Error {
-  constructor(ms, label = 'operation') { super(`${label} timed out after ${ms} ms`); this.name = 'TimeoutError'; this.retryable = true; }
+  constructor(ms, label = 'operation') {
+    super(`${label} timed out after ${ms} ms`);
+    this.name = 'TimeoutError';
+    this.retryable = true;
+  }
 }
 
 export class ProviderError extends Error {
-  constructor(message, { status = null, retryable = null, cause = null } = {}) {
+  // billed: false when the provider refused the request before doing any work
+  // (it never charged for it). outOfCredit: the account is empty; stop the run.
+  constructor(message, { status = null, retryable = null, cause = null, billed = true, outOfCredit = false } = {}) {
     super(message);
     this.name = 'ProviderError';
     this.status = status;
+    this.billed = billed;
+    this.outOfCredit = outOfCredit;
     this.retryable = retryable != null ? retryable : status === 429 || (status != null && status >= 500);
     if (cause) this.cause = cause;
   }
@@ -32,7 +40,10 @@ export async function withTimeout(fn, ms, label = 'operation') {
   const ctl = new AbortController();
   let timer;
   const deadline = new Promise((_, reject) => {
-    timer = setTimeout(() => { ctl.abort(); reject(new TimeoutError(ms, label)); }, ms);
+    timer = setTimeout(() => {
+      ctl.abort();
+      reject(new TimeoutError(ms, label));
+    }, ms);
   });
   try {
     return await Promise.race([Promise.resolve().then(() => fn(ctl.signal)), deadline]);
@@ -61,11 +72,17 @@ export async function retry(fn, { attempts = 3, baseMs = 1000, maxMs = 30000, sl
 
 /** At most `max` tasks at once. */
 export class Semaphore {
-  constructor(max) { this.max = Math.max(1, max | 0); this.active = 0; this.queue = []; }
+  constructor(max) {
+    this.max = Math.max(1, max | 0);
+    this.active = 0;
+    this.queue = [];
+  }
   async run(fn) {
     if (this.active >= this.max) await new Promise((r) => this.queue.push(r));
     this.active += 1;
-    try { return await fn(); } finally {
+    try {
+      return await fn();
+    } finally {
       this.active -= 1;
       const next = this.queue.shift();
       if (next) next();
@@ -91,7 +108,10 @@ export class TokenBucket {
   async take() {
     for (;;) {
       this.refill();
-      if (this.tokens >= 1) { this.tokens -= 1; return; }
+      if (this.tokens >= 1) {
+        this.tokens -= 1;
+        return;
+      }
       await this.sleep(Math.ceil((1 - this.tokens) / this.ratePerMs));
     }
   }
@@ -100,7 +120,15 @@ export class TokenBucket {
 /** Map items through fn with bounded concurrency; failures are returned, not thrown. */
 export async function pool(items, concurrency, fn) {
   const sem = new Semaphore(concurrency);
-  return Promise.all(items.map((it) => sem.run(async () => {
-    try { return { ok: true, value: await fn(it) }; } catch (error) { return { ok: false, error, item: it }; }
-  })));
+  return Promise.all(
+    items.map((it) =>
+      sem.run(async () => {
+        try {
+          return { ok: true, value: await fn(it) };
+        } catch (error) {
+          return { ok: false, error, item: it };
+        }
+      })
+    )
+  );
 }
