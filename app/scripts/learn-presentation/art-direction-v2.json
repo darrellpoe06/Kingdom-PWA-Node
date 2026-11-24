@@ -62,8 +62,8 @@
    "courseKey": "project-management",
    "lessonId": "pm2-who-should-work",
    "look": "finance",
-   "prompt": "Bright contemporary open-plan office with large windows and a city view in natural daylight. A confident Black man in his forties in a light blue shirt, warm smile, hands a stack of colored sticky notes to a capable young Black woman team lead, while a diverse team of Black, Latino, Asian and white colleagues gathers around a glass planning wall covered in neatly tiered rows of yellow, coral, green and blue notes. Energetic, collaborative, modern, clean and colorful.",
-   "alt": "A Black team leader hands sticky notes to a colleague as their team gathers at a colorful planning wall in a bright office.",
+   "prompt": "Bright contemporary open-plan office with large windows and a city view in natural daylight. A confident Black man in his forties in a light blue shirt, warm smile, hands a stack of colored sticky notes to a capable young Black woman team lead; beside them, clearly visible and engaged, a Latino man with a beard, an East Asian woman with glasses and a white woman with red hair, all gathered at a glass planning wall covered in neatly tiered rows of yellow, coral, green and blue notes. Energetic, collaborative, modern, clean and colorful.",
+   "alt": "A Black team leader hands sticky notes to a colleague as a mixed team gathers at a colorful planning wall in a bright office.",
    "people": "mixed"
   },
   {
@@ -158,8 +158,8 @@
    "courseKey": "history-truth",
    "lessonId": "hist2-the-fatherless-the-widow-and-the-stranger",
    "look": "history",
-   "prompt": "Documentary-style period photograph in clear winter daylight, Southeastern United States in 1838: a dignified Black family, a grandmother, a father, a mother and a young child, African Americans who were forced on the removal, walk together beside Cherokee families along a dirt road through bare trees under a pale blue sky; period-accurate clothing and wool blankets; solemn, resilient expressions, faces clearly visible; respectful, true natural color.",
-   "alt": "A Black family walks beside Cherokee families along a dirt road through bare winter trees in 1838.",
+   "prompt": "Documentary-style period photograph in clear winter daylight, Southeastern United States in 1838, a wide shot of two families walking side by side along a dirt road through bare trees under a pale blue sky: on the left a Cherokee family, a grandmother in a woven shawl and a turban-style headwrap, a father and two children in period-accurate Cherokee clothing and wool trade blankets; on the right, walking with them, a dignified Black family, a mother, a father and a young child, in plain period clothing. Both families clearly visible, faces solemn and resilient, holding one another; respectful, true natural color.",
+   "alt": "A Cherokee family and a Black family walk side by side along a dirt road through bare winter trees in 1838.",
    "people": "mixed",
    "note": "Solemn history: shown with dignity, not as success. African Americans were among the people forced on the removal; owner to review."
   }
