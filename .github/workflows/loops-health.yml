@@ -265,7 +265,7 @@ jobs:
                       # honest answer (DR-1186) and also means nobody can see what
                       # is waiting to be built (DR-1360 / DR-0725).
                       problems.append(f"lesson-queue-census: its own last-run.json says {e['ledger'].get('what')}: {e['ledger'].get('error') or e['ledger'].get('at')}")
-                  if name == "learn-thumbs-pull" and isinstance(e.get("ledger"), dict) and e["ledger"].get("what") in ("refused", "error"):
+                  if name == "learn-thumbs-pull" and isinstance(e.get("ledger"), dict) and e["ledger"].get("what") in ("refused", "error", "incomplete"):
                       # A refused artifact: its paid pictures are not on the NAS yet and expire on GitHub's clock (DR-1360).
                       problems.append(f"learn-thumbs-pull: its own last-run.json says {e['ledger'].get('what')}: {e['ledger'].get('why') or e['ledger'].get('at')}")
                   if name == "lesson-voice" and isinstance(e.get("ledger"), dict):

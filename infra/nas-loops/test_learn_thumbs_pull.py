@@ -129,7 +129,12 @@ class Base(unittest.TestCase):
         for root, _, files in os.walk(self.dest):
             for f in files:
                 rel = os.path.relpath(os.path.join(root, f), self.dest)
-                if rel not in ("last-run.json", "reel.jsonl", "state.json"):
+                if rel not in (
+                    "last-run.json",
+                    "reel.jsonl",
+                    "state.json",
+                    "reconcile.json",
+                ):
                     out.append(rel)
         return sorted(out)
 
@@ -369,6 +374,213 @@ class PullTest(Base):
         self.assertIn(
             "unsafe path", json.loads(self.read("state.json"))["set_aside"]["22"]["why"]
         )
+
+
+def sha(b):
+    return hashlib.sha256(b).hexdigest()
+
+
+def job(key, kind, course, lesson, state="succeeded"):
+    return json.dumps(
+        {
+            "idempotencyKey": key,
+            "kind": kind,
+            "courseKey": course,
+            "lessonId": lesson,
+            "state": state,
+        }
+    )
+
+
+V1, V2, TOPIC, FAILED = b"V1-PAID", b"V2-PAID", b"TOPIC-PAID", b"NEVER-BOUGHT"
+NUM = b"NUMBERS-PAID"
+
+
+def ledger_zip(include=("v1", "v2", "topic"), extra_jobs=()):
+    """A run's artifact whose cumulative ledger names three paid pictures: a
+    lesson's earlier picture (imageV1), its current one (image), and a topic
+    cover. `include` says which of them the zip actually carries."""
+    jobs = [
+        job("k1", "image", "genesis", "L1", "succeeded"),
+        # latest row per idempotencyKey wins: queued, then succeeded = paid
+        job("k6", "image", "numbers", "L2", "queued"),
+        job("k6", "image", "numbers", "L2", "succeeded"),
+        job("k2", "image-v2", "genesis", "L1", "needs-review"),
+        job("k3", "topic-v2", "topics", "faith"),
+        job("k4", "image", "exodus", "L9", "failed"),  # not paid
+        job("k5", "text", "genesis", "L1"),  # not a picture
+        *extra_jobs,
+    ]
+    records = {
+        "genesis::L1": {
+            "image": {"path": "v2/genesis/L1.jpg", "sha256": sha(V2)},
+            "imageV1": {"path": "genesis/L1.jpg", "sha256": sha(V1)},
+        },
+        "numbers::L2": {"image": {"path": "numbers/L2.jpg", "sha256": sha(NUM)}},
+        "exodus::L9": {"image": {"path": "exodus/L9.jpg", "sha256": sha(FAILED)}},
+    }
+    topics = {
+        "faith": {
+            "key": "faith",
+            "image": {"path": "v2/topics/faith.jpg", "sha256": sha(TOPIC)},
+        }
+    }
+    entries = {
+        "state/jobs.jsonl": ("\n".join(jobs) + "\n").encode(),
+        "state/records.json": json.dumps(records).encode(),
+        "state/topics.json": json.dumps(topics).encode(),
+    }
+    if "v1" in include:
+        entries["images/genesis/L1.jpg"] = V1
+    if "v2" in include:
+        entries["outbox/v2/genesis/L1.jpg"] = V2
+    if "topic" in include:
+        entries["outbox/v2/topics/faith.jpg"] = TOPIC
+    entries["outbox/numbers/L2.jpg"] = NUM
+    return make_zip(entries)
+
+
+class ReconcileTest(Base):
+    def reconcile_file(self):
+        return json.loads(self.read("reconcile.json"))
+
+    def test_expected_and_present_from_the_ledger_count_imageV1_and_topics(self):
+        z = ledger_zip()
+        code, led = self.run_pass(FakeTransport([artifact(31, "900", z)], {31: z}))
+        self.assertEqual((code, led["what"]), (0, "pulled"))
+        r = self.reconcile_file()
+        self.assertEqual(r["from_run"], "900")
+        # imageV1 + image + topic + numbers; the failed job and the text job are not paid
+        self.assertEqual(
+            (r["expected"], r["present_of_expected"], r["missing_count"]), (4, 4, 0)
+        )
+        self.assertEqual(r["missing"], [])
+        self.assertEqual(
+            (led["expected"], led["present"], led["missing_count"]), (4, 4, 0)
+        )
+
+    def test_expected_set_is_read_from_the_state_files(self):
+        z = ledger_zip()
+        self.run_pass(FakeTransport([artifact(32, "901", z)], {32: z}))
+        exp, unresolved = lt.expected_pictures(self.p("runs", "901", "state"))
+        self.assertEqual(
+            exp,
+            {
+                sha(V1): "genesis/L1.jpg",
+                sha(V2): "v2/genesis/L1.jpg",
+                sha(TOPIC): "v2/topics/faith.jpg",
+                sha(NUM): "numbers/L2.jpg",
+            },
+        )
+        self.assertEqual(unresolved, 0)
+
+    def test_PROVEN_TO_CATCH_a_missing_paid_picture_with_nothing_pending_is_incomplete(
+        self,
+    ):
+        z = ledger_zip(
+            include=("v2", "topic")
+        )  # the imageV1 picture never reached the NAS
+        code, led = self.run_pass(FakeTransport([artifact(33, "902", z)], {33: z}))
+        self.assertEqual(code, 3)
+        self.assertEqual(led["what"], "incomplete")
+        self.assertIn("1 paid picture(s) of 4", led["why"])
+        self.assertEqual(json.loads(self.read("last-run.json"))["what"], "incomplete")
+        r = self.reconcile_file()
+        self.assertEqual(r["missing_count"], 1)
+        self.assertEqual(r["missing"], [{"sha256": sha(V1), "path": "genesis/L1.jpg"}])
+
+    def test_a_missing_picture_with_an_artifact_still_pending_is_not_incomplete(self):
+        z = ledger_zip(include=("v2", "topic"))
+        later = make_zip({"images/genesis/L1.jpg": V1})
+        arts = [
+            artifact(34, "903", z, created="2026-11-20T00:00:00Z"),
+            artifact(35, "904", later, created="2026-11-21T00:00:00Z"),
+        ]
+        code, led = self.run_pass(
+            FakeTransport(arts, {34: z, 35: later}), max_artifacts=1
+        )
+        self.assertEqual((code, led["what"], led["pending"]), (0, "pulled", 1))
+        self.assertEqual(led["missing_count"], 1)
+        # the next pass brings it, and the proof closes
+        code, led = self.run_pass(
+            FakeTransport(arts, {34: z, 35: later}), max_artifacts=1
+        )
+        self.assertEqual((code, led["what"], led["missing_count"]), (0, "pulled", 0))
+
+    def test_an_unreachable_listing_never_reads_as_incomplete(self):
+        z = ledger_zip(include=("v2",))
+        self.run_pass(
+            FakeTransport(
+                [artifact(36, "905", z), artifact(37, "906", z)], {36: z, 37: z}
+            ),
+            max_artifacts=1,
+        )
+
+        class Down:
+            def get(self, url, headers, timeout):
+                raise OSError("down")
+
+        code, led = self.run_pass(Down())
+        self.assertEqual((code, led["what"]), (3, "unreachable"))
+        self.assertNotIn("pending", led)
+
+    def test_the_newest_pulled_run_is_the_one_reconciled(self):
+        old = ledger_zip()
+        new = ledger_zip(
+            extra_jobs=(job("k9", "image", "exodus", "L9"),)
+        )  # L9 now paid, never pulled
+        arts = [
+            artifact(38, "907", old, created="2026-11-20T00:00:00Z"),
+            artifact(39, "908", new, created="2026-11-21T00:00:00Z"),
+        ]
+        code, led = self.run_pass(FakeTransport(arts, {38: old, 39: new}))
+        self.assertEqual((code, led["what"], led["from_run"]), (3, "incomplete", "908"))
+        self.assertEqual(
+            self.reconcile_file()["missing"],
+            [{"sha256": sha(FAILED), "path": "exodus/L9.jpg"}],
+        )
+
+    def test_the_hash_cache_is_reused_when_size_and_mtime_are_unchanged(self):
+        z = ledger_zip()
+        self.run_pass(FakeTransport([artifact(40, "909", z)], {40: z}))
+        self.assertEqual(self.reconcile_file()["hashed_this_pass"], 4)
+        cache = json.loads(self.read("state.json"))["hash_cache"]
+        self.assertEqual(cache["genesis/L1.jpg"]["sha256"], sha(V1))
+        real = lt.sha256_file
+        reads = []
+        lt.sha256_file = lambda p: reads.append(p) or real(p)
+        try:
+            self.run_pass(FakeTransport([artifact(40, "909", z)], {40: z}))
+            self.assertEqual(reads, [], "nothing changed, so nothing is re-read")
+            self.assertEqual(self.reconcile_file()["hashed_this_pass"], 0)
+            # a changed file (new size) IS re-read, and its new hash counts
+            with open(self.p("masters", "genesis", "L1.jpg"), "wb") as fh:
+                fh.write(b"SOMETHING-ELSE-ENTIRELY")
+            code, led = self.run_pass(FakeTransport([artifact(40, "909", z)], {40: z}))
+            self.assertEqual(len(reads), 1)
+            self.assertEqual(
+                (code, led["what"], led["missing_count"]), (3, "incomplete", 1)
+            )
+        finally:
+            lt.sha256_file = real
+
+
+class LedgerHeadTest(Base):
+    def test_PROVEN_TO_CATCH_last_run_fits_the_witness_600_byte_read_verdict_first(
+        self,
+    ):
+        # six refused zips with long reasons: the worst ledger a pass can write
+        arts, zips = [], {}
+        for i in range(6):
+            z = make_zip({"../" + "x" * 200 + str(i): b"x"})
+            arts.append(artifact(500 + i, str(800 + i), z))
+            zips[500 + i] = z
+        code, _ = self.run_pass(FakeTransport(arts, zips))
+        self.assertEqual(code, 1)
+        raw = self.read("last-run.json")
+        self.assertLessEqual(len(raw), 600, "loops-health reads head -c 600")
+        self.assertTrue(raw.startswith(b'{"what":"refused"'))
+        self.assertEqual(json.loads(raw[:600])["refused"], 6)
 
 
 class PathTest(unittest.TestCase):

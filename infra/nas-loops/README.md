@@ -80,6 +80,13 @@ starts the road; no runner pushes in).
   aside with its reason.
 - **Brakes:** 6 artifacts and 2 GB a pass, a 400 s wall clock inside `timeout 420`
   (under the 480 s rider ceiling), 30 s on API calls, a lockdir in its home.
+- **Proof every paid picture is kept:** each pass reconciles the newest pulled run's
+  cumulative ledger (paid = latest `jobs.jsonl` row per `idempotencyKey`, an image kind,
+  `succeeded` or `needs-review`; bytes from `records.json` `image` + `imageV1` and
+  `topics.json`) against the hashes of everything under `masters/` (cached by path,
+  size and mtime). `reconcile.json` lists expected, present and up to 50 missing. A
+  missing paid picture with no artifact left to bring it makes the pass `incomplete`
+  (exit 3), and loops-health reds it.
 - **Preview:** `python3 infra/nas-loops/learn-thumbs-pull.py --dry-run` lists what it
   would pull and writes nothing.
 - **Proofs:** `test_learn_thumbs_pull.py` (in `ci.yml`). **Witness:** `loops-health.yml`.

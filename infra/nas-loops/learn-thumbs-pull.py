@@ -28,6 +28,15 @@
 #   6. writes state/ and review-export.json to DEST/runs/<run_id>/;
 #   7. records the artifact in state.json, and the pass in last-run.json and
 #      one reel line.
+#   8. RECONCILES (the owner's proof that every paid picture is stored): the
+#      newest pulled run's cumulative ledger names every paid picture (latest
+#      jobs.jsonl row per idempotencyKey, kind image/image-v2/topic-v2, state
+#      succeeded or needs-review; bytes from records.json image + imageV1 and
+#      topics.json); every file under masters/ is hashed (cached by path, size
+#      and mtime in state.json, so an hourly pass re-hashes only what changed);
+#      reconcile.json says expected, present and what is missing. Missing
+#      pictures with no artifact left to bring them -> what "incomplete"
+#      (exit 3); with artifacts still pending, the pending pulls explain it.
 # Every write is atomic (tmp + rename). composed/ is not kept: it is derived
 # from the masters and the records, which are both kept.
 #
@@ -459,6 +468,180 @@ def load_state(dest):
         return {}
 
 
+# ---- reconcile: is EVERY paid picture on the NAS? ----------------------------
+# The ledger in each run's state/ is cumulative (the workflow restores it from
+# cache and appends), so the NEWEST pulled run names every picture ever paid
+# for. A job is paid when its latest row (per idempotencyKey; jobs.jsonl is
+# append-only and the last row wins, as ledger.mjs load() does) is an image kind
+# in state succeeded or needs-review. Its bytes are named by records.json
+# (key "courseKey::lessonId", ledger.mjs lessonKey): image is the current
+# picture and imageV1 the earlier paid one (art-v2 keeps it); a topic picture
+# by topics.json[key].image.
+PAID_KINDS = ("image", "image-v2", "topic-v2")
+PAID_STATES = ("succeeded", "needs-review")
+MISSING_LIST_CAP = 50
+
+
+def newest_run_state(dest, state):
+    """-> (run_id, state_dir) of the newest pulled run whose state/ is on disk."""
+    runs = sorted(
+        {
+            str(p.get("run_id"))
+            for p in (state.get("pulled") or {}).values()
+            if str(p.get("run_id") or "").isdigit()
+        },
+        key=int,
+        reverse=True,
+    )
+    for rid in runs:
+        d = os.path.join(dest, "runs", rid, "state")
+        if os.path.isfile(os.path.join(d, "jobs.jsonl")):
+            return rid, d
+    return None, None
+
+
+def _read_json(path, default):
+    try:
+        with open(path, encoding="utf-8") as fh:
+            v = json.load(fh)
+            return v if isinstance(v, type(default)) else default
+    except (OSError, ValueError):
+        return default
+
+
+def expected_pictures(state_dir):
+    """Pure over the files. -> ({sha256: path}, unresolved_jobs)."""
+    latest = {}
+    try:
+        with open(os.path.join(state_dir, "jobs.jsonl"), encoding="utf-8") as fh:
+            for line in fh:
+                if not line.strip():
+                    continue
+                try:
+                    j = json.loads(line)
+                except ValueError:
+                    continue  # a torn last line from a kill, as ledger.mjs skips it
+                if isinstance(j, dict) and j.get("idempotencyKey"):
+                    latest[j["idempotencyKey"]] = j
+    except OSError:
+        return {}, 0
+    records = _read_json(os.path.join(state_dir, "records.json"), {})
+    topics = _read_json(os.path.join(state_dir, "topics.json"), {})
+    out, unresolved = {}, 0
+
+    def take(img):
+        if isinstance(img, dict) and img.get("sha256"):
+            out.setdefault(
+                str(img["sha256"]).lower(),
+                str(img.get("path") or "").replace("\\", "/"),
+            )
+            return True
+        return False
+
+    for j in latest.values():
+        if j.get("kind") not in PAID_KINDS or j.get("state") not in PAID_STATES:
+            continue
+        if j.get("kind") == "topic-v2":
+            found = take((topics.get(str(j.get("lessonId"))) or {}).get("image"))
+        else:
+            rec = records.get(f"{j.get('courseKey')}::{j.get('lessonId')}") or {}
+            a, b = take(rec.get("image")), take(rec.get("imageV1"))
+            found = a or b
+        if not found:
+            unresolved += 1
+    return out, unresolved
+
+
+def present_pictures(dest, cache):
+    """sha256 of every file under masters/, reusing `cache` (rel path ->
+    {size, mtime_ns, sha256}) when size and mtime are unchanged. Returns
+    (set_of_sha, new_cache, hashed_count)."""
+    root = os.path.join(dest, "masters")
+    shas, new_cache, hashed = set(), {}, 0
+    for d, _, files in os.walk(root):
+        for f in files:
+            if ".tmp-" in f:
+                continue
+            p = os.path.join(d, f)
+            rel = os.path.relpath(p, root).replace(os.sep, "/")
+            try:
+                st = os.stat(p)
+            except OSError:
+                continue
+            c = cache.get(rel)
+            if (
+                c
+                and c.get("size") == st.st_size
+                and c.get("mtime_ns") == st.st_mtime_ns
+            ):
+                sha = c["sha256"]
+            else:
+                sha = sha256_file(p)
+                hashed += 1
+            new_cache[rel] = {
+                "size": st.st_size,
+                "mtime_ns": st.st_mtime_ns,
+                "sha256": sha,
+            }
+            shas.add(sha)
+    return shas, new_cache, hashed
+
+
+def reconcile(dest, state):
+    """-> the reconcile record (also written to DEST/reconcile.json). Updates
+    state["hash_cache"] in place."""
+    rid, sdir = newest_run_state(dest, state)
+    expected, unresolved = expected_pictures(sdir) if sdir else ({}, 0)
+    present, cache, hashed = present_pictures(dest, state.get("hash_cache") or {})
+    state["hash_cache"] = cache
+    missing = [
+        {"sha256": s, "path": p}
+        for s, p in sorted(expected.items(), key=lambda x: x[1])
+        if s not in present
+    ]
+    rec = {
+        "at": now_iso(),
+        "from_run": rid,
+        "expected": len(expected),
+        "present_of_expected": len(expected) - len(missing),
+        "present_files": len(cache),
+        "missing_count": len(missing),
+        "missing": missing[:MISSING_LIST_CAP],
+        "unresolved_jobs": unresolved,
+        "hashed_this_pass": hashed,
+    }
+    atomic_json(os.path.join(dest, "reconcile.json"), rec)
+    return rec
+
+
+def pending_artifacts(arts, state):
+    """Listed, unexpired, not pulled and not set aside: what can still arrive."""
+    pulled = state.get("pulled") or {}
+    aside = state.get("set_aside") or {}
+    return sum(
+        1
+        for a in arts or []
+        if not a.get("expired")
+        and str(a.get("id")) not in pulled
+        and str(a.get("id")) not in aside
+    )
+
+
+def ledger_head(ledger):
+    """last-run.json, verdict first and compact: loops-health reads only its
+    first 600 bytes, so "what" and "why" lead and nothing long follows them
+    unbounded (the full lists live in state.json and reconcile.json)."""
+    head = {"what": ledger.get("what"), "why": str(ledger.get("why") or "")[:240]}
+    for k in ("at", "expected", "present", "missing_count", "pending", "from_run"):
+        if k in ledger:
+            head[k] = ledger[k]
+    head["pulled"] = len(ledger.get("pulled") or [])
+    head["refused"] = len(ledger.get("refused") or [])
+    for k in ("listed", "bytes", "masters_new", "kept_both", "duration_ms", "skipped"):
+        head[k] = ledger.get(k)
+    return head
+
+
 # ---- the pass -----------------------------------------------------------------
 def run(
     dest=DEST,
@@ -487,7 +670,35 @@ def run(
         "dry_run": dry_run,
     }
 
+    # Set once the lock is held: reconcile runs on every locked pass. `arts` stays
+    # None when the listing failed, so "nothing pending" is never assumed.
+    ctx = {"state": None, "arts": None}
+
     def finish(code, what, why=""):
+        if ctx["state"] is not None and not dry_run:
+            try:
+                rec = reconcile(dest, ctx["state"])
+                atomic_json(os.path.join(dest, "state.json"), ctx["state"])
+                ledger["expected"] = rec["expected"]
+                ledger["present"] = rec["present_of_expected"]
+                ledger["missing_count"] = rec["missing_count"]
+                ledger["from_run"] = rec["from_run"]
+                if ctx["arts"] is not None:
+                    ledger["pending"] = pending_artifacts(ctx["arts"], ctx["state"])
+                if rec["missing_count"] and ledger.get("pending") == 0 and code == 0:
+                    # A paid picture is not on the NAS and no artifact left can
+                    # bring it: the proof failed. DEGRADED (exit 3), so the fleet
+                    # clock names it without going red every hour; loops-health
+                    # reds the loop on its own ledger.
+                    code, what = 3, "incomplete"
+                    why = (
+                        f"{rec['missing_count']} paid picture(s) of {rec['expected']} are not on the NAS "
+                        f"and no learn-presentation-review artifact left can bring them (see reconcile.json)"
+                    )
+            except OSError as e:
+                log(
+                    f"learn-thumbs-pull: reconcile could not run ({e.__class__.__name__})"
+                )
         ledger["what"] = what
         if why:
             ledger["why"] = why
@@ -500,7 +711,12 @@ def run(
         )
         if not dry_run:
             try:
-                atomic_json(os.path.join(dest, "last-run.json"), ledger)
+                atomic_write(
+                    os.path.join(dest, "last-run.json"),
+                    (
+                        json.dumps(ledger_head(ledger), separators=(",", ":")) + "\n"
+                    ).encode(),
+                )
             except OSError as e:
                 log(
                     f"learn-thumbs-pull: could not write last-run.json ({e.__class__.__name__})"
@@ -529,8 +745,11 @@ def run(
             return finish(0, "locked-skip", "another pass holds the lock")
     try:
         state = load_state(dest)
+        if not dry_run:
+            ctx["state"] = state
         try:
             arts = list_artifacts(transport, token)
+            ctx["arts"] = arts
         except Unreachable as e:
             return finish(3, "unreachable", str(e))
         except Refused as e:
