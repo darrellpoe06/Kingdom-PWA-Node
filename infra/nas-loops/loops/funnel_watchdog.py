@@ -115,10 +115,26 @@ TS_CANDIDATES = ["/var/packages/Tailscale/target/bin/tailscale", "tailscale"]
 SYNOPKG = "/usr/syno/bin/synopkg"
 
 
-def probe(url, timeout=None):
+# Cloudflare stands in front of poetech.us and refuses a client that calls
+# itself "Python-urllib" with its own 403, before the Function or the house is
+# asked (measured in run 39477326790). is_up() reads a 403 as an answer from
+# the house, so a probe sent without this name read every outage as up and the
+# watchdog never reported one (DR-1647). Ask as the app does.
+PROBE_UA = (
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) "
+    "Chrome/126.0 Safari/537.36 PoeTech-funnel-watchdog"
+)
+
+
+def probe(url, timeout=None, opener=None):
     """Return the HTTP status code, or 0 on any transport/TLS failure."""
     try:
-        req = urllib.request.Request(url, method="GET")
+        req = urllib.request.Request(
+            url, method="GET", headers={"User-Agent": PROBE_UA}
+        )
+        if opener is not None:
+            with opener(req, timeout=timeout or TIMEOUT) as resp:
+                return resp.status
         with urllib.request.urlopen(req, timeout=timeout or TIMEOUT) as resp:
             return resp.status
     except urllib.error.HTTPError as e:
