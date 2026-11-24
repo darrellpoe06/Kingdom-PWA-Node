@@ -4,7 +4,7 @@
     "functions": 31,
     "nasServices": 7,
     "nasRoutes": 33,
-    "tables": 329,
+    "tables": 331,
     "tablesWithoutRls": 1
   },
   "functions": [
@@ -857,6 +857,18 @@
       "definedIn": "infra/supabase/migrations-auto/0022-church-team-documents.sql",
       "rls": true,
       "policies": 4
+    },
+    {
+      "table": "church_calendar_leads",
+      "definedIn": "infra/supabase/migrations-auto/0343-every-event-lives-on-its-day.sql",
+      "rls": true,
+      "policies": 3
+    },
+    {
+      "table": "church_calendar_reads",
+      "definedIn": "infra/supabase/migrations-auto/0343-every-event-lives-on-its-day.sql",
+      "rls": true,
+      "policies": 1
     },
     {
       "table": "church_capex_budget_lines",

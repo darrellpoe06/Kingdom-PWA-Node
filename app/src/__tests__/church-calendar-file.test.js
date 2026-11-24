@@ -231,11 +231,11 @@ describe('the office files events', () => {
   });
   it('shows the office’s tools to owner and admin only; an unanswered role is not a yes', async () => {
     const ask = (value, ok = true) => ({ client: fakeClient(), resolveChurch: church('c'), roleOf: async () => ({ ok, value }) });
-    expect(await getCalendarAccess(ask('owner'))).toEqual({ canManage: true, unavailable: false });
-    expect(await getCalendarAccess(ask('admin'))).toEqual({ canManage: true, unavailable: false });
-    expect(await getCalendarAccess(ask('member'))).toEqual({ canManage: false, unavailable: false });
-    expect(await getCalendarAccess(ask(null))).toEqual({ canManage: false, unavailable: false });
-    expect(await getCalendarAccess(ask('owner', false))).toEqual({ canManage: false, unavailable: true });
-    expect(await getCalendarAccess({ client: fakeClient({ session: null }), resolveChurch: church('c') })).toEqual({ canManage: false, unavailable: false });
+    expect(await getCalendarAccess(ask('owner'))).toEqual({ canManage: true, units: [], unavailable: false });
+    expect(await getCalendarAccess(ask('admin'))).toEqual({ canManage: true, units: [], unavailable: false });
+    expect(await getCalendarAccess(ask('member'))).toEqual({ canManage: false, units: [], unavailable: false });
+    expect(await getCalendarAccess(ask(null))).toEqual({ canManage: false, units: [], unavailable: false });
+    expect(await getCalendarAccess(ask('owner', false))).toEqual({ canManage: false, units: [], unavailable: true });
+    expect(await getCalendarAccess({ client: fakeClient({ session: null }), resolveChurch: church('c') })).toEqual({ canManage: false, units: [], unavailable: false });
   });
 });
