@@ -235,11 +235,14 @@ export default function Storefront({
                   data-id={it.id}
                   data-buyable={it.buyable ? 'yes' : 'no'}
                 >
-                  <div className="flex items-start gap-2">
+                  {/* A LONG PRICE WRAPS BELOW, never squeezes the title (DR-1636):
+                      "Included with PoeTech+ ($39/mo)" took half the card on a
+                      phone and left the course title one word per line. */}
+                  <div className="flex flex-wrap items-start gap-x-2 gap-y-1">
                     <div className="text-2xl" aria-hidden="true">
                       {it.coverEmoji}
                     </div>
-                    <div className="flex-1">
+                    <div className="min-w-[11rem] flex-1">
                       <div className="font-semibold text-[#1A1815]" style={serif}>
                         {it.title}
                       </div>
@@ -251,7 +254,7 @@ export default function Storefront({
                         </div>
                       )}
                     </div>
-                    <div className="text-sm font-semibold text-[#B85838]" data-testid="store-price">
+                    <div className="ml-auto text-right text-sm font-semibold text-[#B85838]" data-testid="store-price">
                       {owned ? 'Yours' : it.priceLabel}
                     </div>
                   </div>

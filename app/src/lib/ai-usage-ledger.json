@@ -2789,6 +2789,21 @@
       "notes": "Two ticks reported build-failed 3 with no way to tell a retry from a stall; the tailnet was shut both times"
     },
     {
+      "id": "dr-1636-store-price-wraps",
+      "date": "2026-11-24",
+      "task": "The Store's PoeTech+ course cards: a long price wraps below the title instead of squeezing it",
+      "drs": [
+        "DR-1636"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.3,
+      "estimateWithoutAiHours": 1.5,
+      "notes": "From two phone screenshots of the Store"
+    },
+    {
       "id": "record-door-stall",
       "date": "2026-11-12",
       "task": "Records would not open and PoeTech switched to Love Corner during a stalled sign-in",
