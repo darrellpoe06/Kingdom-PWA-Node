@@ -482,23 +482,43 @@ export async function linkIdentity(provider) {
  * the session object or null. Best-effort — never throws (blocked/malformed
  * storage → null).
  */
-export function readPersistedSession(store) {
+export function readPersistedSession(store, ownKey) {
   try {
     const ls = store || (typeof window !== 'undefined' ? window.localStorage : null);
     if (!ls || typeof ls.length !== 'number') return null;
+    const parse = (raw) => {
+      if (!raw) return null;
+      let parsed;
+      try { parsed = JSON.parse(raw); } catch (_) { return null; }
+      // v2 stores the session object directly; v1 wrapped it in { currentSession }.
+      const session = parsed && parsed.currentSession ? parsed.currentSession : parsed;
+      return session && session.access_token && session.user ? session : null;
+    };
+    // THE CLIENT'S OWN SLOT ONLY (DR-1617). The cutover left a SECOND
+    // sb-*-auth-token on every device that signed in before it: hosted's
+    // `sb-<ref>-auth-token` beside the sovereign `sb-poetech-auth-token`. The
+    // shape scan returned whichever came first in storage order, so the boot
+    // could paint an OLD session (another person's, on a shared tablet), and
+    // getSession() then reconciled to the real one or to null: signed in,
+    // signed out, signed in, under the wrong name. When the caller knows the
+    // client's key, nothing else is read.
+    // Every real caller reads window storage, so it defaults to the client's
+    // own key; a test handing in its own store keeps the shape scan.
+    const key = ownKey !== undefined ? ownKey : (store ? undefined : ownStorageKey());
+    if (key) return parse(ls.getItem(key));
     for (let i = 0; i < ls.length; i++) {
       const key = ls.key(i);
       if (!key || !/^sb-.*-auth-token$/.test(key)) continue;
-      const raw = ls.getItem(key);
-      if (!raw) continue;
-      let parsed;
-      try { parsed = JSON.parse(raw); } catch (_) { continue; }
-      // v2 stores the session object directly; v1 wrapped it in { currentSession }.
-      const session = parsed && parsed.currentSession ? parsed.currentSession : parsed;
-      if (session && session.access_token && session.user) return session;
+      const session = parse(ls.getItem(key));
+      if (session) return session;
     }
   } catch (_) { /* storage blocked / SecurityError → treat as no session */ }
   return null;
+}
+
+/** The storage slot this client really persists under (supabase-js sets it from the URL). */
+function ownStorageKey() {
+  try { return supabase.auth && typeof supabase.auth.storageKey === 'string' ? supabase.auth.storageKey : undefined; } catch (_) { return undefined; }
 }
 
 /**

@@ -229,7 +229,7 @@ const SHELL_WIRING = [
   'if (reviewerMode) { setData(EMPTY_WORLD); setAuthHydrated(true); return; }',
   // profile: self-serve, state only; saved device profile never read or written
   "if (reviewerMode) { setCurrentProfile('self'); return; }",
-  "if (!reviewerMode) { if (p) localStorage.setItem('poe-current-profile'",
+  "if (!reviewerMode) writeSavedProfile(localStorage, p, ",  // a reviewer's picks never touch the saved profile (stamped per account, DR-1617)
   // WRITE SUPPRESSION — the clobber hazard: local blob save + snapshot push
   'if (isAnyDemoMode || reviewerMode) return; // Demo + picker + reviewer never write',
   // cloud snapshot pull (the steward's real world must not leak into the lens)

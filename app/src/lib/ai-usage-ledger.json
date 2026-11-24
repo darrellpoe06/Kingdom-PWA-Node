@@ -96,6 +96,23 @@
       "notes": "Reserved L335 and DR-1581 on origin with new-lesson.mjs. Every quotation a kjv token filled from app/public/bible/kjv, none typed. Video not watched; scholars' counts and dates carried as reported in UNCHECKED; first gate run failed on short child and youth bands, lengthened; re-review 2026-12-19."
     },
     {
+      "id": "signed-in-person-is-the-one-named",
+      "date": "2026-11-24",
+      "task": "Sign-in: the apps logged people in and out and named Christina as Darrell; three causes measured (GoTrue reuse interval 0, a leftover auth slot read at boot, a per-device profile) plus the phone account named by its digits; each fixed with a proven-to-catch pin",
+      "drs": [
+        "DR-1617"
+      ],
+      "prs": [
+        2842
+      ],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.7,
+      "estimateWithoutAiHours": 12,
+      "notes": "Three CI fixes on the way: INDEX row placement, the frozen shell budget, this line."
+    },
+    {
       "id": "d2-journeys",
       "date": "2026-11-05",
       "task": "Journey registry, six app journeys, coverage guard",

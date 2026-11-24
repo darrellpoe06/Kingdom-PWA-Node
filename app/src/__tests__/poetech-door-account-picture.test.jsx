@@ -303,6 +303,6 @@ describe('DR-1600 the shell mounts the picture at the top right, open and collap
     expect(SHELL).toContain('<TopNavRow account={!isIsolatedPreview() && <HeaderAuthButton door={accountDoor} compact />}');
   });
   it("the door is the reader's own tab list and the shell's own setters", () => {
-    expect(SHELL).toContain('const accountDoor = { navTabs, setView, setChurchView, theme, setTheme, isOwner: isFamilyMember };');
+    expect(SHELL).toContain('const accountDoor = { navTabs, setView, setChurchView, theme, setTheme, isOwner: isFamilyMember, personName: personaName(personaOf(authSession?.user?.email)) };'); // + the account's own name (DR-1617)
   });
 });
