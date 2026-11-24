@@ -6,7 +6,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import LearnStudio from '../src/components/learn-studio/LearnStudio.jsx';
-import { learnInventory } from '../src/lib/learn-presentation/integrity.js';
 import { presentationIndex } from '../src/lib/learn-presentation/presentation.js';
 
 const ROOT = import.meta.env.BASE_URL.replace(/\/$/, '');
@@ -23,14 +22,25 @@ function Preview() {
   useEffect(() => {
     Promise.all([
       fetch(`${BASE}/records.json`).then((r) => r.json()),
+      // A shared preview page carries the catalog SNAPSHOT (no lesson text; see
+      // catalogSnapshot); a developer's machine reads the live catalog.
+      fetch(`${BASE}/catalog.json`)
+        .then((r) => (r.ok ? r.json() : null))
+        .catch(() => null)
+        .then(
+          (snap) =>
+            snap ||
+            import('../src/lib/learn-presentation/integrity.js').then(({ learnInventory }) =>
+              learnInventory().map((c) => ({ key: c.key, meta: { ...(c.meta || {}), key: c.key }, schedule: c.lessons }))
+            )
+        ),
       fetch(`${BASE}/topics.json`)
         .then((r) => (r.ok ? r.json() : {}))
         .catch(() => ({})),
     ])
-      .then(([rec, topics]) => setData({ rec, topics }))
+      .then(([rec, courses, topics]) => setData({ rec, courses, topics }))
       .catch((e) => setErr(String(e)));
   }, []);
-  const courses = useMemo(() => learnInventory().map((c) => ({ key: c.key, meta: { ...(c.meta || {}), key: c.key }, schedule: c.lessons })), []);
   const index = useMemo(() => {
     if (!data) return null;
     const records = data.rec.records.map((r0) => {
@@ -40,7 +50,8 @@ function Preview() {
     return presentationIndex(records);
   }, [data]);
   if (err) return <p style={{ color: '#fff', padding: 16 }}>Preview assets missing ({err}). Run the compose step into learn-studio-preview/assets first.</p>;
-  if (!index) return <p style={{ color: '#fff', padding: 16 }}>Loading the 20 pilot lessons…</p>;
+  const courses = data && data.courses;
+  if (!index) return <p style={{ color: '#fff', padding: 16 }}>Loading Learn…</p>;
   const lesson = new URLSearchParams(window.location.search).get('lesson');
   const log = (what) => (l) => console.info(`[preview] ${what}`, l && l.id); // the real app hands these to ChurchLearn's reader
   return (

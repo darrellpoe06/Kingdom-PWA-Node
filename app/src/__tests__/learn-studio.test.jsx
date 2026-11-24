@@ -14,7 +14,7 @@ import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import LearnStudio from '../components/learn-studio/LearnStudio.jsx';
 import { learnInventory } from '../lib/learn-presentation/integrity.js';
-import { presentationIndex } from '../lib/learn-presentation/presentation.js';
+import { presentationIndex, shelfForDepartment, interimHeadline, SHELVES } from '../lib/learn-presentation/presentation.js';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 let container;
@@ -105,5 +105,38 @@ describe('LearnStudio', () => {
     expect(byText('Who Is Watching When You Work Alone?').length).toBeGreaterThan(0);
     type(q('input[type=search]'), 'zzqqxx');
     expect(q('[role=status]').textContent).toMatch(/No lesson matches/);
+  });
+});
+
+describe('temporary covers (owner 2026-11-24: reuse approved department art, no new spend)', () => {
+  const COVERS = Object.fromEntries(SHELVES.map((t) => [t.id, { image: { src: `/topics/${t.id}.webp` }, alt: t.label }]));
+
+  it('every department on the shelves maps to an approved topic cover', () => {
+    for (const t of SHELVES) for (const d of t.departments) expect(shelfForDepartment(d)).toBe(t.id);
+    expect(shelfForDepartment('Not a department')).toBe(null);
+  });
+
+  it('a lesson without its own picture wears its department art, never a blank box', () => {
+    const noPic = { ...REC, image: null };
+    render(<LearnStudio courses={COURSES} index={presentationIndex([noPic])} preview topicCovers={COVERS} initialLesson={LL338.id} />);
+    const art = q('.ls-cover-art [data-interim="true"]');
+    expect(art).not.toBeNull();
+    expect(art.className).toMatch(/ls-interim--faith/);
+    expect(art.querySelector('img').getAttribute('src')).toBe('/topics/faith.webp');
+    expect(container.textContent).not.toMatch(/Picture coming/);
+    // the original title still sits directly under the new title
+    expect(q('[data-testid="original-title"]').textContent).toBe(LL338.title);
+  });
+
+  it('a lesson WITH its own picture shows it, not the temporary cover', () => {
+    render(<LearnStudio courses={COURSES} index={presentationIndex([REC])} preview topicCovers={COVERS} initialLesson={LL338.id} />);
+    expect(q('.ls-cover-art [data-interim="true"]')).toBeNull();
+    expect(q('.ls-cover-art img').getAttribute('src')).toBe('/x.webp');
+  });
+
+  it('the temporary headline uses real copy only: the record, the short title, or the course', () => {
+    expect(interimHeadline({ thumbHeadline: 'WORK WHEN UNSEEN', displayTitle: 'x' })).toBe('WORK WHEN UNSEEN');
+    expect(interimHeadline({ displayTitle: 'Give Me This Mountain — Caleb at 85' })).toBe('Give Me This Mountain');
+    expect(interimHeadline({ displayTitle: 'A very long lesson title that keeps going on and on', courseTitle: 'Living Lessons' })).toBe('Living Lessons');
   });
 });

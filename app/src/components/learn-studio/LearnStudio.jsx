@@ -10,7 +10,7 @@
 // directly under the new display title — visible text, never a tooltip.
 // =============================================================================
 import React, { useMemo, useState, useEffect } from 'react';
-import { studioHome, searchPresented, presentLesson, SHELVES } from '../../lib/learn-presentation/presentation.js';
+import { studioHome, searchPresented, presentLesson, SHELVES, shelfForDepartment, interimHeadline } from '../../lib/learn-presentation/presentation.js';
 import { READING_VERSIONS } from '../../lib/learn-organize.js';
 
 const versionLabel = (id) => (READING_VERSIONS.find((b) => b.id === id) || { label: id }).label;
@@ -75,13 +75,42 @@ function Picture({ image, alt, eager = false, sizes = '(max-width: 640px) 90vw, 
   );
 }
 
+/**
+ * A lesson's art. Its own picture when it has one; otherwise a TEMPORARY cover
+ * built from its department's approved Explore-by-Topic artwork, tinted in the
+ * department's colour, with the department named. Free: no new picture is made,
+ * and the lesson's own cover replaces it the moment its record carries one.
+ */
+function Art({ p, eager = false, sizes, children }) {
+  const covers = React.useContext(CoversContext);
+  if (p.image) {
+    return (
+      <>
+        <Picture image={p.image} alt={p.imageAlt} eager={eager} sizes={sizes} />
+        {children}
+      </>
+    );
+  }
+  const shelf = shelfForDepartment(p.department) || 'none';
+  const c = covers[shelf];
+  return (
+    <div className={`ls-interim ls-interim--${shelf}`} data-interim="true">
+      <Picture image={c && c.image} alt="" eager={eager} sizes={sizes} pendingLabel={p.department || 'Learn'} />
+      <span className="ls-interim-tint" aria-hidden="true" />
+      {p.department && <span className="ls-interim-dept">{p.department}</span>}
+      {children}
+    </div>
+  );
+}
+
 function Card({ x, onOpen }) {
   const { p } = x;
   return (
     <button type="button" className={`ls-card ${RING}`} onClick={() => onOpen(x)}>
       <div className="ls-thumb">
-        <Picture image={p.image} alt={p.imageAlt} />
-        <Headline text={p.thumbHeadline} />
+        <Art p={p}>
+          <Headline text={p.image ? p.thumbHeadline : interimHeadline(p)} />
+        </Art>
         {p.duration && <span className="ls-badge">{p.duration}</span>}
       </div>
       <div className="ls-card-title">{p.displayTitle}</div>
@@ -128,7 +157,7 @@ function Hero({ slides, onOpen, onListen }) {
   const x = slides[i % slides.length];
   return (
     <section className="ls-hero" aria-roledescription="carousel" aria-label="Featured lessons">
-      <Picture image={x.p.image} alt={x.p.imageAlt} eager sizes="100vw" />
+      <Art p={x.p} eager sizes="100vw" />
       <div className="ls-hero-body">
         <Headline text={x.p.displayTitle} size="hero" align="right" />
         <div className="ls-hero-actions">
@@ -201,8 +230,9 @@ export function LessonCover({ x, next, onBack, onRead, onListen, onVersion, onOp
         ‹ Back to Learn
       </button>
       <div className="ls-cover-art">
-        <Picture image={p.image} alt={p.imageAlt} eager sizes="100vw" />
-        <Headline text={p.thumbHeadline} size="cover" />
+        <Art p={p} eager sizes="100vw">
+          <Headline text={p.image ? p.thumbHeadline : interimHeadline(p)} size="cover" />
+        </Art>
       </div>
       <h1 className="ls-cover-title">{p.displayTitle}</h1>
       {/* The author's complete original title, directly under the new title. */}
@@ -270,6 +300,7 @@ export function LessonCover({ x, next, onBack, onRead, onListen, onVersion, onOp
 const NO_PLACES = Object.freeze([]);
 const NO_PROGRESS = Object.freeze({});
 const NO_COVERS = Object.freeze({});
+const CoversContext = React.createContext(NO_COVERS);
 
 export default function LearnStudio({
   courses,
@@ -317,85 +348,89 @@ export default function LearnStudio({
     const at = list.findIndex((y) => y.p.lessonId === open.p.lessonId);
     const next = list.length > 1 ? list[(at + 1) % list.length] : null;
     return (
-      <div className="ls-root">
-        <LessonCover x={open} next={next} onBack={() => setOpen(null)} onRead={read} onListen={listen} onVersion={version} onOpen={openLesson} />
-      </div>
+      <CoversContext.Provider value={topicCovers}>
+        <div className="ls-root">
+          <LessonCover x={open} next={next} onBack={() => setOpen(null)} onRead={read} onListen={listen} onVersion={version} onOpen={openLesson} />
+        </div>
+      </CoversContext.Provider>
     );
   }
 
   const heroSlides = (home.featuredAll.length ? home.featuredAll : home.discover).slice(0, 4);
   const pickedShelf = shelf && home.shelves.find((s) => s.id === shelf);
   return (
-    <div className="ls-root">
-      <div className="ls-top">
-        <label className="ls-search">
-          <span className="ls-search-ico" aria-hidden="true" />
-          <input
-            type="search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search lessons, titles or courses..."
-            aria-label="Search lessons, titles or courses"
-          />
-        </label>
-        <button type="button" className={`ls-btn ls-btn--outline ls-all ${RING}`} onClick={onExit}>
-          All Courses
-        </button>
-      </div>
-      {home.totals.presented === 0 && (
-        <p className="ls-empty" role="status">
-          No lesson has an approved cover yet, so this view has nothing to show. Every lesson is still in All Courses; covers appear here once they are approved
-          in the review.
-        </p>
-      )}
-      {query.trim() ? (
-        results.length ? (
-          <Row
-            title={`Results for “${query.trim()}”`}
-            note={`${results.length} lessons`}
-            items={results.map((r) => ({ ...r, p: r.p || presentLesson(r.lesson, r.course, index, { preview }) }))}
-            onOpen={openLesson}
-          />
-        ) : (
-          <p className="ls-empty" role="status">
-            No lesson matches “{query.trim()}”. Search reads new titles, original titles, courses and lesson numbers; try a word from the original title.
-          </p>
-        )
-      ) : pickedShelf ? (
-        <>
-          <button type="button" className={`ls-back ${RING}`} onClick={() => setShelf(null)}>
-            ‹ Back to Learn
+    <CoversContext.Provider value={topicCovers}>
+      <div className="ls-root">
+        <div className="ls-top">
+          <label className="ls-search">
+            <span className="ls-search-ico" aria-hidden="true" />
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search lessons, titles or courses..."
+              aria-label="Search lessons, titles or courses"
+            />
+          </label>
+          <button type="button" className={`ls-btn ls-btn--outline ls-all ${RING}`} onClick={onExit}>
+            All Courses
           </button>
-          <Row title={pickedShelf.label} items={pickedShelf.items} onOpen={openLesson} />
-        </>
-      ) : (
-        <>
-          <Hero slides={heroSlides} onOpen={openLesson} onListen={listen} />
-          <Row icon="play" title="Continue Learning" items={home.continueLearning} onOpen={openLesson} />
-          <Row icon="star" title="Discover Something New" note="Hand-picked lessons" items={home.discover} onOpen={openLesson} />
-          <Row icon="play" title="Recently Added" items={home.recentlyAdded} onOpen={openLesson} />
-          <TopicGrid topics={SHELVES} covers={topicCovers} onPick={(t) => setShelf(t.id)} />
-          {home.shelves.map((s) => (
-            <Row key={s.id} title={s.label} items={s.items} onOpen={openLesson} onSeeAll={() => setShelf(s.id)} />
-          ))}
-          <section className="ls-row">
-            <header className="ls-row-head">
-              <h2>
-                <span className="ls-ico ls-ico--star" aria-hidden="true" />
-                All {home.topics.length} Departments
-              </h2>
-              <span className="ls-note">{home.totals.lessons} lessons</span>
-            </header>
-            <div className="ls-depts">
-              {home.topics.map((t) => (
-                <button key={t.label} type="button" className={`ls-chip ls-chip--dept ${RING}`} onClick={onExit}>
-                  {t.label} · {t.lessons}
-                </button>
-              ))}
-            </div>
-          </section>
-        </>
-      )}
-    </div>
+        </div>
+        {home.totals.presented === 0 && (
+          <p className="ls-empty" role="status">
+            No lesson has an approved cover yet, so this view has nothing to show. Every lesson is still in All Courses; covers appear here once they are
+            approved in the review.
+          </p>
+        )}
+        {query.trim() ? (
+          results.length ? (
+            <Row
+              title={`Results for “${query.trim()}”`}
+              note={`${results.length} lessons`}
+              items={results.map((r) => ({ ...r, p: r.p || presentLesson(r.lesson, r.course, index, { preview }) }))}
+              onOpen={openLesson}
+            />
+          ) : (
+            <p className="ls-empty" role="status">
+              No lesson matches “{query.trim()}”. Search reads new titles, original titles, courses and lesson numbers; try a word from the original title.
+            </p>
+          )
+        ) : pickedShelf ? (
+          <>
+            <button type="button" className={`ls-back ${RING}`} onClick={() => setShelf(null)}>
+              ‹ Back to Learn
+            </button>
+            <Row title={pickedShelf.label} items={pickedShelf.items} onOpen={openLesson} />
+          </>
+        ) : (
+          <>
+            <Hero slides={heroSlides} onOpen={openLesson} onListen={listen} />
+            <Row icon="play" title="Continue Learning" items={home.continueLearning} onOpen={openLesson} />
+            <Row icon="star" title="Discover Something New" note="Hand-picked lessons" items={home.discover} onOpen={openLesson} />
+            <Row icon="play" title="Recently Added" items={home.recentlyAdded} onOpen={openLesson} />
+            <TopicGrid topics={SHELVES} covers={topicCovers} onPick={(t) => setShelf(t.id)} />
+            {home.shelves.map((s) => (
+              <Row key={s.id} title={s.label} items={s.items} onOpen={openLesson} onSeeAll={() => setShelf(s.id)} />
+            ))}
+            <section className="ls-row">
+              <header className="ls-row-head">
+                <h2>
+                  <span className="ls-ico ls-ico--star" aria-hidden="true" />
+                  All {home.topics.length} Departments
+                </h2>
+                <span className="ls-note">{home.totals.lessons} lessons</span>
+              </header>
+              <div className="ls-depts">
+                {home.topics.map((t) => (
+                  <button key={t.label} type="button" className={`ls-chip ls-chip--dept ${RING}`} onClick={onExit}>
+                    {t.label} · {t.lessons}
+                  </button>
+                ))}
+              </div>
+            </section>
+          </>
+        )}
+      </div>
+    </CoversContext.Provider>
   );
 }

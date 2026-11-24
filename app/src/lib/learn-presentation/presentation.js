@@ -96,10 +96,38 @@ export function presentLesson(lesson, course, index, { preview = false, lite = f
     // `lite` skips the costly reads (spoken length, age-version measurement) for
     // lessons that are only counted or filtered, never drawn: measured 2026-11-24
     // at ~600ms per home render / per search keystroke over 994 lessons without it.
-    duration: lite ? null : listenDuration(lesson),
-    versions: lite ? [] : lessonVersions(lesson),
-    hasVideo: lite ? false : hasRealVideo(lesson),
+    duration: lite ? null : measured(lesson, 'duration', listenDuration),
+    versions: lite ? [] : measured(lesson, 'versions', lessonVersions),
+    hasVideo: lite ? false : measured(lesson, 'hasVideo', hasRealVideo),
   };
+}
+
+/**
+ * A catalog SNAPSHOT (catalogSnapshot below) carries the three measurements the
+ * doorway draws, taken by these same functions on the real lesson; a live lesson
+ * is measured live. Same numbers either way, never invented.
+ */
+function measured(lesson, key, measure) {
+  const m = lesson && lesson.presentedMeasure;
+  return m && Object.prototype.hasOwnProperty.call(m, key) ? m[key] : measure(lesson);
+}
+
+/**
+ * The catalog as the doorway needs it: every course and lesson id, title and date,
+ * with the measurements pre-taken, and no lesson text (a 994-lesson catalog is ~40 MB
+ * of text; this is what a page that only SHOWS the doorway has to carry).
+ */
+export function catalogSnapshot(courses) {
+  return (Array.isArray(courses) ? courses : []).map((c) => ({
+    key: c.key,
+    meta: c.meta,
+    schedule: (c.schedule || []).map((l) => ({
+      id: l.id,
+      title: l.title,
+      ...(typeof l.added === 'string' ? { added: l.added } : {}),
+      presentedMeasure: { duration: listenDuration(l), versions: lessonVersions(l), hasVideo: hasRealVideo(l) },
+    })),
+  }));
 }
 
 /** Upgrade a lite row to the full presentation (only for what is drawn). */
@@ -147,6 +175,32 @@ export const SHELVES = Object.freeze([
   { id: 'tech', label: 'A.I. & Technology', departments: ['A.I. The Way', 'Development', 'Serve the House'] },
   { id: 'discover', label: 'History & Mathematics', departments: ['History', 'Mathematics'] },
 ]);
+
+/** The Explore-by-Topic shelf a department belongs to (its approved cover art). */
+export function shelfForDepartment(department) {
+  const s = SHELVES.find((x) => x.departments.includes(department));
+  return s ? s.id : null;
+}
+
+/**
+ * The headline on a TEMPORARY cover (a lesson still waiting for its own picture):
+ * the record's own headline when it has one; else the title's main clause when it
+ * is short; else the course title; else the first four words. Never invented copy.
+ */
+export function interimHeadline(p) {
+  if (!p) return '';
+  if (p.thumbHeadline) return p.thumbHeadline;
+  const words = (t) =>
+    String(t || '')
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean);
+  const main = words(String(p.displayTitle || p.originalTitle || '').split(/\s[—–-]\s|[:—–(]/)[0]);
+  if (main.length && main.length <= 6) return main.join(' ');
+  const course = words(p.courseTitle);
+  if (course.length && course.length <= 5) return course.join(' ');
+  return main.slice(0, 4).join(' ');
+}
 
 /** The home page, derived from the mounted catalog, the device's places and the record index. */
 export function studioHome(courses, index, { places = [], progress = {}, preview = false } = {}) {
