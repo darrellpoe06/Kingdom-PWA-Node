@@ -211,7 +211,18 @@ def report_payload(result, bstate, codes, local_code, actions, status_text):
         "local_code": int(local_code or 0),
         "actions": actions[:12],
         "funnel_status": (status_text or "")[:1500],
+        # Darrell 2026-11-24: "The compute keeps restarting". Seconds since the
+        # box last booted: a small number on every report means it is rebooting.
+        "uptime_s": uptime_seconds(),
     }
+
+
+def uptime_seconds(path="/proc/uptime"):
+    try:
+        with open(path) as f:
+            return int(float(f.read().split()[0]))
+    except (OSError, ValueError, IndexError):
+        return -1
 
 
 def send_report(payload, token_file=None, repo=None, opener=None):
