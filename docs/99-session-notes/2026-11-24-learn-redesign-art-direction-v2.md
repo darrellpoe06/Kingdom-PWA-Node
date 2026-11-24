@@ -41,13 +41,19 @@ Bugs found and fixed on the way: an infinite render loop in LearnStudio (fresh d
 | 4 | 7 lessons + 6 topic covers | $0.78 | $2.64 |
 | 5 | re-package only (cap 0¢; cancelled once the download host was allowed) | $0.00 | $2.64 |
 | 6 | the 10 lessons that kept graded v1 pictures (owner: "still too dark"; "use the paid way") | $0.60 | $3.24 |
-| 7 | HIST2 + PM2 re-made under DR-1640 (cap 15¢) | dispatched | — |
+| 7 | HIST2 + PM2 re-made under DR-1640 (cap 15¢) | $0.12 | **$3.36** |
+
+Final ledger, read from the run-7 package (digest `a1058e5e…`): 68 jobs, all succeeded: text 48¢, v1 pictures 120¢, v2 lesson pictures 132¢ (22 jobs: 20 lessons + HIST2/PM2 re-made), topic covers 36¢. All 20 lessons and 6 covers are on the v2 art, composed on the runner under grade version 2.
 
 Sample brightness, measured on the real files: mean luma **122 / 152 / 173** (v1 pilot average 37.6); near-black pixels 0–16% (v1 ≈ 60%).
 
+## 4b. Layout fixes after the bright art landed
+
+The new art puts the subject on the right, so the hero headline moved left (it had crossed the subject's face), headline lines are sized to their words (the brush stroke had run the full frame), a text-side scrim (42% → 0 by 60% of the width) keeps white and gold type legible without darkening the picture, and on phones the hero title may wrap (it had clipped at 390px). Measured: 1440px and 390px, no horizontal scroll, 48 images loaded, 0 broken, 0 console errors.
+
 ## 5. Integrity (every run)
 
-The integrity baseline (994 lessons, 994 original titles, 4,258 age readings) passed before and after runs 3 and 4 on the runner, and locally after every change. No lesson file is touched by any change on this branch.
+The integrity baseline (994 lessons, 994 original titles, 4,258 age readings) passed before and after runs 3, 4, 6 and 7 on the runner, and locally after every change. No lesson file is touched by any change on this branch.
 
 ## 6. Tests
 

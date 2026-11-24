@@ -173,8 +173,10 @@
 /* the headline: heavy upright sans, white, last line gold over a red brush */
 .ls-headline {
   position: absolute;
+  z-index: 2;
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
   font-family: 'LS Display', 'Arial Black', sans-serif;
   font-weight: 900;
   line-height: 0.98;
@@ -187,7 +189,7 @@
 }
 .ls-hl-line {
   position: relative;
-  display: block;
+  display: inline-block; /* sized to its words, so the brush sits only under them */
   z-index: 1;
 }
 .ls-hl-gold {
@@ -195,8 +197,8 @@
 }
 .ls-brush {
   position: absolute;
-  left: -4%;
-  right: -10%;
+  left: -3%;
+  right: -4%;
   bottom: -0.16em;
   height: 0.28em;
   z-index: -1;
@@ -207,8 +209,20 @@
   left: 6%;
   top: 50%;
   transform: translateY(-50%);
-  max-width: 62%;
-  font-size: clamp(18px, 2.3vw, 30px);
+  max-width: 54%;
+  font-size: clamp(17px, 2.05vw, 27px);
+}
+/* Legibility without darkening the picture: a soft scrim on the text side only
+   (the art direction keeps the subject on the right, open space on the left). */
+.ls-thumb::after,
+.ls-cover-art::after,
+.ls-hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.42) 0%, rgba(0, 0, 0, 0.16) 38%, rgba(0, 0, 0, 0) 60%);
 }
 .ls-headline--cover {
   left: 4%;
@@ -218,9 +232,9 @@
 }
 .ls-headline--hero {
   position: static;
-  align-items: flex-end;
-  text-align: right;
-  font-size: clamp(26px, 3.9vw, 58px);
+  align-items: flex-start;
+  text-align: left;
+  font-size: clamp(24px, 3.2vw, 48px);
   max-width: 100%;
 }
 .ls-headline--hero .ls-hl-line,
@@ -245,13 +259,14 @@
 }
 .ls-hero-body {
   position: absolute;
-  right: 4%;
+  z-index: 2;
+  left: 4%;
   top: 50%;
   transform: translateY(-50%);
-  width: 58%;
+  width: 56%;
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
+  align-items: flex-start;
   gap: 22px;
 }
 .ls-hero-actions {
@@ -260,6 +275,7 @@
 }
 .ls-dots {
   position: absolute;
+  z-index: 2;
   bottom: 14px;
   left: 0;
   right: 0;
@@ -558,10 +574,16 @@
     padding: 0 16px;
     align-items: center;
   }
+  .ls-hero::after {
+    background: linear-gradient(0deg, rgba(0, 0, 0, 0.55) 0%, rgba(0, 0, 0, 0.2) 45%, rgba(0, 0, 0, 0) 65%);
+  }
   .ls-headline--hero {
     align-items: center;
     text-align: center;
-    font-size: clamp(22px, 7.4vw, 40px);
+    font-size: clamp(21px, 6.6vw, 34px);
+  }
+  .ls-headline--hero .ls-hl-line {
+    white-space: normal; /* a phone is too narrow to hold a long title on one line */
   }
   .ls-hero-actions {
     justify-content: center;
@@ -573,7 +595,7 @@
     grid-auto-columns: 82%;
   }
   .ls-headline--card {
-    font-size: clamp(20px, 6.4vw, 30px);
+    font-size: clamp(19px, 5.8vw, 28px);
   }
   .ls-cover-art {
     aspect-ratio: 16 / 10;
