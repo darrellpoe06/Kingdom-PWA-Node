@@ -29,6 +29,10 @@ Two reports, one session. The apps sign people out and back in on their own, and
 
 Not measured in this session: the live NAS's running env (the sandbox has no route to it; DR-0108's runner road applies). The deployed fix is verified by the next `services-sync` cycle recreating the auth container from this compose.
 
+## Impact
+
+Every member of the household was signed out of every tab and device whenever two holders refreshed close together, and signed back in only by hand. On any shared device, the next person to sign in was greeted and filtered as the last one: Christina as Darrell, and a parishioner received Darrell's entity visibility. The boot could also show a stale session before correcting itself, which read as signing in and out on its own.
+
 ## Decision
 
 1. **Server:** the auth service sets `GOTRUE_SECURITY_REFRESH_TOKEN_REUSE_INTERVAL: "10"` (hosted parity) and states `GOTRUE_SECURITY_REFRESH_TOKEN_ROTATION_ENABLED: "true"`. Reuse detection stays on outside the 10-second window. It ships through the existing lane: merge, the mirror pulls, `infra/nas-supabase/install.sh` runs `docker compose up -d`, and only the auth container is recreated. Sessions live in the database and the JWT secret is unchanged, so nobody is signed out by the change itself. Reverting it is one line.
