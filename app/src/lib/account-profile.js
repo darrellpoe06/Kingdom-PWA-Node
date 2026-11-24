@@ -41,7 +41,7 @@ export function profileForAccount({ uid, email, saved, savedOwner, familyMap = {
 /** Read the saved profile and its owner from a Storage-like object. Never throws. */
 export function readSavedProfile(store) {
   try {
-    const ls = store !== undefined ? store : (typeof localStorage !== 'undefined' ? localStorage : null);
+    const ls = store !== undefined ? store : typeof localStorage !== 'undefined' ? localStorage : null;
     if (!ls) return { saved: null, savedOwner: null };
     return { saved: ls.getItem(PROFILE_KEY) || null, savedOwner: ls.getItem(PROFILE_OWNER_KEY) || null };
   } catch (_) {
@@ -55,12 +55,15 @@ export function writeSavedProfile(ls, profile, uid) {
     if (!ls) return;
     if (profile) {
       ls.setItem(PROFILE_KEY, profile);
-      if (uid) ls.setItem(PROFILE_OWNER_KEY, uid); else ls.removeItem(PROFILE_OWNER_KEY);
+      if (uid) ls.setItem(PROFILE_OWNER_KEY, uid);
+      else ls.removeItem(PROFILE_OWNER_KEY);
     } else {
       ls.removeItem(PROFILE_KEY);
       ls.removeItem(PROFILE_OWNER_KEY);
     }
-  } catch (_) { /* storage blocked: state still changes, nothing persists */ }
+  } catch (_) {
+    /* storage blocked: state still changes, nothing persists */
+  }
 }
 
 /** The name a family persona is shown by when the account's profile has none (DR-1617).

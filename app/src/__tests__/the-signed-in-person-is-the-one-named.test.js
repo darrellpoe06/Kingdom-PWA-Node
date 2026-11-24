@@ -31,11 +31,17 @@ const CHRISTINA = 'uid-christina';
 function memStore(init = {}) {
   const m = new Map(Object.entries(init));
   return {
-    get length() { return m.size; },
+    get length() {
+      return m.size;
+    },
     key: (i) => [...m.keys()][i] ?? null,
     getItem: (k) => (m.has(k) ? m.get(k) : null),
-    setItem: (k, v) => { m.set(k, String(v)); },
-    removeItem: (k) => { m.delete(k); },
+    setItem: (k, v) => {
+      m.set(k, String(v));
+    },
+    removeItem: (k) => {
+      m.delete(k);
+    },
   };
 }
 
@@ -57,7 +63,7 @@ describe('1. the profile follows the account, not the device', () => {
     expect(r.source).toBe('saved');
   });
 
-  it("someone outside the family never inherits a family profile from the device", () => {
+  it('someone outside the family never inherits a family profile from the device', () => {
     const r = profileForAccount({ uid: 'uid-parishioner', email: 'someone@example.com', saved: 'darrell', savedOwner: null, familyMap: FAMILY });
     expect(r.profile).toBe('self');
   });
@@ -89,7 +95,17 @@ describe('1. the profile follows the account, not the device', () => {
   });
 
   it('blocked storage never throws', () => {
-    const bad = { getItem() { throw new Error('blocked'); }, setItem() { throw new Error('blocked'); }, removeItem() { throw new Error('blocked'); } };
+    const bad = {
+      getItem() {
+        throw new Error('blocked');
+      },
+      setItem() {
+        throw new Error('blocked');
+      },
+      removeItem() {
+        throw new Error('blocked');
+      },
+    };
     expect(readSavedProfile(bad)).toEqual({ saved: null, savedOwner: null });
     expect(() => writeSavedProfile(bad, 'darrell', DARRELL)).not.toThrow();
   });
@@ -156,12 +172,12 @@ describe("4. the header names the person, not the phone account's digits", () =>
     expect(headerName(null, { user: { email: '15636502416@phone.poetech.us' } })).toBe('(563) 650-2416');
   });
 
-  it("a chosen profile name always wins", async () => {
+  it('a chosen profile name always wins', async () => {
     const { headerName } = await import('../components/HeaderAuthButton.jsx');
     expect(headerName({ displayName: 'Christina Poe' }, { user: { email: 'mrspoe06@gmail.com' } }, 'Darrell')).toBe('Christina Poe');
   });
 
-  it('the shell hands the door the account\'s own persona name, never the household roll-up', () => {
+  it("the shell hands the door the account's own persona name, never the household roll-up", () => {
     const src = readFileSync(join(__dirname, '..', 'poe-financial-mvp-v28.jsx'), 'utf8');
     expect(src).toMatch(/personName: personaName\(personaOf\(authSession\?\.user\?\.email\)\)/);
   });
