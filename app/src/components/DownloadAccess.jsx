@@ -54,6 +54,19 @@ export function DownloadAccessProvider({ signedIn = false, userTier = 'foundatio
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 
+/** Wrap a surface (Learn) so every download door inside reads one answer. */
+export function withDownloadAccess(Component) {
+  function WithDownloadAccess(props) {
+    return (
+      <DownloadAccessProvider signedIn={props.signedIn !== false} userTier={props.userTier || 'foundation'}>
+        <Component {...props} />
+      </DownloadAccessProvider>
+    );
+  }
+  WithDownloadAccess.displayName = `withDownloadAccess(${Component.displayName || Component.name || 'Component'})`;
+  return WithDownloadAccess;
+}
+
 export function useDownloadAccess() {
   return useContext(Ctx);
 }

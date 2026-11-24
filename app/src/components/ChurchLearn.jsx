@@ -71,7 +71,7 @@ import { markArrivalsSeen, SCREEN_KINDS } from '../lib/arrivals.js';
 import { newShareToken } from '../lib/lesson-share.js';
 import { recordLessonShare, pendingShareToken, reportShareLanded, waitForElement } from '../lib/lesson-share-record.js';
 import DownloadNeedsAccount from './DownloadNeedsAccount.jsx';
-import { DownloadAccessProvider, DownloadGate } from './DownloadAccess.jsx';
+import { withDownloadAccess, DownloadGate } from './DownloadAccess.jsx';
 import LessonShareLedger from './LessonShareLedger.jsx';
 import { LessonDownloadButton, CourseDownloadButton, AllDownloadButton, SavedMark, OfflineLevelNote, useDownloads, useOnline } from './LessonDownloads.jsx';
 import { savedReadingFor } from '../lib/lesson-downloads.js';
@@ -3132,22 +3132,13 @@ function CourseView({
                   })}
                   onShared={recordLessonShare}
                 />
-                {/* The lesson's FULL text is a download: it needs a free
-                    account (DR-0698). Reading and listening never do. */}
-                {/* DR-1652: the full text is a download, and downloading is
-                    PoeTech+ or the Download Pass. Copy link stays free. */}
-                {signedIn ? (
-                  <DownloadGate compact label="Copy lesson">
-                    <CopyButton
-                      label="Copy lesson"
-                      copiedLabel="Lesson copied ✓"
-                      title="Copy this lesson's text, with its anchor and a link back to it"
-                      text={() => lessonCopyBlock(m, { url: lessonUrl({ courseKey: course.meta.key, lessonId: m.id, course }), level: learnLevel === 'auto' ? 'standard' : learnLevel })}
-                    />
-                  </DownloadGate>
-                ) : (
-                  <DownloadNeedsAccount compact label="Copy lesson" />
-                )}
+                {/* The full text is a download: an account (DR-0698), then PoeTech+ or the pass (DR-1652). */}
+                <DownloadGate compact label="Copy lesson"><CopyButton
+                  label="Copy lesson"
+                  copiedLabel="Lesson copied ✓"
+                  title="Copy this lesson's text, with its anchor and a link back to it"
+                  text={() => lessonCopyBlock(m, { url: lessonUrl({ courseKey: course.meta.key, lessonId: m.id, course }), level: learnLevel === 'auto' ? 'standard' : learnLevel })}
+                /></DownloadGate>
                 <CopyButton
                   label="Copy link"
                   copiedLabel="Link copied ✓"
@@ -4081,14 +4072,12 @@ function CourseView({
       <div className="bg-[#FAF8F4] border border-[#E8E4DC] p-3 mb-4">
         <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold mb-2">Teach from paper — export the whole curriculum</div>
         {/* Downloading needs an account (DR-0698), then PoeTech+ or the Download Pass (DR-1652); reading never does. */}
-        {/* DR-1652: exporting the curriculum is a download: PoeTech+ or the Download Pass. */}
         {!signedIn ? <DownloadNeedsAccount label="Download the curriculum" /> : (
         <div className="flex flex-wrap gap-2">
           <DownloadGate label="Download the curriculum">
           <button type="button" onClick={copyCurriculum} className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">Copy markdown</button>
           <button type="button" onClick={downloadCurriculum} className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">Download .md</button>
-          <button type="button" onClick={printCurriculum} className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">Print</button>
-          </DownloadGate>
+          <button type="button" onClick={printCurriculum} className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">Print</button></DownloadGate>
           {/* THE COLORING BOOK — the whole course, one sheet a page (DR-0866).
               It is a COURSE-scope control, so it stands here with the course's
               own Copy / Download / Print, never above one open lesson
@@ -4324,20 +4313,8 @@ function LessonPreviewBadge({ prUrl }) {
   );
 }
 
-/**
- * DR-1652: Learn under one download-access answer. Every download door inside
- * (a lesson, a course, every lesson, Copy lesson, the curriculum export) reads
- * it; reading and Play never do.
- */
-export default function ChurchLearn(props) {
-  return (
-    <DownloadAccessProvider signedIn={props.signedIn !== false} userTier={props.userTier || 'foundation'}>
-      <ChurchLearnInner {...props} />
-    </DownloadAccessProvider>
-  );
-}
-
-function ChurchLearnInner({
+// DR-1652: every download door inside reads one access answer (withDownloadAccess).
+function ChurchLearn({
   cohortStart = PROPOSED_COHORT_START,
   cohortConfirmed = false,
   setCohortStart = null,
@@ -6033,3 +6010,5 @@ function ChurchLearnInner({
     </section>
   );
 }
+
+export default withDownloadAccess(ChurchLearn);
