@@ -444,5 +444,44 @@ class ReadsArisRoadAndNeverHealsIt(unittest.TestCase):
         self.assertNotIn("/llm", [path for path, _ in fw.SOVEREIGN_MOUNTS])
 
 
+class AsksAsTheAppDoes(unittest.TestCase):
+    """DR-1647: Cloudflare answers "Python-urllib" with its own 403, and a 403
+    reads as up. The probe must never carry urllib's default name."""
+
+    def _ask(self):
+        seen = {}
+
+        class Resp:
+            status = 200
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *a):
+                return False
+
+        def opener(req, timeout=None):
+            seen["ua"] = req.get_header("User-agent")
+            seen["timeout"] = timeout
+            return Resp()
+
+        code = fw.probe("https://poetech.us/llm/health", 3, opener=opener)
+        return code, seen
+
+    def test_the_probe_names_itself_as_a_browser(self):
+        code, seen = self._ask()
+        self.assertEqual(code, 200)
+        self.assertTrue(seen["ua"].startswith("Mozilla/5.0"))
+        self.assertNotIn("Python-urllib", seen["ua"])
+        self.assertEqual(seen["timeout"], 3)
+
+    def test_urllibs_own_name_is_the_one_cloudflare_refuses(self):
+        import urllib.request
+
+        default = dict(urllib.request.build_opener().addheaders)["User-agent"]
+        self.assertIn("Python-urllib", default)
+        self.assertNotEqual(fw.PROBE_UA, default)
+
+
 if __name__ == "__main__":
     unittest.main()
