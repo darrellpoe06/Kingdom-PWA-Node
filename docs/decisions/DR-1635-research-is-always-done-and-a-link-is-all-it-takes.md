@@ -14,6 +14,10 @@
 
 **Pairs with:** DR-1172, DR-1202 (a link becomes what it was sent for; lesson after research is "the new normal"), DR-1203 (your own words first), DR-1200 (the reading), DR-1443 (the NAS answers its own research), DR-0630 (a member's lesson waits for the Governor), DR-0098 (teach the Word, never stage a debate), DR-1353 (credit where credit is due), DR-0076
 
+## Context
+
+One link sent from the Research tab, or any lesson sent from a door, should be researched and become a Word-first lesson without a second step.
+
 ## What was measured
 
 Full measurement: `docs/99-session-notes/2026-11-24-research-is-always-done.md`.
@@ -51,6 +55,6 @@ Full measurement: `docs/99-session-notes/2026-11-24-research-is-always-done.md`.
 - **Proven to catch:** restoring the old rule (no link default, no owner default) failed 5 cases by name.
 - **NOT YET PROVEN on the NAS (P66):** this is proven when the first link sent after this merge shows a researched answer, a reading and a filed lesson in the Research tab. `re-review: 2026-11-26`.
 
-## Still open
+## Impact
 
 The builder does not finish what research files. The crash traces are on the NAS, and the one runner road to them uses the dead tailnet key, so no fix is guessed (DR-0076). Next: read the builder's log on the box, then set the retry policy for gate refusals with that evidence. `re-review: 2026-11-26`.

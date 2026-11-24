@@ -8,6 +8,10 @@
 **Sent in by:** Darrell, 2026-11-24, two screenshots of `poetech.us/poetech-app/?view=store` on his phone, build 96863eb
 **Pairs with:** DR-0239 (form factor measured, not eyeballed), DR-0075 (micro-upgrades to feel and flow), DR-0076
 
+## Context
+
+The Store's course cards must read on a phone; a price label must never take the title's room.
+
 ## What was measured
 
 On his screenshot, each PoeTech+ course card ("Sovereign A.I.: Why We Build Local", "Project Management: Count the Cost") gave about half its width to the price "Included with PoeTech+ ($39/mo)". The title, its line, the walk-through count and the buttons sat in the other half, several words to a line ("Walk- / throughs / recorded: 0 / of 101."). The free courses beside them read normally.
@@ -22,6 +26,10 @@ The row wraps:
 - When both do not fit, the price drops to its own line under the title instead of squeezing it.
 
 A short price ("Free", "$9.99") stays beside the title.
+
+## Impact
+
+Until it ships, the paid courses read worst on the screen most people use. The call obligates any card row with a long label to wrap, not squeeze.
 
 ## Verification
 
