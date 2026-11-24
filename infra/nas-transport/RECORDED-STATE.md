@@ -23,7 +23,7 @@ transport without reading this file, keeping every row true, and using `funnel`
 | **`darrellpoe06.github`** (the family's) | **GitHub**, `darrellpoe06` | `poetech` (the NAS; carries the Funnel), `kingdom-home`, `livestream-main-pc`, `tlcmediadpt`, `tlc-tech-team`, Darrell's phone | `poetech` is at Darrell's home; the `tlc*` machines are the church's (The Love Corner) |
 | `darrellpoe06@gmail.com` | Google | `tlcrackstation` (the church's NAS, at the church), Darrell's phone | the church |
 
-- **Key expiry is disabled** on every always-on machine (Machines, the machine's menu, Disable key expiry). On 2026-11-23 `poetech`'s key expired and every road on this page went dark for the whole family (DR-1624). Confirmed disabled 2026-11-24: `poetech`, `kingdom-home`, the phone. To confirm: `livestream-main-pc`, `tlcmediadpt`, `tlc-tech-team`, `tlcrackstation`.
+- **Key expiry is disabled** on every always-on machine (Machines, the machine's menu, Disable key expiry). On 2026-11-23 `poetech`'s key expired and every road on this page went dark for the whole family (DR-1624). Confirmed disabled 2026-11-24, read from his admin consoles: `poetech`, `kingdom-home`, the phone (on both tailnets), `tlcrackstation`. To confirm: `livestream-main-pc`, `tlcmediadpt`, `tlc-tech-team`.
 - **A machine signed back in uses plain `tailscale up`** (never `--reset`: the NAS's up-flags are in no record), from LAN SSH, which needs no password (DR-1526), and the link is approved with **GitHub**.
 - **`tlcrackstation` is shared into the family's tailnet by a share link, never moved** and never logged out from a distance: the Gmail tailnet is the only road to it from outside the church (DR-1626).
 

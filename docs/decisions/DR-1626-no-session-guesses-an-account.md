@@ -42,6 +42,7 @@ A wrong login sends a person into an empty network. A wrong command can wipe set
 
 - **Read from his own screens:** the two tailnets and their machines; the `poetech` login success; "Expiry disabled" on three machines.
 - **Measured by site-health at 7:38 and 7:43 AM CST, 2026-11-24:** sign-in, cameras, photos and the phone alert relay answered 200. `/property-history` and `/automation-status` answered 502, the same as before the outage.
-- **Not verified:** that the `tlcrackstation` share was accepted; key expiry on `livestream-main-pc`, `tlcmediadpt`, `tlc-tech-team` and `tlcrackstation`; his phone switched to the GitHub account.
+- **Read from his Gmail console at about 7:50 AM CST:** "Expiry disabled" on `tlcrackstation` and on his phone there.
+- **Not verified:** that the `tlcrackstation` share was accepted; key expiry on `livestream-main-pc`, `tlcmediadpt` and `tlc-tech-team`; his phone switched to the GitHub account.
 
 `re-review: 2026-11-26`
