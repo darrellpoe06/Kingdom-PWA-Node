@@ -39,15 +39,20 @@ describe('which message The Word tab leads with', () => {
 describe('the hero on screen', () => {
   let host;
   let root;
-  afterEach(() => { act(() => root.unmount()); host.remove(); });
+  afterEach(() => {
+    act(() => root.unmount());
+    host.remove();
+  });
   const mount = (feed) => {
     host = document.createElement('div');
     document.body.appendChild(host);
     root = createRoot(host);
-    act(() => { root.render(createElement(WordLatestMessage, { feed, channelId: CHANNEL })); });
+    act(() => {
+      root.render(createElement(WordLatestMessage, { feed, channelId: CHANNEL }));
+    });
   };
 
-  it("plays his latest message at full width, names it, and points to the library", () => {
+  it('plays his latest message at full width, names it, and points to the library', () => {
     mount(FEED);
     const hero = host.querySelector('[data-testid="word-latest"]');
     expect(hero).toBeTruthy();

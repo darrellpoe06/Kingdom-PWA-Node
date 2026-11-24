@@ -29,8 +29,12 @@ export default function WordLatestMessage({ feed, channelId }) {
   const heading = his ? 'Bishop Gwin’s latest message' : 'The latest message';
   return (
     <section aria-labelledby="word-latest-h" className="mb-5 bg-white border border-[#E8E4DC] p-4" data-testid="word-latest">
-      <h3 id="word-latest-h" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">{heading}</h3>
-      <p className="mt-1 text-lg sm:text-xl text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }} data-testid="word-latest-title">{video.title || 'The newest message'}</p>
+      <h3 id="word-latest-h" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">
+        {heading}
+      </h3>
+      <p className="mt-1 text-lg sm:text-xl text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }} data-testid="word-latest-title">
+        {video.title || 'The newest message'}
+      </p>
       <p className="text-xs text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
         {when ? `${when} · ` : ''}Come and hear the Word. Every earlier message is in the library below.
       </p>
