@@ -42,9 +42,9 @@ jobs:
       - name: Titles and images (one cap for the whole run; resumes, never redoes finished work)
         run: |
           set -euo pipefail
-          SCOPE="--only ${ONLY:-seed}" # validated in code: <= 20 real lessons, never "all" (lib/scope.mjs)
-          TEXT_CAP=$(( CAP / 5 )); IMAGE_CAP=$(( CAP - TEXT_CAP )); echo "cap ${CAP}c = text ${TEXT_CAP}c + images ${IMAGE_CAP}c"
-          $CLI status; $CLI text $SCOPE --budget-cents "$TEXT_CAP"; $CLI images $SCOPE --provider bfl --budget-cents "$IMAGE_CAP" --concurrency 6 --per-minute 30
+          SCOPE="--only ${ONLY:-seed}"; TEXT_CAP=$(( CAP / 5 )); IMAGE_CAP=$(( CAP - TEXT_CAP )); echo "cap ${CAP}c = text ${TEXT_CAP}c + images ${IMAGE_CAP}c"
+          $CLI status; [ "${{ github.event.inputs.fresh_ledger }}" = yes ] || $CLI verify-resume --min-cents 98 --min-text 10 --min-images 10 # recovery proven before any spend; scope validated in code (<= 20, never all)
+          $CLI text $SCOPE --budget-cents "$TEXT_CAP"; $CLI images $SCOPE --provider bfl --budget-cents "$IMAGE_CAP" --concurrency 6 --per-minute 30
       - name: Compose thumbnails (free; a failure here never loses paid work)
         if: always()
         continue-on-error: true

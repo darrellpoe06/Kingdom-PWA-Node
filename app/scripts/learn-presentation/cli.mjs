@@ -4,6 +4,7 @@
 // Commands: estimate | text | images | status | export | retry-failed
 // See README.md beside this file. Nothing here writes to a lesson.
 // =============================================================================
+import { verifyRecovery } from './lib/recovery.mjs';
 import { resolveSpendingScope, remainingCents, ScopeError, TOTAL_CAP_CENTS, scopeKeySet } from './lib/scope.mjs';
 import process from 'node:process';
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
@@ -141,6 +142,14 @@ async function main() {
     log(`compose: ${done} composed · ${skipped} unchanged · ${failed} failed -> ${composedDir}`);
     return;
   }
+  if (cmd === 'verify-resume') {
+    // Free. Runs before any paid call on a resumed run; a failure stops the job.
+    const v = verifyRecovery(ledger, outDir, { minCents: int(flags['min-cents'], 0), minText: int(flags['min-text'], 0), minImages: int(flags['min-images'], 0) });
+    log(`recovered: ${v.text} titles · ${v.images} intact images · ${dollars(v.spent)} spent`);
+    for (const p of v.problems) log(`  ✗ ${p}`);
+    if (!v.ok) { log('recovery check FAILED — stopping before any spend'); process.exitCode = 3; }
+    return;
+  }
   if (cmd === 'export') {
     const file = resolve(flags.to || join(stateDir, 'presentation-export.json'));
     mkdirSync(dirname(file), { recursive: true });
@@ -149,7 +158,7 @@ async function main() {
     log(`exported ${out.records.length} records (status: review) -> ${file}`);
     return;
   }
-  log('usage: npx vite-node scripts/learn-presentation/cli.mjs <estimate|text|images|compose|status|export|retry-failed> [--only seed|id,id] [--limit N] [--provider ...] [--budget-cents N] [--concurrency N] [--per-minute N]');
+  log('usage: npx vite-node scripts/learn-presentation/cli.mjs <estimate|text|images|compose|status|verify-resume|export|retry-failed> [--only seed|id,id] [--limit N] [--provider ...] [--budget-cents N] [--concurrency N] [--per-minute N]');
   process.exitCode = 2;
 }
 

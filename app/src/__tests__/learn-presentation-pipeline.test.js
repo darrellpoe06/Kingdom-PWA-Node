@@ -16,6 +16,8 @@ import { parseCopy, userPrompt } from '../../scripts/learn-presentation/lib/prom
 import { estimate } from '../../scripts/learn-presentation/lib/prices.mjs';
 import { anthropicText } from '../../scripts/learn-presentation/providers/text.mjs';
 import { bflImage } from '../../scripts/learn-presentation/providers/image.mjs';
+import { verifyRecovery } from '../../scripts/learn-presentation/lib/recovery.mjs';
+import { writeFileSync, rmSync } from 'node:fs';
 
 const deepFreeze = (o) => {
   if (o && typeof o === 'object' && !Object.isFrozen(o)) {
@@ -579,5 +581,41 @@ describe('pilot 1 regressions', () => {
     expect(want.has('living-lessons::ll2-b')).toBe(true);
     expect(want.has('ll3-c')).toBe(false);
     expect(scopeKeySet(undefined).size).toBe(0);
+  });
+});
+
+describe('recovery is proven before a resumed run spends anything', () => {
+  const finished = async () => {
+    const l = ledger();
+    await textRun(
+      l,
+      mockText((req) => goodCopy(titleFrom(req.user))),
+      { items: items.slice(0, 2) }
+    );
+    await runImages({ items, ledger: l, provider: mockImage(), outDir: join(dir, 'img'), batchId: 'b1', concurrency: 1, sleep: noSleep });
+    return ledger();
+  };
+  const want = { minCents: 14, minText: 2, minImages: 2 };
+
+  it('passes when the titles, the image bytes and the spend are all there', async () => {
+    const v = verifyRecovery(await finished(), join(dir, 'img'), want);
+    expect(v).toMatchObject({ ok: true, text: 2, images: 2, spent: 14 });
+  });
+
+  it('fails on an empty ledger (the cache did not come back)', () => {
+    const v = verifyRecovery(ledger(), join(dir, 'img'), want);
+    expect(v.ok).toBe(false);
+    expect(v.problems.join(' ')).toMatch(/0c spent.*|0 finished titles/);
+  });
+
+  it('fails when an image file is missing or its bytes changed', async () => {
+    const l = await finished();
+    const recs = Object.values(l.records).filter((r) => r.image);
+    rmSync(join(dir, 'img', recs[0].image.path));
+    writeFileSync(join(dir, 'img', recs[1].image.path), 'tampered');
+    const v = verifyRecovery(l, join(dir, 'img'), want);
+    expect(v.ok).toBe(false);
+    expect(v.images).toBe(0);
+    expect(v.problems.join(' ')).toMatch(/missing on disk[\s\S]*bytes changed/);
   });
 });
