@@ -595,6 +595,21 @@
       "notes": ""
     },
     {
+      "id": "the-nas-sees-its-own-public-road",
+      "date": "2026-11-24",
+      "task": "The Funnel watchdog was blind (own hostname, 502 read as up, /sb missing); now judges the public road, restores every row, brings Tailscale up, and reports its state to GitHub by repository_dispatch",
+      "drs": [
+        "DR-1619"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.6,
+      "estimateWithoutAiHours": 8,
+      "notes": ""
+    },
+    {
       "id": "subprocess-budget-tie-and-its-gate",
       "date": "2026-11-05",
       "task": "The subprocess budget tie: fixed in three cases across two test files, gated repo-wide, and the gate's own blind spot closed",

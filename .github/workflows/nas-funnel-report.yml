@@ -1,0 +1,23 @@
+# The NAS reports its own Funnel state (DR-1619). funnel_watchdog.py on the box
+# sends this repository_dispatch when the public road is dark (at most every
+# 30 min) and when it heals, so the state is readable without the tailnet.
+# Read-only: it prints the payload, never runs it. No secret is read here.
+name: nas-funnel-report
+on:
+  repository_dispatch:
+    types: [nas-funnel-report]
+permissions:
+  contents: read
+concurrency:
+  group: nas-funnel-report
+  cancel-in-progress: false
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: What the NAS says about its Funnel
+        env:
+          PAYLOAD: ${{ toJSON(github.event.client_payload) }}
+        run: |
+          printf '%s\n' "$PAYLOAD" | python3 -c 'import json,sys; p=json.load(sys.stdin); print(json.dumps(p, indent=2)); open(__import__("os").environ["GITHUB_STEP_SUMMARY"],"a").write("### NAS Funnel: %s (Tailscale %s)\n\n```\n%s\n```\n" % (p.get("result"), p.get("backend_state"), json.dumps(p, indent=2)[:4000]))'

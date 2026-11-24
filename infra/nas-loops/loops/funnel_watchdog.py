@@ -20,6 +20,23 @@
 #     the Tailscale package only if the endpoint is still dark after that;
 #     never more per fire. Budget + single-flight live in the runner registry.
 #
+# DR-1619 (2026-11-24, Darrell: "Find another way!!!!! Sovereign!!!!!"): the
+# watchdog was BLIND to the outage it exists for. It probed its own Funnel
+# hostname FROM the NAS, which MagicDNS resolves to the box's own tailnet
+# address (the public ingress is never touched), and it counted ANY HTTP code,
+# a 502 included, as "UP". On 2026-11-24 the public road answered 502 to every
+# runner for hours while this said "funnel OK". It now:
+#   * judges by the PUBLIC road the family rides (poetech.us -> Cloudflare ->
+#     Funnel -> this box); only a 2xx-4xx answer is up, 5xx/no answer is dark;
+#   * restores EVERY recorded row (RECORDED-STATE), /sb (sign-in) included;
+#   * brings a Stopped Tailscale back up, and a NeedsLogin one when a key file
+#     is on the box (never a key in the repo);
+#   * spaces its one package restart to once an hour (a Cloudflare-side fault
+#     must not restart Tailscale every cycle);
+#   * REPORTS OUT: when dark, and when it heals, it sends its own Tailscale
+#     and Funnel state to GitHub (repository_dispatch, the lesson builder's
+#     existing token), so the state can be read without the tailnet.
+#
 # Exit 0 = funnel answering (silent ok, or healed and says so).
 # Exit 1 = still dark after the bounded restore — the runner writes loop_fail
 #          + ntfy; the report names the by-hand line. Never silent.
@@ -33,6 +50,32 @@ import urllib.request
 FUNNEL_HOST = os.environ.get("FUNNEL_HOST", "https://poetech.tail5a2f35.ts.net")
 PROBE_PATH = os.environ.get("FUNNEL_PROBE_PATH", "/nas-photos/healthz")
 TIMEOUT = int(os.environ.get("FUNNEL_TIMEOUT", "10"))
+# The road the family actually rides (DR-1619). kong answers this keyless with
+# its own 401 when the box is reachable; Cloudflare answers 502 when it is not.
+PUBLIC_PROBES = [
+    u
+    for u in os.environ.get(
+        "FUNNEL_PUBLIC_PROBES", "https://poetech.us/sb/auth/v1/health"
+    ).split(",")
+    if u.strip()
+]
+STATE_PATH = os.environ.get(
+    "FUNNEL_STATE", "/volume1/PoeTech/nas-loops/state/funnel-watchdog.json"
+)
+TS_AUTHKEY_FILE = os.environ.get(
+    "FUNNEL_TS_AUTHKEY_FILE", "/volume1/PoeTech/secrets/tailscale-authkey.txt"
+)
+GH_TOKEN_FILE = os.environ.get(
+    "FUNNEL_GH_TOKEN_FILE", "/volume1/PoeTech/secrets/github-token.txt"
+)
+GH_REPO = os.environ.get("FUNNEL_GH_REPO", "darrellpoe06/Kingdom-PWA-Node")
+REPORT_EVENT = "nas-funnel-report"
+RESTART_SPACING = int(
+    os.environ.get("FUNNEL_RESTART_SPACING", "3600")
+)  # one package restart an hour, at most
+REPORT_SPACING = int(
+    os.environ.get("FUNNEL_REPORT_SPACING", "1800")
+)  # one dark report per 30 min; a heal always reports
 
 # The SOVEREIGN rows of the recorded baseline (RECORDED-STATE.md table) — the
 # only rows this watchdog may restore. The legacy n8n root is deliberately
@@ -56,6 +99,15 @@ SOVEREIGN_MOUNTS = [
     # /libraries added 2026-10-19 (DR-1121): the health door of the video and
     # audio libraries (the servers themselves are on the tailnet, not here).
     ("/libraries", "http://127.0.0.1:8802"),
+    # DR-1619: the rows the 2026-11-24 outage actually hurt were never here.
+    # /sb is sign-in itself; a Funnel reset that drops it locks the family out
+    # and nothing restored it between services-sync installs.
+    ("/sb", "http://127.0.0.1:8800"),
+    ("/announce", "http://127.0.0.1:8796"),
+    ("/cams", "http://127.0.0.1:8773"),
+    ("/voice", "http://127.0.0.1:8771"),
+    ("/voice-lite", "http://127.0.0.1:8772"),
+    ("/scribe", "http://127.0.0.1:8791"),
 ]
 
 TS_CANDIDATES = ["/var/packages/Tailscale/target/bin/tailscale", "tailscale"]
@@ -69,9 +121,124 @@ def probe(url):
         with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:
             return resp.status
     except urllib.error.HTTPError as e:
-        return e.code  # an HTTP answer (401/404/...) means the funnel is UP
+        return e.code
     except Exception:
         return 0
+
+
+def is_up(code):
+    """An answer from the backend (2xx-4xx; kong's keyless 401 included) is up.
+    A 5xx is the proxy in front saying it could not reach us; 0 is no answer.
+    The old rule counted any code as up, which read a 502 as healthy."""
+    return 200 <= int(code or 0) < 500
+
+
+def public_codes(probe_fn=None, urls=None):
+    probe_fn = probe_fn or probe
+    return {u: probe_fn(u) for u in (urls if urls is not None else PUBLIC_PROBES)}
+
+
+def public_up(codes):
+    """Up only when EVERY public probe answered from the backend."""
+    return bool(codes) and all(is_up(c) for c in codes.values())
+
+
+def load_state(path=None):
+    try:
+        with open(path or STATE_PATH) as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return {}
+
+
+def save_state(state, path=None):
+    path = path or STATE_PATH
+    try:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w") as f:
+            json.dump(state, f)
+    except OSError as e:  # never fail the watchdog over its own memory
+        print("funnel-watchdog: could not save state: " + str(e))
+
+
+def restart_allowed(state, now):
+    return now - float(state.get("last_restart", 0) or 0) >= RESTART_SPACING
+
+
+def report_due(state, now, result):
+    """A heal always reports; a dark reading reports at most every REPORT_SPACING."""
+    if result == "healed":
+        return True
+    if result != "dark":
+        return False
+    return now - float(state.get("last_report", 0) or 0) >= REPORT_SPACING
+
+
+def backend_state(ts):
+    _, out = run([ts, "status", "--json"], timeout=20)
+    try:
+        return json.loads(out).get("BackendState") or "unknown"
+    except (ValueError, AttributeError):
+        return "unreadable"
+
+
+def bring_up(ts, state_name, key_file=None):
+    """Stopped -> `up`; NeedsLogin -> `up --authkey` ONLY with a key file on the
+    box. Returns a word for the report. Never prints the key."""
+    key_file = key_file or TS_AUTHKEY_FILE
+    if state_name == "Stopped":
+        rc, _ = run([ts, "up"], timeout=60)
+        return "up rc=" + str(rc)
+    if state_name == "NeedsLogin":
+        try:
+            with open(key_file) as f:
+                key = f.read().strip()
+        except OSError:
+            return "needs-login, no key file at " + key_file
+        if not key:
+            return "needs-login, key file empty"
+        rc, _ = run([ts, "up", "--authkey=" + key], timeout=60)
+        return "up --authkey rc=" + str(rc)
+    return "none"
+
+
+def report_payload(result, bstate, codes, local_code, actions, status_text):
+    return {
+        "source": "nas-funnel-watchdog",
+        "result": result,
+        "backend_state": bstate,
+        "public": {u: int(c or 0) for u, c in codes.items()},
+        "local_code": int(local_code or 0),
+        "actions": actions[:12],
+        "funnel_status": (status_text or "")[:1500],
+    }
+
+
+def send_report(payload, token_file=None, repo=None, opener=None):
+    """One repository_dispatch to GitHub (the lesson builder's road). Returns
+    (ok, code-or-reason). Never raises, never prints the token."""
+    try:
+        with open(token_file or GH_TOKEN_FILE) as f:
+            token = f.read().strip()
+    except OSError:
+        return False, "no push credential"
+    body = json.dumps({"event_type": REPORT_EVENT, "client_payload": payload}).encode(
+        "utf-8"
+    )
+    req = urllib.request.Request(
+        f"https://api.github.com/repos/{repo or GH_REPO}/dispatches",
+        data=body,
+        method="POST",
+    )
+    req.add_header("Authorization", "Bearer " + token)
+    req.add_header("Accept", "application/vnd.github+json")
+    req.add_header("Content-Type", "application/json")
+    try:
+        with (opener or urllib.request.urlopen)(req, timeout=15) as r:
+            code = getattr(r, "status", None) or r.getcode()
+            return code == 204, code
+    except Exception as e:  # noqa: BLE001
+        return False, getattr(e, "code", None) or type(e).__name__
 
 
 def tailscale_bin():
@@ -105,49 +272,122 @@ def restore_sovereign_mounts(ts):
 
 
 def main():
-    url = FUNNEL_HOST + PROBE_PATH
-    code = probe(url)
-    if code:
-        print(f"funnel-watchdog: funnel OK (HTTP {code} from {PROBE_PATH})")
+    now = time.time()
+    state = load_state()
+    local_code = probe(
+        FUNNEL_HOST + PROBE_PATH
+    )  # diagnostic only: resolves to this box
+    codes = public_codes()
+    if public_up(codes):
+        was_dark = state.get("dark_since")
+        print(
+            "funnel-watchdog: public road OK "
+            + json.dumps(codes)
+            + " (local "
+            + str(local_code)
+            + ")"
+        )
+        if was_dark:
+            state.pop("dark_since", None)
+            ok, why = send_report(
+                report_payload(
+                    "healed",
+                    "Running",
+                    codes,
+                    local_code,
+                    ["public road answered again"],
+                    "",
+                )
+            )
+            print("funnel-watchdog: reported recovery to GitHub: " + str(why))
+        save_state(state)
         return 0
 
-    print(f"funnel-watchdog: funnel DARK (no TLS/HTTP answer from {url})")
+    print(
+        "funnel-watchdog: PUBLIC road DARK "
+        + json.dumps(codes)
+        + " (local "
+        + str(local_code)
+        + ")"
+    )
+    state.setdefault("dark_since", now)
+    actions = []
     ts = tailscale_bin()
     if not ts:
-        print("funnel-watchdog: tailscale binary not found (PATH + DSM package path) — reporting only")
-        print("  by hand: sudo /var/packages/Tailscale/target/bin/tailscale funnel status")
-        return 1
-
-    rc, status = run([ts, "funnel", "status"], timeout=20)
-    for line in status.strip().splitlines()[:15]:
-        print("  " + line[:200])
-
-    # Step 1 (rule 1): re-assert the sovereign mounts — additive + reversible;
-    # this also re-enables funnel serving when the config was lost/disabled.
-    restore_sovereign_mounts(ts)
-    time.sleep(10)
-    code = probe(url)
-    if code:
-        print(f"funnel-watchdog: HEALED by mount re-assert (HTTP {code})")
-        return 0
-
-    # Step 2 (bounded escalation): ONE package restart, then re-assert again.
-    if os.access(SYNOPKG, os.X_OK):
-        print("funnel-watchdog: still dark — ONE Tailscale package restart")
-        rc, out = run([SYNOPKG, "restart", "Tailscale"], timeout=90)
-        if rc != 0:
-            print(f"funnel-watchdog: synopkg restart rc={rc}")
-        time.sleep(25)
-        restore_sovereign_mounts(ts)
-        time.sleep(10)
-        code = probe(url)
-        if code:
-            print(f"funnel-watchdog: HEALED after package restart (HTTP {code})")
-            return 0
+        print(
+            "funnel-watchdog: tailscale binary not found (PATH + DSM package path) — reporting only"
+        )
+        actions.append("no tailscale binary")
+        status = ""
+        bstate = "no-binary"
     else:
-        print("funnel-watchdog: no synopkg on this host — package restart skipped")
-
-    print("funnel-watchdog: STILL DARK after the bounded restore — human eyes needed")
+        bstate = backend_state(ts)
+        print("funnel-watchdog: tailscale BackendState=" + bstate)
+        if bstate in ("Stopped", "NeedsLogin"):
+            word = bring_up(ts, bstate)
+            actions.append("bring-up: " + word)
+            print("funnel-watchdog: bring-up " + word)
+        _, status = run([ts, "funnel", "status"], timeout=20)
+        for line in status.strip().splitlines()[:15]:
+            print("  " + line[:200])
+        # Step 1 (rule 1): re-assert every recorded row — additive + reversible;
+        # this also re-enables funnel serving when the config was lost/disabled.
+        restore_sovereign_mounts(ts)
+        actions.append("re-asserted " + str(len(SOVEREIGN_MOUNTS)) + " recorded rows")
+        time.sleep(10)
+        codes = public_codes()
+        if public_up(codes):
+            print(
+                "funnel-watchdog: HEALED by bring-up / mount re-assert "
+                + json.dumps(codes)
+            )
+            result = "healed"
+        elif os.access(SYNOPKG, os.X_OK) and restart_allowed(state, now):
+            # Step 2 (bounded escalation): ONE package restart an hour, then re-assert.
+            print("funnel-watchdog: still dark — ONE Tailscale package restart")
+            rc2, _ = run([SYNOPKG, "restart", "Tailscale"], timeout=90)
+            state["last_restart"] = now
+            actions.append("package restart rc=" + str(rc2))
+            time.sleep(25)
+            restore_sovereign_mounts(ts)
+            time.sleep(10)
+            codes = public_codes()
+            result = "healed" if public_up(codes) else "dark"
+            if result == "healed":
+                print(
+                    "funnel-watchdog: HEALED after package restart " + json.dumps(codes)
+                )
+        else:
+            actions.append(
+                "package restart held (spacing "
+                + str(RESTART_SPACING)
+                + "s or no synopkg)"
+            )
+            result = "dark"
+        if result == "dark":
+            bstate = backend_state(ts)
+    result = "healed" if (ts and public_up(codes)) else "dark"
+    if result == "healed":
+        state.pop("dark_since", None)
+    if report_due(state, now, result):
+        ok, why = send_report(
+            report_payload(result, bstate, codes, local_code, actions, status)
+        )
+        print(
+            "funnel-watchdog: report to GitHub: "
+            + ("sent" if ok else "NOT sent")
+            + " ("
+            + str(why)
+            + ")"
+        )
+        if ok:
+            state["last_report"] = now
+    save_state(state)
+    if result == "healed":
+        return 0
+    print(
+        "funnel-watchdog: STILL DARK after the bounded restore — the report names the state"
+    )
     print("  by hand: sudo /var/packages/Tailscale/target/bin/tailscale funnel status")
     return 1
 
