@@ -2165,7 +2165,7 @@ const NODES = [
   }),
   rider('service:funnel', 'infra/nas-loops/loops/funnel_watchdog.py', {
     id: 'funnel', name: 'Public Funnel (the NAS’s front door)', purpose: 'Keeps the recorded sovereign routes served to the app’s proxy.',
-    reads: [{ res: 'nas:services', file: 'infra/nas-loops/services.json', token: 'funnel' }], writes: [{ res: 'http:funnel', token: 'funnel' }], seeds: ['transport'],
+    reads: [{ res: 'nas:services', file: 'infra/nas-loops/services.json', token: 'funnel' }], writes: [{ res: 'http:funnel', token: 'funnel' }, { res: 'event:nas-funnel-report', token: 'REPORT_EVENT = "nas-funnel-report"' }], seeds: ['transport'],
   }),
   rider('loop:funnel-watchdog', 'infra/nas-loops/loops/funnel-watchdog.sh', {
     id: 'funnel-watchdog', name: 'Funnel watchdog (loop)', purpose: 'The same restore on its own clock.',
@@ -2410,6 +2410,7 @@ const RESOURCES = {
   'auth:session#tv': { label: 'a TV’s signed-in session', sink: 'The television keeps it and uses the app as that person; nothing else reads it.' },
 
   'event:use-prompt': { label: '“Put it in the box” (reuse a prompt)' },
+  'event:nas-funnel-report': { label: 'the nas-funnel-report dispatch (the NAS says its public road is dark, or healed) (DR-1619)' },
   'event:lesson-waiting': { label: 'the lesson-waiting dispatch (a lesson row landed, or a build reached a milestone)' },
   'device:family-key': { label: 'the family key on this device' },
   'code:lessons': { label: 'lessons written into the classes' },
