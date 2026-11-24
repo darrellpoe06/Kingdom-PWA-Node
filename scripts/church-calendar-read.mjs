@@ -65,7 +65,7 @@ export async function readOne(item, bytes, { fetchImpl = globalThis.fetch, apiKe
 }
 
 /** Reads the folder's pictures: { reads, failed }. */
-export async function readFolder(folder, { fetchImpl, apiKey, services = [], max = READ_MAX_PER_RUN, log = () => {} } = {}) {
+export async function readFolder(folder, { fetchImpl, apiKey, services = [], max = READ_MAX_PER_RUN, timeoutMs = READ_TIMEOUT_MS, log = () => {} } = {}) {
   const manifest = JSON.parse(readFileSync(join(folder, 'manifest.json'), 'utf8'));
   const reads = [];
   const failed = [];
@@ -75,7 +75,7 @@ export async function readFolder(folder, { fetchImpl, apiKey, services = [], max
       failed.push({ sha256: item.sha256, why: 'bytes missing' });
       continue;
     }
-    const got = await readOne(item, readFileSync(path), { fetchImpl, apiKey, services });
+    const got = await readOne(item, readFileSync(path), { fetchImpl, apiKey, services, timeoutMs });
     if (got.error) {
       failed.push({ sha256: item.sha256, why: got.error });
       log(`not read: ${item.kind} ${item.for_year}-${String(item.for_month).padStart(2, '0')} ${item.title} (${got.error})`);
@@ -117,11 +117,21 @@ async function main() {
   }
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
-    say('NOT READ: the ANTHROPIC_API_KEY secret is not set. Pictures are still kept; they will be read the first run after it is.');
-    console.log('::warning::ANTHROPIC_API_KEY is not set; the office pictures were not read onto the calendar');
+    say('NOT READ: no Anthropic API key is set where this runs. Pictures are still kept; they will be read the first run after one is.');
     return;
   }
-  const { reads, failed } = await readFolder(folder, { apiKey, services: COLG_DEFAULT_CHURCH.services || [], log: say });
+  // The NAS pass sizes itself to fit its rider's time ceiling (DR-1650).
+  const envInt = (name, dflt, lo, hi) => {
+    const n = Number(process.env[name]);
+    return Number.isInteger(n) && n >= lo && n <= hi ? n : dflt;
+  };
+  const { reads, failed } = await readFolder(folder, {
+    apiKey,
+    services: COLG_DEFAULT_CHURCH.services || [],
+    max: envInt('CHURCH_CALENDAR_READ_MAX', READ_MAX_PER_RUN, 1, READ_MAX_PER_RUN),
+    timeoutMs: envInt('CHURCH_CALENDAR_READ_TIMEOUT_MS', READ_TIMEOUT_MS, 10000, READ_TIMEOUT_MS),
+    log: say,
+  });
   writeFileSync(join(folder, 'reads.json'), JSON.stringify(reads, null, 2));
   say(`CALENDAR-READ read=${reads.length} events=${reads.reduce((n, r) => n + r.events.length, 0)} failed=${failed.length}`);
   if (failed.length) {
