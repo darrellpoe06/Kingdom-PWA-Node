@@ -15,7 +15,10 @@ vi.mock('@supabase/supabase-js', () => ({
   createClient: () => ({
     auth: {
       storageKey: 'sb-poetech-auth-token',
-      onAuthStateChange: (cb) => { handlers.push(cb); return { data: { subscription: { unsubscribe() {} } } }; },
+      onAuthStateChange: (cb) => {
+        handlers.push(cb);
+        return { data: { subscription: { unsubscribe() {} } } };
+      },
       getSession: () => new Promise(() => {}),
       refreshSession: async () => ({ data: { session: null }, error: { message: 'Failed to fetch' } }),
       startAutoRefresh() {},
@@ -66,7 +69,9 @@ describe('a null that is not a sign-out', () => {
   });
 
   it('PROVEN TO CATCH: the old fast path passed the null through', () => {
-    const oldHandler = (event, session, cb) => { if (!(!session && event === 'SIGNED_OUT')) cb(session ?? null); };
+    const oldHandler = (event, session, cb) => {
+      if (!(!session && event === 'SIGNED_OUT')) cb(session ?? null);
+    };
     const seen = [];
     oldHandler('INITIAL_SESSION', null, (s) => seen.push(s));
     expect(seen).toEqual([null]);
