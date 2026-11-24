@@ -55,6 +55,6 @@ eight waiting rows is named, and `other` goes back to meaning what it says.
 - **Pinned, because it is a coupling that bites:** `why_of()` keeps the
   one-argument call, and a case proves the fallback can never publish a
   SELF_HEALING word and turn an exhausted row into a retrying one.
-- **Not claimed:** nothing is measured live. This receipt is written on the NAS
-  by the services-sync pull, so the next firing is the proof.
-  `re-review: 2026-11-30`.
+- **Measured live** 2026-11-24T14:07Z, run 45410207886, census code
+  `030feffb2de5`, counted on the NAS 5 min earlier: `crashed: 3, gates: 3,
+  rate-limited: 1, transient: 1`. `other` is gone. Re-review satisfied early.

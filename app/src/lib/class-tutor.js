@@ -71,10 +71,9 @@ export function tutorSystemPrompt(module, courseMeta = null) {
   // media-team class) passes its own courseMeta so the SAME tutor engine introduces
   // itself correctly per course. The tutor/ghostwriter + test-and-verify discipline
   // is held for BOTH courses (it's the platform's posture, not a per-class option).
-  const intro = (courseMeta && courseMeta.intro)
-    || 'You are a patient, encouraging A.I. tutor for a church youth class called "Learning A.I. The Way."';
-  const posture = (courseMeta && courseMeta.posture)
-    || 'You are guiding ONE student, on their own, through this week\'s activity. Be warm, plain-spoken, and brief.';
+  const intro = (courseMeta && courseMeta.intro) || 'You are a patient, encouraging A.I. tutor for a church youth class called "Learning A.I. The Way."';
+  const posture =
+    (courseMeta && courseMeta.posture) || "You are guiding ONE student, on their own, through this week's activity. Be warm, plain-spoken, and brief.";
   // CHILD MODE is a structural block, not a line of posture prose. The flag
   // existed on LITTLE_LEARNERS_TUTOR_META since DR-0431 and was never read
   // (2026-11-13 shell audit, section 2.6); the Kids Zone passes it for a
@@ -102,7 +101,9 @@ export function tutorSystemPrompt(module, courseMeta = null) {
     points ? `Key points to draw out:\n${points}` : '',
     '',
     'Walk them through the activity one small step at a time. Ask a question, wait for their answer, then guide the next step.',
-  ].filter(Boolean).join('\n');
+  ]
+    .filter(Boolean)
+    .join('\n');
   return ariSystemPrompt(task);
 }
 
@@ -135,18 +136,61 @@ export function normalizeTutorReply(json) {
 // Ask the tutor. Local-first, honest-offline. Returns the normalized shape; on
 // any network error returns { ok:false } so the caller shows the authored
 // walkthrough instead of a fake answer.
-export async function askTutor(module, messages = [], { signal, courseMeta = null } = {}) {
+// HOW LONG ARI MAY THINK (2026-11-24). The call had no limit: a road that
+// accepts and never answers left a child watching "Ari is thinking" for ever.
+// The house's own model can be slow, so the limit is generous, and a limit
+// reached is said as its own reason.
+export const TUTOR_TIMEOUT_MS = 100000; // the NAS's own limit is 90 s (llm_server.py TIMEOUT_S), so its answer arrives first
+
+/**
+ * Why Ari could not answer, in one plain sentence for a GROWN-UP (never the
+ * child's bubble). Darrell 2026-11-24, of "Ari is resting right now" on a
+ * one-word question: "What happened? Kids can't ask simple questions?" The
+ * screen had swallowed the reason (DR-1053: no error destructured away).
+ * `error` is askTutor's own code; the code is kept at the end so it can be
+ * read back exactly.
+ */
+export function tutorTroubleWords(error) {
+  const e = String(error || 'unavailable');
+  const code = ` (${e})`;
+  if (e === 'timeout') return `Ari took longer than ${Math.round(TUTOR_TIMEOUT_MS / 1000)} seconds and was stopped${code}.`;
+  if (e === 'unreachable') return `This device could not reach the app's server${code}.`;
+  if (e === 'http_401' || e === 'http_403') return `The house's computer refused the app's key${code}.`;
+  if (/^http_5\d\d$/.test(e)) return `The road to the house's own computer, where Ari lives, is closed${code}.`;
+  if (/^http_/.test(e)) return `Ari's road answered with an error${code}.`;
+  if (e === 'empty') return `The house's model answered with no words${code}.`;
+  return `The house's model is not answering${code}.`;
+}
+
+export async function askTutor(module, messages = [], { signal, courseMeta = null, timeoutMs = TUTOR_TIMEOUT_MS, fetchImpl = null } = {}) {
+  const doFetch = fetchImpl || fetch;
+  const ctl = typeof AbortController === 'function' ? new AbortController() : null;
+  let timedOut = false;
+  const timer = ctl
+    ? setTimeout(() => {
+        timedOut = true;
+        ctl.abort();
+      }, timeoutMs)
+    : null;
+  const onOuterAbort = () => ctl && ctl.abort();
+  if (signal && ctl) {
+    if (signal.aborted) ctl.abort();
+    else signal.addEventListener('abort', onOuterAbort, { once: true });
+  }
   try {
-    const r = await fetch(tutorEndpoint(), {
+    const r = await doFetch(tutorEndpoint(), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json', ...bridgeAuthHeaders(true) },
       body: JSON.stringify(buildTutorPayload(module, messages, courseMeta)),
-      signal,
+      signal: ctl ? ctl.signal : signal,
     });
     const json = await r.json().catch(() => null);
     if (!r.ok) return { ok: false, reply: null, source: null, error: `http_${r.status}` };
     return normalizeTutorReply(json);
   } catch (e) {
-    return { ok: false, reply: null, source: null, error: 'unreachable' };
+    return { ok: false, reply: null, source: null, error: timedOut ? 'timeout' : 'unreachable' };
+  } finally {
+    if (timer) clearTimeout(timer);
+    if (signal && ctl) signal.removeEventListener('abort', onOuterAbort);
   }
 }

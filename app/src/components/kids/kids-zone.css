@@ -400,3 +400,6 @@
 .kz-lesson .kz-play{margin-top:0;background:var(--kz-purple);color:#fff;padding:.375rem .625rem}
 .tz .kz-age,.tz .kz-lesson,.tz .kz-search input{background:var(--tz-card);color:var(--tz-ink);border-color:var(--tz-line)}
 .tz .kz-age[aria-selected="true"]{background:var(--lc-gold);border-color:var(--lc-gold);color:var(--lc-black)}
+
+/* Why Ari could not answer, for the grown-up beside the child (2026-11-24): small, plain, under the bubble. */
+.kz-why{display:block;margin-top:.375rem;font-size:.72rem;font-weight:700;color:#5E4B8A}

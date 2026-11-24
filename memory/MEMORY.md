@@ -22,6 +22,15 @@ relying on it; memories reflect what was true when written.
   zone, Central (America/Chicago; Champaign, IL), with CST/CDT named, never
   UTC (declared 2026-11-12, emphatically: "Use my timezone!!!!!! Obviously").
   UTC may ride in parentheses only beside a run id, never alone.
+- **feedback_never_guess_an_account** — never guess an account, a login, an
+  owner or a place (declared 2026-11-24, DR-1626: "Through github was the
+  correct login!!!! DRs should have shown that!!!!"). The family's tailnet is
+  `darrellpoe06.github`, signed in with GITHUB, not Google; TLC machines are
+  the church's (The Love Corner), not the therapy practice's. Where the
+  records are silent, say "not on record, read it from the console", then
+  write it into `infra/nas-transport/RECORDED-STATE.md` the same session.
+  Check every command handed to him against the DRs first (DR-1526: LAN SSH
+  needs no password; never `tailscale up --reset`).
 - **feedback_surface_premise_conflicts** — when a step-by-step plan rests on
   a verifiably-wrong premise, stop before irreversible steps and offer
   options instead of executing as written.
