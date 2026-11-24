@@ -116,8 +116,8 @@ describe('the doors and the worlds', () => {
   });
 });
 
-describe('every children\'s lesson, chosen by age (2026-11-24)', () => {
-  it('the home keeps this week\'s lesson, names who it is for, and opens the library beside it', () => {
+describe("every children's lesson, chosen by age (2026-11-24)", () => {
+  it("the home keeps this week's lesson, names who it is for, and opens the library beside it", () => {
     mount();
     expect(q('[data-testid="weekly-lesson-open"]').textContent).toContain('for Kids 6–10');
     expect(q('[data-testid="home-library"]').textContent).toContain('Little Ones 3–6');
@@ -125,8 +125,19 @@ describe('every children\'s lesson, chosen by age (2026-11-24)', () => {
     expect(q('[data-testid="lesson-library"]').getAttribute('data-age')).toBe('child');
     expect(qa('[data-testid^="library-age-"]').map((b) => b.getAttribute('data-testid').slice(12))).toEqual(['little', 'child', 'youth', 'teen']);
     expect(qa('[data-testid^="library-lesson-"]').length).toBe(24);
+    // What the page counts, the page can show (DR-1642): the count says how many are on screen,
+    // "Show 24 more" and "Show all" are both drawn in a named color, and Show all shows every one.
+    expect(q('[data-testid="library-count"]').textContent).toMatch(/^\d+ Kids lessons · showing the first 24$/);
+    const total = Number(q('[data-testid="library-count"]').textContent.match(/^(\d+)/)[1]);
+    expect(q('[data-testid="library-more"]').textContent.trim()).toBe('Show 24 more');
+    expect(q('[data-testid="library-more"]').className).toMatch(/\bkz-act violet\b/);
     click(q('[data-testid="library-more"]'));
     expect(qa('[data-testid^="library-lesson-"]').length).toBe(48);
+    expect(q('[data-testid="library-all"]').textContent.trim()).toBe(`Show all ${total}`);
+    click(q('[data-testid="library-all"]'));
+    expect(qa('[data-testid^="library-lesson-"]').length).toBe(total);
+    expect(q('[data-testid="library-more"]')).toBeNull();
+    expect(q('[data-testid="library-count"]').textContent).toBe(`${total} Kids lessons`);
   });
   it('picking an age and a lesson opens THAT lesson at THAT age, and back returns to the library', () => {
     mount();
@@ -139,7 +150,7 @@ describe('every children\'s lesson, chosen by age (2026-11-24)', () => {
     expect(q('[data-testid="kids-adventure"]').getAttribute('data-lesson')).toBe(id);
     expect(q('[data-testid="kids-adventure"]').getAttribute('data-band')).toBe('teen');
   });
-  it('the dock carries LESSONS: one tap from anywhere opens the library, and a lesson\'s back returns to it', () => {
+  it("the dock carries LESSONS: one tap from anywhere opens the library, and a lesson's back returns to it", () => {
     mount();
     click(q('[data-testid="kids-tab-games"]'));
     click(q('[data-testid="kids-tab-lessons"]'));
