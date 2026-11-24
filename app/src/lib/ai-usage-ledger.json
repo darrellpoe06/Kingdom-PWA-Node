@@ -1896,6 +1896,21 @@
       "notes": "Built on Darrell's relayed words of 2026-11-18 ~12:28Z, that a step waiting on his hand is itself the defect. Reverses DR-1537's deferral while keeping DR-1526's order (the direct read was built first). Proven to catch a person's name in place of an exception class, a marker in body/prompt/fault reaching the census, and a vocabulary dropped from the SQL. Nothing measured live yet."
     },
     {
+      "id": "the-rare-word-cap-is-re-read",
+      "date": "2026-11-24",
+      "task": "DR-1028's overdue re-review: loop crossed the rare-word cap and the kill-switch note answered the wrong record; window re-measured, cap 80",
+      "drs": [
+        "DR-1623"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.3,
+      "estimateWithoutAiHours": 2,
+      "notes": ""
+    },
+    {
       "id": "dr-1412-record-figures-fit",
       "date": "2026-11-10",
       "task": "The learner record's figure rows are sized by their text, so Big Print wraps them instead of running them together; measured in Chromium",
