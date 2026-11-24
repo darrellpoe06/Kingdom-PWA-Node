@@ -77,25 +77,6 @@ runs:
         elif [ -n "${AUTHKEY:-}" ]; then
           echo "credential=authkey" >> "$GITHUB_OUTPUT"
           echo "Ticket: legacy auth key (EXPIRES — a fresh Reusable + Ephemeral key restores this witness; the road itself is reversed per DR-1360)."
-          # THE STORED VALUE'S SHAPE, never the value (2026-11-24: "invalid key: API key
-          # does not exist" right after a fresh key was saved). Prints the kind, the
-          # length, stray whitespace/quotes, the dash-segment count, and the first 5
-          # characters of the KEY ID -- the public half the admin console lists under
-          # Settings > Keys -- so a wrong-kind token, a clipped paste, or an old key is
-          # named without a single secret character reaching the log.
-          T=$(printf '%s' "$AUTHKEY" | tr -d '[:space:]')
-          ws=no; [ "$T" != "$AUTHKEY" ] && ws=yes
-          qt=no; case "$T" in *\"* | *\'*) qt=yes ;; esac
-          case "$T" in
-            tskey-auth-*) kind='auth key (the right kind)' ;;
-            tskey-api-*) kind='API ACCESS TOKEN (wrong kind: tailscale up needs an auth key)' ;;
-            tskey-client-*) kind='OAuth client secret (wrong kind for this input)' ;;
-            tskey-*) kind='another tskey kind (not an auth key)' ;;
-            *) kind='no tskey- prefix (not a Tailscale key, or clipped at the start)' ;;
-          esac
-          segs=$(printf '%s' "$T" | awk -F- '{print NF}')
-          kid=$(printf '%s' "$T" | cut -d- -f3 | cut -c1-5)
-          echo "Stored key shape: kind=${kind}; length=${#AUTHKEY}; whitespace/newline=${ws}; quotes=${qt}; dash-segments=${segs} (an auth key has 4); key id begins '${kid}'."
         else
           echo "credential=none" >> "$GITHUB_OUTPUT"
           echo "::error::No tailnet credential at all: neither TS_OAUTH_CLIENT_ID nor TS_AUTHKEY is set."

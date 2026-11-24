@@ -287,7 +287,14 @@
       "to": 23708,
       "dr": "DR-1640",
       "reason": "learn-imagegen-tower.yml (+50 lines): the owner asked for the Learn pictures to come from the church's own 4070 tower instead of the paid service (no more BFL spend). This first lane is READ-ONLY: it joins the tailnet on arm-voice-studio's road (NAS_SSH_KEY as creed, DR-0579/0581) and runs infra/learn-imagegen/probe.ps1 (GPU name, VRAM total/used/free, the processes on the GPU, disk free, Docker, any ComfyUI and its models, listening ports) before anything is downloaded or started. Triggered by a committed change to infra/learn-imagegen/request.json (a workflow on a branch cannot be dispatched until it is on main). Concurrency group and a 30-minute timeout. Raised to the measured total, not above it."
+    },
+    {
+      "date": "2026-11-24",
+      "from": 23708,
+      "to": 23712,
+      "dr": "DR-1640",
+      "reason": "Four lines in learn-imagegen-tower.yml so the tower probe names WHY the tailnet key is refused (kind, length, stray whitespace, saved-at, and which tailnet it opens) without printing any character of it. Kept to the one probe on purpose (owner 2026-11-24): the shared join action used by 64 workflows is untouched. Logic lives in infra/learn-imagegen/key-shape.sh. Raised to the measured total, not above it."
     }
   ],
-  "totalLines": 23708
+  "totalLines": 23712
 }

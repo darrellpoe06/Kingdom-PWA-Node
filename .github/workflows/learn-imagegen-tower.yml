@@ -19,12 +19,16 @@ jobs:
       U: creed
     steps:
       - uses: actions/checkout@v7
+      - name: The stored key's shape and saved-at (never a character of it)
+        env: { K: '${{ secrets.TS_AUTHKEY }}', GH_TOKEN: '${{ github.token }}', LANE: '${{ secrets.LANE_PUSH_TOKEN }}' }
+        run: bash infra/learn-imagegen/key-shape.sh shape
       - name: Join the tailnet
         uses: ./.github/actions/join-tailnet
         with:
           oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
           oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
           authkey: ${{ secrets.TS_AUTHKEY }}
+      - run: bash infra/learn-imagegen/key-shape.sh tailnet
       - name: Read the tower (read-only; changes nothing)
         env:
           NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
