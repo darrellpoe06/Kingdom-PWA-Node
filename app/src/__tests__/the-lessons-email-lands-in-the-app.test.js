@@ -59,7 +59,10 @@ describe('the app is the pipeline: a row, not a session', () => {
     const c = codeOnly(READER);
     expect(c).toMatch(/INSERT INTO public\.agent_inbox/);
     expect(c).toMatch(/"source": "email"/);
-    expect(c).toMatch(/"tags": \["lesson", tag\]/);
+    // DR-1635: research is always done -- an emailed lesson is a research row
+    // sent for a lesson, and the research lane files the lesson Word first.
+    expect(c).toMatch(/"tags": \["research", "create:lesson", tag\]/);
+    expect(c).toMatch(/tags @> '\[\\"research\\"\]'::jsonb/);
   });
 
   it('and it pokes no pull request, wakes no session, and needs no Claude', () => {

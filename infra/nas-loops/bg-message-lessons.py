@@ -52,7 +52,10 @@ import os
 import sys
 import urllib.parse
 import urllib.request
-from datetime import UTC, datetime
+
+# timezone.utc, not datetime.UTC: the NAS runs Python 3.8.15 (DR-0306) and
+# datetime.UTC exists only from 3.11. The 3.8 import guard in CI holds this.
+from datetime import datetime, timezone
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 CONFIG = os.path.join(HERE, "bg-message-lessons.json")
@@ -244,7 +247,9 @@ def write_ledger(home, entry):
     try:
         os.makedirs(home, exist_ok=True)
         entry = dict(entry)
-        entry.setdefault("at", datetime.now(UTC).isoformat().replace("+00:00", "Z"))
+        entry.setdefault(
+            "at", datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+        )
         tmp = os.path.join(home, "last-run.json.tmp")
         with open(tmp, "w", encoding="utf-8") as fh:
             json.dump(entry, fh)

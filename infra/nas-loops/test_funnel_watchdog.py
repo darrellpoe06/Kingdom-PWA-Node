@@ -290,5 +290,211 @@ class TheBoxCountsItsOwnDays(unittest.TestCase):
         self.assertFalse(fw.expiry_warning_due({}, self.NOW, None))
 
 
+class ReadsArisRoadAndNeverHealsIt(unittest.TestCase):
+    """DR-1645: /llm is read and reported; nothing is mounted or restarted."""
+
+    T0 = 1764000000.0  # a real clock reading: the spacing is measured against it
+
+    SS = (
+        "State  Recv-Q Send-Q Local Address:Port Peer Address:Port\n"
+        "LISTEN 0 128 127.0.0.1:8791 0.0.0.0:*\n"
+        "LISTEN 0 128 0.0.0.0:22 0.0.0.0:*\n"
+        "LISTEN 0 128 127.0.0.1:8772 0.0.0.0:*\n"
+        "LISTEN 0 128 *:11434 *:*\n"
+        "LISTEN 0 128 127.0.0.1:5432 0.0.0.0:*\n"
+    )
+
+    def setUp(self):
+        self.ran = []
+
+    def run_fn(self, cmd, timeout=30):
+        self.ran.append(cmd)
+        return (0, self.SS) if cmd[0] == "ss" else (0, "")
+
+    def test_listening_ports_keeps_the_house_range_and_ollama_only(self):
+        self.assertEqual(fw.listening_ports(self.run_fn), [8772, 8791, 11434])
+
+    def test_netstat_is_asked_when_ss_says_nothing(self):
+        def run_fn(cmd, timeout=30):
+            return (
+                (0, "tcp 0 0 127.0.0.1:8804 0.0.0.0:* LISTEN\n")
+                if cmd[0] == "netstat"
+                else (1, "")
+            )
+
+        self.assertEqual(fw.listening_ports(run_fn), [8804])
+
+    def test_the_readout_asks_only_ports_that_listen_and_keeps_both_answers(self):
+        asked = []
+
+        def probe_fn(url, timeout=None):
+            asked.append((url, timeout))
+            return 200 if url == "http://127.0.0.1:8772/llm/health" else 404
+
+        r = fw.llm_readout(502, probe_fn, self.run_fn)
+        self.assertEqual(r["public"], 502)
+        self.assertEqual(r["listening"], [8772, 8791, 11434])
+        self.assertEqual(
+            r["answers"], {"8772": [200, 404], "8791": [404, 404], "11434": [404, 404]}
+        )
+        self.assertTrue(all(t == fw.LLM_LOOPBACK_TIMEOUT for _, t in asked))
+        self.assertTrue(all(u.startswith("http://127.0.0.1:") for u, _ in asked))
+
+    def test_the_budget_caps_the_ports_asked(self):
+        many = "".join(
+            "LISTEN 0 128 127.0.0.1:%d 0.0.0.0:*\n" % p for p in range(8700, 8740)
+        )
+        r = fw.llm_readout(502, lambda u, t=None: 0, lambda c, timeout=30: (0, many))
+        self.assertEqual(len(r["answers"]), fw.LLM_PORT_CAP)
+
+    def test_dark_reports_then_holds_its_spacing_then_says_healed_once(self):
+        s = {}
+        self.assertEqual(fw.llm_report_due(s, self.T0, 502), "llm-dark")
+        s["llm_last_report"] = self.T0
+        self.assertIsNone(
+            fw.llm_report_due(s, self.T0 + fw.LLM_REPORT_SPACING - 1, 502)
+        )
+        self.assertEqual(
+            fw.llm_report_due(s, self.T0 + fw.LLM_REPORT_SPACING, 0), "llm-dark"
+        )
+        s["llm_dark_since"] = self.T0
+        self.assertEqual(fw.llm_report_due(s, self.T0 + 9, 200), "llm-healed")
+        self.assertIsNone(
+            fw.llm_report_due({}, self.T0, 200)
+        )  # up and never dark: silence
+
+    def test_the_step_sends_one_readout_and_touches_nothing(self):
+        sent = []
+
+        def probe_fn(url, timeout=None):
+            return (
+                502
+                if url == fw.LLM_PUBLIC
+                else (200 if ":8772/llm/health" in url else 0)
+            )
+
+        def send_fn(payload):
+            sent.append(payload)
+            return True, "sent"
+
+        state = {}
+        word = fw.llm_step(
+            state,
+            self.T0,
+            probe_fn,
+            self.run_fn,
+            send_fn,
+            lambda: "/sb proxy http://127.0.0.1:8800",
+        )
+        self.assertEqual(word, "llm-dark")
+        self.assertEqual(len(sent), 1)
+        self.assertEqual(sent[0]["result"], "llm-dark")
+        self.assertEqual(sent[0]["public"], {fw.LLM_PUBLIC: 502})
+        self.assertIn('"8772": [200, 0]', sent[0]["actions"][0])
+        self.assertEqual(state["llm_last_report"], self.T0)
+        self.assertEqual(state["llm_dark_since"], self.T0)
+        # PROVEN-TO-CATCH (read-only): only ss or netstat was run; no funnel --set-path, no synopkg.
+        self.assertTrue(all(c[0] in ("ss", "netstat") for c in self.ran), self.ran)
+        # a second pass inside the spacing says nothing
+        self.assertIsNone(
+            fw.llm_step(
+                state, self.T0 + 600, probe_fn, self.run_fn, send_fn, lambda: ""
+            )
+        )
+        self.assertEqual(len(sent), 1)
+
+    def test_a_report_that_was_not_sent_is_tried_again_next_pass(self):
+        state = {}
+        fw.llm_step(
+            state,
+            self.T0,
+            lambda u, t=None: 502,
+            self.run_fn,
+            lambda p: (False, "no token"),
+            lambda: "",
+        )
+        self.assertNotIn("llm_last_report", state)
+
+    def test_healed_is_said_once_and_the_dark_mark_is_cleared(self):
+        sent = []
+        state = {"llm_dark_since": self.T0, "llm_last_report": self.T0}
+        word = fw.llm_step(
+            state,
+            self.T0 + 9,
+            lambda u, t=None: 200,
+            self.run_fn,
+            lambda p: (sent.append(p) or True, "sent"),
+            lambda: "",
+        )
+        self.assertEqual(word, "llm-healed")
+        self.assertNotIn("llm_dark_since", state)
+        self.assertIsNone(
+            fw.llm_step(
+                state,
+                self.T0 + 10,
+                lambda u, t=None: 200,
+                self.run_fn,
+                lambda p: (True, "x"),
+                lambda: "",
+            )
+        )
+        self.assertEqual(len(sent), 1)
+
+    def test_llm_is_a_row_only_at_the_port_the_installer_starts(self):
+        # DR-1649: the row came after the box's own readout, and it must name
+        # the port infra/nas-llm/poetech-llm.service listens on.
+        rows = dict(fw.SOVEREIGN_MOUNTS)
+        unit = open(
+            os.path.join(
+                os.path.dirname(__file__), "..", "nas-llm", "poetech-llm.service"
+            )
+        ).read()
+        port = unit.split("--port ")[1].split()[0]
+        self.assertEqual(rows.get("/llm"), "http://127.0.0.1:" + port)
+        install = open(
+            os.path.join(os.path.dirname(__file__), "..", "nas-llm", "install.sh")
+        ).read()
+        self.assertIn("PORT=" + port + "\n", install)
+
+
+class AsksAsTheAppDoes(unittest.TestCase):
+    """DR-1647: Cloudflare answers "Python-urllib" with its own 403, and a 403
+    reads as up. The probe must never carry urllib's default name."""
+
+    def _ask(self):
+        seen = {}
+
+        class Resp:
+            status = 200
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *a):
+                return False
+
+        def opener(req, timeout=None):
+            seen["ua"] = req.get_header("User-agent")
+            seen["timeout"] = timeout
+            return Resp()
+
+        code = fw.probe("https://poetech.us/llm/health", 3, opener=opener)
+        return code, seen
+
+    def test_the_probe_names_itself_as_a_browser(self):
+        code, seen = self._ask()
+        self.assertEqual(code, 200)
+        self.assertTrue(seen["ua"].startswith("Mozilla/5.0"))
+        self.assertNotIn("Python-urllib", seen["ua"])
+        self.assertEqual(seen["timeout"], 3)
+
+    def test_urllibs_own_name_is_the_one_cloudflare_refuses(self):
+        import urllib.request
+
+        default = dict(urllib.request.build_opener().addheaders)["User-agent"]
+        self.assertIn("Python-urllib", default)
+        self.assertNotEqual(fw.PROBE_UA, default)
+
+
 if __name__ == "__main__":
     unittest.main()

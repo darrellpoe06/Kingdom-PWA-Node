@@ -31,12 +31,16 @@ import { resolveSupabaseConfig, currentHostname, purgePreviewForeignState } from
 // (*.vercel.app, a Pages branch alias) the client is built against a stub that
 // reaches nothing, so no sign-in, pull, push or RPC can touch the family's
 // real data from a preview — whatever the URL says and whoever signed in.
-const SUPABASE_CONFIG = resolveSupabaseConfig({ hostname: currentHostname(), url: import.meta.env.VITE_SUPABASE_URL, key: import.meta.env.VITE_SUPABASE_ANON_KEY });
+// THE FAMILY SAMPLE (DR-1638): a `?demo=` URL on the public site gets the same
+// stub, so the sample a signed-out visitor opens can reach nothing.
+const SUPABASE_CONFIG = resolveSupabaseConfig({ hostname: currentHostname(), url: import.meta.env.VITE_SUPABASE_URL, key: import.meta.env.VITE_SUPABASE_ANON_KEY, search: (() => { try { return typeof window !== 'undefined' ? window.location.search : ''; } catch (_) { return ''; } })() });
 export const SUPABASE_ISOLATED = SUPABASE_CONFIG.isolated;
 export const SUPABASE_URL = SUPABASE_CONFIG.url;
 export const SUPABASE_ANON_KEY = SUPABASE_CONFIG.key;
-if (SUPABASE_ISOLATED) {
-  console.info('[supabase] ' + SUPABASE_CONFIG.reason);
+if (SUPABASE_ISOLATED) console.info('[supabase] ' + SUPABASE_CONFIG.reason);
+// Only a PREVIEW purges: the family sample on the real site leaves a family
+// member's stored sign-in alone (DR-1638).
+if (SUPABASE_ISOLATED && SUPABASE_CONFIG.preview) {
   // Before the client is built: drop every token this preview origin may still
   // hold from before the rule (a production session, the NAS bridge bearer, the
   // saved profile), so readPersistedSession below and every by-shape reader
@@ -483,6 +487,9 @@ export async function linkIdentity(provider) {
  * storage → null).
  */
 export function readPersistedSession(store, ownKey) {
+  // THE FAMILY SAMPLE HAS NO SESSION (DR-1638): a family member's real sign-in
+  // stays stored, but the sample tab never reads it into the app.
+  if (!store && SUPABASE_ISOLATED && !SUPABASE_CONFIG.preview) return null;
   try {
     const ls = store || (typeof window !== 'undefined' ? window.localStorage : null);
     if (!ls || typeof ls.length !== 'number') return null;

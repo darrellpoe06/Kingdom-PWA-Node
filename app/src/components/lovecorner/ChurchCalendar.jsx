@@ -27,6 +27,7 @@ import {
   partsOf,
   whenLine,
   isDateKey,
+  originLine,
   DAY_NAMES,
 } from '../../lib/church-calendar.js';
 
@@ -39,7 +40,7 @@ const SOURCE_NOTE = {
   loading: 'Reading the office’s events…',
 };
 
-function EventLine({ ev, onSave, saved, onRemove, todayKey }) {
+function EventLine({ ev, onSave, saved, onRemove, todayKey, onSeePicture, onUseAgain }) {
   // Removing is two presses on purpose: the first asks, the second does it (no browser prompt).
   // An event that has already happened is ARCHIVED, not deleted (DR-1596): the words say which.
   const archive = removalOutcome(ev, todayKey) === 'archive';
@@ -64,7 +65,34 @@ function EventLine({ ev, onSave, saved, onRemove, todayKey }) {
         <b className="cc-item-name">{ev.name}</b>
         <span className="cc-item-meta">{[ev.endDate ? whenLine(ev) : '', ev.time, ev.place].filter(Boolean).join(' · ')}</span>
         {ev.detail && <span className="cc-item-detail">{ev.detail}</span>}
+        {originLine(ev) && (
+          <span className="cc-item-origin" data-testid="church-calendar-origin">
+            {originLine(ev)}
+          </span>
+        )}
       </div>
+      {onSeePicture && ev.picturePath && (
+        <button
+          type="button"
+          className={`cc-btn cc-btn-quiet ${FOCUS}`}
+          onClick={() => onSeePicture(ev)}
+          aria-label={`See the office's ${ev.readFrom === 'calendar' ? 'calendar' : 'flyer'} for ${ev.name}`}
+          data-testid="church-calendar-see-picture"
+        >
+          {ev.readFrom === 'calendar' ? 'See the calendar' : 'See the flyer'}
+        </button>
+      )}
+      {onUseAgain && ev.source === 'office' && (
+        <button
+          type="button"
+          className={`cc-btn cc-btn-quiet ${FOCUS}`}
+          onClick={() => onUseAgain(ev)}
+          aria-label={`Use ${ev.name} again: start a new event from it, with this year's details`}
+          data-testid="church-calendar-use-again"
+        >
+          Use again
+        </button>
+      )}
       {onSave && ev.source !== 'service' && (
         <button
           type="button"
@@ -135,6 +163,8 @@ export default function ChurchCalendar({
   onSave = null,
   savedIds = [],
   onRemove = null,
+  onSeePicture = null,
+  onUseAgain = null,
   children = null,
 }) {
   const dated = isDateKey(todayKey);
@@ -291,7 +321,17 @@ export default function ChurchCalendar({
                   <div className="cc-item-main">
                     <b className="cc-item-name">{ev.name}</b>
                     <span className="cc-item-meta">{[whenLine(ev), ev.time, ev.place].filter(Boolean).join(' · ')}</span>
+                    {originLine(ev) && <span className="cc-item-origin">{originLine(ev)}</span>}
                   </div>
+                  <button
+                    type="button"
+                    className={`cc-btn cc-btn-quiet ${FOCUS}`}
+                    onClick={() => setPicked(ev.date)}
+                    aria-label={`Open ${longDate(ev.date)}, the day of ${ev.name}`}
+                    data-testid="church-calendar-month-open-day"
+                  >
+                    Open the day
+                  </button>
                 </li>
               ))}
             </ul>
@@ -310,7 +350,16 @@ export default function ChurchCalendar({
       {agenda.length > 0 ? (
         <ul className="cc-list" data-testid="church-calendar-agenda">
           {agenda.map((ev) => (
-            <EventLine key={ev.id} ev={ev} onSave={onSave} saved={savedIds.includes(ev.id)} onRemove={onRemove} todayKey={todayKey} />
+            <EventLine
+              key={ev.id}
+              ev={ev}
+              onSave={onSave}
+              saved={savedIds.includes(ev.id)}
+              onRemove={onRemove}
+              todayKey={todayKey}
+              onSeePicture={onSeePicture}
+              onUseAgain={onUseAgain}
+            />
           ))}
         </ul>
       ) : (

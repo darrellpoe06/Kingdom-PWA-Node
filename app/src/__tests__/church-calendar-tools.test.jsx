@@ -109,7 +109,7 @@ describe('ChurchCalendarTools', () => {
     type(q('church-calendar-add-name'), 'Harvest Dinner');
     type(q('church-calendar-add-date'), '2026-11-21');
     await tap(q('church-calendar-add-submit'));
-    expect(q('church-calendar-said').textContent).toMatch(/Only the church office can add/);
+    expect(q('church-calendar-said').textContent).toMatch(/Only the church office, or a unit leader the office named, can add/);
     expect(q('church-calendar-said').getAttribute('role')).toBe('alert');
     expect(q('church-calendar-add-name').value).toBe('Harvest Dinner');
     expect(onChanged).not.toHaveBeenCalled();

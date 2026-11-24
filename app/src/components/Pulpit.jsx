@@ -40,7 +40,7 @@ import { corpusPrep, speakerRoster, theWordTabs } from '../lib/pulpit-prep.js';
 import { extractYoutubeId } from '../lib/youtube-title-parse.js';
 import { parseYoutubeFeed } from '../lib/youtube-feed.js';
 import { COLG_DEFAULT_CHURCH } from '../lib/default-church.js';
-import GoLiveControl from './GoLiveControl.jsx';
+import GoLiveControl from './GoLiveControl.jsx'; import WordLatestMessage from './WordLatestMessage.jsx'; // one line: L317 cites this file by line number (DR-1639)
 import { pointsForVideo, pointsSearchText } from '../lib/sermon-points.js';
 import { serviceKindLabel } from '../lib/service-day.js';
 import { sortByReactions, reactionsFor } from '../lib/reactions.js';
@@ -878,7 +878,7 @@ export default function Pulpit() {
   }
 
   return (
-    <div className="max-w-2xl">
+    <div>
       <SectionTitle eyebrow="Church · The Word — Migdal">The Word — Migdal</SectionTitle>
       <p className="text-xs text-[#5A5751] -mt-2 mb-3" style={{ fontFamily: '"Fraunces", serif' }}>
         {canManage
@@ -886,6 +886,13 @@ export default function Pulpit() {
           : 'The Church of the Living God — watch past messages, Sundays and Wednesday Bible Study, in the Bishop’s own words.'}
       </p>
 
+      {/* BISHOP GWIN'S LATEST, IN BIG (DR-1639): the tab opens on the message
+          to watch at the tab's full width (CONSISTENCY-STANDARD rule 1, DR-0246),
+          like the Church tab's Large player; the study tools and the library
+          follow in their reading column. */}
+      <WordLatestMessage feed={channelFresh} channelId={(COLG_DEFAULT_CHURCH.youtubeChannelId || '').trim()} />
+
+      <div className="max-w-2xl">
       {/* Nehemiah 8 epigraph — the migdal (Neh 8:4, the wooden platform Ezra read
           from) names this space; 8:8 names its purpose: read the Word, give the
           sense, cause understanding. KJV (public domain); translation-flexible. */}
@@ -973,6 +980,7 @@ export default function Pulpit() {
       {canManage && tab === 'prep' && (
         <PrepPanel sermons={withDocs} canEdit={canManage} onReuse={onReuse} />
       )}
+      </div>
     </div>
   );
 }

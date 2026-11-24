@@ -277,24 +277,31 @@
     {
       "date": "2026-11-24",
       "from": 23649,
-      "to": 23658,
-      "dr": "DR-1640",
-      "reason": "learn-thumbs-pull: the NAS pulls each Learn picture batch (paid work, ~$58 across the library) before GitHub's artifact clock expires it (DR-1360: the NAS initiates the road). ci.yml +1 runs test_learn_thumbs_pull (token never sent to the blob host, unsafe zip paths and digest mismatches refused). loops-health.yml +8 reads its last-run.json, turns red on a refused artifact, and in diagnosis lists the folder and whether the token file is present; the name rides existing lines in the loops list, install map, cron prefix and heartbeat receipt. Two comment blocks were folded to one line each before raising. Raised to the measured total, not above it."
+      "to": 23650,
+      "dr": "DR-1645",
+      "reason": "One line in nas-funnel-report.yml: the receiver also prints the NAS's words to the job log, because a session with no route to the site and a dead tailnet key can read a job log and cannot read a run summary. The same change lets it open the incident for Ari's road (llm-dark) on an existing line. Raised to the measured total, not above it."
     },
     {
       "date": "2026-11-24",
-      "from": 23658,
-      "to": 23708,
-      "dr": "DR-1640",
-      "reason": "learn-imagegen-tower.yml (+50 lines): the owner asked for the Learn pictures to come from the church's own 4070 tower instead of the paid service (no more BFL spend). This first lane is READ-ONLY: it joins the tailnet on arm-voice-studio's road (NAS_SSH_KEY as creed, DR-0579/0581) and runs infra/learn-imagegen/probe.ps1 (GPU name, VRAM total/used/free, the processes on the GPU, disk free, Docker, any ComfyUI and its models, listening ports) before anything is downloaded or started. Triggered by a committed change to infra/learn-imagegen/request.json (a workflow on a branch cannot be dispatched until it is on main). Concurrency group and a 30-minute timeout. Raised to the measured total, not above it."
+      "from": 23650,
+      "to": 23682,
+      "dr": "DR-1644",
+      "reason": "church-site-archive.yml gains three steps on the road it already walks (pull the archive's calendars and flyers not yet read, read each once, file what was read: 15 lines), a two-line brakes header (the narrative folded into the record), and the walls job proves 0343 and the reads tool's selftest (9 lines) so the smoke runs on a pull request touching it. Plus three lines in rls-isolation.yml: the 0343 smoke's matrix leg, because a smoke no leg runs proves nothing. A new step of an existing Way, not a longer version of one. Raised to the measured total, not above it."
     },
     {
       "date": "2026-11-24",
-      "from": 23708,
-      "to": 23712,
+      "from": 23682,
+      "to": 23699,
+      "dr": "DR-1648",
+      "reason": "One new required CI leg in ci.yml, nas-python38 (17 lines): it runs the NAS-side Python guard and the nas-loops tests inside python:3.8.15, the NAS's own interpreter, because every other leg runs 3.11+ and that is how datetime.UTC shipped and broke bg-message-lessons on the box every cycle. A timeout as its brake. Raised to the measured total, not above it."
+    },
+    {
+      "date": "2026-11-24",
+      "from": 23699,
+      "to": 23762,
       "dr": "DR-1640",
-      "reason": "Four lines in learn-imagegen-tower.yml so the tower probe names WHY the tailnet key is refused (kind, length, stray whitespace, saved-at, and which tailnet it opens) without printing any character of it. Kept to the one probe on purpose (owner 2026-11-24): the shared join action used by 64 workflows is untouched. Logic lives in infra/learn-imagegen/key-shape.sh. Raised to the measured total, not above it."
+      "reason": "This branch's Learn picture lanes, re-measured on main after the merge: learn-thumbs-pull wiring (ci.yml +1 test, loops-health.yml +8), learn-imagegen-tower.yml (+54: a read-only tower probe whose key-shape step names why a tailnet key is refused without printing it), and the learn-presentation-prepare storage-first gate (header folded, net 0). Previously recorded on the branch as 23649->23658->23708->23712; main moved under it, so one raise to the measured merged total, not above it."
     }
   ],
-  "totalLines": 23712
+  "totalLines": 23762
 }

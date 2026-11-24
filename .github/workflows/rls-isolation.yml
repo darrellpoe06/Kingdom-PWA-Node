@@ -69,6 +69,9 @@ jobs:
           - feature: church-site-archive
             migrations: "0342-what-the-church-office-posts-is-kept.sql"
             smokes: "0342-church-site-archive-smoke.sql"
+          - feature: calendar-days
+            migrations: "0342-what-the-church-office-posts-is-kept.sql 0343-every-event-lives-on-its-day.sql"
+            smokes: "0343-every-event-lives-on-its-day-smoke.sql"
           # Sign-ins and failures are on the record (DR-1336): the hook writes
           # 'login' / 'failed-auth' rows, owners read their instance's, members
           # and anon read none, the hook is not callable by the signed-in.

@@ -1,0 +1,23 @@
+# PoeTech sovereign LLM door -- the /llm/* backend (Ari, talk-about, thought).
+# Request-driven FastAPI (no timers: it does no work until the app asks). It
+# relays a chat to the house's own Ollama and returns the reply; nothing leaves
+# the box. Installed and kept running by infra/nas-llm/install.sh on the
+# services-sync clock (DR-1649).
+[Unit]
+Description=PoeTech sovereign LLM door (Ari's road, /llm)
+After=network-online.target
+
+[Service]
+Type=simple
+# The SAME family bridge bearer the app's devices already carry, written here
+# by install.sh from /volume1/PoeTech/secrets/chat-bridge-token.txt. With no
+# key the door refuses every chat (llm_server.py chat_gate).
+Environment=LLM_BRIDGE_TOKEN=
+WorkingDirectory=/volume1/PoeTech/repos/Kingdom-PWA-Node/infra/nas-llm
+ExecStart=/volume1/PoeTech/venvs/llm/bin/uvicorn llm_server:app --host 127.0.0.1 --port 8804
+Restart=on-failure
+RestartSec=5
+Nice=10
+
+[Install]
+WantedBy=multi-user.target

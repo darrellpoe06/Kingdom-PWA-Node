@@ -1044,6 +1044,19 @@ const NODES = [
     writes: [{ res: 'db:ministry_ops', file: 'app/src/lib/church-calendar-sync.js', token: "rpc('church_calendar_remove'" }],
     seeds: [],
   }),
+  app('app/src/components/lovecorner/ChurchCalendarOffice.jsx', {
+    id: 'church-calendar-office', name: 'Church calendar: who adds, and pictures from before (Times)',
+    purpose: 'The office names the unit leaders who may send in events for their unit, and uploads a flyer, calendar or letter the website no longer shows; a leader or the office adds one event, or uses a past one again (DR-1644).',
+    reads: [
+      { res: 'db:church_calendar_leads', file: 'app/src/lib/church-calendar-office.js', token: "from('church_calendar_leads')" },
+    ],
+    writes: [
+      { res: 'db:church_calendar_leads', file: 'app/src/lib/church-calendar-office.js', token: "from('church_calendar_leads')" },
+      { res: 'db:church_site_archive', file: 'app/src/lib/church-calendar-office.js', token: "rpc('church_site_archive_upload'" },
+      { res: 'db:ministry_ops', file: 'app/src/lib/church-calendar-sync.js', token: "rpc('church_calendar_post'" },
+    ],
+    seeds: [],
+  }),
   app('app/src/components/ChoirSongbook.jsx', {
     id: 'songbook', name: 'Choir songbook + order of service',
     purpose: 'The repertoire, and the songs placed in each service.',
@@ -1358,9 +1371,18 @@ const NODES = [
   }),
   wf('church-site-archive.yml', {
     id: 'church-site-archive', name: 'Church site archive (daily)',
-    purpose: 'Every calendar, Letter from BG and flyer the church office posts on its website is kept daily on the NAS, by month, one copy per content, so the office never archives by hand (DR-1596).',
-    reads: [{ res: 'site:thechurchofthelivinggod.com', file: 'scripts/church-site-archive-collect.mjs', token: 'SITE_HOST' }],
-    writes: [{ res: 'db:church_site_archive', file: 'infra/nas-church-archive/church_archive_keep.py', token: 'church_site_archive_keep' }],
+    purpose: 'Every calendar, Letter from BG and flyer the church office posts on its website is kept daily on the NAS, by month, one copy per content, so the office never archives by hand (DR-1596); then each kept calendar and flyer not yet read is read once into dated events and filed on its day (DR-1644).',
+    reads: [
+      { res: 'site:thechurchofthelivinggod.com', file: 'scripts/church-site-archive-collect.mjs', token: 'SITE_HOST' },
+      { res: 'http:api.anthropic.com', file: 'scripts/church-calendar-read.mjs', token: 'ANTHROPIC_API_KEY' },
+      { res: 'db:church_calendar_reads', file: 'infra/nas-church-archive/church_calendar_reads.py', token: 'church_calendar_reads?select' },
+      { res: 'db:church_site_archive', file: 'infra/nas-church-archive/church_calendar_reads.py', token: 'church_site_archive?select' },
+    ],
+    writes: [
+      { res: 'db:church_site_archive', file: 'infra/nas-church-archive/church_archive_keep.py', token: 'church_site_archive_keep' },
+      { res: 'db:ministry_ops', file: 'infra/nas-church-archive/church_calendar_reads.py', token: 'church_calendar_keep_read' },
+      { res: 'db:church_calendar_reads', file: 'infra/nas-church-archive/church_calendar_reads.py', token: 'church_calendar_keep_read' },
+    ],
     seeds: [],
   }),
   wf('learn-presentation-prepare.yml', {
@@ -2124,6 +2146,10 @@ const NODES = [
     id: 'tax-upload', name: 'Tax archive server', purpose: 'Takes tax documents in and serves the archive back.',
     reads: [{ res: 'http:taxes-upload', token: 'upload' }], writes: [{ res: 'http:taxes', token: 'archive.json' }], seeds: ['books-taxes'],
   }),
+  rider('service:llm', 'infra/nas-llm/llm_server.py', {
+    id: 'llm', name: 'Ari\u2019s road (the house\u2019s own model)', purpose: 'Relays one chat from the app to the house\u2019s own Ollama behind the family key, and says in words why when it cannot (DR-1649).',
+    reads: [{ res: 'nas:services', file: 'infra/nas-loops/services.json', token: 'infra/nas-llm/install.sh' }], writes: [{ res: 'http:llm', token: '/llm/health' }], seeds: ['llm-road-probe'],
+  }),
   rider('service:voice-transport', 'infra/voice-studio/install.sh', {
     id: 'voice-transport', name: 'Voice transport (the road to the studio)', purpose: 'Carries the app’s /voice requests to the studio on the tower.',
     reads: [{ res: 'tower:voice-studio', token: 'tlcmediadpt' }, { res: 'nas:voice-clone', file: 'infra/voice-studio/voice_forwarder.py', token: '127.0.0.1:8773' }], writes: [{ res: 'http:voice', token: '/voice' }], seeds: ['voice-studio'],
@@ -2424,6 +2450,8 @@ const RESOURCES = {
   'gh:artifact:jonah-narration': { label: 'Episode narration render', sink: 'A person (or a session) downloads the run artifact to mix the episode; nothing else reads it, and it expires after 14 days.' },
   'file:kids-episode-script': { label: 'Bible Adventures episode script', source: 'Written by hand into the repo (scripts/kids-episode/<id>.episode.json); every KJV line in it is copied from app/public/bible/kjv by the episode builder, never typed.' },
   'db:church_site_archive': { label: 'the church office\u2019s calendars, letters and flyers, kept', sink: 'Members of the church read it in the archive under Times, by year and month (DR-1596).' },
+  'db:church_calendar_leads': { label: 'the unit leaders the church office names', sink: 'A named leader may add events for their unit; the office reads and changes the list under Times (DR-1644).' },
+  'db:church_calendar_reads': { label: 'which office pictures have been read onto the calendar', sink: 'The daily reader reads each kept calendar and flyer once; this is its memory, read by its next pull (DR-1644).' },
   'db:ministry_ops': { label: 'the church office\u2019s calendar events and ministry operations', sink: 'Members read the calendar and the office reads its operations in the app; an archived event is read in the archive (DR-1596).' },
   'db:direct_messages': { label: 'Messages', sink: 'The member reads the Message in their own Messages thread and may reply; a reply is an ordinary Message to Darrell (DR-0639).' },
   'db:agent_inbox#poetech': { label: 'PoeTech requests relayed to the inbox', proof: { ts: 'created_at', fresh: 60, where: "tags ? 'tell-poetech'" },
@@ -2490,7 +2518,7 @@ const RESOURCES = {
   'gh:release': { label: 'the app release' },
   'gh:review-issue': { label: 'due re-review items', sink: 'A due re-review opens an issue a steward works; the ledger itself is the record.' },
   'site:poetech.us': { label: 'the live site' },
-  'http:llm': { label: 'Ari\u2019s road, /llm, on the NAS', source: 'infra/nas-llm/llm_server.py answers it on the NAS; no installer in this repository starts it or mounts it yet, which the read-only probe exists to measure first (DR-1643).' },
+  'http:llm': { label: 'Ari\u2019s road, /llm, on the NAS', route: '/llm' },
   'site:thechurchofthelivinggod.com': { label: 'the church\u2019s public website', source: 'The church office publishes announcements, events and service times on its own website; the app reads, never writes, there.' },
   'site:preview': { label: 'a branch preview of the app (Vercel), never the live site', source: 'Built by the Vercel GitHub integration from every branch push; nothing in this repository writes it, and it serves no family data (lib/preview-isolation.js).' },
   // Cloudflare's own record of what it believes is deployed. Nothing here can

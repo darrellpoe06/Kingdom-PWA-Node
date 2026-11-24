@@ -24,28 +24,19 @@ sending its own `system` + `messages`. On any failure (Ollama down, model not pu
 clean error and the app shows its **authored walkthrough** — never a fabricated
 answer (DR-0076).
 
-## Run it (NAS, SSH / ConnectBot)
+## How it runs (no hand step)
 
-```
-cd /volume1/PoeTech/repos/Kingdom-PWA-Node/infra/nas-llm
-pip3 install --user fastapi "uvicorn[standard]"      # once (stdlib does the Ollama call)
-LLM_BRIDGE_TOKEN="<same bridge token the app uses>" \
-  uvicorn llm_server:app --host 127.0.0.1 --port 8791
-```
+`install.sh` is on the services-sync clock (`infra/nas-loops/services.json`,
+`llm`; DR-1649). Each cycle it reads the existing family bridge key, builds the
+venv once, keeps `poetech-llm.service` on `127.0.0.1:8804` following the repo's
+code, proves the door answers on loopback, and only then mounts `/llm` on the
+public Funnel. The app reaches it same-origin through the Pages Function
+`app/functions/llm/[[path]].js`. The Funnel strips the mount path, so each
+route answers with and without the `/llm` prefix.
 
-Ollama must be running with the model pulled (`ollama pull qwen2.5`). Route it
-same-origin in the Caddy site block so the app reaches it at `/llm/*`:
-
-```
-handle /llm/* {
-    reverse_proxy 127.0.0.1:8791
-}
-```
-
-For public poetech.us, the `/llm/*` path also needs a Cloudflare Pages Function
-proxy to the Funnel (mirror `app/functions/n8n/[[path]].js`); on the sovereign
-NAS-Caddy instance it is same-origin already. Until the server + route are up the
-tutor degrades to its authored walkthrough (a designed fallback, not a break).
+Ollama must be running with the model pulled (`ollama pull qwen2.5`). When it
+is not, `/llm/health` answers 502 with the reason in words and the app shows
+its authored walkthrough. With no family key set, the door refuses every chat.
 
 ## Also served here: GET /llm/health
 
