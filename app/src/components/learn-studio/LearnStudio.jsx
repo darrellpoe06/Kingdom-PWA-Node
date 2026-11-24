@@ -78,7 +78,7 @@ function Picture({ image, alt, eager = false, sizes = '(max-width: 640px) 90vw, 
 /**
  * A lesson's art. Its own picture when it has one; otherwise a TEMPORARY cover
  * built from its department's approved Explore-by-Topic artwork, tinted in the
- * department's colour, with the department named. Free: no new picture is made,
+ * department's color, with the department named. Free: no new picture is made,
  * and the lesson's own cover replaces it the moment its record carries one.
  */
 function Art({ p, eager = false, sizes, children }) {

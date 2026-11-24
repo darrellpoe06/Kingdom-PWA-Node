@@ -616,7 +616,7 @@
 }
 
 /* Temporary covers: a lesson still waiting for its own picture wears its
-   department's approved Explore-by-Topic art, tinted in the department colour,
+   department's approved Explore-by-Topic art, tinted in the department color,
    with the department named. Reused artwork only; no new picture is made.
    (True red stays reserved, DR-0099: no tint below is red.) */
 .ls-interim {
