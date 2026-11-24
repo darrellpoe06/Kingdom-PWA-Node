@@ -144,7 +144,7 @@ export function fromOfficeRows(rows) {
   return { events, dropped, archived };
 }
 
-// ── where an office row came from (0343, DR-1628) ───────────────────────────
+// ── where an office row came from (0343, DR-1644) ───────────────────────────
 const PICTURE_RE = /^[0-9a-f-]{36}\/[0-9a-f]{64}\.(jpeg|png|gif|webp)$/;
 /**
  * { readFrom: 'calendar'|'flyer'|'', picturePath, sentBy, reusedFrom } for an

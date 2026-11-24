@@ -271,7 +271,7 @@
       "date": "2026-11-24",
       "from": 23584,
       "to": 23616,
-      "dr": "DR-1628",
+      "dr": "DR-1644",
       "reason": "church-site-archive.yml gains three steps on the road it already walks (pull the archive's calendars and flyers not yet read, read each once, file what was read: 15 lines), a two-line brakes header (the narrative folded into the record), and the walls job proves 0343 and the reads tool's selftest (9 lines) so the smoke runs on a pull request touching it. Plus three lines in rls-isolation.yml: the 0343 smoke's matrix leg, because a smoke no leg runs proves nothing. A new step of an existing Way, not a longer version of one. Raised to the measured total, not above it."
     }
   ],

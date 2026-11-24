@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # church-calendar-reads-over-tailnet — the office's pictures to the runner and
-# what was read in them back to the NAS (DR-1628)
+# what was read in them back to the NAS (DR-1644)
 # =============================================================================
 # The same road church-site-archive-over-tailnet.sh walks (tailnet -> ssh, a
 # fresh temp folder on the NAS removed whatever happens, the box's own service

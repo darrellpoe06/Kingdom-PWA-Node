@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # =============================================================================
 # church_calendar_reads.py — the office's pictures onto the calendar's days,
-# run ON THE NAS (DR-1628)
+# run ON THE NAS (DR-1644)
 # =============================================================================
 # Two halves around the read the runner makes (scripts/church-calendar-read.mjs):
 #

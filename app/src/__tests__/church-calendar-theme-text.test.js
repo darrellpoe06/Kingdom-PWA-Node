@@ -1,5 +1,5 @@
 // =============================================================================
-// The church calendar's words are readable in every theme (DR-1628).
+// The church calendar's words are readable in every theme (DR-1644).
 // =============================================================================
 // Darrell's 2026-11-24 screenshot of the Times tab in the dark theme: the
 // day's heading ("Tuesday, November 24, 2026 · today"), "This time of year,

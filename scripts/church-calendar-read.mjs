@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // =============================================================================
-// church-calendar-read — read each office picture's events, once (DR-1628)
+// church-calendar-read — read each office picture's events, once (DR-1644)
 // =============================================================================
 // Input:  <folder>/manifest.json + <folder>/files/ (church_calendar_reads.py
 //         pull: the archive's calendars and flyers not yet read)

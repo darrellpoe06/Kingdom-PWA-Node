@@ -8,12 +8,12 @@
 // WHO SEES WHAT. Download is for everyone (the calendar is the church's, and
 // it leaves in a standard file). Upload renders only for the church office.
 // Add renders for the office AND for a unit leader the office named (0343,
-// DR-1628: "office staff and sent in by minister leadership over units"); a
+// DR-1644: "office staff and sent in by minister leadership over units"); a
 // leader adds for their own unit, and the row says which unit sent it. The
 // database is the real gate (church_calendar_post); this only decides what to
 // show.
 //
-// USE AGAIN (DR-1628: "staff should be able to reuse it with updated
+// USE AGAIN (DR-1644: "staff should be able to reuse it with updated
 // information"): a past event's "Use again" opens this form already filled,
 // 52 weeks later on the same weekday; every field stays editable and nothing
 // is filed until the person presses Add.

@@ -1,4 +1,4 @@
-# 2026-11-24 — Every event lives on its day (DR-1628)
+# 2026-11-24 — Every event lives on its day (DR-1644)
 
 **Asked (Darrell, with Times-tab screenshots):** events from the office's calendar on their own days, automatically; the full calendar too; only the office and unit leadership add; a flyer's event (Battle Cry Sunday) shown on its day perpetually and reusable with this year's details; the church's past flyers found on the website or uploaded.
 

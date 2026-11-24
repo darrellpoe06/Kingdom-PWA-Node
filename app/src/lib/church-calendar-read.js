@@ -1,6 +1,6 @@
 // =============================================================================
 // church-calendar-read — the office's picture read into dated events
-// (DR-1628)
+// (DR-1644)
 // =============================================================================
 // Darrell 2026-11-24: "The events should show from the calendar for that
 // specific day!!!!!!!! ... Automatic Calendar update where it has something on

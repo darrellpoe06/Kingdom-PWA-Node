@@ -1,5 +1,5 @@
 // =============================================================================
-// ChurchCalendarOffice — the office's two hands on the calendar (DR-1628)
+// ChurchCalendarOffice — the office's two hands on the calendar (DR-1644)
 // =============================================================================
 // Darrell 2026-11-24:
 //   "only certain people can add to the calendar... office staff and sent in

@@ -1,4 +1,4 @@
-# DR-1628: Every event lives on its day, perpetually
+# DR-1644: Every event lives on its day, perpetually
 
 **Date:** 2026-11-24
 **Status:** Accepted

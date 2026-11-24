@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 // =============================================================================
-// Every event lives on its day, perpetually (DR-1628): where a row came from,
+// Every event lives on its day, perpetually (DR-1644): where a row came from,
 // the day showing it (and its flyer), "Use again" a year on, a unit leader
 // sending in an event for their unit only, and the office's two hands (unit
 // leaders; upload a picture from before). Copy and behavior are tested

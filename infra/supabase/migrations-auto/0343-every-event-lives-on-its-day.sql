@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 0343 — Every event lives on its day, perpetually; the office and the unit
---        leaders it names are the only hands that add to it (DR-1628)
+--        leaders it names are the only hands that add to it (DR-1644)
 -- =============================================================================
 -- Darrell 2026-11-24, over a Times tab whose calendar said "Nothing is on the
 -- church calendar for this day" while the office's own November picture,
@@ -112,7 +112,7 @@ CREATE POLICY church_calendar_leads_delete ON public.church_calendar_leads FOR D
   USING (public.user_role_in_instance(instance_id) IN ('owner', 'admin'));
 
 COMMENT ON TABLE public.church_calendar_leads IS
-  'Unit leaders the church office allows to add calendar events for their unit (0343, DR-1628).';
+  'Unit leaders the church office allows to add calendar events for their unit (0343, DR-1644).';
 
 -- ---------------------------------------------------------------------------
 -- 3. WHAT THE SIGNED-IN READER MAY DO
@@ -292,7 +292,7 @@ REVOKE ALL ON FUNCTION public.church_calendar_keep_read(text, jsonb, jsonb) FROM
 GRANT EXECUTE ON FUNCTION public.church_calendar_keep_read(text, jsonb, jsonb) TO service_role;
 
 COMMENT ON TABLE public.church_calendar_reads IS
-  'Each office picture (calendar or flyer) the daily reader has filed as calendar events, once (0343, DR-1628).';
+  'Each office picture (calendar or flyer) the daily reader has filed as calendar events, once (0343, DR-1644).';
 
 -- ---------------------------------------------------------------------------
 -- 6. THE OFFICE UPLOADS A PICTURE THE WEBSITE NEVER HAD (or no longer has)

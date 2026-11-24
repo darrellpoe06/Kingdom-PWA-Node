@@ -236,7 +236,7 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
     if (r && r.removed) calendarRows.reload();
     return r;
   };
-  // WHO ADDS (DR-1628): the office, and the unit leaders it names; "Use
+  // WHO ADDS (DR-1644): the office, and the unit leaders it names; "Use
   // again" opens the add form filled from a past event, a year on.
   const canPostCalendar = calendarAccess.canManage || (calendarAccess.units || []).length > 0;
   const [calendarDraft, setCalendarDraft] = useState(null);
@@ -244,7 +244,7 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
     const d = againDraft(ev);
     if (d) setCalendarDraft({ ...d });
   };
-  // THE DAY SHOWS ITS PICTURE (DR-1628): the flyer or calendar an event was
+  // THE DAY SHOWS ITS PICTURE (DR-1644): the flyer or calendar an event was
   // read from, from the church's own archive (kept even after the website
   // takes it down). A picture that cannot be opened says so.
   const [dayPicture, setDayPicture] = useState(null);

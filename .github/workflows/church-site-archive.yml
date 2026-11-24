@@ -5,7 +5,7 @@
 # Timer-driven, deterministic class (CLAUDE.md, AMENDED 2026-07-29): started by
 # merge. BUDGET: job timeouts, per-request timeouts, a picture cap per run, 12 MB
 # per picture. LOCK: one run at a time. Stop: disable this workflow.
-# THE READ (DR-1628, AI class): each kept calendar/flyer read once onto its days. BUDGET 6 a run,
+# THE READ (DR-1644, AI class): each kept calendar/flyer read once onto its days. BUDGET 6 a run,
 # timeout + token cap each, stop after 2 failures; LOCK as above; KILL-SWITCH vars.CHURCH_CALENDAR_READ=off.
 # The walls job proves 0342 on a bare PostgreSQL for a pull request touching it.
 name: Church site archive (daily)

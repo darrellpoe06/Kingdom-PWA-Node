@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0343 EVERY EVENT LIVES ON ITS DAY SMOKE — the walls of DR-1628, proven.
+-- 0343 EVERY EVENT LIVES ON ITS DAY SMOKE — the walls of DR-1644, proven.
 -- Runs in a transaction and ROLLS BACK. PASS prints
 -- 'CALENDAR DAYS SMOKE: PASS'; any breach RAISES.
 --

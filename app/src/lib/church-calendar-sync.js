@@ -24,7 +24,7 @@ import { removalOutcome } from './church-archive.js';
 
 export const READ_TIMEOUT_MS = 8000;
 const ROW_COLUMNS = 'id, ministry, title, detail, week_of, member_visible';
-// 0343 (DR-1628): which office picture a row was read from, the picture
+// 0343 (DR-1644): which office picture a row was read from, the picture
 // itself, the unit whose leadership sent it in, and the event it reuses.
 const SOURCE_COLUMNS = 'read_from, picture_path, sent_by_unit, reused_from';
 
@@ -43,7 +43,7 @@ export async function readCalendarRows({ client = supabase, resolveChurch = chur
       client.from('ministry_ops').select(cols).eq('instance_id', church.value).eq('ministry', CALENDAR_MINISTRY).order('week_of', { ascending: true });
     // Newest columns first; until 0343 / 0342 have applied on the database
     // the app reads, the calendar still reads with what is there (DR-1596,
-    // DR-1628): no source marks, then nothing archived.
+    // DR-1644): no source marks, then nothing archived.
     let res;
     for (const cols of [`${ROW_COLUMNS}, archived_at, ${SOURCE_COLUMNS}`, `${ROW_COLUMNS}, archived_at`, ROW_COLUMNS]) {
       res = await Promise.race([read(cols), timeout(timeoutMs)]);
