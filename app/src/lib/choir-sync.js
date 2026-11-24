@@ -17,6 +17,7 @@ import supabase from './supabase.js';
 import { publicRpc } from './public-rpc.js';
 import { churchInstanceId, churchInstanceResolve } from './church-instance.js';
 import { askRole, askPredicate, knownOrUnavailable } from './church-access.js';
+import { boundedRead, READ_TIMEOUT_MS } from './bounded-read.js';
 
 async function currentSession() {
   const { data } = await supabase.auth.getSession();
@@ -522,11 +523,25 @@ function makeSubscriber(table, mapRow, orderBy) {
       if (cancelled) return;
       if (!session) { onChange([]); return; } // genuinely signed out -> honest empty, never a hang
       const myUserId = session.user.id;
+      // BOUNDED (2026-11-24, same class as lib/bounded-read.js's own list --
+      // "the boot gate / Admin access+usage / PIN reads / Properties": every
+      // supabase-js call routes through getSession()'s cross-tab Web Lock, and
+      // a frozen/background PoeTech tab holding it strands this read forever.
+      // This module was never wrapped, so The Word's leadership library load
+      // (subscribeSermons) and every other choir-sync subscriber could hang on
+      // "Loading..." indefinitely instead of failing fast to the honest
+      // Retry state (Darrell's wife, 2026-11-24: "Not getting the Word...
+      // historical videos" -- still failing after Retry on a stalled device).
       const fetchAll = async () => {
         const q = supabase.from(table).select('*');
-        const { data, error } = orderBy
-          ? await q.order(orderBy.col, { ascending: orderBy.asc })
-          : await q;
+        const run = orderBy ? q.order(orderBy.col, { ascending: orderBy.asc }) : q;
+        const result = await boundedRead(run, READ_TIMEOUT_MS, { timedOut: true });
+        if (result.timedOut) {
+          console.warn(`[choir-sync] ${table} fetch timed out after ${READ_TIMEOUT_MS}ms`);
+          if (onError) onError({ message: `${table}-timeout`, timedOut: true });
+          return null;
+        }
+        const { data, error } = result;
         if (error) { console.warn(`[choir-sync] ${table} fetch failed:`, error); if (onError) onError(error); return null; }
         return (data || []).map((r) => mapRow(r, myUserId));
       };
