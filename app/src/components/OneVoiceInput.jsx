@@ -18,12 +18,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { suggestDestination, destinationsFor, planDispatch, composeNoteText } from '../lib/one-voice-routing.js';
 import { uploadFeedback } from '../lib/feedback-sync.js';
-import { resolveSurface, lessonConfirmationKey, lessonNameTags, lessonNotice, cleanLessonName } from '../lib/one-voice-surfaces.js';
+import { resolveSurface, lessonConfirmationKey, lessonNameTags, lessonNotice, cleanLessonName, isLessonDoorOwner } from '../lib/one-voice-surfaces.js';
 import { useVoiceDictation, LONG_FORM_SESSION_CAP_MS, VOICE_SESSION_CAP_MS, capMinutes } from '../lib/voice-dictation.js';
 import { readDraft, writeDraft, clearDraft } from '../lib/draft-autosave.js';
 import { keepRecording, readKeptRecording, dropKeptRecording } from '../lib/kept-recording.js';
 import { useIntakeHold } from '../lib/intake-guard.js';
 import { relayThought } from '../lib/agent-inbox-sync.js';
+import { lessonDoorTags } from '../lib/research-create.js';
 import VoiceLessonRecorder from './VoiceLessonRecorder.jsx';
 import LessonInbox from './LessonInbox.jsx';
 import { sendVoiceLesson, formatClock, recordingProblem, RECORDING_KINDS, RECORDING_KIND_LABELS, DEFAULT_RECORDING_KIND } from '../lib/lesson-voice.js';
@@ -278,15 +279,21 @@ export function OneVoiceInput({
         // tagged so the staged intake routine can find them. Best-effort and
         // honest: signed-out or a refused insert is SAID on the surface, never
         // swallowed, and the words stay in the box for the person to keep.
-        relayThought({ body: t, tags: ['lesson', ...lessonNameTags(nameOk, lessonName)], source: cfg.sourceTag }).then(async (res) => {
+        // WORD FIRST, WITH RESEARCH, ALWAYS (DR-1635): the Governor's lesson,
+        // and any lesson carrying a link, is researched first -- a link's words
+        // or a teaching's search, then a reading -- and the research lane files
+        // the lesson from that. A member's private words with no link go to the
+        // Governor first, as before (lessonDoorTags says why).
+        (async () => {
+          let email;
+          try { const { data } = await supabase.auth.getSession(); email = data?.session?.user?.email || ''; } catch (e) { email = ''; }
+          const res = await relayThought({ body: t, tags: [...lessonDoorTags(t, isLessonDoorOwner(email)), ...lessonNameTags(nameOk, lessonName)], source: cfg.sourceTag });
           if (!res.ok) { setConfirmation(String(c.lessonFailed || 'Not sent as a lesson ({reason}) — keep it as a note and send it again signed in.').replace('{reason}', res.reason || 'unknown')); return; }
           // SAID TRUE FOR WHO SENT IT (DR-0630): the Governor's own row is read
           // into a new lesson; a member's is kept and reviewed first, and the
           // lessons that already speak to it stay on screen for them.
-          let email;
-          try { const { data } = await supabase.auth.getSession(); email = data?.session?.user?.email || ''; } catch (e) { email = ''; }
           setConfirmation(c[lessonConfirmationKey(email)] || c.lesson);
-        });
+        })();
         break;
       case 'prayer':     addPrayerRequest({ requester: who || 'church family', request: t, shareWithChurch: true }); break;
       case 'pastor':     voiceNote('pastor'); break;

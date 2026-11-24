@@ -365,7 +365,11 @@ describe('the app rings the bell by saving the lesson row', () => {
     expect(sql).toContain(`NEW.tags @> '["lesson"]'::jsonb`);
     expect(sql).toContain(`PERFORM pg_notify('lesson_inbox', NEW.id::text)`);
     expect(sql).toMatch(/AFTER INSERT OR UPDATE OF tags ON agent_inbox/);
-    expect(read('app/src/components/OneVoiceInput.jsx')).toMatch(/relayThought\(\{ body: t, tags: \['lesson'/);
+    // DR-1635: research is always done. The door writes a research row sent for
+    // a lesson; the research lane then writes the LESSON row, and that insert is
+    // what rings this trigger.
+    expect(read('app/src/components/OneVoiceInput.jsx')).toMatch(/relayThought\(\{ body: t, tags: \[\.\.\.lessonDoorTags\(t, isLessonDoorOwner\(email\)\)/);
+    expect(read('scripts/research-create.sh')).toMatch(/'\[\\"lesson\\",\\"from-research\\"/);
   });
 
   it('PROVEN TO CATCH: no browser code holds a dispatch to GitHub (the NAS rings)', () => {
