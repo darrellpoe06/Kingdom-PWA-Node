@@ -1,7 +1,7 @@
 {
   "derivedFrom": ".github/workflows",
   "derivedBy": "scripts/derive-job-registry.mjs",
-  "scheduled": 40,
+  "scheduled": 39,
   "jobs": [
     {
       "file": "announce-health.yml",
@@ -15,13 +15,6 @@
       "name": "camera-health",
       "crons": [
         "7,37 * * * *"
-      ]
-    },
-    {
-      "file": "church-site-archive.yml",
-      "name": "Church site archive (daily)",
-      "crons": [
-        "23 10 * * *"
       ]
     },
     {
