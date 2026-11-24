@@ -608,3 +608,9 @@
     font-size: 19px;
   }
 }
+
+/* Keyboard focus: visible on every Learn Studio control, gold on the dark UI (red stays reserved, DR-0099). */
+.ls-root :focus-visible {
+  outline: 2px solid #e8c26a;
+  outline-offset: 2px;
+}

@@ -14,6 +14,8 @@ import { studioHome, searchPresented, presentLesson, SHELVES } from '../../lib/l
 import { READING_VERSIONS } from '../../lib/learn-organize.js';
 
 const versionLabel = (id) => (READING_VERSIONS.find((b) => b.id === id) || { label: id }).label;
+// A keyboard user must SEE where they are (ui-standards focus-ring). Gold, never red (red is reserved, DR-0099).
+const RING = 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2';
 import './learn-studio.css';
 
 /** 2–3 balanced lines, the same rule the thumbnail compositor uses. */
@@ -76,7 +78,7 @@ function Picture({ image, alt, eager = false, sizes = '(max-width: 640px) 90vw, 
 function Card({ x, onOpen }) {
   const { p } = x;
   return (
-    <button type="button" className="ls-card" onClick={() => onOpen(x)}>
+    <button type="button" className={`ls-card ${RING}`} onClick={() => onOpen(x)}>
       <div className="ls-thumb">
         <Picture image={p.image} alt={p.imageAlt} />
         <Headline text={p.thumbHeadline} />
@@ -101,7 +103,7 @@ function Row({ icon = 'play', title, note, items, onOpen, onSeeAll }) {
         </h2>
         {note && <span className="ls-note">{note}</span>}
         {onSeeAll && (
-          <button type="button" className="ls-see" onClick={onSeeAll}>
+          <button type="button" className={`ls-see ${RING}`} onClick={onSeeAll}>
             See All ›
           </button>
         )}
@@ -130,10 +132,10 @@ function Hero({ slides, onOpen, onListen }) {
       <div className="ls-hero-body">
         <Headline text={x.p.displayTitle} size="hero" align="right" />
         <div className="ls-hero-actions">
-          <button type="button" className="ls-btn ls-btn--play" onClick={() => onOpen(x)}>
+          <button type="button" className={`ls-btn ls-btn--play ${RING}`} onClick={() => onOpen(x)}>
             <span className="ls-play" aria-hidden="true" /> Start Lesson
           </button>
-          <button type="button" className="ls-btn ls-btn--ghost" onClick={() => onListen(x)}>
+          <button type="button" className={`ls-btn ls-btn--ghost ${RING}`} onClick={() => onListen(x)}>
             Listen
           </button>
         </div>
@@ -144,7 +146,7 @@ function Hero({ slides, onOpen, onListen }) {
             key={s.p.lessonId}
             type="button"
             aria-label={`Show featured lesson ${n + 1}`}
-            className={n === i % slides.length ? 'on' : ''}
+            className={`${n === i % slides.length ? 'on' : ''} ${RING}`}
             onClick={() => setI(n)}
           />
         ))}
@@ -166,7 +168,7 @@ function TopicGrid({ topics, covers, onPick }) {
         {topics.map((t) => {
           const c = covers && covers[t.id];
           return (
-            <button key={t.id} type="button" className="ls-topic" onClick={() => onPick(t)}>
+            <button key={t.id} type="button" className={`ls-topic ${RING}`} onClick={() => onPick(t)}>
               <Picture image={c && c.image} alt={c && c.alt} sizes="240px" pendingLabel="Cover coming" />
               <span className="ls-topic-text">
                 <span className="ls-topic-label">{t.label}</span>
@@ -195,7 +197,7 @@ export function LessonCover({ x, next, onBack, onRead, onListen, onVersion, onOp
   };
   return (
     <article className="ls-cover">
-      <button type="button" className="ls-back" onClick={onBack}>
+      <button type="button" className={`ls-back ${RING}`} onClick={onBack}>
         ‹ Back to Learn
       </button>
       <div className="ls-cover-art">
@@ -213,18 +215,18 @@ export function LessonCover({ x, next, onBack, onRead, onListen, onVersion, onOp
       </p>
       {p.promoDescription && <p className="ls-cover-desc">{p.promoDescription}</p>}
       <div className="ls-cover-actions">
-        <button type="button" className="ls-btn ls-btn--red" onClick={() => onRead(x)}>
+        <button type="button" className={`ls-btn ls-btn--red ${RING}`} onClick={() => onRead(x)}>
           Read Lesson
         </button>
-        <button type="button" className="ls-btn ls-btn--white" onClick={() => onListen(x)}>
+        <button type="button" className={`ls-btn ls-btn--white ${RING}`} onClick={() => onListen(x)}>
           ▶ Listen
         </button>
         {p.hasVideo && (
-          <button type="button" className="ls-btn ls-btn--outline" onClick={() => onRead(x, 'video')}>
+          <button type="button" className={`ls-btn ls-btn--outline ${RING}`} onClick={() => onRead(x, 'video')}>
             Watch Video
           </button>
         )}
-        <button type="button" className="ls-btn ls-btn--outline" onClick={share}>
+        <button type="button" className={`ls-btn ls-btn--outline ${RING}`} onClick={share}>
           {shared ? 'Link ready' : 'Share'}
         </button>
       </div>
@@ -232,7 +234,7 @@ export function LessonCover({ x, next, onBack, onRead, onListen, onVersion, onOp
         <div className="ls-ages">
           <div className="ls-ages-label">Read it for your age</div>
           {p.versions.map((v) => (
-            <button key={v} type="button" className="ls-chip" onClick={() => onVersion(x, v)}>
+            <button key={v} type="button" className={`ls-chip ${RING}`} onClick={() => onVersion(x, v)}>
               {versionLabel(v)}
             </button>
           ))}
@@ -336,7 +338,7 @@ export default function LearnStudio({
             aria-label="Search lessons, titles or courses"
           />
         </label>
-        <button type="button" className="ls-btn ls-btn--outline ls-all" onClick={onExit}>
+        <button type="button" className={`ls-btn ls-btn--outline ls-all ${RING}`} onClick={onExit}>
           All Courses
         </button>
       </div>
@@ -361,7 +363,7 @@ export default function LearnStudio({
         )
       ) : pickedShelf ? (
         <>
-          <button type="button" className="ls-back" onClick={() => setShelf(null)}>
+          <button type="button" className={`ls-back ${RING}`} onClick={() => setShelf(null)}>
             ‹ Back to Learn
           </button>
           <Row title={pickedShelf.label} items={pickedShelf.items} onOpen={openLesson} />
@@ -386,7 +388,7 @@ export default function LearnStudio({
             </header>
             <div className="ls-depts">
               {home.topics.map((t) => (
-                <button key={t.label} type="button" className="ls-chip ls-chip--dept" onClick={onExit}>
+                <button key={t.label} type="button" className={`ls-chip ls-chip--dept ${RING}`} onClick={onExit}>
                   {t.label} · {t.lessons}
                 </button>
               ))}
