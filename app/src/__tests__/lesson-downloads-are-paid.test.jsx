@@ -10,14 +10,25 @@ import { createElement } from 'react';
 import { createRoot } from 'react-dom/client';
 import { act } from 'react';
 import {
-  ACCESS, DOWNLOAD_PASS_ID, downloadAccess, tierAllowsDownloads, readDownloadOffers,
-  startDownloadPassCheckout, passReturnPaths, sayPassError,
+  ACCESS,
+  DOWNLOAD_PASS_ID,
+  downloadAccess,
+  tierAllowsDownloads,
+  readDownloadOffers,
+  startDownloadPassCheckout,
+  passReturnPaths,
+  sayPassError,
 } from '../lib/lesson-download-access.js';
 import { DownloadAccessProvider, DownloadGate, DOWNLOAD_IS_PAID, DOWNLOAD_CHECK_FAILED } from '../components/DownloadAccess.jsx';
 
-beforeAll(() => { globalThis.IS_REACT_ACT_ENVIRONMENT = true; });
+beforeAll(() => {
+  globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+});
 
-const flush = () => act(async () => { await new Promise((r) => setTimeout(r, 0)); });
+const flush = () =>
+  act(async () => {
+    await new Promise((r) => setTimeout(r, 0));
+  });
 
 const clientWith = (answer) => {
   const calls = [];
@@ -62,9 +73,24 @@ describe('what is for sale comes from the server, never assumed', () => {
     expect(await readDownloadOffers({ fetchImpl: f })).toEqual({ plus: false, pass: false });
   });
   it('the SPA shell, an error or a throw all read as nothing for sale', async () => {
-    expect(await readDownloadOffers({ fetchImpl: async () => ({ ok: true, json: async () => { throw new Error('html'); } }) })).toEqual({ plus: false, pass: false });
+    expect(
+      await readDownloadOffers({
+        fetchImpl: async () => ({
+          ok: true,
+          json: async () => {
+            throw new Error('html');
+          },
+        }),
+      })
+    ).toEqual({ plus: false, pass: false });
     expect(await readDownloadOffers({ fetchImpl: async () => jsonRes({}, false, 503) })).toEqual({ plus: false, pass: false });
-    expect(await readDownloadOffers({ fetchImpl: async () => { throw new Error('down'); } })).toEqual({ plus: false, pass: false });
+    expect(
+      await readDownloadOffers({
+        fetchImpl: async () => {
+          throw new Error('down');
+        },
+      })
+    ).toEqual({ plus: false, pass: false });
   });
 });
 
@@ -141,7 +167,8 @@ describe('the gate on screen', () => {
   it('a free account without it: the paid line, and with checkout closed, no buy button and the honest note', async () => {
     const client = clientWith({ data: [], error: null });
     const { container, root } = render({ signedIn: true, client, fetchImpl: async () => jsonRes({ subscriptions: [], books: [] }) });
-    await flush(); await flush();
+    await flush();
+    await flush();
     expect(container.querySelector('[data-testid="the-download"]')).toBeNull();
     expect(container.textContent).toContain(DOWNLOAD_IS_PAID);
     expect(container.querySelector('[data-testid="download-buy-pass"]')).toBeNull();
@@ -157,15 +184,21 @@ describe('the gate on screen', () => {
     Object.defineProperty(window, 'location', { configurable: true, value: { pathname: '/poetech-app/', search: '', assign } });
     const posts = [];
     const fetchImpl = async (url, init = {}) => {
-      if (init.method === 'POST') { posts.push(JSON.parse(init.body)); return jsonRes({ url: 'https://checkout.stripe.com/c/pass' }); }
+      if (init.method === 'POST') {
+        posts.push(JSON.parse(init.body));
+        return jsonRes({ url: 'https://checkout.stripe.com/c/pass' });
+      }
       return jsonRes({ subscriptions: ['poetech-plus'], books: [DOWNLOAD_PASS_ID] });
     };
     const { container, root } = render({ signedIn: true, client, fetchImpl });
-    await flush(); await flush();
+    await flush();
+    await flush();
     expect(container.querySelector('[data-testid="download-get-plus"]')).toBeTruthy();
     const buy = container.querySelector('[data-testid="download-buy-pass"]');
     expect(buy).toBeTruthy();
-    await act(async () => { buy.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+    await act(async () => {
+      buy.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
     await flush();
     expect(posts).toHaveLength(1);
     expect(posts[0]).toMatchObject({ kind: 'book', productId: DOWNLOAD_PASS_ID });
@@ -178,10 +211,13 @@ describe('the gate on screen', () => {
     let owned = [];
     const client = clientWith(() => ({ data: owned.map((p) => ({ product_id: p })), error: null }));
     const { container, root } = render({ signedIn: true, client, fetchImpl: async () => jsonRes({}) });
-    await flush(); await flush();
+    await flush();
+    await flush();
     expect(container.querySelector('[data-testid="the-download"]')).toBeNull();
     owned = [DOWNLOAD_PASS_ID];
-    await act(async () => { container.querySelector('[data-testid="download-recheck"]').dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+    await act(async () => {
+      container.querySelector('[data-testid="download-recheck"]').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
     await flush();
     expect(client.calls).toEqual(['book_entitlements', 'book_entitlements']);
     expect(container.querySelector('[data-testid="the-download"]')).toBeTruthy();
@@ -191,7 +227,8 @@ describe('the gate on screen', () => {
   it('a read that did not answer keeps the door shut and says the check failed, never "unpaid"', async () => {
     const client = clientWith({ data: null, error: { message: 'down' } });
     const { container, root } = render({ signedIn: true, client, fetchImpl: async () => jsonRes({}) });
-    await flush(); await flush();
+    await flush();
+    await flush();
     expect(container.querySelector('[data-testid="the-download"]')).toBeNull();
     expect(container.textContent).toContain(DOWNLOAD_CHECK_FAILED);
     expect(container.textContent).not.toContain(DOWNLOAD_IS_PAID);

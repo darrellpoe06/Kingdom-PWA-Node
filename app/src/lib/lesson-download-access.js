@@ -35,11 +35,11 @@ export const DOWNLOAD_PASS_TITLE = 'PoeTech Lesson Download Pass';
 
 /** The states a download door can be in. */
 export const ACCESS = Object.freeze({
-  SIGN_IN: 'sign-in',          // signed out: the existing free-account prompt
-  CHECKING: 'checking',        // the entitlement read is in flight
-  ALLOWED: 'allowed',          // PoeTech+ (or higher) or the pass is theirs
+  SIGN_IN: 'sign-in', // signed out: the existing free-account prompt
+  CHECKING: 'checking', // the entitlement read is in flight
+  ALLOWED: 'allowed', // PoeTech+ (or higher) or the pass is theirs
   NEEDS_PURCHASE: 'needs-purchase', // the database answered: neither is theirs
-  UNKNOWN: 'unknown',          // the read did not answer: shut, with a retry
+  UNKNOWN: 'unknown', // the read did not answer: shut, with a retry
 });
 
 const asStr = (v) => (typeof v === 'string' ? v : '');
@@ -60,9 +60,7 @@ export function downloadAccess({ signedIn = false, userTier = 'foundation', read
   if (tierAllowsDownloads(userTier)) return ACCESS.ALLOWED;
   if (!read) return ACCESS.CHECKING;
   if (!read.ok) return ACCESS.UNKNOWN;
-  return Array.isArray(read.productIds) && read.productIds.includes(DOWNLOAD_PASS_ID)
-    ? ACCESS.ALLOWED
-    : ACCESS.NEEDS_PURCHASE;
+  return Array.isArray(read.productIds) && read.productIds.includes(DOWNLOAD_PASS_ID) ? ACCESS.ALLOWED : ACCESS.NEEDS_PURCHASE;
 }
 
 /** Read whether the signed-in person owns the pass (RLS returns only their rows). */

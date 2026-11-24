@@ -20,8 +20,13 @@ import { supabase } from '../lib/supabase.js';
 import { PLUS_LABEL, startPlusCheckout, sayCheckoutError } from '../lib/poetech-plus.js';
 import DownloadNeedsAccount from './DownloadNeedsAccount.jsx';
 import {
-  ACCESS, downloadAccess, tierAllowsDownloads, readDownloadPass, readDownloadOffers,
-  startDownloadPassCheckout, sayPassError,
+  ACCESS,
+  downloadAccess,
+  tierAllowsDownloads,
+  readDownloadPass,
+  readDownloadOffers,
+  startDownloadPassCheckout,
+  sayPassError,
 } from '../lib/lesson-download-access.js';
 
 export const DOWNLOAD_IS_PAID = 'Downloading a lesson is part of PoeTech+, or a one-time Download Pass. Reading and ▶ Play stay free for everyone.';
@@ -43,9 +48,15 @@ export function DownloadAccessProvider({ signedIn = false, userTier = 'foundatio
     let alive = true;
     setRead(null);
     Promise.resolve(readDownloadPass(client))
-      .then((r) => { if (alive) setRead(r); })
-      .catch(() => { if (alive) setRead({ ok: false, productIds: [] }); });
-    return () => { alive = false; };
+      .then((r) => {
+        if (alive) setRead(r);
+      })
+      .catch(() => {
+        if (alive) setRead({ ok: false, productIds: [] });
+      });
+    return () => {
+      alive = false;
+    };
   }, [needRead, client, nonce]);
 
   const recheck = useCallback(() => setNonce((n) => n + 1), []);
@@ -71,7 +82,8 @@ export function useDownloadAccess() {
   return useContext(Ctx);
 }
 
-const BTN = 'text-[0.625rem] uppercase tracking-wider px-2.5 py-2 min-h-[44px] border focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] disabled:opacity-60';
+const BTN =
+  'text-[0.625rem] uppercase tracking-wider px-2.5 py-2 min-h-[44px] border focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] disabled:opacity-60';
 const SERIF = { fontFamily: '"Fraunces", serif' };
 
 /** Where a download would be, for a signed-in reader without PoeTech+ or the pass. */
@@ -85,8 +97,12 @@ export function DownloadNeedsPurchase({ label = 'Download', compact = false }) {
   useEffect(() => {
     if (!open || offers) return undefined;
     let alive = true;
-    readDownloadOffers({ fetchImpl }).then((o) => { if (alive) setOffers(o); });
-    return () => { alive = false; };
+    readDownloadOffers({ fetchImpl }).then((o) => {
+      if (alive) setOffers(o);
+    });
+    return () => {
+      alive = false;
+    };
   }, [open, offers, fetchImpl]);
 
   const go = async (start, say) => {
@@ -96,11 +112,17 @@ export function DownloadNeedsPurchase({ label = 'Download', compact = false }) {
     try {
       const { data } = client && client.auth ? await client.auth.getSession() : { data: null };
       token = (data && data.session && data.session.access_token) || '';
-    } catch { token = ''; }
+    } catch {
+      token = '';
+    }
     const loc = typeof window !== 'undefined' ? window.location : {};
     const r = await start({ token, pathname: loc.pathname, search: loc.search, fetchImpl });
     if (r.url) {
-      try { window.location.assign(r.url); } catch { /* the note below still tells the truth */ }
+      try {
+        window.location.assign(r.url);
+      } catch {
+        /* the note below still tells the truth */
+      }
       return;
     }
     setBusy(false);
@@ -138,19 +160,34 @@ export function DownloadNeedsPurchase({ label = 'Download', compact = false }) {
           </span>
           <span className="flex flex-wrap gap-2 mt-2">
             {offers && offers.plus && (
-              <button type="button" disabled={busy} data-testid="download-get-plus" onClick={() => go(startPlusCheckout, sayCheckoutError)}
-                className={`${BTN} bg-[#1A1815] text-white border-[#1A1815] hover:bg-[#B85838]`}>
+              <button
+                type="button"
+                disabled={busy}
+                data-testid="download-get-plus"
+                onClick={() => go(startPlusCheckout, sayCheckoutError)}
+                className={`${BTN} bg-[#1A1815] text-white border-[#1A1815] hover:bg-[#B85838]`}
+              >
                 {busy ? 'Opening checkout…' : `Get ${PLUS_LABEL}`}
               </button>
             )}
             {offers && offers.pass && (
-              <button type="button" disabled={busy} data-testid="download-buy-pass" onClick={() => go(startDownloadPassCheckout, sayPassError)}
-                className={`${BTN} border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white`}>
+              <button
+                type="button"
+                disabled={busy}
+                data-testid="download-buy-pass"
+                onClick={() => go(startDownloadPassCheckout, sayPassError)}
+                className={`${BTN} border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white`}
+              >
                 Buy the Download Pass
               </button>
             )}
-            <button type="button" disabled={busy} data-testid="download-recheck" onClick={recheck}
-              className={`${BTN} border-[#5A5751] text-[#5A5751] hover:bg-[#5A5751] hover:text-white`}>
+            <button
+              type="button"
+              disabled={busy}
+              data-testid="download-recheck"
+              onClick={recheck}
+              className={`${BTN} border-[#5A5751] text-[#5A5751] hover:bg-[#5A5751] hover:text-white`}
+            >
               {unknown ? 'Check again' : 'I already paid: check again'}
             </button>
           </span>
@@ -160,9 +197,15 @@ export function DownloadNeedsPurchase({ label = 'Download', compact = false }) {
             </span>
           )}
           {offers && (offers.plus || offers.pass) && (
-            <span className="block text-[0.6875rem] text-[#5A5751] mt-2" style={SERIF}>Paid securely through Stripe&apos;s own page.</span>
+            <span className="block text-[0.6875rem] text-[#5A5751] mt-2" style={SERIF}>
+              Paid securely through Stripe&apos;s own page.
+            </span>
           )}
-          {note && <span role="status" className="block text-[0.6875rem] text-[#5A5751] mt-2">{note}</span>}
+          {note && (
+            <span role="status" className="block text-[0.6875rem] text-[#5A5751] mt-2">
+              {note}
+            </span>
+          )}
         </span>
       )}
     </span>
