@@ -1,0 +1,72 @@
+{
+  "about": "The animated cut: which animated clip (or approved still) fills each beat, in the order the Word tells it. Clips are Darrell's Runway Gen-4.5 renders (5 s, 1280x720); 'src' is the source window in the clip's own seconds, slowed by motion interpolation to the shot's share of the beat. 'crop' = [zoom from, zoom to, focus x, focus y] for a camera push inside the clip. Weights are scaled to the beat's narration-timed length. Stills use the approved storybook scenes with the same camera and weather as the storybook cut.",
+  "clips": {
+    "joppa": "Jonah 1:3 boarding the ship at Joppa",
+    "storm": "Jonah 1:4-5 the storm on deck, Jonah and the mariners",
+    "sea": "Jonah 1:15 Jonah in the sea; 3.9 s onward cut (he grins, wrong for the moment)",
+    "swallow": "Jonah 1:17 the great fish swallows Jonah; cut at 3.4 s (after that the fish changes shape)",
+    "prayer": "Jonah 2:1-2 Jonah prays inside the fish",
+    "dryland": "Jonah 2:10 Jonah on dry land, the two guides beside him",
+    "nineveh": "Jonah 3:3-4 Jonah at the gate of Nineveh, the crowd",
+    "believe": "Jonah 3:5 the people kneel, Jonah and the guides",
+    "king": "Jonah 3:6 the king of Nineveh in sackcloth"
+  },
+  "beats": {
+    "b1": [
+      { "still": "jonah-1", "w": 13, "cam": [1.18, 1.06, 0.62, 0.5, 0.45, 0.48] },
+      { "clip": "joppa", "src": [0, 5], "w": 10 },
+      { "clip": "joppa", "src": [0.3, 3.3], "w": 7, "crop": [1.5, 1.6, 0.26, 0.32] },
+      { "clip": "joppa", "src": [1.0, 4.2], "w": 7, "crop": [1.45, 1.55, 0.72, 0.62] },
+      { "clip": "joppa", "src": [2.0, 5.0], "w": 6, "crop": [1.0, 1.12, 0.45, 0.45] }
+    ],
+    "b2": [
+      { "clip": "storm", "src": [0, 5], "w": 10 },
+      { "clip": "storm", "src": [0.8, 4.4], "w": 8, "crop": [1.45, 1.6, 0.47, 0.36] },
+      { "still": "jonah-2", "ambience": "storm", "w": 9, "cam": [1.05, 1.2, 0.55, 0.62, 0.5, 0.42] },
+      { "clip": "storm", "src": [0, 3.6], "w": 8, "crop": [1.55, 1.65, 0.22, 0.5] }
+    ],
+    "b3": [
+      { "clip": "storm", "src": [2.6, 5.0], "w": 6, "crop": [1.25, 1.4, 0.55, 0.4] },
+      { "clip": "sea", "src": [0, 3.9], "w": 9 },
+      { "clip": "sea", "src": [1.0, 3.9], "w": 7, "crop": [1.35, 1.5, 0.42, 0.42] }
+    ],
+    "b4": [
+      { "clip": "swallow", "src": [0, 3.4], "w": 7 },
+      { "clip": "swallow", "src": [1.4, 3.4], "w": 5, "crop": [1.25, 1.4, 0.45, 0.5] },
+      { "still": "jonah-3", "ambience": "sea", "w": 5, "cam": [1.02, 1.18, 0.55, 0.7, 0.5, 0.5] }
+    ],
+    "b5": [
+      { "clip": "prayer", "src": [0, 5], "w": 10 },
+      { "clip": "prayer", "src": [1.0, 5.0], "w": 9, "crop": [1.3, 1.45, 0.5, 0.42] },
+      { "still": "jonah-4", "ambience": "underwater", "w": 8, "cam": [1.2, 1.06, 0.5, 0.5, 0.38, 0.48] },
+      { "clip": "prayer", "src": [2.4, 5.0], "w": 8, "crop": [1.6, 1.7, 0.55, 0.4] }
+    ],
+    "b6": [
+      { "clip": "dryland", "src": [0, 5], "w": 10 },
+      { "clip": "dryland", "src": [0, 2.6], "w": 5, "crop": [1.6, 1.7, 0.76, 0.42] }
+    ],
+    "b7": [
+      { "still": "jonah-6", "w": 11, "cam": [1.16, 1.04, 0.6, 0.5, 0.4, 0.48] },
+      { "clip": "nineveh", "src": [0, 5], "w": 10 },
+      { "clip": "nineveh", "src": [0, 2.4], "w": 6, "crop": [1.55, 1.65, 0.18, 0.36] },
+      { "clip": "nineveh", "src": [0.5, 4.5], "w": 8, "crop": [1.45, 1.55, 0.7, 0.6] },
+      { "clip": "nineveh", "src": [2.0, 5.0], "w": 7, "crop": [1.05, 1.15, 0.5, 0.45] }
+    ],
+    "b8": [
+      { "clip": "believe", "src": [0, 5], "w": 9 },
+      { "clip": "believe", "src": [1.0, 5.0], "w": 7, "crop": [1.65, 1.75, 0.17, 0.62] },
+      { "clip": "king", "src": [0, 5], "w": 9 },
+      { "clip": "king", "src": [1.6, 5.0], "w": 7, "crop": [1.45, 1.55, 0.3, 0.38] }
+    ],
+    "b9": [
+      { "still": "jonah-8", "ambience": "morning", "w": 12, "cam": [1.0, 1.14, 0.6, 0.62, 0.45, 0.42] },
+      { "clip": "believe", "src": [2.5, 5.0], "w": 6, "crop": [1.25, 1.35, 0.6, 0.55] }
+    ],
+    "b10": [
+      { "still": "jonah-8b", "ambience": "evening", "w": 22, "cam": [2.3, 2.45, 0.22, 0.2, 0.22, 0.2] },
+      { "still": "jonah-6", "ambience": "evening", "w": 10, "cam": [1.0, 1.12, 0.5, 0.5, 0.5, 0.45] },
+      { "clip": "nineveh", "src": [1.0, 5.0], "w": 8, "crop": [1.35, 1.45, 0.62, 0.62] },
+      { "clip": "believe", "src": [0, 3.2], "w": 7, "crop": [1.65, 1.75, 0.17, 0.62] }
+    ]
+  }
+}

@@ -2,6 +2,11 @@
 """Render a Bible Adventures episode: scenes in motion, narration, music, sound, captions.
 
   python3 render.py <episode.json> <narrationDir|--placeholder> <outDir> [--draft]
+      [--shots=<shots.json> --clips=<dir of <clip>.slow.mp4>]
+
+- With --shots, a scene listed there is cut from animated clips (each slowed by
+  motion interpolation to fill its shot) with the approved stills between them;
+  scenes not listed keep the still-picture camera.
 
 - Every beat is timed to its narration (timings.json from narrate.py); with
   --placeholder the lines are timed from their word count and the voice is
@@ -122,7 +127,9 @@ def thunder_times(dur, n=3):
 def beat_video(b, out, draft):
     scene = SCENES.get(b["scene"], f"{b['scene']}.jpg")
     src = os.path.join(KIDS, scene)
-    z0, z1, x0, x1, y0, y1 = CAMERA.get(b["id"], (1.0, 1.12, 0.5, 0.5, 0.5, 0.5))
+    z0, z1, x0, x1, y0, y1 = b.get("cam") or CAMERA.get(
+        b["id"], (1.0, 1.12, 0.5, 0.5, 0.5, 0.5)
+    )
     d = b["dur"]
     n = round(d * FPS)
     up = 2304 if draft else 2880
@@ -219,6 +226,85 @@ def beat_video(b, out, draft):
     )
 
 
+XS = 0.45  # dissolve between shots inside one scene
+
+
+def clip_shot(sh, dur, clipdir, out, draft):
+    """One shot cut from an animated clip: the source window, slowed by motion
+    interpolation (<clip>.slow.mp4 is the clip at half speed, 30 fps) to fill the
+    shot, with an optional slow camera push inside the frame."""
+    t0, t1 = sh["src"]
+    a, b = 2 * t0, 2 * t1
+    f = dur / max(b - a, 0.1)
+    n = round(dur * FPS)
+    g = (
+        f"[0:v]trim=start={a}:end={b},setpts=(PTS-STARTPTS)*{f:.5f},fps={FPS},"
+        f"tpad=stop_mode=clone:stop_duration=1,trim=duration={dur},setpts=PTS-STARTPTS,"
+    )
+    if sh.get("crop"):
+        z0, z1, cx, cy = sh["crop"]
+        p = f"(0.5-0.5*cos(PI*on/{max(n - 1, 1)}))"
+        z = f"({z0}+({z1}-{z0})*{p})"
+        g += (
+            f"scale=2560:1440:flags=lanczos,zoompan=z='{z}':d=1:s={W}x{H}:fps={FPS}"
+            f":x='max(0,min(iw-iw/zoom,{cx}*iw-iw/zoom/2))':y='max(0,min(ih-ih/zoom,{cy}*ih-ih/zoom/2))',"
+        )
+    else:
+        g += f"scale={W}:{H}:flags=lanczos,"
+    g += "unsharp=5:5:0.5,eq=saturation=1.04,format=yuv420p,vignette=angle=PI/6,format=yuv420p[v]"
+    src = os.path.join(clipdir, f"{sh['clip']}.slow.mp4")
+    run(
+        ["ffmpeg", "-y", "-loglevel", "error", "-i", src, "-filter_complex", g]
+        + ["-map", "[v]", "-r", str(FPS), "-c:v", "libx264", "-preset", "ultrafast"]
+        + ["-crf", "20" if draft else "14", "-pix_fmt", "yuv420p", out]
+    )
+
+
+def xfade_join(parts, durs, out, xs, trans="dissolve"):
+    if len(parts) == 1:
+        shutil.copyfile(parts[0], out)
+        return
+    args = ["ffmpeg", "-y", "-loglevel", "error"]
+    for s in parts:
+        args += ["-i", s]
+    g, last, off = [], "0:v", 0.0
+    for k in range(1, len(parts)):
+        off += durs[k - 1] - xs
+        g.append(
+            f"[{last}][{k}:v]xfade=transition={trans}:duration={xs}:offset={off:.3f}[x{k}]"
+        )
+        last = f"x{k}"
+    args += ["-filter_complex", ";".join(g), "-map", f"[{last}]"]
+    args += ["-c:v", "libx264", "-preset", "ultrafast", "-crf", "14"]
+    args += ["-pix_fmt", "yuv420p", out]
+    run(args)
+
+
+def shot_beat(b, shots, clipdir, out, draft):
+    """A scene built from several shots (animated clips first, approved stills
+    between), the shot lengths scaled to the narration-timed scene length."""
+    k = len(shots)
+    total_w = sum(s["w"] for s in shots)
+    room = b["dur"] + XS * (k - 1)
+    durs = [round(room * s["w"] / total_w, 3) for s in shots]
+    parts = []
+    for i, (sh, d) in enumerate(zip(shots, durs, strict=True)):
+        p = f"{out}.s{i}.mp4"
+        if "clip" in sh:
+            clip_shot(sh, d, clipdir, p, draft)
+        else:
+            still = {
+                "id": f"{b['id']}-s{i}",
+                "scene": sh["still"],
+                "ambience": sh.get("ambience", b["ambience"]),
+                "dur": d,
+                "cam": sh.get("cam"),
+            }
+            beat_video(still, p, draft)
+        parts.append(p)
+    xfade_join(parts, durs, out, XS)
+
+
 def chain(segs, beats, out):
     if len(segs) == 1:  # one scene: nothing to cross-fade
         shutil.copyfile(segs[0], out)
@@ -229,11 +315,7 @@ def chain(segs, beats, out):
     g, last = [], "0:v"
     for k in range(1, len(segs)):
         off = beats[k]["start"]
-        trans = (
-            "fade"
-            if k in (1, len(segs) - 1)
-            else ("dissolve" if k % 2 else "smoothleft")
-        )
+        trans = "fade" if k in (1, len(segs) - 1) else "dissolve"
         g.append(
             f"[{last}][{k}:v]xfade=transition={trans}:duration={XF}:offset={off}[x{k}]"
         )
@@ -381,11 +463,19 @@ def main():
     os.makedirs(outd, exist_ok=True)
     work = os.path.join(outd, ".work")
     os.makedirs(work, exist_ok=True)
+    arg = {a.split("=", 1)[0]: a.split("=", 1)[1] for a in sys.argv if "=" in a}
+    shots = {}
+    if "--shots" in arg:
+        with open(arg["--shots"]) as fh:
+            shots = json.load(fh)["beats"]
     segs = []
     for b in beats:
         s = os.path.join(work, f"{b['id']}.mp4")
         if not ("--reuse" in sys.argv and os.path.exists(s)):
-            beat_video(b, s, draft)
+            if b["id"] in shots:
+                shot_beat(b, shots[b["id"]], arg["--clips"], s, draft)
+            else:
+                beat_video(b, s, draft)
         segs.append(s)
         print(f"beat {b['id']:6s} {b['dur']:6.2f}s  scene={b['scene']}", flush=True)
     vid = os.path.join(work, "video.mp4")
