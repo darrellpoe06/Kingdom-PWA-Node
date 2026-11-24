@@ -3118,6 +3118,21 @@
       "notes": "Darrell, spoken: how can someone be good and do nothing at the same time?"
     },
     {
+      "id": "dr-1627-app-map",
+      "date": "2026-11-24",
+      "task": "A map of where you can go in every app: one searchable sheet mounted in PoeTech, Poe Properties, Moore Divahs and TLC",
+      "drs": [
+        "DR-1627"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.5,
+      "estimateWithoutAiHours": 6,
+      "notes": ""
+    },
+    {
       "id": "ledger-rows-placed",
       "date": "2026-11-19",
       "task": "INDEX rows placed off the tail (scripts/index-row.mjs) and tail guards for INDEX and the usage ledger; merge=union tested on GitHub and refuted; placed rows proven to merge on two throwaway PRs",
