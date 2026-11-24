@@ -7,6 +7,7 @@
 // =============================================================================
 import process from 'node:process';
 import { ProviderError } from '../lib/limits.mjs';
+import { COPY_SCHEMA } from '../lib/prompts.mjs';
 
 async function readError(res) {
   let body = '';
@@ -14,7 +15,14 @@ async function readError(res) {
   return new ProviderError(`HTTP ${res.status}: ${body}`, { status: res.status });
 }
 
-export function anthropicText({ apiKey = process.env.ANTHROPIC_API_KEY, model = process.env.LEARN_TEXT_MODEL || 'claude-haiku-5-5', maxTokens = 1200, costCents = 1, fetchImpl = globalThis.fetch } = {}) {
+// STRUCTURED OUTPUT (pilot 1, 2026-11-24: 10 of 20 answers had no JSON object).
+// The model is FORCED to answer through one tool whose input schema is the
+// copy object, so the answer is a parsed object, never prose to search. The
+// object is re-serialized for parseCopy, which still validates every key.
+// A reply cut off at max_tokens is a retryable fault, never "needs review".
+const COPY_TOOL = { name: 'lesson_copy', description: 'Return the promotional copy for this lesson.', input_schema: COPY_SCHEMA };
+
+export function anthropicText({ apiKey = process.env.ANTHROPIC_API_KEY, model = process.env.LEARN_TEXT_MODEL || 'claude-haiku-5-5', maxTokens = 2048, costCents = 1, fetchImpl = globalThis.fetch } = {}) {
   if (!apiKey) throw new ProviderError('anthropic: ANTHROPIC_API_KEY is not set — refusing to run (no key, no spend).', { retryable: false });
   return {
     name: 'anthropic',
@@ -24,11 +32,13 @@ export function anthropicText({ apiKey = process.env.ANTHROPIC_API_KEY, model = 
         method: 'POST',
         signal,
         headers: { 'content-type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
-        body: JSON.stringify({ model, max_tokens: maxTokens, system, messages: [{ role: 'user', content: user }] }),
+        body: JSON.stringify({ model, max_tokens: maxTokens, system, tools: [COPY_TOOL], tool_choice: { type: 'tool', name: COPY_TOOL.name }, messages: [{ role: 'user', content: user }] }),
       });
       if (!res.ok) throw await readError(res);
       const j = await res.json();
-      const text = (j.content || []).filter((c) => c.type === 'text').map((c) => c.text).join('');
+      if (j.stop_reason === 'max_tokens') throw new ProviderError(`anthropic: answer truncated at ${maxTokens} tokens`, { retryable: true });
+      const tool = (j.content || []).find((c) => c.type === 'tool_use' && c.name === COPY_TOOL.name);
+      const text = tool && tool.input && typeof tool.input === 'object' ? JSON.stringify(tool.input) : (j.content || []).filter((c) => c.type === 'text').map((c) => c.text).join('');
       return { text, model, costCents };
     },
   };

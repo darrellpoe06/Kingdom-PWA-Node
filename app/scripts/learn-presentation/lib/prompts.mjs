@@ -68,18 +68,35 @@ export function userPrompt({ lesson, course, department, originalTitle, feedback
   return parts.filter(Boolean).join('\n\n');
 }
 
-const KEYS = ['displayTitle', 'thumbHeadline', 'promoDescription', 'imagePrompt', 'imageAlt'];
+export const KEYS = ['displayTitle', 'thumbHeadline', 'promoDescription', 'imagePrompt', 'imageAlt'];
+
+/** The structured-output contract: the provider is FORCED to return exactly this object. */
+export const COPY_SCHEMA = {
+  type: 'object',
+  properties: Object.fromEntries(KEYS.map((k) => [k, { type: 'string', minLength: 1 }])),
+  required: KEYS,
+  additionalProperties: false,
+};
+
+/** A model answer that could not be read as the copy object: a retryable fault, not an editorial one. */
+export class CopyParseError extends Error {
+  constructor(message, opts) {
+    super(message, opts);
+    this.name = 'CopyParseError';
+  }
+}
+export const isParseFault = (msg) => /^(no JSON object in model output|invalid JSON|missing or empty|truncated)/.test(String(msg || ''));
 
 /** Parse the model's answer. Tolerates a fenced block; demands every key as a non-empty string. */
 export function parseCopy(raw) {
   const s = String(raw || '').trim();
   const start = s.indexOf('{');
   const end = s.lastIndexOf('}');
-  if (start < 0 || end <= start) throw new Error('no JSON object in model output');
+  if (start < 0 || end <= start) throw new CopyParseError('no JSON object in model output');
   let obj;
-  try { obj = JSON.parse(s.slice(start, end + 1)); } catch (e) { throw new Error(`invalid JSON: ${e.message}`, { cause: e }); }
+  try { obj = JSON.parse(s.slice(start, end + 1)); } catch (e) { throw new CopyParseError(`invalid JSON: ${e.message}`, { cause: e }); }
   for (const k of KEYS) {
-    if (typeof obj[k] !== 'string' || !obj[k].trim()) throw new Error(`missing or empty "${k}"`);
+    if (typeof obj[k] !== 'string' || !obj[k].trim()) throw new CopyParseError(`missing or empty "${k}"`);
     obj[k] = obj[k].trim();
   }
   return Object.fromEntries(KEYS.map((k) => [k, obj[k]]));

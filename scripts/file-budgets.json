@@ -345,6 +345,13 @@
       "why": "A 1099 worker's work orders on every door (DR-1594) are their own files (MyWorkOrders.jsx, lib/assigned-work.js); the shell pays only its wiring: two imports, the list's state and its read, the worker-by-assignment role line, and the card's three render lines. Raised to the measured size, not above it."
     },
     {
+      "file": "app/src/modules/properties/PropertiesApp.jsx",
+      "from": 2693,
+      "to": 2695,
+      "date": "2026-11-24",
+      "why": "The door's menu (DR-1627) is its own files (shell/DoorMapButton.jsx, shell/AppMapSheet.jsx, lib/app-map.js); the module pays only its wiring, because the tab state lives here: one import and one line in the tab row. Raised to the measured size, not above it."
+    },
+    {
       "file": "app/src/lib/sovereign-ai-class.js",
       "from": 13372,
       "to": 13589,
@@ -471,7 +478,7 @@
     "app/src/components/ChurchLearn.jsx": 6012,
     "app/src/modules/properties/DoorTabs.jsx": 3352,
     "app/src/components/Rentals.jsx": 3220,
-    "app/src/modules/properties/PropertiesApp.jsx": 2693,
+    "app/src/modules/properties/PropertiesApp.jsx": 2695,
     "app/src/components/TTSControl.jsx": 2630,
     "app/src/lib/cameras.js": 2029,
     "app/src/lib/godhead-study.js": 1993,
