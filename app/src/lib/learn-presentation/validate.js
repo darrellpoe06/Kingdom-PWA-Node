@@ -9,8 +9,16 @@
 // lesson. Returns { errors, warnings } as arrays of { lessonId, code, detail }.
 // =============================================================================
 
-const words = (s) => String(s || '').trim().split(/\s+/).filter(Boolean);
-const norm = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+const words = (s) =>
+  String(s || '')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+const norm = (s) =>
+  String(s || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
 
 // Phrases that promise what no lesson can deliver. A title may ask; it may not guarantee.
 const OVERPROMISE = /\b(guaranteed?|instantly|secret (?:they|nobody)|you won'?t believe|never fail|get rich quick|100%)\b/i;
@@ -32,7 +40,10 @@ export function validateRecords(records, courses) {
   for (const r of Array.isArray(records) ? records : []) {
     const id = r && r.lessonId;
     const lesson = lessonById.get(`${r.courseKey}::${id}`);
-    if (!lesson) { err(id, 'no-such-lesson', `${r.courseKey}::${id} is not a mounted lesson`); continue; }
+    if (!lesson) {
+      err(id, 'no-such-lesson', `${r.courseKey}::${id} is not a mounted lesson`);
+      continue;
+    }
     if (r.originalTitleAtApproval !== lesson.title) err(id, 'original-title-drift', `record has "${r.originalTitleAtApproval}", lesson has "${lesson.title}"`);
     const dt = String(r.displayTitle || '').trim();
     const hl = String(r.thumbHeadline || '').trim();
@@ -44,16 +55,26 @@ export function validateRecords(records, courses) {
     const origLead = norm(String(lesson.title).split(/[—:-]/)[0]);
     if (hl && origLead && norm(hl) === origLead) err(id, 'headline-is-original', 'the thumbnail headline must not be the original title');
     if (hl && dt && norm(hl) === norm(dt)) warn(id, 'headline-repeats-title', 'headline and display title should complement, not repeat');
-    for (const [field, text] of [['displayTitle', dt], ['thumbHeadline', hl], ['promoDescription', r.promoDescription]]) {
+    for (const [field, text] of [
+      ['displayTitle', dt],
+      ['thumbHeadline', hl],
+      ['promoDescription', r.promoDescription],
+    ]) {
       if (/\bGod\b/.test(String(text || ''))) err(id, 'generic-god', `${field}: our authored voice names Yahweh (CLAUDE.md, DR-0210)`);
       if (OVERPROMISE.test(String(text || ''))) err(id, 'overpromise', `${field}: "${text}"`);
     }
     if (!r.visual || !String(r.visual.alt || '').trim()) err(id, 'no-alt-text', 'every thumbnail needs an accessible description');
     if (r.image && !r.image.src) err(id, 'image-without-src', '');
     const kt = norm(dt);
-    if (kt) { if (seenTitle.has(kt)) err(id, 'duplicate-display-title', `same as ${seenTitle.get(kt)}`); else seenTitle.set(kt, id); }
+    if (kt) {
+      if (seenTitle.has(kt)) err(id, 'duplicate-display-title', `same as ${seenTitle.get(kt)}`);
+      else seenTitle.set(kt, id);
+    }
     const kh = norm(hl);
-    if (kh) { if (seenHeadline.has(kh)) warn(id, 'duplicate-headline', `same as ${seenHeadline.get(kh)}`); else seenHeadline.set(kh, id); }
+    if (kh) {
+      if (seenHeadline.has(kh)) warn(id, 'duplicate-headline', `same as ${seenHeadline.get(kh)}`);
+      else seenHeadline.set(kh, id);
+    }
   }
   return { errors, warnings };
 }

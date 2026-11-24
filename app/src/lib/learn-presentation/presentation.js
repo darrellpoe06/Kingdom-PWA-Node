@@ -28,13 +28,30 @@ import { lessonDuration, spokenMinutes, formatDuration } from '../course-duratio
 export const STUDIO_FLAG_KEY = 'poe-learn-studio';
 export function isLearnStudioOn({ search = null, storage = null } = {}) {
   let store = storage;
-  try { if (!store && typeof window !== 'undefined') store = window.localStorage; } catch { store = null; }
   try {
-    const q = search != null ? search : (typeof window !== 'undefined' && window.location ? window.location.search : '');
+    if (!store && typeof window !== 'undefined') store = window.localStorage;
+  } catch {
+    store = null;
+  }
+  try {
+    const q = search != null ? search : typeof window !== 'undefined' && window.location ? window.location.search : '';
     const v = new URLSearchParams(q || '').get('learnStudio');
-    if (v === '1' || v === '0') { try { store && store.setItem(STUDIO_FLAG_KEY, v); } catch { /* no storage */ } return v === '1'; }
-  } catch { /* no URL */ }
-  try { return !!store && store.getItem(STUDIO_FLAG_KEY) === '1'; } catch { return false; }
+    if (v === '1' || v === '0') {
+      try {
+        store && store.setItem(STUDIO_FLAG_KEY, v);
+      } catch {
+        /* no storage */
+      }
+      return v === '1';
+    }
+  } catch {
+    /* no URL */
+  }
+  try {
+    return !!store && store.getItem(STUDIO_FLAG_KEY) === '1';
+  } catch {
+    return false;
+  }
 }
 
 /** Statuses a learner may see. Draft and review stay in the admin dashboard. */
@@ -96,7 +113,9 @@ export function listenDuration(lesson) {
   try {
     const words = lessonDuration(lesson).spokenWords;
     return words > 0 ? formatDuration(spokenMinutes(words, 1)) : null;
-  } catch { return null; }
+  } catch {
+    return null;
+  }
 }
 
 /** A lesson is labeled as video only when it carries a playable video source. */
@@ -131,7 +150,10 @@ export function studioHome(courses, index, { places = [], progress = {}, preview
   const featuredAll = presented.filter((x) => x.p.featured).sort((a, b) => a.p.featuredOrder - b.p.featuredOrder);
   const featured = featuredAll[0] || null;
   const continueLearning = (Array.isArray(places) ? places : [])
-    .map((pl) => { const x = byId.get(`${pl.courseKey}::${pl.lessonId}`); return x ? { ...x, reached: placeReached(pl) } : null; })
+    .map((pl) => {
+      const x = byId.get(`${pl.courseKey}::${pl.lessonId}`);
+      return x ? { ...x, reached: placeReached(pl) } : null;
+    })
     .filter(Boolean)
     .slice(0, 12);
   const recentlyAdded = presented
@@ -165,9 +187,17 @@ export function studioHome(courses, index, { places = [], progress = {}, preview
 
 /** Lessons whose display title, headline, description or original title match. Original titles always match. */
 export function searchPresented(courses, index, query, { preview = false } = {}) {
-  const q = String(query || '').trim().toLowerCase();
+  const q = String(query || '')
+    .trim()
+    .toLowerCase();
   if (!q) return [];
   return allLessons(courses)
     .map(({ lesson, course }) => ({ lesson, course, p: presentLesson(lesson, course, index, { preview }) }))
-    .filter(({ p }) => [p.originalTitle, p.displayTitle, p.thumbHeadline, p.promoDescription, p.courseTitle, p.department, p.number != null ? String(p.number) : ''].some((s) => String(s || '').toLowerCase().includes(q)));
+    .filter(({ p }) =>
+      [p.originalTitle, p.displayTitle, p.thumbHeadline, p.promoDescription, p.courseTitle, p.department, p.number != null ? String(p.number) : ''].some((s) =>
+        String(s || '')
+          .toLowerCase()
+          .includes(q)
+      )
+    );
 }

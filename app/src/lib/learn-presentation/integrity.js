@@ -117,13 +117,27 @@ export function compareSnapshots(base, now) {
   const key = (l) => `${l.course}::${l.id}`;
   const nowBy = new Map(now.lessons.map((l) => [key(l), l]));
   const baseBy = new Map(base.lessons.map((l) => [key(l), l]));
-  const out = { removed: [], retitled: [], rewritten: [], moved: [], versionsLost: [], versionsChanged: [], added: [], coursesRemoved: [], coursesRedepartmented: [] };
+  const out = {
+    removed: [],
+    retitled: [],
+    rewritten: [],
+    moved: [],
+    versionsLost: [],
+    versionsChanged: [],
+    added: [],
+    coursesRemoved: [],
+    coursesRedepartmented: [],
+  };
   for (const b of base.lessons) {
     const n = nowBy.get(key(b));
-    if (!n) { out.removed.push(key(b)); continue; }
+    if (!n) {
+      out.removed.push(key(b));
+      continue;
+    }
     if (n.title !== b.title) out.retitled.push({ id: key(b), was: b.title, now: n.title });
     if (n.contentSha !== b.contentSha) out.rewritten.push(key(b));
-    if (n.position !== b.position || n.department !== b.department) out.moved.push({ id: key(b), was: [b.department, b.position], now: [n.department, n.position] });
+    if (n.position !== b.position || n.department !== b.department)
+      out.moved.push({ id: key(b), was: [b.department, b.position], now: [n.department, n.position] });
     for (const [v, sha] of Object.entries(b.versions || {})) {
       if (!(v in (n.versions || {}))) out.versionsLost.push(`${key(b)}#${v}`);
       else if (n.versions[v] !== sha) out.versionsChanged.push(`${key(b)}#${v}`);

@@ -23,7 +23,10 @@ const READY = existsSync(join(DIR, 'node_modules/sharp'));
 if (!READY) console.warn('[learn-thumbs] SKIPPED: run `npm ci` in app/scripts/learn-thumbs to test the compositor.');
 
 describe.skipIf(!READY)('learn-thumbs compositor', () => {
-  let compose; let dh; let sharp; let out;
+  let compose;
+  let dh;
+  let sharp;
+  let out;
 
   const scene = async (a, b, cx = 0.7, w = 1920, h = 1080) => {
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}"><defs><radialGradient id="g" cx="${cx}" cy="0.45" r="0.7"><stop offset="0" stop-color="${b}"/><stop offset="1" stop-color="${a}"/></radialGradient></defs><rect width="${w}" height="${h}" fill="url(#g)"/><circle cx="${w * cx}" cy="${h / 2}" r="${h / 4}" fill="#000" fill-opacity="0.4"/><rect x="${w * 0.1}" y="${h * 0.7}" width="${w * 0.3}" height="${h * 0.12}" fill="#fff" fill-opacity="0.3"/></svg>`;
@@ -37,7 +40,9 @@ describe.skipIf(!READY)('learn-thumbs compositor', () => {
     ({ default: sharp } = await import(/* @vite-ignore */ pathToFileURL(join(DIR, 'node_modules/sharp/lib/index.js')).href));
     out = await mkdtemp(join(tmpdir(), 'learn-thumbs-'));
   });
-  afterAll(async () => { if (out) await rm(out, { recursive: true, force: true }); });
+  afterAll(async () => {
+    if (out) await rm(out, { recursive: true, force: true });
+  });
 
   it('renders the headline in Anton, not a fallback face', async () => {
     const r = await compose.assertAntonRenders();
@@ -58,10 +63,21 @@ describe.skipIf(!READY)('learn-thumbs compositor', () => {
 
   it('writes every derivative, the 1280×720 share image and a manifest the presentation record can use', async () => {
     const master = await scene('#1b2a3a', '#d8913a');
-    const m = await compose.composeLesson({ image: master, courseKey: 'living-lessons', lessonId: 'll338-not-with-eyeservice', thumbHeadline: "NOBODY'S WATCHING", layout: 'left', department: 'Living Lessons', outDir: out });
+    const m = await compose.composeLesson({
+      image: master,
+      courseKey: 'living-lessons',
+      lessonId: 'll338-not-with-eyeservice',
+      thumbHeadline: "NOBODY'S WATCHING",
+      layout: 'left',
+      department: 'Living Lessons',
+      outDir: out,
+    });
     const dir = join(out, 'living-lessons', 'll338-not-with-eyeservice');
     const files = (await readdir(dir)).sort();
-    for (const w of compose.WIDTHS) { expect(files).toContain(`w${w}.avif`); expect(files).toContain(`w${w}.webp`); }
+    for (const w of compose.WIDTHS) {
+      expect(files).toContain(`w${w}.avif`);
+      expect(files).toContain(`w${w}.webp`);
+    }
     expect(files).toEqual(expect.arrayContaining(['master.png', 'og.jpg', 'manifest.json']));
 
     const og = await sharp(join(dir, 'og.jpg')).metadata();
@@ -84,13 +100,19 @@ describe.skipIf(!READY)('learn-thumbs compositor', () => {
 
   it('the app derivatives stay text-free: they match the master, the share image does not', async () => {
     const master = await scene('#2a1408', '#f2a541', 0.75);
-    const m = await compose.composeLesson({ image: master, courseKey: 'living-lessons', lessonId: 'll332-give-me-this-mountain', thumbHeadline: "IT'S NOT TOO LATE", outDir: out });
+    const m = await compose.composeLesson({
+      image: master,
+      courseKey: 'living-lessons',
+      lessonId: 'll332-give-me-this-mountain',
+      thumbHeadline: "IT'S NOT TOO LATE",
+      outDir: out,
+    });
     const dir = join(out, 'living-lessons', 'll332-give-me-this-mountain');
     const plain = await sharp(master).resize(1280, 720, { fit: 'cover', position: 'attention' }).greyscale().resize(64, 36).raw().toBuffer();
     const deriv = await sharp(join(dir, 'w1280.webp')).greyscale().resize(64, 36).raw().toBuffer();
     const ogPx = await sharp(join(dir, 'og.jpg')).greyscale().resize(64, 36).raw().toBuffer();
     const meanDiff = (a, b) => a.reduce((t, v, i) => t + Math.abs(v - b[i]), 0) / a.length;
-    expect(meanDiff(plain, deriv)).toBeLessThan(4);   // only encoding noise
+    expect(meanDiff(plain, deriv)).toBeLessThan(4); // only encoding noise
     expect(meanDiff(plain, ogPx)).toBeGreaterThan(8); // the headline and gradient are there
     expect(m.headline.fontSize).toBeGreaterThanOrEqual(140);
   });
@@ -103,15 +125,24 @@ describe.skipIf(!READY)('learn-thumbs compositor', () => {
     expect(await dh.dHash(Buffer.from(a))).toBe(ha);
     expect(dh.hamming(ha, await dh.dHash(small))).toBeLessThanOrEqual(5);
     expect(dh.hamming(ha, await dh.dHash(b))).toBeGreaterThan(dh.NEAR_DUPLICATE_MAX);
-    expect(dh.nearDuplicates([{ id: 'a', dhash: ha }, { id: 'a2', dhash: await dh.dHash(small) }, { id: 'b', dhash: await dh.dHash(b) }]).map((p) => `${p.a}~${p.b}`)).toEqual(['a~a2']);
+    expect(
+      dh
+        .nearDuplicates([
+          { id: 'a', dhash: ha },
+          { id: 'a2', dhash: await dh.dHash(small) },
+          { id: 'b', dhash: await dh.dHash(b) },
+        ])
+        .map((p) => `${p.a}~${p.b}`)
+    ).toEqual(['a~a2']);
   });
 
   it('a corrupt picture fails cleanly and leaves the previous output exactly as it was', async () => {
     const dir = join(out, 'living-lessons', 'll338-not-with-eyeservice');
     const before = await readFile(join(dir, 'manifest.json'), 'utf8');
     const bad = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.from('not really a png')]);
-    await expect(compose.composeLesson({ image: bad, courseKey: 'living-lessons', lessonId: 'll338-not-with-eyeservice', thumbHeadline: 'X Y', outDir: out }))
-      .rejects.toMatchObject({ name: 'ComposeError', code: 'corrupt-image' });
+    await expect(
+      compose.composeLesson({ image: bad, courseKey: 'living-lessons', lessonId: 'll338-not-with-eyeservice', thumbHeadline: 'X Y', outDir: out })
+    ).rejects.toMatchObject({ name: 'ComposeError', code: 'corrupt-image' });
     expect(await readFile(join(dir, 'manifest.json'), 'utf8')).toBe(before);
     const leftovers = (await readdir(join(out, 'living-lessons'))).filter((f) => f.startsWith('.'));
     expect(leftovers).toEqual([]);
@@ -119,10 +150,18 @@ describe.skipIf(!READY)('learn-thumbs compositor', () => {
 
   it('rejects unsafe paths and missing inputs before touching the disk', async () => {
     const img = await scene('#000', '#555');
-    await expect(compose.composeLesson({ image: img, courseKey: '../etc', lessonId: 'x', thumbHeadline: 'A B', outDir: out })).rejects.toMatchObject({ code: 'bad-input' });
-    await expect(compose.composeLesson({ image: img, courseKey: 'c', lessonId: 'x', thumbHeadline: '', outDir: out })).rejects.toMatchObject({ code: 'bad-input' });
-    await expect(compose.composeLesson({ image: img, courseKey: 'c', lessonId: 'x', thumbHeadline: 'A B', layout: 'middle', outDir: out })).rejects.toMatchObject({ code: 'bad-input' });
+    await expect(compose.composeLesson({ image: img, courseKey: '../etc', lessonId: 'x', thumbHeadline: 'A B', outDir: out })).rejects.toMatchObject({
+      code: 'bad-input',
+    });
+    await expect(compose.composeLesson({ image: img, courseKey: 'c', lessonId: 'x', thumbHeadline: '', outDir: out })).rejects.toMatchObject({
+      code: 'bad-input',
+    });
+    await expect(
+      compose.composeLesson({ image: img, courseKey: 'c', lessonId: 'x', thumbHeadline: 'A B', layout: 'middle', outDir: out })
+    ).rejects.toMatchObject({ code: 'bad-input' });
     const missing = join(out, 'nope.png');
-    await expect(compose.composeLesson({ image: missing, courseKey: 'c', lessonId: 'x', thumbHeadline: 'A B', outDir: out })).rejects.toMatchObject({ code: 'read-failed' });
+    await expect(compose.composeLesson({ image: missing, courseKey: 'c', lessonId: 'x', thumbHeadline: 'A B', outDir: out })).rejects.toMatchObject({
+      code: 'read-failed',
+    });
   });
 });
