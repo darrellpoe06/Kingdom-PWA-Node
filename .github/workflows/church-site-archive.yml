@@ -1,6 +1,6 @@
 # church-site-archive — the WITNESS and the walls for what the church office
 # posts (DR-1596, DR-1644). The keeping and the reading moved INTO the NAS
-# (DR-1648, the DR-1360 road: the house initiates): infra/nas-church-archive/
+# (DR-1649, the DR-1360 road: the house initiates): infra/nas-church-archive/
 # install.sh rides the services-sync clock and collects, keeps, reads and files.
 # This runner no longer reaches into the NAS (its tailnet key is retired).
 # witness (dispatch): reads the public site with the app's own parser and prints

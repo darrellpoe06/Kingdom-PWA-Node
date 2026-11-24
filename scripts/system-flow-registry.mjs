@@ -1109,7 +1109,7 @@ const NODES = [
   // services-sync clock; the runner lane above failed daily on an expired key.
   rider('service:church-archive', 'infra/nas-church-archive/install.sh', {
     id: 'church-archive-nas', name: 'Church archive and calendar days (the house keeps and reads)',
-    purpose: 'Every 6 hours on the services-sync clock the NAS reads the church website, keeps each new calendar, letter and flyer, reads each kept calendar and flyer once into dated events and files them on their days, with no runner reaching in (DR-1648, DR-1360).',
+    purpose: 'Every 6 hours on the services-sync clock the NAS reads the church website, keeps each new calendar, letter and flyer, reads each kept calendar and flyer once into dated events and files them on their days, with no runner reaching in (DR-1649, DR-1360).',
     reads: [
       { res: 'nas:clock', token: 'services-sync' },
       { res: 'site:thechurchofthelivinggod.com', token: 'church-site-archive-collect.mjs' },
@@ -1370,7 +1370,7 @@ const NODES = [
   }),
   wf('church-site-archive.yml', {
     id: 'church-site-archive', name: 'Church site archive (witness + walls)',
-    purpose: 'Reads the church website from outside with the app\u2019s own parser and prints what the office has posted; proves 0342 and 0343 on a bare PostgreSQL for a pull request. The keeping and reading run on the NAS (DR-1648).',
+    purpose: 'Reads the church website from outside with the app\u2019s own parser and prints what the office has posted; proves 0342 and 0343 on a bare PostgreSQL for a pull request. The keeping and reading run on the NAS (DR-1649).',
     reads: [{ res: 'site:thechurchofthelivinggod.com', file: 'scripts/church-site-archive-collect.mjs', token: 'SITE_HOST' }],
     writes: [],
     seeds: [],

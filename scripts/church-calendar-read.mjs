@@ -120,7 +120,7 @@ async function main() {
     say('NOT READ: no Anthropic API key is set where this runs. Pictures are still kept; they will be read the first run after one is.');
     return;
   }
-  // The NAS pass sizes itself to fit its rider's time ceiling (DR-1648).
+  // The NAS pass sizes itself to fit its rider's time ceiling (DR-1649).
   const envInt = (name, dflt, lo, hi) => {
     const n = Number(process.env[name]);
     return Number.isInteger(n) && n >= lo && n <= hi ? n : dflt;

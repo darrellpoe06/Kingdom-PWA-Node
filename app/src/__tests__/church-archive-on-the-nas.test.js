@@ -1,6 +1,6 @@
 // @vitest-environment node
 // =============================================================================
-// The NAS keeps and reads the church office's pictures itself (DR-1648).
+// The NAS keeps and reads the church office's pictures itself (DR-1649).
 // infra/nas-church-archive/install.sh is run for real by /bin/sh against a
 // stand-in repo whose five steps are stubs, so its own logic is what is
 // tested: the order of the steps, the 6-hour gate, the lock, the read's
