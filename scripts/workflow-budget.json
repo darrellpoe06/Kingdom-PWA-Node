@@ -249,10 +249,10 @@
     {
       "date": "2026-11-24",
       "from": 23477,
-      "to": 23539,
+      "to": 23537,
       "dr": "DR-0076",
-      "reason": "learn-presentation-prepare.yml (61 lines, folded from 107; its narrative lives in docs/99-session-notes/2026-11-23-learn-presentation-redesign-phase-1-2.md): the only automated road that prepares a title and thumbnail for each newly published lesson, with the three brakes (one spend cap per run, a concurrency group, an OFF switch) and an integrity check before and after. +1 line reconciles main measuring 23478 against 23477 at fecaf8a."
+      "reason": "learn-presentation-prepare.yml (59 lines, folded from 107; dispatch-only until the full library is approved; its narrative lives in docs/99-session-notes/2026-11-23-learn-presentation-redesign-phase-1-2.md): the only automated road that prepares a title and thumbnail for each newly published lesson, with the three brakes (one spend cap per run, a concurrency group, an OFF switch) and an integrity check before and after. +1 line reconciles main measuring 23478 against 23477 at fecaf8a."
     }
   ],
-  "totalLines": 23539
+  "totalLines": 23537
 }

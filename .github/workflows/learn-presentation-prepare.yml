@@ -1,10 +1,8 @@
 # Learn presentation: prepare a title + cinematic thumbnail for each new lesson, for APPROVAL only (never edits a lesson, never publishes).
 # Brakes: one spend cap per run (titles <= 20%), one run at a time, OFF unless vars.LEARN_PRESENTATION_AUTOPREP == 'on'. Detail: docs/99-session-notes/2026-11-23-learn-presentation-redesign-phase-1-2.md
 name: Learn presentation — prepare new lessons
+# Manual (dispatch) only until the owner approves the full library: an automatic run before then would start on the ~974-lesson backlog.
 on:
-  push:
-    branches: [main]
-    paths: ['app/src/lib/living-lessons/**', 'app/src/lib/*-course.js', 'app/src/lib/*-class.js', 'app/src/lib/learn-catalog.js', 'app/src/lib/eternal-algorithms-course.js']
   workflow_dispatch:
     inputs:
       only: { description: '"seed" = the 20-lesson pilot, or comma-separated lesson ids', required: false, default: '' }
