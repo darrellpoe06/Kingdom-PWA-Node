@@ -25,6 +25,7 @@
 // =============================================================================
 import React, { useEffect, useRef, useState } from 'react';
 import { makeEvent, longDate } from '../../lib/church-calendar.js';
+import { motionBehavior } from '../../lib/gentle-motion.js';
 import { parseEventsCsv, notAlreadyThere, eventsToCsv, CSV_TEMPLATE, MAX_FILE_BYTES } from '../../lib/church-calendar-file.js';
 
 // The ring's width and offset; its color is the app's one global ring (index.css :focus-visible), never set here.
@@ -80,7 +81,7 @@ export default function ChurchCalendarTools({
     setSaid({ kind: '', text: '' });
     setTimeout(() => {
       const el = formRef.current;
-      if (el && el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      if (el && el.scrollIntoView) el.scrollIntoView({ behavior: motionBehavior(), block: 'start' });
       const first = el && el.querySelector('[data-testid="church-calendar-add-name"]');
       if (first) first.focus();
     }, 0);
