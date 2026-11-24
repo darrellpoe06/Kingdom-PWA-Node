@@ -193,7 +193,7 @@ function TopicGrid({ topics, covers, onPick }) {
           Explore by Topic
         </h2>
       </header>
-      <div className="ls-topics">
+      <div className="ls-topics ts-grid-collapse">
         {topics.map((t) => {
           const c = covers && covers[t.id];
           return (
