@@ -270,10 +270,17 @@
     {
       "date": "2026-11-24",
       "from": 23584,
-      "to": 23593,
+      "to": 23649,
+      "dr": "DR-1643",
+      "reason": "One new workflow, llm-road-probe.yml (65 lines as the register counts them), dispatch-only and read-only: Ari's road, /llm, is on neither the NAS watchdog's restore list nor the outside witness's list, the sandbox has no route to it, and the repository gives its server the port the installed Scribe service uses. The probe reads which Funnel mounts exist, which ports listen and which one answers /llm/health, so the port is measured before it is written into a script that rewrites the Funnel. A timeout and a concurrency group; nothing is restarted, written or mounted. Raised to the measured total, not above it."
+    },
+    {
+      "date": "2026-11-24",
+      "from": 23649,
+      "to": 23658,
       "dr": "DR-1640",
       "reason": "learn-thumbs-pull: the NAS pulls each Learn picture batch (paid work, ~$58 across the library) before GitHub's artifact clock expires it (DR-1360: the NAS initiates the road). ci.yml +1 runs test_learn_thumbs_pull (token never sent to the blob host, unsafe zip paths and digest mismatches refused). loops-health.yml +8 reads its last-run.json, turns red on a refused artifact, and in diagnosis lists the folder and whether the token file is present; the name rides existing lines in the loops list, install map, cron prefix and heartbeat receipt. Two comment blocks were folded to one line each before raising. Raised to the measured total, not above it."
     }
   ],
-  "totalLines": 23593
+  "totalLines": 23658
 }
