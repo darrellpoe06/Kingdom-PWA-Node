@@ -642,6 +642,23 @@
       "notes": "Measured first commit 18:52:48Z to the rename commit 19:44:28Z on claude/youthful-fermi-16yfq3; the diagnosis was handed to the session already measured, so the reading covers the fix, the gate, its proof suite and three base merges, not the root-cause work. Tokens and dollars null: no meter was exposed to this session. Estimate is this session's own for finding two further latent ties by hand, writing a static-analysis guard with a proof suite, and paying two renumbers."
     },
     {
+      "id": "nas-python38-guard",
+      "date": "2026-11-24",
+      "task": "bg-message-lessons imported datetime.UTC (3.11+) and failed every cycle on the NAS's Python 3.8; fixed, with a required 3.8 CI leg so the class cannot ship again",
+      "drs": [
+        "DR-1648"
+      ],
+      "prs": [
+        2860
+      ],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1,
+      "estimateWithoutAiHours": 6,
+      "notes": "Proven to catch: 10 findings on the pre-fix tree. openers.py was dead on import too."
+    },
+    {
       "id": "voice-answer-is-the-voices",
       "date": "2026-11-18",
       "task": "The reader's voice probe requires the voice's own answer (clone:true or a named engine); the witness names who answered on the public road",
