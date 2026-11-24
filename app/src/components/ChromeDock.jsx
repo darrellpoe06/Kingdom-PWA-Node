@@ -41,6 +41,7 @@ import NetworkStatus from './NetworkStatus.jsx';
 import ArrivalsBell from './ArrivalsBell.jsx';
 import { ChurchGiveDockButton } from './ChurchGiving.jsx';
 import UiIcon from './UiIcon.jsx';
+import { useUpdateReady, loadUpdateNow, UPDATE_READY_WORDS } from '../lib/update-while-reading.js';
 import { useTextSize } from '../lib/text-size.js';
 import { useComfortCollapsed, useInReader } from '../lib/comfort-bar.js';
 import { useDeviceClass } from '../lib/use-device-class.js';
@@ -58,6 +59,7 @@ import {
   DOCK_LABEL,
   scrollPageToTop,
   setDockSlot,
+  markDockMounted,
   useScrolledDeep,
   usePhoneWidth,
   useMoneyPhoneWidth,
@@ -69,6 +71,8 @@ export function DockLabel({ children }) {
 }
 
 export default function ChromeDock({ onFeedback, feedbackOpen = false, church = null, showGive = false, nav = null }) {
+  const updateReady = useUpdateReady();
+  useEffect(() => markDockMounted(), []);
   const [moreOpen, setMoreOpen] = useState(false);
   const [netHealthy, setNetHealthy] = useState(true);
   const deep = useScrolledDeep();
@@ -367,6 +371,28 @@ export default function ChromeDock({ onFeedback, feedbackOpen = false, church = 
               Drawn only while N > 0, so the bar keeps its room otherwise. */}
           {/* On the church door the header's bell never collapses (DR-1483), so the bar carries no second one. */}
           {!churchOnly && <ArrivalsBell variant="dock" />}
+          {/* A NEWER VERSION IS WAITING ON THE READING — SAID HERE, IN THE BAR,
+              NEVER OVER THE WORDS (Darrell 2026-11-24, of the DR-1503 line
+              pinned across the lesson text: "Can't see the reading when a new
+              update is available, find another way to give a notice without
+              undermining the lessons live"). One bar button, drawn only while
+              an update waits; its name carries the whole sentence; the tap is
+              the same loadUpdateNow (stops the reading cleanly, then reloads). */}
+          {updateReady && (
+            <button
+              type="button"
+              onClick={() => loadUpdateNow()}
+              aria-label={UPDATE_READY_WORDS}
+              title={UPDATE_READY_WORDS}
+              data-testid="dock-update-ready"
+              className={`${DOCK_BTN_ON} min-h-[44px] ${FOCUS}`}
+            >
+              <span aria-hidden="true" className={DOCK_ICON}>
+                ↻
+              </span>
+              <DockLabel>Update</DockLabel>
+            </button>
+          )}
           {inReader && !oneRow && (
             <div className="flex items-center gap-[3px] shrink-0" data-testid="dock-reader-row" role="group" aria-label="Reading comfort">
               {comfortButtons}

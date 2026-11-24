@@ -1,7 +1,7 @@
 # DR-1636: A long price wraps below the title, never squeezes it
 
 **Date:** 2026-11-24
-**Status:** Accepted
+**Status:** Superseded before landing by DR-1637 (#2850), which places a sentence-long price under the title; this record keeps the measurement
 **Tier:** A (layout of one card in the Store; no data, no price, no checkout change)
 **Type:** decision
 **Area:** `app/src/components/Storefront.jsx`
@@ -19,6 +19,9 @@ On his screenshot, each PoeTech+ course card ("Sovereign A.I.: Why We Build Loca
 Cause: the card's top row was `flex items-start` with the title column `flex-1` and the price unbounded. A long price takes its full text width before the title column gets any.
 
 ## Decision
+
+Superseded. DR-1637 reached main first with the same rule (a word of price beside the title, a sentence under it), so this branch takes main's `Storefront.jsx` and its own row change is withdrawn in the merge. What follows is what this record would have done, kept because its measurement is the same defect.
+
 
 The row wraps:
 - The title column keeps at least 11 rem (`min-w-[11rem] flex-1`).
