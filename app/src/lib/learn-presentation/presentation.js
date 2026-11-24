@@ -24,9 +24,17 @@ import { courseDepartment, departmentCode, lessonVersions } from '../learn-organ
 import { placeReached } from '../learn-resume.js';
 import { lessonDuration, spokenMinutes, formatDuration } from '../course-duration.js';
 
-/** The flag: off unless this device opted in (?learnStudio=1 / =0, remembered). */
+/**
+ * The flag: an explicit ?learnStudio=1/0 always wins and is remembered,
+ * on any device, forever (web or native). With no explicit choice ever
+ * made, `defaultOn` decides -- ChurchLearn passes the SAME isGovernor
+ * signal that already gates every other owner-only panel in this file,
+ * so the owner sees the preview on first open with no URL at all (the
+ * native app shell has no address bar to type one into), while every
+ * other member defaults off until the owner explicitly turns it on.
+ */
 export const STUDIO_FLAG_KEY = 'poe-learn-studio';
-export function isLearnStudioOn({ search = null, storage = null } = {}) {
+export function isLearnStudioOn({ search = null, storage = null, defaultOn = false } = {}) {
   let store = storage;
   try {
     if (!store && typeof window !== 'undefined') store = window.localStorage;
@@ -48,10 +56,12 @@ export function isLearnStudioOn({ search = null, storage = null } = {}) {
     /* no URL */
   }
   try {
-    return !!store && store.getItem(STUDIO_FLAG_KEY) === '1';
+    const remembered = store && store.getItem(STUDIO_FLAG_KEY);
+    if (remembered === '1' || remembered === '0') return remembered === '1';
   } catch {
-    return false;
+    /* no storage */
   }
+  return defaultOn;
 }
 
 /** Statuses a learner may see. Draft and review stay in the admin dashboard. */
