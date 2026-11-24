@@ -90,6 +90,7 @@ export function LessonLibrary({ door = 'kids', onOpen, onBack, weeklyId = null }
       </label>
       <p className="kz-sub" role="status" data-testid="library-count">
         {q.trim() ? `${rows.length} ${rows.length === 1 ? 'lesson matches' : 'lessons match'}` : `${rows.length} ${a.label} lessons`}
+        {rows.length > shown ? ` · showing the first ${shown}` : ''}
       </p>
       {rows.length === 0 ? (
         <p className="kz-sub" data-testid="library-empty">
@@ -115,9 +116,17 @@ export function LessonLibrary({ door = 'kids', onOpen, onBack, weeklyId = null }
       )}
       <div className="kz-actions">
         {shown < rows.length && (
-          <button type="button" className={`kz-act ${KZ_FOCUS}`} onClick={() => setShown((n) => n + LIBRARY_PAGE)} data-testid="library-more">
-            Show more ({rows.length - shown} left)
-          </button>
+          <>
+            {/* A NAMED COLOR, ALWAYS (DR-1642): a bare kz-act is white words on no
+                background. This button shipped that way and could not be seen, so
+                the page said 337 lessons and showed 24 (Darrell's screen, 2026-11-24). */}
+            <button type="button" className={`kz-act violet ${KZ_FOCUS}`} onClick={() => setShown((n) => n + LIBRARY_PAGE)} data-testid="library-more">
+              Show {Math.min(LIBRARY_PAGE, rows.length - shown)} more
+            </button>
+            <button type="button" className={`kz-act plain ${KZ_FOCUS}`} onClick={() => setShown(rows.length)} data-testid="library-all">
+              Show all {rows.length}
+            </button>
+          </>
         )}
         <button type="button" className={`kz-act plain ${KZ_FOCUS}`} onClick={onBack}>
           ◀ Back
