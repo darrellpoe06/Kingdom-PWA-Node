@@ -40,6 +40,8 @@ Bugs found and fixed on the way: an infinite render loop in LearnStudio (fresh d
 | 3 | 3 samples (LIL2, BUY2, EA) | $0.18 | $1.86 |
 | 4 | 7 lessons + 6 topic covers | $0.78 | $2.64 |
 | 5 | re-package only (cap 0¢; cancelled once the download host was allowed) | $0.00 | $2.64 |
+| 6 | the 10 lessons that kept graded v1 pictures (owner: "still too dark"; "use the paid way") | $0.60 | $3.24 |
+| 7 | HIST2 + PM2 re-made under DR-1640 (cap 15¢) | dispatched | — |
 
 Sample brightness, measured on the real files: mean luma **122 / 152 / 173** (v1 pilot average 37.6); near-black pixels 0–16% (v1 ≈ 60%).
 
