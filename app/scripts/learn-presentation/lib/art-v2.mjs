@@ -179,8 +179,9 @@ export async function runArtV2({
             meter.c += c;
             return r;
           } catch (err) {
-            budget.settle(held, cost);
-            meter.c += cost;
+            const c = err && err.billed === false ? 0 : cost; // refused unprocessed = never billed
+            budget.settle(held, c);
+            meter.c += c;
             throw err;
           }
         },
@@ -207,7 +208,7 @@ export async function runArtV2({
       tally.done += 1;
       log(`art ✓ ${e.id}`);
     } catch (err) {
-      if (err instanceof BudgetExceeded) {
+      if (err instanceof BudgetExceeded || (err && err.outOfCredit)) {
         tally.stoppedByBudget = true;
         ledger.write({ ...base, state: 'queued', attempts: attempts - 1, costCents: prior + meter.c, leaseUntil: null, lastError: err.message });
         log(`budget: ${err.message}`);

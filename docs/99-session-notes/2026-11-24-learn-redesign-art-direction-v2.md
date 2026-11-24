@@ -42,10 +42,18 @@ Bugs found and fixed on the way: an infinite render loop in LearnStudio (fresh d
 | 5 | re-package only (cap 0¢; cancelled once the download host was allowed) | $0.00 | $2.64 |
 | 6 | the 10 lessons that kept graded v1 pictures (owner: "still too dark"; "use the paid way") | $0.60 | $3.24 |
 | 7 | HIST2 + PM2 re-made under DR-1640 (cap 15¢) | $0.12 | **$3.36** |
+| 8 | HIST2 + PM2 re-directed so the inclusive part renders (owner: "redo HIST2 and PM2") | $0.12 | $3.48 |
+| 10 | **Library batch 1** (200 lessons): 197 titles + 3 to review ($2.15); **130 pictures**, then the BFL account ran out (44× HTTP 402 "Insufficient credits", 23× 429 "credit balance is low"); 67 lessons left without a picture | ledger $19.85 | ledger **$23.33** |
 
 Final ledger, read from the run-7 package (digest `a1058e5e…`): 68 jobs, all succeeded: text 48¢, v1 pictures 120¢, v2 lesson pictures 132¢ (22 jobs: 20 lessons + HIST2/PM2 re-made), topic covers 36¢. All 20 lessons and 6 covers are on the v2 art, composed on the runner under grade version 2.
 
 Sample brightness, measured on the real files: mean luma **122 / 152 / 173** (v1 pilot average 37.6); near-black pixels 0–16% (v1 ≈ 60%).
+
+### Batch 1: what the ledger says vs what was billed
+
+The ledger charged every refused submit as if billed (the pipeline's rule then: "a failed request is charged, because the provider may already have billed it"). A 402/429 at submit is refused unprocessed, so it is never billed. Batch 1's picture stage therefore reads $17.70 in the ledger while BFL billed 130 × 6¢ = **$7.80**; the **$9.90** difference is refused submits. The ledger is not rewritten (owner: never reset it); it overstates by that $9.90, which only makes the caps more conservative. From this commit, a refused submit is charged 0 and an HTTP 402 stops the whole run with the lesson left queued (two tests, both failing on the old code).
+
+At list price, BFL billed 180 pictures today (20 v1 + 24 v2 lesson pictures, of which 4 are the HIST2/PM2 redos + 6 topic covers + 130 in batch 1) = $10.80, so the account held roughly $10, not the ~$70 believed; the real balance is on the BFL account page. The library resumes when it is topped up: the 67 + the remaining ~574 lessons are queued, nothing finished is re-bought.
 
 ## 4b. Layout fixes after the bright art landed
 

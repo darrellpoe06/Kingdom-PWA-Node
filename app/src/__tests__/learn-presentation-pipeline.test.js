@@ -742,3 +742,85 @@ describe('full library brakes', () => {
     expect(l.spentCents()).toBe(0);
   });
 });
+
+// Library batch 1 (2026-11-24): the BFL account ran dry mid-run (44x HTTP 402
+// "Insufficient credits", 23x 429 "credit balance is low"). A refused submit is
+// never processed, so it must never be charged; and an empty account must stop
+// the whole run with the lesson left queued, not burn retries on every lesson.
+describe('the provider says no: unbilled, and an empty account stops the run', () => {
+  const goodRecord = (l, it) =>
+    l.putRecord({
+      courseKey: it.courseKey,
+      lessonId: it.lessonId,
+      status: 'review',
+      contentSha: it.contentSha,
+      visual: { prompt: 'A bright daylight photograph of a smiling Black family.', alt: 'a' },
+      image: null,
+    });
+
+  it('402 out of credit: nothing charged, the run stops, the lesson stays queued (proven to catch)', async () => {
+    const l = ledger();
+    const [a, b] = items;
+    goodRecord(l, a);
+    goodRecord(l, b);
+    let calls = 0;
+    const provider = {
+      name: 'fake',
+      model: 'f',
+      costCents: 6,
+      async generate() {
+        calls += 1;
+        const e = new ProviderError('bfl submit: HTTP 402: {"detail":"Insufficient credits"}', {
+          status: 402,
+          retryable: false,
+          billed: false,
+          outOfCredit: true,
+        });
+        throw e;
+      },
+    };
+    const t = await runImages({
+      items: [a, b],
+      ledger: l,
+      provider,
+      outDir: mkdtempSync(join(tmpdir(), 'img-')),
+      batchId: 'b',
+      budget: new Budget(100),
+      concurrency: 1,
+      sleep: async () => {},
+    });
+    expect(l.spentCents()).toBe(0);
+    expect(t.outOfCredit).toBe(true);
+    expect(calls).toBe(1); // no retries against an empty account, no second lesson
+    expect(l.latestFor(a.courseKey, a.lessonId, 'image').state).toBe('queued');
+  });
+
+  it('a 429 refused unprocessed is retried but never charged; a billed failure still is', async () => {
+    const l = ledger();
+    const [a] = items;
+    goodRecord(l, a);
+    let n = 0;
+    const provider = {
+      name: 'fake',
+      model: 'f',
+      costCents: 6,
+      async generate() {
+        n += 1;
+        if (n === 1) throw new ProviderError('bfl submit: HTTP 429', { status: 429, billed: false });
+        if (n === 2) throw new ProviderError('bfl: Error', { retryable: true }); // reached the provider: may be billed
+        return { bytes: Buffer.from('ok'), ext: 'jpg' };
+      },
+    };
+    const t = await runImages({
+      items: [a],
+      ledger: l,
+      provider,
+      outDir: mkdtempSync(join(tmpdir(), 'img-')),
+      batchId: 'b',
+      budget: new Budget(100),
+      sleep: async () => {},
+    });
+    expect(t.done).toBe(1);
+    expect(l.spentCents()).toBe(12); // the billed failure + the success, not the refused 429
+  });
+});

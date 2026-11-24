@@ -18,14 +18,30 @@ import { ProviderError, realSleep } from '../lib/limits.mjs';
 
 async function readError(res, who) {
   let body = '';
-  try { body = (await res.text()).slice(0, 400); } catch { /* none */ }
+  try {
+    body = (await res.text()).slice(0, 400);
+  } catch {
+    /* none */
+  }
   return new ProviderError(`${who}: HTTP ${res.status}: ${body}`, { status: res.status });
 }
-const need = (v, msg) => { if (!v) throw new ProviderError(msg, { retryable: false }); return v; };
+const need = (v, msg) => {
+  if (!v) throw new ProviderError(msg, { retryable: false });
+  return v;
+};
 const toBuf = async (res) => Buffer.from(await res.arrayBuffer());
 const extOf = (ct, fallback = 'jpg') => (/png/.test(ct || '') ? 'png' : /webp/.test(ct || '') ? 'webp' : /jpe?g/.test(ct || '') ? 'jpg' : fallback);
 
-export function bflImage({ apiKey = process.env.BFL_API_KEY, model = 'flux-pro-1.1-ultra', raw = process.env.LEARN_BFL_RAW === '1', costCents = 6, pollMs = 1500, maxPolls = 200, fetchImpl = globalThis.fetch, sleep = realSleep } = {}) {
+export function bflImage({
+  apiKey = process.env.BFL_API_KEY,
+  model = 'flux-pro-1.1-ultra',
+  raw = process.env.LEARN_BFL_RAW === '1',
+  costCents = 6,
+  pollMs = 1500,
+  maxPolls = 200,
+  fetchImpl = globalThis.fetch,
+  sleep = realSleep,
+} = {}) {
   need(apiKey, 'bfl: BFL_API_KEY is not set — refusing to run (no key, no spend).');
   return {
     name: 'bfl',
@@ -33,11 +49,22 @@ export function bflImage({ apiKey = process.env.BFL_API_KEY, model = 'flux-pro-1
     costCents,
     async generate({ prompt, signal }) {
       const sub = await fetchImpl(`https://api.bfl.ai/v1/${model}`, {
-        method: 'POST', signal,
+        method: 'POST',
+        signal,
         headers: { 'content-type': 'application/json', accept: 'application/json', 'x-key': apiKey },
         body: JSON.stringify({ prompt, aspect_ratio: '16:9', raw, output_format: 'jpeg', safety_tolerance: 2 }),
       });
-      if (!sub.ok) throw await readError(sub, 'bfl submit');
+      if (!sub.ok) {
+        // A refused submit was never processed, so it was never billed (batch 1,
+        // 2026-11-24: 44x 402 "Insufficient credits", 23x 429 "credit balance is low").
+        const err = await readError(sub, 'bfl submit');
+        err.billed = false;
+        if (sub.status === 402) {
+          err.outOfCredit = true;
+          err.retryable = false;
+        }
+        throw err;
+      }
       const { polling_url: pollUrl } = await sub.json();
       need(pollUrl, 'bfl: no polling_url in response');
       for (let i = 0; i < maxPolls; i += 1) {
@@ -59,7 +86,13 @@ export function bflImage({ apiKey = process.env.BFL_API_KEY, model = 'flux-pro-1
   };
 }
 
-export function openaiImage({ apiKey = process.env.OPENAI_API_KEY, model = process.env.LEARN_OPENAI_IMAGE_MODEL || 'gpt-image-1.5', quality = process.env.LEARN_OPENAI_QUALITY || 'high', costCents = null, fetchImpl = globalThis.fetch } = {}) {
+export function openaiImage({
+  apiKey = process.env.OPENAI_API_KEY,
+  model = process.env.LEARN_OPENAI_IMAGE_MODEL || 'gpt-image-1.5',
+  quality = process.env.LEARN_OPENAI_QUALITY || 'high',
+  costCents = null,
+  fetchImpl = globalThis.fetch,
+} = {}) {
   need(apiKey, 'openai: OPENAI_API_KEY is not set — refusing to run (no key, no spend).');
   const cents = costCents != null ? costCents : quality === 'high' ? 20 : quality === 'medium' ? 5 : 1.3;
   return {
@@ -68,7 +101,8 @@ export function openaiImage({ apiKey = process.env.OPENAI_API_KEY, model = proce
     costCents: cents,
     async generate({ prompt, signal }) {
       const res = await fetchImpl('https://api.openai.com/v1/images/generations', {
-        method: 'POST', signal,
+        method: 'POST',
+        signal,
         headers: { 'content-type': 'application/json', authorization: `Bearer ${apiKey}` },
         body: JSON.stringify({ model, prompt, size: '1536x1024', quality, n: 1 }),
       });
@@ -81,7 +115,12 @@ export function openaiImage({ apiKey = process.env.OPENAI_API_KEY, model = proce
   };
 }
 
-export function geminiImage({ apiKey = process.env.GEMINI_API_KEY, model = process.env.LEARN_GEMINI_IMAGE_MODEL || 'gemini-2.5-flash-image', costCents = 5, fetchImpl = globalThis.fetch } = {}) {
+export function geminiImage({
+  apiKey = process.env.GEMINI_API_KEY,
+  model = process.env.LEARN_GEMINI_IMAGE_MODEL || 'gemini-2.5-flash-image',
+  costCents = 5,
+  fetchImpl = globalThis.fetch,
+} = {}) {
   need(apiKey, 'gemini: GEMINI_API_KEY is not set — refusing to run (no key, no spend).');
   return {
     name: 'gemini',
@@ -89,9 +128,13 @@ export function geminiImage({ apiKey = process.env.GEMINI_API_KEY, model = proce
     costCents,
     async generate({ prompt, signal }) {
       const res = await fetchImpl(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
-        method: 'POST', signal,
+        method: 'POST',
+        signal,
         headers: { 'content-type': 'application/json', 'x-goog-api-key': apiKey },
-        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { responseModalities: ['IMAGE'], imageConfig: { aspectRatio: '16:9' } } }),
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { responseModalities: ['IMAGE'], imageConfig: { aspectRatio: '16:9' } },
+        }),
       });
       if (!res.ok) throw await readError(res, 'gemini');
       const j = await res.json();
@@ -108,7 +151,15 @@ export function geminiImage({ apiKey = process.env.GEMINI_API_KEY, model = proce
  * the positive prompt text is the literal string "%PROMPT%" and the seed is
  * "%SEED%" (number). Output is the first image the workflow saves.
  */
-export function comfyImage({ baseUrl = process.env.LEARN_COMFY_URL, workflowPath = process.env.LEARN_COMFY_WORKFLOW, pollMs = 2000, maxPolls = 300, fetchImpl = globalThis.fetch, sleep = realSleep, random = Math.random } = {}) {
+export function comfyImage({
+  baseUrl = process.env.LEARN_COMFY_URL,
+  workflowPath = process.env.LEARN_COMFY_WORKFLOW,
+  pollMs = 2000,
+  maxPolls = 300,
+  fetchImpl = globalThis.fetch,
+  sleep = realSleep,
+  random = Math.random,
+} = {}) {
   need(baseUrl, 'local: LEARN_COMFY_URL is not set (e.g. http://nas:8188).');
   const template = readFileSync(need(workflowPath, 'local: LEARN_COMFY_WORKFLOW (workflow JSON path) is not set.'), 'utf8');
   const base = baseUrl.replace(/\/$/, '');
@@ -119,7 +170,12 @@ export function comfyImage({ baseUrl = process.env.LEARN_COMFY_URL, workflowPath
     async generate({ prompt, signal }) {
       const seed = Math.floor(random() * 2 ** 31);
       const wf = JSON.parse(template.replace('"%PROMPT%"', JSON.stringify(prompt)).replace('"%SEED%"', String(seed)));
-      const sub = await fetchImpl(`${base}/prompt`, { method: 'POST', signal, headers: { 'content-type': 'application/json' }, body: JSON.stringify({ prompt: wf }) });
+      const sub = await fetchImpl(`${base}/prompt`, {
+        method: 'POST',
+        signal,
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ prompt: wf }),
+      });
       if (!sub.ok) throw await readError(sub, 'comfy submit');
       const { prompt_id: id } = await sub.json();
       for (let i = 0; i < maxPolls; i += 1) {

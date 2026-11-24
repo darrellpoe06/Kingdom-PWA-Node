@@ -151,7 +151,7 @@ async function main() {
     });
     outboxNew(beforeArt, ledger, outDir, log);
     log(
-      `art-v2: ${t.done} done · ${t.skipped} already done · ${t.failed} failed${t.stoppedByBudget ? ' · STOPPED AT BUDGET CAP' : ''} · this run ${dollars(budget.spent)} · total ${dollars(ledger.spentCents())}`
+      `art-v2: ${t.done} done · ${t.skipped} already done · ${t.failed} failed${t.outOfCredit ? ' · STOPPED: THE PROVIDER ACCOUNT IS OUT OF CREDIT (top it up; queued lessons resume)' : t.stoppedByBudget ? ' · STOPPED AT BUDGET CAP' : ''} · this run ${dollars(budget.spent)} · total ${dollars(ledger.spentCents())}`
     );
     if (t.failed) process.exitCode = 1;
     return;
@@ -207,7 +207,7 @@ async function main() {
     );
     const t = await runText({ items, ledger, provider, courses, batchId, concurrency, maxAttempts: int(flags['max-attempts'], 3), budget, retryFailed, log });
     log(
-      `text: ${t.done} done · ${t.skipped} skipped · ${t.needsReview} need review · ${t.failed} failed${t.stoppedByBudget ? ' · STOPPED AT BUDGET CAP' : ''} · this run ${dollars(budget.spent)}`
+      `text: ${t.done} done · ${t.skipped} skipped · ${t.needsReview} need review · ${t.failed} failed${t.outOfCredit ? ' · STOPPED: THE PROVIDER ACCOUNT IS OUT OF CREDIT (top it up; queued lessons resume)' : t.stoppedByBudget ? ' · STOPPED AT BUDGET CAP' : ''} · this run ${dollars(budget.spent)}`
     );
   }
   if (cmd === 'images' || (retryFailed && flags.kind !== 'text')) {
@@ -237,7 +237,7 @@ async function main() {
     });
     outboxNew(beforeImg, ledger, outDir, log);
     log(
-      `images: ${t.done} done · ${t.skipped} skipped · ${t.waiting} waiting on approved copy · ${t.needsReview} need review · ${t.failed} failed${t.stoppedByBudget ? ' · STOPPED AT BUDGET CAP' : ''} · this run ${dollars(budget.spent)}`
+      `images: ${t.done} done · ${t.skipped} skipped · ${t.waiting} waiting on approved copy · ${t.needsReview} need review · ${t.failed} failed${t.outOfCredit ? ' · STOPPED: THE PROVIDER ACCOUNT IS OUT OF CREDIT (top it up; queued lessons resume)' : t.stoppedByBudget ? ' · STOPPED AT BUDGET CAP' : ''} · this run ${dollars(budget.spent)}`
     );
   }
   if (cmd === 'status' || cmd === 'text' || cmd === 'images' || retryFailed) {

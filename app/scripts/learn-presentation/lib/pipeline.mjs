@@ -362,8 +362,10 @@ export async function runImages({
             meter.c += c;
             return r;
           } catch (e) {
-            budget.settle(held, cost);
-            meter.c += cost;
+            // Charged unless the provider refused it unprocessed (never billed).
+            const c = e && e.billed === false ? 0 : cost;
+            budget.settle(held, c);
+            meter.c += c;
             throw e;
           }
         },
@@ -393,10 +395,13 @@ export async function runImages({
       else tally.done += 1;
       log(`image ${flags.length ? '?' : '✓'} ${item.courseKey}/${item.lessonId}${flags.length ? `: ${flags.join('; ')}` : ''}`);
     } catch (e) {
-      if (e instanceof BudgetExceeded) {
+      if (e instanceof BudgetExceeded || (e && e.outOfCredit)) {
+        // Our cap, or the provider's empty account: stop the whole run; this
+        // lesson stays queued (not failed) and resumes when there is money.
         tally.stoppedByBudget = true;
+        if (e.outOfCredit) tally.outOfCredit = true;
         ledger.write({ ...base, state: 'queued', attempts: attempts - 1, costCents: prior + meter.c, leaseUntil: null, lastError: e.message });
-        log(`budget: ${e.message}`);
+        log(`${e.outOfCredit ? 'provider out of credit' : 'budget'}: ${e.message}`);
         return;
       }
       ledger.write({ ...base, state: 'failed', attempts, costCents: prior + meter.c, leaseUntil: null, lastError: String(e && e.message ? e.message : e) });
