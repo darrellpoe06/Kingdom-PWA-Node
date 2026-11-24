@@ -539,6 +539,19 @@ export function resolveInitialSession(emit, { getSession, readStored }) {
     Promise.resolve(getSession())
       .then((res) => {
         const s = res && res.data ? res.data.session : undefined;
+        // A FAILED REFRESH IS NOT A SIGN-OUT (DR-1618). auth-js getSession()
+        // answers { session: null, error } when the access token has expired
+        // and the refresh could not reach the server (TypeError: Failed to
+        // fetch), while the sign-in is still saved on the device. Emitting that
+        // null painted the signed-out front page until the road came back:
+        // signed in, signed out, signed in. A null that carries an error, with
+        // the session still stored, keeps the session; a real sign-out clears
+        // storage, and onAuthStateChange still reports it.
+        if (s === null && res && res.error) {
+          let still;
+          try { still = readStored(); } catch (_) { still = null; }
+          if (still) return;
+        }
         if (s !== undefined) emit(s ?? null); // reconcile with the source of truth
       })
       .catch(() => { /* keep the optimistic read; onAuthStateChange corrects later */ });

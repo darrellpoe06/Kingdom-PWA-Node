@@ -2637,6 +2637,21 @@
       "notes": "Runner tailnet key expired 2026-11-04; every research-inbox run failed at the join. Same SQL via live-sql local mode."
     },
     {
+      "id": "a-failed-refresh-is-not-a-sign-out",
+      "date": "2026-11-24",
+      "task": "After DR-1617 deployed the app still flipped to the signed-out page on a failed fetch; getSession's null-with-error was read as a sign-out. Kept the stored session; proven-to-catch test",
+      "drs": [
+        "DR-1618"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.3,
+      "estimateWithoutAiHours": 4,
+      "notes": ""
+    },
+    {
       "id": "ledger-adds-off-the-tail",
       "date": "2026-11-18",
       "task": "The ledger adds off the tail: --add places an entry at a slot read from its id, never in the last 40, so waiting lesson PRs stop conflicting with every landing",
