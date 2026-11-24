@@ -242,10 +242,10 @@
     {
       "date": "2026-11-24",
       "from": 23441,
-      "to": 23466,
+      "to": 23477,
       "dr": "DR-1619",
-      "reason": "One new 24-line workflow, nas-funnel-report.yml: the receiver for the NAS's own Funnel report (repository_dispatch from funnel_watchdog.py). It is the only road that reads the box's Tailscale state while the tailnet key is dead and the public Funnel is dark; read-only, two-minute timeout, single-flight. Plus one ci.yml line that runs its 15 proven-to-catch tests, so a test CI never runs is not left as a guard."
+      "reason": "One new 34-line workflow, nas-funnel-report.yml: the receiver for the NAS's own Funnel report (repository_dispatch from funnel_watchdog.py), which puts the box's Tailscale state on the funnel-incident ledger; the only road that reads the box while the tailnet key is dead and the public Funnel is dark. Plus one ci.yml line running its 15 proven-to-catch tests, and one funnel-health.yml line so its witness asks the six rows the watchdog now restores."
     }
   ],
-  "totalLines": 23466
+  "totalLines": 23477
 }
