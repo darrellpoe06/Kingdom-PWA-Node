@@ -15,9 +15,11 @@ import { TokenBucket } from './lib/limits.mjs';
 import { DEFAULT_PRICES, estimate, dollars } from './lib/prices.mjs';
 import { Budget, buildItems, coursesForValidation, selectItems, runText, runImages, exportRecords } from './lib/pipeline.mjs';
 import { textProvider } from './providers/text.mjs';
-import { imageProvider } from './providers/image.mjs';
+import { imageProvider, bflImage } from './providers/image.mjs';
+import { loadArt, validateArt, resolveArtScope, runArtV2 } from './lib/art-v2.mjs';
 
 const SEED = resolve('src/lib/learn-presentation/presentation-seed.json');
+const ART = resolve('scripts/learn-presentation/art-direction-v2.json');
 
 function parseArgs(argv) {
   const [cmd, ...rest] = argv;
@@ -64,6 +66,32 @@ async function main() {
 
   const inventory = learnInventory();
   const all = buildItems(inventory);
+
+  if (cmd === 'art-v2' || cmd === 'art-check') {
+    // The new art direction (bright natural daylight). Prompts are checked
+    // BEFORE any spend; the selection is only what art-direction-v2.json names.
+    const art = loadArt(resolve(flags.art || ART));
+    const mounted = new Set(all.map((it) => `${it.courseKey}::${it.lessonId}`));
+    const problems = validateArt(art, { mountedKeys: mounted });
+    for (const p of problems) log(`  ✗ ${p}`);
+    if (problems.length) { log('art direction REFUSED — nothing spent'); process.exitCode = 2; return; }
+    if (cmd === 'art-check') { log(`art direction OK: ${art.lessons.length} lessons, ${art.topics.length} topics, ${(art.samples || []).length} samples`); return; }
+    let entries;
+    try { entries = resolveArtScope(flags.only, art); } catch (e) {
+      if (e instanceof ScopeError) { log(`refused: ${e.message}`); process.exitCode = 2; return; }
+      throw e;
+    }
+    const ledger = new Ledger(stateDir);
+    const already = ledger.spentCents();
+    const budget = new Budget(remainingCents(flags['budget-cents'] !== undefined ? int(flags['budget-cents']) : null, already));
+    log(`spend so far ${dollars(already)} of ${dollars(TOTAL_CAP_CENTS)} combined · art-v2 may spend up to ${dollars(budget.cap)} · ${entries.length} pictures`);
+    // raw:false — FLUX raw mode favours candid, muted renders; the new direction wants vivid natural color.
+    const provider = String(flags.provider || 'bfl') === 'bfl' ? bflImage({ raw: false }) : imageProvider(String(flags.provider));
+    const t = await runArtV2({ entries, ledger, provider, outDir, stateDir, batchId, concurrency: int(flags.concurrency, 3), maxAttempts: int(flags['max-attempts'], 3), budget, log });
+    log(`art-v2: ${t.done} done · ${t.skipped} already done · ${t.failed} failed${t.stoppedByBudget ? ' · STOPPED AT BUDGET CAP' : ''} · this run ${dollars(budget.spent)} · total ${dollars(ledger.spentCents())}`);
+    if (t.failed) process.exitCode = 1;
+    return;
+  }
   // Spending commands run ONLY on an explicit, validated pilot scope (lib/scope.mjs);
   // estimate/status/export spend nothing and may look at the whole library.
   const spending = ['text', 'images', 'retry-failed', 'compose'].includes(cmd);
@@ -128,16 +156,29 @@ async function main() {
     const composedDir = resolve(flags['composed-out'] || '.learn-presentation/composed');
     // The resolved, validated scope as a Set (pilot 1 crashed on the raw array).
     const want = scopeKeySet(items);
+    const { lookFor } = await import('../learn-thumbs/grade.mjs');
+    const deptOf = new Map(inventory.map((c) => [c.key, c.department]));
+    const base = String(flags['image-base'] || '/learn-thumbs');
     let done = 0; let skipped = 0; let failed = 0;
     for (const r of Object.values(ledger.records)) {
       if (!r.image || !r.image.path || !r.thumbHeadline) continue;
       if (!want.has(r.lessonId) && !want.has(`${r.courseKey}::${r.lessonId}`)) continue;
-      if (r.image.delivery && r.image.delivery.sha256 === r.image.sha256) { skipped += 1; continue; }
+      // Every picture is graded (grade.mjs); an ungraded delivery is re-composed, free.
+      const look = r.image.look || lookFor(deptOf.get(r.courseKey), r.courseKey);
+      if (r.image.delivery && r.image.delivery.sha256 === r.image.sha256 && r.image.delivery.look === look) { skipped += 1; continue; }
       try {
-        const m = await composeLesson({ image: join(outDir, r.image.path), courseKey: r.courseKey, lessonId: r.lessonId, thumbHeadline: r.thumbHeadline, layout: flags.layout === 'right' ? 'right' : 'left', department: r.department || '', outDir: composedDir, publicBase: String(flags['image-base'] || '/learn-thumbs') });
-        ledger.putRecord({ ...r, image: { ...r.image, delivery: { ...m.image, og: m.ogPath, width: m.width, height: m.height, sha256: m.sha256, dhash: m.dhash } } });
+        const m = await composeLesson({ image: join(outDir, r.image.path), courseKey: r.courseKey, lessonId: r.lessonId, thumbHeadline: r.thumbHeadline, layout: flags.layout === 'right' ? 'right' : 'left', department: deptOf.get(r.courseKey) || '', outDir: composedDir, publicBase: base, look });
+        ledger.putRecord({ ...r, image: { ...r.image, delivery: { ...m.image, og: m.ogPath, width: m.width, height: m.height, sha256: m.sha256, dhash: m.dhash, look, grade: m.grade && { before: m.grade.before, after: m.grade.after } } } });
         done += 1;
       } catch (e) { failed += 1; log(`compose failed ${r.courseKey}::${r.lessonId}: ${e.code || ''} ${e.message}`); }
+    }
+    // The Explore by Topic covers (art-v2 topic pictures), graded the same way.
+    const { readTopics } = await import('./lib/art-v2.mjs');
+    for (const t of Object.values(readTopics(stateDir))) {
+      try {
+        await composeLesson({ image: join(outDir, t.image.path), courseKey: 'topics', lessonId: t.key, thumbHeadline: t.label, department: t.label, outDir: composedDir, publicBase: base, look: t.image.look });
+        done += 1;
+      } catch (e) { failed += 1; log(`compose failed topic ${t.key}: ${e.code || ''} ${e.message}`); }
     }
     log(`compose: ${done} composed · ${skipped} unchanged · ${failed} failed -> ${composedDir}`);
     return;
