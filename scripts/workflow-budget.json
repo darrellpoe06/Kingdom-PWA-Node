@@ -280,7 +280,14 @@
       "to": 23650,
       "dr": "DR-1645",
       "reason": "One line in nas-funnel-report.yml: the receiver also prints the NAS's words to the job log, because a session with no route to the site and a dead tailnet key can read a job log and cannot read a run summary. The same change lets it open the incident for Ari's road (llm-dark) on an existing line. Raised to the measured total, not above it."
+    },
+    {
+      "date": "2026-11-24",
+      "from": 23650,
+      "to": 23667,
+      "dr": "DR-1648",
+      "reason": "One new required CI leg in ci.yml, nas-python38 (17 lines): it runs the NAS-side Python guard and the nas-loops tests inside python:3.8.15, the NAS's own interpreter, because every other leg runs 3.11+ and that is how datetime.UTC shipped and broke bg-message-lessons on the box every cycle. A timeout as its brake. Raised to the measured total, not above it."
     }
   ],
-  "totalLines": 23650
+  "totalLines": 23667
 }

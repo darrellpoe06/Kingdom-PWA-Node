@@ -345,16 +345,8 @@ jobs:
       - run: npm ci
       - run: npx vitest run --shard=${{ matrix.shard }}/${{ strategy.job-total }}
 
-  # NAS-SIDE PYTHON RUNS ON THE NAS'S PYTHON (DR-1648). The Synology runs
-  # Python 3.8.15 (DR-0306); every other leg runs 3.11+. Measured 2026-11-24:
-  # infra/nas-loops/bg-message-lessons.py shipped `from datetime import UTC`
-  # (3.11+), passed its tests here, and raised ImportError on the box every
-  # cycle; nas-openers/openers.py (`set[str]`, `str | None`) was dead on import
-  # too. This leg runs IN the NAS's exact interpreter: the guard's planted-defect
-  # selftest first (it must be able to fail), then every infra/nas-*/ file
-  # compiled, statically checked for run-time-only 3.9+ forms, and imported,
-  # then the nas-loops unit tests. Proven-to-catch on the real pre-fix tree:
-  # 10 findings across both files.
+  # NAS-side Python runs on the NAS's Python 3.8.15 (DR-1648, DR-0306): every
+  # other leg runs 3.11+, which is how datetime.UTC shipped and broke a loop.
   nas-python38:
     name: app — NAS Python 3.8 guard
     runs-on: ubuntu-latest
