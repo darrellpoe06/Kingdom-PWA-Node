@@ -607,5 +607,62 @@ class PathTest(unittest.TestCase):
         self.assertIsNone(lt.target_of("outbox/genesis/notes.txt", "9"))
 
 
+class SendRecorder:
+    """Records each write; answers from a script of status codes."""
+
+    def __init__(self, codes):
+        self.codes = list(codes)
+        self.calls = []
+
+    def send(self, method, url, headers, body, timeout):
+        self.calls.append((method, url, dict(headers), json.loads(body.decode())))
+        return self.codes.pop(0)
+
+
+REC = {
+    "at": "2026-11-24T19:00:00Z",
+    "from_run": "45443285162",
+    "expected": 180,
+    "present_of_expected": 180,
+    "missing_count": 0,
+    "missing": [{"sha256": "ab" * 32, "path": "masters/x/L1.jpg"}],
+}
+
+
+class PublishVerdictTest(unittest.TestCase):
+    """The paid lane pauses unless the NAS publishes a verified backup verdict."""
+
+    def test_updates_the_variable_with_counts_only(self):
+        t = SendRecorder([204])
+        self.assertEqual(lt.publish_verdict(t, TOKEN, REC), "published")
+        method, url, headers, body = t.calls[0]
+        self.assertEqual(method, "PATCH")
+        self.assertEqual(headers["Authorization"], "Bearer " + TOKEN)
+        self.assertEqual(
+            url,
+            "https://api.github.com/repos/darrellpoe06/Kingdom-PWA-Node/actions/variables/LEARN_THUMBS_RECONCILED",
+        )
+        v = json.loads(body["value"])
+        self.assertEqual(v["present_of_expected"], 180)
+        self.assertEqual(v["missing"], 0)
+        # never a path or a sha: the variable is readable by every workflow
+        self.assertNotIn("masters/", body["value"])
+        self.assertNotIn("ab" * 32, body["value"])
+
+    def test_creates_the_variable_the_first_time(self):
+        t = SendRecorder([404, 201])
+        self.assertEqual(lt.publish_verdict(t, TOKEN, REC), "published")
+        self.assertEqual([c[0] for c in t.calls], ["PATCH", "POST"])
+
+    def test_a_refusal_is_named_not_hidden(self):
+        self.assertEqual(
+            lt.publish_verdict(SendRecorder([403]), TOKEN, REC), "HTTP 403"
+        )
+
+    def test_no_token_or_no_writer_publishes_nothing(self):
+        self.assertEqual(lt.publish_verdict(SendRecorder([204]), None, REC), "no-token")
+        self.assertEqual(lt.publish_verdict(object(), TOKEN, REC), "unsupported")
+
+
 if __name__ == "__main__":
     unittest.main()

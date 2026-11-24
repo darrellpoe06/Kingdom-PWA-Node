@@ -29,6 +29,7 @@ import { textProvider } from './providers/text.mjs';
 import { imageProvider, bflImage } from './providers/image.mjs';
 import { loadArt, validateArt, resolveArtScope, runArtV2 } from './lib/art-v2.mjs';
 import { loadAdjustments, applyAdjustments } from './lib/adjust.mjs';
+import { storageGate, paidPictureShas } from './lib/storage-gate.mjs';
 
 const SEED = resolve('src/lib/learn-presentation/presentation-seed.json');
 const ART = resolve('scripts/learn-presentation/art-direction-v2.json');
@@ -99,6 +100,19 @@ async function loadDHash(log) {
   }
 }
 
+/** Owner 2026-11-24 (mandatory): no paid picture is bought until every picture
+ *  already paid for is verified on the NAS. Paused = nothing bought, exit 4. */
+function checkStorage(provider, stateDir, log) {
+  const gate = storageGate({
+    paid: paidPictureShas(stateDir).size,
+    verdict: process.env.LEARN_THUMBS_RECONCILED || '',
+    costCents: provider.costCents != null ? provider.costCents : 6,
+  });
+  log(`storage gate: ${gate.open ? 'OPEN' : 'PAUSED: no picture bought'} · ${gate.reason}`);
+  if (!gate.open) process.exitCode = 4;
+  return gate.open;
+}
+
 async function main() {
   const { cmd, flags } = parseArgs(process.argv.slice(2));
   const stateDir = resolve(flags.state || '.learn-presentation/state');
@@ -146,6 +160,7 @@ async function main() {
     const beforeArt = shaMap(ledger);
     // raw:false — FLUX raw mode favours candid, muted renders; the new direction wants vivid natural color.
     const provider = String(flags.provider || 'bfl') === 'bfl' ? bflImage({ raw: false }) : imageProvider(String(flags.provider));
+    if (!checkStorage(provider, stateDir, log)) return;
     const t = await runArtV2({
       entries,
       ledger,
@@ -237,7 +252,9 @@ async function main() {
     // picture MEASURED on this account (balance before/after one picture).
     let runItems = items;
     let probe = null;
-    if (provider.name === 'bfl') {
+    const stored = checkStorage(provider, stateDir, log);
+    if (!stored) runItems = [];
+    if (stored && provider.name === 'bfl') {
       const { bflCredits } = await import('./providers/image.mjs');
       const readBalance = () =>
         bflCredits().catch((e) => {

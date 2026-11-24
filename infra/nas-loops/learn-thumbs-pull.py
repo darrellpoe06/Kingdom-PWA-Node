@@ -139,6 +139,16 @@ class UrllibTransport:
     def __init__(self):
         self.opener = urllib.request.build_opener(self._NoRedirect())
 
+    def send(self, method, url, headers, body, timeout):
+        """A small JSON write (the backup verdict). api.github.com only."""
+        req = urllib.request.Request(url, data=body, headers=headers, method=method)
+        try:
+            r = self.opener.open(req, timeout=timeout)
+            r.close()
+            return r.status
+        except urllib.error.HTTPError as e:
+            return e.code
+
     def get(self, url, headers, timeout):
         req = urllib.request.Request(url, headers=headers, method="GET")
         try:
@@ -189,6 +199,51 @@ def get(transport, url, token, timeout, accept="application/vnd.github+json"):
             raise Refused(f"HTTP {r.status} from {host_of(url)}")
         return r
     raise Unreachable("too many redirects")
+
+
+VERDICT_VAR = "LEARN_THUMBS_RECONCILED"
+
+
+def verdict_value(rec):
+    """The compact, count-only verdict the lane reads before buying a picture
+    (app/scripts/learn-presentation/lib/storage-gate.mjs). No path, no sha."""
+    return json.dumps(
+        {
+            "at": rec["at"],
+            "from_run": rec["from_run"],
+            "expected": rec["expected"],
+            "present_of_expected": rec["present_of_expected"],
+            "missing": rec["missing_count"],
+        },
+        separators=(",", ":"),
+    )
+
+
+def publish_verdict(transport, token, rec, repo=REPO):
+    """Write the backup verdict to the repository variable the paid lane reads
+    (DR-1360: the house writes its result where the lane reads it; no road in).
+    -> 'published' | 'no-token' | 'unsupported' | 'HTTP <code>'."""
+    if not token:
+        return "no-token"
+    send = getattr(transport, "send", None)
+    if send is None:
+        return "unsupported"
+    base = f"https://{API_HOST}/repos/{repo}/actions/variables"
+    headers = {
+        "Accept": "application/vnd.github+json",
+        "User-Agent": "poetech-nas-learn-thumbs",
+        "X-GitHub-Api-Version": "2022-11-28",
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + token,
+    }
+    body = json.dumps({"name": VERDICT_VAR, "value": verdict_value(rec)}).encode()
+    try:
+        code = send("PATCH", f"{base}/{VERDICT_VAR}", headers, body, API_TIMEOUT)
+        if code == 404:
+            code = send("POST", base, headers, body, API_TIMEOUT)
+    except (urllib.error.URLError, OSError) as e:
+        return f"unreachable ({e.__class__.__name__})"
+    return "published" if code in (201, 204) else f"HTTP {code}"
 
 
 def get_json(transport, url, token):
@@ -684,6 +739,7 @@ def run(
                 ledger["present"] = rec["present_of_expected"]
                 ledger["missing_count"] = rec["missing_count"]
                 ledger["from_run"] = rec["from_run"]
+                ledger["verdict"] = publish_verdict(transport, token, rec)
                 if ctx["arts"] is not None:
                     ledger["pending"] = pending_artifacts(ctx["arts"], ctx["state"])
                 if rec["missing_count"] and ledger.get("pending") == 0 and code == 0:
