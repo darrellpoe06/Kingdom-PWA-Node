@@ -14,6 +14,10 @@ The rule this file exists to enforce stands regardless: no session mutates the
 transport without reading this file, keeping every row true, and using `funnel`
 (never `serve`).
 
+## Whose tailnet this is (recorded 2026-11-24, DR-1624)
+
+The family's tailnet is **`darrellpoe06.github`**: the sign-in is **GitHub** (`darrellpoe06`), not Google. A second, near-empty tailnet exists under `darrellpoe06@gmail.com`; a machine signed in there cannot see the NAS. Every always-on machine (`poetech`, `kingdom-home`, `tlcmediadpt`, `livestream-main-pc`, `tlcrackstation`, `tlc-tech-team`) has **key expiry disabled** in the admin console (Machines, the machine's menu, Disable key expiry). On 2026-11-23 `poetech`'s key expired and every road on this page went dark for the whole family.
+
 ## The public Funnel (hostname poetech.tail5a2f35.ts.net, port 443 — PUBLIC via Tailscale Funnel, never merely `serve`)
 
 | Path | Backend | Serves | Provenance |

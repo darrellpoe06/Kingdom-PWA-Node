@@ -24,7 +24,7 @@ Twelve hours after DR-1619 merged, the NAS had sent no report, and I had told Da
 - **No merge caused it.** The merges at 22:11 (DR-1609: one small table, two triggers on `choir_sermons`, a filter in a six-hourly copy) and 22:27 (DR-1610: a census count) cannot take a node off a network. Both diffs were read from GitHub.
 - **The box was alive and online throughout.** The NAS rang GitHub by `repository_dispatch` at 2026-11-24 01:22, 07:38 and 08:08 UTC, during the outage, with the same token the watchdog uses. Power, internet, clock and token all work. My "the box is cut off" was wrong.
 - **Why DR-1619's watchdog said nothing.** It sent its report only after the heal. With Tailscale down, each of 12 `funnel --set-path` calls may wait 30 s, twice, plus a restart, inside a rider the runner kills at 480 s (`services-sync.sh`). So it was killed before it reported, every cycle. That is a design fault of mine.
-- **The likely cause, not proven.** The NAS is absent from Darrell's tailnet device list, and Tailscale node keys expire unless expiry is disabled. That matches the sharp onset with no change on our side. It is confirmed only by the box's own `tailscale status`.
+- **The cause, confirmed by Darrell's admin console at 13:33 UTC.** The family's tailnet is `darrellpoe06.github`, a GitHub login. There `poetech` read "Expired 14 hours ago" beside its Funnel badge, which places the lapse inside the measured onset window. His phone had expired 16 hours before, and `kingdom-home` was 8 hours from expiring. The tailnet's login was written in no record, and I had told him Google.
 - **The picture.** His header showed "D". The picture lives in his `profiles` row; the read failed with the road, and `loadMyProfile` returned null.
 
 ## Impact
@@ -38,7 +38,7 @@ One lapsed key locked the whole family out, and the box that could have said so 
 3. **The box counts its own key's days.** It reads `Self.KeyExpiry` from its own `tailscale status --json`. Inside 21 days it sends a daily `expiring` report, which opens an incident. No expiry set is the wanted state and stays silent.
 4. **A person's own profile is kept on their device,** under their own user id, and shown when the read cannot be made (`fromDevice`). It is never shown to another account. A successful read replaces it, a deleted row included.
 5. **Never again, in order:**
-   - (a) key expiry disabled on `poetech` when it is signed back in (DR-1622);
+   - (a) key expiry disabled on `poetech` and on every always-on machine (`kingdom-home`, `tlcmediadpt`, `livestream-main-pc`, `tlcrackstation`, `tlc-tech-team`), and the tailnet's login recorded in RECORDED-STATE;
    - (b) item 3 as the standing warning if (a) is ever undone;
    - (c) DR-1622's second NAS-initiated road and the home road, so no single outside system is the door;
    - (d) what the app already holds on the device keeps working when the road is down (DR-1618, DR-1620, item 4).
