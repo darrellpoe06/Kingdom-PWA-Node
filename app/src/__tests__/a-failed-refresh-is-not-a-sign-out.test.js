@@ -30,7 +30,10 @@ describe('a failed refresh is not a sign-out', () => {
     const seen = [];
     resolveInitialSession((s) => seen.push(s), {
       readStored: () => stored,
-      getSession: async () => { stored = null; return { data: { session: null }, error: { name: 'AuthApiError', message: 'refresh_token_already_used' } }; },
+      getSession: async () => {
+        stored = null;
+        return { data: { session: null }, error: { name: 'AuthApiError', message: 'refresh_token_already_used' } };
+      },
     });
     await flush();
     expect(seen).toEqual([SAVED, null]);
@@ -54,10 +57,16 @@ describe('a failed refresh is not a sign-out', () => {
   it('PROVEN TO CATCH: the old reconcile emits null on the network failure', async () => {
     const oldResolve = (emit, { getSession, readStored }) => {
       emit(readStored());
-      return Promise.resolve(getSession()).then((res) => { const s = res && res.data ? res.data.session : undefined; if (s !== undefined) emit(s ?? null); });
+      return Promise.resolve(getSession()).then((res) => {
+        const s = res && res.data ? res.data.session : undefined;
+        if (s !== undefined) emit(s ?? null);
+      });
     };
     const seen = [];
-    await oldResolve((s) => seen.push(s), { readStored: () => SAVED, getSession: async () => ({ data: { session: null }, error: { message: 'Failed to fetch' } }) });
+    await oldResolve((s) => seen.push(s), {
+      readStored: () => SAVED,
+      getSession: async () => ({ data: { session: null }, error: { message: 'Failed to fetch' } }),
+    });
     expect(seen).toEqual([SAVED, null]);
   });
 });
