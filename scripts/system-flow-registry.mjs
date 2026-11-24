@@ -1335,6 +1335,17 @@ const NODES = [
     writes: [{ res: 'db:church_site_archive', file: 'infra/nas-church-archive/church_archive_keep.py', token: 'church_site_archive_keep' }],
     seeds: [],
   }),
+  wf('learn-presentation-prepare.yml', {
+    id: 'learn-presentation-prepare', name: 'Learn presentation — prepare new lessons',
+    purpose: 'Every newly published lesson gets a promotional display title, headline and a unique cinematic thumbnail PREPARED FOR APPROVAL; the lesson itself is never edited (integrity baseline before and after), one spend cap per run, OFF until vars.LEARN_PRESENTATION_AUTOPREP is on.',
+    reads: [
+      { res: 'code:lessons', file: 'app/src/lib/learn-presentation/integrity.js', token: 'LEARN_CATALOG' },
+      { res: 'http:api.bfl.ai', file: 'app/scripts/learn-presentation/providers/image.mjs', token: 'BFL_API_KEY' },
+      { res: 'http:api.anthropic.com', file: 'app/scripts/learn-presentation/providers/text.mjs', token: 'ANTHROPIC_API_KEY' },
+    ],
+    writes: [{ res: 'gh:artifact:learn-presentation-review', token: 'learn-presentation-review-' }],
+    seeds: [],
+  }),
   wf('live-link-probe.yml', {
     id: 'live-link-probe', name: 'Live link probe', purpose: 'A real browser opens a shared lesson link.',
     reads: [{ res: 'site:poetech.us', token: 'poetech.us' }], writes: [], seeds: [],
@@ -2457,6 +2468,9 @@ const RESOURCES = {
   'cf:pages-api': { label: "Cloudflare's Pages API", source: 'Cloudflare holds the deployment and routing state; this repository can only ask it, and until #2057 nothing ever did.' },
   'hosted:db': { label: 'the retired hosted database' },
   'http:nas-photos': { label: 'photo server on the NAS', route: '/nas-photos' },
+  'http:api.bfl.ai': { label: 'Black Forest Labs image API (FLUX), prepaid credits', source: 'An outside paid provider: generates the text-free thumbnail masters for the Learn presentation pipeline; the workflow spends at most its per-run cap (DR-0076 budget brake).' },
+  'gh:artifact:learn-presentation-review': { label: 'the Learn thumbnail review package (records + composed images)', sink: 'The owner reviews it before approval; approved records are published to the Learn presentation store in a separate, approved step (migration 0343), never automatically.' },
+  'http:api.anthropic.com': { label: 'Anthropic Messages API (lesson display titles)', source: 'An outside provider: writes the promotional title, headline and image prompt from the lesson text; every result is machine-validated and stays in review until a person approves.' },
   'http:voice': { label: 'the reading voice studio', route: '/voice' },
   'http:voice-lite': { label: 'the NAS audio voice (Piper)', route: '/voice-lite' },
   'http:cams': { label: 'the family camera road on the NAS (go2rtc)', route: '/cams' },
