@@ -245,7 +245,14 @@
       "to": 23477,
       "dr": "DR-1619",
       "reason": "One new 34-line workflow, nas-funnel-report.yml: the receiver for the NAS's own Funnel report (repository_dispatch from funnel_watchdog.py), which puts the box's Tailscale state on the funnel-incident ledger; the only road that reads the box while the tailnet key is dead and the public Funnel is dark. Plus one ci.yml line running its 15 proven-to-catch tests, and one funnel-health.yml line so its witness asks the six rows the watchdog now restores."
+    },
+    {
+      "date": "2026-11-24",
+      "from": 23477,
+      "to": 23539,
+      "dr": "DR-0076",
+      "reason": "learn-presentation-prepare.yml (61 lines, folded from 107; its narrative lives in docs/99-session-notes/2026-11-23-learn-presentation-redesign-phase-1-2.md): the only automated road that prepares a title and thumbnail for each newly published lesson, with the three brakes (one spend cap per run, a concurrency group, an OFF switch) and an integrity check before and after. +1 line reconciles main measuring 23478 against 23477 at fecaf8a."
     }
   ],
-  "totalLines": 23477
+  "totalLines": 23539
 }
