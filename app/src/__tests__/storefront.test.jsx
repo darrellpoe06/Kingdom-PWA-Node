@@ -6,6 +6,8 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import { createElement, act } from 'react';
 import { createRoot } from 'react-dom/client';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import Storefront, { COURSES_FIRST, PRICE_BESIDE_MAX, DeliveredPanel } from '../components/Storefront.jsx';
 import { SURFACES } from '../surfaces.js';
 import { VALID_VIEWS } from '../lib/nav-history.js';
@@ -104,6 +106,15 @@ describe('the shelf', () => {
     for (const p of prices) expect(p.getAttribute('data-placed')).toBe(p.textContent.length > PRICE_BESIDE_MAX ? 'below' : 'beside');
     expect(prices.some((p) => p.getAttribute('data-placed') === 'below' && /Included with/.test(p.textContent))).toBe(true);
     expect(prices.some((p) => p.getAttribute('data-placed') === 'beside' && p.textContent === 'Free')).toBe(true);
+    // easy on the eyes: a book's title leads, no card text is smaller than 0.8125rem, no small italics
+    const book = h.querySelector('[data-testid="store-item"][data-kind="book"] [data-testid="store-title"]');
+    const course = h.querySelector('[data-testid="store-item"][data-kind="course"] [data-testid="store-title"]');
+    expect(book.className).toContain('text-[1.375rem]');
+    expect(course.className).toContain('text-[1.1875rem]');
+    const src = readFileSync(resolve(import.meta.dirname, '../components/Storefront.jsx'), 'utf8');
+    const sizes = [...src.matchAll(/text-\[(\d*\.\d+)rem\]/g)].map((m) => Number(m[1]));
+    expect(Math.min(...sizes)).toBeGreaterThanOrEqual(0.8125);
+    expect(src).not.toMatch(/className=[^>]*\b(italic|text-xs|text-sm)\b/);
     // one price per item, never two
     for (const it of h.querySelectorAll('[data-testid="store-item"]')) expect(it.querySelectorAll('[data-testid="store-price"]').length).toBe(1);
     // the areas are the courses' own departments, and their counts add up to every course

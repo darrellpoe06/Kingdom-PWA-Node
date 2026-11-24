@@ -28,11 +28,17 @@ import { readReviewSummaries } from '../lib/book-reviews.js';
 import { Stars } from './BookReviews.jsx';
 
 const btn =
-  'inline-flex items-center text-xs px-3 py-1.5 min-h-[36px] border font-semibold focus:outline focus:outline-2 focus:outline-[#B85838] disabled:opacity-60';
-const eyebrow = 'text-[0.6875rem] uppercase tracking-wider font-semibold text-[#B85838] mb-1';
+  'inline-flex items-center text-[0.8125rem] px-3.5 py-2 min-h-[44px] border font-semibold focus:outline focus:outline-2 focus:outline-[#B85838] disabled:opacity-60';
+const eyebrow = 'text-[0.8125rem] uppercase tracking-wider font-semibold text-[#B85838] mb-2';
 const serif = { fontFamily: '"Fraunces", serif' };
 export const PRICE_BESIDE_MAX = 10;
 export const COURSES_FIRST = 8;
+// EASY ON THE EYES (DR-1637; Darrell 2026-11-24: "The words look condensed...
+// Can't read the title of the book as good... it should be easy and nice on
+// the eyes"). Measured before: titles 16px, subtitles 11px italic, blurbs
+// 12px. Now, in rem so large print still scales them: a book's title 1.375,
+// a course's 1.1875, body 0.9375 with relaxed leading, the smallest words
+// 0.8125, no italics below 1rem, 44px buttons, more air in and between cards.
 const nowIso = () => new Date().toISOString();
 const KIND_LABEL = { book: 'Books', bundle: 'Bundles', course: 'Courses', workshop: 'Workshops', membership: 'Membership' };
 const KIND_ORDER = ['book', 'bundle', 'course', 'workshop', 'membership'];
@@ -42,20 +48,20 @@ export function DeliveredPanel({ delivery, onDownload }) {
   if (!delivery) return null;
   if (!delivery.ok)
     return (
-      <p className="text-xs border p-2 mb-3 border-[#E8E4DC] bg-[#FAF8F4] text-[#1A1815]" role="status" data-testid="delivery-failed">
+      <p className="text-[0.875rem] leading-normal border p-3 mb-3 border-[#E8E4DC] bg-[#FAF8F4] text-[#1A1815]" role="status" data-testid="delivery-failed">
         {sayDeliveryError(delivery.error)}
       </p>
     );
   return (
     <div className="border p-3 mb-3 border-[#B85838] bg-[#FAF8F4]" role="status" data-testid="delivered">
       <div className={eyebrow}>Yours now</div>
-      <p className="text-sm text-[#1A1815]" style={serif}>
+      <p className="text-base text-[#1A1815]" style={serif}>
         Thank you. {delivery.grants.length > 1 ? `${delivery.grants.length} books are` : 'Your book is'} in your library on this device
         {delivery.email ? `, and the receipt went to ${delivery.email}` : ''}.
       </p>
       <div className="flex flex-wrap gap-2 mt-2">
         {delivery.grants.map((id) => (
-          <span key={id} className="inline-flex flex-wrap gap-1 items-center text-[0.6875rem] text-[#1A1815]">
+          <span key={id} className="inline-flex flex-wrap gap-1 items-center text-[0.8125rem] text-[#1A1815]">
             <span className="font-semibold">{id}</span>
             {onDownload &&
               ['epub', 'html', 'md'].map((k) => (
@@ -204,13 +210,13 @@ export default function Storefront({
   return (
     <div className="w-full" data-testid="storefront" data-total={counts.total}>
       <SectionTitle eyebrow="Store">{STORE_PROFILE.name}</SectionTitle>
-      <header className="border p-3 mb-4 border-[#E8E4DC] bg-white" data-testid="store-profile">
-        <div className="text-sm font-semibold text-[#1A1815]" style={serif}>
+      <header className="border p-4 mb-5 border-[#E8E4DC] bg-white" data-testid="store-profile">
+        <div className="text-[1.25rem] leading-snug font-semibold text-[#1A1815]" style={serif}>
           {STORE_PROFILE.seller}
         </div>
-        <div className="text-xs text-[#5A5751]">{STORE_PROFILE.tagline}</div>
-        <p className="text-xs mt-2 text-[#1A1815]">{STORE_PROFILE.bio}</p>
-        <div className="flex flex-wrap items-center gap-2 mt-2">
+        <div className="text-[0.9375rem] leading-normal mt-0.5 text-[#5A5751]">{STORE_PROFILE.tagline}</div>
+        <p className="text-[0.9375rem] leading-relaxed mt-2 text-[#1A1815]">{STORE_PROFILE.bio}</p>
+        <div className="flex flex-wrap items-center gap-2 mt-3">
           {STORE_PROFILE.links.map((l) => (
             <a key={l.href} href={l.href} className={`${btn} border-[#E8E4DC] text-[#5A5751]`}>
               {l.label}
@@ -218,18 +224,18 @@ export default function Storefront({
           ))}
           <ShareButton payload={{ url: shareUrl, text: storeShareText(), title: STORE_PROFILE.name }} label="Share the store" />
         </div>
-        <p className="text-[0.6875rem] mt-2 text-[#5A5751]" data-testid="store-counts">
+        <p className="text-[0.8125rem] mt-3 text-[#5A5751]" data-testid="store-counts">
           {counts.book} books · {counts.bundle} bundles · {counts.course} courses · {counts.workshop} workshops open · {counts.membership} membership
         </p>
       </header>
 
       <DeliveredPanel delivery={delivery} onDownload={onDownloadProduct ? (id, k) => onDownloadProduct(id, k) : null} />
       {note && (
-        <p className="text-xs border p-2 mb-3 border-[#E8E4DC] bg-[#FAF8F4] text-[#1A1815]" role="status" data-testid="store-note">
+        <p className="text-[0.875rem] leading-normal border p-3 mb-3 border-[#E8E4DC] bg-[#FAF8F4] text-[#1A1815]" role="status" data-testid="store-note">
           {note}
         </p>
       )}
-      <p className="text-[0.6875rem] mb-3 text-[#5A5751]">
+      <p className="text-[0.8125rem] leading-normal mb-4 text-[#5A5751]">
         Have a code? Enter it on the checkout page. Every book downloads as .epub, .html or .md the moment it is yours.
       </p>
 
@@ -237,7 +243,7 @@ export default function Storefront({
         <section key={g.kind} className="mb-5" data-testid={`store-${g.kind}`}>
           <div className={eyebrow}>{KIND_LABEL[g.kind]}</div>
           {g.kind === 'course' && (
-            <div className="flex flex-wrap gap-1 mb-2" role="group" aria-label="Show courses for" data-testid="store-course-areas">
+            <div className="flex flex-wrap gap-2 mb-3" role="group" aria-label="Show courses for" data-testid="store-course-areas">
               {[{ label: 'all', count: g.items.length }, ...courseAreas].map((a) => (
                 <button
                   key={a.label}
@@ -252,7 +258,7 @@ export default function Storefront({
               ))}
             </div>
           )}
-          <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {shownOf(g).map((it) => {
               const owned =
                 it.kind === 'book'
@@ -269,27 +275,31 @@ export default function Storefront({
               return (
                 <li
                   key={it.id}
-                  className={`border bg-white p-3 ${highlight ? 'border-[#B85838]' : 'border-[#E8E4DC]'}`}
+                  className={`border bg-white p-4 ${highlight ? 'border-[#B85838]' : 'border-[#E8E4DC]'}`}
                   data-testid="store-item"
                   data-kind={it.kind}
                   data-id={it.id}
                   data-buyable={it.buyable ? 'yes' : 'no'}
                 >
-                  <div className="flex items-start gap-2">
+                  <div className="flex items-start gap-3">
                     <div className="text-2xl" aria-hidden="true">
                       {it.coverEmoji}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-[#1A1815]" style={serif}>
+                      <div
+                        className={`${it.kind === 'book' || it.kind === 'bundle' ? 'text-[1.375rem]' : 'text-[1.1875rem]'} leading-snug font-semibold text-[#1A1815]`}
+                        style={serif}
+                        data-testid="store-title"
+                      >
                         {it.title}
                       </div>
-                      {it.subtitle && <div className="text-[0.6875rem] italic text-[#5A5751]">{it.subtitle}</div>}
+                      {it.subtitle && <div className="text-[0.875rem] leading-normal mt-1 text-[#5A5751]">{it.subtitle}</div>}
                       {longPrice && (
-                        <div className="text-[0.6875rem] font-semibold text-[#B85838] mt-1" data-testid="store-price" data-placed="below">
+                        <div className="text-[0.875rem] font-semibold text-[#B85838] mt-1.5" data-testid="store-price" data-placed="below">
                           {price}
                         </div>
                       )}
-                      {it.blurb && <p className="text-xs mt-1 text-[#1A1815]">{it.blurb}</p>}
+                      {it.blurb && <p className="text-[0.9375rem] leading-relaxed mt-2 text-[#1A1815]">{it.blurb}</p>}
                       {it.kind === 'book' && (
                         <div className="mt-1">
                           <Stars productId={it.id} cloud={stars[it.id] || null} />
@@ -297,12 +307,12 @@ export default function Storefront({
                       )}
                     </div>
                     {!longPrice && (
-                      <div className="text-sm font-semibold text-[#B85838] shrink-0" data-testid="store-price" data-placed="beside">
+                      <div className="text-[1.0625rem] font-semibold text-[#B85838] shrink-0" data-testid="store-price" data-placed="beside">
                         {price}
                       </div>
                     )}
                   </div>
-                  <div className="flex flex-wrap items-center gap-2 mt-2">
+                  <div className="flex flex-wrap items-center gap-2 mt-3">
                     {(it.kind === 'book' || it.kind === 'bundle') &&
                       (owned ? (
                         <>
@@ -348,7 +358,7 @@ export default function Storefront({
                           )}
                         </>
                       ) : (
-                        <span className="text-[0.6875rem] text-[#5A5751]" data-testid="not-open">
+                        <span className="text-[0.8125rem] text-[#5A5751]" data-testid="not-open">
                           Checkout opens soon.
                         </span>
                       ))}
@@ -373,10 +383,10 @@ export default function Storefront({
                             {busy === it.id ? 'Opening checkout…' : 'Take a seat'}
                           </button>
                         ) : (
-                          <span className="text-[0.6875rem] text-[#5A5751]">Sign in to take a seat.</span>
+                          <span className="text-[0.8125rem] text-[#5A5751]">Sign in to take a seat.</span>
                         )
                       ) : (
-                        <span className="text-[0.6875rem] text-[#5A5751]">Every seat is taken.</span>
+                        <span className="text-[0.8125rem] text-[#5A5751]">Every seat is taken.</span>
                       ))}
                     {it.kind === 'membership' && <PoeTechPlusButton client={client} fetchImpl={fetchImpl} />}
                     <ShareButton
@@ -401,11 +411,11 @@ export default function Storefront({
         </section>
       ))}
       {!grouped.length && (
-        <p className="text-xs text-[#5A5751]" data-testid="store-empty">
+        <p className="text-[0.875rem] text-[#5A5751]" data-testid="store-empty">
           Nothing is on the shelf yet.
         </p>
       )}
-      <p className="text-[0.625rem] mt-4 text-[#5A5751]">
+      <p className="text-[0.8125rem] leading-normal mt-5 text-[#5A5751]">
         Membership opens the deeper levels; the Word's own courses stay free. {PLUS_LABEL} is managed from the app.
       </p>
     </div>
