@@ -41,6 +41,10 @@ A reader has one more way to a lesson: three taps, one screen at a time, each sc
 4. A course tile says where the reader stands, from their real records. No streak, no leaderboard: the house rule for children is no scoreboard, and the streak evidence is one company's own.
 5. "More about this course" opens the course's existing page.
 
+## Verification
+
+`learn-squares.test.jsx` 6 green: counts from the catalog, squares then rows, the pager's ranges, the breadcrumb, a tile's standing from a real record, the empty state, and every other area still on the strip. Built app at 390 px: 13 areas at 117 by 117 px, scroll width 390, a 337-lesson course paged. After merge: the deploy run and `site-health`, then the phone walk (DR-0104).
+
 ## What is NOT in this record
 
 Whether a daily-reading streak belongs in this house is a decision for Darrell, with the evidence above and its cautions. `re-review: 2026-12-08`.

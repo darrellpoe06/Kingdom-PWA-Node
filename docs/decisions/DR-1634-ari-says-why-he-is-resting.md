@@ -31,6 +31,10 @@ The child still hears gentle words. The grown-up beside them, and the next perso
 2. `askTutor` stops at 100 s, after the NAS's own 90 s, and says `timeout`.
 3. The resting line is the screen's, not Ari's: it is never sent back as part of the conversation.
 
+## Verification
+
+`ari-says-why-he-is-resting.test.jsx` 4 green: each failure named, a silent road stopped at the limit (proven to catch), the child's words unchanged, the reason shown, the resting line not sent back. `class-tutor.test.js` 6 and `kids-ask-ari-card.test.jsx` 1 green. NOT verified: that Ari answers on the live site.
+
 ## What is NOT in this record
 
 The cause on the live site is not proven, and this record does not claim Ari answers now. What was measured after the code above was written:

@@ -25,3 +25,7 @@ Nothing sits on the lesson while it is read. The notice is still given, and the 
 1. Where the bottom bar is mounted, the notice is a bar button labelled Update, drawn only while an update waits.
 2. The pinned line remains only as the fallback for a page with no bar, so the notice is never silent.
 3. The bar says it is mounted through a counted flag, since its reader slot is not always drawn.
+
+## Verification
+
+`update-notice-never-covers-the-reading.test.jsx` 2 green, the no-bar fallback proven to catch; `update-while-reading.test.jsx` 9 green unchanged; `lovecorner-dock` and `reader-floats-and-docks` green. After merge: seen on a live reading when the next build lands (DR-0104).

@@ -28,6 +28,10 @@ A child, or the grown-up beside them, picks an age and any lesson written for th
 4. A lesson opened from the library reads at the chosen age, and its exit reads "All lessons", so it is not mistaken for the step-back button beside it.
 5. The week's adventure is unchanged and its tile names its audience.
 
+## Verification
+
+`kids-lesson-library.test.js` 6 green: a lesson without an age's own words is not listed for that age (proven to catch). `kids-zone-render.test.jsx` 11 green: the library opens from the tile and the dock, a lesson picked at Teen opens at that band, the exit returns to the library. Built app at 390 px: six dock tabs fit, scroll width 390. After merge: the deploy run and `site-health`, then the phone walk (DR-0104).
+
 ## What is NOT in this record
 
 The Teens door (`TeensZone.jsx`) has its own reading-band switch and no library yet. `re-review: 2026-12-01` to give it the same library.

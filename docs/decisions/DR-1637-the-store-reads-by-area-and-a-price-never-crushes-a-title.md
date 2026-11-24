@@ -8,6 +8,10 @@
 **Sent in by:** Darrell, 2026-11-24, two screenshots of `poetech.us/poetech-app/?view=store` with no words, then *"Keep in mind the DRs"*. Read against his words of the same hour: *"Not a scroll of death... sections"* and *"a place to go for more information the same courses"*.
 **Pairs with:** DR-1449 (the storefront; Tier C), DR-1448 (the product line), DR-1633 (areas first), DR-0432 (departments derived), DR-0076
 
+## Context
+
+The store (`Storefront.jsx`, DR-1449) lists books, bundles, courses, workshops and the membership on one public page. It had been built for its money paths and never set for reading: one price style for every label, every course in one list.
+
 ## DRs reviewed
 
 - **DR-1449**: one public surface; the server's answer is what is for sale; one catalog entry shape. Nothing here touches `store-catalog.js`, `store-pricing.js`, the checkout request or the delivery path.
@@ -31,6 +35,10 @@ A visitor reads every course's title whole, sees the areas at a glance, and reac
 2. The course shelf opens on eight courses with a button for the rest, and a row of area buttons, each the courses' own department with its count. An area shows all of its courses.
 3. A course opened by a shared link is never hidden behind the button.
 4. The shelf is set to be read (his words after the first fix: *"The words look condensed... Can't read the title of the book as good... it should be easy and nice on the eyes"*). Measured before, at 946 px and 390 px: titles 16 px, subtitles 11 px italic, descriptions 12 px, counts 11 px, buttons 36 px tall. After: a book's title 22 px, a course's 19 px, descriptions 15 px with relaxed leading, subtitles 14 px upright, the smallest words 13 px, buttons 44 px, more room in and between cards; two columns begin at 768 px, not 640. All in rem, so large print still scales it; a test refuses any card text under 0.8125rem and any italic class.
+
+## Verification
+
+`storefront.test.jsx` 8 green: price placement by length, one price per item, area counts adding to every course, an area showing only its own, and no card text under 0.8125rem or italic. `the-sovereign-storefront.test.js` 17 green, unchanged. Built app at 946 px and 390 px in Chromium: the measurements above. After merge: the deploy run and `site-health`, then the store read on his phone (DR-0104).
 
 ## What is NOT in this record
 

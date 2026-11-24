@@ -29,6 +29,10 @@ A member sees, on each program, the courses that belong to it and who each is fo
 5. The Courses tab filters by program; a course two programs name says so.
 6. The by-age tiles carry a gold rule; true red stays reserved (DR-0099).
 
+## Verification
+
+`church-institute.test.js` 13 green and `church-institute-render.test.jsx` 13 green: the required core is pinned unchanged; an open-study key that does not exist is reported (proven to catch); no market, real-estate or A.I. category is placed; the by-age counts are computed from the lessons. Built app at 390 px in Chromium: the card opens in place, scroll width 390. After merge: the deploy run on main's SHA and `site-health` (DR-0107, DR-0125), then the phone walk (DR-0104).
+
 ## What is NOT in this record
 
 The Institute's own survey and doctrine courses remain planned and are listed as planned. Whether any open-study course should join a program's required core is the Bishop's and the office's decision. `re-review: 2026-12-08` for that question to have been put to them.

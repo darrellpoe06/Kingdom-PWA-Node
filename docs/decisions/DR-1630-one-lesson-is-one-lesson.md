@@ -26,3 +26,7 @@ The two totals on the Learn page agree. A reader who finished the carried lesson
 2. It reads as read when either door was read.
 3. Each course still counts its own lessons on its own row; only the library total dedupes.
 4. The counting lives in `uniqueLessonTally` at the foot of the file. Living Lesson L317 cites `sortCourses` at line 196 and its test holds the line to that; CI caught the first version of this change moving it (run 45419732601, shard 2), and nothing is now added above it.
+
+## Verification
+
+`course-standing-on-the-list.test.jsx` 9 green, the four cases above among them, one proven to catch (home not mounted). `living-lessons-ll317-who-judges-greatness.test.js` 14 green: `sortCourses` holds line 196. After merge: the two totals read on the live Learn page (DR-0104).

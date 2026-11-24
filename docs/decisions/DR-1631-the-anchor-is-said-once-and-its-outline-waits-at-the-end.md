@@ -27,6 +27,10 @@ A listener hears the anchor's reference and then the lesson. A reader still has 
 3. That block, and the lesson card's own anchor block, carry `data-read-skip`: shown, tappable, never read aloud.
 4. This is one render path, so it holds for every lesson in every course.
 
+## Verification
+
+`the-anchor-outline-is-not-read.test.jsx` 6 green, read through the reader's own map and proven to catch. `feature-presence.test.jsx` (lesson reader) green: it failed during the work when the anchor's reference stopped opening, and passes with the reference tappable in place. After merge: the reader heard on L339 on the live build (DR-0104).
+
 ## What is NOT in this record
 
 The Kids adventure and the presentation deck draw the anchor by their own paths and were not changed. `re-review: 2026-12-01` to listen to both.
