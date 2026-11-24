@@ -53,6 +53,8 @@ import { Practice } from './Practice.jsx';
 import { useTlcOfficeData, addInquiry, updateInquiry, deleteInquiry, addLead, updateLead, deleteLead } from '../lib/tlc-office-data.js';
 import { myPacketStatus } from '../lib/tlc-onboarding-sync.js';
 import { TLC_APP_PATH } from '../lib/tlc-onboarding.js';
+import DoorMapButton from './shell/DoorMapButton.jsx';
+import { doorMapGroup } from '../lib/app-map.js';
 
 // A colleague arriving on Christina's one-time link (?onboard=TOKEN, DR-0344):
 // signed out, they meet a sign-in / create-login card that says what the link
@@ -401,6 +403,8 @@ export default function TlcPublicDoor() {
                 raising text size grows the BODY copy, never the wordmark. The
                 name never cuts off mid-word (whitespace-nowrap + truncate). */}
             <div className="min-w-0 ts-chrome-region flex items-center gap-2.5">
+              {/* Every section this person has, as one searchable sheet (DR-1627): the same list the dock and the tabs read. */}
+              <DoorMapButton appName={TLC_DOOR_BRAND.name} theme={theme} themeFallback={TLC_DEFAULT_THEME} className="rounded-full" groups={doorMapGroup(TLC_DOOR_BRAND.name, dockItems, signedIn ? activeTab : visitorTab)} onGo={(it) => (signedIn ? setActiveTab : setVisitorTab)(it.id)} />
               {/* The mark: a heart in the forest well — the brand's own sign,
                   painted by the theme so it reads in every palette. */}
               <span className="hidden sm:inline-flex shrink-0 items-center justify-center w-9 h-9 rounded-full bg-[#1A1815] text-white" aria-hidden="true"><UiIcon name="heart" /></span>

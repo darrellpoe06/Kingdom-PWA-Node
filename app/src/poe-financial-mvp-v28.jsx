@@ -4117,7 +4117,7 @@ ${THEME_CSS}
       {showSideNav && <SideNav items={navTabs} view={view} setView={setView} brandName={churchBrand ? 'The Love Corner' : 'PoeTech'} brandTagline={churchBrand ? 'The Church of the Living God' : 'Life · Soul · Money · Family'} onSettings={toggleHeaderChrome} settingsOpen={!headerCollapsed} churchView={churchView} onQuickLink={(q) => { setChurchView(q.churchView); setView(q.view); }} />}
       <div className="min-w-0 flex-1">
       {/* THE LOVE CORNER DOOR WEARS ITS OWN HEADER (DR-1483; components/shell/LoveCornerHeader.jsx); the family app keeps the one below. */}
-      {churchDoorOnly ? <LoveCornerHeader churchTabs={navForDock.churchTabs} churchView={churchView} setChurchView={setChurchView} view={view} booksView={booksView} setView={setView} setBooksView={setBooksView} church={data.church} isFamilyMember={isFamilyMember} isOffice={!reviewerMode && isChurchOfficeRole(churchAccess.role)} canAdmin={isGov} theme={theme} setTheme={setTheme} onFeedback={() => setFeedbackOpen(true)} /> : (
+      {churchDoorOnly ? <LoveCornerHeader personName={accountDoor.personName} churchTabs={navForDock.churchTabs} churchView={churchView} setChurchView={setChurchView} view={view} booksView={booksView} setView={setView} setBooksView={setBooksView} church={data.church} isFamilyMember={isFamilyMember} isOffice={!reviewerMode && isChurchOfficeRole(churchAccess.role)} canAdmin={isGov} theme={theme} setTheme={setTheme} onFeedback={() => setFeedbackOpen(true)} /> : (
       <header className="ts-safe-sticky border-b border-[#1A1815] bg-[#FAF8F4] sticky z-20 print:hidden" style={{ top: 'var(--lwb-h, 0px)' }} data-read-skip>
         {/* Header vertical padding is CHROME: pinned to fixed px so it does not scale with the root multiplier; HEADER HIDEAWAY: the top block hides when collapsed, only the tab row stays. */}
         {!headerCollapsed && (
@@ -4230,7 +4230,7 @@ ${THEME_CSS}
             Darrell built it. DR-0276 rule 3 — always reversible. */}
         {/* The nav row, the header chevron, and on a one-tab door the brand row
             (components/TopNavRow.jsx, DR-0640: "Both places are good... why not"). */}
-        <TopNavRow account={!isIsolatedPreview() && <HeaderAuthButton door={accountDoor} compact />} navHistory={navHistory} tabsHidden={showSideNav} collapsed={headerCollapsed} onToggleHeader={toggleHeaderChrome} brandName={churchBrand ? 'The Love Corner' : 'Family Operating Systems'} brandTagline={churchBrand ? 'The Church of the Living God' : 'Life · Soul · Money · Family'}
+        <TopNavRow account={!isIsolatedPreview() && <HeaderAuthButton door={accountDoor} compact />} map={{ ...navForDock, theme, setTheme, isOwner: isFamilyMember }} navHistory={navHistory} tabsHidden={showSideNav} collapsed={headerCollapsed} onToggleHeader={toggleHeaderChrome} brandName={churchBrand ? 'The Love Corner' : 'Family Operating Systems'} brandTagline={churchBrand ? 'The Church of the Living God' : 'Life · Soul · Money · Family'}
           home={churchDoorOnly && isFamilyMember ? { href: '/poetech-app/?view=overview', label: 'PoeTech app', title: 'Open the whole PoeTech app (every tab)' } : null}
           hatch={<TextSizeEscapeHatch collapsed={headerCollapsed} onShowHeader={toggleHeaderChrome} siteName={churchBrand ? 'The Love Corner' : 'Family Operating Systems'} siteTagline={churchBrand ? 'The Church of the Living God' : 'Life · Soul · Money · Family'} />}>
               {navTabs.map(([id, label]) => {

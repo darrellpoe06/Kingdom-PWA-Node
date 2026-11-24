@@ -16,6 +16,8 @@ import { parseCopy, userPrompt } from '../../scripts/learn-presentation/lib/prom
 import { estimate } from '../../scripts/learn-presentation/lib/prices.mjs';
 import { anthropicText } from '../../scripts/learn-presentation/providers/text.mjs';
 import { bflImage } from '../../scripts/learn-presentation/providers/image.mjs';
+import { verifyRecovery } from '../../scripts/learn-presentation/lib/recovery.mjs';
+import { writeFileSync, rmSync } from 'node:fs';
 
 const deepFreeze = (o) => {
   if (o && typeof o === 'object' && !Object.isFrozen(o)) {
@@ -456,5 +458,164 @@ describe('every try is charged, retries and failures included', () => {
     expect(t.skipped).toBe(2);
     expect(again.calls.length).toBe(0);
     expect(l.spentCents()).toBe(before);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Pilot 1 regressions (2026-11-24). Pilot 1 spent 98c, then: 10 of 20 titles
+// came back as prose ("no JSON object in model output") and were parked for
+// review, and compose crashed with "want.has is not a function". Each test
+// below fails on the pilot-1 code.
+// ---------------------------------------------------------------------------
+describe('pilot 1 regressions', () => {
+  const COPY_OBJ = { displayTitle: 'Who Are You When Nobody Is Watching?', thumbHeadline: 'WHO ARE YOU', promoDescription: 'p', imagePrompt: 'i', imageAlt: 'a' };
+  const anthropicReply = (body) => async (url, init) => {
+    anthropicReply.last = JSON.parse(init.body);
+    return { ok: true, json: async () => body };
+  };
+
+  it('the Anthropic call FORCES the lesson_copy tool and returns its input as JSON', async () => {
+    const fetchImpl = anthropicReply({ stop_reason: 'tool_use', content: [{ type: 'tool_use', name: 'lesson_copy', input: COPY_OBJ }] });
+    const out = await anthropicText({ apiKey: 'k', fetchImpl }).complete({ system: 's', user: 'u' });
+    const sent = anthropicReply.last;
+    expect(sent.tool_choice).toEqual({ type: 'tool', name: 'lesson_copy' });
+    expect(sent.tools[0].input_schema.required).toEqual(['displayTitle', 'thumbHeadline', 'promoDescription', 'imagePrompt', 'imageAlt']);
+    expect(sent.tools[0].input_schema.additionalProperties).toBe(false);
+    expect(sent.max_tokens).toBeGreaterThanOrEqual(2048);
+    expect(parseCopy(out.text)).toEqual(COPY_OBJ);
+  });
+
+  it('an answer cut off at max_tokens is a retryable fault, never review', async () => {
+    const fetchImpl = anthropicReply({ stop_reason: 'max_tokens', content: [{ type: 'text', text: '{"displayTitle": "Half' }] });
+    const err = await anthropicText({ apiKey: 'k', fetchImpl })
+      .complete({ system: 's', user: 'u' })
+      .catch((e) => e);
+    expect(err).toBeInstanceOf(ProviderError);
+    expect(err.retryable).toBe(true);
+  });
+
+  it('prose on both passes is recorded as failed (resumable), not needs-review', async () => {
+    const l = ledger();
+    const t = await textRun(
+      l,
+      mockText(() => 'Here is a great title for this lesson!'),
+      { items: items.slice(0, 1) }
+    );
+    expect(t).toMatchObject({ failed: 1, needsReview: 0 });
+    const j = l.latestFor('living-lessons', 'll1-a', 'text');
+    expect(j.state).toBe('failed');
+    expect(l.decide({ courseKey: 'living-lessons', lessonId: 'll1-a', kind: 'text', contentSha: items[0].contentSha })).toMatchObject({ run: true });
+  });
+
+  it('a pilot-1 needs-review parse fault is resumed; a real editorial review is not', () => {
+    const l = ledger();
+    const mk = (lessonId, lastError) => {
+      const it = items.find((x) => x.lessonId === lessonId);
+      l.write({ batchId: 'library-v1', courseKey: it.courseKey, lessonId, kind: 'text', contentSha: it.contentSha, idempotencyKey: `library-v1|${lessonId}`, state: 'needs-review', attempts: 1, costCents: 2, lastError });
+      return it;
+    };
+    const a = mk('ll1-a', 'no JSON object in model output');
+    const b = mk('ll2-b', 'generic-god');
+    expect(l.decide({ courseKey: a.courseKey, lessonId: a.lessonId, kind: 'text', contentSha: a.contentSha })).toMatchObject({ run: true, reason: 'parse-fault' });
+    expect(l.decide({ courseKey: b.courseKey, lessonId: b.lessonId, kind: 'text', contentSha: b.contentSha })).toMatchObject({ run: false, reason: 'needs-review' });
+  });
+
+  it('resuming keeps what earlier runs spent: the ledger never forgets a cent (proven-to-catch the overwrite)', async () => {
+    const l = ledger();
+    // Run 1: prose twice -> failed, 2c spent.
+    await textRun(
+      l,
+      mockText(() => 'prose'),
+      { items: items.slice(0, 1) }
+    );
+    expect(l.spentCents()).toBe(2);
+    // Run 2, same batch key: succeeds on the first try for 1c more. Total must be 3, not 1.
+    const l2 = ledger();
+    const t = await textRun(
+      l2,
+      mockText((req) => goodCopy(titleFrom(req.user))),
+      { items: items.slice(0, 1) }
+    );
+    expect(t.done).toBe(1);
+    expect(l2.spentCents()).toBe(3);
+  });
+
+  it('a resumed run skips the 10 finished titles and images and spends only on the rest', async () => {
+    const l = ledger();
+    // Two finished lessons (text + image), two that failed as prose.
+    await textRun(
+      l,
+      mockText((req) => goodCopy(titleFrom(req.user))),
+      { items: items.slice(0, 2) }
+    );
+    await textRun(
+      l,
+      mockText(() => 'prose'),
+      { items: items.slice(2, 4) }
+    );
+    await runImages({ items, ledger: l, provider: mockImage(), outDir: join(dir, 'img'), batchId: 'b1', concurrency: 1, sleep: noSleep });
+    const spentBefore = l.spentCents();
+    const text = mockText((req) => goodCopy(titleFrom(req.user)));
+    const t = await textRun(ledger(), text, { items: items.slice(0, 4) });
+    expect(t).toMatchObject({ skipped: 2, done: 2 });
+    expect(text.calls.every((c) => !/Not with Eyeservice|Give Me This Mountain/.test(titleFrom(c.user)))).toBe(true);
+    const img = mockImage();
+    const l3 = ledger();
+    const ti = await runImages({ items: items.slice(0, 4), ledger: l3, provider: img, outDir: join(dir, 'img'), batchId: 'b1', concurrency: 1, sleep: noSleep });
+    expect(ti.skipped).toBe(2);
+    expect(img.calls).toBe(2);
+    expect(l3.spentCents()).toBe(spentBefore + 2 + 12);
+  });
+
+  it('with 98c already in the ledger the run may spend at most 402c more', async () => {
+    const scope = await import('../../scripts/learn-presentation/lib/scope.mjs');
+    expect(scope.remainingCents(null, 98)).toBe(402);
+    expect(scope.remainingCents(400, 98)).toBe(400);
+  });
+
+  it('compose scope is a Set over the resolved lessons, by id or course::id (the want.has crash)', async () => {
+    const { scopeKeySet } = await import('../../scripts/learn-presentation/lib/scope.mjs');
+    const want = scopeKeySet(items.slice(0, 2));
+    expect(typeof want.has).toBe('function');
+    expect(want.has('ll1-a')).toBe(true);
+    expect(want.has('living-lessons::ll2-b')).toBe(true);
+    expect(want.has('ll3-c')).toBe(false);
+    expect(scopeKeySet(undefined).size).toBe(0);
+  });
+});
+
+describe('recovery is proven before a resumed run spends anything', () => {
+  const finished = async () => {
+    const l = ledger();
+    await textRun(
+      l,
+      mockText((req) => goodCopy(titleFrom(req.user))),
+      { items: items.slice(0, 2) }
+    );
+    await runImages({ items, ledger: l, provider: mockImage(), outDir: join(dir, 'img'), batchId: 'b1', concurrency: 1, sleep: noSleep });
+    return ledger();
+  };
+  const want = { minCents: 14, minText: 2, minImages: 2 };
+
+  it('passes when the titles, the image bytes and the spend are all there', async () => {
+    const v = verifyRecovery(await finished(), join(dir, 'img'), want);
+    expect(v).toMatchObject({ ok: true, text: 2, images: 2, spent: 14 });
+  });
+
+  it('fails on an empty ledger (the cache did not come back)', () => {
+    const v = verifyRecovery(ledger(), join(dir, 'img'), want);
+    expect(v.ok).toBe(false);
+    expect(v.problems.join(' ')).toMatch(/0c spent.*|0 finished titles/);
+  });
+
+  it('fails when an image file is missing or its bytes changed', async () => {
+    const l = await finished();
+    const recs = Object.values(l.records).filter((r) => r.image);
+    rmSync(join(dir, 'img', recs[0].image.path));
+    writeFileSync(join(dir, 'img', recs[1].image.path), 'tampered');
+    const v = verifyRecovery(l, join(dir, 'img'), want);
+    expect(v.ok).toBe(false);
+    expect(v.images).toBe(0);
+    expect(v.problems.join(' ')).toMatch(/missing on disk[\s\S]*bytes changed/);
   });
 });
