@@ -1,6 +1,6 @@
 {
  "schema": "learn-art-direction/v2",
- "why": "Pilot images came out dark (mean luma 37.6/255) because every prompt carried 'deep blacks, warm gold light' and 'dark negative space'. The free grade pass (learn-thumbs/grade.mjs) rescued 10 of 20; these are the lessons it could not rescue (84-91% near-black, gray, or off the department brief), plus the six Explore by Topic covers. Owner direction 2026-11-24: brighter, richer, more diverse color; natural daylight; scenery; expressive, clearly visible faces; meaningful Black representation; a personality per department. Revised the same day on the owner's word: grading only brightens, so the ART DIRECTION itself changes — high-key natural daylight, blue skies, modern well-lit spaces, natural skin tones and natural color; no candlelight, night, silhouettes, sunsets or brown/orange casts. Three samples are generated first; the other thirteen only after the samples are checked.",
+ "why": "Pilot images came out dark (mean luma 37.6/255) because every prompt carried 'deep blacks, warm gold light' and 'dark negative space'. The free grade pass (learn-thumbs/grade.mjs) rescued 10 of 20; these are the lessons it could not rescue (84-91% near-black, gray, or off the department brief), plus the six Explore by Topic covers. Owner direction 2026-11-24: brighter, richer, more diverse color; natural daylight; scenery; expressive, clearly visible faces; meaningful Black representation; a personality per department. Revised the same day on the owner's word: grading only brightens, so the ART DIRECTION itself changes — high-key natural daylight, blue skies, modern well-lit spaces, natural skin tones and natural color; no candlelight, night, silhouettes, sunsets or brown/orange casts. Three samples are generated first; the other thirteen only after the samples are checked. Extended the same day on the owner's word ('use the paid way'): the 10 lessons that had kept their graded v1 pictures, which the owner judged still too dark, get the new art direction too, so all 20 pilot lessons and the 6 topic covers carry it.",
  "lessons": [
   {
    "courseKey": "living-lessons",
@@ -71,6 +71,76 @@
    "look": "faith",
    "prompt": "Uplifting bright mid-morning on a lush green hillside path above a wide valley of fields and red, white and purple wildflowers, white clouds in a clear blue sky. A Black woman in her forties in a flowing white and soft blue dress walks forward along the path holding an open Bible against her heart, peaceful joyful expression, face clearly lit. Fresh greens, sky blue and clean natural daylight; hopeful, free and full of blessing.",
    "alt": "A Black woman holding an open Bible walks a green hillside path at sunrise above a valley of wildflowers."
+  },
+  {
+   "courseKey": "living-lessons",
+   "lessonId": "ll338-not-with-eyeservice",
+   "look": "faith",
+   "prompt": "A content, focused Black woman in her thirties in a cobalt blue blouse works at a light oak desk in a bright home office with big windows, white shelves and lush green plants, writing in a planner beside a laptop with a soft, satisfied smile, nobody else in the room; clear daylight, fresh greens and blues.",
+   "alt": "A Black woman works contentedly at her desk in a bright, plant-filled home office."
+  },
+  {
+   "courseKey": "living-lessons",
+   "lessonId": "ll332-give-me-this-mountain",
+   "look": "faith",
+   "prompt": "An energetic Black man in his eighties with a white beard, hiking boots and a red jacket stands on a green alpine trail pointing up toward a snow-capped summit with a determined smile, his grandson in his twenties beside him with a backpack, both faces clearly visible; meadow of wildflowers, clear blue sky, crisp daylight.",
+   "alt": "An older Black man in a red jacket points up a mountain trail beside his grandson under a blue sky."
+  },
+  {
+   "courseKey": "living-lessons",
+   "lessonId": "ll340-wisdom-is-profitable-to-direct",
+   "look": "faith",
+   "prompt": "Bright modern woodshop with big windows and clean light wood; a Black grandfather in his sixties in a sky-blue shirt guides his granddaughter, about ten, as she sharpens a chisel on a whetstone, both focused and smiling, faces clearly lit; green plants, natural daylight, tidy and inviting.",
+   "alt": "A Black grandfather teaches his granddaughter to sharpen a chisel in a bright woodshop."
+  },
+  {
+   "courseKey": "living-lessons",
+   "lessonId": "ll339-the-profit-of-the-earth-is-for-all",
+   "look": "faith",
+   "prompt": "Sunny green wheat field under a big blue sky with white clouds and a red barn in the distance; a Black woman farmer in her forties in a denim shirt and straw hat smiles while checking an abstract chart on a tablet, her teenage son beside her holding a basket of fresh vegetables; vivid greens, natural color.",
+   "alt": "A Black farmer checks a chart on a tablet beside her son in a sunny green field."
+  },
+  {
+   "courseKey": "broadcast",
+   "lessonId": "bc2-camera-and-image",
+   "look": "faith",
+   "prompt": "Bright modern church sanctuary during a daytime service, tall windows letting in natural light; a smiling Black woman camera operator in her thirties in a red polo shirt runs a professional broadcast camera on a tripod, the stage and congregation softly blurred behind her; clean whites, light wood, colorful accents.",
+   "alt": "A Black woman operates a broadcast camera in a bright church sanctuary during a daytime service."
+  },
+  {
+   "courseKey": "living-lessons",
+   "lessonId": "ll334-this-i-recall-to-my-mind",
+   "look": "faith",
+   "prompt": "A Black grandmother in her seventies sits on a sunny front porch swing with a photo album and an open Bible on her lap, smiling warmly as her teenage granddaughter leans on her shoulder to look at the photos; green lawn, blue hydrangeas, clear blue sky.",
+   "alt": "A smiling Black grandmother shares a photo album and her Bible with her granddaughter on a sunny porch."
+  },
+  {
+   "courseKey": "living-lessons",
+   "lessonId": "ll333-heavenly-cheat-codes-life-his-way",
+   "look": "faith",
+   "prompt": "Bright modern kitchen table beside a large window; a Black father in his thirties and his daughter about seven read an open Bible together, the girl pointing at a verse and laughing, the father smiling, faces clearly visible; white walls, green plants, cobalt and yellow accents, clear daylight.",
+   "alt": "A Black father and his young daughter laugh while reading the Bible at a bright kitchen table."
+  },
+  {
+   "courseKey": "living-lessons",
+   "lessonId": "ll331-it-doth-not-yet-appear-what-we-shall-be",
+   "look": "faith",
+   "prompt": "A sunny backyard garden gate: a Black father in his fifties warmly embraces his grown son in his twenties, the son's face showing relief and joy, an open white gate, blooming flowers and lush green lawn around them, clear blue sky; welcome and restoration, natural color.",
+   "alt": "A Black father embraces his grown son at a white garden gate on a sunny day."
+  },
+  {
+   "courseKey": "rent-to-own-business",
+   "lessonId": "rto2-what-rent-to-own-actually-is-and-the-just-weight",
+   "look": "finance",
+   "prompt": "Bright modern furniture and electronics store with big windows and sunlight; a friendly Black store manager in his forties in a navy polo hands a clear printed agreement to a young Black mother holding her toddler, both smiling, sofas and screens on display behind; clean, welcoming, colorful.",
+   "alt": "A Black store manager hands an agreement to a smiling young mother in a bright furniture store."
+  },
+  {
+   "courseKey": "history-truth",
+   "lessonId": "hist2-the-fatherless-the-widow-and-the-stranger",
+   "look": "history",
+   "prompt": "Documentary-style period photograph in clear winter daylight, Southeastern United States in 1838: a dignified Cherokee family, a grandmother, a father, a mother and a young child, in period-accurate Cherokee clothing and wool blankets, walk together along a dirt road through bare trees under a pale blue sky; solemn, resilient expressions, faces clearly visible; respectful, true natural color.",
+   "alt": "A Cherokee family in period clothing walks a dirt road through bare winter trees in 1838."
   }
  ],
  "topics": [

@@ -236,7 +236,11 @@ export async function gradeImage(input, { look = 'default', quality = 92 } = {})
   }
   const avg = k ? (rs + gs + bs) / (3 * k) : 1;
   const clampG = (v) => Math.min(1.25, Math.max(0.8, v));
-  const gain = k ? [rs, gs, bs].map((s) => clampG(Math.pow(avg / (s / k), L.wb))) : [1, 1, 1];
+  // A well-exposed daylight picture (the v2 art direction) has no cast to fix:
+  // gray-world on a blue-sky frame pushes the clouds pink (measured 2026-11-24).
+  // White balance fades out as the picture brightens: full at mean luma <= 40, none at >= 110.
+  const wbEff = L.wb * Math.min(1, Math.max(0, (110 - m.mean) / 70));
+  const gain = k ? [rs, gs, bs].map((s) => clampG(Math.pow(avg / (s / k), wbEff))) : [1, 1, 1];
 
   // 3. exposure: levels from the histogram, then gamma toward the target median
   const lo = Math.min(m.p01, 40);
@@ -269,7 +273,7 @@ export async function gradeImage(input, { look = 'default', quality = 92 } = {})
     const mx = Math.max(r, g, b),
       mn = Math.min(r, g, b);
     const s = mx > 0 ? (mx - mn) / mx : 0;
-    const f = 1 + L.vib * (1 - s);
+    const f = 1 + L.vib * (1 - s) * (m.mean > 110 ? 0.4 : 1); // bright pictures already carry their color
     const ll = luma(r, g, b);
     r = ll + (r - ll) * f;
     g = ll + (g - ll) * f;

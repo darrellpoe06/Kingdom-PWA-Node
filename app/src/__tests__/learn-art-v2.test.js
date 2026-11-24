@@ -58,10 +58,11 @@ describe('art direction v2', () => {
     expect(finalImagePrompt('x')).not.toMatch(/negative space|deep blacks|gold light/);
   });
 
-  it('samples are exactly three; rest is the other thirteen; nothing outside the file', () => {
+  it('samples are exactly three; rest is every other entry; nothing outside the file', () => {
     expect(resolveArtScope('samples', ART)).toHaveLength(3);
-    expect(resolveArtScope('rest', ART)).toHaveLength(13);
-    expect(resolveArtScope('all-art', ART)).toHaveLength(16);
+    expect(resolveArtScope('rest', ART)).toHaveLength(ART.lessons.length + ART.topics.length - 3);
+    expect(resolveArtScope('all-art', ART)).toHaveLength(ART.lessons.length + ART.topics.length);
+    expect(ART.lessons.length).toBeLessThanOrEqual(20);
     expect(() => resolveArtScope('', ART)).toThrow(/must name/);
     expect(() => resolveArtScope('ll999-not-a-lesson', ART)).toThrow(/not in the art file/);
   });
