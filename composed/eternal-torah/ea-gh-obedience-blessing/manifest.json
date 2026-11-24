@@ -1,0 +1,67 @@
+{
+ "schema": "learn-thumbs/v1",
+ "courseKey": "eternal-torah",
+ "lessonId": "ea-gh-obedience-blessing",
+ "thumbHeadline": "STOP CHASING, START LISTENING",
+ "layout": "left",
+ "department": "",
+ "composedAt": "2026-11-24T15:03:11.019Z",
+ "master": {
+  "file": "master.jpg",
+  "format": "jpeg",
+  "width": 2752,
+  "height": 1536,
+  "bytes": 470499
+ },
+ "sha256": "0c6ce35fbca3df90c1ceeee87571b156b6c8f014f3239fca9d97523eab6eeb0b",
+ "dhash": "0105010343434932",
+ "width": 1280,
+ "height": 720,
+ "image": {
+  "src": "/learn-thumbs/eternal-torah/ea-gh-obedience-blessing/w1280.webp",
+  "srcSet": {
+   "avif": "/learn-thumbs/eternal-torah/ea-gh-obedience-blessing/w1920.avif 1920w, /learn-thumbs/eternal-torah/ea-gh-obedience-blessing/w1280.avif 1280w, /learn-thumbs/eternal-torah/ea-gh-obedience-blessing/w640.avif 640w, /learn-thumbs/eternal-torah/ea-gh-obedience-blessing/w320.avif 320w",
+   "webp": "/learn-thumbs/eternal-torah/ea-gh-obedience-blessing/w1920.webp 1920w, /learn-thumbs/eternal-torah/ea-gh-obedience-blessing/w1280.webp 1280w, /learn-thumbs/eternal-torah/ea-gh-obedience-blessing/w640.webp 640w, /learn-thumbs/eternal-torah/ea-gh-obedience-blessing/w320.webp 320w"
+  },
+  "lqip": "data:image/webp;base64,UklGRkoAAABXRUJQVlA4ID4AAACwAwCdASoYAA4APu1krU2ppaSiMAgBMB2JaQDMHGlgB4Y7Fh/oAAD+/m3hKx5lGYhGjLa7SjnTHwDOpVIAAA=="
+ },
+ "sizes": [
+  {
+   "w": 1920,
+   "width": 1920,
+   "height": 1080,
+   "avif": "w1920.avif",
+   "webp": "w1920.webp"
+  },
+  {
+   "w": 1280,
+   "width": 1280,
+   "height": 720,
+   "avif": "w1280.avif",
+   "webp": "w1280.webp"
+  },
+  {
+   "w": 640,
+   "width": 640,
+   "height": 360,
+   "avif": "w640.avif",
+   "webp": "w640.webp"
+  },
+  {
+   "w": 320,
+   "width": 320,
+   "height": 180,
+   "avif": "w320.avif",
+   "webp": "w320.webp"
+  }
+ ],
+ "ogPath": "/learn-thumbs/eternal-torah/ea-gh-obedience-blessing/og.jpg",
+ "headline": {
+  "lines": [
+   "STOP CHASING,",
+   "START LISTENING"
+  ],
+  "fontSize": 118,
+  "font": "Anton"
+ }
+}

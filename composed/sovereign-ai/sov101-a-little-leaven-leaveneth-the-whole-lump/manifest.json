@@ -1,0 +1,67 @@
+{
+ "schema": "learn-thumbs/v1",
+ "courseKey": "sovereign-ai",
+ "lessonId": "sov101-a-little-leaven-leaveneth-the-whole-lump",
+ "thumbHeadline": "FIND EVERY COPY",
+ "layout": "left",
+ "department": "",
+ "composedAt": "2026-11-24T15:01:24.639Z",
+ "master": {
+  "file": "master.jpg",
+  "format": "jpeg",
+  "width": 2752,
+  "height": 1536,
+  "bytes": 702513
+ },
+ "sha256": "fd021bc7723e5b9ac24683d03f2fbebc40d8304d954fc56e43a0639879aa9a8e",
+ "dhash": "0f0f0f0f0f2dad26",
+ "width": 1280,
+ "height": 720,
+ "image": {
+  "src": "/learn-thumbs/sovereign-ai/sov101-a-little-leaven-leaveneth-the-whole-lump/w1280.webp",
+  "srcSet": {
+   "avif": "/learn-thumbs/sovereign-ai/sov101-a-little-leaven-leaveneth-the-whole-lump/w1920.avif 1920w, /learn-thumbs/sovereign-ai/sov101-a-little-leaven-leaveneth-the-whole-lump/w1280.avif 1280w, /learn-thumbs/sovereign-ai/sov101-a-little-leaven-leaveneth-the-whole-lump/w640.avif 640w, /learn-thumbs/sovereign-ai/sov101-a-little-leaven-leaveneth-the-whole-lump/w320.avif 320w",
+   "webp": "/learn-thumbs/sovereign-ai/sov101-a-little-leaven-leaveneth-the-whole-lump/w1920.webp 1920w, /learn-thumbs/sovereign-ai/sov101-a-little-leaven-leaveneth-the-whole-lump/w1280.webp 1280w, /learn-thumbs/sovereign-ai/sov101-a-little-leaven-leaveneth-the-whole-lump/w640.webp 640w, /learn-thumbs/sovereign-ai/sov101-a-little-leaven-leaveneth-the-whole-lump/w320.webp 320w"
+  },
+  "lqip": "data:image/webp;base64,UklGRkoAAABXRUJQVlA4ID4AAACwAwCdASoYAA4APu1iqU2ppaOiMAgBMB2JYwDCgB6Niku9ibS34AD+9DLb1dm6YouBHiIPcpRIu5nTW6AAAA=="
+ },
+ "sizes": [
+  {
+   "w": 1920,
+   "width": 1920,
+   "height": 1080,
+   "avif": "w1920.avif",
+   "webp": "w1920.webp"
+  },
+  {
+   "w": 1280,
+   "width": 1280,
+   "height": 720,
+   "avif": "w1280.avif",
+   "webp": "w1280.webp"
+  },
+  {
+   "w": 640,
+   "width": 640,
+   "height": 360,
+   "avif": "w640.avif",
+   "webp": "w640.webp"
+  },
+  {
+   "w": 320,
+   "width": 320,
+   "height": 180,
+   "avif": "w320.avif",
+   "webp": "w320.webp"
+  }
+ ],
+ "ogPath": "/learn-thumbs/sovereign-ai/sov101-a-little-leaven-leaveneth-the-whole-lump/og.jpg",
+ "headline": {
+  "lines": [
+   "FIND EVERY",
+   "COPY"
+  ],
+  "fontSize": 172,
+  "font": "Anton"
+ }
+}

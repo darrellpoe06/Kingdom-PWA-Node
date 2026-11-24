@@ -1,0 +1,67 @@
+{
+ "schema": "learn-thumbs/v1",
+ "courseKey": "development",
+ "lessonId": "dev2-name-the-real-record-and-the-real-screen-before-you-code",
+ "thumbHeadline": "TRACE BEFORE YOU CODE",
+ "layout": "left",
+ "department": "",
+ "composedAt": "2026-11-24T15:01:38.604Z",
+ "master": {
+  "file": "master.jpg",
+  "format": "jpeg",
+  "width": 2752,
+  "height": 1536,
+  "bytes": 497559
+ },
+ "sha256": "a5d0a3420b9b6312ff5b914cc7df6ae636ea6eefb7367257da069a718bd0f503",
+ "dhash": "106836161b1a0e9c",
+ "width": 1280,
+ "height": 720,
+ "image": {
+  "src": "/learn-thumbs/development/dev2-name-the-real-record-and-the-real-screen-before-you-code/w1280.webp",
+  "srcSet": {
+   "avif": "/learn-thumbs/development/dev2-name-the-real-record-and-the-real-screen-before-you-code/w1920.avif 1920w, /learn-thumbs/development/dev2-name-the-real-record-and-the-real-screen-before-you-code/w1280.avif 1280w, /learn-thumbs/development/dev2-name-the-real-record-and-the-real-screen-before-you-code/w640.avif 640w, /learn-thumbs/development/dev2-name-the-real-record-and-the-real-screen-before-you-code/w320.avif 320w",
+   "webp": "/learn-thumbs/development/dev2-name-the-real-record-and-the-real-screen-before-you-code/w1920.webp 1920w, /learn-thumbs/development/dev2-name-the-real-record-and-the-real-screen-before-you-code/w1280.webp 1280w, /learn-thumbs/development/dev2-name-the-real-record-and-the-real-screen-before-you-code/w640.webp 640w, /learn-thumbs/development/dev2-name-the-real-record-and-the-real-screen-before-you-code/w320.webp 320w"
+  },
+  "lqip": "data:image/webp;base64,UklGRkIAAABXRUJQVlA4IDYAAABwAwCdASoYAA4APu1kqU2ppaOiMAgBMB2JZQDImC0H4KzdIgAA/vBcYxv9Z8ncYMpS/iJgwAA="
+ },
+ "sizes": [
+  {
+   "w": 1920,
+   "width": 1920,
+   "height": 1080,
+   "avif": "w1920.avif",
+   "webp": "w1920.webp"
+  },
+  {
+   "w": 1280,
+   "width": 1280,
+   "height": 720,
+   "avif": "w1280.avif",
+   "webp": "w1280.webp"
+  },
+  {
+   "w": 640,
+   "width": 640,
+   "height": 360,
+   "avif": "w640.avif",
+   "webp": "w640.webp"
+  },
+  {
+   "w": 320,
+   "width": 320,
+   "height": 180,
+   "avif": "w320.avif",
+   "webp": "w320.webp"
+  }
+ ],
+ "ogPath": "/learn-thumbs/development/dev2-name-the-real-record-and-the-real-screen-before-you-code/og.jpg",
+ "headline": {
+  "lines": [
+   "TRACE BEFORE",
+   "YOU CODE"
+  ],
+  "fontSize": 136,
+  "font": "Anton"
+ }
+}

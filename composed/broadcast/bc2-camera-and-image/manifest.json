@@ -1,0 +1,67 @@
+{
+ "schema": "learn-thumbs/v1",
+ "courseKey": "broadcast",
+ "lessonId": "bc2-camera-and-image",
+ "thumbHeadline": "ONE LENS. ONE PICTURE.",
+ "layout": "left",
+ "department": "",
+ "composedAt": "2026-11-24T15:01:32.184Z",
+ "master": {
+  "file": "master.jpg",
+  "format": "jpeg",
+  "width": 2752,
+  "height": 1536,
+  "bytes": 547258
+ },
+ "sha256": "3f1d11e9a3c9be80256103585acdbab3c2029f61fe956de313fb351d19fe581f",
+ "dhash": "4c8ac487070f1727",
+ "width": 1280,
+ "height": 720,
+ "image": {
+  "src": "/learn-thumbs/broadcast/bc2-camera-and-image/w1280.webp",
+  "srcSet": {
+   "avif": "/learn-thumbs/broadcast/bc2-camera-and-image/w1920.avif 1920w, /learn-thumbs/broadcast/bc2-camera-and-image/w1280.avif 1280w, /learn-thumbs/broadcast/bc2-camera-and-image/w640.avif 640w, /learn-thumbs/broadcast/bc2-camera-and-image/w320.avif 320w",
+   "webp": "/learn-thumbs/broadcast/bc2-camera-and-image/w1920.webp 1920w, /learn-thumbs/broadcast/bc2-camera-and-image/w1280.webp 1280w, /learn-thumbs/broadcast/bc2-camera-and-image/w640.webp 640w, /learn-thumbs/broadcast/bc2-camera-and-image/w320.webp 320w"
+  },
+  "lqip": "data:image/webp;base64,UklGRloAAABXRUJQVlA4IE4AAACwAwCdASoYAA4APu1krU2ppaSiMAgBMB2JQBOgBDvdxprOxNGOoAD+7yQka+fznR9ziBb0eGGO5mXCmC1zIja9zeBWyPEQ3xPv9hkAAAA="
+ },
+ "sizes": [
+  {
+   "w": 1920,
+   "width": 1920,
+   "height": 1080,
+   "avif": "w1920.avif",
+   "webp": "w1920.webp"
+  },
+  {
+   "w": 1280,
+   "width": 1280,
+   "height": 720,
+   "avif": "w1280.avif",
+   "webp": "w1280.webp"
+  },
+  {
+   "w": 640,
+   "width": 640,
+   "height": 360,
+   "avif": "w640.avif",
+   "webp": "w640.webp"
+  },
+  {
+   "w": 320,
+   "width": 320,
+   "height": 180,
+   "avif": "w320.avif",
+   "webp": "w320.webp"
+  }
+ ],
+ "ogPath": "/learn-thumbs/broadcast/bc2-camera-and-image/og.jpg",
+ "headline": {
+  "lines": [
+   "ONE LENS.",
+   "ONE PICTURE."
+  ],
+  "fontSize": 148,
+  "font": "Anton"
+ }
+}

@@ -1,0 +1,488 @@
+{
+ "schema": "learn-presentation/v1",
+ "generatedBy": "learn-presentation-pipeline",
+ "status": "review",
+ "note": "Promotional presentation ONLY. Never edits a lesson. Every record needs human approval.",
+ "records": [
+  {
+   "lessonId": "ll338-not-with-eyeservice",
+   "courseKey": "living-lessons",
+   "originalTitleAtApproval": "Not with Eyeservice — faithful work when no one is watching",
+   "displayTitle": "Who Is Watching When You Work Alone?",
+   "thumbHeadline": "WORK WHEN UNSEEN",
+   "promoDescription": "This lesson shows how Yahweh sees every room, and why faithful work in small, unseen tasks matters to Him more than being noticed by others. It also looks honestly at sloth, the value of rest, and how to judge others by their fruit rather than by assumptions.",
+   "visual": {
+    "prompt": "Cinematic 16:9 photograph of a focused Black woman professional sitting at a simple wooden desk in a quiet, dim home office at early morning. Warm gold light falls from a single window on her right and across the desk, where a open notebook, a steaming ceramic mug, and a pen rest. She is absorbed in her work, with a calm, steady, dignified expression and a gentle half-smile, not performing for the camera. A small restrained red accent appears in a book spine on a shelf behind her. Deep black shadows surround the room. Shot on a 35mm lens at eye level with shallow depth of field, soft natural contrast, and a clean, uncluttered composition. The left third of the frame is left as open, dark negative space for a headline to be added later. No text, letters, numbers, logos, watermarks, or signage anywhere in the image.",
+    "alt": "A focused Black woman works quietly at a wooden desk in a dim room, lit by warm gold morning light from a window."
+   },
+   "image": {
+    "src": "/learn-thumbs/living-lessons/ll338-not-with-eyeservice/w1280.webp",
+    "srcSet": {
+     "avif": "/learn-thumbs/living-lessons/ll338-not-with-eyeservice/w1920.avif 1920w, /learn-thumbs/living-lessons/ll338-not-with-eyeservice/w1280.avif 1280w, /learn-thumbs/living-lessons/ll338-not-with-eyeservice/w640.avif 640w, /learn-thumbs/living-lessons/ll338-not-with-eyeservice/w320.avif 320w",
+     "webp": "/learn-thumbs/living-lessons/ll338-not-with-eyeservice/w1920.webp 1920w, /learn-thumbs/living-lessons/ll338-not-with-eyeservice/w1280.webp 1280w, /learn-thumbs/living-lessons/ll338-not-with-eyeservice/w640.webp 640w, /learn-thumbs/living-lessons/ll338-not-with-eyeservice/w320.webp 320w"
+    },
+    "lqip": "data:image/webp;base64,UklGRloAAABXRUJQVlA4IE4AAACwAwCdASoYAA4APu1iqk2ppaQiMAgBMB2JYwCw7Glftmradi+9AAD+/hQ5HNQmVMLtDtAYjOYHCldHqAuj2A3cL+kl3xzHQNpZ7ewAAAA=",
+    "og": "/learn-thumbs/living-lessons/ll338-not-with-eyeservice/og.jpg",
+    "sha256": "c231ba926a89e07aef9f0b392b586cac556fffe1637ea696cdba65ae0b1ebb3b"
+   },
+   "status": "review",
+   "featured": false
+  },
+  {
+   "lessonId": "ll332-give-me-this-mountain",
+   "courseKey": "living-lessons",
+   "originalTitleAtApproval": "Give Me This Mountain — Strength Kept for the Second Half",
+   "displayTitle": "Is Your Strongest Season Still Ahead of You?",
+   "thumbHeadline": "ASK FOR THE MOUNTAIN",
+   "promoDescription": "At eighty-five, Caleb asked Yahweh for the hard hill country he had been promised decades earlier, and this lesson looks at what his request teaches about setting aside gifts, waiting well, and passing faith to the next generation. It also addresses the flat, worn-down feeling many people carry in the middle of life and the need to take it seriously.",
+   "visual": {
+    "prompt": "Cinematic 16:9 photograph, a dignified Black man in his seventies with silver hair and a weathered wool jacket stands on a grassy hilltop at golden hour, gazing toward a distant rugged ridge. A young Black girl in a simple cardigan stands beside him, one hand resting lightly on his arm, both looking outward toward the mountain. Warm gold sunlight rakes across the hillside from the right, with deep black shadows in the foreground and a restrained touch of muted red in her scarf as the single accent. Natural, dramatic lighting, high contrast, shot on a 85mm lens at f/2.8 with shallow depth of field, soft haze in the far valley. Composition places the two figures in the right two-thirds, leaving clean, dark negative space across the left third of the frame for a headline to be added later. No text, letters, numbers, logos, watermarks or signage anywhere in the image.",
+    "alt": "An older Black man and a young girl stand together on a golden hilltop, looking toward a distant mountain ridge at sunset."
+   },
+   "image": {
+    "src": "/learn-thumbs/living-lessons/ll332-give-me-this-mountain/w1280.webp",
+    "srcSet": {
+     "avif": "/learn-thumbs/living-lessons/ll332-give-me-this-mountain/w1920.avif 1920w, /learn-thumbs/living-lessons/ll332-give-me-this-mountain/w1280.avif 1280w, /learn-thumbs/living-lessons/ll332-give-me-this-mountain/w640.avif 640w, /learn-thumbs/living-lessons/ll332-give-me-this-mountain/w320.avif 320w",
+     "webp": "/learn-thumbs/living-lessons/ll332-give-me-this-mountain/w1920.webp 1920w, /learn-thumbs/living-lessons/ll332-give-me-this-mountain/w1280.webp 1280w, /learn-thumbs/living-lessons/ll332-give-me-this-mountain/w640.webp 640w, /learn-thumbs/living-lessons/ll332-give-me-this-mountain/w320.webp 320w"
+    },
+    "lqip": "data:image/webp;base64,UklGRmYAAABXRUJQVlA4IFoAAAAwBACdASoYAA4APu1iqk4ppaQiMAgBMB2JZACdMoAC+8wCj8F4ZKQIq5AA/I+8NX62/aCF67UPUh5c42kzmnAxCchLwvoBxNnkReGJJkINlOFNeNrtibDAAAA=",
+    "og": "/learn-thumbs/living-lessons/ll332-give-me-this-mountain/og.jpg",
+    "sha256": "6db6638ad9dede3cc505ccb42769cefea12ea46b3b98ecae49b312a3341ff5c9"
+   },
+   "status": "review",
+   "featured": false
+  },
+  {
+   "lessonId": "ll341-whoso-removeth-stones",
+   "courseKey": "living-lessons",
+   "originalTitleAtApproval": "Whoso Removeth Stones — When One Small Fault Grounds the Flights",
+   "displayTitle": "What Happens When One Small Part Stops the Whole System?",
+   "thumbHeadline": "TEST BEFORE YOU CHANGE",
+   "promoDescription": "This lesson uses a reported air traffic outage, kept at its weight as unconfirmed, to teach three habits for changing any system: test before you change, stop when the readings disagree, and write the plan before the trouble comes. It also shows how Yahweh holds together what no system people build can hold.",
+   "visual": {
+    "prompt": "Cinematic 16:9 photograph in a dim, quiet operations room at night. A thoughtful Black woman engineer in her forties sits alone at a long desk, leaning slightly forward with a calm, focused expression, one hand resting on a notebook. Behind her, out of focus, soft blue-white glowing monitors show abstract lines with no words or numbers. Warm gold light falls across her face and the desk from a single lamp, with a restrained red accent glow along the edge of a far console. Deep black shadows, high contrast, natural dramatic lighting. Shot on a 35mm lens at f/2 with shallow depth of field, eye-level composition, the woman as the single strong focal point placed right of center. Leave clean, dark negative space across the left third of the frame for a headline added later. No text, letters, numbers, logos, watermarks or signage anywhere in the image.",
+    "alt": "A calm Black woman engineer sits alone at a desk in a dim operations room, lit by warm gold lamplight while blurred glowing screens sit behind her."
+   },
+   "image": {
+    "src": "/learn-thumbs/living-lessons/ll341-whoso-removeth-stones/w1280.webp",
+    "srcSet": {
+     "avif": "/learn-thumbs/living-lessons/ll341-whoso-removeth-stones/w1920.avif 1920w, /learn-thumbs/living-lessons/ll341-whoso-removeth-stones/w1280.avif 1280w, /learn-thumbs/living-lessons/ll341-whoso-removeth-stones/w640.avif 640w, /learn-thumbs/living-lessons/ll341-whoso-removeth-stones/w320.avif 320w",
+     "webp": "/learn-thumbs/living-lessons/ll341-whoso-removeth-stones/w1920.webp 1920w, /learn-thumbs/living-lessons/ll341-whoso-removeth-stones/w1280.webp 1280w, /learn-thumbs/living-lessons/ll341-whoso-removeth-stones/w640.webp 640w, /learn-thumbs/living-lessons/ll341-whoso-removeth-stones/w320.webp 320w"
+    },
+    "lqip": "data:image/webp;base64,UklGRlAAAABXRUJQVlA4IEQAAACwAwCdASoYAA4APu1iqU2ppaOiMAgBMB2JZQDGfCHZcF/q2sGcAAD+9COvralAJuxsAYXI70QhyqY707l/X5OTvoAAAA==",
+    "og": "/learn-thumbs/living-lessons/ll341-whoso-removeth-stones/og.jpg",
+    "sha256": "70a618f2ac55b6914cbf60c529103a2f8fbaeffabf7a41322f5cbb4b7e76c726"
+   },
+   "status": "review",
+   "featured": false
+  },
+  {
+   "lessonId": "ll340-wisdom-is-profitable-to-direct",
+   "courseKey": "living-lessons",
+   "originalTitleAtApproval": "Wisdom Is Profitable to Direct — strategy, value, and the steward who points the resources",
+   "displayTitle": "Working Harder Won't Fix a Dull Edge: Where Is Your Effort Pointing?",
+   "thumbHeadline": "POINT YOUR EFFORT",
+   "promoDescription": "This lesson uses four strategy foundations from a finance newsletter (return on capital, long-term thinking, market attractiveness, and competitive advantage) and shows how the Word addressed each one first. It teaches that wise direction of our resources, starting with honoring Yahweh, matters more than simply adding more effort.",
+   "visual": {
+    "prompt": "Cinematic 16:9 photograph at golden hour in a rustic wood workshop on a hillside. In the center-right, a weathered older Black man in a plain work shirt sits at a worn wooden bench, carefully drawing a whetstone along the edge of an axe, his focused, calm expression lit by warm gold light streaming through a dusty window. A young Black girl stands beside him, leaning in with quiet curiosity, her face softly lit. A single restrained red cloth lies folded on the bench as a small accent. Deep black shadows surround the edges, with high contrast and natural, dramatic lighting. Shot on an 85mm lens at eye level with shallow depth of field, the bench and tools in soft focus, the axe edge sharp as the focal point. Leave clean, uncluttered negative space across the left third of the frame for a headline to be added later. No text, letters, numbers, logos, watermarks or signage anywhere in the image.",
+    "alt": "An older Black man sharpens an axe at a wooden bench in warm golden light while a young Black girl watches beside him."
+   },
+   "image": {
+    "src": "/learn-thumbs/living-lessons/ll340-wisdom-is-profitable-to-direct/w1280.webp",
+    "srcSet": {
+     "avif": "/learn-thumbs/living-lessons/ll340-wisdom-is-profitable-to-direct/w1920.avif 1920w, /learn-thumbs/living-lessons/ll340-wisdom-is-profitable-to-direct/w1280.avif 1280w, /learn-thumbs/living-lessons/ll340-wisdom-is-profitable-to-direct/w640.avif 640w, /learn-thumbs/living-lessons/ll340-wisdom-is-profitable-to-direct/w320.avif 320w",
+     "webp": "/learn-thumbs/living-lessons/ll340-wisdom-is-profitable-to-direct/w1920.webp 1920w, /learn-thumbs/living-lessons/ll340-wisdom-is-profitable-to-direct/w1280.webp 1280w, /learn-thumbs/living-lessons/ll340-wisdom-is-profitable-to-direct/w640.webp 640w, /learn-thumbs/living-lessons/ll340-wisdom-is-profitable-to-direct/w320.webp 320w"
+    },
+    "lqip": "data:image/webp;base64,UklGRl4AAABXRUJQVlA4IFIAAADwAwCdASoYAA4APu1iqU2ppaQiMAgBMB2JYwCdMoACsYVzceQ0Y2gAAP7s/QnD0PTmZ810WZITOkiZJktja73DDgkipI/8RMsej6PK350/PAAA",
+    "og": "/learn-thumbs/living-lessons/ll340-wisdom-is-profitable-to-direct/og.jpg",
+    "sha256": "1c46538424f8a405da3e960813f417987cc7f0af54bbb95ba9a8ba8205cb7703"
+   },
+   "status": "review",
+   "featured": false
+  },
+  {
+   "lessonId": "ll339-the-profit-of-the-earth-is-for-all",
+   "courseKey": "living-lessons",
+   "originalTitleAtApproval": "The Profit of the Earth Is for All — who gains when a company goes public",
+   "displayTitle": "Does the Money From a Stock Sale Ever Reach the Field?",
+   "thumbHeadline": "WHO REALLY GAINS?",
+   "promoDescription": "This lesson follows the money from one reported company stock sale and asks the question the Word asks: does the gain reach the field? It keeps each reported figure at its stated weight, weighs the risks, pledges, and conflicts involved, and points to Jesus as the pattern for how wealth is shared.",
+   "visual": {
+    "prompt": "Cinematic 16:9 photograph of a Black woman in her late thirties standing barefoot in a wide golden wheat field at dusk, her hands resting lightly on the tops of the stalks, a calm and thoughtful expression as she gazes toward a distant horizon. Warm gold light from a low sun behind her creates a rim light on her shoulders and the wheat, while the foreground and edges fall into deep blacks. A single restrained red accent: a simple red cloth tied at her wrist. Shot on an 85mm lens at a low camera angle, shallow depth of field, soft atmospheric haze. Composition places her slightly right of center, leaving clean, dark negative space across the left third of the frame for a headline added later. No text, letters, numbers, logos, watermarks, or signage anywhere in the image.",
+    "alt": "A Black woman stands in a golden wheat field at dusk, looking toward the horizon with a calm, thoughtful expression."
+   },
+   "image": {
+    "src": "/learn-thumbs/living-lessons/ll339-the-profit-of-the-earth-is-for-all/w1280.webp",
+    "srcSet": {
+     "avif": "/learn-thumbs/living-lessons/ll339-the-profit-of-the-earth-is-for-all/w1920.avif 1920w, /learn-thumbs/living-lessons/ll339-the-profit-of-the-earth-is-for-all/w1280.avif 1280w, /learn-thumbs/living-lessons/ll339-the-profit-of-the-earth-is-for-all/w640.avif 640w, /learn-thumbs/living-lessons/ll339-the-profit-of-the-earth-is-for-all/w320.avif 320w",
+     "webp": "/learn-thumbs/living-lessons/ll339-the-profit-of-the-earth-is-for-all/w1920.webp 1920w, /learn-thumbs/living-lessons/ll339-the-profit-of-the-earth-is-for-all/w1280.webp 1280w, /learn-thumbs/living-lessons/ll339-the-profit-of-the-earth-is-for-all/w640.webp 640w, /learn-thumbs/living-lessons/ll339-the-profit-of-the-earth-is-for-all/w320.webp 320w"
+    },
+    "lqip": "data:image/webp;base64,UklGRmQAAABXRUJQVlA4IFgAAAAQBACdASoYAA4APu1iqU2ppaQiMAgBMB2JZgCdMoMYACuRBGmYp0s6gAD+dxYruuy+yG47RCGik/6TTwghBicsXHPIjhMG4VdzgvCc1y8kwV30kVaV9YAA",
+    "og": "/learn-thumbs/living-lessons/ll339-the-profit-of-the-earth-is-for-all/og.jpg",
+    "sha256": "8aef1107ee095a788d6e4b62a24218ca3be8119fcc96e9711676e43cdd4c2a9d"
+   },
+   "status": "review",
+   "featured": false
+  },
+  {
+   "lessonId": "sov101-a-little-leaven-leaveneth-the-whole-lump",
+   "courseKey": "sovereign-ai",
+   "originalTitleAtApproval": "A little leaven leaveneth the whole lump - a flaw in a shared runtime, and the watchman who finds every place it lives",
+   "displayTitle": "Where Does a Hidden Flaw Live Inside the Tools You Already Run?",
+   "thumbHeadline": "FIND EVERY COPY",
+   "promoDescription": "This lesson uses 1 Corinthians 5:6 and a real Java runtime security notice to show how a flaw can hide inside installed software, bundled apps, containers and appliances. It walks through how to find every copy, patch and restart it, and guard the system with a dated mitigation while the fix is pending.",
+   "visual": {
+    "prompt": "Cinematic 16:9 photograph of a quiet, dark data center aisle lined with tall server racks, deep black shadows and a single warm gold light falling across the floor. A thoughtful Black woman engineer in her thirties, wearing a dark fleece, stands mid-aisle holding a small handheld work lamp, leaning slightly toward a rack with a calm, focused, dignified expression. One restrained red status light glows far down the aisle as a subtle accent. Shot on a 35mm lens at f/2.8, medium-wide framing, shallow depth of field, natural dramatic lighting with high contrast. Clean open negative space across the left third of the frame for a headline to be added later. No text, letters, numbers, logos, watermarks or signage anywhere in the image.",
+    "alt": "A focused Black woman engineer walks a dim data center aisle with a small lamp, examining server racks under warm gold light."
+   },
+   "image": {
+    "src": "/learn-thumbs/sovereign-ai/sov101-a-little-leaven-leaveneth-the-whole-lump/w1280.webp",
+    "srcSet": {
+     "avif": "/learn-thumbs/sovereign-ai/sov101-a-little-leaven-leaveneth-the-whole-lump/w1920.avif 1920w, /learn-thumbs/sovereign-ai/sov101-a-little-leaven-leaveneth-the-whole-lump/w1280.avif 1280w, /learn-thumbs/sovereign-ai/sov101-a-little-leaven-leaveneth-the-whole-lump/w640.avif 640w, /learn-thumbs/sovereign-ai/sov101-a-little-leaven-leaveneth-the-whole-lump/w320.avif 320w",
+     "webp": "/learn-thumbs/sovereign-ai/sov101-a-little-leaven-leaveneth-the-whole-lump/w1920.webp 1920w, /learn-thumbs/sovereign-ai/sov101-a-little-leaven-leaveneth-the-whole-lump/w1280.webp 1280w, /learn-thumbs/sovereign-ai/sov101-a-little-leaven-leaveneth-the-whole-lump/w640.webp 640w, /learn-thumbs/sovereign-ai/sov101-a-little-leaven-leaveneth-the-whole-lump/w320.webp 320w"
+    },
+    "lqip": "data:image/webp;base64,UklGRkoAAABXRUJQVlA4ID4AAACwAwCdASoYAA4APu1iqU2ppaOiMAgBMB2JYwDCgB6Niku9ibS34AD+9DLb1dm6YouBHiIPcpRIu5nTW6AAAA==",
+    "og": "/learn-thumbs/sovereign-ai/sov101-a-little-leaven-leaveneth-the-whole-lump/og.jpg",
+    "sha256": "fd021bc7723e5b9ac24683d03f2fbebc40d8304d954fc56e43a0639879aa9a8e"
+   },
+   "status": "review",
+   "featured": false
+  },
+  {
+   "lessonId": "bc2-camera-and-image",
+   "courseKey": "broadcast",
+   "originalTitleAtApproval": "The camera and the image — Chris’s 4K eye",
+   "displayTitle": "Why Does One Camera Decide What the Whole Room Sees?",
+   "thumbHeadline": "ONE LENS. ONE PICTURE.",
+   "promoDescription": "This lesson explains why the camera is where every broadcast picture begins, and why problems there cannot be fixed later in the chain. It also shows why the main 4K feed is shared with both the Sanctuary screens and the Bishop's monitor, and why SDI cabling is used to carry it reliably.",
+   "visual": {
+    "prompt": "Cinematic 16:9 photograph inside a dim, dignified church sanctuary during a quiet moment before service. In the right two-thirds of the frame, a professional broadcast camera with a large 4K lens sits steady on a tripod, aimed toward a softly lit wooden pulpit that is slightly out of focus in the background. A Black woman broadcast technician in a dark crew shirt leans in behind the camera, one hand resting on the camera body, her calm, focused expression lit from the side. Warm gold light falls across the lens barrel and her face, while the rest of the room fades into deep blacks with restrained red accents in the upholstery. Shot on a full-frame cinema camera with a 50mm lens at f/2.8, shallow depth of field, medium-wide composition, natural dramatic lighting, high contrast. Leave clean, uncluttered negative space on the left third of the frame for a headline to be added later. No text, letters, numbers, logos, watermarks, or readable signage anywhere in the image.",
+    "alt": "A calm Black woman broadcast technician stands beside a steady 4K camera aimed at a softly lit pulpit in a dim sanctuary."
+   },
+   "image": {
+    "src": "/learn-thumbs/broadcast/bc2-camera-and-image/w1280.webp",
+    "srcSet": {
+     "avif": "/learn-thumbs/broadcast/bc2-camera-and-image/w1920.avif 1920w, /learn-thumbs/broadcast/bc2-camera-and-image/w1280.avif 1280w, /learn-thumbs/broadcast/bc2-camera-and-image/w640.avif 640w, /learn-thumbs/broadcast/bc2-camera-and-image/w320.avif 320w",
+     "webp": "/learn-thumbs/broadcast/bc2-camera-and-image/w1920.webp 1920w, /learn-thumbs/broadcast/bc2-camera-and-image/w1280.webp 1280w, /learn-thumbs/broadcast/bc2-camera-and-image/w640.webp 640w, /learn-thumbs/broadcast/bc2-camera-and-image/w320.webp 320w"
+    },
+    "lqip": "data:image/webp;base64,UklGRloAAABXRUJQVlA4IE4AAACwAwCdASoYAA4APu1krU2ppaSiMAgBMB2JQBOgBDvdxprOxNGOoAD+7yQka+fznR9ziBb0eGGO5mXCmC1zIja9zeBWyPEQ3xPv9hkAAAA=",
+    "og": "/learn-thumbs/broadcast/bc2-camera-and-image/og.jpg",
+    "sha256": "3f1d11e9a3c9be80256103585acdbab3c2029f61fe956de313fb351d19fe581f"
+   },
+   "status": "review",
+   "featured": false
+  },
+  {
+   "lessonId": "dev2-name-the-real-record-and-the-real-screen-before-you-code",
+   "courseKey": "development",
+   "originalTitleAtApproval": "Name the Real Record and the Real Screen — The Trace That Runs Before Any Code",
+   "displayTitle": "Would You Ship a Number You Couldn't Trace Back to Its Source?",
+   "thumbHeadline": "TRACE BEFORE YOU CODE",
+   "promoDescription": "This lesson teaches a four-step check developers run before building any user-facing screen: name the real data, confirm it connects end to end, observe the screen people actually use, and write the premise down first. It shows why a number that cannot be traced to a real record is worse than no number at all.",
+   "visual": {
+    "prompt": "Cinematic 16:9 photograph of a focused Black woman software developer in her thirties seated at a dark, minimal desk, leaning in with calm, careful attention as she studies a large widescreen monitor displaying soft, abstract glowing lines and blurred light shapes with no readable characters. The room is nearly black with deep shadows. Warm gold light falls from a single desk lamp across her face and hands, with one restrained red accent glow from a thin LED strip along the desk edge. Shot on an 85mm lens at eye level, shallow depth of field, high contrast, natural dramatic lighting. Her figure and the monitor sit in the right two-thirds of the frame, creating one strong focal point, while the left third remains clean, dark negative space for a headline added later. No text, letters, numbers, logos, watermarks or signage anywhere in the image.",
+    "alt": "A focused developer studies a dimly lit monitor of abstract glowing lines in a dark room lit by warm gold light with a touch of red."
+   },
+   "image": {
+    "src": "/learn-thumbs/development/dev2-name-the-real-record-and-the-real-screen-before-you-code/w1280.webp",
+    "srcSet": {
+     "avif": "/learn-thumbs/development/dev2-name-the-real-record-and-the-real-screen-before-you-code/w1920.avif 1920w, /learn-thumbs/development/dev2-name-the-real-record-and-the-real-screen-before-you-code/w1280.avif 1280w, /learn-thumbs/development/dev2-name-the-real-record-and-the-real-screen-before-you-code/w640.avif 640w, /learn-thumbs/development/dev2-name-the-real-record-and-the-real-screen-before-you-code/w320.avif 320w",
+     "webp": "/learn-thumbs/development/dev2-name-the-real-record-and-the-real-screen-before-you-code/w1920.webp 1920w, /learn-thumbs/development/dev2-name-the-real-record-and-the-real-screen-before-you-code/w1280.webp 1280w, /learn-thumbs/development/dev2-name-the-real-record-and-the-real-screen-before-you-code/w640.webp 640w, /learn-thumbs/development/dev2-name-the-real-record-and-the-real-screen-before-you-code/w320.webp 320w"
+    },
+    "lqip": "data:image/webp;base64,UklGRkIAAABXRUJQVlA4IDYAAABwAwCdASoYAA4APu1kqU2ppaOiMAgBMB2JZQDImC0H4KzdIgAA/vBcYxv9Z8ncYMpS/iJgwAA=",
+    "og": "/learn-thumbs/development/dev2-name-the-real-record-and-the-real-screen-before-you-code/og.jpg",
+    "sha256": "a5d0a3420b9b6312ff5b914cc7df6ae636ea6eefb7367257da069a718bd0f503"
+   },
+   "status": "review",
+   "featured": false
+  },
+  {
+   "lessonId": "buy2-two-sets-of-weights-in-one-bag",
+   "courseKey": "buying-terms",
+   "originalTitleAtApproval": "Two sets of weights in one bag",
+   "displayTitle": "Is Your Property Math Honest in Both Directions?",
+   "thumbHeadline": "SAME HOUSE, TWO SCALES",
+   "promoDescription": "This lesson shows why Yahweh forbids carrying two sets of weights, even when each property deal looks fair on its own. It gives you a way to set your buying and selling standards side by side, including cap rates, vacancy, fees, and repair reserves, so any hidden difference can be found and priced.",
+   "visual": {
+    "prompt": "Cinematic 16:9 photograph of a quiet, dimly lit real estate office at dusk. In the center-right foreground, a brass balance scale sits on a dark walnut desk, its pans level and catching warm gold light from a single brass desk lamp. Behind it, slightly out of focus, a Black woman in her forties, a professional in a navy blazer, sits with a calm, focused expression, gently resting her hand on a stack of blank white sheets. Soft warm gold light falls across the scale, deep black shadows fill the edges, and a faint restrained red accent appears in a leather folder edge. Shot on an 85mm lens at f/2 for shallow depth of field, eye-level camera angle, with the scale as the clear focal point. Leave clean, empty dark negative space across the left third of the frame for a headline to be added later. No text, letters, numbers, logos, watermarks, or signage anywhere in the image.",
+    "alt": "A brass balance scale on a walnut desk in warm lamplight, with a focused Black woman professional in a blazer seated behind it in a dim office."
+   },
+   "image": {
+    "src": "/learn-thumbs/buying-terms/buy2-two-sets-of-weights-in-one-bag/w1280.webp",
+    "srcSet": {
+     "avif": "/learn-thumbs/buying-terms/buy2-two-sets-of-weights-in-one-bag/w1920.avif 1920w, /learn-thumbs/buying-terms/buy2-two-sets-of-weights-in-one-bag/w1280.avif 1280w, /learn-thumbs/buying-terms/buy2-two-sets-of-weights-in-one-bag/w640.avif 640w, /learn-thumbs/buying-terms/buy2-two-sets-of-weights-in-one-bag/w320.avif 320w",
+     "webp": "/learn-thumbs/buying-terms/buy2-two-sets-of-weights-in-one-bag/w1920.webp 1920w, /learn-thumbs/buying-terms/buy2-two-sets-of-weights-in-one-bag/w1280.webp 1280w, /learn-thumbs/buying-terms/buy2-two-sets-of-weights-in-one-bag/w640.webp 640w, /learn-thumbs/buying-terms/buy2-two-sets-of-weights-in-one-bag/w320.webp 320w"
+    },
+    "lqip": "data:image/webp;base64,UklGRlYAAABXRUJQVlA4IEoAAACwAwCdASoYAA4APu1iqU2ppaQiMAgBMB2JYwCdABu11jDY4VBxgAD+9DGIWPAQXgHlgVKzKv/3/tW4Q65pJrA0ZG0XyDSEJ1kAAA==",
+    "og": "/learn-thumbs/buying-terms/buy2-two-sets-of-weights-in-one-bag/og.jpg",
+    "sha256": "8d5e34c5ee9925e3044dbd1623fcefaced9994aa1c2da4d8c7496736b5f9bd51"
+   },
+   "status": "review",
+   "featured": false
+  },
+  {
+   "lessonId": "stk2-when-you-buy-a-share-the-company-gets-nothing",
+   "courseKey": "stocks",
+   "originalTitleAtApproval": "When you buy a share, the company gets nothing — where shares actually come from",
+   "displayTitle": "Why Would a Company Care About a Price It Never Gets Paid For?",
+   "thumbHeadline": "THE COMPANY GETS NOTHING",
+   "promoDescription": "Most share purchases move money between investors, not into the company, and this lesson explains the difference between the primary and secondary markets. It also covers why a business sells ownership at all, and the four reasons its leaders still watch the share price closely.",
+   "visual": {
+    "prompt": "Cinematic 16:9 photograph of a contemplative investor seated alone in a dim, late-night trading room, the only light coming from a bank of glowing monitors displaying abstract, unreadable line charts with no numbers or letters. Warm gold light spills across the subject's face and dark wool coat, with a restrained red accent glow from a distant screen. The subject is a Black woman in her forties, leaning forward with one hand resting against her chin, a focused and dignified expression. Shot on a 35mm lens at f/2.0, slightly low angle, shallow depth of field with the subject sharp and the screens softly blurred. Deep blacks and high contrast, dramatic but natural lighting. Clean, empty negative space across the left third of the frame for a headline to be added later. No text, letters, numbers, logos, watermarks or signage anywhere in the image.",
+    "alt": "A thoughtful investor sits alone before glowing trading screens in a dim room lit by warm gold light."
+   },
+   "image": {
+    "src": "/learn-thumbs/stocks/stk2-when-you-buy-a-share-the-company-gets-nothing/w1280.webp",
+    "srcSet": {
+     "avif": "/learn-thumbs/stocks/stk2-when-you-buy-a-share-the-company-gets-nothing/w1920.avif 1920w, /learn-thumbs/stocks/stk2-when-you-buy-a-share-the-company-gets-nothing/w1280.avif 1280w, /learn-thumbs/stocks/stk2-when-you-buy-a-share-the-company-gets-nothing/w640.avif 640w, /learn-thumbs/stocks/stk2-when-you-buy-a-share-the-company-gets-nothing/w320.avif 320w",
+     "webp": "/learn-thumbs/stocks/stk2-when-you-buy-a-share-the-company-gets-nothing/w1920.webp 1920w, /learn-thumbs/stocks/stk2-when-you-buy-a-share-the-company-gets-nothing/w1280.webp 1280w, /learn-thumbs/stocks/stk2-when-you-buy-a-share-the-company-gets-nothing/w640.webp 640w, /learn-thumbs/stocks/stk2-when-you-buy-a-share-the-company-gets-nothing/w320.webp 320w"
+    },
+    "lqip": "data:image/webp;base64,UklGRlIAAABXRUJQVlA4IEYAAADwAwCdASoYAA4APu1iqU2ppaOiMAgBMB2JZQCw7CHhYCe9uuvZoI0AAP7y2WdkMTUCD0YlU7d0P5XBiqwghOk2tGtUAAAA",
+    "og": "/learn-thumbs/stocks/stk2-when-you-buy-a-share-the-company-gets-nothing/og.jpg",
+    "sha256": "6fa69a42766671b3a565e5d57bea91a4a58d26d592bbc7e574bffc559aa98969"
+   },
+   "status": "review",
+   "featured": false
+  },
+  {
+   "lessonId": "ll334-this-i-recall-to-my-mind",
+   "courseKey": "living-lessons",
+   "originalTitleAtApproval": "This I Recall to My Mind — time, memory, and what Yahweh does with a hard past",
+   "displayTitle": "Can a Hard Past Be Rewritten, or Does Yahweh Make Something Else of It?",
+   "thumbHeadline": "THE PAST, HELD",
+   "promoDescription": "This lesson looks at time, memory, and choice from Scripture, showing that Yahweh knows the end from the beginning while our past does not reopen. It explores how recalling Yahweh's mercies reshapes a hard memory, and how Peter's worst night became a place of restoration.",
+   "visual": {
+    "prompt": "Cinematic 16:9 photograph of a quiet elderly Black woman seated near a tall arched window in a softly lit wooden room, eyes lowered in thoughtful, peaceful reflection, one hand resting on an open worn Bible. Warm golden late-afternoon light spills across her face and the page from the right side, while the deep black shadows of the room fall away to the left. A faint restrained red accent appears in a cloth on the table in the background. Shot on a 85mm lens at f/2 with shallow depth of field, eye-level, one strong focal point on her face and hands. Clean, empty negative space on the left third of the frame for a headline added later. No text, letters, numbers, logos, or signage anywhere in the image.",
+    "alt": "An older Black woman sits quietly by a window in warm golden light, reflecting over an open Bible."
+   },
+   "image": {
+    "src": "/learn-thumbs/living-lessons/ll334-this-i-recall-to-my-mind/w1280.webp",
+    "srcSet": {
+     "avif": "/learn-thumbs/living-lessons/ll334-this-i-recall-to-my-mind/w1920.avif 1920w, /learn-thumbs/living-lessons/ll334-this-i-recall-to-my-mind/w1280.avif 1280w, /learn-thumbs/living-lessons/ll334-this-i-recall-to-my-mind/w640.avif 640w, /learn-thumbs/living-lessons/ll334-this-i-recall-to-my-mind/w320.avif 320w",
+     "webp": "/learn-thumbs/living-lessons/ll334-this-i-recall-to-my-mind/w1920.webp 1920w, /learn-thumbs/living-lessons/ll334-this-i-recall-to-my-mind/w1280.webp 1280w, /learn-thumbs/living-lessons/ll334-this-i-recall-to-my-mind/w640.webp 640w, /learn-thumbs/living-lessons/ll334-this-i-recall-to-my-mind/w320.webp 320w"
+    },
+    "lqip": "data:image/webp;base64,UklGRloAAABXRUJQVlA4IE4AAACwAwCdASoYAA4APu1yrU+pp6QiMAgBMB2JQBdgBDd4UIeEdPkx3AD+8qB47CRPasK7PtqbF4L5cwJ0IAVTFILvqrM/U6gmn4kCi4XkAAA=",
+    "og": "/learn-thumbs/living-lessons/ll334-this-i-recall-to-my-mind/og.jpg",
+    "sha256": "9449c0c5c9610f29cf091c63e287a91be60915e278c3be19a79633df6a27c53a"
+   },
+   "status": "review",
+   "featured": false
+  },
+  {
+   "lessonId": "ll333-heavenly-cheat-codes-life-his-way",
+   "courseKey": "living-lessons",
+   "originalTitleAtApproval": "Heavenly Cheat Codes: Life His Way — it is not cheating; it only looks like it because of all the winning",
+   "displayTitle": "Is Life Really a Game Someone Else Has Rigged? What the Word Says About the Winning Code",
+   "thumbHeadline": "THE CODE IS OPEN",
+   "promoDescription": "This lesson explores why people who live by the Word of Yahweh often keep coming out ahead in ways others cannot explain, looking at the seed of Scripture, keeping it in heart and hands, and the examples of Joseph, Daniel, David, and Jesus. It also addresses the real deceiver in the story and how the victory is defined by Yahweh rather than by worldly success.",
+   "visual": {
+    "prompt": "Cinematic 16:9 photograph of a Black father and his young daughter sitting together at a worn wooden kitchen table in early morning, an open paper Bible resting between them with warm golden light spilling through a window from the right side. The father gently rests his finger on a line while the girl leans in with a quiet, thoughtful smile. Deep black shadows surround the scene, with restrained red accents in a cloth runner or a small red ribbon bookmark. Shot on a 50mm lens at f/2 with shallow depth of field, eye-level composition, high contrast and natural dramatic lighting. Leave clean, empty negative space on the left third of the frame for a headline added later. No text, letters, numbers, logos, watermarks or signage anywhere in the image.",
+    "alt": "A Black father and young daughter read an open Bible together at a wooden table in warm morning light."
+   },
+   "image": {
+    "src": "/learn-thumbs/living-lessons/ll333-heavenly-cheat-codes-life-his-way/w1280.webp",
+    "srcSet": {
+     "avif": "/learn-thumbs/living-lessons/ll333-heavenly-cheat-codes-life-his-way/w1920.avif 1920w, /learn-thumbs/living-lessons/ll333-heavenly-cheat-codes-life-his-way/w1280.avif 1280w, /learn-thumbs/living-lessons/ll333-heavenly-cheat-codes-life-his-way/w640.avif 640w, /learn-thumbs/living-lessons/ll333-heavenly-cheat-codes-life-his-way/w320.avif 320w",
+     "webp": "/learn-thumbs/living-lessons/ll333-heavenly-cheat-codes-life-his-way/w1920.webp 1920w, /learn-thumbs/living-lessons/ll333-heavenly-cheat-codes-life-his-way/w1280.webp 1280w, /learn-thumbs/living-lessons/ll333-heavenly-cheat-codes-life-his-way/w640.webp 640w, /learn-thumbs/living-lessons/ll333-heavenly-cheat-codes-life-his-way/w320.webp 320w"
+    },
+    "lqip": "data:image/webp;base64,UklGRlgAAABXRUJQVlA4IEwAAACQAwCdASoYAA4APu1kqU2ppaQiMAgBMB2JYwC2yCHe1CMhJk9IAP7wwTQoVcRPXLw7fqG56eX1MFRjv1psHnWwuIxpW68ecKgMc8AA",
+    "og": "/learn-thumbs/living-lessons/ll333-heavenly-cheat-codes-life-his-way/og.jpg",
+    "sha256": "92426fe998a3dd2336b6288e6b059fa293d8b305a4d3e59a8ad5dd49d644efbe"
+   },
+   "status": "review",
+   "featured": false
+  },
+  {
+   "lessonId": "ll331-it-doth-not-yet-appear-what-we-shall-be",
+   "courseKey": "living-lessons",
+   "originalTitleAtApproval": "It Doth Not Yet Appear What We Shall Be — how we were made, what was lost, and what Jesus restores",
+   "displayTitle": "Were We Made Naked and Unashamed, and What Did Sin Really Take?",
+   "thumbHeadline": "FROM SHAME TO RESTORATION",
+   "promoDescription": "This lesson walks through what the Word says about how Yahweh made us very good, what sin brought in shame, fear and death, and why Jesus restores what was lost. It checks claims about Eden, Samson, Elijah and inherited guilt against the Scripture text itself.",
+   "visual": {
+    "prompt": "Cinematic 16:9 photograph, a quiet dawn garden edge at golden hour, a Black woman and her teenage son standing side by side on warm earth, relaxed and unhurried, faces lifted toward soft light, expressions calm and honest. Warm gold light spills low from the right through leaves, deep black shadows, restrained red accent in a single cloth draped over a fence rail. Shot on a 85mm lens at f/2 with shallow depth of field, one strong focal point on the two figures. Keep the entire left third as clean dark negative space for a headline added later. No text, letters, numbers, logos or signage anywhere in the image.",
+    "alt": "A Black mother and teenage son stand together in a dim garden at golden hour, calm and open, with warm light breaking through the leaves."
+   },
+   "image": {
+    "src": "/learn-thumbs/living-lessons/ll331-it-doth-not-yet-appear-what-we-shall-be/w1280.webp",
+    "srcSet": {
+     "avif": "/learn-thumbs/living-lessons/ll331-it-doth-not-yet-appear-what-we-shall-be/w1920.avif 1920w, /learn-thumbs/living-lessons/ll331-it-doth-not-yet-appear-what-we-shall-be/w1280.avif 1280w, /learn-thumbs/living-lessons/ll331-it-doth-not-yet-appear-what-we-shall-be/w640.avif 640w, /learn-thumbs/living-lessons/ll331-it-doth-not-yet-appear-what-we-shall-be/w320.avif 320w",
+     "webp": "/learn-thumbs/living-lessons/ll331-it-doth-not-yet-appear-what-we-shall-be/w1920.webp 1920w, /learn-thumbs/living-lessons/ll331-it-doth-not-yet-appear-what-we-shall-be/w1280.webp 1280w, /learn-thumbs/living-lessons/ll331-it-doth-not-yet-appear-what-we-shall-be/w640.webp 640w, /learn-thumbs/living-lessons/ll331-it-doth-not-yet-appear-what-we-shall-be/w320.webp 320w"
+    },
+    "lqip": "data:image/webp;base64,UklGRmQAAABXRUJQVlA4IFgAAACQAwCdASoYAA4APu1Ct1apoqakGAEwHYlAE6ZQATyNiEg6uLBoAP70gFz21v/tX50osWdCNUtHJazIQ7ZUPEQfmWuJi8PviIgkY5RgFIACnPVTkO6G8HAA",
+    "og": "/learn-thumbs/living-lessons/ll331-it-doth-not-yet-appear-what-we-shall-be/og.jpg",
+    "sha256": "9ef1ac3d13b61e86444daff42ac6fc81804b051943b6f8880e81c6bc0f831bf9"
+   },
+   "status": "review",
+   "featured": false
+  },
+  {
+   "lessonId": "lil2-count-the-days-one-to-seven",
+   "courseKey": "little-learners",
+   "originalTitleAtApproval": "Count the Days — Numbers 1 to 7 from Creation",
+   "displayTitle": "Can a Preschooler Count to Seven With Creation?",
+   "thumbHeadline": "SEVEN DAYS, ONE WEEK",
+   "promoDescription": "Children follow along as they count the six days Yahweh spent making the world and the seventh day He rested, using their fingers from one to seven. The lesson shows how the days of creation can be the very first numbers a young learner practices.",
+   "visual": {
+    "prompt": "Cinematic 16:9 photograph of a warm, dimly lit wooden table in an ancient-style study, a small open scroll and a single brass oil lamp casting golden firelight across the page. In the middle distance, a young Black girl about six years old sits on a low stool, gently lifting her fingers as she counts, her face calm and curious, with soft natural joy. Behind her, a faint silhouette of a dawn-lit desert horizon through a narrow arched window. Deep black shadows, warm gold highlights, restrained red accent in a cloth draped over the table edge. Shot on a 50mm lens at f/2.8, shallow depth of field, eye-level composition with the child slightly right of center. Leave clean, uncluttered negative space on the left third of the frame for a headline. No text, letters, numbers, logos, or signage anywhere in the image.",
+    "alt": "A young Black girl counts on her fingers beside an open scroll and a glowing oil lamp in a warm, dim room."
+   },
+   "image": {
+    "src": "/learn-thumbs/little-learners/lil2-count-the-days-one-to-seven/w1280.webp",
+    "srcSet": {
+     "avif": "/learn-thumbs/little-learners/lil2-count-the-days-one-to-seven/w1920.avif 1920w, /learn-thumbs/little-learners/lil2-count-the-days-one-to-seven/w1280.avif 1280w, /learn-thumbs/little-learners/lil2-count-the-days-one-to-seven/w640.avif 640w, /learn-thumbs/little-learners/lil2-count-the-days-one-to-seven/w320.avif 320w",
+     "webp": "/learn-thumbs/little-learners/lil2-count-the-days-one-to-seven/w1920.webp 1920w, /learn-thumbs/little-learners/lil2-count-the-days-one-to-seven/w1280.webp 1280w, /learn-thumbs/little-learners/lil2-count-the-days-one-to-seven/w640.webp 640w, /learn-thumbs/little-learners/lil2-count-the-days-one-to-seven/w320.webp 320w"
+    },
+    "lqip": "data:image/webp;base64,UklGRloAAABXRUJQVlA4IE4AAACwAwCdASoYAA4APu1iqU2ppaQiMAgBMB2JQBOmUABoeXWNaqCLHAD+8qoEgvmg/bfDeSt0+x9k2mx7NhUaawfz5j8qjnOHgDanmva9cAA=",
+    "og": "/learn-thumbs/little-learners/lil2-count-the-days-one-to-seven/og.jpg",
+    "sha256": "3a26673a1c407bd7c19e913edc23a837e264756c4118563177776bdab140400e"
+   },
+   "status": "review",
+   "featured": false
+  },
+  {
+   "lessonId": "mat2-adding-and-taking-away-loaves-fishes-and-gideons-army",
+   "courseKey": "mathematics",
+   "originalTitleAtApproval": "Adding and Taking Away — Loaves, Fishes, Baskets and Gideon’s Army",
+   "displayTitle": "How Do Loaves, Fishes and a Small Army Teach Us to Add and Subtract?",
+   "thumbHeadline": "COUNTING WITH THE WORD",
+   "promoDescription": "This lesson walks through addition and subtraction using the loaves and fishes, the twelve baskets, Gideon's shrinking army, and a shepherd's one lost sheep. Learners write each equation and see how the Word counts what it has and says plainly what it did not count.",
+   "visual": {
+    "prompt": "Cinematic 16:9 photograph in a warm, dramatic style: a wooden table in a dim, deep-black room lit by a single warm gold light falling from the upper right. On the table, five rustic bread loaves and two small fish sit beside a woven basket, with a few wooden counting blocks arranged in a short row. A young Black woman in a simple linen shirt leans forward, gently touching one loaf, her expression calm and focused, as if counting quietly. Shallow depth of field, 85mm lens at a low angle, one strong focal point on the loaves and her hands. A restrained red accent appears as a single cloth edge in the background. Leave clean, empty negative space on the left third of the frame for a headline added later. No text, letters, numbers, logos or signage anywhere in the image.",
+    "alt": "A calm young Black woman leans over a wooden table lit by warm gold light, touching bread loaves and fish beside a woven basket and wooden counting blocks."
+   },
+   "image": {
+    "src": "/learn-thumbs/mathematics/mat2-adding-and-taking-away-loaves-fishes-and-gideons-army/w1280.webp",
+    "srcSet": {
+     "avif": "/learn-thumbs/mathematics/mat2-adding-and-taking-away-loaves-fishes-and-gideons-army/w1920.avif 1920w, /learn-thumbs/mathematics/mat2-adding-and-taking-away-loaves-fishes-and-gideons-army/w1280.avif 1280w, /learn-thumbs/mathematics/mat2-adding-and-taking-away-loaves-fishes-and-gideons-army/w640.avif 640w, /learn-thumbs/mathematics/mat2-adding-and-taking-away-loaves-fishes-and-gideons-army/w320.avif 320w",
+     "webp": "/learn-thumbs/mathematics/mat2-adding-and-taking-away-loaves-fishes-and-gideons-army/w1920.webp 1920w, /learn-thumbs/mathematics/mat2-adding-and-taking-away-loaves-fishes-and-gideons-army/w1280.webp 1280w, /learn-thumbs/mathematics/mat2-adding-and-taking-away-loaves-fishes-and-gideons-army/w640.webp 640w, /learn-thumbs/mathematics/mat2-adding-and-taking-away-loaves-fishes-and-gideons-army/w320.webp 320w"
+    },
+    "lqip": "data:image/webp;base64,UklGRk4AAABXRUJQVlA4IEIAAADwAwCdASoYAA4APu1iqU2ppaOiMAgBMB2JYwCsACP/1SRPy1VUxZgAAP7w75AUX72vE9xZg55uIGNj2RsKR8kIAAA=",
+    "og": "/learn-thumbs/mathematics/mat2-adding-and-taking-away-loaves-fishes-and-gideons-army/og.jpg",
+    "sha256": "0f10b24af48eadc5c50a8ce4c794be48530e570edfe675b618cd76cddf1235f9"
+   },
+   "status": "review",
+   "featured": false
+  },
+  {
+   "lessonId": "rto2-what-rent-to-own-actually-is-and-the-just-weight",
+   "courseKey": "rent-to-own-business",
+   "originalTitleAtApproval": "What Rent to Own Actually Is — The Model, and the Just Weight Laid Beside It",
+   "displayTitle": "Can a Store Keep a Customer Without Holding Them? The Honest Math of Rent-to-Own",
+   "thumbHeadline": "HONOR OR PRESSURE?",
+   "promoDescription": "This lesson explains how rent-to-own works as a rental rather than a loan, and why the customer's freedom to return the item at any time means the store must earn every renewal through honor. It then weighs the industry's total cost, which the FTC has reported can run two to three times retail, against the Bible's call for just weights.",
+   "visual": {
+    "prompt": "Cinematic 16:9 photograph of a warmly lit independent furniture and appliance storefront at dusk, seen from the street through a glass door. Inside, a Black woman in her thirties, a professional in a neat cardigan, stands at a wooden counter across from a middle-aged Latino man in a work jacket, both calm and engaged in an honest, unhurried conversation, with a small brass counter scale visible but out of focus. Deep black shadows with warm gold light spilling from interior lamps, restrained red accent in a display cushion. Shot on a 35mm lens at f/2.8, shallow depth of field, eye-level composition with the couple slightly right of center. Clean dark negative space on the left third for a headline added later. No text, letters, numbers, logos or signage anywhere in the image.",
+    "alt": "A woman and a man talk across a wooden counter inside a warmly lit storefront at dusk, with a brass scale softly visible beside them."
+   },
+   "image": {
+    "src": "/learn-thumbs/rent-to-own-business/rto2-what-rent-to-own-actually-is-and-the-just-weight/w1280.webp",
+    "srcSet": {
+     "avif": "/learn-thumbs/rent-to-own-business/rto2-what-rent-to-own-actually-is-and-the-just-weight/w1920.avif 1920w, /learn-thumbs/rent-to-own-business/rto2-what-rent-to-own-actually-is-and-the-just-weight/w1280.avif 1280w, /learn-thumbs/rent-to-own-business/rto2-what-rent-to-own-actually-is-and-the-just-weight/w640.avif 640w, /learn-thumbs/rent-to-own-business/rto2-what-rent-to-own-actually-is-and-the-just-weight/w320.avif 320w",
+     "webp": "/learn-thumbs/rent-to-own-business/rto2-what-rent-to-own-actually-is-and-the-just-weight/w1920.webp 1920w, /learn-thumbs/rent-to-own-business/rto2-what-rent-to-own-actually-is-and-the-just-weight/w1280.webp 1280w, /learn-thumbs/rent-to-own-business/rto2-what-rent-to-own-actually-is-and-the-just-weight/w640.webp 640w, /learn-thumbs/rent-to-own-business/rto2-what-rent-to-own-actually-is-and-the-just-weight/w320.webp 320w"
+    },
+    "lqip": "data:image/webp;base64,UklGRlgAAABXRUJQVlA4IEwAAABQBACdASoYAA4APu1iqU2ppaQiMAgBMB2JYwCdMoADTrogvq2Db6zwq/KAAP7s17/jSbH29m6/5HBV84CB01yd13M7zv/6doYJaegA",
+    "og": "/learn-thumbs/rent-to-own-business/rto2-what-rent-to-own-actually-is-and-the-just-weight/og.jpg",
+    "sha256": "b27c8bc29f92e09956f84a364fca2a867615761a1120c92294d1c34704a93bf1"
+   },
+   "status": "review",
+   "featured": false
+  },
+  {
+   "lessonId": "pm2-who-should-work",
+   "courseKey": "project-management",
+   "originalTitleAtApproval": "Who should work, and who should not — the span of control, set by a father-in-law",
+   "displayTitle": "Your Team Is Stalling Because You're Doing Everyone's Job: What Jethro Saw in Moses",
+   "thumbHeadline": "WHEN ONE LEADER CARRIES ALL",
+   "promoDescription": "Moses was judging Israel alone from morning until evening, and his father-in-law Jethro called it plainly not good, because no one person can carry that load. This lesson walks through the tiered structure and escalation rule Jethro gave, and the character-first criteria for choosing who should lead each layer.",
+   "visual": {
+    "prompt": "Cinematic 16:9 photograph of a Black project manager in a dark, minimal planning room, standing at a large whiteboard covered with sticky notes arranged in tiered columns, one hand lightly resting on a marker while glancing toward a small group of colleagues seated in the warm background. Dramatic but natural lighting: a single warm gold light source from a window on the right, deep black shadows, restrained red accent on one marker or folder. Shot on a 50mm lens at moderate depth of field, eye-level, the leader's face thoughtful and steady, the team engaged and calm. Composition places the focal point on the right two-thirds, leaving clean, uncluttered dark negative space across the left third for a headline. No text, letters, numbers, logos or signage anywhere in the image.",
+    "alt": "A thoughtful Black project manager stands at a dark planning board of tiered sticky notes while a small team listens in warm gold light."
+   },
+   "image": {
+    "src": "/learn-thumbs/project-management/pm2-who-should-work/w1280.webp",
+    "srcSet": {
+     "avif": "/learn-thumbs/project-management/pm2-who-should-work/w1920.avif 1920w, /learn-thumbs/project-management/pm2-who-should-work/w1280.avif 1280w, /learn-thumbs/project-management/pm2-who-should-work/w640.avif 640w, /learn-thumbs/project-management/pm2-who-should-work/w320.avif 320w",
+     "webp": "/learn-thumbs/project-management/pm2-who-should-work/w1920.webp 1920w, /learn-thumbs/project-management/pm2-who-should-work/w1280.webp 1280w, /learn-thumbs/project-management/pm2-who-should-work/w640.webp 640w, /learn-thumbs/project-management/pm2-who-should-work/w320.webp 320w"
+    },
+    "lqip": "data:image/webp;base64,UklGRlIAAABXRUJQVlA4IEYAAACwAwCdASoYAA4ALrV2u12jqampiYC0SzgGYOIZUkOnRM/UKpj3AAD++RAe0S/aryvgRVKN8PpupjuKX3t9Kprp8syVAAAA",
+    "og": "/learn-thumbs/project-management/pm2-who-should-work/og.jpg",
+    "sha256": "345610369dcff901d2adcc795f82a10b2a19bea8af8651379c5f6d7f7c85c62e"
+   },
+   "status": "review",
+   "featured": false
+  },
+  {
+   "lessonId": "succ2-read-before-you-rule",
+   "courseKey": "handed-forward",
+   "originalTitleAtApproval": "Read before you rule — learn on the real books",
+   "displayTitle": "Why Would an Heir Be Given a Seat That Can't Change a Thing?",
+   "thumbHeadline": "LEARN BEFORE YOU LEAD",
+   "promoDescription": "This lesson shows why a successor starts by learning to read the family's real financial books, using a read-only seat that reveals the truth without the power to change it yet. Drawing on David's charge to Solomon and Jesus' words on faithfulness in small things, it teaches knowing Yahweh first and then doing the work with care.",
+   "visual": {
+    "prompt": "Cinematic 16:9 photograph of a quiet, dimly lit study with deep black shadows and warm gold light spilling across an open leather-bound ledger on a dark wooden desk. A young Black man in his twenties, dressed in a simple dark sweater, leans forward with focused, respectful attention, one finger resting lightly on a line of figures, his expression calm and thoughtful. Behind him, a older Black woman, his mother, stands near a window with a steady, encouraging gaze, softly out of focus. Restrained red accent in a single thread of a cloth bookmark. Dramatic but natural lighting from a single warm window and a low desk lamp, high contrast. Shot on a 50mm lens at f/2.0, shallow depth of field, eye-level composition. Clean, empty negative space on the left third of the frame for a headline added later. No text, letters, numbers, logos or signage visible anywhere in the image.",
+    "alt": "A young Black man studies an open ledger by warm lamplight while his mother watches calmly from a window in a dim study."
+   },
+   "image": {
+    "src": "/learn-thumbs/handed-forward/succ2-read-before-you-rule/w1280.webp",
+    "srcSet": {
+     "avif": "/learn-thumbs/handed-forward/succ2-read-before-you-rule/w1920.avif 1920w, /learn-thumbs/handed-forward/succ2-read-before-you-rule/w1280.avif 1280w, /learn-thumbs/handed-forward/succ2-read-before-you-rule/w640.avif 640w, /learn-thumbs/handed-forward/succ2-read-before-you-rule/w320.avif 320w",
+     "webp": "/learn-thumbs/handed-forward/succ2-read-before-you-rule/w1920.webp 1920w, /learn-thumbs/handed-forward/succ2-read-before-you-rule/w1280.webp 1280w, /learn-thumbs/handed-forward/succ2-read-before-you-rule/w640.webp 640w, /learn-thumbs/handed-forward/succ2-read-before-you-rule/w320.webp 320w"
+    },
+    "lqip": "data:image/webp;base64,UklGRkQAAABXRUJQVlA4IDgAAAAwAwCdASoYAA4APu1iqU2ppaQiMAgBMB2JZwDG9C0HjpQAAP7wxdgjb4Vsu8Z3Dt4BQvGbfmwAAA==",
+    "og": "/learn-thumbs/handed-forward/succ2-read-before-you-rule/og.jpg",
+    "sha256": "c9bbefeefd243adf2d958c17bcdf40459099b32ed010d69d521661853b959aea"
+   },
+   "status": "review",
+   "featured": false
+  },
+  {
+   "lessonId": "ea-gh-obedience-blessing",
+   "courseKey": "eternal-torah",
+   "originalTitleAtApproval": "Hearken → Blessings Overtake You",
+   "displayTitle": "Why Would Blessings Hunt You Down Instead of the Other Way Around?",
+   "thumbHeadline": "STOP CHASING, START LISTENING",
+   "promoDescription": "This lesson looks at Deuteronomy 28:1-2 and the pattern it lays out: diligent hearing and doing of Yahweh's commandments comes first, and the blessings follow. It shows why the believer's work is to engineer obedience rather than chase the blessing itself.",
+   "visual": {
+    "prompt": "Cinematic 16:9 photograph in a dark, high-contrast study: a weathered oak table in deep shadow holding an open leather-bound book and a brass compass, with a single shaft of warm gold light falling diagonally from an arched window at upper right onto the pages. In the mid-ground, a Black woman in her forties, dressed in a simple charcoal sweater, sits quietly with her head slightly bent in calm, attentive focus, her expression peaceful and resolute. Restrained red accent in a small fabric bookmark. Shallow depth of field, 85mm lens, eye-level framing, natural dramatic lighting with soft falloff. Clean, empty negative space across the left third of the frame for a headline added later. No text, letters, numbers, logos, or signage anywhere in the image.",
+    "alt": "A calm woman sits in warm gold light at a shadowed wooden table, attentively reading an open book beside a brass compass."
+   },
+   "image": {
+    "src": "/learn-thumbs/eternal-torah/ea-gh-obedience-blessing/w1280.webp",
+    "srcSet": {
+     "avif": "/learn-thumbs/eternal-torah/ea-gh-obedience-blessing/w1920.avif 1920w, /learn-thumbs/eternal-torah/ea-gh-obedience-blessing/w1280.avif 1280w, /learn-thumbs/eternal-torah/ea-gh-obedience-blessing/w640.avif 640w, /learn-thumbs/eternal-torah/ea-gh-obedience-blessing/w320.avif 320w",
+     "webp": "/learn-thumbs/eternal-torah/ea-gh-obedience-blessing/w1920.webp 1920w, /learn-thumbs/eternal-torah/ea-gh-obedience-blessing/w1280.webp 1280w, /learn-thumbs/eternal-torah/ea-gh-obedience-blessing/w640.webp 640w, /learn-thumbs/eternal-torah/ea-gh-obedience-blessing/w320.webp 320w"
+    },
+    "lqip": "data:image/webp;base64,UklGRkoAAABXRUJQVlA4ID4AAACwAwCdASoYAA4APu1krU2ppaSiMAgBMB2JaQDMHGlgB4Y7Fh/oAAD+/m3hKx5lGYhGjLa7SjnTHwDOpVIAAA==",
+    "og": "/learn-thumbs/eternal-torah/ea-gh-obedience-blessing/og.jpg",
+    "sha256": "0c6ce35fbca3df90c1ceeee87571b156b6c8f014f3239fca9d97523eab6eeb0b"
+   },
+   "status": "review",
+   "featured": false
+  },
+  {
+   "lessonId": "hist2-the-fatherless-the-widow-and-the-stranger",
+   "courseKey": "history-truth",
+   "originalTitleAtApproval": "The fatherless, the widow and the stranger",
+   "displayTitle": "Does a Nation's Strength Show in Its Margins? Reading 1838 by Yahweh's Measure",
+   "thumbHeadline": "THE MEASURE OF A NATION",
+   "promoDescription": "This lesson proposes that Yahweh measures a nation not by its wealth or armies but by how it treats the fatherless, the widow and the stranger, people who have no leverage to force fair treatment. It applies that measure to the 1838–1839 Cherokee removal, asking who was left without protection and what the law did for each of them.",
+   "visual": {
+    "prompt": "Cinematic 16:9 documentary-style photograph, archival warm-gold and deep-black tones, natural dramatic side light. A quiet winter roadside in the late 1830s American Southeast, bare trees, pale overcast sky breaking into a thin band of low golden sunlight. In the mid-right of the frame, a diverse group of Cherokee families walks slowly along a dirt road: an older Black-and-Cherokee woman holding a young girl's hand, a bareheaded boy carrying a small bundle, and a man in worn period clothing with his head lowered, all with dignified, realistic, weary expressions. Period-accurate wool clothing, blankets and simple wagon wheels in soft focus behind them. One strong focal point on the family. Restrained red accent in a faded cloth bundle. Shot on a 35mm lens at eye level, shallow depth of field, high contrast. Leave clean, uncluttered dark negative space across the left third of the frame for a headline added later. No text, letters, numbers, logos or signage anywhere in the image.",
+    "alt": "A diverse group of Cherokee families walks along a winter dirt road in warm low sunlight, with bare trees and a wagon in the distance."
+   },
+   "image": {
+    "src": "/learn-thumbs/history-truth/hist2-the-fatherless-the-widow-and-the-stranger/w1280.webp",
+    "srcSet": {
+     "avif": "/learn-thumbs/history-truth/hist2-the-fatherless-the-widow-and-the-stranger/w1920.avif 1920w, /learn-thumbs/history-truth/hist2-the-fatherless-the-widow-and-the-stranger/w1280.avif 1280w, /learn-thumbs/history-truth/hist2-the-fatherless-the-widow-and-the-stranger/w640.avif 640w, /learn-thumbs/history-truth/hist2-the-fatherless-the-widow-and-the-stranger/w320.avif 320w",
+     "webp": "/learn-thumbs/history-truth/hist2-the-fatherless-the-widow-and-the-stranger/w1920.webp 1920w, /learn-thumbs/history-truth/hist2-the-fatherless-the-widow-and-the-stranger/w1280.webp 1280w, /learn-thumbs/history-truth/hist2-the-fatherless-the-widow-and-the-stranger/w640.webp 640w, /learn-thumbs/history-truth/hist2-the-fatherless-the-widow-and-the-stranger/w320.webp 320w"
+    },
+    "lqip": "data:image/webp;base64,UklGRlgAAABXRUJQVlA4IEwAAABwAwCdASoYAA4APu1iqk4ppaQiMAgBMB2JZQCdABDymZmHQ4AA/Zo/zAop90UnTELZOMKN7xPk/Gp9rvn8TjutP6upzoMRmaGlCgAA",
+    "og": "/learn-thumbs/history-truth/hist2-the-fatherless-the-widow-and-the-stranger/og.jpg",
+    "sha256": "0a7ac08547081bb391423f37aed366b119e055e06e3503fd5687d599741a51ab"
+   },
+   "status": "review",
+   "featured": false
+  }
+ ]
+}

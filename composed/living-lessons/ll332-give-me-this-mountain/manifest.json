@@ -1,0 +1,67 @@
+{
+ "schema": "learn-thumbs/v1",
+ "courseKey": "living-lessons",
+ "lessonId": "ll332-give-me-this-mountain",
+ "thumbHeadline": "ASK FOR THE MOUNTAIN",
+ "layout": "left",
+ "department": "",
+ "composedAt": "2026-11-24T15:00:47.828Z",
+ "master": {
+  "file": "master.jpg",
+  "format": "jpeg",
+  "width": 2752,
+  "height": 1536,
+  "bytes": 907505
+ },
+ "sha256": "6db6638ad9dede3cc505ccb42769cefea12ea46b3b98ecae49b312a3341ff5c9",
+ "dhash": "7ffffe7e7ecb2766",
+ "width": 1280,
+ "height": 720,
+ "image": {
+  "src": "/learn-thumbs/living-lessons/ll332-give-me-this-mountain/w1280.webp",
+  "srcSet": {
+   "avif": "/learn-thumbs/living-lessons/ll332-give-me-this-mountain/w1920.avif 1920w, /learn-thumbs/living-lessons/ll332-give-me-this-mountain/w1280.avif 1280w, /learn-thumbs/living-lessons/ll332-give-me-this-mountain/w640.avif 640w, /learn-thumbs/living-lessons/ll332-give-me-this-mountain/w320.avif 320w",
+   "webp": "/learn-thumbs/living-lessons/ll332-give-me-this-mountain/w1920.webp 1920w, /learn-thumbs/living-lessons/ll332-give-me-this-mountain/w1280.webp 1280w, /learn-thumbs/living-lessons/ll332-give-me-this-mountain/w640.webp 640w, /learn-thumbs/living-lessons/ll332-give-me-this-mountain/w320.webp 320w"
+  },
+  "lqip": "data:image/webp;base64,UklGRmYAAABXRUJQVlA4IFoAAAAwBACdASoYAA4APu1iqk4ppaQiMAgBMB2JZACdMoAC+8wCj8F4ZKQIq5AA/I+8NX62/aCF67UPUh5c42kzmnAxCchLwvoBxNnkReGJJkINlOFNeNrtibDAAAA="
+ },
+ "sizes": [
+  {
+   "w": 1920,
+   "width": 1920,
+   "height": 1080,
+   "avif": "w1920.avif",
+   "webp": "w1920.webp"
+  },
+  {
+   "w": 1280,
+   "width": 1280,
+   "height": 720,
+   "avif": "w1280.avif",
+   "webp": "w1280.webp"
+  },
+  {
+   "w": 640,
+   "width": 640,
+   "height": 360,
+   "avif": "w640.avif",
+   "webp": "w640.webp"
+  },
+  {
+   "w": 320,
+   "width": 320,
+   "height": 180,
+   "avif": "w320.avif",
+   "webp": "w320.webp"
+  }
+ ],
+ "ogPath": "/learn-thumbs/living-lessons/ll332-give-me-this-mountain/og.jpg",
+ "headline": {
+  "lines": [
+   "ASK FOR",
+   "THE MOUNTAIN"
+  ],
+  "fontSize": 132,
+  "font": "Anton"
+ }
+}

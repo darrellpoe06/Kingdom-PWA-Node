@@ -1,0 +1,67 @@
+{
+ "schema": "learn-thumbs/v1",
+ "courseKey": "buying-terms",
+ "lessonId": "buy2-two-sets-of-weights-in-one-bag",
+ "thumbHeadline": "SAME HOUSE, TWO SCALES",
+ "layout": "left",
+ "department": "",
+ "composedAt": "2026-11-24T15:01:45.791Z",
+ "master": {
+  "file": "master.jpg",
+  "format": "jpeg",
+  "width": 2752,
+  "height": 1536,
+  "bytes": 595386
+ },
+ "sha256": "8d5e34c5ee9925e3044dbd1623fcefaced9994aa1c2da4d8c7496736b5f9bd51",
+ "dhash": "373b9d7d6c2e2c6d",
+ "width": 1280,
+ "height": 720,
+ "image": {
+  "src": "/learn-thumbs/buying-terms/buy2-two-sets-of-weights-in-one-bag/w1280.webp",
+  "srcSet": {
+   "avif": "/learn-thumbs/buying-terms/buy2-two-sets-of-weights-in-one-bag/w1920.avif 1920w, /learn-thumbs/buying-terms/buy2-two-sets-of-weights-in-one-bag/w1280.avif 1280w, /learn-thumbs/buying-terms/buy2-two-sets-of-weights-in-one-bag/w640.avif 640w, /learn-thumbs/buying-terms/buy2-two-sets-of-weights-in-one-bag/w320.avif 320w",
+   "webp": "/learn-thumbs/buying-terms/buy2-two-sets-of-weights-in-one-bag/w1920.webp 1920w, /learn-thumbs/buying-terms/buy2-two-sets-of-weights-in-one-bag/w1280.webp 1280w, /learn-thumbs/buying-terms/buy2-two-sets-of-weights-in-one-bag/w640.webp 640w, /learn-thumbs/buying-terms/buy2-two-sets-of-weights-in-one-bag/w320.webp 320w"
+  },
+  "lqip": "data:image/webp;base64,UklGRlYAAABXRUJQVlA4IEoAAACwAwCdASoYAA4APu1iqU2ppaQiMAgBMB2JYwCdABu11jDY4VBxgAD+9DGIWPAQXgHlgVKzKv/3/tW4Q65pJrA0ZG0XyDSEJ1kAAA=="
+ },
+ "sizes": [
+  {
+   "w": 1920,
+   "width": 1920,
+   "height": 1080,
+   "avif": "w1920.avif",
+   "webp": "w1920.webp"
+  },
+  {
+   "w": 1280,
+   "width": 1280,
+   "height": 720,
+   "avif": "w1280.avif",
+   "webp": "w1280.webp"
+  },
+  {
+   "w": 640,
+   "width": 640,
+   "height": 360,
+   "avif": "w640.avif",
+   "webp": "w640.webp"
+  },
+  {
+   "w": 320,
+   "width": 320,
+   "height": 180,
+   "avif": "w320.avif",
+   "webp": "w320.webp"
+  }
+ ],
+ "ogPath": "/learn-thumbs/buying-terms/buy2-two-sets-of-weights-in-one-bag/og.jpg",
+ "headline": {
+  "lines": [
+   "SAME HOUSE,",
+   "TWO SCALES"
+  ],
+  "fontSize": 144,
+  "font": "Anton"
+ }
+}

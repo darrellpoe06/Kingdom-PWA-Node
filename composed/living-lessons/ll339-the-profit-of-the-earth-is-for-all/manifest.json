@@ -1,0 +1,67 @@
+{
+ "schema": "learn-thumbs/v1",
+ "courseKey": "living-lessons",
+ "lessonId": "ll339-the-profit-of-the-earth-is-for-all",
+ "thumbHeadline": "WHO REALLY GAINS?",
+ "layout": "left",
+ "department": "",
+ "composedAt": "2026-11-24T15:01:15.844Z",
+ "master": {
+  "file": "master.jpg",
+  "format": "jpeg",
+  "width": 2752,
+  "height": 1536,
+  "bytes": 802577
+ },
+ "sha256": "8aef1107ee095a788d6e4b62a24218ca3be8119fcc96e9711676e43cdd4c2a9d",
+ "dhash": "03040c0c0e96262a",
+ "width": 1280,
+ "height": 720,
+ "image": {
+  "src": "/learn-thumbs/living-lessons/ll339-the-profit-of-the-earth-is-for-all/w1280.webp",
+  "srcSet": {
+   "avif": "/learn-thumbs/living-lessons/ll339-the-profit-of-the-earth-is-for-all/w1920.avif 1920w, /learn-thumbs/living-lessons/ll339-the-profit-of-the-earth-is-for-all/w1280.avif 1280w, /learn-thumbs/living-lessons/ll339-the-profit-of-the-earth-is-for-all/w640.avif 640w, /learn-thumbs/living-lessons/ll339-the-profit-of-the-earth-is-for-all/w320.avif 320w",
+   "webp": "/learn-thumbs/living-lessons/ll339-the-profit-of-the-earth-is-for-all/w1920.webp 1920w, /learn-thumbs/living-lessons/ll339-the-profit-of-the-earth-is-for-all/w1280.webp 1280w, /learn-thumbs/living-lessons/ll339-the-profit-of-the-earth-is-for-all/w640.webp 640w, /learn-thumbs/living-lessons/ll339-the-profit-of-the-earth-is-for-all/w320.webp 320w"
+  },
+  "lqip": "data:image/webp;base64,UklGRmQAAABXRUJQVlA4IFgAAAAQBACdASoYAA4APu1iqU2ppaQiMAgBMB2JZgCdMoMYACuRBGmYp0s6gAD+dxYruuy+yG47RCGik/6TTwghBicsXHPIjhMG4VdzgvCc1y8kwV30kVaV9YAA"
+ },
+ "sizes": [
+  {
+   "w": 1920,
+   "width": 1920,
+   "height": 1080,
+   "avif": "w1920.avif",
+   "webp": "w1920.webp"
+  },
+  {
+   "w": 1280,
+   "width": 1280,
+   "height": 720,
+   "avif": "w1280.avif",
+   "webp": "w1280.webp"
+  },
+  {
+   "w": 640,
+   "width": 640,
+   "height": 360,
+   "avif": "w640.avif",
+   "webp": "w640.webp"
+  },
+  {
+   "w": 320,
+   "width": 320,
+   "height": 180,
+   "avif": "w320.avif",
+   "webp": "w320.webp"
+  }
+ ],
+ "ogPath": "/learn-thumbs/living-lessons/ll339-the-profit-of-the-earth-is-for-all/og.jpg",
+ "headline": {
+  "lines": [
+   "WHO REALLY",
+   "GAINS?"
+  ],
+  "fontSize": 154,
+  "font": "Anton"
+ }
+}

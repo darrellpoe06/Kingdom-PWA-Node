@@ -1,0 +1,67 @@
+{
+ "schema": "learn-thumbs/v1",
+ "courseKey": "living-lessons",
+ "lessonId": "ll331-it-doth-not-yet-appear-what-we-shall-be",
+ "thumbHeadline": "FROM SHAME TO RESTORATION",
+ "layout": "left",
+ "department": "",
+ "composedAt": "2026-11-24T15:02:22.927Z",
+ "master": {
+  "file": "master.jpg",
+  "format": "jpeg",
+  "width": 2752,
+  "height": 1536,
+  "bytes": 916322
+ },
+ "sha256": "9ef1ac3d13b61e86444daff42ac6fc81804b051943b6f8880e81c6bc0f831bf9",
+ "dhash": "a0b0d4cccccda8a8",
+ "width": 1280,
+ "height": 720,
+ "image": {
+  "src": "/learn-thumbs/living-lessons/ll331-it-doth-not-yet-appear-what-we-shall-be/w1280.webp",
+  "srcSet": {
+   "avif": "/learn-thumbs/living-lessons/ll331-it-doth-not-yet-appear-what-we-shall-be/w1920.avif 1920w, /learn-thumbs/living-lessons/ll331-it-doth-not-yet-appear-what-we-shall-be/w1280.avif 1280w, /learn-thumbs/living-lessons/ll331-it-doth-not-yet-appear-what-we-shall-be/w640.avif 640w, /learn-thumbs/living-lessons/ll331-it-doth-not-yet-appear-what-we-shall-be/w320.avif 320w",
+   "webp": "/learn-thumbs/living-lessons/ll331-it-doth-not-yet-appear-what-we-shall-be/w1920.webp 1920w, /learn-thumbs/living-lessons/ll331-it-doth-not-yet-appear-what-we-shall-be/w1280.webp 1280w, /learn-thumbs/living-lessons/ll331-it-doth-not-yet-appear-what-we-shall-be/w640.webp 640w, /learn-thumbs/living-lessons/ll331-it-doth-not-yet-appear-what-we-shall-be/w320.webp 320w"
+  },
+  "lqip": "data:image/webp;base64,UklGRmQAAABXRUJQVlA4IFgAAACQAwCdASoYAA4APu1Ct1apoqakGAEwHYlAE6ZQATyNiEg6uLBoAP70gFz21v/tX50osWdCNUtHJazIQ7ZUPEQfmWuJi8PviIgkY5RgFIACnPVTkO6G8HAA"
+ },
+ "sizes": [
+  {
+   "w": 1920,
+   "width": 1920,
+   "height": 1080,
+   "avif": "w1920.avif",
+   "webp": "w1920.webp"
+  },
+  {
+   "w": 1280,
+   "width": 1280,
+   "height": 720,
+   "avif": "w1280.avif",
+   "webp": "w1280.webp"
+  },
+  {
+   "w": 640,
+   "width": 640,
+   "height": 360,
+   "avif": "w640.avif",
+   "webp": "w640.webp"
+  },
+  {
+   "w": 320,
+   "width": 320,
+   "height": 180,
+   "avif": "w320.avif",
+   "webp": "w320.webp"
+  }
+ ],
+ "ogPath": "/learn-thumbs/living-lessons/ll331-it-doth-not-yet-appear-what-we-shall-be/og.jpg",
+ "headline": {
+  "lines": [
+   "FROM SHAME",
+   "TO RESTORATION"
+  ],
+  "fontSize": 120,
+  "font": "Anton"
+ }
+}

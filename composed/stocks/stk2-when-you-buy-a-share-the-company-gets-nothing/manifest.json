@@ -1,0 +1,67 @@
+{
+ "schema": "learn-thumbs/v1",
+ "courseKey": "stocks",
+ "lessonId": "stk2-when-you-buy-a-share-the-company-gets-nothing",
+ "thumbHeadline": "THE COMPANY GETS NOTHING",
+ "layout": "left",
+ "department": "",
+ "composedAt": "2026-11-24T15:01:53.771Z",
+ "master": {
+  "file": "master.jpg",
+  "format": "jpeg",
+  "width": 2752,
+  "height": 1536,
+  "bytes": 604686
+ },
+ "sha256": "6fa69a42766671b3a565e5d57bea91a4a58d26d592bbc7e574bffc559aa98969",
+ "dhash": "31386261a7761b13",
+ "width": 1280,
+ "height": 720,
+ "image": {
+  "src": "/learn-thumbs/stocks/stk2-when-you-buy-a-share-the-company-gets-nothing/w1280.webp",
+  "srcSet": {
+   "avif": "/learn-thumbs/stocks/stk2-when-you-buy-a-share-the-company-gets-nothing/w1920.avif 1920w, /learn-thumbs/stocks/stk2-when-you-buy-a-share-the-company-gets-nothing/w1280.avif 1280w, /learn-thumbs/stocks/stk2-when-you-buy-a-share-the-company-gets-nothing/w640.avif 640w, /learn-thumbs/stocks/stk2-when-you-buy-a-share-the-company-gets-nothing/w320.avif 320w",
+   "webp": "/learn-thumbs/stocks/stk2-when-you-buy-a-share-the-company-gets-nothing/w1920.webp 1920w, /learn-thumbs/stocks/stk2-when-you-buy-a-share-the-company-gets-nothing/w1280.webp 1280w, /learn-thumbs/stocks/stk2-when-you-buy-a-share-the-company-gets-nothing/w640.webp 640w, /learn-thumbs/stocks/stk2-when-you-buy-a-share-the-company-gets-nothing/w320.webp 320w"
+  },
+  "lqip": "data:image/webp;base64,UklGRlIAAABXRUJQVlA4IEYAAADwAwCdASoYAA4APu1iqU2ppaOiMAgBMB2JZQCw7CHhYCe9uuvZoI0AAP7y2WdkMTUCD0YlU7d0P5XBiqwghOk2tGtUAAAA"
+ },
+ "sizes": [
+  {
+   "w": 1920,
+   "width": 1920,
+   "height": 1080,
+   "avif": "w1920.avif",
+   "webp": "w1920.webp"
+  },
+  {
+   "w": 1280,
+   "width": 1280,
+   "height": 720,
+   "avif": "w1280.avif",
+   "webp": "w1280.webp"
+  },
+  {
+   "w": 640,
+   "width": 640,
+   "height": 360,
+   "avif": "w640.avif",
+   "webp": "w640.webp"
+  },
+  {
+   "w": 320,
+   "width": 320,
+   "height": 180,
+   "avif": "w320.avif",
+   "webp": "w320.webp"
+  }
+ ],
+ "ogPath": "/learn-thumbs/stocks/stk2-when-you-buy-a-share-the-company-gets-nothing/og.jpg",
+ "headline": {
+  "lines": [
+   "THE COMPANY",
+   "GETS NOTHING"
+  ],
+  "fontSize": 136,
+  "font": "Anton"
+ }
+}
