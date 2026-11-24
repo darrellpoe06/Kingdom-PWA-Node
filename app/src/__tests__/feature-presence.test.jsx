@@ -110,6 +110,10 @@ const learnProps = () => ({
   extraCourses: buildCatalogCourseDescriptors(),
   progress: {}, toggleModule: () => {}, quizState: {}, recordQuiz: () => {},
   learnLevel: 'auto', setLearnLevel: () => {}, ageBand: 'adult', setAgeBand: () => {},
+  // DR-1652: downloads are PoeTech+ or the Download Pass. The registry checks
+  // every control the surface CAN show, so it renders as an entitled reader;
+  // the free-account view is pinned in lesson-downloads-are-paid.test.jsx.
+  userTier: 'poetech-plus',
 });
 
 // The lesson every lesson-level walk opens: a real Living Lessons lesson.
