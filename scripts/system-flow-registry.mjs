@@ -1334,6 +1334,11 @@ const NODES = [
     purpose: 'Reads the church\u2019s public website from a runner (the sandbox has no route to it) and prints its pages, headings and any feed, so the announcements-and-events sync (Darrell 2026-11-18) can be built on what the site actually publishes; nothing is written.',
     reads: [{ res: 'site:thechurchofthelivinggod.com', token: 'thechurchofthelivinggod.com' }], writes: [], seeds: [],
   }),
+  wf('llm-road-probe.yml', {
+    id: 'llm-road-probe', name: 'llm road probe (read-only)',
+    purpose: 'On dispatch: asks /llm/health from outside, then over the tailnet reads which Funnel mounts exist, which ports listen and which one answers /llm/health, so Ari\u2019s road is added to the watchdog with the port it really has; nothing is restarted, written or mounted.',
+    reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }, { res: 'http:llm', token: '/llm/health' }], writes: [], seeds: [],
+  }),
   wf('church-site-archive.yml', {
     id: 'church-site-archive', name: 'Church site archive (daily)',
     purpose: 'Every calendar, Letter from BG and flyer the church office posts on its website is kept daily on the NAS, by month, one copy per content, so the office never archives by hand (DR-1596).',
@@ -2468,6 +2473,7 @@ const RESOURCES = {
   'gh:release': { label: 'the app release' },
   'gh:review-issue': { label: 'due re-review items', sink: 'A due re-review opens an issue a steward works; the ledger itself is the record.' },
   'site:poetech.us': { label: 'the live site' },
+  'http:llm': { label: 'Ari\u2019s road, /llm, on the NAS', source: 'infra/nas-llm/llm_server.py answers it on the NAS; no installer in this repository starts it or mounts it yet, which the read-only probe exists to measure first (DR-1643).' },
   'site:thechurchofthelivinggod.com': { label: 'the church\u2019s public website', source: 'The church office publishes announcements, events and service times on its own website; the app reads, never writes, there.' },
   'site:preview': { label: 'a branch preview of the app (Vercel), never the live site', source: 'Built by the Vercel GitHub integration from every branch push; nothing in this repository writes it, and it serves no family data (lib/preview-isolation.js).' },
   // Cloudflare's own record of what it believes is deployed. Nothing here can
