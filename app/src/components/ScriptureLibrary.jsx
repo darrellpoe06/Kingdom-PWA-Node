@@ -82,10 +82,11 @@ const INTEREST_TOPICS = [
 ];
 
 // --- Read other translations (links only — copyright) ------------------------
+// The toggle and the version links are controls, not Scripture: the reader skips the whole block.
 function OtherTranslations({ refStr }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="mt-1.5">
+    <div className="mt-1.5" data-read-skip="">
       <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open}
         className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">
         {open ? '↑ Hide other translations' : '↓ Read other translations'}
@@ -187,7 +188,8 @@ function VerseCard({ refStr, kjv, text = null, editionShort = 'KJV', gloss, role
         </div>
       )}
       {(backs || []).length > 0 && (
-        <div className="flex flex-wrap gap-1.5 mt-2">
+        // Where a verse is used is a label for the eye, never words for the ear (Darrell 2026-11-24: "Should not ever be read by the reader").
+        <div className="flex flex-wrap gap-1.5 mt-2" data-read-skip="">
           <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] py-0.5">Backs:</span>
           {surfaceLabels(backs).map((label) => (
             <span key={label} className="text-[0.5625rem] uppercase tracking-wider bg-[#FAF8F4] border border-[#E8E4DC] text-[#5A5751] px-1.5 py-0.5">{label}</span>
@@ -297,8 +299,8 @@ function ThemeSection({ theme, tier, level, canStudy = false, email = null, onOp
         <p className="text-xs text-[#B85838] mb-2" style={serif}><span className="uppercase tracking-wider text-[0.5625rem]">For the soul · </span>{theme.soul}</p>
       )}
 
-      {/* Backs */}
-      <div className="flex flex-wrap gap-1.5 mb-2.5">
+      {/* Backs: a label for the eye, never read aloud */}
+      <div className="flex flex-wrap gap-1.5 mb-2.5" data-read-skip="">
         <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] py-0.5">Backs:</span>
         {surfaceLabels(theme.surfaces).map((label) => (
           <span key={label} className="text-[0.5625rem] uppercase tracking-wider bg-[#5A6E3D] text-white px-1.5 py-0.5">{label}</span>

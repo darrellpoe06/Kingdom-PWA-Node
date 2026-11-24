@@ -301,7 +301,14 @@
       "to": 23762,
       "dr": "DR-1640",
       "reason": "This branch's Learn picture lanes, re-measured on main after the merge: learn-thumbs-pull wiring (ci.yml +1 test, loops-health.yml +8), learn-imagegen-tower.yml (+54: a read-only tower probe whose key-shape step names why a tailnet key is refused without printing it), and the learn-presentation-prepare storage-first gate (header folded, net 0). Previously recorded on the branch as 23649->23658->23708->23712; main moved under it, so one raise to the measured merged total, not above it."
+    },
+    {
+      "date": "2026-11-24",
+      "from": 23735,
+      "to": 23736,
+      "dr": "DR-1650",
+      "reason": "One line in loops-health.yml: the church-archive rider's own state/church-archive.out read in the dark-loop diagnosis, the content-sync pattern, so the loop is witnessed before its services.json entry is allowed (a-service-comes-home). The same PR re-froze the ceiling 27 lines lower when the runner road was retired, so this sits well under where main stood. Raised to the measured total, not above it."
     }
   ],
-  "totalLines": 23762
+  "totalLines": 23736
 }
