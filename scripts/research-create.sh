@@ -74,7 +74,7 @@ SQL="WITH claim AS (
    WHERE id = '$ID' AND NOT (tags ? 'research-created') RETURNING id
 ), l AS (
   INSERT INTO public.agent_inbox (instance_id, body, tags, source, created_by)
-  SELECT '$INST', convert_from(decode('$LB64','base64'),'UTF8'), '[\"lesson\",\"from-research\",\"research-source:$ID\"]'::jsonb, 'research-inbox', '$BY'
+  SELECT '$INST', convert_from(decode('$LB64','base64'),'UTF8'), '[\"lesson\",\"from-research\",\"research-source:$ID\"]'::jsonb || coalesce((SELECT jsonb_agg(t) FROM public.agent_inbox x, jsonb_array_elements_text(x.tags) t WHERE x.id = '$ID' AND (t = 'lesson-name-ok' OR t LIKE 'lesson-name:%')), '[]'::jsonb), 'research-inbox', '$BY'
     FROM claim WHERE $WL RETURNING id
 ), b AS (
   INSERT INTO public.agent_inbox (instance_id, body, tags, source, created_by)

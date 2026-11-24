@@ -297,10 +297,10 @@ describe('DR-1600 the shell mounts the picture at the top right, open and collap
     expect(SHELL).toContain(
       '<div className="flex items-start justify-end gap-2 sm:gap-3 min-w-0"><div className="flex items-center gap-2 sm:gap-3 flex-1 flex-wrap justify-end'
     );
-    expect(SHELL).toContain('</div>{!isIsolatedPreview() && <HeaderAuthButton door={accountDoor} />}</div>');
+    expect(SHELL).toContain('</div>{!isIsolatedPreview() && !isPublicSampleVisit() && <HeaderAuthButton door={accountDoor} />}</div>');
   });
   it('collapsed: the nav row is handed the compact picture', () => {
-    expect(SHELL).toContain('<TopNavRow account={!isIsolatedPreview() && <HeaderAuthButton door={accountDoor} compact />}');
+    expect(SHELL).toContain('<TopNavRow account={!isIsolatedPreview() && !isPublicSampleVisit() && <HeaderAuthButton door={accountDoor} compact />}');
   });
   it("the door is the reader's own tab list and the shell's own setters", () => {
     expect(SHELL).toContain('const accountDoor = { navTabs, setView, setChurchView, theme, setTheme, isOwner: isFamilyMember, personName: personaName(personaOf(authSession?.user?.email)) };'); // + the account's own name (DR-1617)

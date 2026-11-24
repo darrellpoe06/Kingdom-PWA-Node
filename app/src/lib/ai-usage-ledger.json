@@ -1224,6 +1224,21 @@
       "notes": "Reserved L331 and DR-1569 on origin with new-lesson.mjs. 322 verses filled from app/public/bible/kjv by fill-verses.mjs, none typed. Each cited passage read with the verse before it. Video not watched; re-review 2026-12-18."
     },
     {
+      "id": "dr-1639-word-opens-on-latest",
+      "date": "2026-11-24",
+      "task": "The Word tab opens on Bishop Gwin's latest message at full width",
+      "drs": [
+        "DR-1639"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.5,
+      "estimateWithoutAiHours": 3,
+      "notes": "From two screenshots: The Word tab and the Church tab"
+    },
+    {
       "id": "ll289-why-the-oppressed-still-call-on-him",
       "date": "2026-11-06",
       "task": "ll289: the fourth send of the evening, Garrison Hayes on why Black Americans still call themselves Christians; research pass, the Word asking the question first and answering it; a 55-case gate; a research row and three further rows filed for the lane",
@@ -2061,6 +2076,21 @@
       "notes": "Darrell: I don't see any mortgage in the list... fix it; how assets are paid down; keep using our subtab procedures"
     },
     {
+      "id": "dr-1638-family-sample-opens",
+      "date": "2026-11-24",
+      "task": "The family sample on the front door lets a potential user in, isolated from the family's data",
+      "drs": [
+        "DR-1638"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.6,
+      "estimateWithoutAiHours": 4,
+      "notes": "Darrell: See family sample does not mean potential users can get in"
+    },
+    {
       "id": "dr-1416-understood-is-mastery",
       "date": "2026-11-10",
       "task": "Understood on the learner record is mastery (lesson read in full, exam at 100%, not rushed, not an instant retake), shown as a band of Black Lions; measured in Chromium",
@@ -2854,6 +2884,21 @@
       "wallClockHours": 0.7,
       "estimateWithoutAiHours": 5,
       "notes": "Two ticks reported build-failed 3 with no way to tell a retry from a stall; the tailnet was shut both times"
+    },
+    {
+      "id": "dr-1636-store-price-wraps",
+      "date": "2026-11-24",
+      "task": "The Store's PoeTech+ course cards: a long price wraps below the title instead of squeezing it",
+      "drs": [
+        "DR-1636"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.3,
+      "estimateWithoutAiHours": 1.5,
+      "notes": "From two phone screenshots of the Store"
     },
     {
       "id": "record-door-stall",
@@ -3665,6 +3710,21 @@
       "notes": "Word first on Matthew 7:25-27 and 1 Corinthians 3:13. House measured: proven-to-catch count, deploy fault-injection tests, site-health steady state, weekly NAS restore drill, the second road on 2026-11-13 run logs. Gap recorded: no deliberate road-closing drill. Held for sov84; sov83 landed mid-build and was merged in, numbers re-derived on the merged tree."
     },
     {
+      "id": "the-house-reads-aris-road",
+      "date": "2026-11-24",
+      "task": "The NAS watchdog reports when /llm is dark, with a read-only readout of what listens and answers; the probe's reading and a correction to DR-1643",
+      "drs": [
+        "DR-1645"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.7,
+      "estimateWithoutAiHours": 4,
+      "notes": ""
+    },
+    {
       "id": "a-landed-number-is-not-a-skip",
       "date": "2026-11-19",
       "task": "The lesson numbering gate counts a number main already carries; the count test reads both branches of its rule",
@@ -3903,6 +3963,23 @@
       "wallClockHours": 0.8,
       "estimateWithoutAiHours": 4,
       "notes": "Traced on the live component before changing anything (DR-0061): the wiring was sound and the existing render test passed green the whole time the defect was live, because it asserts the section CHANGES, not that the reader arrives. Auditing every door rather than only the one he pressed (DR-0219) found two more roads with the same defect: a launch target's mount, which never touches the subscriber, and a handled request that was kept and replayed on the next mount. Each of the three mechanisms is proven to catch by its own named cases, and a section the viewer taps on the strip is deliberately not scrolled, so the fix cannot become the defect."
+    },
+    {
+      "id": "dr-1635-research-always-done",
+      "date": "2026-11-24",
+      "task": "Research is always done for a lesson, and a link is all it takes: every lesson door is researched first and filed Word first",
+      "drs": [
+        "DR-1635"
+      ],
+      "prs": [
+        2851
+      ],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.2,
+      "estimateWithoutAiHours": 10,
+      "notes": "Darrell: I have a YouTube link and I want that to be all I need; research is always done"
     },
     {
       "id": "ll311-every-man-presseth-into-it",

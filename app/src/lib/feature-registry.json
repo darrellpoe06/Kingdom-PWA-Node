@@ -1232,7 +1232,7 @@
       "name": "The picture stays when the header is collapsed (DR-1600)",
       "surface": "app-header",
       "find": {
-        "source": "account={!isIsolatedPreview() && <HeaderAuthButton door={accountDoor} compact />}"
+        "source": "account={!isIsolatedPreview() && !isPublicSampleVisit() && <HeaderAuthButton door={accountDoor} compact />}"
       }
     },
     {
