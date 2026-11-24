@@ -1134,6 +1134,21 @@
       "notes": "Same session as DR-1361 and DR-1370; the video could not be fetched from the cloud, so the public record was searched twice with different phrasings. Estimate is this session's own for a 2,900-word lesson with four bands, two parables, a quiz, a guide and a 56-case gate."
     },
     {
+      "id": "the-love-corner-menu-floats",
+      "date": "2026-11-24",
+      "task": "The Love Corner picture menu was cut off at large text and under the bottom bar, and the picture read (6; the menu floats and scrolls, the header takes the account name",
+      "drs": [
+        "DR-1625"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.4,
+      "estimateWithoutAiHours": 4,
+      "notes": ""
+    },
+    {
       "id": "dr-1372-the-tail-is-a-dropdown",
       "date": "2026-11-06",
       "task": "The lesson timeline/figures and the TALK ABOUT IT TOGETHER tail fold closed as optional dropdowns; the voice reads the teaching and the stories and skips the tail unless asked; a seven-case gate",
