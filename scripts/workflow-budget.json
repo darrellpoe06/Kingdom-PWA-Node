@@ -259,7 +259,14 @@
       "to": 23548,
       "dr": "DR-0076",
       "reason": "learn-presentation-prepare.yml pilot-1 fix (+11 lines): compose, export, the closing integrity check, the cache save and the artifact upload became separate always() steps so a failure after paid generation never loses the titles, images or spend ledger (pilot 1 lost its export and closing check to one crash); a guard stops the run before any spend when no saved ledger is restored (no double spend, no regeneration). The owner asked for both."
+    },
+    {
+      "date": "2026-11-24",
+      "from": 23548,
+      "to": 23584,
+      "dr": "DR-1527",
+      "reason": "kids-episode-narration.yml (36 lines): speaks a Bible Adventures episode script with the open Kokoro voice (Apache-2.0) on a runner, because the sandbox cannot reach Hugging Face; the Jonah episode's narration is timed from it. A new capability (the episode road DR-1527 named), not a longer version of one; one-shot on push, timeout and concurrency as its brakes. Raised to the measured total, not above it."
     }
   ],
-  "totalLines": 23548
+  "totalLines": 23584
 }
