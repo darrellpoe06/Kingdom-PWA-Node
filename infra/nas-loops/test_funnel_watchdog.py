@@ -440,8 +440,21 @@ class ReadsArisRoadAndNeverHealsIt(unittest.TestCase):
         )
         self.assertEqual(len(sent), 1)
 
-    def test_llm_is_still_not_a_row_this_watchdog_mounts(self):
-        self.assertNotIn("/llm", [path for path, _ in fw.SOVEREIGN_MOUNTS])
+    def test_llm_is_a_row_only_at_the_port_the_installer_starts(self):
+        # DR-1649: the row came after the box's own readout, and it must name
+        # the port infra/nas-llm/poetech-llm.service listens on.
+        rows = dict(fw.SOVEREIGN_MOUNTS)
+        unit = open(
+            os.path.join(
+                os.path.dirname(__file__), "..", "nas-llm", "poetech-llm.service"
+            )
+        ).read()
+        port = unit.split("--port ")[1].split()[0]
+        self.assertEqual(rows.get("/llm"), "http://127.0.0.1:" + port)
+        install = open(
+            os.path.join(os.path.dirname(__file__), "..", "nas-llm", "install.sh")
+        ).read()
+        self.assertIn("PORT=" + port + "\n", install)
 
 
 class AsksAsTheAppDoes(unittest.TestCase):

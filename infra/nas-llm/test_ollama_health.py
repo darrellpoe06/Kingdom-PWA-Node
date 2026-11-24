@@ -10,7 +10,7 @@ so BOTH sides of the same envelope are gated. Pure + stdlib-only; runs in CI.
 import unittest
 from datetime import datetime, timezone
 
-from ollama_health import build_health, is_pinned
+from ollama_health import build_health, chat_gate, is_pinned
 
 NOW = datetime(2026, 6, 15, 19, 0, 0, tzinfo=timezone.utc)
 
@@ -78,6 +78,25 @@ class BuildHealth(unittest.TestCase):
         self.assertEqual(env["installed_count"], 1)
         self.assertIsNone(env["version"])
         self.assertEqual(env["installed"][0]["name"], "(unnamed)")
+
+
+class TheDoorIsLockedByTheFamilyKey(unittest.TestCase):
+    """DR-1649: /llm is on the public Funnel. No key set must refuse everyone."""
+
+    def test_no_key_set_answers_nobody(self):
+        for sent in ("", "Bearer ", "Bearer anything"):
+            code, error, reason = chat_gate("", sent)
+            self.assertEqual((code, error), (503, "not-configured"))
+            self.assertTrue(reason)
+
+    def test_the_right_key_opens_it(self):
+        self.assertIsNone(chat_gate("k3y", "Bearer k3y"))
+
+    def test_a_wrong_or_missing_key_is_refused_with_a_reason(self):
+        for sent in ("", None, "Bearer nope", "k3y", "bearer k3y"):
+            code, error, reason = chat_gate("k3y", sent)
+            self.assertEqual((code, error), (401, "unauthorized"))
+            self.assertTrue(reason)
 
 
 if __name__ == "__main__":

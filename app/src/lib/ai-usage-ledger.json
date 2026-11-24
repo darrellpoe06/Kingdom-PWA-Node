@@ -2631,6 +2631,21 @@
       "notes": "Darrell asked whether this is his to do later or automated"
     },
     {
+      "id": "aris-road-comes-home",
+      "date": "2026-11-24",
+      "task": "Ari's LLM server had no installer and /llm no Funnel row; an installer, a unit, a fail-closed key gate and the recorded row",
+      "drs": [
+        "DR-1649"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.6,
+      "estimateWithoutAiHours": 6,
+      "notes": ""
+    },
+    {
       "id": "poetech-plus-on-pricing",
       "date": "2026-11-12",
       "task": "PoeTech+ is bought from the pricing page's Checkout window",

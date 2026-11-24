@@ -47,7 +47,7 @@ jobs:
           # door's open health path. The gate pins this list to the watchdog's.
           MOUNTS = [("/mcp", "/health"), ("/nas-photos", "/healthz"), ("/taxes", "/health"), ("/research", "/health"),
                     ("/photo-backup", "/health"), ("/libraries", "/health"), ("/sb", "/auth/v1/health"),
-                    ("/announce", "/healthz"), ("/cams", "/health"), ("/voice", "/health"), ("/voice-lite", "/health"), ("/scribe", "/health")]
+                    ("/announce", "/healthz"), ("/cams", "/health"), ("/voice", "/health"), ("/voice-lite", "/health"), ("/scribe", "/health"), ("/llm", "/health")]
           out = {"at": int(time.time()), "host": HOST, "mounts": {}}
           for path, hp in MOUNTS:
               url = HOST + path + hp
@@ -147,7 +147,7 @@ jobs:
           echo "---- the watchdog's last lines in the cron log ----"
           (grep -a "funnel-watchdog" "$REPO/infra/nas-loops/events/cron-services-sync.log" 2>/dev/null || sudo -n grep -a "funnel-watchdog" "$REPO/infra/nas-loops/events/cron-services-sync.log" 2>/dev/null || echo "(none)") | tail -10 | cut -c1-300
           echo "---- each door from the box (loopback) ----"
-          for P in 8795 8099 8790 8797 8803 8802 8800 8796 8773 8771 8772 8791; do echo "127.0.0.1:$P: $(curl -sS -m 6 -o /dev/null -w '%{http_code}' http://127.0.0.1:$P/health 2>&1)"; done
+          for P in 8795 8099 8790 8797 8803 8802 8800 8796 8773 8771 8772 8791 8804; do echo "127.0.0.1:$P: $(curl -sS -m 6 -o /dev/null -w '%{http_code}' http://127.0.0.1:$P/health 2>&1)"; done
           EOS
 
       - name: "Ledger: a dark or short Funnel is an incident; the next pass closes it"

@@ -23,10 +23,10 @@ authored fallback (never a fabricated answer -- DR-0076). Deterministic-first:
 this file does NOT decide routing (that is llm-router.js, the build pipeline);
 it just serves local chat.
 
-Run on the NAS:
-    LLM_BRIDGE_TOKEN=<same bridge token the app uses> \
-      uvicorn llm_server:app --host 127.0.0.1 --port 8791
-Caddy: handle /llm/* { reverse_proxy 127.0.0.1:8791 }
+Installed and kept running on the NAS by infra/nas-llm/install.sh on the
+services-sync clock (DR-1649): poetech-llm.service, 127.0.0.1:8804, mounted on
+the public Funnel at /llm. The Funnel strips the mount path, so every route is
+answered with and without the /llm prefix (the tax server's pattern).
 """
 import os
 import json
@@ -48,7 +48,7 @@ def _ref(e):
     _errlog.error("[%s] %s: %s", ref, type(e).__name__, e, exc_info=True)
     return ref
 
-from ollama_health import build_health
+from ollama_health import build_health, chat_gate
 
 OLLAMA = os.environ.get("OLLAMA_URL", "http://127.0.0.1:11434")
 TOKEN = os.environ.get("LLM_BRIDGE_TOKEN", "")
@@ -73,16 +73,22 @@ def _ollama_get(path):
         return {}
 
 
+@app.get("/health")
 @app.get("/llm/health")
 def health():
     # The sovereign replacement for the wf-llm-health n8n Code node (DR-0218):
     # read Ollama's own live state and compose the exact envelope LlmHealth.jsx
     # (normalizeLlmHealth) reads. HONEST OFFLINE (DR-0076): if the box is
     # unreachable, /api/version comes back empty -> ok:false, and the card shows
-    # "not connected" rather than a painted health.
+    # "not connected" rather than a painted health. The door says why in words
+    # ("reason", DR-1000), never only a code.
     version = (_ollama_get("/api/version") or {}).get("version")
     if not version:
-        return JSONResponse({"ok": False, "error": "ollama-unreachable"}, status_code=502)
+        return JSONResponse(
+            {"ok": False, "error": "ollama-unreachable",
+             "reason": "this door is up, and Ollama did not answer at " + OLLAMA},
+            status_code=502,
+        )
     ps_json = _ollama_get("/api/ps")
     tags_json = _ollama_get("/api/tags")
     return build_health(ps_json, tags_json, version)
@@ -103,11 +109,15 @@ def _clean_messages(system, raw):
     return msgs
 
 
+@app.post("/chat")
 @app.post("/llm/chat")
 async def chat(request: Request):
-    if TOKEN:
-        if request.headers.get("authorization", "") != ("Bearer " + TOKEN):
-            return JSONResponse({"ok": False, "error": "unauthorized"}, status_code=401)
+    # FAIL CLOSED (DR-1649): this door is on the public Funnel. With no key set
+    # it answers nobody, where it used to answer everybody.
+    refused = chat_gate(TOKEN, request.headers.get("authorization", ""))
+    if refused:
+        code, error, reason = refused
+        return JSONResponse({"ok": False, "error": error, "reason": reason}, status_code=code)
 
     try:
         body = await request.json()
