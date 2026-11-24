@@ -266,7 +266,14 @@
       "to": 23584,
       "dr": "DR-1527",
       "reason": "kids-episode-narration.yml (36 lines): speaks a Bible Adventures episode script with the open Kokoro voice (Apache-2.0) on a runner, because the sandbox cannot reach Hugging Face; the Jonah episode's narration is timed from it. A new capability (the episode road DR-1527 named), not a longer version of one; one-shot on push, timeout and concurrency as its brakes. Raised to the measured total, not above it."
+    },
+    {
+      "date": "2026-11-24",
+      "from": 23584,
+      "to": 23649,
+      "dr": "DR-1643",
+      "reason": "One new workflow, llm-road-probe.yml (65 lines as the register counts them), dispatch-only and read-only: Ari's road, /llm, is on neither the NAS watchdog's restore list nor the outside witness's list, the sandbox has no route to it, and the repository gives its server the port the installed Scribe service uses. The probe reads which Funnel mounts exist, which ports listen and which one answers /llm/health, so the port is measured before it is written into a script that rewrites the Funnel. A timeout and a concurrency group; nothing is restarted, written or mounted. Raised to the measured total, not above it."
     }
   ],
-  "totalLines": 23584
+  "totalLines": 23649
 }

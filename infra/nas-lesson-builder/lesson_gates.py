@@ -56,6 +56,12 @@ def norm(s):
     return re.sub(r"\s+", " ", str(s)).strip()
 
 
+def _fold(s):
+    """Case, apostrophe glyph and whitespace folded -- for ONE comparison only
+    (Corpus.contains_phrase), never for anything that is written back."""
+    return norm(s).lower().replace("’", "'").replace("ʼ", "'")
+
+
 # --- the corpus ----------------------------------------------------------------
 
 class Corpus:
@@ -65,6 +71,7 @@ class Corpus:
         self.dir = os.path.join(repo, "app", "public", "bible", "kjv")
         self._files = None
         self._books = {}
+        self._all = None
 
     def files(self):
         if self._files is None:
@@ -114,6 +121,40 @@ class Corpus:
                 return None
             parts.append(chap[n - 1])
         return norm(" ".join(parts))
+
+    def contains_phrase(self, phrase):
+        """Whether this run of words appears ANYWHERE in the KJV on disk.
+
+        Used only to answer one question in one direction: an unreferenced
+        quoted span that is NOT in here cannot be Scripture, so its quotes may
+        be taken off (mend_unreferenced_quotes). Every ambiguity therefore has
+        to answer True, because the two mistakes are not equal: leaving quotes
+        on a speaker's words is harmless -- the gate still refuses the draft,
+        exactly as today -- while taking them off a verse would print the Word
+        as our own prose. So the comparison is the most permissive one that
+        still means anything: case folded, apostrophe glyphs folded (the corpus
+        writes U+2019 and a writer may type a straight one), whitespace
+        normalised. A near-miss matches and is left alone.
+        """
+        p = _fold(phrase)
+        if not p:
+            return True
+        if self._all is None:
+            # A book we cannot read is a book we cannot clear a span against,
+            # and an absent corpus must not raise: this runs inside the build,
+            # where an exception would land the teaching in the `crashed` class
+            # instead of answering the one question safely.
+            try:
+                blobs = []
+                for f in sorted(self.files()):
+                    with open(os.path.join(self.dir, f + ".json"), encoding="utf-8") as fh:
+                        doc = json.load(fh)
+                    for chap in doc.get("chapters") or []:
+                        blobs.append(_fold(" ".join(chap)))
+            except (OSError, ValueError, TypeError):
+                return True
+            self._all = "\n".join(blobs)
+        return p in self._all
 
 
 REF_IN_TEXT = re.compile(r"\b((?:[1-3]\s?)?(?:Song of Solomon|[A-Z][a-z]+))\s+(\d+):(\d+(?:\s*-\s*\d+)?)")
@@ -190,6 +231,60 @@ def canonical_apostrophes(obj):
     if isinstance(obj, dict):
         return {k: canonical_apostrophes(x) for k, x in obj.items()}
     return obj
+
+
+def mend_text_quotes(text, corpus, mended):
+    """One string: every unreferenced quoted span that is provably NOT Scripture
+    loses its quotation marks. Appends each span it took quotes off to `mended`."""
+    out, last = [], 0
+    for m in QUOTED.finditer(str(text)):
+        if m.start() < last:
+            continue  # inside a span already decided
+        if SPAN_WITH_REFERENCE.match(str(text), m.start()):
+            continue  # carries its reference: never touched
+        if corpus.contains_phrase(m.group(1)):
+            continue  # is (or may be) the Word: the writer owes it a reference
+        out.append(str(text)[last:m.start()])
+        out.append(m.group(1))
+        mended.append(m.group(1))
+        last = m.end()
+    if not out:
+        return str(text)
+    out.append(str(text)[last:])
+    return "".join(out)
+
+
+def mend_unreferenced_quotes(obj, corpus):
+    """(obj, mended) -- the second deterministic pass before any gate (DR-1641).
+
+    THE RULE IS ALREADY DARRELL'S, AND ALREADY WRITTEN TO THE WRITER TWICE:
+    lesson_writer.py says 'Use straight double quotes (") ONLY for Scripture.
+    Never put anyone else's words in double quotes' and, again, 'never put
+    Darrell's (or anyone's) words in quotation marks'. The writer disobeys it
+    anyway: on 2026-11-24 five of the ten teachings waiting in the queue were
+    refused on `span-without-reference`, one of them on its FIRST pass, and
+    with MAX_ATTEMPTS the row has a single informed retry before it is left.
+    Instruction has had its turn; this does it deterministically.
+
+    ONLY the unambiguous direction is repaired. A span the corpus does not hold
+    is not Scripture, so the quotes come off and the words read as our prose --
+    which is what the instruction asked for. A span the corpus DOES hold keeps
+    its quotes and is left to fail the gate, because mending it would mean
+    choosing which verse it is, and a reference is never guessed (DR-0076
+    section 8: absent is not 'no'). Nothing referenced is touched at all.
+    """
+    mended = []
+
+    def walk(x):
+        if isinstance(x, str):
+            return mend_text_quotes(x, corpus, mended)
+        if isinstance(x, list):
+            return [walk(i) for i in x]
+        if isinstance(x, dict):
+            return {k: walk(v) for k, v in x.items()}
+        return x
+
+    return walk(obj), mended
 
 
 # --- gate 1: the verse ----------------------------------------------------------

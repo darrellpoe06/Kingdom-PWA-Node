@@ -2181,6 +2181,21 @@
       "notes": "Reads the feed the Past sermons tab already plays. Closed-phone push not built, re-review 2026-12-03."
     },
     {
+      "id": "the-rule-was-already-his",
+      "date": "2026-11-24",
+      "task": "The builder kept quoting speakers where only Scripture may be quoted; now a span the KJV corpus does not hold loses its quotes deterministically, and a teaching gets four attempts instead of two",
+      "drs": [
+        "DR-1641"
+      ],
+      "prs": [],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.1,
+      "estimateWithoutAiHours": 5,
+      "notes": "The question had been put to Darrell three times; lesson_writer.py had already answered it twice. A span the corpus DOES hold keeps its quotes: a reference is never guessed. Caught 3 ways."
+    },
+    {
       "id": "dr-1420-record-in-readers-name",
       "date": "2026-11-10",
       "task": "The learner record is headed by the reader's name with who they are in the household beneath it; an exam average is no longer badged Mastered",
@@ -2719,6 +2734,21 @@
       "notes": "Old rule left the live page without notes for 2026-11-16 (ll238) and 3 more weeks; 75 of 327 lessons carry no howToRun."
     },
     {
+      "id": "kids-library-show-more-visible",
+      "date": "2026-11-24",
+      "task": "The Kids lesson library's Show more button was white on white; made visible, Show all added, and a gate that fails a colorless Kids button",
+      "drs": [
+        "DR-1642"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.4,
+      "estimateWithoutAiHours": 2,
+      "notes": "Found by Darrell on the live build an hour after DR-1629 deployed."
+    },
+    {
       "id": "sov75",
       "date": "2026-11-12",
       "task": "sov75, safely - a tool and not a friend: the Sovereign A.I. week built from Sinead Bovell's SXSW EDU 2025 session, with Darrell's one-word follow-up, Safely, as its spine",
@@ -3055,6 +3085,21 @@
       "wallClockHours": 0.4,
       "estimateWithoutAiHours": 8,
       "notes": "No token meter in this session; tokens and cost are null."
+    },
+    {
+      "id": "aris-road-read-only-probe",
+      "date": "2026-11-24",
+      "task": "A dispatch-only, read-only probe of what serves /llm on the NAS, so the port is measured before the watchdog is told it",
+      "drs": [
+        "DR-1643"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.6,
+      "estimateWithoutAiHours": 3,
+      "notes": ""
     },
     {
       "id": "comfort-pass-2026-11-12",
