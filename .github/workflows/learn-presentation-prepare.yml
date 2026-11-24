@@ -5,7 +5,7 @@ name: Learn presentation — prepare new lessons
 on:
   workflow_dispatch:
     inputs:
-      only: { description: '"seed" = the 20-lesson pilot, or comma-separated lesson ids', required: false, default: '' }
+      only: { description: '"seed" = the 20-lesson pilot (default), "all" = full library (needs approval), or lesson ids', required: true, default: 'seed' }
       budget_cents: { description: 'Hard spend cap for this whole run, in cents', required: false, default: '500' }
 permissions:
   contents: read
@@ -23,7 +23,7 @@ jobs:
       BFL_API_KEY: ${{ secrets.BFL_API_KEY }}
       LEARN_BFL_RAW: '1'
       CAP: ${{ github.event.inputs.budget_cents || vars.LEARN_PRESENTATION_RUN_CAP_CENTS || '500' }}
-      ONLY: ${{ github.event.inputs.only || '' }}
+      ONLY: ${{ github.event.inputs.only || 'seed' }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -36,7 +36,7 @@ jobs:
       - name: Titles, images, composition (one cap for the whole run; resumable)
         run: |
           set -euo pipefail
-          SCOPE=""; if [ -n "$ONLY" ]; then SCOPE="--only $ONLY"; fi
+          [ -n "$ONLY" ] || { echo "only is required: seed, all, or lesson ids"; exit 1; }; SCOPE="--only $ONLY"; [ "$ONLY" != "all" ] || SCOPE=""
           TEXT_CAP=$(( CAP / 5 )); IMAGE_CAP=$(( CAP - TEXT_CAP )); echo "cap ${CAP}c = text ${TEXT_CAP}c + images ${IMAGE_CAP}c"
           CLI="npx vite-node scripts/learn-presentation/cli.mjs"
           $CLI estimate $SCOPE
