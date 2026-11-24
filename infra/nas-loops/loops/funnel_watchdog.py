@@ -206,7 +206,7 @@ def expiry_days_of(status_json, now=None):
             head, _, tail = stamp.partition(".")
             zone = tail[tail.find("+") :] if "+" in tail else ""
             stamp = head + zone
-        import datetime as _dt  # noqa: PLC0415
+        import datetime as _dt
 
         when = _dt.datetime.fromisoformat(stamp)
         if when.tzinfo is None:
