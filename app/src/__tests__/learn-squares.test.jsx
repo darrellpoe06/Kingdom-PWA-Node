@@ -8,7 +8,7 @@ import { createElement, act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import LearnSquares, { LESSONS_PAGE } from '../components/LearnSquares.jsx';
+import LearnSquares, { LESSONS_PAGE, LESSON_SQUARES_PAGE, LESSON_VIEW_KEY } from '../components/LearnSquares.jsx';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 const course = (key, category, n, title = `Course ${key}`) => ({
@@ -20,6 +20,7 @@ const COURSES = [course('w1', 'The Word & The Way', 25), course('w2', 'The Word 
 
 let host, root;
 beforeEach(() => {
+  window.localStorage.removeItem(LESSON_VIEW_KEY);
   host = document.createElement('div');
   document.body.appendChild(host);
   root = createRoot(host);
@@ -42,7 +43,7 @@ describe('areas, then courses, then lessons', () => {
     expect(word.className).toContain('aspect-square');
     expect(word.getAttribute('aria-label')).toBe('The Word & The Way: 2 courses, 28 lessons');
   });
-  it('an area opens its courses as squares; a course opens its lessons as full-title rows, ten to a page', () => {
+  it('an area opens its courses as squares; a course opens its lessons as squares, with full-title rows one tap away', () => {
     const opened = [];
     draw({ onOpenLesson: (k, id) => opened.push([k, id]) });
     click(q('[data-testid="square-area-the-word-and-the-way"]'));
@@ -51,10 +52,20 @@ describe('areas, then courses, then lessons', () => {
     expect(q('[data-testid="square-course-w1"]').className).toContain('aspect-square');
     click(q('[data-testid="square-course-w1"]'));
     expect(q('[data-testid="learn-squares"]').getAttribute('data-level')).toBe('lessons');
+    // Squares open first, as he asked: twelve to a page, the whole title in each square's name.
+    expect(q('[data-testid="squares-lessons"]').getAttribute('data-view')).toBe('squares');
+    const tiles = qa('[data-testid^="square-lesson-"]');
+    expect(tiles.length).toBe(LESSON_SQUARES_PAGE);
+    expect(tiles[0].className).toContain('aspect-square');
+    expect(tiles[0].getAttribute('aria-label')).toContain('with a long title that must be read whole');
+    expect(q('[data-testid="squares-range"]').textContent).toBe('1–12 of 25');
+    // Rows are one tap away, carry the title uncut, and the choice is remembered.
+    click(q('[data-testid="squares-view-rows"]'));
+    expect(window.localStorage.getItem(LESSON_VIEW_KEY)).toBe('rows');
     const rows = qa('[data-testid^="square-lesson-"]');
     expect(rows.length).toBe(LESSONS_PAGE);
-    expect(rows[0].className).not.toContain('aspect-square'); // research: a list for text
-    expect(rows[0].className).not.toContain('line-clamp'); // the title is read whole
+    expect(rows[0].className).not.toContain('aspect-square');
+    expect(rows[0].className).not.toContain('line-clamp');
     expect(rows[0].textContent).toContain('with a long title that must be read whole');
     expect(q('[data-testid="squares-range"]').textContent).toBe('1–10 of 25');
     click(q('[data-testid="squares-next"]'));

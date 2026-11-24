@@ -19,8 +19,10 @@
 //     the wayfinding. So AREAS and COURSES are squares, under a breadcrumb.
 //   • A list for text. NN/g: a vertical list scans faster than cards, fits
 //     more per screen, and cards suit items that look different from each
-//     other. A lesson is a long title, and a square would cut it off (weak
-//     scent, pogo-sticking). So LESSONS are full-title rows, ten to a page.
+//     other. A lesson is a long title, and a square cuts it at three lines.
+//     He asked for squares, so LESSONS open as squares, twelve to a page,
+//     each carrying its whole title in its name and tooltip; full-title rows,
+//     ten to a page, are one tap away and the choice is remembered.
 //   • No long scroll at any level: one level on screen at a time, paged.
 //   • Progress where the choice is made. The best-evidenced engagement
 //     lever in learning apps is visible progress and an easy way back in
@@ -37,6 +39,26 @@ import React, { useMemo, useState } from 'react';
 import { learnDepartments, courseLessonCount, courseStandingLabel } from '../lib/learn-organize.js';
 
 export const LESSONS_PAGE = 10;
+export const LESSON_SQUARES_PAGE = 12;
+// HOW THE LESSONS ARE DRAWN IS THE READER'S OWN SWITCH (DR-1633 §3). He asked
+// for squares at every level, so squares are what opens; the research says a
+// list reads better for long titles, so rows are one tap away. Remembered on
+// the device; a device that cannot remember still works.
+export const LESSON_VIEW_KEY = 'poetech.learn.browse.lessonView';
+export function readLessonView(store = typeof window !== 'undefined' ? window.localStorage : null) {
+  try {
+    return store && store.getItem(LESSON_VIEW_KEY) === 'rows' ? 'rows' : 'squares';
+  } catch {
+    return 'squares';
+  }
+}
+export function writeLessonView(v, store = typeof window !== 'undefined' ? window.localStorage : null) {
+  try {
+    if (store) store.setItem(LESSON_VIEW_KEY, v === 'rows' ? 'rows' : 'squares');
+  } catch {
+    /* the choice still holds for this visit */
+  }
+}
 const FOCUS = 'focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]';
 const GRID = 'grid gap-2 grid-cols-[repeat(auto-fill,minmax(6.5rem,1fr))]';
 const TILE = `aspect-square w-full flex flex-col items-start justify-between text-left p-2 border bg-white text-[#1A1815] border-[#E8E4DC] hover:border-[#1A1815] overflow-hidden ${FOCUS}`;
@@ -64,13 +86,20 @@ export default function LearnSquares({ courses = [], ctx = null, onOpenLesson = 
   const [areaId, setAreaId] = useState(null);
   const [courseKey, setCourseKey] = useState(null);
   const [page, setPage] = useState(0);
+  const [view, setView] = useState(() => readLessonView());
+  const per = view === 'rows' ? LESSONS_PAGE : LESSON_SQUARES_PAGE;
+  const pickView = (v) => {
+    setView(v);
+    writeLessonView(v);
+    setPage(0);
+  };
   const area = areas.find((a) => a.id === areaId) || null;
   const course = area ? area.courses.find((c) => c.key === courseKey) || null : null;
   const lessons = course ? (course.schedule || []).filter((m) => m && m.id) : [];
-  const pages = Math.max(1, Math.ceil(lessons.length / LESSONS_PAGE));
+  const pages = Math.max(1, Math.ceil(lessons.length / per));
   const at = Math.min(page, pages - 1);
-  const first = at * LESSONS_PAGE;
-  const shown = lessons.slice(first, first + LESSONS_PAGE);
+  const first = at * per;
+  const shown = lessons.slice(first, first + per);
   const go = (a, c) => {
     setAreaId(a);
     setCourseKey(c);
@@ -158,12 +187,43 @@ export default function LearnSquares({ courses = [], ctx = null, onOpenLesson = 
               </button>
             )}
           </div>
+          <div className="flex items-center gap-1 mb-2" role="group" aria-label="How the lessons are shown" data-read-skip data-testid="squares-view">
+            {[
+              ['squares', 'Squares'],
+              ['rows', 'Rows · full titles'],
+            ].map(([v, words]) => (
+              <button
+                key={v}
+                type="button"
+                aria-pressed={view === v}
+                onClick={() => pickView(v)}
+                className={`${CRUMB} ${view === v ? 'border-[#1A1815] bg-[#1A1815] text-white hover:text-white' : ''}`}
+                data-testid={`squares-view-${v}`}
+              >
+                {words}
+              </button>
+            ))}
+          </div>
           {lessons.length === 0 ? (
             <p className="text-xs text-[#5A5751]" data-testid="squares-no-lessons">
               This course has no lesson yet. Its page says what is planned.
             </p>
+          ) : view === 'squares' ? (
+            <ul className={GRID} aria-label={`${titleOf(course)} lessons`} data-testid="squares-lessons" data-view="squares">
+              {shown.map((m, i) => (
+                <Tile
+                  key={m.id}
+                  mark={first + i + 1}
+                  title={m.title || m.id}
+                  foot="Open ▸"
+                  label={`Lesson ${first + i + 1}: ${m.title || m.id}`}
+                  onClick={() => onOpenLesson && onOpenLesson(course.key, m.id)}
+                  testid={`square-lesson-${m.id}`}
+                />
+              ))}
+            </ul>
           ) : (
-            <ol className="grid gap-1" aria-label={`${titleOf(course)} lessons`} data-testid="squares-lessons">
+            <ol className="grid gap-1" aria-label={`${titleOf(course)} lessons`} data-testid="squares-lessons" data-view="rows">
               {shown.map((m, i) => (
                 <li key={m.id}>
                   <button
@@ -187,7 +247,7 @@ export default function LearnSquares({ courses = [], ctx = null, onOpenLesson = 
                 ← Earlier
               </button>
               <span className="text-[0.6875rem] text-[#5A5751]" role="status" data-testid="squares-range">
-                {first + 1}–{Math.min(lessons.length, first + LESSONS_PAGE)} of {lessons.length}
+                {first + 1}–{Math.min(lessons.length, first + per)} of {lessons.length}
               </span>
               <button
                 type="button"

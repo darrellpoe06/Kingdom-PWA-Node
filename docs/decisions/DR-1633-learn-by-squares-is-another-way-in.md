@@ -19,8 +19,8 @@ What the sources say, each read 2026-11-24:
 | source | finding | where it is applied |
 |---|---|---|
 | Baymard, mobile category research | on mobile, people rely on tile "intermediary category pages" to choose where to go; use them for the first one or two layers; breadcrumbs carry the wayfinding | areas and courses are square tiles under a breadcrumb |
-| NN/g, cards component; card view vs list view | a vertical list scans faster than cards and fits more per screen; cards suit items that differ in kind | lessons are full-title rows, not squares |
-| NN/g, pogo-sticking | weak labels on a routing page send people in and back out | no lesson title is cut off |
+| NN/g, cards component; card view vs list view | a vertical list scans faster than cards and fits more per screen; cards suit items that differ in kind | rows are offered beside the squares he asked for |
+| NN/g, pogo-sticking | weak labels on a routing page send people in and back out | the row view cuts no title; a square keeps the whole title in its name |
 | NN/g, touch targets; older adults | at least 1 cm targets; relative text sizes; small targets fail older users | 44 px floors, rem sizes |
 | Duolingo, streak experiments (company data) | Day-7 retention up 14% in one test; one lesson keeping the streak raised Day-14 retention 3.3% | not adopted as a streak; see below |
 | an RCT on a reading app (arXiv 2310.10850) | a behavioral nudge raised 12-week retention; the same paper calls the wider evidence mixed | progress shown where the choice is made |
@@ -37,7 +37,7 @@ A reader has one more way to a lesson: three taps, one screen at a time, each sc
 
 1. Learn's area strip gains **Browse**. Latest still opens first (DR-1606); nothing is removed or reordered beyond the one added tab.
 2. Areas and courses are square tiles. The areas are the catalog's own departments, derived, never a list kept by hand.
-3. Lessons are full-title rows, ten to a page. He asked for squares at every level; the research says a list for text, and a square cuts a lesson's title. This is the one departure from his words, made on the evidence and said to him plainly; it is one constant and one class to change if he wants squares there.
+3. Lessons open as squares, twelve to a page, as he asked; each square carries its whole title in its name. The research says a list reads better for long titles, so full-title rows, ten to a page, are one tap away on the same screen and the choice is remembered on the device. Both are built; neither is left as a question.
 4. A course tile says where the reader stands, from their real records. No streak, no leaderboard: the house rule for children is no scoreboard, and the streak evidence is one company's own.
 5. "More about this course" opens the course's existing page.
 
