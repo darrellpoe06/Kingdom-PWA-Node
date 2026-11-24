@@ -63,6 +63,9 @@ const ON_THE_WAY = {
   // Born by the Way (DR-1538): My voice on the NAS's own CPU, behind the same
   // /voice door, witnessed by the same voice witness.
   'voice-clone': { door: 'infra/nas-voice-clone/nas_clone_server.py', witness: 'voice-health.yml' },
+  // Born by the Way (DR-1649): Ari's road. The server existed for four months
+  // with no installer; the house's own readout named the gap.
+  llm: { door: 'infra/nas-llm/llm_server.py', witness: 'llm-road-probe.yml' },
 };
 
 /** Loops born by the Way: no door of their own (their "says why" is the ledger

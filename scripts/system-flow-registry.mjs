@@ -2129,6 +2129,10 @@ const NODES = [
     id: 'tax-upload', name: 'Tax archive server', purpose: 'Takes tax documents in and serves the archive back.',
     reads: [{ res: 'http:taxes-upload', token: 'upload' }], writes: [{ res: 'http:taxes', token: 'archive.json' }], seeds: ['books-taxes'],
   }),
+  rider('service:llm', 'infra/nas-llm/llm_server.py', {
+    id: 'llm', name: 'Ari\u2019s road (the house\u2019s own model)', purpose: 'Relays one chat from the app to the house\u2019s own Ollama behind the family key, and says in words why when it cannot (DR-1649).',
+    reads: [{ res: 'nas:services', file: 'infra/nas-loops/services.json', token: 'infra/nas-llm/install.sh' }], writes: [{ res: 'http:llm', token: '/llm/health' }], seeds: ['llm-road-probe'],
+  }),
   rider('service:voice-transport', 'infra/voice-studio/install.sh', {
     id: 'voice-transport', name: 'Voice transport (the road to the studio)', purpose: 'Carries the app’s /voice requests to the studio on the tower.',
     reads: [{ res: 'tower:voice-studio', token: 'tlcmediadpt' }, { res: 'nas:voice-clone', file: 'infra/voice-studio/voice_forwarder.py', token: '127.0.0.1:8773' }], writes: [{ res: 'http:voice', token: '/voice' }], seeds: ['voice-studio'],
@@ -2497,7 +2501,7 @@ const RESOURCES = {
   'gh:release': { label: 'the app release' },
   'gh:review-issue': { label: 'due re-review items', sink: 'A due re-review opens an issue a steward works; the ledger itself is the record.' },
   'site:poetech.us': { label: 'the live site' },
-  'http:llm': { label: 'Ari\u2019s road, /llm, on the NAS', source: 'infra/nas-llm/llm_server.py answers it on the NAS; no installer in this repository starts it or mounts it yet, which the read-only probe exists to measure first (DR-1643).' },
+  'http:llm': { label: 'Ari\u2019s road, /llm, on the NAS', route: '/llm' },
   'site:thechurchofthelivinggod.com': { label: 'the church\u2019s public website', source: 'The church office publishes announcements, events and service times on its own website; the app reads, never writes, there.' },
   'site:preview': { label: 'a branch preview of the app (Vercel), never the live site', source: 'Built by the Vercel GitHub integration from every branch push; nothing in this repository writes it, and it serves no family data (lib/preview-isolation.js).' },
   // Cloudflare's own record of what it believes is deployed. Nothing here can
