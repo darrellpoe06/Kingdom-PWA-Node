@@ -280,7 +280,14 @@
       "to": 23658,
       "dr": "DR-1640",
       "reason": "learn-thumbs-pull: the NAS pulls each Learn picture batch (paid work, ~$58 across the library) before GitHub's artifact clock expires it (DR-1360: the NAS initiates the road). ci.yml +1 runs test_learn_thumbs_pull (token never sent to the blob host, unsafe zip paths and digest mismatches refused). loops-health.yml +8 reads its last-run.json, turns red on a refused artifact, and in diagnosis lists the folder and whether the token file is present; the name rides existing lines in the loops list, install map, cron prefix and heartbeat receipt. Two comment blocks were folded to one line each before raising. Raised to the measured total, not above it."
+    },
+    {
+      "date": "2026-11-24",
+      "from": 23658,
+      "to": 23708,
+      "dr": "DR-1640",
+      "reason": "learn-imagegen-tower.yml (+50 lines): the owner asked for the Learn pictures to come from the church's own 4070 tower instead of the paid service (no more BFL spend). This first lane is READ-ONLY: it joins the tailnet on arm-voice-studio's road (NAS_SSH_KEY as creed, DR-0579/0581) and runs infra/learn-imagegen/probe.ps1 (GPU name, VRAM total/used/free, the processes on the GPU, disk free, Docker, any ComfyUI and its models, listening ports) before anything is downloaded or started. Triggered by a committed change to infra/learn-imagegen/request.json (a workflow on a branch cannot be dispatched until it is on main). Concurrency group and a 30-minute timeout. Raised to the measured total, not above it."
     }
   ],
-  "totalLines": 23658
+  "totalLines": 23708
 }

@@ -1351,6 +1351,11 @@ const NODES = [
     purpose: 'On dispatch: asks /llm/health from outside, then over the tailnet reads which Funnel mounts exist, which ports listen and which one answers /llm/health, so Ari\u2019s road is added to the watchdog with the port it really has; nothing is restarted, written or mounted.',
     reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }, { res: 'http:llm', token: '/llm/health' }], writes: [], seeds: [],
   }),
+  wf('learn-imagegen-tower.yml', {
+    id: 'learn-imagegen-tower', name: 'Learn image service (tower)',
+    purpose: 'Reads the church 4070 tower (GPU, free VRAM, what else uses the GPU, disk, Docker, any ComfyUI and its models) before the Learn pictures move off the paid service onto our own hardware; read-only, nothing is downloaded, started or changed (DR-1640).',
+    reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }], writes: [], seeds: [],
+  }),
   wf('church-site-archive.yml', {
     id: 'church-site-archive', name: 'Church site archive (daily)',
     purpose: 'Every calendar, Letter from BG and flyer the church office posts on its website is kept daily on the NAS, by month, one copy per content, so the office never archives by hand (DR-1596).',

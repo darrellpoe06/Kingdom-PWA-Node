@@ -1,0 +1,6 @@
+{
+ "schema": "learn-imagegen-request/v1",
+ "note": "Each change to this file asks the tower lane (.github/workflows/learn-imagegen-tower.yml) for one action. Modes: probe (read-only), samples (later, after the probe is read).",
+ "mode": "probe",
+ "nonce": 1
+}
