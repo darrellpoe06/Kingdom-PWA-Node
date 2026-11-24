@@ -24,7 +24,7 @@ import { courseDepartment } from '../../../src/lib/learn-organize.js';
 import { validateRecords } from '../../../src/lib/learn-presentation/validate.js';
 import { withTimeout, retry, pool, realSleep } from './limits.mjs';
 import { idempotencyKey } from './ledger.mjs';
-import { SYSTEM_PROMPT, userPrompt, parseCopy, finalImagePrompt } from './prompts.mjs';
+import { SYSTEM_PROMPT, userPrompt, parseCopy, finalImagePrompt, isParseFault } from './prompts.mjs';
 
 export const sha256 = (data) => createHash('sha256').update(data).digest('hex');
 const norm = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
@@ -131,8 +131,12 @@ export async function runText({ items, ledger, provider, courses, batchId, concu
     const d = ledger.decide({ courseKey: item.courseKey, lessonId: item.lessonId, kind: 'text', contentSha: item.contentSha, maxAttempts, retryFailed });
     if (!d.run) { tally.skipped += 1; return; }
     const base = { batchId, courseKey: item.courseKey, lessonId: item.lessonId, kind: 'text', contentSha: item.contentSha, idempotencyKey: idempotencyKey({ batchId, ...item, kind: 'text' }), provider: provider.name, model: provider.model };
+    // The ledger keeps the LATEST row per job key, and every run shares one batch
+    // key, so a resumed job carries forward what earlier runs already spent on it.
+    // Without this a retry would overwrite that spend and the $5 cap would undercount.
+    const prior = ledger.costSoFar(base.idempotencyKey);
     const attempts = (d.attempts || 0) + 1;
-    ledger.write({ ...base, state: 'running', attempts, leaseUntil: ledger.leaseUntil(), costCents: 0 });
+    ledger.write({ ...base, state: 'running', attempts, leaseUntil: ledger.leaseUntil(), costCents: prior });
     const meter = { c: 0 };
     try {
       let feedback = null;
@@ -143,7 +147,7 @@ export async function runText({ items, ledger, provider, courses, batchId, concu
         const { rec, msgs } = check(item, copy);
         if (!msgs.length) {
           ledger.putRecord({ ...rec, image: null, status: 'review', featured: false, provider: { text: provider.name, model: provider.model }, contentSha: item.contentSha });
-          ledger.write({ ...base, state: 'succeeded', attempts, costCents: meter.c, leaseUntil: null, lastError: null });
+          ledger.write({ ...base, state: 'succeeded', attempts, costCents: prior + meter.c, leaseUntil: null, lastError: null });
           tally.done += 1;
           log(`text ✓ ${item.courseKey}/${item.lessonId}: ${copy.displayTitle}`);
           return;
@@ -153,17 +157,26 @@ export async function runText({ items, ledger, provider, courses, batchId, concu
           ledger.putRecord({ ...rec, image: null, status: 'draft', featured: false, validation: msgs, contentSha: item.contentSha });
         }
       }
-      ledger.write({ ...base, state: 'needs-review', attempts, costCents: meter.c, leaseUntil: null, lastError: feedback });
+      // Both passes unreadable: a transport fault, so it stays resumable (failed,
+      // retried up to maxAttempts on the next run). Readable copy that failed the
+      // checks is an editorial question and goes to review as a draft.
+      if (isParseFault(feedback)) {
+        ledger.write({ ...base, state: 'failed', attempts, costCents: prior + meter.c, leaseUntil: null, lastError: feedback });
+        tally.failed += 1;
+        log(`text ✗ ${item.courseKey}/${item.lessonId}: ${feedback} (will be retried)`);
+        return;
+      }
+      ledger.write({ ...base, state: 'needs-review', attempts, costCents: prior + meter.c, leaseUntil: null, lastError: feedback });
       tally.needsReview += 1;
       log(`text ? ${item.courseKey}/${item.lessonId}: ${feedback}`);
     } catch (e) {
       if (e instanceof BudgetExceeded) {
         tally.stoppedByBudget = true;
-        ledger.write({ ...base, state: 'queued', attempts: attempts - 1, costCents: meter.c, leaseUntil: null, lastError: e.message });
+        ledger.write({ ...base, state: 'queued', attempts: attempts - 1, costCents: prior + meter.c, leaseUntil: null, lastError: e.message });
         log(`budget: ${e.message}`);
         return;
       }
-      ledger.write({ ...base, state: 'failed', attempts, costCents: meter.c, leaseUntil: null, lastError: String(e && e.message ? e.message : e) });
+      ledger.write({ ...base, state: 'failed', attempts, costCents: prior + meter.c, leaseUntil: null, lastError: String(e && e.message ? e.message : e) });
       tally.failed += 1;
       log(`text ✗ ${item.courseKey}/${item.lessonId}: ${e.message}`);
     }
@@ -194,8 +207,12 @@ export async function runImages({ items, ledger, provider, outDir, batchId, conc
     const d = ledger.decide({ courseKey: item.courseKey, lessonId: item.lessonId, kind: 'image', contentSha: item.contentSha, maxAttempts, retryFailed });
     if (!d.run) { tally.skipped += 1; return; }
     const base = { batchId, courseKey: item.courseKey, lessonId: item.lessonId, kind: 'image', contentSha: item.contentSha, idempotencyKey: idempotencyKey({ batchId, ...item, kind: 'image' }), provider: provider.name, model: provider.model };
+    // The ledger keeps the LATEST row per job key, and every run shares one batch
+    // key, so a resumed job carries forward what earlier runs already spent on it.
+    // Without this a retry would overwrite that spend and the $5 cap would undercount.
+    const prior = ledger.costSoFar(base.idempotencyKey);
     const attempts = (d.attempts || 0) + 1;
-    ledger.write({ ...base, state: 'running', attempts, leaseUntil: ledger.leaseUntil(), costCents: 0 });
+    ledger.write({ ...base, state: 'running', attempts, leaseUntil: ledger.leaseUntil(), costCents: prior });
     // Per-TRY reservation, as in Stage A: each generation request (retries
     // included) reserves its own cost before it is sent, and a failed request
     // is charged, because the provider may already have billed it.
@@ -230,17 +247,17 @@ export async function runImages({ items, ledger, provider, outDir, batchId, conc
       }
       ledger.putRecord({ ...rec, image: { path: relative(outDir, file), sha256: digest, phash, provider: provider.name, model: out.model || provider.model }, imageFlags: flags });
       const state = flags.length ? 'needs-review' : 'succeeded';
-      ledger.write({ ...base, state, attempts, costCents: meter.c, leaseUntil: null, lastError: flags.length ? flags.join('; ') : null });
+      ledger.write({ ...base, state, attempts, costCents: prior + meter.c, leaseUntil: null, lastError: flags.length ? flags.join('; ') : null });
       if (flags.length) tally.needsReview += 1; else tally.done += 1;
       log(`image ${flags.length ? '?' : '✓'} ${item.courseKey}/${item.lessonId}${flags.length ? `: ${flags.join('; ')}` : ''}`);
     } catch (e) {
       if (e instanceof BudgetExceeded) {
         tally.stoppedByBudget = true;
-        ledger.write({ ...base, state: 'queued', attempts: attempts - 1, costCents: meter.c, leaseUntil: null, lastError: e.message });
+        ledger.write({ ...base, state: 'queued', attempts: attempts - 1, costCents: prior + meter.c, leaseUntil: null, lastError: e.message });
         log(`budget: ${e.message}`);
         return;
       }
-      ledger.write({ ...base, state: 'failed', attempts, costCents: meter.c, leaseUntil: null, lastError: String(e && e.message ? e.message : e) });
+      ledger.write({ ...base, state: 'failed', attempts, costCents: prior + meter.c, leaseUntil: null, lastError: String(e && e.message ? e.message : e) });
       tally.failed += 1;
       log(`image ✗ ${item.courseKey}/${item.lessonId}: ${e.message}`);
     }

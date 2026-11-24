@@ -4,7 +4,7 @@
 // Commands: estimate | text | images | status | export | retry-failed
 // See README.md beside this file. Nothing here writes to a lesson.
 // =============================================================================
-import { resolveSpendingScope, remainingCents, ScopeError, TOTAL_CAP_CENTS } from './lib/scope.mjs';
+import { resolveSpendingScope, remainingCents, ScopeError, TOTAL_CAP_CENTS, scopeKeySet } from './lib/scope.mjs';
 import process from 'node:process';
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join, dirname, resolve } from 'node:path';
@@ -125,11 +125,12 @@ async function main() {
       return;
     }
     const composedDir = resolve(flags['composed-out'] || '.learn-presentation/composed');
-    const want = onlyIds(flags);
+    // The resolved, validated scope as a Set (pilot 1 crashed on the raw array).
+    const want = scopeKeySet(items);
     let done = 0; let skipped = 0; let failed = 0;
     for (const r of Object.values(ledger.records)) {
       if (!r.image || !r.image.path || !r.thumbHeadline) continue;
-      if (want && !want.has(r.lessonId) && !want.has(`${r.courseKey}::${r.lessonId}`)) continue;
+      if (!want.has(r.lessonId) && !want.has(`${r.courseKey}::${r.lessonId}`)) continue;
       if (r.image.delivery && r.image.delivery.sha256 === r.image.sha256) { skipped += 1; continue; }
       try {
         const m = await composeLesson({ image: join(outDir, r.image.path), courseKey: r.courseKey, lessonId: r.lessonId, thumbHeadline: r.thumbHeadline, layout: flags.layout === 'right' ? 'right' : 'left', department: r.department || '', outDir: composedDir, publicBase: String(flags['image-base'] || '/learn-thumbs') });

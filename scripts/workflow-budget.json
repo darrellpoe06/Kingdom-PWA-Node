@@ -252,7 +252,14 @@
       "to": 23537,
       "dr": "DR-0076",
       "reason": "learn-presentation-prepare.yml (59 lines, folded from 107; dispatch-only until the full library is approved; its narrative lives in docs/99-session-notes/2026-11-23-learn-presentation-redesign-phase-1-2.md): the only automated road that prepares a title and thumbnail for each newly published lesson, with the three brakes (one spend cap per run, a concurrency group, an OFF switch) and an integrity check before and after. +1 line reconciles main measuring 23478 against 23477 at fecaf8a."
+    },
+    {
+      "date": "2026-11-24",
+      "from": 23537,
+      "to": 23548,
+      "dr": "DR-0076",
+      "reason": "learn-presentation-prepare.yml pilot-1 fix (+11 lines): compose, export, the closing integrity check, the cache save and the artifact upload became separate always() steps so a failure after paid generation never loses the titles, images or spend ledger (pilot 1 lost its export and closing check to one crash); a guard stops the run before any spend when no saved ledger is restored (no double spend, no regeneration). The owner asked for both."
     }
   ],
-  "totalLines": 23537
+  "totalLines": 23548
 }

@@ -11,6 +11,7 @@
 // =============================================================================
 import { mkdirSync, appendFileSync, readFileSync, writeFileSync, renameSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
+import { isParseFault } from './prompts.mjs';
 
 export const JOB_STATES = Object.freeze(['queued', 'running', 'succeeded', 'failed', 'needs-review', 'cancelled']);
 
@@ -73,6 +74,8 @@ export class Ledger {
     if (!j) return { run: true, attempts: 0, reason: 'new' };
     if (j.contentSha !== contentSha) return { run: true, attempts: 0, reason: 'lesson-changed' };
     if (j.state === 'succeeded') return { run: false, reason: 'done' };
+    // A parse fault parked as needs-review before pilot 2 is unfinished work, not an editorial verdict.
+    if (j.state === 'needs-review' && isParseFault(j.lastError)) return (j.attempts || 0) < maxAttempts ? { run: true, attempts: j.attempts || 0, reason: 'parse-fault' } : { run: false, reason: 'exhausted' };
     if (j.state === 'needs-review' || j.state === 'cancelled') return { run: false, reason: j.state };
     if (j.state === 'running') {
       const leased = j.leaseUntil && Date.parse(j.leaseUntil) > this.clock();
@@ -94,6 +97,12 @@ export class Ledger {
     const tmp = `${this.recordsPath}.tmp`;
     writeFileSync(tmp, JSON.stringify(this.records, null, 1));
     renameSync(tmp, this.recordsPath);
+  }
+
+  /** What every run so far has spent on one job (its latest row carries the running total). */
+  costSoFar(key) {
+    const j = this.jobs.get(key);
+    return (j && Number(j.costCents)) || 0;
   }
 
   spentCents() {
