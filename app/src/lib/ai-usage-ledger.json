@@ -3695,6 +3695,21 @@
       "notes": "Word first on Matthew 7:25-27 and 1 Corinthians 3:13. House measured: proven-to-catch count, deploy fault-injection tests, site-health steady state, weekly NAS restore drill, the second road on 2026-11-13 run logs. Gap recorded: no deliberate road-closing drill. Held for sov84; sov83 landed mid-build and was merged in, numbers re-derived on the merged tree."
     },
     {
+      "id": "the-house-reads-aris-road",
+      "date": "2026-11-24",
+      "task": "The NAS watchdog reports when /llm is dark, with a read-only readout of what listens and answers; the probe's reading and a correction to DR-1643",
+      "drs": [
+        "DR-1645"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.7,
+      "estimateWithoutAiHours": 4,
+      "notes": ""
+    },
+    {
       "id": "a-landed-number-is-not-a-skip",
       "date": "2026-11-19",
       "task": "The lesson numbering gate counts a number main already carries; the count test reads both branches of its rule",

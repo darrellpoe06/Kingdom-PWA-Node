@@ -42,6 +42,7 @@
 #          + ntfy; the report names the by-hand line. Never silent.
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -114,11 +115,11 @@ TS_CANDIDATES = ["/var/packages/Tailscale/target/bin/tailscale", "tailscale"]
 SYNOPKG = "/usr/syno/bin/synopkg"
 
 
-def probe(url):
+def probe(url, timeout=None):
     """Return the HTTP status code, or 0 on any transport/TLS failure."""
     try:
         req = urllib.request.Request(url, method="GET")
-        with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:
+        with urllib.request.urlopen(req, timeout=timeout or TIMEOUT) as resp:
             return resp.status
     except urllib.error.HTTPError as e:
         return e.code
@@ -354,6 +355,92 @@ def checkout_head(repo=None):
         return "unknown"
 
 
+# ARI'S ROAD, /llm: READ AND REPORTED, NEVER HEALED HERE (DR-1645).
+# Darrell 2026-11-24, a child answered "Ari is resting": "Kids can't ask simple
+# questions?" Measured that day: /llm is not a recorded row above, no installer
+# starts its server, three files in the repository give it three ports, and
+# the runner's tailnet key no longer exists, so no session could look inside.
+# This box can. When the public /llm/health is dark it sends ONE readout (the
+# ports that listen here and what each answers) at most every six hours, and
+# one word when it answers again. It mounts nothing and restarts nothing: the
+# port goes into SOVEREIGN_MOUNTS only once this has printed it.
+LLM_PUBLIC = os.environ.get("FUNNEL_LLM_PROBE", "https://poetech.us/llm/health")
+LLM_REPORT_SPACING = int(os.environ.get("FUNNEL_LLM_REPORT_SPACING", "21600"))
+LLM_PORT_CAP = 16  # the budget: at most 16 ports, two 3 s asks each
+LLM_LOOPBACK_TIMEOUT = 3
+
+
+def listening_ports(run_fn=None, lo=8700, hi=8899, extra=(11434,)):
+    """TCP ports listening on this box in the house's range (and Ollama's)."""
+    run_fn = run_fn or run
+    for cmd in (["ss", "-ltn"], ["netstat", "-ltn"]):
+        _, out = run_fn(cmd, timeout=8)
+        found = {int(m) for m in re.findall(r"[:.](\d{4,5})\s", out or "")}
+        ports = sorted(p for p in found if lo <= p <= hi or p in extra)
+        if ports:
+            return ports
+    return []
+
+
+def llm_readout(public_code, probe_fn=None, run_fn=None):
+    """What listens here and what each port says to /llm/health and /health."""
+    probe_fn = probe_fn or probe
+    ports = listening_ports(run_fn)
+    answers = {}
+    for port in ports[:LLM_PORT_CAP]:
+        base = "http://127.0.0.1:" + str(port)
+        answers[str(port)] = [
+            int(probe_fn(base + "/llm/health", LLM_LOOPBACK_TIMEOUT) or 0),
+            int(probe_fn(base + "/health", LLM_LOOPBACK_TIMEOUT) or 0),
+        ]
+    return {"public": int(public_code or 0), "listening": ports, "answers": answers}
+
+
+def llm_report_due(state, now, public_code):
+    """'llm-dark' at most every LLM_REPORT_SPACING; 'llm-healed' once; else None."""
+    if is_up(public_code):
+        return "llm-healed" if state.get("llm_dark_since") else None
+    last = float(state.get("llm_last_report", 0) or 0)
+    return "llm-dark" if now - last >= LLM_REPORT_SPACING else None
+
+
+def llm_step(state, now, probe_fn=None, run_fn=None, send_fn=None, status_fn=None):
+    """Read Ari's road and say what it reads. Returns the word sent, or None."""
+    probe_fn = probe_fn or probe
+    run_fn = run_fn or run
+    send_fn = send_fn or send_report
+    code = int(probe_fn(LLM_PUBLIC) or 0)
+    word = llm_report_due(state, now, code)
+    if is_up(code):
+        state.pop("llm_dark_since", None)
+    else:
+        state.setdefault("llm_dark_since", now)
+    if not word:
+        return None
+    reading = (
+        llm_readout(code, probe_fn, run_fn) if word == "llm-dark" else {"public": code}
+    )
+    if status_fn is None:
+        ts = tailscale_bin()
+        status = run_fn([ts, "funnel", "status"], timeout=10)[1] if ts else ""
+    else:
+        status = status_fn()
+    ok, why = send_fn(
+        report_payload(
+            word,
+            "Running",
+            {LLM_PUBLIC: code},
+            0,
+            ["llm readout: " + json.dumps(reading, sort_keys=True)],
+            status,
+        )
+    )
+    print("funnel-watchdog: " + word + " to GitHub: " + str(why))
+    if ok and word == "llm-dark":
+        state["llm_last_report"] = now
+    return word
+
+
 def main():
     now = time.time()
     state = load_state()
@@ -399,6 +486,10 @@ def main():
             print("funnel-watchdog: key-expiry warning to GitHub: " + str(why))
             if ok:
                 state["last_expiry_warning"] = now
+        try:
+            llm_step(state, now)
+        except Exception as e:  # reading Ari's road never breaks the watchdog
+            print("funnel-watchdog: llm readout failed: " + str(e)[:200])
         save_state(state)
         return 0
 

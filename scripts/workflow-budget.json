@@ -273,7 +273,14 @@
       "to": 23649,
       "dr": "DR-1643",
       "reason": "One new workflow, llm-road-probe.yml (65 lines as the register counts them), dispatch-only and read-only: Ari's road, /llm, is on neither the NAS watchdog's restore list nor the outside witness's list, the sandbox has no route to it, and the repository gives its server the port the installed Scribe service uses. The probe reads which Funnel mounts exist, which ports listen and which one answers /llm/health, so the port is measured before it is written into a script that rewrites the Funnel. A timeout and a concurrency group; nothing is restarted, written or mounted. Raised to the measured total, not above it."
+    },
+    {
+      "date": "2026-11-24",
+      "from": 23649,
+      "to": 23650,
+      "dr": "DR-1645",
+      "reason": "One line in nas-funnel-report.yml: the receiver also prints the NAS's words to the job log, because a session with no route to the site and a dead tailnet key can read a job log and cannot read a run summary. The same change lets it open the incident for Ari's road (llm-dark) on an existing line. Raised to the measured total, not above it."
     }
   ],
-  "totalLines": 23649
+  "totalLines": 23650
 }
