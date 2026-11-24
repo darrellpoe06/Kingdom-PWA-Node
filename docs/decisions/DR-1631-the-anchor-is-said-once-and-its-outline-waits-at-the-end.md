@@ -30,3 +30,5 @@ A listener hears the anchor's reference and then the lesson. A reader still has 
 ## What is NOT in this record
 
 The Kids adventure and the presentation deck draw the anchor by their own paths and were not changed. `re-review: 2026-12-01` to listen to both.
+
+A line citation moved: Project Management lesson pm19 cites `ChurchLearn.jsx, line 1555` for the Apply step, which began at 1554 on main and begins at 1547 after this change. Its test checks the words, not the line. The file is at its line budget, so the code was not padded to hold the number. `re-review: 2026-12-01` to correct the lesson's citation or pin it the way L317 pins its own.

@@ -4,7 +4,7 @@
 **Status:** Accepted
 **Tier:** A (one count on the course picker; no schema, no data)
 **Type:** decision
-**Area:** `app/src/lib/learn-organize.js` (`libraryStanding`)
+**Area:** `app/src/lib/learn-organize.js` (`libraryStanding`, `uniqueLessonTally`)
 **Sent in by:** Darrell, 2026-11-24, with the course picker reading "149 of 994 lessons read" above a Latest list reading "All 993 lessons": *"993 or 994 lessons currently? Can't be both!!!!!!!"*
 **Pairs with:** DR-1420 (where the reader stands), DR-0687 (the Latest count line), DR-0076
 
@@ -25,3 +25,4 @@ The two totals on the Learn page agree. A reader who finished the carried lesson
 1. The library total counts a lesson once: a `sharedWith` copy whose home course is mounted is the home lesson.
 2. It reads as read when either door was read.
 3. Each course still counts its own lessons on its own row; only the library total dedupes.
+4. The counting lives in `uniqueLessonTally` at the foot of the file. Living Lesson L317 cites `sortCourses` at line 196 and its test holds the line to that; CI caught the first version of this change moving it (run 45419732601, shard 2), and nothing is now added above it.
