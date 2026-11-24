@@ -6,7 +6,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { isPreviewHost, resolveSupabaseConfig, previewSamplePersona, previewStorageKey, purgePreviewForeignState, purgePreviewSnapshots, PREVIEW_STUB_URL, PREVIEW_STUB_KEY, PRODUCTION_HOSTS, PREVIEW_STORAGE_KEY, PREVIEW_TEST_OWNER, PREVIEW_REAL_SNAPSHOT_KEYS } from '../lib/preview-isolation.js';
+import { isPreviewHost, isPublicSample, resolveSupabaseConfig, previewSamplePersona, previewStorageKey, purgePreviewForeignState, purgePreviewSnapshots, PREVIEW_STUB_URL, PREVIEW_STUB_KEY, PRODUCTION_HOSTS, PREVIEW_STORAGE_KEY, PREVIEW_TEST_OWNER, PREVIEW_REAL_SNAPSHOT_KEYS } from '../lib/preview-isolation.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(ROOT, p), 'utf8');
@@ -64,9 +64,9 @@ describe('a preview is the TEST HOUSEHOLD: fictional, device-only, no sign-in', 
     const shell = read('src/poe-financial-mvp-v28.jsx');
     expect(shell).toContain("if (!sp.has('demo')) return previewSamplePersona(window.location.hostname, null)");
     // Both mounts of the picture (the open header's top right and the collapsed row, DR-1600) stay off an isolated preview.
-    expect(shell).toContain('{!isIsolatedPreview() && <HeaderAuthButton door={accountDoor} />}');
-    expect(shell).toContain('account={!isIsolatedPreview() && <HeaderAuthButton door={accountDoor} compact />}');
-    expect((shell.match(/<HeaderAuthButton\b/g) || []).length).toBe((shell.match(/isIsolatedPreview\(\) && <HeaderAuthButton\b/g) || []).length);
+    expect(shell).toContain('{!isIsolatedPreview() && !isPublicSampleVisit() && <HeaderAuthButton door={accountDoor} />}');
+    expect(shell).toContain('account={!isIsolatedPreview() && !isPublicSampleVisit() && <HeaderAuthButton door={accountDoor} compact />}');
+    expect((shell.match(/<HeaderAuthButton\b/g) || []).length).toBe((shell.match(/isIsolatedPreview\(\) && !isPublicSampleVisit\(\) && <HeaderAuthButton\b/g) || []).length); // every sign-in button is hidden on a preview AND in the family sample (DR-1638)
     expect(shell).toContain("if (isAnyDemoMode || isIsolatedPreview()) return 'family';");
     expect(shell).toContain('if (isIsolatedPreview() && !reviewerMode) { (async () => { await purgePreviewSnapshots(window.storage); await loadSavedSnapshot(); setLoaded(true); })(); return; }');
     // the public-host / reviewer boot line is pinned word-for-word by reviewer-mode.test.js; the preview branch sits ABOVE it, so it never runs on a preview
@@ -76,7 +76,7 @@ describe('a preview is the TEST HOUSEHOLD: fictional, device-only, no sign-in', 
     expect(shell).toContain('if (isPublicHost() && !isIsolatedPreview() && !(authSession && authHydrated)) return;');
     expect(shell).toContain('owner: authSession?.user?.id || (isIsolatedPreview() ? PREVIEW_TEST_OWNER : undefined),');
     expect(shell).toContain("persistSnapshot((k, v) => window.storage.set(k, v), previewStorageKey(window.location.hostname), envelope, data)");
-    expect(shell).toContain('isPublicHostVal: isPublicHost() && !isIsolatedPreview(), authChecked, authSession });');
+    expect(shell).toContain('isPublicHostVal: isPublicHost() && !isIsolatedPreview() && !isPublicSampleVisit(), authChecked, authSession });');
     for (const tag of ['<Obligations demo={isAnyDemoMode || reviewerMode || isIsolatedPreview()} />', '<FamilyPlan demo={isAnyDemoMode || reviewerMode || isIsolatedPreview()} />', '<BooksTaxes entities={data.entities || []} demo={isAnyDemoMode || reviewerMode || isIsolatedPreview()} />', '<Contractors1099 demo={isAnyDemoMode || reviewerMode || isIsolatedPreview()}']) {
       expect(shell, tag).toContain(tag);
     }
@@ -112,5 +112,31 @@ describe('the purges: every leftover of an earlier sign-in is removed, nothing e
     expect([...store.keys()]).toEqual([PREVIEW_STORAGE_KEY, 'other']);
     expect(await purgePreviewSnapshots(null)).toEqual([]);
     expect(await purgePreviewSnapshots({ get: async () => null, set: async () => {} })).toEqual([]); // a shim without remove() purges nothing, and never throws
+  });
+});
+
+// DR-1638: "See the family sample" must let a visitor in, and must reach nothing.
+describe('the family sample on the real site opens for a visitor and reaches nothing', () => {
+  it('a ?demo= URL on poetech.us is the sample; without ?demo= it is not; private hosts are unchanged', () => {
+    expect(isPublicSample('poetech.us', '?demo=family-of-4')).toBe(true);
+    expect(isPublicSample('poetech.us', '?demo')).toBe(true);
+    expect(isPublicSample('poetech.us', '?view=store')).toBe(false);
+    expect(isPublicSample('poetech.us', '')).toBe(false);
+    expect(isPublicSample('localhost', '?demo=family-of-4')).toBe(false);
+    expect(isPublicSample('poetech.tail5a2f35.ts.net', '?demo=family-of-4')).toBe(false);
+  });
+  it('the sample data client is the stub, and it is NOT a preview (nothing is purged)', () => {
+    const c = resolveSupabaseConfig({ hostname: 'poetech.us', url: 'https://real.example', key: 'real-key', search: '?demo=family-of-4' });
+    expect(c).toMatchObject({ url: PREVIEW_STUB_URL, key: PREVIEW_STUB_KEY, isolated: true, preview: false });
+    const real = resolveSupabaseConfig({ hostname: 'poetech.us', url: 'https://real.example', key: 'real-key', search: '?view=store' });
+    expect(real).toMatchObject({ url: 'https://real.example', key: 'real-key', isolated: false });
+    expect(resolveSupabaseConfig({ hostname: 'x.vercel.app', search: '' })).toMatchObject({ isolated: true, preview: true });
+  });
+  it('the shell opens the gate for the sample, purges only on a preview, and never reads a stored sign-in into the sample', () => {
+    const sb = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'lib', 'supabase.js'), 'utf8');
+    expect(sb).toContain('if (SUPABASE_ISOLATED && SUPABASE_CONFIG.preview) {');
+    expect(sb).toContain('if (!store && SUPABASE_ISOLATED && !SUPABASE_CONFIG.preview) return null;');
+    const shell = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'poe-financial-mvp-v28.jsx'), 'utf8');
+    expect(shell).toContain('!isPublicSampleVisit(), authChecked, authSession });');
   });
 });

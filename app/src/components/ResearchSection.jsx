@@ -31,7 +31,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { fetchMyResearch, UNVERIFIED_NOTE, LANDS } from '../lib/research-items.js';
 // WHAT IT IS FOR, CHOSEN WHEN IT IS SENT (DR-1202).
-import { INTENTS, CREATE_TAG_PREFIX } from '../lib/research-create.js';
+import { INTENTS, CREATE_TAG_PREFIX, intentsToSend } from '../lib/research-create.js';
 import { researchHealth } from '../lib/research.js';
 import { relayThought } from '../lib/agent-inbox-sync.js';
 import { supabase } from '../lib/supabase.js';
@@ -288,7 +288,8 @@ export default function ResearchSection({ fetchImpl, client = supabase, send = r
     if (!body || busy) return;
     setBusy(true);
     setSent(null);
-    const chosen = Object.keys(forWhat).filter((k) => forWhat[k]);
+    // A link is all it takes (DR-1635): it is always researched, then always a lesson.
+    const chosen = intentsToSend(body, Object.keys(forWhat).filter((k) => forWhat[k]));
     const r = await send({ body, tags: ['research', ...chosen.map((k) => `${CREATE_TAG_PREFIX}${k}`)], source: 'research-section' });
     setBusy(false);
     if (r && r.ok) {
@@ -343,7 +344,7 @@ export default function ResearchSection({ fetchImpl, client = supabase, send = r
           A link is fetched on our own machine at home and its words are written down: the
           captions when it has them, otherwise its audio through Whisper on our own machines. A
           question is searched and answered on the research road. Either way it lands here as an
-          item you can come back to, and it becomes what you tick below.
+          item you can come back to. Every link is researched and then becomes a lesson, Word first.
         </p>
         <form onSubmit={onSend} className="mt-2">
           <label htmlFor="research-send" className={labelCls}>A link, or a question</label>
@@ -374,7 +375,7 @@ export default function ResearchSection({ fetchImpl, client = supabase, send = r
               ))}
             </div>
             <p className="mt-1 text-[0.6875rem] text-[#5A5751]">
-              Nothing ticked keeps it as research. Writing “Lesson” or “features” beside the link does the same as ticking.
+              A link is all it takes: it is always researched first (its words, then a reading), and the lesson is built from that research, Word first. Tick features to also file a build request. A question with no link is answered and kept as research.
             </p>
           </fieldset>
           <div className="mt-1 flex flex-wrap items-center gap-2">

@@ -189,7 +189,10 @@ def lesson_plan(parsed, uid, roster, already):
             "body": parsed["body"],
             # `source` says where it came from; the tags are what the lane reads.
             "source": "email",
-            "tags": ["lesson", tag],
+            # WORD FIRST, WITH RESEARCH, ALWAYS (DR-1635): every emailed lesson
+            # is researched first (a link's words or the teaching's search,
+            # then a reading); the research lane files the lesson from that.
+            "tags": ["research", "create:lesson", tag],
             "message_id": msgid,
         },
     }
@@ -223,7 +226,7 @@ def run_pass(mailbox, server, state, roster, max_messages, max_seconds,
             if plan["action"] == "file":
                 if not dry_run:
                     server.insert_lesson(plan["row"])
-                already.add(plan["row"]["tags"][1])
+                already.update(t for t in plan["row"]["tags"] if str(t).startswith("mail:"))
                 tally["filed"] += 1
             elif plan["action"] == "aside":
                 state["set_aside"][key] = plan["reason"]
@@ -380,7 +383,7 @@ class Server:
         """
         rows = self.con.run(
             "SELECT tags FROM public.agent_inbox WHERE source = 'email' "
-            "AND tags @> '[\"lesson\"]'::jsonb")
+            "AND (tags @> '[\"lesson\"]'::jsonb OR tags @> '[\"research\"]'::jsonb)")
         out = []
         for (tags,) in rows:
             vals = tags if isinstance(tags, list) else json.loads(tags or "[]")
@@ -502,10 +505,12 @@ def selftest():
     check("the row carries the roster's account, never an invented one",
           row["created_by"], "f13843f2-742b-4f8a-82af-7ecfbdc536ec")
     check("the row says where it came from", row["source"], "email")
-    check("the row is tagged for the lane the app already reads",
-          row["tags"][0], "lesson")
+    # DR-1635: research is always done -- the row is a research item sent for a
+    # lesson; the research lane files the lesson row once the research is back.
+    check("the row is a research item sent for a lesson",
+          row["tags"][:2], ["research", "create:lesson"])
     check("the row carries its Message-ID as the idempotence key",
-          row["tags"][1], mail_tag("<a@b>"))
+          row["tags"][2], mail_tag("<a@b>"))
 
     # Attribution refuses rather than guesses.
     other = read_message(msg(frm="Someone <stranger@example.com>"))

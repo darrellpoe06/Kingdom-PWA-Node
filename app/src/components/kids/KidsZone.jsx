@@ -32,9 +32,113 @@ import WordBuilder from './WordBuilder.jsx';
 import WhoAmI from './WhoAmI.jsx';
 import GrownUps, { moduleFor } from './GrownUps.jsx';
 import { activityRecord, TRAIL_COURSES, trailProgress } from '../../lib/kids/trail.js';
+import { LIBRARY_AGES, defaultLibraryAge, libraryLessons, libraryCounts } from '../../lib/kids/lesson-library.js';
+
+const LIBRARY_PAGE = 24;
+/** Each age wears one of the zone's own bright tile colors (white words, as on the home tiles). */
+const AGE_TILE = Object.freeze({ little: 'k4', child: 'k1', youth: 'k3', teen: 'k2' });
+
+/**
+ * Every children's lesson, chosen by age (2026-11-24): big age buttons with
+ * their measured counts, a search box, then lesson cards. A card opens the
+ * same Kids adventure the week's lesson does, read at that age's own words.
+ */
+export function LessonLibrary({ door = 'kids', onOpen, onBack, weeklyId = null }) {
+  const [age, setAge] = useState(() => defaultLibraryAge(door));
+  const [q, setQ] = useState('');
+  const [shown, setShown] = useState(LIBRARY_PAGE);
+  const counts = useMemo(() => libraryCounts(), []);
+  const rows = useMemo(() => libraryLessons(age, q), [age, q]);
+  const pickAge = (k) => {
+    setAge(k);
+    setShown(LIBRARY_PAGE);
+  };
+  const a = LIBRARY_AGES.find((x) => x.key === age) || LIBRARY_AGES[1];
+  return (
+    <section className="kz-panel" aria-labelledby="kz-lib-h" data-testid="lesson-library" data-age={age}>
+      <h3 id="kz-lib-h">Choose a lesson</h3>
+      <p className="kz-sub">Pick your age. Every lesson is written for that age.</p>
+      <div className="kz-ages" role="tablist" aria-label="Your age">
+        {LIBRARY_AGES.map((x) => (
+          <button
+            key={x.key}
+            type="button"
+            role="tab"
+            aria-selected={age === x.key}
+            className={`kz-age ${AGE_TILE[x.key] || 'k2'} ${KZ_FOCUS}`}
+            onClick={() => pickAge(x.key)}
+            data-testid={`library-age-${x.key}`}
+          >
+            <b>{x.label}</b>
+            <small>ages {x.range}</small>
+            <small>{counts[x.key]} lessons</small>
+          </button>
+        ))}
+      </div>
+      <label className="kz-search">
+        <span className="sr-only">Find a lesson</span>
+        <input
+          type="search"
+          value={q}
+          onChange={(e) => {
+            setQ(e.target.value);
+            setShown(LIBRARY_PAGE);
+          }}
+          placeholder={`Find a ${a.label} lesson: David, prayer, kindness…`}
+          data-testid="library-search"
+        />
+      </label>
+      <p className="kz-sub" role="status" data-testid="library-count">
+        {q.trim() ? `${rows.length} ${rows.length === 1 ? 'lesson matches' : 'lessons match'}` : `${rows.length} ${a.label} lessons`}
+        {rows.length > shown ? ` · showing the first ${shown}` : ''}
+      </p>
+      {rows.length === 0 ? (
+        <p className="kz-sub" data-testid="library-empty">
+          No lesson matches that yet. Try another word.
+        </p>
+      ) : (
+        <ul className="kz-lib" aria-label={`${a.label} lessons`}>
+          {rows.slice(0, shown).map((r) => (
+            <li key={r.lessonId}>
+              <button type="button" className={`kz-lesson ${KZ_FOCUS}`} onClick={() => onOpen(r)} data-testid={`library-lesson-${r.lessonId}`}>
+                <span className="kz-lesson-n">{r.label || '★'}</span>
+                <span className="kz-lesson-w">
+                  <b>{r.title}</b>
+                  {r.lessonId === weeklyId && <small className="kz-lesson-tag">This week</small>}
+                </span>
+                <span className="kz-play" aria-hidden="true">
+                  ▶
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <div className="kz-actions">
+        {shown < rows.length && (
+          <>
+            {/* A NAMED COLOR, ALWAYS (DR-1642): a bare kz-act is white words on no
+                background. This button shipped that way and could not be seen, so
+                the page said 337 lessons and showed 24 (Darrell's screen, 2026-11-24). */}
+            <button type="button" className={`kz-act violet ${KZ_FOCUS}`} onClick={() => setShown((n) => n + LIBRARY_PAGE)} data-testid="library-more">
+              Show {Math.min(LIBRARY_PAGE, rows.length - shown)} more
+            </button>
+            <button type="button" className={`kz-act plain ${KZ_FOCUS}`} onClick={() => setShown(rows.length)} data-testid="library-all">
+              Show all {rows.length}
+            </button>
+          </>
+        )}
+        <button type="button" className={`kz-act plain ${KZ_FOCUS}`} onClick={onBack}>
+          ◀ Back
+        </button>
+      </div>
+    </section>
+  );
+}
 
 export const KIDS_TABS = Object.freeze([
   { id: 'adventure', label: 'ADVENTURE', icon: 'map' },
+  { id: 'lessons', label: 'LESSONS', icon: 'read' },
   { id: 'theater', label: 'THEATER', icon: 'theater' },
   { id: 'games', label: 'GAMES', icon: 'game' },
   { id: 'badges', label: 'BADGES', icon: 'star' },
@@ -160,8 +264,11 @@ export default function KidsZone({
   const c = resolveChurch(church);
   const at = useMemo(() => now || new Date(), [now]);
   const d = YOUTH_DOORS.find((x) => x.key === door) || YOUTH_DOORS[0];
-  const pick = weeklyLesson(door, at);
-  const mod = useMemo(() => moduleFor(pick), [pick]);
+  const weekly = weeklyLesson(door, at);
+  const [chosen, setChosen] = useState(null); // a lesson picked from the library: { pick, band }
+  const pick = weekly;
+  const lessonPick = chosen ? chosen.pick : weekly;
+  const mod = useMemo(() => moduleFor(lessonPick), [lessonPick]);
   const verse = weeklyVerse(door, at);
   const seed = weekIndex(at);
   const [tab, setTab] = useState('adventure');
@@ -221,17 +328,31 @@ export default function KidsZone({
   const trailNext = trail.next >= 0 ? trail.stops[trail.next] : null;
 
   let body;
-  if (sub === 'lesson')
+  const library = (
+    <LessonLibrary
+      door={door}
+      weeklyId={weekly ? weekly.lessonId : null}
+      onBack={() => open('adventure')}
+      onOpen={(r) => {
+        setChosen({ pick: { courseKey: r.courseKey, lessonId: r.lessonId, title: r.title, bigIdea: r.bigIdea }, band: r.band });
+        setSub('lesson');
+      }}
+    />
+  );
+  if (sub === 'library' || (tab === 'lessons' && !sub)) body = library;
+  else if (sub === 'lesson')
     body = (
       <KidsAdventure
-        pick={pick}
+        key={lessonPick ? lessonPick.lessonId : 'none'}
+        pick={lessonPick}
         module={mod}
-        band="child"
+        band={chosen ? chosen.band : 'child'}
         signedIn={signedIn}
         loadVerse={loadVerse}
         saveRecord={saveRecord}
         ask={ask}
-        onBack={back}
+        onBack={chosen ? () => setSub(tab === 'lessons' ? null : 'library') : back}
+        backLabel={chosen ? '◀ All lessons' : undefined}
         shotList={shotList}
         firstQuestion={ariQuestion}
       />
@@ -508,12 +629,27 @@ export default function KidsZone({
             cls="k1"
             big
             title="This week's adventure"
-            sub={`${pick ? pick.title : ''} · read, listen, play`}
+            sub={`${pick ? pick.title : ''} · for ${d.title} ${d.range} · read, listen, play`}
             shot="girl-reading-lantern"
             what="the girl reading by lantern light"
-            onClick={() => setSub('lesson')}
+            onClick={() => {
+              setChosen(null);
+              setSub('lesson');
+            }}
             testId="weekly-lesson-open"
             cta={{ text: 'Start ▶', red: true }}
+            list={shotList}
+          />
+          <Tile
+            cls="k5"
+            big
+            title="Choose any lesson"
+            sub={`${LIBRARY_AGES.map((x) => `${x.label} ${x.range}`).join(' · ')} · every lesson written for its age`}
+            shot="girl-storybook"
+            what="the girl holding a storybook"
+            onClick={() => open('lessons')}
+            testId="home-library"
+            cta={{ text: 'Pick your age ▶' }}
             list={shotList}
           />
           <Tile

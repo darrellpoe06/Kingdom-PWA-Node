@@ -191,7 +191,7 @@ describe('the Research section on screen', () => {
     await act(async () => { form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); });
     await act(async () => {});
     expect(store.sent).toHaveLength(1);
-    expect(store.sent[0].tags).toEqual(['research']);
+    expect(store.sent[0].tags).toEqual(['research', 'create:lesson']); // DR-1635: a link is always researched, then a lesson
     expect(store.sent[0].body).toBe('https://youtu.be/aQgXzVSjwWg');
     expect(store.sent[0].source).toBe('research-section');
   });

@@ -121,6 +121,33 @@ describe('the Institute landing', () => {
     expect(offices.getAttribute('href')).toContain('sub=learn');
     expect(container.textContent).toContain('are planned and are not listed as available');
   });
+  it('each program card opens its own courses in place, core first, each saying who it is for (2026-11-24)', () => {
+    mount();
+    const ml = container.querySelector('[data-testid="institute-program-ministry-leadership"]');
+    const more = ml.querySelector('[data-testid="institute-program-more-ministry-leadership"]');
+    expect(more.tagName).toBe('DETAILS');
+    expect(ml.querySelector('[data-testid="institute-program-count-ministry-leadership"]').textContent).toMatch(/^Explore \d+ courses$/);
+    const rows = [...ml.querySelectorAll('[data-testid^="institute-program-ministry-leadership-course-"]')].filter((r) => r.tagName === 'LI');
+    expect(rows[0].getAttribute('data-testid')).toBe('institute-program-ministry-leadership-course-church-offices');
+    expect(rows[0].textContent).toContain('Required for the certificate');
+    expect(rows.some((r) => r.textContent.includes('Open study'))).toBe(true);
+    expect(ml.querySelector('[data-testid="institute-program-ministry-leadership-course-church-offices-audience"]').textContent).toMatch(/^For /);
+    const ce = container.querySelector('[data-testid="institute-by-age-christian-education"]');
+    const ages = [...ce.querySelectorAll('[data-testid^="institute-age-"]')].map((a) => a.getAttribute('data-testid').slice(14));
+    expect(ages).toEqual(['little', 'child', 'youth', 'teen', 'adult', 'senior']);
+    for (const a of ce.querySelectorAll('a')) expect(Number(a.getAttribute('data-count'))).toBeGreaterThan(0);
+  });
+  it('Courses filters by program; one program lists every course it names, shared ones included', () => {
+    mount();
+    tab('Courses');
+    expect(container.querySelector('[data-testid="institute-course-filter-all"]').getAttribute('aria-pressed')).toBe('true');
+    expect(container.querySelector('[data-testid="institute-courses-biblical-studies"]')).toBeTruthy();
+    click(container.querySelector('[data-testid="institute-course-filter-christian-education"]'));
+    expect(container.querySelector('[data-testid="institute-courses-biblical-studies"]')).toBeNull();
+    const ce = container.querySelector('[data-testid="institute-courses-christian-education"]');
+    expect(ce.querySelector('[data-testid="institute-course-living-lessons"]').textContent).toContain('also in Biblical Studies');
+    expect(ce.querySelector('[data-testid="institute-courses-by-age-christian-education"]')).toBeTruthy();
+  });
   it('Enrollment is closed, said plainly, until the office confirms; no Apply button exists while closed', () => {
     mount();
     tab('Enrollment');
