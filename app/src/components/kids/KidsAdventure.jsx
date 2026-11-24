@@ -17,7 +17,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { verseText } from '../../lib/bible-kjv.js';
 import { useTextToSpeech } from '../../lib/tts.js';
 import { lessonPlanForAge, bandOpening } from '../../lib/learn-framework.js';
-import { askTutor } from '../../lib/class-tutor.js';
+import { askTutor, tutorTroubleWords } from '../../lib/class-tutor.js';
 import { LIVING_LESSONS_TUTOR_META } from '../../lib/living-lessons-class.js';
 import { LITTLE_LEARNERS_TUTOR_META } from '../../lib/little-learners-class.js';
 import { saveLearnerRecord } from '../../lib/learner-records-sync.js';
@@ -82,7 +82,12 @@ export function AriChat({ module, meta, ask = askTutor, firstQuestion = '' }) {
     setBusy(true);
     let res;
     try {
-      res = await ask(module, next, { courseMeta: meta });
+      // A "resting" line is the screen's own words, never part of the talk Ari is sent.
+      res = await ask(
+        module,
+        next.filter((m) => !m.offline),
+        { courseMeta: meta }
+      );
     } catch (err) {
       res = { ok: false, error: String(err) };
     }
@@ -93,6 +98,7 @@ export function AriChat({ module, meta, ask = askTutor, firstQuestion = '' }) {
           role: 'assistant',
           content: res && res.ok ? res.reply : 'Ari is resting right now. Ask a grown-up, or try again in a minute.',
           offline: !(res && res.ok),
+          why: res && res.ok ? null : tutorTroubleWords(res && res.error),
         },
       ])
     );
@@ -116,6 +122,11 @@ export function AriChat({ module, meta, ask = askTutor, firstQuestion = '' }) {
         {messages.map((m, i) => (
           <div key={i} className={`kz-msg ${m.role === 'user' ? 'me' : 'ari'}`} data-offline={m.offline ? 'true' : undefined}>
             {m.content}
+            {m.why && (
+              <small className="kz-why" data-testid="ari-why">
+                For a grown-up: {m.why}
+              </small>
+            )}
           </div>
         ))}
         <form onSubmit={send}>
@@ -145,6 +156,7 @@ export default function KidsAdventure({
   saveRecord = saveLearnerRecord,
   ask = askTutor,
   onBack = null,
+  backLabel = '◀ Back',
   shotList = undefined,
   firstQuestion = '',
 }) {
@@ -282,8 +294,8 @@ export default function KidsAdventure({
           Open in Learn
         </a>
         {onBack && (
-          <button type="button" className={`kz-act plain ${KZ_FOCUS}`} onClick={onBack}>
-            ◀ Back
+          <button type="button" className={`kz-act plain ${KZ_FOCUS}`} onClick={onBack} data-testid="adventure-exit">
+            {backLabel}
           </button>
         )}
       </div>
