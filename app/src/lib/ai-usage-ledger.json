@@ -1209,6 +1209,21 @@
       "notes": "Reserved L331 and DR-1569 on origin with new-lesson.mjs. 322 verses filled from app/public/bible/kjv by fill-verses.mjs, none typed. Each cited passage read with the verse before it. Video not watched; re-review 2026-12-18."
     },
     {
+      "id": "dr-1639-word-opens-on-latest",
+      "date": "2026-11-24",
+      "task": "The Word tab opens on Bishop Gwin's latest message at full width",
+      "drs": [
+        "DR-1639"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.5,
+      "estimateWithoutAiHours": 3,
+      "notes": "From two screenshots: The Word tab and the Church tab"
+    },
+    {
       "id": "ll289-why-the-oppressed-still-call-on-him",
       "date": "2026-11-06",
       "task": "ll289: the fourth send of the evening, Garrison Hayes on why Black Americans still call themselves Christians; research pass, the Word asking the question first and answering it; a 55-case gate; a research row and three further rows filed for the lane",
