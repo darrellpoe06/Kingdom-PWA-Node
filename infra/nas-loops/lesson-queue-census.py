@@ -55,6 +55,7 @@ import os
 import platform
 import re
 import sys
+import time
 import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
@@ -110,6 +111,10 @@ STATUS_KEYS = ("at", "ok", "attempts", "built", "failed", "skipped", "cycle_seco
 # A git sha and an ISO stamp are STRUCTURE, not prose: neither can carry a
 # sentence, which is why these two are the only strings allowed through.
 HEX_SHA = re.compile(r"^[0-9a-f]{7,40}$")
+# The builder's own budget plus the grace acquire_row_lock() allows
+# (lesson_builder.BUILD_MAX_SECONDS 2700 + 120). A lock older than this is
+# broken by the builder on its next pass, so it is not a build.
+LOCK_MAX_AGE_SECONDS = 2820
 ISO_AT = re.compile(r"^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}")
 # `state` rides by an ALLOWLIST, not a shape -- and the difference is the whole
 # reason it may ride at all (DR-1522). DR-1514's shape test is right to refuse a
@@ -588,6 +593,41 @@ def why_of(row, empty_ids=()):
     return "ready"
 
 
+def _lock_is_live(d, name, now=None, max_age=LOCK_MAX_AGE_SECONDS):
+    """Whether this lock file is a build that is actually running (DR-1651).
+
+    The builder writes "<pid> <unix seconds>" into each lock and, in
+    acquire_row_lock(), treats a lock as broken when the pid is gone OR the
+    lock is older than the build budget. This asks the SAME question of the
+    SAME two fields, so the census can never report a build the builder has
+    already written off.
+
+    Unreadable or malformed answers NOT live, and that is the honest direction
+    here: the count is "builds running now", so a file nobody can account for
+    is not one. It is never null-vs-zero either way -- `read: false` already
+    carries the case where the whole directory could not be listed
+    (DR-0076 section 8).
+    """
+    if not str(name).endswith(".lock"):
+        return False
+    now = now if now is not None else time.time()
+    try:
+        with open(os.path.join(d, name), encoding="utf-8") as fh:
+            pid_s, t_s = (fh.read().split() + ["0", "0"])[:2]
+        pid, t = int(pid_s), int(t_s)
+    except (OSError, ValueError):
+        return False
+    if pid <= 0 or now - t > max_age:
+        return False
+    try:
+        os.kill(pid, 0)
+    except PermissionError:
+        return True  # alive, owned by another user
+    except OSError:
+        return False
+    return True
+
+
 def _service_word(run):
     """systemd's word for the builder unit, or 'unknown'. Never 'inactive' on error."""
     try:
@@ -689,6 +729,8 @@ def _status_fields(raw):
 def builder_state(home=BUILDER_HOME, run=None):
     """The builder's own state, read locally with no key (DR-1514).
 
+    See _lock_is_live for why `building` counts live locks, not files.
+
     Every source is reported as read or NOT read. A path this cannot open is
     `null` with `read: false`, never a zero or a reassuring default: an
     unreadable builder is not an idle builder (DR-0076 section 8).
@@ -716,11 +758,21 @@ def builder_state(home=BUILDER_HOME, run=None):
     state["code_sha"] = sha
 
     try:
-        names = os.listdir(os.path.join(home, "locks"))
+        d = os.path.join(home, "locks")
+        names = os.listdir(d)
         # The COUNT, never the names: a lock file is named for the row it holds,
         # and a row this census did not count as waiting would otherwise be
         # published by a path nobody reviewed for it.
-        state["building"] = len(names)
+        #
+        # And only the LIVE ones (DR-1651, measured 2026-11-24). A build the
+        # budget kills never runs release_row_lock, so its file stays; counting
+        # every file read `building now: 24` while nine rows waited and not one
+        # attempt count moved in two hours. acquire_row_lock() already treats
+        # such a file as broken, so the number meant nothing and sent a reader
+        # looking for 24 builds that did not exist (DR-0239). This applies the
+        # builder's OWN liveness test to the same two fields it writes --
+        # "<pid> <unix seconds>" -- so the two can never disagree.
+        state["building"] = sum(1 for n in names if _lock_is_live(d, n))
         state["read"]["building"] = True
     except OSError:
         state["building"] = None

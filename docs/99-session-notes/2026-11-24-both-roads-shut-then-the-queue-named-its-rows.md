@@ -160,6 +160,24 @@ the run asked the exact question instead (*"Jesus wept"* stays protected).
 attempt budget, not the mend. The next receipt after DR-1646 lands is its first
 real test.
 
+### The budget bought a cycle, not a fix — and the receipt lied about it
+
+By 20:05 all ten rows were back in the queue, every one at `failed after 4` or
+`rate-limited after 5-6`. So **DR-1641's budget raise extended the queue by one
+cycle; it did not clear it.** More attempts also meant more rate-limit pressure.
+
+Counted across the ten: `not-the-verse` on **7**, `span-without-reference` on
+**6**, `generic-God-not-Yahweh` on **3**. The dominant cause is the one nothing
+shipped today touches — the writer misquotes verses.
+
+And while watching for that, a second defect surfaced: `building now` read
+**17** at 21:05 and **24** at 22:05 while nine rows waited and not one attempt
+count moved in two hours. Reading `acquire_row_lock()` rather than guessing: a
+build the budget kills never reaches `release_row_lock()`, its file stays, and
+the builder breaks it on the next pass — so the count was naming builds the
+builder had already written off. Same class as DR-1610 this morning: a surface
+contradicting itself. Fixed in **DR-1651**.
+
 ### What remains outside this session
 
 The tailnet key, which blocks the builder's own log for the three `crashed`
