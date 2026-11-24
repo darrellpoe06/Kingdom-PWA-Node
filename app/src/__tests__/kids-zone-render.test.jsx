@@ -116,6 +116,61 @@ describe('the doors and the worlds', () => {
   });
 });
 
+describe("every children's lesson, chosen by age (2026-11-24)", () => {
+  it("the home keeps this week's lesson, names who it is for, and opens the library beside it", () => {
+    mount();
+    expect(q('[data-testid="weekly-lesson-open"]').textContent).toContain('for Kids 6–10');
+    expect(q('[data-testid="home-library"]').textContent).toContain('Little Ones 3–6');
+    click(q('[data-testid="home-library"]'));
+    expect(q('[data-testid="lesson-library"]').getAttribute('data-age')).toBe('child');
+    expect(qa('[data-testid^="library-age-"]').map((b) => b.getAttribute('data-testid').slice(12))).toEqual(['little', 'child', 'youth', 'teen']);
+    expect(qa('[data-testid^="library-lesson-"]').length).toBe(24);
+    // What the page counts, the page can show (DR-1642): the count says how many are on screen,
+    // "Show 24 more" and "Show all" are both drawn in a named color, and Show all shows every one.
+    expect(q('[data-testid="library-count"]').textContent).toMatch(/^\d+ Kids lessons · showing the first 24$/);
+    const total = Number(q('[data-testid="library-count"]').textContent.match(/^(\d+)/)[1]);
+    expect(q('[data-testid="library-more"]').textContent.trim()).toBe('Show 24 more');
+    expect(q('[data-testid="library-more"]').className).toMatch(/\bkz-act violet\b/);
+    click(q('[data-testid="library-more"]'));
+    expect(qa('[data-testid^="library-lesson-"]').length).toBe(48);
+    expect(q('[data-testid="library-all"]').textContent.trim()).toBe(`Show all ${total}`);
+    click(q('[data-testid="library-all"]'));
+    expect(qa('[data-testid^="library-lesson-"]').length).toBe(total);
+    expect(q('[data-testid="library-more"]')).toBeNull();
+    expect(q('[data-testid="library-count"]').textContent).toBe(`${total} Kids lessons`);
+  });
+  it('picking an age and a lesson opens THAT lesson at THAT age, and back returns to the library', () => {
+    mount();
+    click(q('[data-testid="home-library"]'));
+    click(q('[data-testid="library-age-teen"]'));
+    expect(q('[data-testid="library-age-teen"]').getAttribute('aria-selected')).toBe('true');
+    const first = q('[data-testid^="library-lesson-"]');
+    const id = first.getAttribute('data-testid').slice(15);
+    click(first);
+    expect(q('[data-testid="kids-adventure"]').getAttribute('data-lesson')).toBe(id);
+    expect(q('[data-testid="kids-adventure"]').getAttribute('data-band')).toBe('teen');
+  });
+  it("the dock carries LESSONS: one tap from anywhere opens the library, and a lesson's back returns to it", () => {
+    mount();
+    click(q('[data-testid="kids-tab-games"]'));
+    click(q('[data-testid="kids-tab-lessons"]'));
+    expect(q('[data-testid="kids-tab-lessons"]').getAttribute('aria-selected')).toBe('true');
+    click(q('[data-testid^="library-lesson-"]'));
+    expect(q('[data-testid="kids-adventure"]').getAttribute('data-band')).toBe('child');
+    const back = q('[data-testid="adventure-exit"]');
+    expect(back.textContent.trim()).toBe('◀ All lessons');
+    click(back);
+    expect(q('[data-testid="lesson-library"]')).toBeTruthy();
+  });
+  it('the Little Ones door opens the library on Little Learners, in teaching order', () => {
+    mount();
+    click(q('[data-testid="door-little"]'));
+    click(q('[data-testid="home-library"]'));
+    expect(q('[data-testid="lesson-library"]').getAttribute('data-age')).toBe('little');
+    expect(q('[data-testid^="library-lesson-"]').getAttribute('data-testid')).toBe('library-lesson-lil1-a-is-for-adam-who-named-the-animals');
+  });
+});
+
 describe('the tiles open real things', () => {
   it('the dock and the home tiles open the Theater, the games, the storybook and the grown-ups page', async () => {
     mount();

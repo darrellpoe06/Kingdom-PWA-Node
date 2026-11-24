@@ -25,6 +25,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useIntakeHeld } from '../lib/intake-guard.js';
 import { useUpdateReady, loadUpdateNow, UPDATE_READY_WORDS } from '../lib/update-while-reading.js';
+import { useDockMounted } from '../lib/chrome-dock.js';
 
 const UPDATED_TOAST_MS = 4000;
 
@@ -66,6 +67,7 @@ export function UpdatePrompt() {
   // a dictation or a box being typed in.
   const held = useIntakeHeld();
   const ready = useUpdateReady();
+  const dock = useDockMounted();
 
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;
@@ -82,6 +84,10 @@ export function UpdatePrompt() {
     };
   }, []);
 
+  // WHERE THE BAR IS MOUNTED, THE BAR SAYS IT (ChromeDock `dock-update-ready`,
+  // 2026-11-24): this line used to pin across the top of the lesson and cover
+  // the words being read. It stays only as the fallback for a page with no bar.
+  if (ready && dock) return null;
   if (ready) {
     return (
       <div className="update-ready fixed top-2 left-2 right-2 mx-auto z-[90] max-w-sm print:hidden" role="status" aria-live="polite">

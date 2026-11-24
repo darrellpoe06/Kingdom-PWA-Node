@@ -149,6 +149,8 @@ import UiIcon from './UiIcon.jsx';
 import WordInline from './WordInline.jsx';
 import LessonFigures from './LessonFigures.jsx';
 import { countWords as countReadingWords, wordsBefore, wordsIn, fractionOf, seenFraction, leftLabel, witnessLabel, minutesLeft, timeLeftLabel, READER_PROGRESS_EVENT } from '../lib/reading-progress.js';
+import LessonAnchorReference from './LessonAnchorReference.jsx';
+import LearnSquares from './LearnSquares.jsx';
 import VerseChips from './VerseChips.jsx';
 import LessonTeacher from './LessonTeacher.jsx';
 import { useTextToSpeech } from '../lib/tts.js';
@@ -1476,23 +1478,14 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
             {seg.audience.bigIdea && (
               <p className="text-sm text-[#1A1815] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>{seg.audience.bigIdea}</p>
             )}
-            {(seg.audience.anchorRef || seg.audience.anchorTheme) && (() => {
-              const showRef = seg.audience.anchorRef && !anchorIsRun(seg.audience.anchorRef);
-              // The one or two anchor verses (DR-0402 D3) open beneath the
-              // line as green chips — the anchor was a green line that never
-              // opened (DR-0391's hollow-surface class); now it does, below.
-              const refs = referencesIn(`${showRef ? seg.audience.anchorRef : ''} ${seg.audience.anchorTheme || ''}`);
-              return (
-                <>
-                  <p className="text-[0.6875rem] text-[#5A6E3D]" style={{ fontFamily: '"Fraunces", serif' }}>
-                    {showRef && <strong>Anchor — {seg.audience.anchorRef}:</strong>}
-                    {showRef ? ' ' : null}
-                    {seg.audience.anchorTheme}
-                  </p>
-                  {refs.length > 0 && <VerseChips refs={refs} tone="word" lead className="mt-1.5" data-testid="section-refs" />}
-                </>
-              );
-            })()}
+            {/* THE ANCHOR IS SAID ONCE, THEN THE LESSON BEGINS (DR-1631): only its
+                own reference stands here; the outline and its chips wait at the
+                lesson's END (Send-off, LessonAnchorReference), shown and unread. */}
+            {seg.audience.anchorRef && !anchorIsRun(seg.audience.anchorRef) && (
+              <div data-testid="lesson-anchor-line">
+                <WordInline text={`Anchor — ${seg.audience.anchorRef}.`} className="text-[0.6875rem] text-[#5A6E3D] font-semibold" style={{ fontFamily: '"Fraunces", serif' }} />
+              </div>
+            )}
           </>
         );
       case 'teach':
@@ -1638,6 +1631,7 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
                 Carry one thing from this {unitNoun} into a real moment this week.
               </p>
             )}
+            <LessonAnchorReference anchor={module.anchor} />
             <div className="mt-3">
               <AddPerspective lesson={module} />
             </div>
@@ -3579,7 +3573,8 @@ function CourseView({
                 );
               })()}
               {m.anchor?.ref && (
-                <div className="mt-2">
+                <div className="mt-2" data-read-skip="true" data-testid="lesson-card-anchor">
+                  {/* NOT READ ALOUD (DR-1631): for the eye and the tap. */}
                   {/* THE REFERENCES HERE ARE TAPPABLE, BECAUSE THEY LOOK IT.
                       Darrell 2026-09-13, from this exact screen: "Links don't
                       work in last played." They were plain text inside a green
@@ -5162,6 +5157,7 @@ export default function ChurchLearn({
             { id: 'lessons', label: courseOpen ? `${areaNoun.charAt(0).toUpperCase()}${areaNoun.slice(1)}s` : 'Courses', explain: courseOpen ? `${active.meta.title}: its ${areaNoun}s, in order, on one scroll.` : 'Every course offered, one list, in the order the sort sets. Pick one to open it.', render: () => null },
             { id: 'continue', label: continueCount ? `Continue · ${continueCount}` : 'Continue', explain: continueCount ? `${continueCount} ${continueCount === 1 ? 'lesson' : 'lessons'} begun and not finished${dept ? ' in this course' : ''}, newest first.` : `Nothing begun and left${dept ? ' in this course' : ''} yet.`, render: () => null },
             { id: 'latest', label: 'Latest', explain: dept ? 'This course’s newest lessons, by the day each was added.' : 'The newest lessons of every course, by the day each was added.', render: () => null },
+            { id: 'browse', label: 'Browse', explain: 'Another way in: pick an area, then a course, then a lesson. One screen at a time.', render: () => null },
             { id: 'find', label: 'Find', explain: dept ? 'Search this course by title, topic, or verse.' : 'Search every course by title, topic, or verse, or browse the whole shelf.', render: () => null },
             { id: 'record', label: recordHead && recordHead.lessonsRead > 0 ? `Record · ${recordHead.lessonsRead}` : 'Record', explain: classRecordSummary, render: () => null },
             { id: 'downloads', label: 'Downloads', explain: dept ? (courseOpen ? `Download ${active.meta.title}, every lesson at the levels chosen.` : 'Downloads of a chosen course.') : 'This course’s download, and every finished lesson in the PoeTech App, counted live, in one download.', render: () => null },
@@ -5203,6 +5199,7 @@ export default function ChurchLearn({
             lib/learn-resume.js). Hidden only while a lesson is open. */}
         {/* LATEST LESSONS, EVERY COURSE — shown when the reader picks it in
             the sort above (DR-0686; why here: components/LatestLessons.jsx). */}
+        {!lessonFocus && learnArea === 'browse' && <LearnSquares courses={courses} ctx={sortCtx} onOpenLesson={openLessonFromList} onOpenCourse={openCourseFromRecord} />}
         {!lessonFocus && learnArea === 'latest' && (
           <LatestLessons
             courses={dept ? [active] : courses}

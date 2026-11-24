@@ -62,6 +62,17 @@ describe('where the reader stands, in words', () => {
     expect(libraryStanding(COURSES, ctx)).toEqual({ courses: 5, notStarted: 1, inProgress: 3, completed: 1, lessons: 322, lessonsRead: 15, pct: 4 });
     expect(libraryStanding([], ctx).courses).toBe(0);
   });
+  it('ONE LESSON IS ONE LESSON (2026-11-24): a lesson carried whole into a second course counts once in the library total, and reads as read from either door', () => {
+    const home = course('home', 3);
+    const second = { ...course('second', 2), schedule: [{ id: 'second-1' }, { id: 'second-2', sharedWith: { course: 'home', lesson: 'home-2' } }] };
+    // 3 + 2 schedule rows, 4 lessons: the same total the Latest list gives.
+    expect(libraryStanding([home, second], { places: [], progress: {} }).lessons).toBe(4);
+    // Read through the second door only: one lesson read, not zero and not two.
+    expect(libraryStanding([home, second], { places: [], progress: { 'second-2': 't' } }).lessonsRead).toBe(1);
+    expect(libraryStanding([home, second], { places: [], progress: { 'second-2': 't', 'home-2': 't' } }).lessonsRead).toBe(1);
+    // PROVEN-TO-CATCH: with its home not mounted the copy is a lesson of its own, never dropped.
+    expect(libraryStanding([second], { places: [], progress: {} }).lessons).toBe(2);
+  });
   it('the two nearest wins: fewest lessons left among the begun, shortest among the not started', () => {
     const f = lowHangingFruit([...COURSES, course('f', 4)], ctx);
     expect([f.nearest.course.key, f.nearest.left, f.nearest.total]).toEqual(['d', 1, 9]);
