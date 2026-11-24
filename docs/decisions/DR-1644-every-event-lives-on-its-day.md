@@ -38,8 +38,15 @@ Two more findings while tracing it:
 - 0343 applied twice on a bare PostgreSQL 16 after 0099 and 0342; `CALENDAR DAYS SMOKE: PASS` and `CHURCH SITE ARCHIVE SMOKE: PASS`. Proven to catch: with the post door opened to everyone the smoke fails "a plain member added to the calendar"; with read-once removed it fails "the same picture must file once".
 - Pull, read and file rehearsed end to end against a mock database and a mock model: 2 pictures pulled, 4 events filed, the second run "already" for both, the third pull finds nothing unread. The rehearsal caught a real bug (an "11:00 AM Worship" Sunday line slipped past the weekly-service check because the service is named "Sunday Worship"), fixed and pinned by a test.
 - The theme gate fails on the stylesheet as it was before this change (12 rules) and passes after.
-- **Not yet measured:** the model's read of the real November 2026 picture. The sandbox holds no API key; the first dispatched run after merge is that measurement, and its summary lists each picture's events and what was left out. `re-review: 2026-11-27`
 
-## Open
+## Impact
 
-- An event the office posted on the calendar picture, then revised in a later version of the same month's picture, is filed from both versions if its name or day changed; the office archives the stale one. `re-review: 2026-12-31`
+- **If the reader is not armed, nothing changes for the congregation:** without the `ANTHROPIC_API_KEY` secret (or with `CHURCH_CALENDAR_READ=off`) the pictures are still kept, but no event reaches its day, and the run summary says so. Typed events, leaders and Use again work either way.
+- **The read is only as good as the picture.** Every event passes the checks in `church-calendar-read.js`, but a misread name or time on a real day can pass them; the office removes it once and it never comes back. The first real read is the measurement (below).
+- **This obligates the office to name its unit leaders** in the app; until it does, only the office adds.
+- An event revised in a later version of the same month's picture is filed from both versions if its name or day changed; the office archives the stale one. `re-review: 2026-12-31`
+
+## Outcome
+
+- **After merge:** dispatch `church-site-archive.yml` (mode `site`) and read its summary: each picture's events and what was left out, against the November 2026 calendar as printed (the NA Meeting on Tue Nov 24, Battle Cry Sunday on Nov 15, Communion on Nov 29). Then mode `wayback` once to recover past months, read 6 a day. `re-review: 2026-11-27`
+- Proven to catch, in CI: the 0343 smoke (two walls broken on purpose), the reader's checks, and the theme-text gate on the old stylesheet.
