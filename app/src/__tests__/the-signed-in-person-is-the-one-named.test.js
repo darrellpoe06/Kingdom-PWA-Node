@@ -81,6 +81,13 @@ describe('1. the profile follows the account, not the device', () => {
     expect(ls.getItem(PROFILE_OWNER_KEY)).toBeNull();
   });
 
+  it('the household roll-up names nobody; a person persona is title-cased', async () => {
+    const { personaName } = await import('../lib/account-profile.js');
+    expect(personaName('family')).toBeNull();
+    expect(personaName('christina')).toBe('Christina');
+    expect(personaName(null)).toBeNull();
+  });
+
   it('blocked storage never throws', () => {
     const bad = { getItem() { throw new Error('blocked'); }, setItem() { throw new Error('blocked'); }, removeItem() { throw new Error('blocked'); } };
     expect(readSavedProfile(bad)).toEqual({ saved: null, savedOwner: null });
@@ -89,7 +96,7 @@ describe('1. the profile follows the account, not the device', () => {
 
   it('the app resolves the profile once per ACCOUNT, through this rule, and stamps every pick', () => {
     const src = readFileSync(join(__dirname, '..', 'poe-financial-mvp-v28.jsx'), 'utf8');
-    expect(src).toMatch(/import \{ profileForAccount, readSavedProfile, writeSavedProfile \} from '\.\/lib\/account-profile\.js'/);
+    expect(src).toMatch(/import \{ profileForAccount, readSavedProfile, writeSavedProfile, personaName \} from '\.\/lib\/account-profile\.js'/);
     expect(src).toMatch(/profileResolvedForRef\.current === uid/);
     expect(src).toMatch(/profileForAccount\(\{ uid, email: authSession\.user\?\.email, saved, savedOwner, familyMap: FAMILY_EMAIL_PROFILES \}\)/);
     expect(src).toMatch(/writeSavedProfile\(localStorage, p, /);
@@ -156,7 +163,6 @@ describe("4. the header names the person, not the phone account's digits", () =>
 
   it('the shell hands the door the account\'s own persona name, never the household roll-up', () => {
     const src = readFileSync(join(__dirname, '..', 'poe-financial-mvp-v28.jsx'), 'utf8');
-    expect(src).toMatch(/personName: accountPersonName\(authSession\?\.user\?\.email\)/);
-    expect(src).toMatch(/p && p !== 'family'/);
+    expect(src).toMatch(/personName: personaName\(personaOf\(authSession\?\.user\?\.email\)\)/);
   });
 });

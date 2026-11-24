@@ -39,8 +39,9 @@ export function profileForAccount({ uid, email, saved, savedOwner, familyMap = {
 }
 
 /** Read the saved profile and its owner from a Storage-like object. Never throws. */
-export function readSavedProfile(ls) {
+export function readSavedProfile(store) {
   try {
+    const ls = store !== undefined ? store : (typeof localStorage !== 'undefined' ? localStorage : null);
     if (!ls) return { saved: null, savedOwner: null };
     return { saved: ls.getItem(PROFILE_KEY) || null, savedOwner: ls.getItem(PROFILE_OWNER_KEY) || null };
   } catch (_) {
@@ -60,4 +61,10 @@ export function writeSavedProfile(ls, profile, uid) {
       ls.removeItem(PROFILE_OWNER_KEY);
     }
   } catch (_) { /* storage blocked: state still changes, nothing persists */ }
+}
+
+/** The name a family persona is shown by when the account's profile has none (DR-1617).
+ *  A person's own persona only; the household roll-up ('family') names nobody. */
+export function personaName(persona) {
+  return persona && persona !== 'family' ? persona.charAt(0).toUpperCase() + persona.slice(1) : null;
 }

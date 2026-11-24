@@ -39,7 +39,7 @@ Not measured in this session: the live NAS's running env (the sandbox has no rou
 
 ## Verification
 
-`the-signed-in-person-is-the-one-named.test.js`, 19 cases:
+`the-signed-in-person-is-the-one-named.test.js`, 20 cases:
 
 - **Profile:** Christina on a device holding Darrell's pre-rule pick is named Christina. A pick stamped as Darrell's is not shown to her. A person's own pick stands. An outsider never inherits a family profile. Email case is ignored. Storage blocked never throws. The shell resolves through the rule once per user id, and the old early return is gone. **Proven to catch:** the old order names Darrell for Christina.
 - **Boot:** with two auth slots, the client's own key wins whatever the storage order. An empty own slot is signed out. **Proven to catch:** the old shape scan paints the leftover session.
