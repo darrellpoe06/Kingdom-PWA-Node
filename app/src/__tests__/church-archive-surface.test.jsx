@@ -65,10 +65,27 @@ const ROWS = [
   },
 ];
 const mount = (props) => act(() => root.render(createElement(ChurchArchive, { status: 'ok', rows: ROWS, ...props })));
+// ONE toggle per opening, as a browser gives (DR-1617's CI run found this flaky
+// on main, 2 of 6 local runs): jsdom queues its OWN toggle when `open` changes,
+// so the old manual dispatch made two, and when jsdom's arrived after the first
+// ask settled, the month asked again (3 calls, not 2). Drive only the real
+// event; an already-open month is closed first so it can be opened again.
+const nextToggle = (el) =>
+  new Promise((resolve) => {
+    const done = () => { clearTimeout(t); el.removeEventListener('toggle', done); resolve(); };
+    const t = setTimeout(() => { el.removeEventListener('toggle', done); el.dispatchEvent(new Event('toggle')); resolve(); }, 1000);
+    el.addEventListener('toggle', done);
+  });
 const openMonth = async (el) =>
   act(async () => {
+    if (el.open) {
+      const closed = nextToggle(el);
+      el.open = false;
+      await closed;
+    }
+    const opened = nextToggle(el);
     el.open = true;
-    el.dispatchEvent(new Event('toggle'));
+    await opened;
   });
 
 describe('the archive', () => {
