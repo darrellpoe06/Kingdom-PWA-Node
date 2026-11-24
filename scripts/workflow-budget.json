@@ -259,7 +259,14 @@
       "to": 23548,
       "dr": "DR-0076",
       "reason": "learn-presentation-prepare.yml pilot-1 fix (+11 lines): compose, export, the closing integrity check, the cache save and the artifact upload became separate always() steps so a failure after paid generation never loses the titles, images or spend ledger (pilot 1 lost its export and closing check to one crash); a guard stops the run before any spend when no saved ledger is restored (no double spend, no regeneration). The owner asked for both."
+    },
+    {
+      "date": "2026-11-24",
+      "from": 23548,
+      "to": 23557,
+      "dr": "DR-1640",
+      "reason": "learn-thumbs-pull: the NAS pulls each Learn picture batch (paid work, ~$58 across the library) before GitHub's artifact clock expires it (DR-1360: the NAS initiates the road). ci.yml +1 runs test_learn_thumbs_pull (token never sent to the blob host, unsafe zip paths and digest mismatches refused). loops-health.yml +8 reads its last-run.json, turns red on a refused artifact, and in diagnosis lists the folder and whether the token file is present; the name rides existing lines in the loops list, install map, cron prefix and heartbeat receipt. Two comment blocks were folded to one line each before raising. Raised to the measured total, not above it."
     }
   ],
-  "totalLines": 23548
+  "totalLines": 23557
 }

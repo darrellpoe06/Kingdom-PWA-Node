@@ -1,0 +1,399 @@
+#!/usr/bin/env python3
+# Proven-to-catch tests for learn-thumbs-pull.py (DR-1360).
+#
+# No network: a fake transport answers the artifact list, the API's 302 and the
+# blob host's zip, and records which headers each host was sent. The ones that
+# matter most: the GitHub token never reaches the blob host, an unsafe zip or a
+# wrong digest writes NOTHING, and a picture already kept is never overwritten.
+# Run from this dir:  python3 -m unittest test_learn_thumbs_pull
+import hashlib
+import importlib.util
+import io
+import json
+import os
+import shutil
+import tempfile
+import unittest
+import urllib.parse
+import zipfile
+
+_HERE = os.path.dirname(os.path.abspath(__file__))
+spec = importlib.util.spec_from_file_location(
+    "learn_thumbs_pull", os.path.join(_HERE, "learn-thumbs-pull.py")
+)
+lt = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(lt)
+
+BLOB = "https://productionresultssa0.blob.core.windows.net"
+TOKEN = "ghs_test_token_never_real"
+
+
+def make_zip(entries):
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as z:
+        for name, data in entries.items():
+            z.writestr(name, data)
+    return buf.getvalue()
+
+
+def good_zip(picture=b"JPEG-BYTES-1"):
+    return make_zip(
+        {
+            "review-export.json": b'{"records": 1}',
+            "state/jobs.jsonl": b'{"job": 1}\n',
+            "state/records.json": b"{}",
+            "state/topics.json": b"{}",
+            "outbox/genesis/L1.jpg": picture,
+            "images/v2/genesis/L1.jpg": b"V2-BYTES",
+            "composed/genesis/L1.jpg": b"COMPOSED",
+        }
+    )
+
+
+def artifact(
+    aid, run_id, data, digest=True, expired=False, created="2026-11-20T00:00:00Z"
+):
+    return {
+        "id": aid,
+        "name": f"learn-presentation-review-{run_id}",
+        "size_in_bytes": len(data),
+        "expired": expired,
+        "created_at": created,
+        "archive_download_url": f"https://api.github.com/repos/o/r/actions/artifacts/{aid}/zip",
+        "digest": ("sha256:" + hashlib.sha256(data).hexdigest()) if digest else None,
+        "workflow_run": {"id": int(run_id)},
+    }
+
+
+class FakeTransport:
+    """api.github.com lists and 302s; the blob host serves the zip bytes."""
+
+    def __init__(self, arts, zips, other_names=()):
+        self.arts = arts
+        self.zips = zips  # artifact id -> bytes
+        self.other = [
+            {"id": 9000 + i, "name": n, "expired": False}
+            for i, n in enumerate(other_names)
+        ]
+        self.calls = []
+
+    def get(self, url, headers, timeout):
+        self.calls.append((url, dict(headers), timeout))
+        p = urllib.parse.urlparse(url)
+        if p.hostname == "api.github.com" and "/actions/artifacts?" in url:
+            body = json.dumps(
+                {"total_count": len(self.arts), "artifacts": self.other + self.arts}
+            ).encode()
+            return lt.Response(
+                200, {"Content-Type": "application/json"}, io.BytesIO(body)
+            )
+        if p.hostname == "api.github.com" and url.endswith("/zip"):
+            aid = int(p.path.split("/")[-2])
+            return lt.Response(
+                302, {"Location": f"{BLOB}/a/{aid}.zip?sig=abc"}, io.BytesIO(b"")
+            )
+        if url.startswith(BLOB):
+            aid = int(p.path.split("/")[-1].split(".")[0])
+            return lt.Response(200, {}, io.BytesIO(self.zips[aid]))
+        return lt.Response(404, {}, io.BytesIO(b""))
+
+
+class Base(unittest.TestCase):
+    def setUp(self):
+        # dest sits inside its own outer dir, so a write that climbs out of
+        # dest lands somewhere this test owns and can see.
+        self.outer = tempfile.mkdtemp(prefix="learn-thumbs-test-")
+        self.dest = os.path.join(self.outer, "dest")
+        os.makedirs(self.dest)
+        self.logs = []
+        os.environ["LEARN_THUMBS_REEL"] = os.path.join(self.dest, "reel.jsonl")
+
+    def tearDown(self):
+        shutil.rmtree(self.outer, ignore_errors=True)
+        os.environ.pop("LEARN_THUMBS_REEL", None)
+
+    def run_pass(self, transport, **kw):
+        return lt.run(
+            dest=self.dest, token=TOKEN, transport=transport, log=self.logs.append, **kw
+        )
+
+    def p(self, *parts):
+        return os.path.join(self.dest, *parts)
+
+    def read(self, *parts):
+        with open(self.p(*parts), "rb") as fh:
+            return fh.read()
+
+    def kept_files(self):
+        out = []
+        for root, _, files in os.walk(self.dest):
+            for f in files:
+                rel = os.path.relpath(os.path.join(root, f), self.dest)
+                if rel not in ("last-run.json", "reel.jsonl", "state.json"):
+                    out.append(rel)
+        return sorted(out)
+
+
+class PullTest(Base):
+    def test_a_new_artifact_lands_in_masters_and_runs(self):
+        z = good_zip()
+        t = FakeTransport(
+            [artifact(11, "555", z)], {11: z}, other_names=["something-else"]
+        )
+        code, led = self.run_pass(t)
+        self.assertEqual(code, 0)
+        self.assertEqual(led["what"], "pulled")
+        self.assertEqual(led["pulled"], ["11"])
+        self.assertEqual(self.read("masters", "genesis", "L1.jpg"), b"JPEG-BYTES-1")
+        self.assertEqual(self.read("masters", "v2", "genesis", "L1.jpg"), b"V2-BYTES")
+        self.assertEqual(
+            self.read("runs", "555", "review-export.json"), b'{"records": 1}'
+        )
+        self.assertEqual(
+            self.read("runs", "555", "state", "jobs.jsonl"), b'{"job": 1}\n'
+        )
+        self.assertTrue(os.path.exists(self.p("runs", "555", "state", "topics.json")))
+        # composed/ is derived and not kept; no tmp file is left behind
+        self.assertFalse(any(f.startswith("composed") for f in self.kept_files()))
+        self.assertFalse(
+            any(".tmp" in f or f.endswith(".part") for f in self.kept_files())
+        )
+        state = json.loads(self.read("state.json"))
+        self.assertEqual(state["pulled"]["11"]["sha256"], hashlib.sha256(z).hexdigest())
+        ledger = json.loads(self.read("last-run.json"))
+        self.assertEqual(ledger["what"], "pulled")
+        reel = self.read("reel.jsonl").decode().strip().splitlines()
+        self.assertEqual(len(reel), 1, "one reel line per pass")
+        self.assertEqual(json.loads(reel[0])["loop"], "learn-thumbs-pull")
+
+    def test_an_already_pulled_artifact_is_skipped(self):
+        z = good_zip()
+        t = FakeTransport([artifact(11, "555", z)], {11: z})
+        self.assertEqual(self.run_pass(t)[0], 0)
+        t2 = FakeTransport([artifact(11, "555", z)], {11: z})
+        code, led = self.run_pass(t2)
+        self.assertEqual((code, led["what"]), (0, "nothing-new"))
+        self.assertEqual(led["skipped"]["already"], 1)
+        self.assertFalse(
+            any(u.endswith("/zip") or u.startswith(BLOB) for u, _, _ in t2.calls),
+            "a pulled artifact is never downloaded again",
+        )
+
+    def test_an_expired_artifact_is_skipped(self):
+        z = good_zip()
+        t = FakeTransport([artifact(11, "555", z, expired=True)], {11: z})
+        code, led = self.run_pass(t)
+        self.assertEqual(
+            (code, led["what"], led["skipped"]["expired"]), (0, "nothing-new", 1)
+        )
+
+    def test_PROVEN_TO_CATCH_a_climbing_or_absolute_path_refuses_the_whole_zip(self):
+        for evil in (
+            "../evil.jpg",
+            "outbox/../../evil.jpg",
+            "/etc/evil.jpg",
+            "C:/evil.jpg",
+            "outbox\\..\\..\\evil.jpg",
+        ):
+            with self.subTest(evil=evil):
+                shutil.rmtree(self.dest, ignore_errors=True)
+                os.makedirs(self.dest)
+                z = make_zip({"outbox/genesis/L1.jpg": b"OK", evil: b"PWNED"})
+                t = FakeTransport([artifact(12, "556", z)], {12: z})
+                code, led = self.run_pass(t)
+                self.assertEqual(code, 1)
+                self.assertEqual(led["what"], "refused")
+                self.assertIn("unsafe path", led["refused"][0]["why"])
+                self.assertEqual(
+                    self.kept_files(), [], "nothing is written from an unsafe zip"
+                )
+                self.assertEqual(
+                    os.listdir(self.outer), ["dest"], "nothing climbed out of dest"
+                )
+                self.assertNotIn(
+                    "12", json.loads(self.read("state.json")).get("pulled", {})
+                )
+
+    def test_PROVEN_TO_CATCH_a_digest_mismatch_writes_nothing(self):
+        z = good_zip()
+        art = artifact(13, "557", z)
+        art["digest"] = "sha256:" + "0" * 64
+        t = FakeTransport([art], {13: z})
+        code, led = self.run_pass(t)
+        self.assertEqual(code, 1)
+        self.assertIn("digest mismatch", led["refused"][0]["why"])
+        self.assertEqual(self.kept_files(), [])
+        self.assertNotIn("13", json.loads(self.read("state.json")).get("pulled", {}))
+
+    def test_a_missing_digest_is_allowed(self):
+        z = good_zip()
+        t = FakeTransport([artifact(14, "558", z, digest=False)], {14: z})
+        self.assertEqual(self.run_pass(t)[0], 0)
+
+    def test_PROVEN_TO_CATCH_an_existing_master_with_other_bytes_is_kept_and_the_new_one_suffixed(
+        self,
+    ):
+        os.makedirs(self.p("masters", "genesis"))
+        with open(self.p("masters", "genesis", "L1.jpg"), "wb") as fh:
+            fh.write(b"THE-PICTURE-WE-PAID-FOR-FIRST")
+        z = good_zip(picture=b"A-DIFFERENT-PICTURE")
+        t = FakeTransport([artifact(15, "559", z)], {15: z})
+        code, led = self.run_pass(t)
+        self.assertEqual(code, 0)
+        self.assertEqual(
+            self.read("masters", "genesis", "L1.jpg"), b"THE-PICTURE-WE-PAID-FOR-FIRST"
+        )
+        sha8 = hashlib.sha256(b"A-DIFFERENT-PICTURE").hexdigest()[:8]
+        self.assertEqual(
+            self.read("masters", "genesis", f"L1.{sha8}.jpg"), b"A-DIFFERENT-PICTURE"
+        )
+        self.assertEqual(led["kept_both"], 1)
+        self.assertTrue(any("kept both" in line for line in self.logs))
+
+    def test_the_same_bytes_again_are_not_duplicated(self):
+        os.makedirs(self.p("masters", "genesis"))
+        with open(self.p("masters", "genesis", "L1.jpg"), "wb") as fh:
+            fh.write(b"JPEG-BYTES-1")
+        z = good_zip()
+        t = FakeTransport([artifact(16, "560", z)], {16: z})
+        code, led = self.run_pass(t)
+        self.assertEqual((code, led["kept_both"]), (0, 0))
+        self.assertEqual(sorted(os.listdir(self.p("masters", "genesis"))), ["L1.jpg"])
+
+    def test_PROVEN_TO_CATCH_the_per_pass_artifact_cap_stops_after_n(self):
+        arts, zips = [], {}
+        for i in range(5):
+            z = make_zip({f"outbox/c/L{i}.jpg": f"pic{i}".encode()})
+            arts.append(
+                artifact(100 + i, str(700 + i), z, created=f"2026-11-2{i}T00:00:00Z")
+            )
+            zips[100 + i] = z
+        t = FakeTransport(arts, zips)
+        code, led = self.run_pass(t, max_artifacts=2)
+        self.assertEqual(code, 0)
+        self.assertEqual(led["pulled"], ["100", "101"], "oldest first, and only two")
+        downloads = [u for u, _, _ in t.calls if u.startswith(BLOB)]
+        self.assertEqual(len(downloads), 2)
+        code, led = self.run_pass(FakeTransport(arts, zips), max_artifacts=2)
+        self.assertEqual(
+            led["pulled"],
+            ["102", "103"],
+            "the next pass picks up where this one stopped",
+        )
+
+    def test_the_byte_budget_refuses_an_artifact_too_big_for_the_pass(self):
+        z = good_zip()
+        t = FakeTransport([artifact(17, "561", z)], {17: z})
+        code, led = self.run_pass(t, max_bytes=10)
+        self.assertEqual(code, 1)
+        self.assertIn("budget", led["refused"][0]["why"])
+        self.assertFalse(
+            any(u.startswith(BLOB) for u, _, _ in t.calls), "never downloaded"
+        )
+
+    def test_PROVEN_TO_CATCH_the_token_is_never_sent_to_the_blob_host(self):
+        z = good_zip()
+        t = FakeTransport([artifact(18, "562", z)], {18: z})
+        self.assertEqual(self.run_pass(t)[0], 0)
+        api = [
+            h
+            for u, h, _ in t.calls
+            if urllib.parse.urlparse(u).hostname == "api.github.com"
+        ]
+        blob = [
+            h
+            for u, h, _ in t.calls
+            if urllib.parse.urlparse(u).hostname != "api.github.com"
+        ]
+        self.assertTrue(api and blob)
+        for h in api:
+            self.assertEqual(h.get("Authorization"), "Bearer " + TOKEN)
+        for h in blob:
+            self.assertNotIn("Authorization", {k.title() for k in h})
+            self.assertNotIn(TOKEN, json.dumps(h))
+        # and the rule itself: a lookalike host never qualifies
+        self.assertFalse(lt.auth_allowed("https://api.github.com.evil.example/x"))
+        self.assertFalse(lt.auth_allowed("http://api.github.com/x"))
+        self.assertTrue(lt.auth_allowed("https://api.github.com/x"))
+
+    def test_every_call_carries_a_timeout(self):
+        z = good_zip()
+        t = FakeTransport([artifact(19, "563", z)], {19: z})
+        self.run_pass(t)
+        for u, _, timeout in t.calls:
+            self.assertTrue(timeout and timeout <= 600, u)
+        self.assertEqual(t.calls[0][2], 30, "API calls wait 30 s")
+
+    def test_no_token_is_a_named_quiet_no_op(self):
+        code, led = lt.run(
+            dest=self.dest,
+            token=None,
+            transport=FakeTransport([], {}),
+            log=self.logs.append,
+        )
+        self.assertEqual((code, led["what"]), (0, "no-credential"))
+
+    def test_a_held_lock_skips(self):
+        os.makedirs(self.p(".lock"))
+        z = good_zip()
+        t = FakeTransport([artifact(20, "564", z)], {20: z})
+        code, led = self.run_pass(t)
+        self.assertEqual((code, led["what"]), (0, "locked-skip"))
+        self.assertEqual(t.calls, [])
+
+    def test_dry_run_downloads_and_writes_nothing(self):
+        z = good_zip()
+        t = FakeTransport([artifact(21, "565", z)], {21: z})
+        code, led = self.run_pass(t, dry_run=True)
+        self.assertEqual((code, led["what"]), (0, "dry-run"))
+        self.assertFalse(any(u.startswith(BLOB) for u, _, _ in t.calls))
+        self.assertEqual(os.listdir(self.dest), [])
+
+    def test_github_unreachable_is_degraded_not_a_crash(self):
+        class Down:
+            def get(self, url, headers, timeout):
+                raise OSError("network down")
+
+        code, led = self.run_pass(Down())
+        self.assertEqual((code, led["what"]), (3, "unreachable"))
+
+    def test_a_zip_refused_three_times_is_set_aside_with_its_reason(self):
+        z = make_zip({"../evil": b"x"})
+        for n in range(3):
+            code, _ = self.run_pass(FakeTransport([artifact(22, "566", z)], {22: z}))
+            self.assertEqual(code, 1)
+        code, led = self.run_pass(FakeTransport([artifact(22, "566", z)], {22: z}))
+        self.assertEqual(
+            (code, led["what"], led["skipped"]["set_aside"]), (0, "nothing-new", 1)
+        )
+        self.assertIn(
+            "unsafe path", json.loads(self.read("state.json"))["set_aside"]["22"]["why"]
+        )
+
+
+class PathTest(unittest.TestCase):
+    def test_safe_name(self):
+        self.assertEqual(lt.safe_name("outbox/c/L1.jpg"), "outbox/c/L1.jpg")
+        self.assertEqual(lt.safe_name("./outbox//c/L1.jpg"), "outbox/c/L1.jpg")
+        for bad in ("../x", "a/../../x", "/abs", "C:\\x", "..", ""):
+            self.assertIsNone(lt.safe_name(bad), bad)
+
+    def test_target_of(self):
+        self.assertEqual(
+            lt.target_of("outbox/genesis/L1.jpg", "9"), "masters/genesis/L1.jpg"
+        )
+        self.assertEqual(
+            lt.target_of("images/v2/genesis/L1.jpg", "9"), "masters/v2/genesis/L1.jpg"
+        )
+        self.assertEqual(
+            lt.target_of("state/records.json", "9"), "runs/9/state/records.json"
+        )
+        self.assertEqual(
+            lt.target_of("review-export.json", "9"), "runs/9/review-export.json"
+        )
+        self.assertIsNone(lt.target_of("composed/genesis/L1.jpg", "9"))
+        self.assertIsNone(lt.target_of("outbox/genesis/notes.txt", "9"))
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -405,6 +405,7 @@ jobs:
           python3 -m unittest test_heartbeat -v
           python3 -m unittest test_lesson_queue_census -v
           python3 -m unittest test_bg_message_lessons -v
+          python3 -m unittest test_learn_thumbs_pull -v  # DR-1360: the NAS pulls the paid pictures; token never to the blob host
           python3 -m unittest test_funnel_watchdog -v  # DR-1619: the public road, not the box's own name
       # Spoken-lesson Whisper loop proofs (DR-0611): the road (voice row ->
       # transcript row -> cloud copy removed), idempotency by the database, the
