@@ -10,7 +10,7 @@
 
 ## Context
 
-Sign-in had been down for hours: every road through the Tailscale Funnel answered 502 (DR-1619). Darrell's own Tailscale app, on his tailnet `darrellpoe06@gmail.com`, listed **two** devices, his phone and `tlcrackstation`. The NAS (`poetech`) and the 4070 tower were not on the list. On the home network the NAS's DSM sign-in page loaded at `192.168.1.26:5001`, but Synology Secure SignIn answered "Request denied" to approvals he allowed, and to codes, on several tries.
+Sign-in had been down for hours: every road through the Tailscale Funnel answered 502 (DR-1619). Darrell's own Tailscale app, signed into a tailnet under `darrellpoe06@gmail.com` (not the family's tailnet; see the correction below), listed **two** devices, his phone and `tlcrackstation`. The NAS (`poetech`) and the 4070 tower were not on the list. On the home network the NAS's DSM sign-in page loaded at `192.168.1.26:5001`, but Synology Secure SignIn answered "Request denied" to approvals he allowed, and to codes, on several tries.
 
 ## DRs reviewed
 
@@ -31,7 +31,7 @@ One outside system, Tailscale, was the only door between the family's phones and
 
 ## Decision
 
-1. **Restore now, by road 2.** Over LAN SSH from Darrell's desktop: no password (DR-1526: `ssh dpoe@192.168.1.26` is the proven road; `sudo -n` works on the box, `infra/nas-supabase/install.sh`), and plain `tailscale up`, never `--reset`. No up-flags are recorded for the NAS anywhere in the repository, so a reset could erase settings nothing can rebuild. Sign in with the **Google** account `darrellpoe06@gmail.com` (the tailnet's owner; a GitHub login would make a separate, empty tailnet). Then **disable key expiry** on `poetech` in the admin console. DR-1619's watchdog re-mounts every recorded row once the node is back.
+1. **Restore now, by road 2.** Over LAN SSH from Darrell's desktop: no password (DR-1526: `ssh dpoe@192.168.1.26` is the proven road; `sudo -n` works on the box, `infra/nas-supabase/install.sh`), and plain `tailscale up`, never `--reset`. No up-flags are recorded for the NAS anywhere in the repository, so a reset could erase settings nothing can rebuild. Sign in with **GitHub** (the tailnet is `darrellpoe06.github`; **corrected 2026-11-24, DR-1624**: this record first said Google, a guess from his phone's Tailscale app, which is signed into a different, near-empty tailnet under his Gmail). Then **disable key expiry** on `poetech` in the admin console. DR-1619's watchdog re-mounts every recorded row once the node is back.
 2. **No outside system is the only door.** The family's sign-in road gets a **second, NAS-initiated road** that does not involve Tailscale: a Cloudflare Tunnel (the NAS dials out; nothing at home accepts calls in). This does not make the house depend on Cloudflare instead. Cloudflare already serves poetech.us, and the point is that **either** road can fail without a lockout. Neither outside system is a necessity; each is support. Tier C: built with its brakes and proof, activated with Darrell watching. The tunnel token is a value only his Cloudflare account can mint (DR-1180), asked for once, with the exact clicks.
 3. **At home, no outside system at all.** Following DR-0776's principle, the sign-in road also gets the direct home road, so a phone on the house Wi-Fi signs in even when every outside road is down. To design: `re-review: 2026-12-01`.
 4. **The house reports its own state** (DR-1619, done): tailnet state, public probe codes, funnel status and uptime, sent by the NAS itself to GitHub.

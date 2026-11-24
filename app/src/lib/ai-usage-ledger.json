@@ -595,6 +595,21 @@
       "notes": ""
     },
     {
+      "id": "no-session-guesses-an-account",
+      "date": "2026-11-24",
+      "task": "Recorded the two tailnets, their logins and machines, the fix that restored sign-in, and the standing rule that no session guesses an account; memory entry added",
+      "drs": [
+        "DR-1626"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.3,
+      "estimateWithoutAiHours": 3,
+      "notes": ""
+    },
+    {
       "id": "the-nas-sees-its-own-public-road",
       "date": "2026-11-24",
       "task": "The Funnel watchdog was blind (own hostname, 502 read as up, /sb missing); now judges the public road, restores every row, brings Tailscale up, and reports its state to GitHub by repository_dispatch",
@@ -1132,6 +1147,21 @@
       "wallClockHours": 1,
       "estimateWithoutAiHours": 24,
       "notes": "Same session as DR-1361 and DR-1370; the video could not be fetched from the cloud, so the public record was searched twice with different phrasings. Estimate is this session's own for a 2,900-word lesson with four bands, two parables, a quiz, a guide and a 56-case gate."
+    },
+    {
+      "id": "the-love-corner-menu-floats",
+      "date": "2026-11-24",
+      "task": "The Love Corner picture menu was cut off at large text and under the bottom bar, and the picture read (6; the menu floats and scrolls, the header takes the account name",
+      "drs": [
+        "DR-1625"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.4,
+      "estimateWithoutAiHours": 4,
+      "notes": ""
     },
     {
       "id": "dr-1372-the-tail-is-a-dropdown",
@@ -2712,6 +2742,21 @@
       "wallClockHours": 1,
       "estimateWithoutAiHours": 10,
       "notes": "Darrell reviewing as a new user on his phone: I can see all this as a new person with no record. Nothing was exposed (RLS; 0260 asserts it) -- the banner's global headline had a partial list"
+    },
+    {
+      "id": "the-box-was-alive-the-whole-time",
+      "date": "2026-11-24",
+      "task": "Measured the outage onset and that the NAS was online throughout; the watchdog now reports before it heals, bounds the heal, warns before its own tailnet key expires; own profile and picture kept on the device",
+      "drs": [
+        "DR-1624"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.9,
+      "estimateWithoutAiHours": 10,
+      "notes": ""
     },
     {
       "id": "re-review-ratchet",

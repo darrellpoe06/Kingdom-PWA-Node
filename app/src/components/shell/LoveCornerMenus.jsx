@@ -55,6 +55,7 @@ export function searchTabs(query, churchTabs = []) {
 }
 
 export function ProfileMenu({
+  theme = null,
   name,
   profile,
   session,
@@ -127,6 +128,8 @@ export function ProfileMenu({
         onClose={onClose}
         hold={profileOpen || giveOpen}
         look="lovecorner"
+        floating
+        theme={theme}
         testid="lch-profile-menu"
         rowTestid={(key) => `lch-menu-${key}`}
       />

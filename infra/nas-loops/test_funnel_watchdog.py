@@ -131,6 +131,7 @@ class BringUpAndReport(unittest.TestCase):
         self.assertEqual(len(p["actions"]), 12)
         self.assertEqual(len(p["funnel_status"]), 1500)
         self.assertIn("uptime_s", p)
+        self.assertIn("head", p)
         json.dumps(p)
 
     def test_uptime_reads_proc_and_never_raises(self):
@@ -176,6 +177,117 @@ class BringUpAndReport(unittest.TestCase):
             fw.send_report({}, token_file="/nonexistent/t"),
             (False, "no push credential"),
         )
+
+
+class ReportsFirstAndBoundsTheHeal(unittest.TestCase):
+    def _run_main(self, bstate, hang_s=0):
+        """Drive main() with every outside call replaced; returns the event order."""
+        events = []
+        saved = {
+            k: getattr(fw, k)
+            for k in (
+                "probe",
+                "tailscale_bin",
+                "run",
+                "send_report",
+                "save_state",
+                "load_state",
+                "time",
+            )
+        }
+
+        class T:
+            t = 2_000_000_000.0
+
+            @classmethod
+            def time(cls):
+                return cls.t
+
+            @classmethod
+            def sleep(cls, n):
+                cls.t += n
+
+        def run(cmd, timeout=30):
+            if "status" in cmd and "--json" in cmd:
+                return 0, json.dumps({"BackendState": bstate})
+            if "--set-path" in cmd:
+                events.append("mount")
+                T.t += hang_s
+                return 1, "hung"
+            if cmd[-1] == "up" or any(str(c).startswith("--authkey") for c in cmd):
+                events.append("up")
+            return 0, ""
+
+        fw.probe = lambda url: 502
+        fw.tailscale_bin = lambda: "ts"
+        fw.run = run
+        fw.send_report = lambda payload, **k: (
+            events.append("report:" + payload["actions"][0][:5]),
+            (True, 204),
+        )[1]
+        fw.save_state = lambda *a, **k: None
+        fw.load_state = lambda *a, **k: {"last_restart": 2_000_000_000.0 - 60}
+        fw.time = T
+        try:
+            rc = fw.main()
+        finally:
+            for k, v in saved.items():
+                setattr(fw, k, v)
+        return rc, events
+
+    def test_the_first_report_leaves_before_any_heal(self):
+        rc, events = self._run_main("Running")
+        self.assertEqual(rc, 1)
+        self.assertEqual(events[0], "report:first")
+        self.assertLess(events.index("report:first"), events.index("mount"))
+
+    def test_a_logged_out_node_is_reported_and_no_mount_is_tried(self):
+        _, events = self._run_main("NeedsLogin")
+        self.assertEqual(events[0], "report:first")
+        self.assertNotIn("mount", events)
+        self.assertTrue(events[-1].startswith("report:"))
+
+    def test_a_hung_cli_cannot_outlive_the_budget(self):
+        _, events = self._run_main("Running", hang_s=10)
+        # 12 rows at 10 s each would be 120 s; the 90 s budget stops the pass.
+        self.assertLess(events.count("mount"), len(fw.SOVEREIGN_MOUNTS))
+
+    def test_PROVEN_TO_CATCH_the_old_order_reported_last(self):
+        old_order = ["up", "mount", "mount", "report"]
+        self.assertGreater(old_order.index("report"), old_order.index("mount"))
+
+
+class TheBoxCountsItsOwnDays(unittest.TestCase):
+    NOW = 1795478400.0  # 2026-11-24T00:00:00Z
+
+    def test_days_until_the_key_lapses(self):
+        j = json.dumps({"Self": {"KeyExpiry": "2026-12-04T00:00:00Z"}})
+        self.assertEqual(fw.expiry_days_of(j, self.NOW), 10)
+        j = json.dumps({"Self": {"KeyExpiry": "2026-12-04T00:00:00.123456789Z"}})
+        self.assertEqual(fw.expiry_days_of(j, self.NOW), 10)
+
+    def test_a_lapsed_key_is_negative(self):
+        j = json.dumps({"Self": {"KeyExpiry": "2026-11-23T21:40:00Z"}})
+        self.assertLess(fw.expiry_days_of(j, self.NOW), 0)
+
+    def test_no_expiry_set_or_unreadable_is_none(self):
+        self.assertIsNone(fw.expiry_days_of(json.dumps({"Self": {}}), self.NOW))
+        self.assertIsNone(fw.expiry_days_of("not json", self.NOW))
+
+    def test_one_warning_a_day_inside_the_window_only(self):
+        self.assertTrue(fw.expiry_warning_due({}, self.NOW, 10))
+        self.assertFalse(
+            fw.expiry_warning_due(
+                {"last_expiry_warning": self.NOW - 3600}, self.NOW, 10
+            )
+        )
+        self.assertTrue(
+            fw.expiry_warning_due(
+                {"last_expiry_warning": self.NOW - 90000}, self.NOW, 10
+            )
+        )
+        self.assertFalse(fw.expiry_warning_due({}, self.NOW, fw.EXPIRY_WARN_DAYS + 1))
+        self.assertFalse(fw.expiry_warning_due({}, self.NOW, None))
 
 
 if __name__ == "__main__":

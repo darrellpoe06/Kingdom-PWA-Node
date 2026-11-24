@@ -689,6 +689,9 @@ button.lc-tile{cursor:pointer}
 /* the profile menu */
 .lch-menu{position:absolute;top:calc(100% - .25rem);right:.75rem;z-index:30;width:min(17rem,calc(100vw - 1.5rem));background:var(--lc-paper);color:var(--lc-ink);border:1px solid var(--lc-line);border-radius:1rem;box-shadow:0 14px 40px rgba(26,16,18,.3);overflow:hidden}
 .lch-bar{position:relative}
+/* THE LOVE CORNER'S PICTURE MENU FLOATS OVER THE PAGE (DR-1625). Darrell 2026-11-24: "Big fonts block the picture drop down somehow". It was drawn inside the header bar, so at the large text steps the page under the header covered it and the bottom bar hid its last rows. Floating (shell/AccountMenu.jsx): fixed under the picture, pinned to the right edge, as wide as its words need up to the screen, never taller than the screen (it scrolls), above the bottom bar (60). */
+.lch-menu.acct-menu-float{left:auto!important;right:8px;width:auto!important;min-width:min(17rem,calc(100vw - 16px));max-width:calc(100vw - 16px);z-index:80;overflow-y:auto;overscroll-behavior:contain}
+.lch-menu.acct-menu-float .lch-menu-row{min-height:max(44px,2.75rem);padding-top:.25rem;padding-bottom:.25rem}
 .lch-menu-who{padding:.75rem .875rem;border-bottom:1px solid var(--lc-line);display:flex;flex-direction:column;gap:.1rem}
 .lch-menu-who b{font-size:.95rem}.lch-menu-who small{color:var(--lc-muted);font-size:.74rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .lch-menu-list{list-style:none;margin:0;padding:.25rem 0}
