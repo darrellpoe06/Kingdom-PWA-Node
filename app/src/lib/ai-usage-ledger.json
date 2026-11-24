@@ -3598,6 +3598,21 @@
       "notes": "Found on PR #2775 shard 3, then on PR #2788 which adds no lesson, which showed main itself was red. Proven to catch by forcing the page to show the heading always. No product code changed."
     },
     {
+      "id": "no-outside-system-is-the-only-door",
+      "date": "2026-11-24",
+      "task": "Recorded the tailnet drop and the road decision under DR-1360: restore by LAN SSH, a second NAS-initiated road beside the Funnel, a home road with no outside system",
+      "drs": [
+        "DR-1622"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.3,
+      "estimateWithoutAiHours": 3,
+      "notes": ""
+    },
+    {
       "id": "poetech-door-account-picture",
       "date": "2026-11-19",
       "task": "The PoeTech door's account picture at the top right, open and collapsed, opening the Love Corner's menu frame with rows that have a real place on this door",
