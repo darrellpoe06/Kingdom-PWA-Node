@@ -182,6 +182,49 @@ def backend_state(ts):
         return "unreadable"
 
 
+EXPIRY_WARN_DAYS = int(os.environ.get("FUNNEL_EXPIRY_WARN_DAYS", "21"))
+
+
+def key_expiry_days(ts, now=None):
+    """Days until this box's own tailnet key expires, read from the box itself
+    (`tailscale status --json` -> Self.KeyExpiry). None = no expiry set (the
+    wanted state) or unreadable. THE WARNING BEFORE THE LOCKOUT (DR-1624): a
+    node key lapses silently and takes every road down with it; the box now
+    counts its own days and says so three weeks ahead."""
+    _, out = run([ts, "status", "--json"], timeout=20)
+    return expiry_days_of(out, now)
+
+
+def expiry_days_of(status_json, now=None):
+    try:
+        raw = (json.loads(status_json).get("Self") or {}).get("KeyExpiry")
+        if not raw:
+            return None
+        # 2026-11-23T21:40:11Z or with fractional seconds / an offset
+        stamp = raw.replace("Z", "+00:00")
+        if "." in stamp:
+            head, _, tail = stamp.partition(".")
+            zone = tail[tail.find("+") :] if "+" in tail else ""
+            stamp = head + zone
+        import datetime as _dt  # noqa: PLC0415
+
+        when = _dt.datetime.fromisoformat(stamp)
+        if when.tzinfo is None:
+            when = when.replace(tzinfo=_dt.timezone.utc)  # noqa: UP017 -- the NAS runs Python 3.8
+        return int(
+            (when.timestamp() - (now if now is not None else time.time())) // 86400
+        )
+    except (ValueError, AttributeError, TypeError):
+        return None
+
+
+def expiry_warning_due(state, now, days):
+    """One warning a day while the key is inside the warning window."""
+    if days is None or days > EXPIRY_WARN_DAYS:
+        return False
+    return now - float(state.get("last_expiry_warning", 0) or 0) >= 86400
+
+
 def bring_up(ts, state_name, key_file=None):
     """Stopped -> `up`; NeedsLogin -> `up --authkey` ONLY with a key file on the
     box. Returns a word for the report. Never prints the key."""
@@ -214,6 +257,7 @@ def report_payload(result, bstate, codes, local_code, actions, status_text):
         # Darrell 2026-11-24: "The compute keeps restarting". Seconds since the
         # box last booted: a small number on every report means it is rebooting.
         "uptime_s": uptime_seconds(),
+        "head": checkout_head(),
     }
 
 
@@ -272,14 +316,42 @@ def run(cmd, timeout=30):
         return 1, str(e)
 
 
-def restore_sovereign_mounts(ts):
-    """Rule 1 restore: re-assert each sovereign recorded row, additively."""
+def restore_sovereign_mounts(ts, budget_s=90):
+    """Rule 1 restore: re-assert each sovereign recorded row, additively.
+    BOUNDED (DR-1624): each call gets 10 s and the whole pass `budget_s`, so a
+    hung tailscale CLI can never eat the rider's 480 s and kill the watchdog
+    before it reports. Returns how many rows were tried."""
+    started = time.time()
+    done = 0
     for path, backend in SOVEREIGN_MOUNTS:
-        code, out = run([ts, "funnel", "--bg", "--set-path", path, backend], timeout=30)
+        if time.time() - started > budget_s:
+            print(
+                f"funnel-watchdog: restore budget of {budget_s}s spent after {done} rows, stopping"
+            )
+            break
+        code, out = run([ts, "funnel", "--bg", "--set-path", path, backend], timeout=10)
         state = "ok" if code == 0 else f"FAILED rc={code}"
         print(f"funnel-watchdog: re-assert {path} -> {backend}: {state}")
         if code != 0 and out.strip():
             print("  " + out.strip().splitlines()[-1][:200])
+        done += 1
+    return done
+
+
+def checkout_head(repo=None):
+    """The commit this box is running, so a report says whether the mirror pulled."""
+    repo = repo or os.environ.get(
+        "POETECH_REPO", "/volume1/PoeTech/repos/Kingdom-PWA-Node"
+    )
+    try:
+        with open(os.path.join(repo, ".git", "HEAD")) as f:
+            head = f.read().strip()
+        if head.startswith("ref: "):
+            with open(os.path.join(repo, ".git", head[5:])) as f:
+                head = f.read().strip()
+        return head[:9]
+    except OSError:
+        return "unknown"
 
 
 def main():
@@ -311,6 +383,22 @@ def main():
                 )
             )
             print("funnel-watchdog: reported recovery to GitHub: " + str(why))
+        ts_ok = tailscale_bin()
+        days = key_expiry_days(ts_ok, now) if ts_ok else None
+        if expiry_warning_due(state, now, days):
+            ok, why = send_report(
+                report_payload(
+                    "expiring",
+                    "Running",
+                    codes,
+                    local_code,
+                    ["this box's tailnet key expires in " + str(days) + " day(s)"],
+                    "",
+                )
+            )
+            print("funnel-watchdog: key-expiry warning to GitHub: " + str(why))
+            if ok:
+                state["last_expiry_warning"] = now
         save_state(state)
         return 0
 
@@ -334,17 +422,48 @@ def main():
     else:
         bstate = backend_state(ts)
         print("funnel-watchdog: tailscale BackendState=" + bstate)
+        _, status = run([ts, "funnel", "status"], timeout=10)
+        # REPORT FIRST, HEAL SECOND (DR-1624). The first version reported only
+        # after the heal; with Tailscale down the heal could outlive the rider's
+        # 480 s and the box, alive and online, said nothing for twelve hours.
+        if report_due(state, now, "dark"):
+            ok, why = send_report(
+                report_payload(
+                    "dark",
+                    bstate,
+                    codes,
+                    local_code,
+                    ["first reading, before any heal"],
+                    status,
+                )
+            )
+            print(
+                "funnel-watchdog: first report to GitHub: "
+                + ("sent" if ok else "NOT sent")
+                + " ("
+                + str(why)
+                + ")"
+            )
+            if ok:
+                state["last_report"] = now
+                save_state(state)
         if bstate in ("Stopped", "NeedsLogin"):
             word = bring_up(ts, bstate)
             actions.append("bring-up: " + word)
             print("funnel-watchdog: bring-up " + word)
-        _, status = run([ts, "funnel", "status"], timeout=20)
         for line in status.strip().splitlines()[:15]:
             print("  " + line[:200])
         # Step 1 (rule 1): re-assert every recorded row — additive + reversible;
         # this also re-enables funnel serving when the config was lost/disabled.
-        restore_sovereign_mounts(ts)
-        actions.append("re-asserted " + str(len(SOVEREIGN_MOUNTS)) + " recorded rows")
+        # Skipped while the node is not Running: no mount can be set on a node
+        # that is logged out, and each attempt would only hang.
+        bstate = backend_state(ts)
+        if bstate == "Running":
+            actions.append(
+                "re-asserted " + str(restore_sovereign_mounts(ts)) + " recorded rows"
+            )
+        else:
+            actions.append("mounts not re-asserted: tailscale is " + bstate)
         time.sleep(10)
         codes = public_codes()
         if public_up(codes):
@@ -360,7 +479,8 @@ def main():
             state["last_restart"] = now
             actions.append("package restart rc=" + str(rc2))
             time.sleep(25)
-            restore_sovereign_mounts(ts)
+            if backend_state(ts) == "Running":
+                restore_sovereign_mounts(ts)
             time.sleep(10)
             codes = public_codes()
             result = "healed" if public_up(codes) else "dark"
@@ -380,7 +500,7 @@ def main():
     result = "healed" if (ts and public_up(codes)) else "dark"
     if result == "healed":
         state.pop("dark_since", None)
-    if report_due(state, now, result):
+    if result == "healed" or actions:
         ok, why = send_report(
             report_payload(result, bstate, codes, local_code, actions, status)
         )
