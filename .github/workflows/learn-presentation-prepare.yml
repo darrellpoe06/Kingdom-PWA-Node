@@ -1,5 +1,5 @@
 # Learn presentation: prepare a title + cinematic thumbnail for each new lesson, for APPROVAL only (never edits a lesson, never publishes).
-# Brakes: $95 combined, pictures $68 (under the owner's BFL credits), both read from the ledger, retries included (lib/scope.mjs); per-run cap (titles <= 20%); batches of 200; one run at a time; OFF unless vars.LEARN_PRESENTATION_AUTOPREP == 'on'. Detail: docs/99-session-notes/2026-11-24-learn-redesign-art-direction-v2.md
+# Brakes: $73.43 combined, pictures $65.80 (spent at approval + the $60 / $55 the owner approved), both read from the ledger, retries included (lib/scope.mjs); per-run cap (titles <= 20%); batches of 200; one run at a time; OFF unless vars.LEARN_PRESENTATION_AUTOPREP == 'on'. Detail: docs/99-session-notes/2026-11-24-learn-redesign-art-direction-v2.md
 # Manual (dispatch) only: the full library (approved 2026-11-24) runs batch by batch. Paid work is saved (cache + artifact) even when a later step fails; the NAS pulls each batch (learn-thumbs-pull, DR-1360).
 name: Learn presentation — prepare new lessons
 on:

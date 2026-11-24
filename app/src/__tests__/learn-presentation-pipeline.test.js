@@ -408,12 +408,12 @@ describe('pilot scope cannot be widened', () => {
   });
 
   it('the combined cap subtracts everything already spent, across runs', () => {
-    expect(scope.TOTAL_CAP_CENTS).toBe(9500);
-    expect(scope.IMAGE_TOTAL_CAP_CENTS).toBe(6800); // under the owner's ~$70 of BFL credits
+    expect(scope.TOTAL_CAP_CENTS).toBe(1343 + 6000); // owner 2026-11-24: $60 more, combined
+    expect(scope.IMAGE_TOTAL_CAP_CENTS).toBe(1080 + 5500); // the $55 of BFL credits bought
     expect(scope.remainingCents(400, 0)).toBe(400);
-    expect(scope.remainingCents(400, 9300)).toBe(200);
-    expect(scope.remainingCents(null, 9480)).toBe(20);
-    expect(scope.remainingCents(400, 9900)).toBe(0);
+    expect(scope.remainingCents(400, scope.TOTAL_CAP_CENTS - 200)).toBe(200);
+    expect(scope.remainingCents(null, scope.TOTAL_CAP_CENTS - 20)).toBe(20);
+    expect(scope.remainingCents(400, scope.TOTAL_CAP_CENTS + 400)).toBe(0);
   });
 });
 

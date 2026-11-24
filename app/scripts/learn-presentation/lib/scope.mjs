@@ -20,11 +20,16 @@ export const PILOT_MAX_LESSONS = 20;
 // full library... we like these looks"), after the 20-lesson pilot on art v2.
 // The pilot's $5 ceiling becomes the library's ceilings, still read from the ledger:
 //   TOTAL_CAP_CENTS        every paid call, text + pictures, across every run;
-//   IMAGE_TOTAL_CAP_CENTS  picture spend only (BFL), held under the owner's ~$70 of
-//                          BFL credits so a run can never overdraw them.
+//   IMAGE_TOTAL_CAP_CENTS  picture spend only (BFL), held under the BFL credits bought.
 // "all" runs in batches of LIBRARY_BATCH lessons (resumable; one run at a time).
-export const TOTAL_CAP_CENTS = 9500;
-export const IMAGE_TOTAL_CAP_CENTS = 6800;
+// OWNER 2026-11-24: "I approve the $60 combined API usage limit and will purchase
+// $55 in BFL credits." Ledger spend at approval, after the -990c refused-submit
+// adjustment: 1343c combined (348c pilot + 1985c batch 1 - 990c), 1080c of it
+// pictures (300c + 1770c - 990c). So: combined = 1343 + 6000; pictures = 1080 + 5500.
+// Measured need: 844 pictures x 6c = 5064c; 774 titles ~ 774-832c. A batch that
+// reaches either cap stops itself with the rest left queued (never overdrawn).
+export const TOTAL_CAP_CENTS = 7343;
+export const IMAGE_TOTAL_CAP_CENTS = 6580;
 export const FULL_LIBRARY_ENABLED = true;
 export const LIBRARY_BATCH = 200;
 export const IMAGE_KINDS = Object.freeze(['image', 'image-v2', 'topic-v2']);

@@ -73,7 +73,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 import zipfile
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 
 REPO = os.environ.get("LEARN_THUMBS_REPO", "darrellpoe06/Kingdom-PWA-Node")
 API = "https://api.github.com"
@@ -110,7 +110,8 @@ class Refused(Exception):
 
 
 def now_iso():
-    return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    # timezone.utc, not datetime.UTC: the NAS runs Python 3.8 (DR-0306).
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 # ---- transport: the one place bytes cross the network -------------------------
