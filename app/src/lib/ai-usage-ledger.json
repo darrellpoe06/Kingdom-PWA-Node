@@ -2477,6 +2477,21 @@
       "notes": "Found by the hourly voice-lane tick reading its own run log, not asked for. Six prior ticks re-measured the same tailnet-join failure and waited on a key only Darrell can mint; DR-1360 had already decided that road was to be reversed. The census writer already existed and was enabled but had never been read from outside the house. Proof ran on a throwaway PostgreSQL 16 cluster: 8 executed cases, including a seeded lesson body that must not appear and SET ROLE anon both ways. That proof caught a clamp of my own that turned a corrupt total of -5 into 0 - a manufactured empty queue, the one lie this lane exists to prevent."
     },
     {
+      "id": "the-house-keeps-and-reads-the-church-pictures",
+      "date": "2026-11-24",
+      "task": "Church archive + calendar read moved onto the NAS services-sync clock; runner road retired to a witness",
+      "drs": [
+        "DR-1648"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.6,
+      "estimateWithoutAiHours": 6,
+      "notes": "First real run read the site (4 pictures) and died at the retired tailnet join; the NAS pass is rehearsed on a mock database and pinned by 7 tests, two proven to catch."
+    },
+    {
       "id": "poetech-plus-checkout",
       "date": "2026-11-12",
       "task": "PoeTech+ checkout: verified buyer, member_subscriptions row (0321), webhook lifecycle, money counted once, truthful button in both apps, cancel portal, one-secret keys workflow",

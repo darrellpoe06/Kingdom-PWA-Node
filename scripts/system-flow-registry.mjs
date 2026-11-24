@@ -1107,6 +1107,22 @@ const NODES = [
   }),
   // DR-1427: the NAS carries the same rows itself, every 6 hours, on the armed
   // services-sync clock; the runner lane above failed daily on an expired key.
+  rider('service:church-archive', 'infra/nas-church-archive/install.sh', {
+    id: 'church-archive-nas', name: 'Church archive and calendar days (the house keeps and reads)',
+    purpose: 'Every 6 hours on the services-sync clock the NAS reads the church website, keeps each new calendar, letter and flyer, reads each kept calendar and flyer once into dated events and files them on their days, with no runner reaching in (DR-1648, DR-1360).',
+    reads: [
+      { res: 'nas:clock', token: 'services-sync' },
+      { res: 'site:thechurchofthelivinggod.com', token: 'church-site-archive-collect.mjs' },
+      { res: 'http:api.anthropic.com', token: 'ANTHROPIC_API_KEY' },
+      { res: 'db:church_calendar_reads', file: 'infra/nas-church-archive/church_calendar_reads.py', token: 'church_calendar_reads?select' },
+    ],
+    writes: [
+      { res: 'db:church_site_archive', file: 'infra/nas-church-archive/church_archive_keep.py', token: 'church_site_archive_keep' },
+      { res: 'db:ministry_ops', file: 'infra/nas-church-archive/church_calendar_reads.py', token: 'church_calendar_keep_read' },
+      { res: 'db:church_calendar_reads', file: 'infra/nas-church-archive/church_calendar_reads.py', token: 'church_calendar_keep_read' },
+    ],
+    seeds: [],
+  }),
   rider('service:content-sync', 'infra/nas-supabase/content_sync.py', {
     id: 'content-sync-nas', name: 'NAS carries new services to the archive',
     purpose: 'Carries rows filed on the hosted copy to the database the app reads, from the NAS itself, so a new month fills without a runner key.',
@@ -1353,19 +1369,10 @@ const NODES = [
     reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }, { res: 'http:llm', token: '/llm/health' }], writes: [], seeds: [],
   }),
   wf('church-site-archive.yml', {
-    id: 'church-site-archive', name: 'Church site archive (daily)',
-    purpose: 'Every calendar, Letter from BG and flyer the church office posts on its website is kept daily on the NAS, by month, one copy per content, so the office never archives by hand (DR-1596); then each kept calendar and flyer not yet read is read once into dated events and filed on its day (DR-1644).',
-    reads: [
-      { res: 'site:thechurchofthelivinggod.com', file: 'scripts/church-site-archive-collect.mjs', token: 'SITE_HOST' },
-      { res: 'http:api.anthropic.com', file: 'scripts/church-calendar-read.mjs', token: 'ANTHROPIC_API_KEY' },
-      { res: 'db:church_calendar_reads', file: 'infra/nas-church-archive/church_calendar_reads.py', token: 'church_calendar_reads?select' },
-      { res: 'db:church_site_archive', file: 'infra/nas-church-archive/church_calendar_reads.py', token: 'church_site_archive?select' },
-    ],
-    writes: [
-      { res: 'db:church_site_archive', file: 'infra/nas-church-archive/church_archive_keep.py', token: 'church_site_archive_keep' },
-      { res: 'db:ministry_ops', file: 'infra/nas-church-archive/church_calendar_reads.py', token: 'church_calendar_keep_read' },
-      { res: 'db:church_calendar_reads', file: 'infra/nas-church-archive/church_calendar_reads.py', token: 'church_calendar_keep_read' },
-    ],
+    id: 'church-site-archive', name: 'Church site archive (witness + walls)',
+    purpose: 'Reads the church website from outside with the app\u2019s own parser and prints what the office has posted; proves 0342 and 0343 on a bare PostgreSQL for a pull request. The keeping and reading run on the NAS (DR-1648).',
+    reads: [{ res: 'site:thechurchofthelivinggod.com', file: 'scripts/church-site-archive-collect.mjs', token: 'SITE_HOST' }],
+    writes: [],
     seeds: [],
   }),
   wf('learn-presentation-prepare.yml', {

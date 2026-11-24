@@ -1,18 +1,14 @@
-# church-site-archive — every calendar, Letter from BG and flyer the church
-# office posts is kept, daily, so the office never has to archive (DR-1596).
-# A runner reads the public site with the app's own parser; the NAS keeps each
-# picture it has not held (private bucket + one row, migration 0342).
-# Timer-driven, deterministic class (CLAUDE.md, AMENDED 2026-07-29): started by
-# merge. BUDGET: job timeouts, per-request timeouts, a picture cap per run, 12 MB
-# per picture. LOCK: one run at a time. Stop: disable this workflow.
-# THE READ (DR-1644, AI class): each kept calendar/flyer read once onto its days. BUDGET 6 a run,
-# timeout + token cap each, stop after 2 failures; LOCK as above; KILL-SWITCH vars.CHURCH_CALENDAR_READ=off.
-# The walls job proves 0342 on a bare PostgreSQL for a pull request touching it.
-name: Church site archive (daily)
+# church-site-archive — the WITNESS and the walls for what the church office
+# posts (DR-1596, DR-1644). The keeping and the reading moved INTO the NAS
+# (DR-1648, the DR-1360 road: the house initiates): infra/nas-church-archive/
+# install.sh rides the services-sync clock and collects, keeps, reads and files.
+# This runner no longer reaches into the NAS (its tailnet key is retired).
+# witness (dispatch): reads the public site with the app's own parser and prints
+#   what the office has posted, so "is it on the site?" is answered from outside.
+# walls (pull request): 0342 + 0343 apply twice on a bare PostgreSQL, smokes pass.
+name: Church site archive (witness + walls)
 
 on:
-  schedule:
-    - cron: '23 10 * * *'   # once a day, early morning in the church's own zone
   workflow_dispatch:
     inputs:
       mode:
@@ -82,39 +78,16 @@ jobs:
           grep -q 'CALENDAR DAYS SMOKE: PASS' "$RUNNER_TEMP/smoke43.txt"
           python3 infra/nas-church-archive/church_calendar_reads.py --selftest
 
-  keep:
+  witness:
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 30
     env:
       MODE: ${{ inputs.mode || 'site' }}
-      NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
           node-version: 22
-      - name: Read the church website (the app's own parser)
-        run: node scripts/church-site-archive-collect.mjs --out "$RUNNER_TEMP/archive" --mode "$MODE"
-      - uses: ./.github/actions/join-tailnet
-        with:
-          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
-          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
-          authkey: ${{ secrets.TS_AUTHKEY }}
-      - name: Keep what is new on the NAS
-        timeout-minutes: 15
-        run: bash scripts/church-site-archive-over-tailnet.sh "$RUNNER_TEMP/archive"
-      - name: Bring back the office pictures not yet read onto the calendar
-        timeout-minutes: 10
-        run: bash scripts/church-calendar-reads-over-tailnet.sh pull "$RUNNER_TEMP/reads" 6
-      - name: Read each picture's events onto their days (once per picture)
-        timeout-minutes: 20
-        env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          CHURCH_CALENDAR_READ: ${{ vars.CHURCH_CALENDAR_READ }}
-        run: node scripts/church-calendar-read.mjs "$RUNNER_TEMP/reads"
-      - name: File what was read
-        if: ${{ !cancelled() }}
-        timeout-minutes: 10
-        run: |
-          if [ -f "$RUNNER_TEMP/reads/reads.json" ]; then bash scripts/church-calendar-reads-over-tailnet.sh file "$RUNNER_TEMP/reads"; else echo "Nothing read this run."; fi
+      - name: What the church website holds (the app's own parser; nothing is sent anywhere)
+        run: node scripts/church-site-archive-collect.mjs --out "$RUNNER_TEMP/archive" --mode "$MODE" | tee -a "$GITHUB_STEP_SUMMARY"
