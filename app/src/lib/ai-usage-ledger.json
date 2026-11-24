@@ -3057,6 +3057,21 @@
       "notes": "No token meter in this session; tokens and cost are null."
     },
     {
+      "id": "aris-road-read-only-probe",
+      "date": "2026-11-24",
+      "task": "A dispatch-only, read-only probe of what serves /llm on the NAS, so the port is measured before the watchdog is told it",
+      "drs": [
+        "DR-1643"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.6,
+      "estimateWithoutAiHours": 3,
+      "notes": ""
+    },
+    {
       "id": "comfort-pass-2026-11-12",
       "date": "2026-11-12",
       "task": "Phase 4 of the Love Corner redesign: the comfort pass, the four new surfaces measured on the built app at four widths and three text sizes with a keyboard walk; the shared sub-tab chip and show-all button raised to the 36px floor, an inline link widened, a heading skip fixed; the probe kept as scripts/love-corner-comfort-probe.mjs",
