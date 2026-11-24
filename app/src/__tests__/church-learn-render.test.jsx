@@ -84,7 +84,7 @@ describe('ChurchLearn — the course body behind section chips', () => {
   });
 
   it('the Paper & print chip reveals the export controls', () => {
-    mount();
+    mount({ userTier: 'poetech-plus' }); // DR-1652: export is PoeTech+ or the Download Pass
     openCourse();
     clickTab('Paper & print');
     expect(container.textContent).toMatch(/Copy markdown/);

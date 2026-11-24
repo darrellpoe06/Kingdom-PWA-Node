@@ -15,7 +15,9 @@
 import React, { useState } from 'react';
 import AuthModal from './AuthModal.jsx';
 
-export const DOWNLOAD_NEEDS_ACCOUNT = 'Downloading needs a free account. Reading and ▶ Play never do.';
+// DR-1652: a lesson download is now paid (PoeTech+ or the Download Pass);
+// the account is still the first step, so this line names only that.
+export const DOWNLOAD_NEEDS_ACCOUNT = 'Downloading needs an account. Reading and ▶ Play never do.';
 
 export default function DownloadNeedsAccount({ label = 'Download', compact = false }) {
   const [open, setOpen] = useState(false);
