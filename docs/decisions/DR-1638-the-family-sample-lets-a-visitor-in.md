@@ -33,5 +33,5 @@ Until this ships, every potential user who taps the sample loops back to the fro
 
 - `preview-isolation.test.js` gains 3 cases: which URLs are the sample, that its client is the stub and not a purging preview, and that the shell opens the gate, purges only on a preview and never reads a stored sign-in into the sample.
 - The pinned shell lines are updated in `preview-isolation.test.js` and `poetech-door-account-picture.test.jsx`. 149 cases pass across the gate, front door, supabase and demo suites.
-- Real browser, `poetech.us` mapped to the built app: results are in the PR.
+- Real browser (Chromium, `poetech.us` mapped to the built app, the real database URL watched): the bare app shows the front door; `/?demo=family-of-4` opens the sample with 0 requests to the real database; with a family sign-in stored, the sample opens the same way and the stored sign-in is still there afterward.
 - On the live site after deploy, open `poetech.us/?demo=family-of-4` signed out. `re-review: 2026-11-25`.
