@@ -1,4 +1,4 @@
-# DR-1649: The house keeps and reads the church office's pictures itself
+# DR-1650: The house keeps and reads the church office's pictures itself
 
 **Date:** 2026-11-24
 **Status:** Accepted

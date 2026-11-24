@@ -1,7 +1,7 @@
 #!/bin/sh
 # church-archive -- the NAS keeps what the church office posts and reads its
 # calendars and flyers onto their days ITSELF, on the already-armed
-# services-sync clock (DR-1649, the DR-1360 direction: the NAS initiates).
+# services-sync clock (DR-1650, the DR-1360 direction: the NAS initiates).
 #
 # WHY. The daily reader (church-site-archive.yml, DR-1596; the read added by
 # DR-1644) ran on a GitHub runner that joined the tailnet to reach the NAS.
