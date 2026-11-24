@@ -67,7 +67,7 @@ export function presentationIndex(records = seed.records) {
  * How one lesson is presented. `preview` lets the prototype (and the admin
  * review screen) show records still in review; a learner build passes false.
  */
-export function presentLesson(lesson, course, index, { preview = false } = {}) {
+export function presentLesson(lesson, course, index, { preview = false, lite = false } = {}) {
   if (!lesson || !lesson.id) return null;
   const original = typeof lesson.title === 'string' ? lesson.title : '';
   const rec = index && index.get(lesson.id);
@@ -93,11 +93,17 @@ export function presentLesson(lesson, course, index, { preview = false } = {}) {
     featuredOrder: usable && rec.featured ? Number(rec.featuredOrder) || 99 : null,
     code: course ? `${departmentCode(courseDepartment(course))}${lessonNumber(lesson, course) ?? ''}` : '',
     number: lessonNumber(lesson, course),
-    duration: listenDuration(lesson),
-    versions: lessonVersions(lesson),
-    hasVideo: hasRealVideo(lesson),
+    // `lite` skips the costly reads (spoken length, age-version measurement) for
+    // lessons that are only counted or filtered, never drawn: measured 2026-11-24
+    // at ~600ms per home render / per search keystroke over 994 lessons without it.
+    duration: lite ? null : listenDuration(lesson),
+    versions: lite ? [] : lessonVersions(lesson),
+    hasVideo: lite ? false : hasRealVideo(lesson),
   };
 }
+
+/** Upgrade a lite row to the full presentation (only for what is drawn). */
+const full = (x, index, preview) => ({ ...x, p: presentLesson(x.lesson, x.course, index, { preview }) });
 
 /** The lesson number a reader knows: the number in its id (ll338 → 338), else its place in the course. */
 export function lessonNumber(lesson, course) {
@@ -144,15 +150,15 @@ export const SHELVES = Object.freeze([
 
 /** The home page, derived from the mounted catalog, the device's places and the record index. */
 export function studioHome(courses, index, { places = [], progress = {}, preview = false } = {}) {
-  const lessons = allLessons(courses).map(({ lesson, course }) => ({ lesson, course, p: presentLesson(lesson, course, index, { preview }) }));
-  const presented = lessons.filter((x) => x.p.hasPresentation);
+  const lessons = allLessons(courses).map(({ lesson, course }) => ({ lesson, course, p: presentLesson(lesson, course, index, { preview, lite: true }) }));
+  const presented = lessons.filter((x) => x.p.hasPresentation).map((x) => full(x, index, preview));
   const byId = new Map(lessons.map((x) => [`${x.p.courseKey}::${x.p.lessonId}`, x]));
   const featuredAll = presented.filter((x) => x.p.featured).sort((a, b) => a.p.featuredOrder - b.p.featuredOrder);
   const featured = featuredAll[0] || null;
   const continueLearning = (Array.isArray(places) ? places : [])
     .map((pl) => {
       const x = byId.get(`${pl.courseKey}::${pl.lessonId}`);
-      return x ? { ...x, reached: placeReached(pl) } : null;
+      return x ? { ...full(x, index, preview), reached: placeReached(pl) } : null;
     })
     .filter(Boolean)
     .slice(0, 12);
@@ -192,12 +198,14 @@ export function searchPresented(courses, index, query, { preview = false } = {})
     .toLowerCase();
   if (!q) return [];
   return allLessons(courses)
-    .map(({ lesson, course }) => ({ lesson, course, p: presentLesson(lesson, course, index, { preview }) }))
+    .map(({ lesson, course }) => ({ lesson, course, p: presentLesson(lesson, course, index, { preview, lite: true }) }))
     .filter(({ p }) =>
       [p.originalTitle, p.displayTitle, p.thumbHeadline, p.promoDescription, p.courseTitle, p.department, p.number != null ? String(p.number) : ''].some((s) =>
         String(s || '')
           .toLowerCase()
           .includes(q)
       )
-    );
+    )
+    .slice(0, 200)
+    .map((x) => full(x, index, preview));
 }
