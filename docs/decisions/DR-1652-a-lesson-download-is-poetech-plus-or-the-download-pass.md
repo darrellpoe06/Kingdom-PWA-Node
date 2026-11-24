@@ -12,6 +12,12 @@
 
 Since DR-0698, any signed-in account could take any lesson away: the offline download (one lesson, a course, every lesson), Copy lesson (the full text), and the curriculum export (Copy markdown, Download .md, Print). Nothing was paid. The PoeTech+ subscription (DR-1432) and the one-off checkout (DR-1448/1449) already exist and already write the buyer's rows (`member_subscriptions`, `book_entitlements`).
 
+## What was measured
+
+- Before this change, every way of taking a lesson away was gated only on `signedIn` (`app/src/components/LessonDownloads.jsx` Door, the Copy lesson ternary and the Paper & print export in `ChurchLearn.jsx`). A signed-in free account opened every one.
+- The paid roads already exist: `member_subscriptions` (PoeTech+, written by the Stripe webhook) and `book_entitlements` (one-off purchases, `grant_book_entitlement`). `GET /api/checkout` answers which tiers and products are really for sale (`subscriptions`, `books`).
+- With the gate line removed from the download door, `lesson-downloads.test.jsx` fails ("expected … to be null"). With it in place, 17 of 17 in `lesson-downloads-are-paid.test.jsx` pass.
+
 ## Decision
 
 1. **Taking a lesson away is paid.** The offline download, Copy lesson and the curriculum export open only for a person who holds **PoeTech+ (or any higher tier)** or the one-time **Download Pass**.

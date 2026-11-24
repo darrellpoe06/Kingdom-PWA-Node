@@ -154,7 +154,7 @@ export function DownloadNeedsPurchase({ label = 'Download', compact = false }) {
     <span className={compact ? 'inline-block' : 'block'}>
       {compact && toggle}
       {open && (
-        <span data-testid="download-purchase-panel" className="block mt-2 border border-[#E8E4DC] bg-[#FAF8F4] p-3 max-w-md">
+        <span data-testid="download-purchase-panel" className="block mt-2 border border-[#E8E4DC] bg-[#FAF8F4] p-3">
           <span className="block text-[0.75rem] text-[#1A1815]" style={SERIF}>
             {unknown ? DOWNLOAD_CHECK_FAILED : DOWNLOAD_IS_PAID}
           </span>
