@@ -823,6 +823,21 @@
       "notes": "No token meter in this session; tokens and cost are null. Vendor product features are the newsletter's report, not checked against vendor pages. How many Funnel requests land on an unintended service is not measured; re-review 2026-12-02."
     },
     {
+      "id": "building-now-counted-files",
+      "date": "2026-11-24",
+      "task": "The receipt said two dozen teachings were being written while nothing was; building now counted every lock file, including those left behind by builds the budget had killed",
+      "drs": [
+        "DR-1651"
+      ],
+      "prs": [],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.6,
+      "estimateWithoutAiHours": 3,
+      "notes": "Found by watching the number climb 17 to 24 with zero attempt-count movement, then reading acquire_row_lock. Same class as DR-1610: a surface contradicting itself. Caught 3 ways."
+    },
+    {
       "id": "sov99-the-song-that-goes-with-you",
       "date": "2026-11-19",
       "task": "Sovereign A.I. week 99 rebuilt from Darrell's spoken teaching of 2026-09-24 (PR #1814, original DR-0634, never landed): Word first on Proverbs 6:22 and Exodus 33:14; the song in the night, the faithful servant, the Word unbound; bright line that no tool is the presence of Yahweh; four hand-written bands, every verse generator-filled from the KJV corpus; house pinned to tts.js and TTSControl.jsx",

@@ -17,6 +17,7 @@ import json
 import os
 import re
 import tempfile
+import time
 import unittest
 from datetime import datetime, timezone
 
@@ -365,8 +366,20 @@ class TheBuilderSaysWhetherItIsRunning(unittest.TestCase):
                 fh.write(sha + "\n")
         if locks is not None:
             os.mkdir(os.path.join(d, "locks"))
-            for name in locks:
-                open(os.path.join(d, "locks", name), "w").close()
+            for spec in locks:
+                # A plain name is a LIVE lock, written the way the builder
+                # writes one: "<pid> <unix seconds>" (DR-1651). A tuple
+                # (name, pid, age_seconds) builds a specific case, and a
+                # (name, body) pair writes the body verbatim.
+                if isinstance(spec, tuple) and len(spec) == 3:
+                    name, pid, age = spec
+                    body = f"{pid} {int(time.time()) - age}"
+                elif isinstance(spec, tuple):
+                    name, body = spec
+                else:
+                    name, body = spec, f"{os.getpid()} {int(time.time())}"
+                with open(os.path.join(d, "locks", name + ".lock"), "w", encoding="utf-8") as fh:
+                    fh.write(body)
         if status is not None:
             with open(os.path.join(d, "status.json"), "w", encoding="utf-8") as fh:
                 fh.write(status)
@@ -379,6 +392,58 @@ class TheBuilderSaysWhetherItIsRunning(unittest.TestCase):
         self.assertEqual(s["code_sha"], "a1b2c3d4e5f6")
         self.assertEqual(s["building"], 2)
         self.assertTrue(all(s["read"].values()))
+
+    def test_building_now_counts_builds_that_RUN_not_files_left_behind(self):
+        """DR-1651, measured 2026-11-24: the receipt read `building now: 24`
+        while nine rows waited and not one attempt count moved in two hours.
+        A build the budget kills never reaches release_row_lock, so its file
+        stays; acquire_row_lock() breaks such a lock on its next pass, so the
+        count was naming builds the builder itself had already written off.
+        This asks the builder's own question of the builder's own two fields."""
+        live = os.getpid()
+        gone = 2 ** 22 - 1  # a pid high enough to be free on any Linux box
+        d, run = self._home(locks=[
+            "live-one",                      # this process, now
+            ("live-two", live, 60),           # this process, a minute in
+            ("dead-pid", gone, 10),           # its process is gone
+            ("too-old", live, qc.LOCK_MAX_AGE_SECONDS + 1),  # past the budget
+            ("empty", ""),                    # nothing written
+            ("garbage", "not a pid at all"),  # unparseable
+            ("zero-pid", 0, 10),              # never a real build
+        ])
+        self.assertEqual(qc.builder_state(d, run)["building"], 2)
+        self.assertTrue(qc.builder_state(d, run)["read"]["building"])
+
+        # A file that is not a lock at all is not a build either.
+        d2, run2 = self._home(locks=["real"])
+        open(os.path.join(d2, "locks", "README"), "w").close()
+        self.assertEqual(qc.builder_state(d2, run2)["building"], 1)
+
+        # The ceiling is the builder's own budget plus its grace, so the two
+        # can never disagree about which locks are stale.
+        self.assertEqual(qc.LOCK_MAX_AGE_SECONDS, 2700 + 120)
+
+    def test_PROVEN_TO_CATCH_counting_every_file_is_the_old_lie(self):
+        """Count files instead of live locks and the case above must fail."""
+        live, gone = os.getpid(), 2 ** 22 - 1
+        specs = ["a", ("dead", gone, 10), ("stale", live, qc.LOCK_MAX_AGE_SECONDS + 1)]
+        d, run = self._home(locks=specs)
+        self.assertEqual(qc.builder_state(d, run)["building"], 1)
+        self.assertEqual(len(os.listdir(os.path.join(d, "locks"))), 3,
+                         "three files on disk, one build: the number must not be 3")
+
+    def test_an_unreadable_lock_directory_is_still_null_not_zero(self):
+        """The liveness test must not turn DR-0076 section 8 into a zero: a
+        directory nobody can list is `null` with read: false, as before."""
+        d, run = self._home(locks=None)
+        s = qc.builder_state(d, run)
+        self.assertIsNone(s["building"])
+        self.assertFalse(s["read"]["building"])
+        # ... while a directory that lists but holds only dead locks is a real 0
+        d2, run2 = self._home(locks=[("dead", 2 ** 22 - 1, 10)])
+        s2 = qc.builder_state(d2, run2)
+        self.assertEqual(s2["building"], 0)
+        self.assertTrue(s2["read"]["building"])
 
     def test_a_word_systemd_never_says_reads_unknown_not_stopped(self):
         d, _ = self._home()
