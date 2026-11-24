@@ -48,7 +48,7 @@ jobs:
       - name: Compose thumbnails (free; a failure here never loses paid work)
         if: always()
         continue-on-error: true
-        run: if [ "$ONLY" = all ]; then echo "library batch: compose is a separate free step"; else $CLI compose --only "${ONLY/#art:*/seed}"; fi
+        run: 'if [ "$ONLY" = all ]; then echo "library batch, compose runs as a separate free step"; else $CLI compose --only "${ONLY/#art:*/seed}"; fi'
       - name: Export the review package
         if: always()
         run: $CLI export --to .learn-presentation/review-export.json && $CLI status
