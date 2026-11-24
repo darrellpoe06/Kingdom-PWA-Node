@@ -81,6 +81,54 @@ budget:
 - **three `crashed`** (`RuntimeError`) — the next read is the builder's own log
   on the box, which needs the tailnet. Blocked on the key.
 
-So the recovery restored the *view* of the queue, not its *motion*. The two
-things that would move it are both outside this session: the key, and the
-quotation-gate decision.
+So the recovery restored the *view* of the queue, not its *motion*.
+
+## 5. The question that was never Darrell's — DR-1641
+
+The `span-without-reference` wall was reported three times on 2026-11-24 as a
+question for him: *may a lesson double-quote Bishop Gwin, or Darrell, without a
+Scripture reference?* **It was never a question.** Reading the builder rather
+than recollecting it:
+
+- `lesson_writer.py:85-87` — *"Every double-quoted span is Scripture and is
+  followed IMMEDIATELY by its reference... Use straight double quotes (") ONLY
+  for Scripture. Never put anyone else's words in double quotes."*
+- `lesson_writer.py:118-119` — *"never put Darrell's (or anyone's) words in
+  quotation marks."*
+
+The rule was already his, written to the writer twice, and the gate was
+enforcing it correctly. Parking the queue on a decision he had already made is
+the DR-0111 failure, and the stop-hook caught a fourth instance of it in the
+same session, on the retry-budget raise below.
+
+### What was actually wrong, in three facts read from code
+
+1. The writer disobeys an instruction it is given twice. The gate is right.
+2. The gate's named spans **do** reach the retry — `previous_failures()`
+   (`lesson_builder.py:814`) feeds them forward, DR-1552 working. More
+   instruction was never the missing piece.
+3. `MAX_ATTEMPTS` was **2**: one blind attempt, exactly one informed retry, then
+   abandonment. Six of the ten rows read `failed after 2` — they spent that one
+   informed retry and stopped.
+
+### Why the mend is asymmetric
+
+The two mistakes are not equal. Quotes left on a speaker's words change nothing
+— the gate refuses the draft exactly as it does today. Quotes taken off a verse
+would print the Word as our own prose. So every ambiguity answers "leave it":
+folded case, a straight apostrophe where the corpus writes U+2019, and an
+unreadable corpus all return True from `contains_phrase`. Only a span the corpus
+provably does not hold is mended; a span it holds keeps its quotes and fails the
+gate, because adding a reference means choosing a verse, and a verse is never
+guessed (DR-0076 §8).
+
+A case found one real defect while being written: `Corpus.files()` raises on a
+missing directory, so an absent corpus would have thrown inside the build and
+landed the teaching in the `crashed` class the queue is already full of. It is
+guarded now, and the case pins it.
+
+### What remains outside this session
+
+The tailnet key, which blocks the builder's own log for the three `crashed`
+rows, `nas-signin-heal`, `lessons-sync`, `camera-health` and both address
+pipelines. One expired secret, six stopped things.
