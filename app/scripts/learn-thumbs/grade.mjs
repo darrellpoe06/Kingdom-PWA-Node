@@ -22,6 +22,9 @@ import sharp from 'sharp';
 // One look per department. target = median luma (0..1) the exposure aims for;
 // wb = gray-world strength (0 none .. 1 full neutral); vib = vibrance; tint =
 // split-tone [shadowRGB, highlightRGB] multipliers; lift = max gamma lift.
+/** Bumped whenever the grade's output changes, so composed pictures are re-graded (free). */
+export const GRADE_VERSION = 2;
+
 export const LOOKS = Object.freeze({
   faith: {
     target: 0.46,

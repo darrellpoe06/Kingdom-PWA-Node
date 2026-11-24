@@ -156,7 +156,7 @@ async function main() {
     const composedDir = resolve(flags['composed-out'] || '.learn-presentation/composed');
     // The resolved, validated scope as a Set (pilot 1 crashed on the raw array).
     const want = scopeKeySet(items);
-    const { lookFor } = await import('../learn-thumbs/grade.mjs');
+    const { lookFor, GRADE_VERSION } = await import('../learn-thumbs/grade.mjs');
     const deptOf = new Map(inventory.map((c) => [c.key, c.department]));
     const base = String(flags['image-base'] || '/learn-thumbs');
     let done = 0; let skipped = 0; let failed = 0;
@@ -165,10 +165,10 @@ async function main() {
       if (!want.has(r.lessonId) && !want.has(`${r.courseKey}::${r.lessonId}`)) continue;
       // Every picture is graded (grade.mjs); an ungraded delivery is re-composed, free.
       const look = r.image.look || lookFor(deptOf.get(r.courseKey), r.courseKey);
-      if (r.image.delivery && r.image.delivery.sha256 === r.image.sha256 && r.image.delivery.look === look) { skipped += 1; continue; }
+      if (r.image.delivery && r.image.delivery.sha256 === r.image.sha256 && r.image.delivery.look === look && r.image.delivery.gradeVersion === GRADE_VERSION) { skipped += 1; continue; }
       try {
         const m = await composeLesson({ image: join(outDir, r.image.path), courseKey: r.courseKey, lessonId: r.lessonId, thumbHeadline: r.thumbHeadline, layout: flags.layout === 'right' ? 'right' : 'left', department: deptOf.get(r.courseKey) || '', outDir: composedDir, publicBase: base, look });
-        ledger.putRecord({ ...r, image: { ...r.image, delivery: { ...m.image, og: m.ogPath, width: m.width, height: m.height, sha256: m.sha256, dhash: m.dhash, look, grade: m.grade && { before: m.grade.before, after: m.grade.after } } } });
+        ledger.putRecord({ ...r, image: { ...r.image, delivery: { ...m.image, og: m.ogPath, width: m.width, height: m.height, sha256: m.sha256, dhash: m.dhash, look, gradeVersion: GRADE_VERSION, grade: m.grade && { before: m.grade.before, after: m.grade.after } } } });
         done += 1;
       } catch (e) { failed += 1; log(`compose failed ${r.courseKey}::${r.lessonId}: ${e.code || ''} ${e.message}`); }
     }
