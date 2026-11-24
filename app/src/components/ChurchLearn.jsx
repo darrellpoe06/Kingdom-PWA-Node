@@ -164,6 +164,10 @@ import { aggregateLearnerRecords } from '../lib/learner-records.js';
 import PoeTechShowcase from './PoeTechShowcase.jsx'; // DR-1428: a PoeTech subject points home from the Love Corner
 import LessonVideo from './LessonVideo.jsx'; // DR-1448: the lesson's walk-through, when one is recorded
 import { LESSON_DIAGRAMS } from './lesson-diagrams.jsx'; // DR-1611: lesson figures authored outside this file
+import LearnStudio from './learn-studio/LearnStudio.jsx'; // the redesigned Learn: owner preview, this device only
+import { isLearnStudioOn, presentationIndex } from '../lib/learn-presentation/presentation.js';
+import STUDIO_TOPICS_RAW from '../lib/learn-presentation/presentation-topics.json';
+import STUDIO_RECORDS_RAW from '../lib/learn-presentation/presentation-records.json';
 
 const fmtDate = formatClassDate;
 
@@ -4315,6 +4319,18 @@ function LessonPreviewBadge({ prUrl }) {
   );
 }
 
+// Learn Studio data: covers ship under public/learn-thumbs; their paths are stored
+// relative and resolved against the app's base here (web /poetech-app/, native /).
+const STUDIO_BASE = (import.meta.env && import.meta.env.BASE_URL) || '/';
+const studioSrc = (s) => (typeof s === 'string' ? s.replace(/(^|, )learn-thumbs\//g, `$1${STUDIO_BASE}learn-thumbs/`) : s);
+const studioImage = (im) => im && im.src && { ...im, src: studioSrc(im.src), srcSet: im.srcSet && { webp: studioSrc(im.srcSet.webp) } };
+function studioRecords() {
+  return ((STUDIO_RECORDS_RAW && STUDIO_RECORDS_RAW.records) || []).map((r) => ({ ...r, image: studioImage(r.image) }));
+}
+function studioTopics() {
+  return Object.fromEntries(Object.entries(STUDIO_TOPICS_RAW || {}).map(([k, v]) => [k, { ...v, image: studioImage(v.image) }]));
+}
+
 export default function ChurchLearn({
   cohortStart = PROPOSED_COHORT_START,
   cohortConfirmed = false,
@@ -4897,6 +4913,24 @@ export default function ChurchLearn({
 
   // FULL WIDTH, LIKE EVERY OTHER PAGE (Darrell 2026-09-14: "the lessons are
   // supposed to be the full width of the window... like all pages").
+  // THE REDESIGNED LEARN, OWNER PREVIEW (2026-11-24): shown only on a device that
+  // opted in (?learnStudio=1, remembered; ?learnStudio=0 turns it off). Every
+  // other member sees Learn exactly as before. Read / Listen / an age chip open
+  // the REAL lesson in this same reader; nothing about a lesson changes.
+  const studioFlag = useState(() => isLearnStudioOn())[0];
+  const [studio, setStudio] = useState(studioFlag);
+  const studioIndex = useMemo(() => presentationIndex(studioRecords()), []);
+  const openFromStudio = (x) => {
+    setStudio(false);
+    if (x && x.p) openLessonFromList(x.p.courseKey, x.p.lessonId);
+  };
+  if (studio) {
+    return (
+      <section className="w-full" aria-label="Learn">
+        <LearnStudio courses={courses} index={studioIndex} preview topicCovers={studioTopics()} onRead={openFromStudio} onListen={openFromStudio} onVersion={openFromStudio} onExit={() => setStudio(false)} />
+      </section>
+    );
+  }
   // MEASURED in a real browser at 1440px rather than guessed: window 1440,
   // <main> 1440, and the lesson card 768 -- constrained by exactly this one
   // `max-w-3xl` on the section below. It was the ONLY limiter in the whole
@@ -4905,6 +4939,11 @@ export default function ChurchLearn({
     <section className="w-full" aria-labelledby="learn-h">
       <div className="print:hidden">
         <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">Church · Learn</div>
+        {studioFlag && (
+          <button type="button" onClick={() => setStudio(true)} className="mt-2 text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border-2 border-[#1A1815] text-white bg-[#1A1815] hover:bg-[#3a352f] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">
+            ‹ New Learn (preview)
+          </button>
+        )}
         {/* THE DEPARTMENTS (DR-0432). One row of sliding tabs over the whole
             program: Courses (everything, as usual) and one tab per department
             derived from the catalog's own categories — so it reads like a

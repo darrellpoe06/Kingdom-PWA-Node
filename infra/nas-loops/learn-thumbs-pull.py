@@ -110,8 +110,7 @@ class Refused(Exception):
 
 
 def now_iso():
-    # timezone.utc, not datetime.UTC: the NAS runs Python 3.8 (DR-0306).
-    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")  # noqa: UP017 -- the NAS runs Python 3.8
 
 
 # ---- transport: the one place bytes cross the network -------------------------
