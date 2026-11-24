@@ -137,10 +137,61 @@ export function fromOfficeRows(rows) {
     // An event the office removed after it happened is ARCHIVED (DR-1596):
     // off the calendar's views, kept in the archive with when it was archived.
     const archivedAt = r.archived_at ?? r.archivedAt ?? null;
-    if (archivedAt) archived.push({ ...ev, rowId: r.id || null, archivedAt });
-    else events.push({ ...ev, rowId: r.id || null });
+    const full = { ...ev, rowId: r.id || null, ...originOf(r) };
+    if (archivedAt) archived.push({ ...full, archivedAt });
+    else events.push(full);
   }
   return { events, dropped, archived };
+}
+
+// ── where an office row came from (0343, DR-1628) ───────────────────────────
+const PICTURE_RE = /^[0-9a-f-]{36}\/[0-9a-f]{64}\.(jpeg|png|gif|webp)$/;
+/**
+ * { readFrom: 'calendar'|'flyer'|'', picturePath, sentBy, reusedFrom } for an
+ * office row: which office picture it was read from (and that picture's place
+ * in the archive), the unit whose leadership sent it, the event it reuses.
+ */
+export function originOf(r = {}) {
+  const read = String(r.read_from ?? r.readFrom ?? '');
+  const kind = /^(calendar|flyer):[0-9a-f]{64}$/.test(read) ? read.split(':')[0] : '';
+  const pic = String(r.picture_path ?? r.picturePath ?? '');
+  return {
+    readFrom: kind,
+    picturePath: PICTURE_RE.test(pic) ? pic : '',
+    sentBy: asStr(r.sent_by_unit ?? r.sentBy ?? ''),
+    reusedFrom: asStr(r.reused_from ?? r.reusedFrom ?? '') || null,
+  };
+}
+
+/** "From the office's calendar" · "From the office's flyer" · "Sent in by Choir leadership" — or ''. */
+export function originLine(ev) {
+  if (!ev) return '';
+  if (ev.sentBy) return `Sent in by ${ev.sentBy} leadership`;
+  if (ev.readFrom === 'calendar') return 'From the office’s calendar';
+  if (ev.readFrom === 'flyer') return 'From the office’s flyer';
+  return '';
+}
+
+/**
+ * "Use again" (Darrell 2026-11-24: "staff should be able to reuse it with
+ * updated information"): a draft of the same event 52 weeks later, so it lands
+ * on the same weekday next year (Battle Cry Sunday stays a Sunday). Every
+ * field stays editable; nothing is filed until the person adds it.
+ */
+export function againDraft(ev) {
+  if (!ev || !isDateKey(ev.date)) return null;
+  const span = ev.endDate && isDateKey(ev.endDate) ? (toDate(ev.endDate) - toDate(ev.date)) / 86400000 : 0;
+  const date = addDays(ev.date, 364);
+  return {
+    name: ev.name || '',
+    date,
+    endDate: span > 0 ? addDays(date, span) : '',
+    time: ev.time || '',
+    place: ev.place || '',
+    detail: ev.detail || '',
+    reusedFrom: ev.rowId || null,
+    fromLabel: longDate(ev.date),
+  };
 }
 
 /** One list, one record per id (an office row wins over a bundled one), in date then time order. */

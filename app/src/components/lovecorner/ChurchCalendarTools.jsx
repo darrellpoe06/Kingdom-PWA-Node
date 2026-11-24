@@ -6,27 +6,36 @@
 // to and for the church Calendar inside the church app."
 //
 // WHO SEES WHAT. Download is for everyone (the calendar is the church's, and
-// it leaves in a standard file). Add and Upload render only for the church
-// office; the database is the real gate (0099's write policies), this only
-// decides what to show.
+// it leaves in a standard file). Upload renders only for the church office.
+// Add renders for the office AND for a unit leader the office named (0343,
+// DR-1628: "office staff and sent in by minister leadership over units"); a
+// leader adds for their own unit, and the row says which unit sent it. The
+// database is the real gate (church_calendar_post); this only decides what to
+// show.
+//
+// USE AGAIN (DR-1628: "staff should be able to reuse it with updated
+// information"): a past event's "Use again" opens this form already filled,
+// 52 weeks later on the same weekday; every field stays editable and nothing
+// is filed until the person presses Add.
 //
 // THE UPLOAD NEVER ADDS ON CHOOSING A FILE. Choosing a file shows what was
 // read: how many events are ready, how many are already on the calendar, and
 // every row that could not be read with its line and reason. Nothing is filed
 // until the office presses the button that names the count.
 // =============================================================================
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { makeEvent, longDate } from '../../lib/church-calendar.js';
 import { parseEventsCsv, notAlreadyThere, eventsToCsv, CSV_TEMPLATE, MAX_FILE_BYTES } from '../../lib/church-calendar-file.js';
 
 // The ring's width and offset; its color is the app's one global ring (index.css :focus-visible), never set here.
 const FOCUS = 'focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2';
 
-const BLANK = { name: '', date: '', endDate: '', time: '', place: '', detail: '' };
+const BLANK = { name: '', date: '', endDate: '', time: '', place: '', detail: '', unit: '', reusedFrom: null, fromLabel: '' };
+const OFFICE = '';
 const WHY = {
   'signed-out': 'You are signed out. Sign in and try again.',
   'no-church': 'This account is not in a church yet.',
-  refused: 'The church’s records did not accept this. Only the church office can add to the calendar.',
+  refused: 'The church’s records did not accept this. Only the church office, or a unit leader the office named, can add to the calendar.',
   timeout: 'The church’s records took too long to answer. Nothing more was added; try again.',
   unavailable: 'The church’s records could not be reached. Try again.',
   invalid: 'An event needs a name and a real date.',
@@ -45,13 +54,38 @@ function saveFile(name, text) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-export default function ChurchCalendarTools({ events = [], canManage = false, onAdd = null, onChanged = null, download = saveFile }) {
+export default function ChurchCalendarTools({
+  events = [],
+  canManage = false,
+  units = [],
+  onAdd = null,
+  onPost = null,
+  onChanged = null,
+  draft = null,
+  download = saveFile,
+}) {
   const [open, setOpen] = useState('');
   const [form, setForm] = useState(BLANK);
+  const canAdd = canManage || units.length > 0;
+  const formRef = useRef(null);
   const [busy, setBusy] = useState(false);
   const [said, setSaid] = useState({ kind: '', text: '' });
   const [read, setRead] = useState(null);
   const fileRef = useRef(null);
+  // "Use again" from a day: open the form filled with that event, a year on.
+  useEffect(() => {
+    if (!draft || !canAdd) return;
+    setForm({ ...BLANK, ...draft, unit: canManage ? OFFICE : units[0] || '' });
+    setOpen('add');
+    setSaid({ kind: '', text: '' });
+    setTimeout(() => {
+      const el = formRef.current;
+      if (el && el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      const first = el && el.querySelector('[data-testid="church-calendar-add-name"]');
+      if (first) first.focus();
+    }, 0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draft]);
   const dated = events.filter((e) => e.source !== 'service');
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
   const toggle = (which) => {
@@ -59,12 +93,13 @@ export default function ChurchCalendarTools({ events = [], canManage = false, on
     setSaid({ kind: '', text: '' });
   };
 
-  const file = async (list, done) => {
-    if (!onAdd || busy) return;
+  const file = async (list, done, { unit = '', reusedFrom = null } = {}) => {
+    const one = list.length === 1 && onPost;
+    if ((!onAdd && !one) || busy) return;
     setBusy(true);
     let r;
     try {
-      r = await onAdd(list);
+      r = one ? await onPost(list[0], { unit, reusedFrom }) : await onAdd(list);
     } catch {
       r = { skipped: 'unavailable', saved: 0 };
     }
@@ -84,7 +119,8 @@ export default function ChurchCalendarTools({ events = [], canManage = false, on
     if (!ev) return setSaid({ kind: 'bad', text: WHY.invalid });
     if (form.endDate && !ev.endDate) return setSaid({ kind: 'bad', text: 'The last day must be a real date after the first day.' });
     if (notAlreadyThere([ev], dated).dupes.length) return setSaid({ kind: 'bad', text: `${ev.name} is already on the calendar for ${longDate(ev.date)}.` });
-    return file([ev], () => setForm(BLANK));
+    if (!canManage && !units.includes(form.unit)) return setSaid({ kind: 'bad', text: 'Choose the unit this event is for.' });
+    return file([ev], () => setForm(BLANK), { unit: form.unit, reusedFrom: form.reusedFrom });
   };
 
   const chooseFile = async (e) => {
@@ -111,17 +147,22 @@ export default function ChurchCalendarTools({ events = [], canManage = false, on
   return (
     <div className="cc-tools" data-testid="church-calendar-tools">
       <div className="cc-tools-row">
+        {canAdd && (
+          <button
+            type="button"
+            className={`cc-btn ${FOCUS}`}
+            aria-expanded={open === 'add'}
+            onClick={() => {
+              if (open !== 'add') setForm({ ...BLANK, unit: canManage ? OFFICE : units[0] || '' });
+              toggle('add');
+            }}
+            data-testid="church-calendar-add-open"
+          >
+            {canManage ? 'Add an event' : 'Send in an event'}
+          </button>
+        )}
         {canManage && (
           <>
-            <button
-              type="button"
-              className={`cc-btn ${FOCUS}`}
-              aria-expanded={open === 'add'}
-              onClick={() => toggle('add')}
-              data-testid="church-calendar-add-open"
-            >
-              Add an event
-            </button>
             <button
               type="button"
               className={`cc-btn ${FOCUS}`}
@@ -144,8 +185,35 @@ export default function ChurchCalendarTools({ events = [], canManage = false, on
         </button>
       </div>
 
-      {canManage && open === 'add' && (
-        <form className="cc-form" onSubmit={submitOne} data-testid="church-calendar-add-form">
+      {canAdd && open === 'add' && (
+        <form ref={formRef} className="cc-form" onSubmit={submitOne} data-testid="church-calendar-add-form">
+          {form.reusedFrom && (
+            <p className="cc-note" data-testid="church-calendar-reuse-note">
+              Using again the event of {form.fromLabel}. The day is set one year on, on the same weekday; change anything that is different this time.
+            </p>
+          )}
+          {(units.length > 0 || canManage) && (
+            <label className="cc-field">
+              <span>{canManage ? 'Who it is from' : 'Your unit'}</span>
+              {canManage ? (
+                <input
+                  value={form.unit}
+                  onChange={set('unit')}
+                  maxLength={80}
+                  placeholder="The church office (or name a unit, like Choir)"
+                  data-testid="church-calendar-add-unit"
+                />
+              ) : (
+                <select value={form.unit} onChange={set('unit')} required data-testid="church-calendar-add-unit">
+                  {units.map((u) => (
+                    <option key={u} value={u}>
+                      {u}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </label>
+          )}
           <label className="cc-field">
             <span>Event name</span>
             <input value={form.name} onChange={set('name')} required maxLength={160} data-testid="church-calendar-add-name" />
@@ -173,7 +241,10 @@ export default function ChurchCalendarTools({ events = [], canManage = false, on
           <button type="submit" className={`cc-btn cc-btn-solid ${FOCUS}`} disabled={busy} data-testid="church-calendar-add-submit">
             {busy ? 'Adding…' : 'Add to the church calendar'}
           </button>
-          <p className="cc-note">Everyone signed in at this church sees it once it is added.</p>
+          <p className="cc-note">
+            Everyone signed in at this church sees it on its day once it is added
+            {canManage ? '.' : `, marked as sent in by ${form.unit || 'your unit'} leadership. The church office can take it off.`}
+          </p>
         </form>
       )}
 

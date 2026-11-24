@@ -24,6 +24,9 @@ import { removalOutcome } from './church-archive.js';
 
 export const READ_TIMEOUT_MS = 8000;
 const ROW_COLUMNS = 'id, ministry, title, detail, week_of, member_visible';
+// 0343 (DR-1628): which office picture a row was read from, the picture
+// itself, the unit whose leadership sent it in, and the event it reuses.
+const SOURCE_COLUMNS = 'read_from, picture_path, sent_by_unit, reused_from';
 
 const timeout = (ms) => new Promise((resolve) => setTimeout(() => resolve({ timedOut: true }), ms));
 
@@ -38,10 +41,14 @@ export async function readCalendarRows({ client = supabase, resolveChurch = chur
     if (!church.value) return none('no-church');
     const read = (cols) =>
       client.from('ministry_ops').select(cols).eq('instance_id', church.value).eq('ministry', CALENDAR_MINISTRY).order('week_of', { ascending: true });
-    let res = await Promise.race([read(`${ROW_COLUMNS}, archived_at`), timeout(timeoutMs)]);
-    // Until 0342 has applied on the database the app reads, archived_at is not
-    // a column; the calendar still reads, with nothing archived (DR-1596).
-    if (res && !res.timedOut && res.error) res = await Promise.race([read(ROW_COLUMNS), timeout(timeoutMs)]);
+    // Newest columns first; until 0343 / 0342 have applied on the database
+    // the app reads, the calendar still reads with what is there (DR-1596,
+    // DR-1628): no source marks, then nothing archived.
+    let res;
+    for (const cols of [`${ROW_COLUMNS}, archived_at, ${SOURCE_COLUMNS}`, `${ROW_COLUMNS}, archived_at`, ROW_COLUMNS]) {
+      res = await Promise.race([read(cols), timeout(timeoutMs)]);
+      if (!res || res.timedOut || !res.error) break;
+    }
     if (!res || res.timedOut || res.error) return none('unavailable');
     return { status: 'ok', rows: Array.isArray(res.data) ? res.data : [] };
   } catch {
@@ -95,16 +102,61 @@ async function officeContext({ client, resolveChurch, timeoutMs }) {
   return { tenantId: church.value, userId: data.session.user.id };
 }
 
-/** { canManage, unavailable } for the signed-in reader in their church. Never throws; unknown is not a yes. */
+/**
+ * What the signed-in reader may do to their church's calendar:
+ * { canManage (the office), units (the units the office named them a leader
+ * over), unavailable }. Asked of church_calendar_can_post() (0343); until it
+ * is there, the role alone answers (the office, no units). Never throws;
+ * unknown is not a yes.
+ */
 export async function getCalendarAccess({ client = supabase, resolveChurch = churchInstanceResolve, roleOf = askRole, timeoutMs = READ_TIMEOUT_MS } = {}) {
+  const no = (unavailable) => ({ canManage: false, units: [], unavailable });
   try {
     const ctx = await officeContext({ client, resolveChurch, timeoutMs });
-    if (ctx.skipped) return { canManage: false, unavailable: ctx.skipped === 'unavailable' };
+    if (ctx.skipped) return no(ctx.skipped === 'unavailable');
+    const asked = await Promise.race([client.rpc('church_calendar_can_post', { instance_in: ctx.tenantId }), timeout(timeoutMs)]);
+    if (asked && !asked.timedOut && !asked.error && asked.data && typeof asked.data === 'object') {
+      const units = Array.isArray(asked.data.units) ? asked.data.units.filter((u) => typeof u === 'string' && u.trim()) : [];
+      return { canManage: asked.data.office === true, units, unavailable: false };
+    }
+    if (asked && !asked.timedOut && asked.error && !rpcMissing(asked.error)) return no(true);
     const role = await Promise.race([roleOf(ctx.tenantId), timeout(timeoutMs)]);
-    if (!role || role.timedOut || !role.ok) return { canManage: false, unavailable: true };
-    return { canManage: isOffice(role.value), unavailable: false };
+    if (!role || role.timedOut || !role.ok) return no(true);
+    return { canManage: isOffice(role.value), units: [], unavailable: false };
   } catch {
-    return { canManage: false, unavailable: true };
+    return no(true);
+  }
+}
+
+/**
+ * One event added by a person through church_calendar_post() (0343): the
+ * office for the church (unit '') or any unit, a named leader for their unit.
+ * `reusedFrom` is the row id of the past event it was made from ("Use
+ * again"). { saved: 1, id } or { skipped: reason }. Until 0343 is there, the
+ * office's own add (addCalendarEvents) files it. Never throws.
+ */
+export async function postCalendarEvent(ev, { unit = '', reusedFrom = null, client = supabase, resolveChurch = churchInstanceResolve, timeoutMs = WRITE_TIMEOUT_MS } = {}) {
+  if (!ev || !String(ev.name || '').trim() || !isDateKey(ev.date)) return { skipped: 'invalid', saved: 0 };
+  try {
+    const ctx = await officeContext({ client, resolveChurch, timeoutMs });
+    if (ctx.skipped) return { skipped: ctx.skipped, saved: 0 };
+    const res = await Promise.race([
+      client.rpc('church_calendar_post', {
+        instance_in: ctx.tenantId,
+        title_in: String(ev.name).trim(),
+        date_in: ev.date,
+        detail_in: encodeDetail({ time: ev.time, place: ev.place, endDate: ev.endDate, detail: ev.detail }) || null,
+        unit_in: String(unit || '').trim() || null,
+        reused_from_in: reusedFrom || null,
+      }),
+      timeout(timeoutMs),
+    ]);
+    if (!res || res.timedOut) return { skipped: 'timeout', saved: 0 };
+    if (!res.error) return { saved: 1, id: res.data || null };
+    if (rpcMissing(res.error) && !unit) return addCalendarEvents([ev], { client, resolveChurch, timeoutMs });
+    return { skipped: 'refused', saved: 0 };
+  } catch {
+    return { skipped: 'unavailable', saved: 0 };
   }
 }
 
@@ -178,20 +230,21 @@ const rpcMissing = (error) => error && (error.code === 'PGRST202' || /could not 
 
 /** Whether to show the office's tools; false until answered. */
 export function useCalendarAccess(enabled, asker = getCalendarAccess) {
-  const [access, setAccess] = useState({ canManage: false, unavailable: false });
+  const [access, setAccess] = useState({ canManage: false, units: [], unavailable: false });
   useEffect(() => {
     if (!enabled) {
-      setAccess({ canManage: false, unavailable: false });
+      setAccess({ canManage: false, units: [], unavailable: false });
       return undefined;
     }
     let cancelled = false;
     Promise.resolve()
       .then(() => asker())
       .then((a) => {
-        if (!cancelled) setAccess({ canManage: a && a.canManage === true, unavailable: !!(a && a.unavailable) });
+        if (!cancelled)
+          setAccess({ canManage: a && a.canManage === true, units: a && Array.isArray(a.units) ? a.units : [], unavailable: !!(a && a.unavailable) });
       })
       .catch(() => {
-        if (!cancelled) setAccess({ canManage: false, unavailable: true });
+        if (!cancelled) setAccess({ canManage: false, units: [], unavailable: true });
       });
     return () => {
       cancelled = true;

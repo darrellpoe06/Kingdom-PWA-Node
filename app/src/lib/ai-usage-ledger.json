@@ -870,6 +870,21 @@
       "notes": "Measured worktree creation (16:31:16Z, stat) to the commit (16:54:18Z, git %cI) on claude/a-present-base-can-still-be-stale: 23m02s, which includes the three timed fetches (776/808/965 ms) that replaced my own asserted cost argument with a number, and correcting three DR-1363 citations to DR-1365 after the renumber cascade moved my number. NOT on that clock: #2571's red that exposed it, and the renumber of #2571 off DR-1360 after another session landed that number. Tokens and dollars null: no meter exposed. Estimate is this session's own, not a measurement."
     },
     {
+      "id": "every-event-lives-on-its-day",
+      "date": "2026-11-24",
+      "task": "Church calendar: office pictures read onto their days once, perpetual; unit leaders; Use again; upload from before; dark-theme headings",
+      "drs": [
+        "DR-1628"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 2.5,
+      "estimateWithoutAiHours": 24,
+      "notes": "0343 smoke PASS twice, two walls proven to catch; pull/read/file rehearsed on mocks (caught the Sunday Worship slip); the real read of the November picture is measured on the first dispatched run after merge, re-review 2026-11-27."
+    },
+    {
       "id": "lesson-ll325-god-is-able",
       "date": "2026-11-18",
       "task": "L325 Yahweh Is Able: a Living Lesson built from Bishop Gwin's written Wednesday proclamation (2 Corinthians 9:8), his four points and his passages in KJV",
