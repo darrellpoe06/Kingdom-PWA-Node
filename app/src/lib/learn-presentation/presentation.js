@@ -67,7 +67,7 @@ export function presentationIndex(records = seed.records) {
  * How one lesson is presented. `preview` lets the prototype (and the admin
  * review screen) show records still in review; a learner build passes false.
  */
-export function presentLesson(lesson, course, index, { preview = false } = {}) {
+export function presentLesson(lesson, course, index, { preview = false, lite = false } = {}) {
   if (!lesson || !lesson.id) return null;
   const original = typeof lesson.title === 'string' ? lesson.title : '';
   const rec = index && index.get(lesson.id);
@@ -93,11 +93,45 @@ export function presentLesson(lesson, course, index, { preview = false } = {}) {
     featuredOrder: usable && rec.featured ? Number(rec.featuredOrder) || 99 : null,
     code: course ? `${departmentCode(courseDepartment(course))}${lessonNumber(lesson, course) ?? ''}` : '',
     number: lessonNumber(lesson, course),
-    duration: listenDuration(lesson),
-    versions: lessonVersions(lesson),
-    hasVideo: hasRealVideo(lesson),
+    // `lite` skips the costly reads (spoken length, age-version measurement) for
+    // lessons that are only counted or filtered, never drawn: measured 2026-11-24
+    // at ~600ms per home render / per search keystroke over 994 lessons without it.
+    duration: lite ? null : measured(lesson, 'duration', listenDuration),
+    versions: lite ? [] : measured(lesson, 'versions', lessonVersions),
+    hasVideo: lite ? false : measured(lesson, 'hasVideo', hasRealVideo),
   };
 }
+
+/**
+ * A catalog SNAPSHOT (catalogSnapshot below) carries the three measurements the
+ * doorway draws, taken by these same functions on the real lesson; a live lesson
+ * is measured live. Same numbers either way, never invented.
+ */
+function measured(lesson, key, measure) {
+  const m = lesson && lesson.presentedMeasure;
+  return m && Object.prototype.hasOwnProperty.call(m, key) ? m[key] : measure(lesson);
+}
+
+/**
+ * The catalog as the doorway needs it: every course and lesson id, title and date,
+ * with the measurements pre-taken, and no lesson text (a 994-lesson catalog is ~40 MB
+ * of text; this is what a page that only SHOWS the doorway has to carry).
+ */
+export function catalogSnapshot(courses) {
+  return (Array.isArray(courses) ? courses : []).map((c) => ({
+    key: c.key,
+    meta: c.meta,
+    schedule: (c.schedule || []).map((l) => ({
+      id: l.id,
+      title: l.title,
+      ...(typeof l.added === 'string' ? { added: l.added } : {}),
+      presentedMeasure: { duration: listenDuration(l), versions: lessonVersions(l), hasVideo: hasRealVideo(l) },
+    })),
+  }));
+}
+
+/** Upgrade a lite row to the full presentation (only for what is drawn). */
+const full = (x, index, preview) => ({ ...x, p: presentLesson(x.lesson, x.course, index, { preview }) });
 
 /** The lesson number a reader knows: the number in its id (ll338 → 338), else its place in the course. */
 export function lessonNumber(lesson, course) {
@@ -142,17 +176,43 @@ export const SHELVES = Object.freeze([
   { id: 'discover', label: 'History & Mathematics', departments: ['History', 'Mathematics'] },
 ]);
 
+/** The Explore-by-Topic shelf a department belongs to (its approved cover art). */
+export function shelfForDepartment(department) {
+  const s = SHELVES.find((x) => x.departments.includes(department));
+  return s ? s.id : null;
+}
+
+/**
+ * The headline on a TEMPORARY cover (a lesson still waiting for its own picture):
+ * the record's own headline when it has one; else the title's main clause when it
+ * is short; else the course title; else the first four words. Never invented copy.
+ */
+export function interimHeadline(p) {
+  if (!p) return '';
+  if (p.thumbHeadline) return p.thumbHeadline;
+  const words = (t) =>
+    String(t || '')
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean);
+  const main = words(String(p.displayTitle || p.originalTitle || '').split(/\s[—–-]\s|[:—–(]/)[0]);
+  if (main.length && main.length <= 6) return main.join(' ');
+  const course = words(p.courseTitle);
+  if (course.length && course.length <= 5) return course.join(' ');
+  return main.slice(0, 4).join(' ');
+}
+
 /** The home page, derived from the mounted catalog, the device's places and the record index. */
 export function studioHome(courses, index, { places = [], progress = {}, preview = false } = {}) {
-  const lessons = allLessons(courses).map(({ lesson, course }) => ({ lesson, course, p: presentLesson(lesson, course, index, { preview }) }));
-  const presented = lessons.filter((x) => x.p.hasPresentation);
+  const lessons = allLessons(courses).map(({ lesson, course }) => ({ lesson, course, p: presentLesson(lesson, course, index, { preview, lite: true }) }));
+  const presented = lessons.filter((x) => x.p.hasPresentation).map((x) => full(x, index, preview));
   const byId = new Map(lessons.map((x) => [`${x.p.courseKey}::${x.p.lessonId}`, x]));
   const featuredAll = presented.filter((x) => x.p.featured).sort((a, b) => a.p.featuredOrder - b.p.featuredOrder);
   const featured = featuredAll[0] || null;
   const continueLearning = (Array.isArray(places) ? places : [])
     .map((pl) => {
       const x = byId.get(`${pl.courseKey}::${pl.lessonId}`);
-      return x ? { ...x, reached: placeReached(pl) } : null;
+      return x ? { ...full(x, index, preview), reached: placeReached(pl) } : null;
     })
     .filter(Boolean)
     .slice(0, 12);
@@ -192,12 +252,14 @@ export function searchPresented(courses, index, query, { preview = false } = {})
     .toLowerCase();
   if (!q) return [];
   return allLessons(courses)
-    .map(({ lesson, course }) => ({ lesson, course, p: presentLesson(lesson, course, index, { preview }) }))
+    .map(({ lesson, course }) => ({ lesson, course, p: presentLesson(lesson, course, index, { preview, lite: true }) }))
     .filter(({ p }) =>
       [p.originalTitle, p.displayTitle, p.thumbHeadline, p.promoDescription, p.courseTitle, p.department, p.number != null ? String(p.number) : ''].some((s) =>
         String(s || '')
           .toLowerCase()
           .includes(q)
       )
-    );
+    )
+    .slice(0, 200)
+    .map((x) => full(x, index, preview));
 }

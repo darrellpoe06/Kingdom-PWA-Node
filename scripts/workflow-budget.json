@@ -294,7 +294,14 @@
       "to": 23699,
       "dr": "DR-1648",
       "reason": "One new required CI leg in ci.yml, nas-python38 (17 lines): it runs the NAS-side Python guard and the nas-loops tests inside python:3.8.15, the NAS's own interpreter, because every other leg runs 3.11+ and that is how datetime.UTC shipped and broke bg-message-lessons on the box every cycle. A timeout as its brake. Raised to the measured total, not above it."
+    },
+    {
+      "date": "2026-11-24",
+      "from": 23699,
+      "to": 23762,
+      "dr": "DR-1640",
+      "reason": "This branch's Learn picture lanes, re-measured on main after the merge: learn-thumbs-pull wiring (ci.yml +1 test, loops-health.yml +8), learn-imagegen-tower.yml (+54: a read-only tower probe whose key-shape step names why a tailnet key is refused without printing it), and the learn-presentation-prepare storage-first gate (header folded, net 0). Previously recorded on the branch as 23649->23658->23708->23712; main moved under it, so one raise to the measured merged total, not above it."
     }
   ],
-  "totalLines": 23699
+  "totalLines": 23762
 }

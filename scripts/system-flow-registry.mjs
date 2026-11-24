@@ -427,6 +427,18 @@ const NODES = [
     writes: [{ res: 'db:agent_inbox#lesson', token: 'row_for' }],
     seeds: ['lesson-builder'],
   }),
+  // DR-1360: the NAS pulls each learn-presentation review artifact before it
+  // expires and keeps the paid pictures; no runner pushes into the house.
+  rider('service:learn-thumbs-pull', 'infra/nas-loops/learn-thumbs-pull.py', {
+    id: 'learn-thumbs-pull', name: 'The NAS keeps the paid Learn pictures',
+    purpose: 'Once an hour on the services-sync clock the NAS lists the learn-presentation-review artifacts, downloads each new one with its own token (never sent to the blob host), checks the digest, refuses an unsafe zip, and keeps the pictures as masters and the run ledger beside them, never over a different picture.',
+    reads: [
+      { res: 'nas:clock', token: 'services-sync' },
+      { res: 'gh:artifact:learn-presentation-review', token: 'learn-presentation-review-' },
+    ],
+    writes: [{ res: 'nas:learn-thumbs', token: 'def place' }],
+    seeds: [],
+  }),
   rider('service:lesson-queue-census', 'infra/nas-loops/lesson-queue-census.py', {
     id: 'lesson-queue-census', name: 'Lesson queue census (the house counts its own queue)',
     purpose: 'One row per services-sync cycle, patched in place: how many lesson rows wait, by road and by shape, the oldest wait, and the exclusion list used — so the queue is readable with no runner reaching into the NAS and no tailnet key alive (DR-1360). Counts and tag shapes only, never a body.',
@@ -1351,6 +1363,11 @@ const NODES = [
     id: 'llm-road-probe', name: 'llm road probe (read-only)',
     purpose: 'On dispatch: asks /llm/health from outside, then over the tailnet reads which Funnel mounts exist, which ports listen and which one answers /llm/health, so Ari\u2019s road is added to the watchdog with the port it really has; nothing is restarted, written or mounted.',
     reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }, { res: 'http:llm', token: '/llm/health' }], writes: [], seeds: [],
+  }),
+  wf('learn-imagegen-tower.yml', {
+    id: 'learn-imagegen-tower', name: 'Learn image service (tower)',
+    purpose: 'Reads the church 4070 tower (GPU, free VRAM, what else uses the GPU, disk, Docker, any ComfyUI and its models) before the Learn pictures move off the paid service onto our own hardware; read-only, nothing is downloaded, started or changed (DR-1640).',
+    reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }], writes: [], seeds: [],
   }),
   wf('church-site-archive.yml', {
     id: 'church-site-archive', name: 'Church site archive (daily)',
@@ -2511,6 +2528,7 @@ const RESOURCES = {
   'hosted:db': { label: 'the retired hosted database' },
   'http:nas-photos': { label: 'photo server on the NAS', route: '/nas-photos' },
   'http:api.bfl.ai': { label: 'Black Forest Labs image API (FLUX), prepaid credits', source: 'An outside paid provider: generates the text-free thumbnail masters for the Learn presentation pipeline; the workflow spends at most its per-run cap (DR-0076 budget brake).' },
+  'nas:learn-thumbs': { label: 'the paid Learn pictures kept on the NAS (masters + each run\u2019s ledger)', sink: 'The durable copy of pictures already paid for, kept because the GitHub artifact expires and the runner cache evicts in 7 days; a person reads it at /volume1/PoeTech/learn-thumbs, and a later publish or re-compose step reads the masters from here rather than paying again.' },
   'gh:artifact:learn-presentation-review': { label: 'the Learn thumbnail review package (records + composed images)', sink: 'The owner reviews it before approval; approved records are published to the Learn presentation store in a separate, approved step (migration 0343), never automatically.' },
   'http:api.anthropic.com': { label: 'Anthropic Messages API (lesson display titles)', source: 'An outside provider: writes the promotional title, headline and image prompt from the lesson text; every result is machine-validated and stays in review until a person approves.' },
   'http:voice': { label: 'the reading voice studio', route: '/voice' },

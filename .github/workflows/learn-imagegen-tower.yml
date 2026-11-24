@@ -1,0 +1,53 @@
+# Learn image service on the 4070 tower (tlcmediadpt): READ-ONLY probe first; samples only after the probe is read. No BFL, no money.
+# Road: arm-voice-studio's (tailnet + NAS_SSH_KEY as creed, PowerShell; DR-0579/0581). Triggered by a committed change to infra/learn-imagegen/request.json.
+name: Learn image service (tower)
+on:
+  push:
+    paths: ['infra/learn-imagegen/request.json']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: learn-imagegen-tower
+  cancel-in-progress: false
+jobs:
+  tower:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      H: tlcmediadpt.tail5a2f35.ts.net
+      U: creed
+    steps:
+      - uses: actions/checkout@v7
+      - name: The stored key's shape and saved-at (never a character of it)
+        env: { K: '${{ secrets.TS_AUTHKEY }}', GH_TOKEN: '${{ github.token }}', LANE: '${{ secrets.LANE_PUSH_TOKEN }}' }
+        run: bash infra/learn-imagegen/key-shape.sh shape
+      - name: Join the tailnet
+        uses: ./.github/actions/join-tailnet
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          authkey: ${{ secrets.TS_AUTHKEY }}
+      - run: bash infra/learn-imagegen/key-shape.sh tailnet
+      - name: Read the tower (read-only; changes nothing)
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          set -uo pipefail
+          umask 077; printf '%s\n' "$NAS_SSH_KEY" > /tmp/k
+          MODE=$(node -e 'console.log(JSON.parse(require("fs").readFileSync("infra/learn-imagegen/request.json","utf8")).mode)')
+          echo "mode: $MODE"
+          if [ "$MODE" != probe ]; then echo "::error::only the read-only probe is built yet (mode=$MODE)"; exit 1; fi
+          S="ssh -i /tmp/k -o BatchMode=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 $U@$H"
+          if ! $S 'exit' 2>/tmp/ssh.err; then echo "::error::the tower refuses the CI key for $U ($(head -c 200 /tmp/ssh.err)); arm-voice-studio.yml places it (DR-0581)"; rm -f /tmp/k; exit 1; fi
+          B64=$(iconv -f UTF-8 -t UTF-16LE infra/learn-imagegen/probe.ps1 | base64 -w0)
+          $S "powershell -NoProfile -EncodedCommand $B64" > /tmp/probe.txt 2>&1; echo "probe exit: $?"
+          rm -f /tmp/k
+          cat /tmp/probe.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: learn-imagegen-probe-${{ github.run_id }}
+          path: /tmp/probe.txt
+          retention-days: 30
+          if-no-files-found: ignore

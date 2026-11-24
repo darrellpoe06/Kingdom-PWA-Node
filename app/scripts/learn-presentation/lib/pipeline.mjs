@@ -24,25 +24,55 @@ import { courseDepartment } from '../../../src/lib/learn-organize.js';
 import { validateRecords } from '../../../src/lib/learn-presentation/validate.js';
 import { withTimeout, retry, pool, realSleep } from './limits.mjs';
 import { idempotencyKey } from './ledger.mjs';
-import { SYSTEM_PROMPT, userPrompt, parseCopy, finalImagePrompt, isParseFault } from './prompts.mjs';
+import { SYSTEM_PROMPT, userPrompt, parseCopy, finalImagePrompt, isParseFault, bannedArtTerms } from './prompts.mjs';
+
+/**
+ * The picture prompt meets the art direction (no dark-pilot terms) and DR-1640
+ * (African American people named in every picture). Empty = fit to buy.
+ */
+export function pictureProblems(prompt) {
+  const out = [];
+  const bad = bannedArtTerms(prompt);
+  if (bad.length) out.push(`image-prompt-dark-terms (${bad.join(', ')}): use bright natural daylight`);
+  if (!/\bBlack\b/.test(String(prompt || ''))) out.push('image-prompt-no-black-people (DR-1640): name the African American / Black people in the picture');
+  return out;
+}
 
 export const sha256 = (data) => createHash('sha256').update(data).digest('hex');
-const norm = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+const norm = (s) =>
+  String(s || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
 
 export class BudgetExceeded extends Error {
-  constructor(msg) { super(msg); this.name = 'BudgetExceeded'; this.retryable = false; }
+  constructor(msg) {
+    super(msg);
+    this.name = 'BudgetExceeded';
+    this.retryable = false;
+  }
 }
 
 /** Reserve before spending; settle after. Never lets a call start that could cross the cap. */
 export class Budget {
-  constructor(capCents, alreadySpent = 0) { this.cap = capCents == null ? Infinity : Number(capCents); this.spent = alreadySpent; this.reserved = 0; }
+  constructor(capCents, alreadySpent = 0) {
+    this.cap = capCents == null ? Infinity : Number(capCents);
+    this.spent = alreadySpent;
+    this.reserved = 0;
+  }
   reserve(cents) {
-    if (this.spent + this.reserved + cents > this.cap) throw new BudgetExceeded(`budget cap ${this.cap}¢ reached (spent ${this.spent}¢, reserved ${this.reserved}¢, next call ${cents}¢)`);
+    if (this.spent + this.reserved + cents > this.cap)
+      throw new BudgetExceeded(`budget cap ${this.cap}¢ reached (spent ${this.spent}¢, reserved ${this.reserved}¢, next call ${cents}¢)`);
     this.reserved += cents;
     return cents;
   }
-  settle(reservedCents, actualCents) { this.reserved -= reservedCents; this.spent += actualCents; }
-  release(reservedCents) { this.reserved -= reservedCents; }
+  settle(reservedCents, actualCents) {
+    this.reserved -= reservedCents;
+    this.spent += actualCents;
+  }
+  release(reservedCents) {
+    this.reserved -= reservedCents;
+  }
 }
 
 /** One work item per mounted lesson, keyed by (courseKey, lessonId, contentSha). */
@@ -53,7 +83,15 @@ export function buildItems(inventory) {
     const department = c.department || courseDepartment({ key: c.key, meta: c.meta });
     for (const lesson of c.lessons || []) {
       if (!lesson || !lesson.id) continue;
-      items.push({ courseKey: c.key, lessonId: lesson.id, lesson, course, department, originalTitle: lesson.title, contentSha: sha256(stableStringify(lesson)) });
+      items.push({
+        courseKey: c.key,
+        lessonId: lesson.id,
+        lesson,
+        course,
+        department,
+        originalTitle: lesson.title,
+        contentSha: sha256(stableStringify(lesson)),
+      });
     }
   }
   return items;
@@ -93,29 +131,53 @@ function libraryDuplicate(ledger, item, displayTitle) {
 }
 
 /** Stage A. Returns { done, skipped, needsReview, failed, stoppedByBudget }. */
-export async function runText({ items, ledger, provider, courses, batchId, concurrency = 4, maxAttempts = 3, budget = new Budget(null), timeoutMs = 120000, retryFailed = false, sleep = realSleep, random = Math.random, log = () => {} }) {
+export async function runText({
+  items,
+  ledger,
+  provider,
+  courses,
+  batchId,
+  concurrency = 4,
+  maxAttempts = 3,
+  budget = new Budget(null),
+  timeoutMs = 120000,
+  retryFailed = false,
+  sleep = realSleep,
+  random = Math.random,
+  log = () => {},
+}) {
   const tally = { done: 0, skipped: 0, needsReview: 0, failed: 0, stoppedByBudget: false };
   const cost = provider.costCents != null ? provider.costCents : 1;
-  const avoid = () => Object.values(ledger.records).map((r) => r.displayTitle).filter(Boolean);
+  const avoid = () =>
+    Object.values(ledger.records)
+      .map((r) => r.displayTitle)
+      .filter(Boolean);
 
   // Every TRY reserves and is charged on its own, retries and failures
   // included: a request that reached the provider may have been billed, so a
   // failed try counts as spent (never released). meter.c is the job's total.
   const ask = async (item, feedback, meter) =>
-    retry(async () => {
-      const held = budget.reserve(cost);
-      try {
-        const out = await withTimeout((signal) => provider.complete({ system: SYSTEM_PROMPT, user: userPrompt({ ...item, feedback, avoidTitles: avoid() }), signal }), timeoutMs, `text ${item.lessonId}`);
-        const c = out.costCents != null ? out.costCents : cost;
-        budget.settle(held, c);
-        meter.c += c;
-        return out;
-      } catch (e) {
-        budget.settle(held, cost);
-        meter.c += cost;
-        throw e;
-      }
-    }, { attempts: 3, sleep, random });
+    retry(
+      async () => {
+        const held = budget.reserve(cost);
+        try {
+          const out = await withTimeout(
+            (signal) => provider.complete({ system: SYSTEM_PROMPT, user: userPrompt({ ...item, feedback, avoidTitles: avoid() }), signal }),
+            timeoutMs,
+            `text ${item.lessonId}`
+          );
+          const c = out.costCents != null ? out.costCents : cost;
+          budget.settle(held, c);
+          meter.c += c;
+          return out;
+        } catch (e) {
+          budget.settle(held, cost);
+          meter.c += cost;
+          throw e;
+        }
+      },
+      { attempts: 3, sleep, random }
+    );
 
   const check = (item, copy) => {
     const rec = candidateRecord(item, copy);
@@ -123,14 +185,27 @@ export async function runText({ items, ledger, provider, courses, batchId, concu
     const msgs = errors.map((e) => `${e.code}${e.detail ? ` (${e.detail})` : ''}`);
     const dup = libraryDuplicate(ledger, item, copy.displayTitle);
     if (dup) msgs.push(`duplicate-display-title (same as ${dup})`);
+    msgs.push(...pictureProblems(copy.imagePrompt));
     return { rec, msgs };
   };
 
   await pool(items, concurrency, async (item) => {
     if (tally.stoppedByBudget) return;
     const d = ledger.decide({ courseKey: item.courseKey, lessonId: item.lessonId, kind: 'text', contentSha: item.contentSha, maxAttempts, retryFailed });
-    if (!d.run) { tally.skipped += 1; return; }
-    const base = { batchId, courseKey: item.courseKey, lessonId: item.lessonId, kind: 'text', contentSha: item.contentSha, idempotencyKey: idempotencyKey({ batchId, ...item, kind: 'text' }), provider: provider.name, model: provider.model };
+    if (!d.run) {
+      tally.skipped += 1;
+      return;
+    }
+    const base = {
+      batchId,
+      courseKey: item.courseKey,
+      lessonId: item.lessonId,
+      kind: 'text',
+      contentSha: item.contentSha,
+      idempotencyKey: idempotencyKey({ batchId, ...item, kind: 'text' }),
+      provider: provider.name,
+      model: provider.model,
+    };
     // The ledger keeps the LATEST row per job key, and every run shares one batch
     // key, so a resumed job carries forward what earlier runs already spent on it.
     // Without this a retry would overwrite that spend and the $5 cap would undercount.
@@ -143,10 +218,22 @@ export async function runText({ items, ledger, provider, courses, batchId, concu
       for (let pass = 1; pass <= 2; pass += 1) {
         const out = await ask(item, feedback, meter);
         let copy;
-        try { copy = parseCopy(out.text); } catch (e) { feedback = e.message; continue; }
+        try {
+          copy = parseCopy(out.text);
+        } catch (e) {
+          feedback = e.message;
+          continue;
+        }
         const { rec, msgs } = check(item, copy);
         if (!msgs.length) {
-          ledger.putRecord({ ...rec, image: null, status: 'review', featured: false, provider: { text: provider.name, model: provider.model }, contentSha: item.contentSha });
+          ledger.putRecord({
+            ...rec,
+            image: null,
+            status: 'review',
+            featured: false,
+            provider: { text: provider.name, model: provider.model },
+            contentSha: item.contentSha,
+          });
           ledger.write({ ...base, state: 'succeeded', attempts, costCents: prior + meter.c, leaseUntil: null, lastError: null });
           tally.done += 1;
           log(`text ✓ ${item.courseKey}/${item.lessonId}: ${copy.displayTitle}`);
@@ -187,7 +274,10 @@ export async function runText({ items, ledger, provider, courses, batchId, concu
 export const hamming = (a, b) => {
   let x = BigInt(`0x${a}`) ^ BigInt(`0x${b}`);
   let n = 0;
-  while (x) { n += Number(x & 1n); x >>= 1n; }
+  while (x) {
+    n += Number(x & 1n);
+    x >>= 1n;
+  }
   return n;
 };
 
@@ -197,16 +287,55 @@ export const hamming = (a, b) => {
  * master to make the delivery sizes). Without it only exact duplicates
  * (sha256) are caught.
  */
-export async function runImages({ items, ledger, provider, outDir, batchId, concurrency = 4, bucket = null, maxAttempts = 3, budget = new Budget(null), timeoutMs = 240000, retryFailed = false, perceptualHash = null, nearDuplicateBits = 6, sleep = realSleep, random = Math.random, log = () => {} }) {
+export async function runImages({
+  items,
+  ledger,
+  provider,
+  outDir,
+  batchId,
+  concurrency = 4,
+  bucket = null,
+  maxAttempts = 3,
+  budget = new Budget(null),
+  timeoutMs = 240000,
+  retryFailed = false,
+  perceptualHash = null,
+  nearDuplicateBits = 6,
+  sleep = realSleep,
+  random = Math.random,
+  log = () => {},
+}) {
   const tally = { done: 0, skipped: 0, needsReview: 0, failed: 0, waiting: 0, stoppedByBudget: false };
   const cost = provider.costCents != null ? provider.costCents : 0;
   await pool(items, concurrency, async (item) => {
     if (tally.stoppedByBudget) return;
     const rec = ledger.getRecord(item.courseKey, item.lessonId);
-    if (!rec || rec.status !== 'review' || rec.contentSha !== item.contentSha) { tally.waiting += 1; return; }
+    if (!rec || rec.status !== 'review' || rec.contentSha !== item.contentSha) {
+      tally.waiting += 1;
+      return;
+    }
+    // Second guard, right before money: a record whose picture prompt misses the art
+    // direction or DR-1640 (e.g. written before those rules) is never bought.
+    if (pictureProblems(rec.visual && rec.visual.prompt).length && !rec.image) {
+      tally.waiting += 1;
+      log(`image held ${item.lessonId}: ${pictureProblems(rec.visual && rec.visual.prompt).join('; ')}`);
+      return;
+    }
     const d = ledger.decide({ courseKey: item.courseKey, lessonId: item.lessonId, kind: 'image', contentSha: item.contentSha, maxAttempts, retryFailed });
-    if (!d.run) { tally.skipped += 1; return; }
-    const base = { batchId, courseKey: item.courseKey, lessonId: item.lessonId, kind: 'image', contentSha: item.contentSha, idempotencyKey: idempotencyKey({ batchId, ...item, kind: 'image' }), provider: provider.name, model: provider.model };
+    if (!d.run) {
+      tally.skipped += 1;
+      return;
+    }
+    const base = {
+      batchId,
+      courseKey: item.courseKey,
+      lessonId: item.lessonId,
+      kind: 'image',
+      contentSha: item.contentSha,
+      idempotencyKey: idempotencyKey({ batchId, ...item, kind: 'image' }),
+      provider: provider.name,
+      model: provider.model,
+    };
     // The ledger keeps the LATEST row per job key, and every run shares one batch
     // key, so a resumed job carries forward what earlier runs already spent on it.
     // Without this a retry would overwrite that spend and the $5 cap would undercount.
@@ -218,21 +347,30 @@ export async function runImages({ items, ledger, provider, outDir, batchId, conc
     // is charged, because the provider may already have billed it.
     const meter = { c: 0 };
     try {
-      const out = await retry(async () => {
-        const held = budget.reserve(cost);
-        if (bucket) await bucket.take();
-        try {
-          const r = await withTimeout((signal) => provider.generate({ prompt: finalImagePrompt(rec.visual.prompt), signal }), timeoutMs, `image ${item.lessonId}`);
-          const c = r.costCents != null ? r.costCents : cost;
-          budget.settle(held, c);
-          meter.c += c;
-          return r;
-        } catch (e) {
-          budget.settle(held, cost);
-          meter.c += cost;
-          throw e;
-        }
-      }, { attempts: 3, sleep, random, onRetry: ({ attempt, wait, error }) => log(`image retry ${attempt} ${item.lessonId} in ${wait}ms: ${error.message}`) });
+      const out = await retry(
+        async () => {
+          const held = budget.reserve(cost);
+          if (bucket) await bucket.take();
+          try {
+            const r = await withTimeout(
+              (signal) => provider.generate({ prompt: finalImagePrompt(rec.visual.prompt), signal }),
+              timeoutMs,
+              `image ${item.lessonId}`
+            );
+            const c = r.costCents != null ? r.costCents : cost;
+            budget.settle(held, c);
+            meter.c += c;
+            return r;
+          } catch (e) {
+            // Charged unless the provider refused it unprocessed (never billed).
+            const c = e && e.billed === false ? 0 : cost;
+            budget.settle(held, c);
+            meter.c += c;
+            throw e;
+          }
+        },
+        { attempts: 3, sleep, random, onRetry: ({ attempt, wait, error }) => log(`image retry ${attempt} ${item.lessonId} in ${wait}ms: ${error.message}`) }
+      );
       const dir = join(outDir, item.courseKey);
       mkdirSync(dir, { recursive: true });
       const file = join(dir, `${item.lessonId}.${out.ext || 'jpg'}`);
@@ -243,18 +381,27 @@ export async function runImages({ items, ledger, provider, outDir, batchId, conc
       for (const r of Object.values(ledger.records)) {
         if (!r.image || (r.courseKey === item.courseKey && r.lessonId === item.lessonId)) continue;
         if (r.image.sha256 === digest) flags.push(`duplicate-image (same bytes as ${r.courseKey}::${r.lessonId})`);
-        else if (phash && r.image.phash && hamming(phash, r.image.phash) <= nearDuplicateBits) flags.push(`similar-image (dHash within ${nearDuplicateBits} bits of ${r.courseKey}::${r.lessonId})`);
+        else if (phash && r.image.phash && hamming(phash, r.image.phash) <= nearDuplicateBits)
+          flags.push(`similar-image (dHash within ${nearDuplicateBits} bits of ${r.courseKey}::${r.lessonId})`);
       }
-      ledger.putRecord({ ...rec, image: { path: relative(outDir, file), sha256: digest, phash, provider: provider.name, model: out.model || provider.model }, imageFlags: flags });
+      ledger.putRecord({
+        ...rec,
+        image: { path: relative(outDir, file), sha256: digest, phash, provider: provider.name, model: out.model || provider.model },
+        imageFlags: flags,
+      });
       const state = flags.length ? 'needs-review' : 'succeeded';
       ledger.write({ ...base, state, attempts, costCents: prior + meter.c, leaseUntil: null, lastError: flags.length ? flags.join('; ') : null });
-      if (flags.length) tally.needsReview += 1; else tally.done += 1;
+      if (flags.length) tally.needsReview += 1;
+      else tally.done += 1;
       log(`image ${flags.length ? '?' : '✓'} ${item.courseKey}/${item.lessonId}${flags.length ? `: ${flags.join('; ')}` : ''}`);
     } catch (e) {
-      if (e instanceof BudgetExceeded) {
+      if (e instanceof BudgetExceeded || (e && e.outOfCredit)) {
+        // Our cap, or the provider's empty account: stop the whole run; this
+        // lesson stays queued (not failed) and resumes when there is money.
         tally.stoppedByBudget = true;
+        if (e.outOfCredit) tally.outOfCredit = true;
         ledger.write({ ...base, state: 'queued', attempts: attempts - 1, costCents: prior + meter.c, leaseUntil: null, lastError: e.message });
-        log(`budget: ${e.message}`);
+        log(`${e.outOfCredit ? 'provider out of credit' : 'budget'}: ${e.message}`);
         return;
       }
       ledger.write({ ...base, state: 'failed', attempts, costCents: prior + meter.c, leaseUntil: null, lastError: String(e && e.message ? e.message : e) });
@@ -277,10 +424,22 @@ export function exportRecords(ledger, { imageBase = '/learn-thumbs', generatedBy
       thumbHeadline: r.thumbHeadline,
       promoDescription: r.promoDescription,
       visual: { prompt: r.visual && r.visual.prompt, alt: r.visual && r.visual.alt },
-      image: r.image ? (r.image.delivery ? { src: r.image.delivery.src, srcSet: r.image.delivery.srcSet, lqip: r.image.delivery.lqip, og: r.image.delivery.og, sha256: r.image.sha256 } : { src: `${imageBase}/${r.image.path.replace(/\\/g, '/')}`, sha256: r.image.sha256 }) : null,
+      image: r.image
+        ? r.image.delivery
+          ? { src: r.image.delivery.src, srcSet: r.image.delivery.srcSet, lqip: r.image.delivery.lqip, og: r.image.delivery.og, sha256: r.image.sha256 }
+          : { src: `${imageBase}/${r.image.path.replace(/\\/g, '/')}`, sha256: r.image.sha256 }
+        : null,
       status: 'review',
       featured: false,
-      ...((r.validation && r.validation.length) || (r.imageFlags && r.imageFlags.length) || r.status === 'draft' ? { needsReview: [...(r.validation || []), ...(r.imageFlags || [])] } : {}),
+      ...((r.validation && r.validation.length) || (r.imageFlags && r.imageFlags.length) || r.status === 'draft'
+        ? { needsReview: [...(r.validation || []), ...(r.imageFlags || [])] }
+        : {}),
     }));
-  return { schema: 'learn-presentation/v1', generatedBy, status: 'review', note: 'Promotional presentation ONLY. Never edits a lesson. Every record needs human approval.', records };
+  return {
+    schema: 'learn-presentation/v1',
+    generatedBy,
+    status: 'review',
+    note: 'Promotional presentation ONLY. Never edits a lesson. Every record needs human approval.',
+    records,
+  };
 }

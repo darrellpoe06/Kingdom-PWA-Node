@@ -1,0 +1,68 @@
+{
+ "faith": {
+  "label": "Grow Your Faith",
+  "alt": "A Black family and friends hold open Bibles on a hillside at sunrise above a green valley.",
+  "image": {
+   "src": "learn-thumbs/topics/faith/w1280.webp",
+   "srcSet": {
+    "webp": "learn-thumbs/topics/faith/w640.webp 640w, learn-thumbs/topics/faith/w1280.webp 1280w"
+   },
+   "lqip": "data:image/webp;base64,UklGRooAAABXRUJQVlA4IH4AAABQBACdASoYAA4APu1orU2ppqSiMAgBMB2JbACdMoADT7VT5gb115NwtF3AAP7FVEblbe46223SxrfRb61uUd+CR/qMvT+qEQnTX0XNG96PHK/oLWhjIEkeDP5odH5VagKU8TnGO9dVa1OIonS/Fi7b5uKG5ImNm6mA12nqIAA="
+  }
+ },
+ "wealth": {
+  "label": "Finance & Wealth",
+  "alt": "A Black financial planner reviews a rising chart with a young couple in a bright office overlooking the city.",
+  "image": {
+   "src": "learn-thumbs/topics/finance/w1280.webp",
+   "srcSet": {
+    "webp": "learn-thumbs/topics/finance/w640.webp 640w, learn-thumbs/topics/finance/w1280.webp 1280w"
+   },
+   "lqip": "data:image/webp;base64,UklGRnoAAABXRUJQVlA4IG4AAAAwBACdASoYAA4APu1iqk4ppaQiMAgBMB2JZgCsIKnCd7zKHou+HGlegV4A/pjvIbHXTjo835G1Znx8R2i2pb1b4B3oAFrxGlFKjiAcxI207TeyRWchaLUYpD4dRj/dX57O01IM9Xequzqq3QAAAA=="
+  }
+ },
+ "tech": {
+  "label": "A.I. & Technology",
+  "alt": "A young Black engineer guides a robotic arm beneath colorful holographic shapes in a bright technology lab.",
+  "image": {
+   "src": "learn-thumbs/topics/tech/w1280.webp",
+   "srcSet": {
+    "webp": "learn-thumbs/topics/tech/w640.webp 640w, learn-thumbs/topics/tech/w1280.webp 1280w"
+   },
+   "lqip": "data:image/webp;base64,UklGRnQAAABXRUJQVlA4IGgAAADwAwCdASoYAA4APu1kq04ppaQiMAgBMB2JbACdABVMqtjvWr8FRfu0AP7dah2/xH2avsagugew7uj1tFtQZDAzF45k+f8SGy83mVqOw5VNogXpOYUd2x5jdMMuTO59ZETtm/WopMAAAA=="
+  }
+ },
+ "real-estate": {
+  "label": "Real Estate",
+  "alt": "A joyful Black family holds up the keys on the front steps of their new home on a sunny day.",
+  "image": {
+   "src": "learn-thumbs/topics/realestate/w1280.webp",
+   "srcSet": {
+    "webp": "learn-thumbs/topics/realestate/w640.webp 640w, learn-thumbs/topics/realestate/w1280.webp 1280w"
+   },
+   "lqip": "data:image/webp;base64,UklGRmoAAABXRUJQVlA4IF4AAABQBACdASoYAA4APu1qrU8ppiQiMAgBMB2JQBdg7wAREnVr3uS2/wYU1hFAAP7tXodTWNOnRAIQnQbr5AkBLzHNhjBqZGWqSPcOwueOslXEQu8VIyvXh+wmYyKu2AAA"
+  }
+ },
+ "business": {
+  "label": "Business & Leadership",
+  "alt": "A smiling Black woman entrepreneur stands in the doorway of her sunny storefront cafe.",
+  "image": {
+   "src": "learn-thumbs/topics/business/w1280.webp",
+   "srcSet": {
+    "webp": "learn-thumbs/topics/business/w640.webp 640w, learn-thumbs/topics/business/w1280.webp 1280w"
+   },
+   "lqip": "data:image/webp;base64,UklGRmoAAABXRUJQVlA4IF4AAADQAwCdASoYAA4APu1iqk2ppaQiMAgBMB2JQBOgAyX3cumg4ywD9DAA/STTo+CbAmQlN9R+EcikSPj2BSirXKCxKeP02lyiqCt9WBlx6TTqqbzK0+k1esZ9nDiOn2AA"
+  }
+ },
+ "discover": {
+  "label": "History & Mathematics",
+  "alt": "A Black teacher shows a group of curious children a globe and colorful geometric shapes in a sunlit library.",
+  "image": {
+   "src": "learn-thumbs/topics/history-math/w1280.webp",
+   "srcSet": {
+    "webp": "learn-thumbs/topics/history-math/w640.webp 640w, learn-thumbs/topics/history-math/w1280.webp 1280w"
+   },
+   "lqip": "data:image/webp;base64,UklGRnAAAABXRUJQVlA4IGQAAADQAwCdASoYAA4APu1kqk4ppaQiMAgBMB2JYwC06BZIrjD/8jCirNAA/gjAFexw1v4R0GJOftaittJ1xJXGEpmZEkhyfifu78ITqZkN6YIF5TnEAIWn8N8T/E2Qni6kCbjGIiAA"
+  }
+ }
+}
