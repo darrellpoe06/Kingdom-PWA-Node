@@ -4585,7 +4585,7 @@ ${THEME_CSS}
             submitClassInterest={submitClassInterest}
             classRoster={classRoster}
             isGovernor={isGov}
-            learnStudioDefaultOn={false /* owner, 2026-11-24: disabled pending the app-freeze investigation; ?learnStudio=1 still opt-in */}
+            learnStudioDefaultOn={['darrell', 'christina'].includes(personaOf(authSession?.user?.email))}
             currentUserName={authSession?.user?.email || ''}
             onLaunch={(t) => { if (!t) return; if (t.view) setView(t.view); if (t.churchView) { setChurchView(t.churchView); if (t.churchView === 'home') setChurchHomeSection(t.churchSection || null); } }}
             broadcast={broadcastCourse}
