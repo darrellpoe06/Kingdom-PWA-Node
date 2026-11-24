@@ -29,6 +29,9 @@ import os
 import threading
 import time
 from pathlib import Path
+# typing.Dict/Set/Optional, not set[str] / str | None: this runs under the NAS's
+# own python3, which is 3.8.15 (DR-0306); PEP 585/604 forms raise at import there.
+from typing import Dict, List, Optional, Set, Tuple
 
 HERE = Path(__file__).resolve().parent
 DEVICES = Path(os.environ.get("OPENERS_DEVICES", HERE / "devices.json"))
@@ -36,8 +39,8 @@ MAX_PRESSES_PER_HOUR = int(os.environ.get("OPENERS_MAX_PER_HOUR", "12"))
 PULSE_SECONDS = float(os.environ.get("OPENERS_PULSE_SECONDS", "0.5"))
 
 _lock = threading.Lock()
-_in_flight: set[str] = set()
-_history: dict[str, list[float]] = {}
+_in_flight: Set[str] = set()
+_history: Dict[str, List[float]] = {}
 
 
 def load_devices() -> dict:
@@ -65,7 +68,7 @@ def within_budget(opener_id: str, now: float) -> bool:
     return len(seen) < MAX_PRESSES_PER_HOUR
 
 
-def press_device(cfg: dict) -> tuple[bool, bool, str]:
+def press_device(cfg: dict) -> Tuple[bool, bool, str]:
     """Drive the device. Returns (pressed, confirmed, reason).
 
     `confirmed` is True ONLY when the device itself reported that it moved.
@@ -159,8 +162,8 @@ try:
 
     class Press(BaseModel):
         opener: str
-        kind: str | None = None
-        at: str | None = None
+        kind: Optional[str] = None
+        at: Optional[str] = None
 
     @app.get("/openers/health")
     def health() -> dict:
