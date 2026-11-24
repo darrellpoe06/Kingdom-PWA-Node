@@ -87,7 +87,9 @@ export function resolveSpendingScope(only, items, { seedPath }) {
 /** Picture spend so far (every image kind), read from the ledger. */
 export function imageSpentCents(ledger) {
   let c = 0;
-  for (const j of ledger.jobs.values()) if (IMAGE_KINDS.includes(j.kind)) c += Number(j.costCents) || 0;
+  for (const j of ledger.jobs.values()) {
+    if (IMAGE_KINDS.includes(j.kind) || (j.kind === 'adjustment' && j.appliesTo === 'image')) c += Number(j.costCents) || 0;
+  }
   return c;
 }
 
@@ -98,7 +100,9 @@ export function imageSpentCents(ledger) {
 export function nextLibraryBatch(items, ledger, batch = LIBRARY_BATCH) {
   const done = (it, kind) => {
     const j = ledger.latestFor(it.courseKey, it.lessonId, kind);
-    return !!j && j.state === 'succeeded' && j.contentSha === it.contentSha;
+    // A picture flagged for review (e.g. near-duplicate) is paid and present, not remaining.
+    const ok = kind === 'image' ? ['succeeded', 'needs-review'] : ['succeeded'];
+    return !!j && ok.includes(j.state) && j.contentSha === it.contentSha;
   };
   return items.filter((it) => !(done(it, 'text') && done(it, 'image'))).slice(0, batch);
 }

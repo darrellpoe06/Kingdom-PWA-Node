@@ -11,6 +11,8 @@
 // AbortSignal; poll loops are bounded by count AND by that signal.
 // =============================================================================
 import process from 'node:process';
+import { setTimeout, clearTimeout } from 'node:timers';
+/* global AbortController */
 import { Buffer } from 'node:buffer';
 import { URLSearchParams } from 'node:url';
 import { readFileSync } from 'node:fs';
@@ -84,6 +86,28 @@ export function bflImage({
       throw new ProviderError('bfl: polling limit reached', { retryable: true });
     },
   };
+}
+
+/**
+ * The BFL account's credit balance: GET https://api.bfl.ai/v1/credits with the
+ * x-key header -> { credits }. Read only; never spends. The price of one picture
+ * in credits is MEASURED by the CLI (balance before and after one picture),
+ * not assumed from documentation this pipeline cannot read.
+ */
+export async function bflCredits({ apiKey = process.env.BFL_API_KEY, fetchImpl = globalThis.fetch, timeoutMs = 30000 } = {}) {
+  need(apiKey, 'bfl: BFL_API_KEY is not set');
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), timeoutMs);
+  try {
+    const res = await fetchImpl('https://api.bfl.ai/v1/credits', { signal: ctl.signal, headers: { accept: 'application/json', 'x-key': apiKey } });
+    if (!res.ok) throw await readError(res, 'bfl credits');
+    const j = await res.json();
+    const c = Number(j && j.credits);
+    if (!Number.isFinite(c)) throw new ProviderError('bfl credits: no numeric "credits" in the answer', { retryable: false });
+    return c;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 export function openaiImage({

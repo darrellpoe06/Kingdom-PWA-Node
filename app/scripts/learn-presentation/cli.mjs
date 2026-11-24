@@ -28,9 +28,18 @@ import { Budget, buildItems, coursesForValidation, selectItems, runText, runImag
 import { textProvider } from './providers/text.mjs';
 import { imageProvider, bflImage } from './providers/image.mjs';
 import { loadArt, validateArt, resolveArtScope, runArtV2 } from './lib/art-v2.mjs';
+import { loadAdjustments, applyAdjustments } from './lib/adjust.mjs';
 
 const SEED = resolve('src/lib/learn-presentation/presentation-seed.json');
 const ART = resolve('scripts/learn-presentation/art-direction-v2.json');
+const ADJUSTMENTS = resolve('scripts/learn-presentation/ledger-adjustments.json');
+
+/** Open the ledger and apply any reviewed adjustment not yet in it (append-only). */
+function openLedger(stateDir, log) {
+  const ledger = new Ledger(stateDir);
+  for (const id of applyAdjustments(ledger, loadAdjustments(ADJUSTMENTS))) log(`ledger adjustment applied: ${id}`);
+  return ledger;
+}
 
 function parseArgs(argv) {
   const [cmd, ...rest] = argv;
@@ -127,7 +136,7 @@ async function main() {
       }
       throw e;
     }
-    const ledger = new Ledger(stateDir);
+    const ledger = openLedger(stateDir, log);
     const already = ledger.spentCents();
     const imgLeft = Math.max(0, IMAGE_TOTAL_CAP_CENTS - imageSpentCents(ledger));
     const budget = new Budget(Math.min(imgLeft, remainingCents(flags['budget-cents'] !== undefined ? int(flags['budget-cents']) : null, already)));
@@ -184,7 +193,7 @@ async function main() {
     return;
   }
 
-  const ledger = new Ledger(stateDir);
+  const ledger = openLedger(stateDir, log);
   const courses = coursesForValidation(inventory);
   // The full library runs in resumable batches: the next unfinished lessons only.
   if (spending && cmd !== 'compose' && String(flags.only).toLowerCase() === 'all') {
@@ -221,8 +230,66 @@ async function main() {
     const imgLeft = Math.max(0, IMAGE_TOTAL_CAP_CENTS - imageSpentCents(ledger));
     if (budget.cap > imgLeft) budget.cap = imgLeft;
     const beforeImg = shaMap(ledger);
+    // Exact count, library-wide: every mounted lesson still without a finished picture.
+    const libraryLeft = nextLibraryBatch(all, ledger, Infinity).length;
+    log(`library: ${all.length - libraryLeft} of ${all.length} lessons have a finished picture · ${libraryLeft} remaining`);
+    // The provider's real balance, read before any spend, and the price of one
+    // picture MEASURED on this account (balance before/after one picture).
+    let runItems = items;
+    let probe = null;
+    if (provider.name === 'bfl') {
+      const { bflCredits } = await import('./providers/image.mjs');
+      const readBalance = () =>
+        bflCredits().catch((e) => {
+          log(`BFL balance unreadable: ${e.message}`);
+          return null;
+        });
+      const b0 = await readBalance();
+      if (b0 != null) log(`BFL balance before: ${b0} credits`);
+      if (b0 != null && b0 <= 0) {
+        log('BFL balance is empty: no picture requested this run (top it up; every lesson stays queued)');
+        runItems = [];
+      } else if (b0 != null) {
+        const first = runItems.findIndex((it) => {
+          const r = ledger.getRecord(it.courseKey, it.lessonId);
+          const d = ledger.decide({ courseKey: it.courseKey, lessonId: it.lessonId, kind: 'image', contentSha: it.contentSha });
+          return r && r.status === 'review' && !r.image && d.run;
+        });
+        if (first >= 0) {
+          probe = await runImages({
+            items: [runItems[first]],
+            ledger,
+            provider,
+            outDir,
+            batchId,
+            concurrency: 1,
+            bucket,
+            maxAttempts: int(flags['max-attempts'], 3),
+            budget,
+            retryFailed,
+            perceptualHash,
+            log,
+          });
+          const b1 = await readBalance();
+          const per = b1 != null && probe.done + probe.needsReview === 1 ? b0 - b1 : null;
+          if (per != null && per > 0) {
+            const affordable = Math.floor(b1 / per);
+            log(
+              `BFL measured: ${per} credits per picture · balance now ${b1} credits = ${affordable} more picture(s) · library still needs ${libraryLeft - 1} = ${(libraryLeft - 1) * per} credits`
+            );
+            const rest = runItems.filter((_, i) => i !== first);
+            runItems = rest.slice(0, Math.max(0, affordable));
+            if (rest.length > runItems.length) log(`this run buys at most ${runItems.length} picture(s): the balance covers no more`);
+          } else {
+            log('BFL price per picture not measured this run (the probe did not complete); the 402 stop and the caps still hold');
+            runItems = runItems.filter((_, i) => i !== first);
+          }
+          if (probe.outOfCredit) runItems = [];
+        }
+      }
+    }
     const t = await runImages({
-      items,
+      items: runItems,
       ledger,
       provider,
       outDir,
@@ -236,6 +303,8 @@ async function main() {
       log,
     });
     outboxNew(beforeImg, ledger, outDir, log);
+    if (probe) for (const k of ['done', 'needsReview', 'failed']) t[k] += probe[k] || 0;
+    if (probe && probe.outOfCredit) t.outOfCredit = true;
     log(
       `images: ${t.done} done · ${t.skipped} skipped · ${t.waiting} waiting on approved copy · ${t.needsReview} need review · ${t.failed} failed${t.outOfCredit ? ' · STOPPED: THE PROVIDER ACCOUNT IS OUT OF CREDIT (top it up; queued lessons resume)' : t.stoppedByBudget ? ' · STOPPED AT BUDGET CAP' : ''} · this run ${dollars(budget.spent)}`
     );
