@@ -29,7 +29,7 @@ import { ProjectsWrapper } from './components/Projects.jsx';
 import AuthBanner from './components/AuthBanner.jsx';
 import ClaimInviteBanner from './components/ClaimInviteBanner.jsx';
 import PublicFrontDoor from './components/PublicFrontDoor.jsx';
-import { accessState, isPublicChurchRoute, wearsChurchBrand, isChurchLinkVisit, isPublicHost, isIsolatedPreview, previewSamplePersona, previewStorageKey, purgePreviewSnapshots, PREVIEW_TEST_OWNER } from './lib/access-gate.js';
+import { accessState, isPublicChurchRoute, wearsChurchBrand, isChurchLinkVisit, isPublicHost, isIsolatedPreview, isPublicSampleVisit, previewSamplePersona, previewStorageKey, purgePreviewSnapshots, PREVIEW_TEST_OWNER } from './lib/access-gate.js';
 import { pickInitialSeed } from './lib/demo-seed-choice.js';
 import { PROPOSED_COHORT_START, resolveCohort, CLASS_INTEREST_TAG, extractClassRoster } from './lib/church-classes.js';
 import { COLG_DEFAULT_CHURCH } from './lib/default-church.js';
@@ -3513,7 +3513,7 @@ export default function PoeFinancialSystem() {
     );
   }
 
-  const __gate = accessState({ isPublicHostVal: isPublicHost() && !isIsolatedPreview(), authChecked, authSession }); // a preview test household opens without a session: its client reaches nothing
+  const __gate = accessState({ isPublicHostVal: isPublicHost() && !isIsolatedPreview() && !isPublicSampleVisit(), authChecked, authSession }); // the family sample (?demo=) opens for a visitor with no session, its client isolated (DR-1638) // a preview test household opens without a session: its client reaches nothing
   const churchBrand = wearsChurchBrand({ churchDoorOnly, signedIn: !!authSession, route: churchBrandRoute && !poetechLessonLink });
   // The Love Corner church door is a PUBLIC community (Darrell 2026-07-14): signed-
   // out visitors SEE the church (no private family/financial data lives here) — the
@@ -4215,7 +4215,7 @@ ${THEME_CSS}
                     build time (vite.config.js define block). */}
                 <div className="text-[#B85838] mt-0.5 inline-flex items-center gap-1.5" title={`Build time: ${typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : 'unknown'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>build {typeof __BUILD_SHA__ !== 'undefined' ? __BUILD_SHA__ : '????'}<FreshnessDot /></div>
               </div>
-            </div>{!isIsolatedPreview() && <HeaderAuthButton door={accountDoor} />}</div>{/* no sign-in on a preview host: its data client reaches nothing (preview isolation) */}
+            </div>{!isIsolatedPreview() && !isPublicSampleVisit() && <HeaderAuthButton door={accountDoor} />}</div>{/* no sign-in on a preview host: its data client reaches nothing (preview isolation) */}
           </div>
         </div>
         )}
@@ -4230,7 +4230,7 @@ ${THEME_CSS}
             Darrell built it. DR-0276 rule 3 — always reversible. */}
         {/* The nav row, the header chevron, and on a one-tab door the brand row
             (components/TopNavRow.jsx, DR-0640: "Both places are good... why not"). */}
-        <TopNavRow account={!isIsolatedPreview() && <HeaderAuthButton door={accountDoor} compact />} map={{ ...navForDock, theme, setTheme, isOwner: isFamilyMember }} navHistory={navHistory} tabsHidden={showSideNav} collapsed={headerCollapsed} onToggleHeader={toggleHeaderChrome} brandName={churchBrand ? 'The Love Corner' : 'Family Operating Systems'} brandTagline={churchBrand ? 'The Church of the Living God' : 'Life · Soul · Money · Family'}
+        <TopNavRow account={!isIsolatedPreview() && !isPublicSampleVisit() && <HeaderAuthButton door={accountDoor} compact />} map={{ ...navForDock, theme, setTheme, isOwner: isFamilyMember }} navHistory={navHistory} tabsHidden={showSideNav} collapsed={headerCollapsed} onToggleHeader={toggleHeaderChrome} brandName={churchBrand ? 'The Love Corner' : 'Family Operating Systems'} brandTagline={churchBrand ? 'The Church of the Living God' : 'Life · Soul · Money · Family'}
           home={churchDoorOnly && isFamilyMember ? { href: '/poetech-app/?view=overview', label: 'PoeTech app', title: 'Open the whole PoeTech app (every tab)' } : null}
           hatch={<TextSizeEscapeHatch collapsed={headerCollapsed} onShowHeader={toggleHeaderChrome} siteName={churchBrand ? 'The Love Corner' : 'Family Operating Systems'} siteTagline={churchBrand ? 'The Church of the Living God' : 'Life · Soul · Money · Family'} />}>
               {navTabs.map(([id, label]) => {
