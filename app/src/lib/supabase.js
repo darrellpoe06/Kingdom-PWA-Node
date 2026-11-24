@@ -646,6 +646,13 @@ export function onAuthChange(callback) {
   const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
     // Fast path: a live session, or any non-logout event, passes straight
     // through unchanged.
+    // A NULL THAT IS NOT A SIGN-OUT KEEPS THE STORED SESSION (DR-1620). auth-js
+    // emits INITIAL_SESSION with null whenever getSession() errors, a failed
+    // fetch included (GoTrueClient _emitInitialSession), while the sign-in is
+    // still stored. Passing that null painted the signed-out front page and
+    // then the profile picker until the road answered. Only SIGNED_OUT (below,
+    // with its recovery) or an empty store reads as signed out.
+    if (!session && event !== 'SIGNED_OUT' && readPersistedSession()) return;
     if (!isPossibleLogout(event, session)) {
       callback(session ?? null);
       return;

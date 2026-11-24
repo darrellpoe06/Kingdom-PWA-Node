@@ -3643,6 +3643,21 @@
       "notes": "Gmail thread 1a1b6e6085128724, forwarded 2026-11-09T13:29Z (7:29 AM Central), built 2026-11-13 draining the intake backlog. Six one-line framework descriptions whole in the email, taught as reported and unranked; the diagram was an image and blog.bytebytego.com refused (403 CONNECT), re-review 2026-11-27. 35 anchor references, 136 quoted spans, every verse filled from app/public/bible/kjv by scripts/sov88-fill.mjs and none typed. Our build measured: DR-0077 lanes, reserve-ref KINDS dr/ll only, capacity-budget live (room 3, wanted 4), HELD_IN_FLIGHT [84,85,86,87], github-ops classifyLane blind to the ledgers, and the landing train at 17:10 UTC (7 of 14 PRs opened that day dirty; ai-usage-ledger.json in 6 of the 7). Hours lost not measured."
     },
     {
+      "id": "a-null-that-is-not-a-sign-out",
+      "date": "2026-11-24",
+      "task": "INITIAL_SESSION null on a failed fetch painted the front page and then the profile picker; non-SIGNED_OUT nulls with a stored session are ignored, the picker waits for the account to resolve",
+      "drs": [
+        "DR-1620"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.4,
+      "estimateWithoutAiHours": 5,
+      "notes": ""
+    },
+    {
       "id": "sov82-how-beautiful-are-the-feet",
       "date": "2026-11-13",
       "task": "Sovereign A.I. week 82 built from one word over a forwarded ByteByteGo newsletter (Data Movement Strategies In System Design), all four age bands, 41-case gate",
