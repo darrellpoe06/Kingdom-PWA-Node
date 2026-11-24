@@ -284,10 +284,17 @@
     {
       "date": "2026-11-24",
       "from": 23650,
-      "to": 23667,
+      "to": 23682,
+      "dr": "DR-1644",
+      "reason": "church-site-archive.yml gains three steps on the road it already walks (pull the archive's calendars and flyers not yet read, read each once, file what was read: 15 lines), a two-line brakes header (the narrative folded into the record), and the walls job proves 0343 and the reads tool's selftest (9 lines) so the smoke runs on a pull request touching it. Plus three lines in rls-isolation.yml: the 0343 smoke's matrix leg, because a smoke no leg runs proves nothing. A new step of an existing Way, not a longer version of one. Raised to the measured total, not above it."
+    },
+    {
+      "date": "2026-11-24",
+      "from": 23682,
+      "to": 23699,
       "dr": "DR-1648",
       "reason": "One new required CI leg in ci.yml, nas-python38 (17 lines): it runs the NAS-side Python guard and the nas-loops tests inside python:3.8.15, the NAS's own interpreter, because every other leg runs 3.11+ and that is how datetime.UTC shipped and broke bg-message-lessons on the box every cycle. A timeout as its brake. Raised to the measured total, not above it."
     }
   ],
-  "totalLines": 23667
+  "totalLines": 23699
 }

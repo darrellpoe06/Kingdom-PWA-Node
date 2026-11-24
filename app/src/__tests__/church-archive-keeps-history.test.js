@@ -319,7 +319,8 @@ describe('the app reads', () => {
           select: (s) => (selects.push(s), q),
           eq: () => q,
           order: () => q,
-          then: (ok) => Promise.resolve(selects.length === 1 ? { error: { code: '42703' } } : { data: [{ id: 'a' }], error: null }).then(ok),
+          // Before 0342 there is no archived_at (and so none of 0343's columns either).
+          then: (ok) => Promise.resolve(/archived_at/.test(selects[selects.length - 1]) ? { error: { code: '42703' } } : { data: [{ id: 'a' }], error: null }).then(ok),
         };
         return q;
       },
@@ -327,7 +328,7 @@ describe('the app reads', () => {
     const got = await readCalendarRows({ client, resolveChurch: church('c') });
     expect(got).toEqual({ status: 'ok', rows: [{ id: 'a' }] });
     expect(selects[0]).toMatch(/archived_at/);
-    expect(selects[1]).not.toMatch(/archived_at/);
+    expect(selects[selects.length - 1]).not.toMatch(/archived_at/);
   });
   it('the archive is read for the reader’s own church; a failed read is unavailable, never empty', async () => {
     const calls = [];

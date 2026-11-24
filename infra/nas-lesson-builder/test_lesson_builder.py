@@ -893,6 +893,29 @@ class Gates(unittest.TestCase):
         self.assertEqual(out["lesson"], forgot)
         self.assertFalse(gates.quotation_gate(out)["passed"])
 
+        # A MISQUOTED verse keeps its quotes too, and this is why the test is a
+        # word RUN and not an exact match. Measured on the live queue
+        # 2026-11-24: every row still refused on `span-without-reference` also
+        # carried `not-the-verse`, so the writer misquotes -- and a misquote is
+        # in no corpus, so an exact test demoted real Scripture to our prose.
+        # Measured separation: a misquote keeps a 5-7 word run of the KJV, a
+        # speaker's own sentence only 2-3.
+        for misquote in ("Prove all things and hold fast to that which is good",
+                         "For God so loved the world that He gave His only begotten Son"):
+            _, mended = gates.mend_unreferenced_quotes(
+                {"lesson": f'He wrote "{misquote}" to them.'}, CORPUS)
+            self.assertEqual(mended, [], misquote)
+        # ... and a verse too short to hold such a run is asked the exact
+        # question instead, so two words of Scripture are still protected.
+        _, mended = gates.mend_unreferenced_quotes({"lesson": 'It reads "Jesus wept" here.'}, CORPUS)
+        self.assertEqual(mended, [])
+        # while a speaker's longer sentence is still mended
+        for speech in ("you cannot negotiate with what you did not create",
+                       "we build it so the family can use it tomorrow"):
+            _, mended = gates.mend_unreferenced_quotes(
+                {"lesson": f'He said "{speech}" then.'}, CORPUS)
+            self.assertEqual(mended, [speech])
+
         # The glyph a writer typed must not decide it: the corpus writes U+2019.
         straight = 'He wrote "And Joseph\'s master took him" to them.'
         self.assertTrue(CORPUS.contains_phrase("And Joseph’s master took him"))
@@ -917,15 +940,26 @@ class Gates(unittest.TestCase):
 
         # (2) mend everything -> a verse that forgot its reference is demoted
         class Blind:
-            def contains_phrase(self, phrase):
+            def echoes_scripture(self, span, min_run=4):
                 return False
         _, mended = gates.mend_unreferenced_quotes(
             {"lesson": 'He wrote "Prove all things" to them.'}, Blind())
         self.assertEqual(mended, ["Prove all things"])  # the live case asserts none
 
-        # (3) an unreadable corpus must answer True, never False
+        # (3) the EXACT test, which is what shipped first and was wrong: a
+        # misquoted verse is in no corpus, so it was demoted to our prose.
+        class Exact:
+            def echoes_scripture(self, span, min_run=4):
+                return CORPUS.contains_phrase(span)
+        _, mended = gates.mend_unreferenced_quotes(
+            {"lesson": 'He wrote "Prove all things and hold fast to that which is good" to them.'},
+            Exact())
+        self.assertEqual(len(mended), 1, "the exact test demotes a misquote; the run test must not")
+
+        # (4) an unreadable corpus must answer True, never False
         empty = gates.Corpus(repo=tempfile.mkdtemp())
         self.assertTrue(empty.contains_phrase("anything at all"))
+        self.assertTrue(empty.echoes_scripture("anything at all here and more"))
 
     def test_unresolvable_and_shouted(self):
         self.assertEqual(gates.check_span(CORPUS, "x", "Psalms", "121", "99")["kind"], "unresolvable")

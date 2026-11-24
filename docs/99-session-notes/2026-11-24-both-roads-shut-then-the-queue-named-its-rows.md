@@ -127,6 +127,39 @@ missing directory, so an absent corpus would have thrown inside the build and
 landed the teaching in the `crashed` class the queue is already full of. It is
 guarded now, and the case pins it.
 
+### The mend's own first live reading corrected it — DR-1646
+
+The 17:05 receipt (run 45444545436, census code `c29e5a98ae06`, my own merge
+commit) showed the NAS had taken DR-1641 within an hour: **10 waiting → 3, and
+8 building at once.** The eight abandoned at `failed after 2` were eligible
+again and being written.
+
+But the 18:05 receipt (run 45455565284) is the one that mattered. Four of the
+eight failed again, and **every row still refused on `span-without-reference`
+also carried `not-the-verse`**. That is the writer MISQUOTING Scripture, not
+quoting speakers — and a misquote is in no corpus, so DR-1641's exact test
+called real Scripture "not Scripture" and took its quotes off. The record said
+in its own words that this must never happen, and its test did it.
+
+Measured locally against the real KJV, the longest contiguous run each class
+keeps:
+
+| span | longest KJV run | exact match |
+|---|---|---|
+| the verbatim verse | 9 of 9 words | yes |
+| that verse misquoted | 5 | no |
+| John 3:16 misquoted | 7 | no |
+| *"the covenant is not a contract"* | 3 | no |
+| *"you cannot negotiate with what you did not create"* | 2 | no |
+| *"we build it so the family can use it tomorrow"* | 2 | no |
+
+So the test is a **four-word run**, not an exact match, with a span shorter than
+the run asked the exact question instead (*"Jesus wept"* stays protected).
+
+**Honest limit: the mend is still unproven live.** What moved the queue was the
+attempt budget, not the mend. The next receipt after DR-1646 lands is its first
+real test.
+
 ### What remains outside this session
 
 The tailnet key, which blocks the builder's own log for the three `crashed`

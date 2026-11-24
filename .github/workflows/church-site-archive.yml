@@ -5,6 +5,8 @@
 # Timer-driven, deterministic class (CLAUDE.md, AMENDED 2026-07-29): started by
 # merge. BUDGET: job timeouts, per-request timeouts, a picture cap per run, 12 MB
 # per picture. LOCK: one run at a time. Stop: disable this workflow.
+# THE READ (DR-1644, AI class): each kept calendar/flyer read once onto its days. BUDGET 6 a run,
+# timeout + token cap each, stop after 2 failures; LOCK as above; KILL-SWITCH vars.CHURCH_CALENDAR_READ=off.
 # The walls job proves 0342 on a bare PostgreSQL for a pull request touching it.
 name: Church site archive (daily)
 
@@ -22,6 +24,10 @@ on:
     paths:
       - 'infra/supabase/migrations-auto/0342-what-the-church-office-posts-is-kept.sql'
       - 'infra/supabase/tests/0342-church-site-archive-smoke.sql'
+      - 'infra/supabase/migrations-auto/0343-every-event-lives-on-its-day.sql'
+      - 'infra/supabase/tests/0343-every-event-lives-on-its-day-smoke.sql'
+      - 'scripts/church-calendar-read*'
+      - 'app/src/lib/church-calendar-read.js'
       - 'scripts/church-archive-ci-bootstrap.sql'
       - 'infra/nas-church-archive/**'
       - '.github/workflows/church-site-archive.yml'
@@ -66,11 +72,20 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0342-church-site-archive-smoke.sql | tee "$RUNNER_TEMP/smoke.txt"
           grep -q 'CHURCH SITE ARCHIVE SMOKE: PASS' "$RUNNER_TEMP/smoke.txt"
           python3 infra/nas-church-archive/church_archive_keep.py --selftest
+      - name: 0343 applies twice and every wall holds; the reads tool's selftest passes
+        run: |
+          set -euo pipefail
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0343-every-event-lives-on-its-day.sql; done
+          psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0342-church-site-archive-smoke.sql | tee "$RUNNER_TEMP/smoke42.txt"
+          grep -q 'CHURCH SITE ARCHIVE SMOKE: PASS' "$RUNNER_TEMP/smoke42.txt"
+          psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0343-every-event-lives-on-its-day-smoke.sql | tee "$RUNNER_TEMP/smoke43.txt"
+          grep -q 'CALENDAR DAYS SMOKE: PASS' "$RUNNER_TEMP/smoke43.txt"
+          python3 infra/nas-church-archive/church_calendar_reads.py --selftest
 
   keep:
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
     env:
       MODE: ${{ inputs.mode || 'site' }}
       NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
@@ -89,3 +104,17 @@ jobs:
       - name: Keep what is new on the NAS
         timeout-minutes: 15
         run: bash scripts/church-site-archive-over-tailnet.sh "$RUNNER_TEMP/archive"
+      - name: Bring back the office pictures not yet read onto the calendar
+        timeout-minutes: 10
+        run: bash scripts/church-calendar-reads-over-tailnet.sh pull "$RUNNER_TEMP/reads" 6
+      - name: Read each picture's events onto their days (once per picture)
+        timeout-minutes: 20
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CHURCH_CALENDAR_READ: ${{ vars.CHURCH_CALENDAR_READ }}
+        run: node scripts/church-calendar-read.mjs "$RUNNER_TEMP/reads"
+      - name: File what was read
+        if: ${{ !cancelled() }}
+        timeout-minutes: 10
+        run: |
+          if [ -f "$RUNNER_TEMP/reads/reads.json" ]; then bash scripts/church-calendar-reads-over-tailnet.sh file "$RUNNER_TEMP/reads"; else echo "Nothing read this run."; fi
