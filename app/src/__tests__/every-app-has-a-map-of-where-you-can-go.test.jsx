@@ -100,7 +100,14 @@ describe('2. a door’s map is that door’s own tabs', () => {
 
 describe('3. search', () => {
   const groups = [
-    { key: 'family', label: 'Family', items: [{ id: 'books', label: 'Money' }, { id: 'overview', label: 'Big Picture' }] },
+    {
+      key: 'family',
+      label: 'Family',
+      items: [
+        { id: 'books', label: 'Money' },
+        { id: 'overview', label: 'Big Picture' },
+      ],
+    },
     { key: 'soul', label: 'Soul', items: [{ id: 'church', label: 'Church' }] },
   ];
 
@@ -206,7 +213,9 @@ describe('5. all four doors mount it, each from the list it already shows', () =
   });
 
   it('Moore Divahs: from the business row’s tabs', () => {
-    expect(src('components', 'MooreDoor.jsx')).toMatch(/<DoorMapButton appName=\{BIZ\.brand\.label\} theme=\{theme\} groups=\{doorMapGroup\(BIZ\.brand\.label, BIZ\.tabs, tab/);
+    expect(src('components', 'MooreDoor.jsx')).toMatch(
+      /<DoorMapButton appName=\{BIZ\.brand\.label\} theme=\{theme\} groups=\{doorMapGroup\(BIZ\.brand\.label, BIZ\.tabs, tab/
+    );
   });
 
   it('TLC: from the same sections the dock and the tabs read, signed in or not', () => {

@@ -89,7 +89,14 @@ export default function AppMapButton({ map }) {
         }
       />
       {map.setTheme && (
-        <PersonalizeSheet open={personalizeOpen} onClose={() => setPersonalizeOpen(false)} theme={map.theme} setTheme={map.setTheme} isOwner={!!map.isOwner} door="poetech" />
+        <PersonalizeSheet
+          open={personalizeOpen}
+          onClose={() => setPersonalizeOpen(false)}
+          theme={map.theme}
+          setTheme={map.setTheme}
+          isOwner={!!map.isOwner}
+          door="poetech"
+        />
       )}
     </>
   );
