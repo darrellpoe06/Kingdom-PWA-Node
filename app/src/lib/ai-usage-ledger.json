@@ -595,6 +595,21 @@
       "notes": ""
     },
     {
+      "id": "no-session-guesses-an-account",
+      "date": "2026-11-24",
+      "task": "Recorded the two tailnets, their logins and machines, the fix that restored sign-in, and the standing rule that no session guesses an account; memory entry added",
+      "drs": [
+        "DR-1626"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.3,
+      "estimateWithoutAiHours": 3,
+      "notes": ""
+    },
+    {
       "id": "the-nas-sees-its-own-public-road",
       "date": "2026-11-24",
       "task": "The Funnel watchdog was blind (own hostname, 502 read as up, /sb missing); now judges the public road, restores every row, brings Tailscale up, and reports its state to GitHub by repository_dispatch",

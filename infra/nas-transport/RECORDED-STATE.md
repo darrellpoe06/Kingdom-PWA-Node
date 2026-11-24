@@ -14,9 +14,18 @@ The rule this file exists to enforce stands regardless: no session mutates the
 transport without reading this file, keeping every row true, and using `funnel`
 (never `serve`).
 
-## Whose tailnet this is (recorded 2026-11-24, DR-1624)
+## Whose tailnet this is (recorded 2026-11-24, DR-1624, DR-1626)
 
-The family's tailnet is **`darrellpoe06.github`**: the sign-in is **GitHub** (`darrellpoe06`), not Google. A second, near-empty tailnet exists under `darrellpoe06@gmail.com`; a machine signed in there cannot see the NAS. Every always-on machine (`poetech`, `kingdom-home`, `tlcmediadpt`, `livestream-main-pc`, `tlcrackstation`, `tlc-tech-team`) has **key expiry disabled** in the admin console (Machines, the machine's menu, Disable key expiry). On 2026-11-23 `poetech`'s key expired and every road on this page went dark for the whole family.
+**Never guess a login. If it is not on this page, read it from the admin console and write it here (DR-1626).**
+
+| Tailnet | Sign-in | Machines | Where |
+|---|---|---|---|
+| **`darrellpoe06.github`** (the family's) | **GitHub**, `darrellpoe06` | `poetech` (the NAS; carries the Funnel), `kingdom-home`, `livestream-main-pc`, `tlcmediadpt`, `tlc-tech-team`, Darrell's phone | `poetech` is at Darrell's home; the `tlc*` machines are the church's (The Love Corner) |
+| `darrellpoe06@gmail.com` | Google | `tlcrackstation` (the church's NAS, at the church), Darrell's phone | the church |
+
+- **Key expiry is disabled** on every always-on machine (Machines, the machine's menu, Disable key expiry). On 2026-11-23 `poetech`'s key expired and every road on this page went dark for the whole family (DR-1624). Confirmed disabled 2026-11-24: `poetech`, `kingdom-home`, the phone. To confirm: `livestream-main-pc`, `tlcmediadpt`, `tlc-tech-team`, `tlcrackstation`.
+- **A machine signed back in uses plain `tailscale up`** (never `--reset`: the NAS's up-flags are in no record), from LAN SSH, which needs no password (DR-1526), and the link is approved with **GitHub**.
+- **`tlcrackstation` is shared into the family's tailnet by a share link, never moved** and never logged out from a distance: the Gmail tailnet is the only road to it from outside the church (DR-1626).
 
 ## The public Funnel (hostname poetech.tail5a2f35.ts.net, port 443 — PUBLIC via Tailscale Funnel, never merely `serve`)
 
