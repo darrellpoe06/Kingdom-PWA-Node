@@ -7,6 +7,10 @@
 **Area:** `infra/nas-loops/bg-message-lessons.py`; `infra/nas-openers/openers.py`; `scripts/nas-python38-guard.py`; `.github/workflows/ci.yml` (leg `nas-python38`); `ruff.toml`
 **Pairs with:** DR-1543 (bg-message-lessons), DR-0306 (the NAS runs Python 3.8.15), DR-0823 (openers), DR-0076 (proven to catch)
 
+## Context
+
+Each message Bishop Gwin preaches is meant to become a lesson (DR-1433). bg-message-lessons is the loop that files it, on the NAS's services-sync clock. The NAS runs its own Python 3.8.15, and nothing in CI ran that interpreter.
+
 ## What was measured
 
 - `bg-message-lessons.py` did `from datetime import UTC`. `datetime.UTC` exists only from Python 3.11. Under 3.8 the import raises `ImportError: cannot import name 'UTC' from 'datetime'` before the loop does anything.
@@ -14,6 +18,10 @@
 - **Why CI passed it.** Every CI leg runs Python 3.11 or newer. The loop's own tests imported the module and passed there.
 - **Why it was written that way.** The repository has no ruff config, so ruff targets 3.11. Its UP017 rule rewrites `timezone.utc` to `datetime.UTC`, so the linter itself suggested the break.
 - **The same sweep found `nas-openers/openers.py`** (`set[str]`, `dict[...]`, `tuple[...]`, and `str | None` in a pydantic model). It fails on import under 3.8 too. It ships disabled (DR-0823), so nobody has felt it yet. Arming it would have failed.
+
+## Impact
+
+Unresolved, no message becomes a lesson, and each new NAS script can fail the same way while CI passes it. This decision binds every `.py` under `infra/nas-*/` to run on 3.8: the required leg blocks any merge that breaks it.
 
 ## Decision
 
