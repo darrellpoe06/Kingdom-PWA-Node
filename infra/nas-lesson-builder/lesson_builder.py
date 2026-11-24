@@ -87,7 +87,15 @@ CHANNEL = "lesson_inbox"
 OWNER_IDS = ("f13843f2-742b-4f8a-82af-7ecfbdc536ec", "c2a6c39a-ae99-4ff7-83c6-b927e2e7f1cc")
 BUILD_MAX_SECONDS = int(os.environ.get("LESSON_BUILD_MAX_SECONDS", "2700"))
 WRITER_MAX_SECONDS = int(os.environ.get("LESSON_WRITER_MAX_SECONDS", "1500"))
-MAX_ATTEMPTS = int(os.environ.get("LESSON_BUILD_MAX_ATTEMPTS", "2"))
+# 4, not 2 (DR-1641, measured 2026-11-24). At 2 a teaching got ONE blind and
+# exactly ONE informed retry -- previous_failures() feeds the gates' own named
+# spans forward (DR-1552) -- and was then abandoned. Six of the ten rows then
+# waiting read "failed after 2": they spent that single informed retry and
+# stopped, the oldest 12 days old. Raising a bounded count leaves every brake
+# whole, by the same reasoning DR-1202 recorded for RATE_LIMIT_RETRIES: the
+# per-build budget (BUILD_MAX_SECONDS), the per-row lock (the lesson-captured
+# tag) and the stop-paths are all unchanged.
+MAX_ATTEMPTS = int(os.environ.get("LESSON_BUILD_MAX_ATTEMPTS", "4"))
 PARALLEL = int(os.environ.get("LESSON_BUILD_PARALLEL", "3"))
 SIMILAR = float(os.environ.get("LESSON_SIMILAR", "0.5"))
 
@@ -1063,6 +1071,9 @@ class Build:
             if r["ok"]:
                 try:
                     obj = gates.canonical_apostrophes(writer.extract_json(r["text"]))
+                    obj, mended = gates.mend_unreferenced_quotes(obj, self.corpus)
+                    if mended:
+                        v["mended_quotes"] = mended[:40]
                 except ValueError as e:
                     v["ok"], v["error"] = False, "unreadable reply: {}".format(e)
             obj = writer.apply_post_fix(self.fixes, v, teaching, obj)
@@ -2199,6 +2210,9 @@ class Backfill:
             if r["ok"]:
                 try:
                     obj = gates.canonical_apostrophes(writer.extract_json(r["text"]))
+                    obj, mended = gates.mend_unreferenced_quotes(obj, self.corpus)
+                    if mended:
+                        r["mended_quotes"] = mended[:40]
                 except ValueError as e:
                     r["error"] = "unreadable reply: {}".format(e)
             obj = writer.apply_post_fix(self.fixes, r, self.source, obj)
