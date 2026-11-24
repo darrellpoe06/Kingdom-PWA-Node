@@ -188,6 +188,7 @@ import { runVerifiedLedgerSync } from './lib/verified-ledger-sync.js';
 import { parseStatementText, isSpreadsheetFile, spreadsheetFileToCsv } from './lib/statement-import.js';
 import { matchServices } from './lib/matched-services.js';
 import { analyzeSkills } from './lib/skill-analytics.js';
+import { profileForAccount, readSavedProfile, writeSavedProfile } from './lib/account-profile.js'; // the profile follows the account (DR-1617)
 
 // =============================================================================
 // SEED DATA — v7 adds events array
@@ -629,6 +630,9 @@ export function isImportedAllowed({ isAnyDemoMode, currentProfile, isPublicHostV
     && (!isPublicHostVal || !!(authSession && authHydrated && isFamilyEmail(authSession?.user?.email)));
 }
 const personaOf = (email) => FAMILY_EMAIL_PROFILES[String(email || '').toLowerCase()] || null;
+// The name an account is known by when its profile carries none yet (DR-1617):
+// a person's own persona only, never the household roll-up ('family').
+const accountPersonName = (email) => { const p = personaOf(email); return p && p !== 'family' ? p.charAt(0).toUpperCase() + p.slice(1) : null; };
 // Unique family personas (Christina's two emails collapse to one), used as the
 // project-assignment roster. Display name = title-cased persona key.
 const FAMILY_MEMBERS = (() => {
@@ -1167,10 +1171,12 @@ export default function PoeFinancialSystem() {
     try { return localStorage.getItem('poe-current-profile') || null; }
     catch (e) { return null; }
   });
-  const setProfile = (p) => {
+  const setProfile = (p, uid) => {
     setCurrentProfile(p);
     // A reviewer's picks never touch this device's SAVED profile (state only).
-    try { if (!reviewerMode) { if (p) localStorage.setItem('poe-current-profile', p); else localStorage.removeItem('poe-current-profile'); } }
+    // The saved pick is stamped with the account that made it (DR-1617), so it
+    // is never shown to the next person who signs in on this device.
+    try { if (!reviewerMode) writeSavedProfile(localStorage, p, uid !== undefined ? uid : (authSession?.user?.id || null)); }
     catch (e) {}
     // Reset entity filter when switching profiles so we never leave it
     // pointing at an entity the new profile can't see.
@@ -1238,7 +1244,7 @@ export default function PoeFinancialSystem() {
   const isAssistantAcct = !reviewerMode && !isFamilyMember && !!authSession && instanceRoleState.role === 'assistant';
   const isGov = governsHere({ signedIn: !!authSession, reviewerMode, allowlisted: isFamilyMember, role: instanceRoleState.role });  // the ROLE governs, not the address (DR-1106; lib/family-standing.js)
   // ONE LIST, THREE PLACES (DR-1046): the tab strip, the sidebar and the phone's bottom bar all draw lib/nav-items.jsx.
-  const navTabs = navItems({ isAssistantAcct, isFamilyMember, isGovernor: isGov, authSession, isStudyCircle, healthPrograms: data.healthPrograms, userTier: data.userTier, reviewerMode, churchDoorOnly }); const accountDoor = { navTabs, setView, setChurchView, theme, setTheme, isOwner: isFamilyMember };/* the picture's menu reads the reader's own tabs (DR-1600) */
+  const navTabs = navItems({ isAssistantAcct, isFamilyMember, isGovernor: isGov, authSession, isStudyCircle, healthPrograms: data.healthPrograms, userTier: data.userTier, reviewerMode, churchDoorOnly }); const accountDoor = { navTabs, setView, setChurchView, theme, setTheme, isOwner: isFamilyMember, personName: accountPersonName(authSession?.user?.email) };/* the picture's menu reads the reader's own tabs (DR-1600) */
   const { homeView } = useHomePrefs();
   const navForDock = { groups: navGroups(navTabs), view, homeView, churchView, churchTabs: churchSubTabs({ signedIn: !!authSession, reviewerMode, officeRole: churchAccess.role, isChurchStaff }), churchHomeSection, onNavigate: (v, home, sub) => { if (home) setHomeView(home); if (sub) setChurchView(sub); setView(v); }, money: view === 'books' ? { booksView, setBooksView } : null };
   const showSideNav = !churchDoorOnly;
@@ -1772,24 +1778,35 @@ export default function PoeFinancialSystem() {
   // the SIGNED-IN family and kept currentProfile-gated surfaces (Imported)
   // hidden. Once the owner's hydration completes, load this device's saved
   // profile. Demo states keep their forced profile.
+  // THE PROFILE FOLLOWS THE ACCOUNT, NOT THE DEVICE (DR-1617). Darrell
+  // 2026-11-24: "Christina logging in shows Darrell name instead of hers".
+  // This effect used to return as soon as ANY profile was set, and it read the
+  // device's saved profile before the account's own: the last person on the
+  // device named the next one. It now resolves once per signed-in ACCOUNT
+  // (user id), and a saved pick counts only for the account that made it
+  // (lib/account-profile.js). A token refresh (same id) never re-runs it, so a
+  // pick made from the switcher in this session stands.
+  const profileResolvedForRef = useRef(null);
   useEffect(() => {
-    if (!authSession || !authHydrated || currentProfile || isAnyDemoMode) return;
+    if (!authSession) { profileResolvedForRef.current = null; return; }
+    if (!authHydrated || isAnyDemoMode) return;
+    const uid = authSession.user?.id || null;
+    if (profileResolvedForRef.current === uid) return;
+    profileResolvedForRef.current = uid;
     // A reviewer gets the self-serve profile a signed-in outside user gets —
     // state only, never reading or writing this device's saved profile.
     if (reviewerMode) { setCurrentProfile('self'); return; }
-    try {
-      const saved = localStorage.getItem('poe-current-profile');
-      if (saved) { setCurrentProfile(saved); return; }
-    } catch (e) { /* localStorage unavailable — fall through to email map */ }
+    const { saved, savedOwner } = readSavedProfile((() => { try { return localStorage; } catch (e) { return null; } })());
+    const resolved = profileForAccount({ uid, email: authSession.user?.email, saved, savedOwner, familyMap: FAMILY_EMAIL_PROFILES });
+    if (resolved.source === 'saved') { setCurrentProfile(resolved.profile); return; }
     // 2026-06-12 — identity follows the ACCOUNT, not the device: a signed-in
     // owner on a brand-new device shouldn't face the picker (or be greeted
     // as the sanitized persona). Known family emails (FAMILY_EMAIL_PROFILES,
     // module-level) map straight to their profile; unknown emails still get
     // the picker, and now also a self-serve welcome.
-    const email = (authSession.user?.email || '').toLowerCase();
-    const mapped = FAMILY_EMAIL_PROFILES[email];
+    const mapped = resolved.mapped;
     if (mapped) {
-      setProfile(mapped);
+      setProfile(mapped, uid);
       // 2026-06-13 — a signed-in family member is never tier-gated out of their
       // OWN family's data. Christina hit the Real Estate read-only preview and
       // read its upgrade banner as "you need a subscription." Recognized family
@@ -1806,7 +1823,7 @@ export default function PoeFinancialSystem() {
       // profile so the app renders their own data instead of trapping them.
       // 'self' is deliberately NOT in PROFILES (no extra picker button) and is
       // explicitly excluded from the wf18 family-PII gate above.
-      setProfile('self');
+      setProfile('self', uid);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authSession, authHydrated]);

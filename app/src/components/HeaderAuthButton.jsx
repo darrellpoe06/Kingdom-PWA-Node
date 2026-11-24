@@ -57,10 +57,23 @@ const BTN =
   'hover:bg-[#1A1815] hover:text-white font-semibold whitespace-nowrap ' +
   'focus:outline focus:outline-2 focus:outline-[#B85838]';
 
-/** The name the chip shows: the chosen profile name, else the sign-in's own handle. */
-export function headerName(profile, session) {
+/**
+ * The name the chip shows: the chosen profile name, else the name this account
+ * is known by (DR-1617: Darrell's phone sign-in read "15636502416" because that
+ * account has no profile name yet), else the sign-in's own handle. A phone
+ * sign-in's handle is its formatted number, never the raw synthetic address.
+ */
+export function headerName(profile, session, knownName) {
   if (profile && profile.displayName) return profile.displayName;
+  if (knownName) return knownName;
   const email = session && session.user && session.user.email;
+  if (email && /@phone\.poetech\.us$/i.test(String(email))) {
+    // Same shape as lib/supabase.js formatPhoneDisplay, kept local so the many
+    // render tests that mock that module need no new export.
+    const d = String(email).split('@')[0].replace(/\D+/g, '');
+    const local = d.length === 11 && d[0] === '1' ? d.slice(1) : d;
+    return local.length === 10 ? `(${local.slice(0, 3)}) ${local.slice(3, 6)}-${local.slice(6)}` : d;
+  }
   if (email) return String(email).split('@')[0];
   const phone = session && session.user && session.user.phone;
   return phone ? String(phone) : 'Me';
@@ -82,7 +95,7 @@ function DoorAccount({ door, compact, session, profile, profileOpen, setProfileO
       </div>
     );
   }
-  const name = headerName(profile, session);
+  const name = headerName(profile, session, door.personName);
   const hasPicture = !!(profile && profile.photoThumb);
   const close = () => setMenuOpen(false);
   const open = (to) => {
