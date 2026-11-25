@@ -51,3 +51,19 @@ Darrell: "No turning pages just scrolling down" and "Still should look like an a
 - **Article typography:** the opening all-capitals line and each section lead ("FIRST, THE MASTER WHO WENT AWAY.") render as headings, there is a drop cap on the first letter of the opening paragraph, the reading column is about 36em wide, and Scripture shows as gold-rule pull-quotes. Every character is the lesson's own; only how it is displayed changed.
 
 Verified: 39/39 prototype tests; 83/83 together with the learn-studio, motion and ui-standards suites; eslint, file-budget, format and legibility guards all pass; no errors and no horizontal scroll at 390px.
+
+## Watch keeps the player in view (after Darrell's phone review)
+
+Darrell loved all four modes. One issue: in Watch, narration "scrolls the screen away from the video player." Cause: every new sentence called `scrollIntoView` on the transcript line, and that scrolls the whole page. Targeted fix, Watch only:
+
+- **Pinned player:** the stage, progress bar and controls sit in one sticky block at the top.
+- **Transcript scrolls in its own box:** narration scrolls only the transcript box (`scrollTo` on the box), never the page. The box is sized to the screen space under the pinned player.
+- **Manual browsing:** a wheel or touch on the transcript pauses the following. The voice keeps playing. Following resumes after 8 seconds, or straight away from "Back to the current line" or a tap on any line.
+- **Captions:** they stay on the video, as before.
+- **Full screen:** the stage, with live captions, fills the screen using CSS. That works on iPhone Safari, which refuses `requestFullscreen` on anything but a `<video>`. Where the browser allows real full screen, it is used too. Pause and exit buttons sit on the stage.
+- **Read:** unchanged.
+
+Verified:
+- 44/44 prototype tests pass (5 new for Watch). 4 of the 5 fail on the previous code; the captions test passes on both because captions already worked.
+- 88/88 pass together with the learn-studio, motion and ui-standards suites. lint, file-budget, format and legibility guards pass.
+- Chromium at iPhone 13, iPhone SE and Pixel 7 sizes: the page never moved during narration, the player stayed pinned, the whole transcript box and the spoken line were on screen, full screen measured 390x664 with captions visible, and there was no horizontal scroll.

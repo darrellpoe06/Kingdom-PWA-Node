@@ -568,3 +568,128 @@ describe('Read Aloud inside Read mode (one continuous scroll)', () => {
     );
   });
 });
+
+// Darrell, 2026-11-25, after reviewing on his phone: in Watch, narration
+// "scrolls the screen away from the video player." The player stays pinned,
+// captions ride the video, and only the transcript box scrolls.
+describe('Watch keeps the player in view while it plays', () => {
+  const segments = segmentText(REAL_LESSON.lesson);
+  let made, pageScrolls, boxScrolls, saveScrollBy;
+  const createNarrator = (opts) => {
+    const e = {
+      calls: [],
+      status: 'idle',
+      at: 0,
+      onBoundary() {},
+      load() {},
+      play() {
+        this.status = 'playing';
+        this.calls.push('play');
+        opts.onState({ status: 'playing', segmentIndex: 0 });
+      },
+      pause() {
+        this.status = 'paused';
+        this.calls.push('pause');
+        opts.onState({ status: 'paused', segmentIndex: this.at });
+      },
+      resume() {
+        this.status = 'playing';
+        opts.onState({ status: 'playing', segmentIndex: this.at });
+      },
+      stop() {
+        if (this.status !== 'idle') {
+          this.status = 'idle';
+          opts.onState({ status: 'idle', segmentIndex: 0 });
+        }
+      },
+      setRate() {},
+      reach(i) {
+        this.at = i;
+        act(() => opts.onState({ status: this.status, segmentIndex: i }));
+      },
+    };
+    made.push(e);
+    return e;
+  };
+  const narrator = () => made[made.length - 1];
+  const box = () => container.querySelector('.le-transcript');
+  const openWatch = () => render(<LessonExperience lesson={REAL_LESSON} record={null} onExit={vi.fn()} createNarrator={createNarrator} />);
+  const startPlaying = () => click(container.querySelector('.le-playerbar button[aria-label="Play"]'));
+
+  beforeEach(() => {
+    made = [];
+    pageScrolls = 0;
+    boxScrolls = [];
+    window.localStorage.clear();
+    saveScrollBy = window.scrollBy;
+    window.scrollBy = () => (pageScrolls += 1);
+    Element.prototype.scrollIntoView = () => (pageScrolls += 1);
+    Element.prototype.scrollTo = function (o) {
+      boxScrolls.push(this);
+      this.scrollTop = o && o.top;
+    };
+  });
+  afterEach(() => {
+    window.scrollBy = saveScrollBy;
+    delete Element.prototype.scrollIntoView;
+    delete Element.prototype.scrollTo;
+  });
+
+  it('narration moves only the transcript box, never the page', () => {
+    openWatch();
+    startPlaying();
+    narrator().reach(5);
+    narrator().reach(12);
+    expect(pageScrolls).toBe(0);
+    expect(boxScrolls.length).toBeGreaterThan(0);
+    expect(boxScrolls.every((el) => el === box())).toBe(true);
+  });
+
+  it('the player is pinned: stage, progress and controls sit in one sticky block above the transcript', () => {
+    openWatch();
+    const player = container.querySelector('.le-player');
+    expect(player.querySelector('.le-stage')).toBeTruthy();
+    expect(player.querySelector('.le-progress')).toBeTruthy();
+    expect(player.querySelector('.le-playerbar')).toBeTruthy();
+    expect(player.contains(box())).toBe(false);
+  });
+
+  it('captions show the spoken words directly on the video', () => {
+    openWatch();
+    startPlaying();
+    narrator().reach(7);
+    const caption = container.querySelector('.le-stage .le-caption');
+    expect(caption).toBeTruthy();
+    expect(caption.textContent).toBe(segments[7]);
+  });
+
+  it('browsing the transcript stops the auto-follow but never the voice, and Back to the current line resumes it', () => {
+    openWatch();
+    startPlaying();
+    narrator().reach(3);
+    act(() => box().dispatchEvent(new WheelEvent('wheel', { bubbles: true })));
+    boxScrolls = [];
+    narrator().reach(9);
+    expect(boxScrolls.length).toBe(0);
+    expect(narrator().calls).not.toContain('pause');
+    expect(narrator().status).toBe('playing');
+    expect(container.querySelector('.le-tline.on .le-ttext').textContent).toBe(segments[9]);
+    click(byText('Back to the current line')[0]);
+    expect(boxScrolls).toContain(box());
+  });
+
+  it('full screen shows the cinematic stage with live captions, and exits', () => {
+    openWatch();
+    startPlaying();
+    narrator().reach(4);
+    click(container.querySelector('button[aria-label="Full screen"]'));
+    const stage = container.querySelector('.le-stage');
+    expect(stage.classList.contains('le-stage--full')).toBe(true);
+    expect(stage.querySelector('.le-stage-img, .le-img--empty')).toBeTruthy();
+    expect(stage.querySelector('.le-caption').textContent).toBe(segments[4]);
+    narrator().reach(5);
+    expect(stage.querySelector('.le-caption').textContent).toBe(segments[5]);
+    click(container.querySelector('button[aria-label="Exit full screen"]'));
+    expect(container.querySelector('.le-stage').classList.contains('le-stage--full')).toBe(false);
+  });
+});

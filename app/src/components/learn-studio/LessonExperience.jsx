@@ -115,6 +115,7 @@ function lessonNumberOf(id) {
 }
 
 const PAGE_KEY = (id, level) => `poe-lesson-experience:${id}:${level}:read-page`;
+const BROWSE_MS = 8000;
 const PROGRESS_KEY = (id, mode) => `poe-lesson-experience:${id}:${mode}`;
 
 function textFor(lesson, level) {
@@ -342,6 +343,15 @@ export default function LessonExperience({
   );
   const stageRef = useRef(null);
   const activeLineRef = useRef(null);
+  // WATCH: the transcript is its own scroll box under a pinned player
+  // (Darrell, 2026-11-25: narration "scrolls the screen away from the video
+  // player"). Only the box ever scrolls; the page and the player never move.
+  // Touching or wheeling the box means the reader is browsing it: following
+  // pauses (the voice does not) and resumes on its own after BROWSE_MS.
+  const transcriptRef = useRef(null);
+  const browseTimer = useRef(0);
+  const [browsing, setBrowsing] = useState(false);
+  const [full, setFull] = useState(false);
 
   const text = useMemo(() => textFor(lesson, level), [lesson, level]);
   const segments = useMemo(() => segmentText(text), [text]);
@@ -405,13 +415,45 @@ export default function LessonExperience({
 
   useEffect(() => saved.set(PROGRESS_KEY(lesson.id, level), idx), [idx, lesson.id, level]);
 
+  const browse = useCallback(() => {
+    setBrowsing(true);
+    clearTimeout(browseTimer.current);
+    browseTimer.current = setTimeout(() => setBrowsing(false), BROWSE_MS);
+  }, []);
+  const followAgain = useCallback(() => {
+    clearTimeout(browseTimer.current);
+    setBrowsing(false);
+  }, []);
+  useEffect(() => () => clearTimeout(browseTimer.current), []);
+
+  // Keep the spoken line in view INSIDE the transcript box only.
   useEffect(() => {
+    if (mode !== 'watch' || browsing) return;
+    const box = transcriptRef.current;
+    const line = activeLineRef.current;
+    if (!box || !line) return;
+    const top = Math.max(0, line.offsetTop - box.clientHeight * 0.35);
     try {
-      if (activeLineRef.current) activeLineRef.current.scrollIntoView({ block: 'nearest', behavior: motionBehavior() });
+      if (typeof box.scrollTo === 'function') box.scrollTo({ top, behavior: motionBehavior() });
+      else box.scrollTop = top;
     } catch {
-      /* no scrollIntoView (tests) */
+      box.scrollTop = top;
     }
-  }, [idx, mode]);
+  }, [idx, mode, browsing, watchTab]);
+
+  // Full screen: the cinematic stage with its captions. Shown by CSS at once
+  // (iPhone Safari refuses requestFullscreen on anything but a <video>), and
+  // upgraded to the browser's real full screen wherever that is allowed.
+  useEffect(() => {
+    const onChange = () => {
+      if (!document.fullscreenElement) setFull(false);
+    };
+    document.addEventListener('fullscreenchange', onChange);
+    return () => document.removeEventListener('fullscreenchange', onChange);
+  }, []);
+  useEffect(() => {
+    if (mode !== 'watch' && full) setFull(false);
+  }, [mode, full]);
 
   const play = useCallback(() => {
     const engine = engineRef.current;
@@ -444,14 +486,24 @@ export default function LessonExperience({
   }, [rate]);
 
   const fullscreen = useCallback(() => {
+    if (full) {
+      setFull(false);
+      try {
+        if (document.fullscreenElement) document.exitFullscreen();
+      } catch {
+        /* already out */
+      }
+      return;
+    }
+    setFull(true);
     try {
       const el = stageRef.current;
-      if (document.fullscreenElement) document.exitFullscreen();
-      else if (el && el.requestFullscreen) el.requestFullscreen();
+      const p = el && el.requestFullscreen ? el.requestFullscreen() : null;
+      if (p && typeof p.catch === 'function') p.catch(() => {});
     } catch {
-      /* fullscreen refused (iOS Safari on a div) -- nothing to do */
+      /* refused (iOS Safari on a div): the CSS full screen stays */
     }
-  }, []);
+  }, [full]);
 
   const shownIdx = resumedFrom > 0 && status === 'idle' ? resumedFrom : idx;
   const pct = segments.length ? Math.round((shownIdx / segments.length) * 100) : 0;
@@ -482,54 +534,66 @@ export default function LessonExperience({
 
       {mode === 'watch' && (
         <section className="le-watch">
-          <div className="le-stage" ref={stageRef}>
-            <CoverImage image={record?.image} alt={record?.imageAlt} className="le-stage-img" animated />
-            <div className="le-stage-scrim" aria-hidden="true" />
-            <div className="le-stage-title">
-              <h1 className="le-title">{title}</h1>
-              <LessonBadge number={number} />
-            </div>
-            {captions && (isPlaying || status === 'paused') && (
-              <div className="le-caption" aria-live="off">
-                {boundary.seg === idx && segments[idx] ? (
-                  <>
-                    <span className="le-said">{segments[idx].slice(0, boundary.offset)}</span>
-                    <span className="le-unsaid">{segments[idx].slice(boundary.offset)}</span>
-                  </>
-                ) : (
-                  <span className="le-unsaid">{segments[idx] || ''}</span>
-                )}
+          <div className="le-player">
+            <div className={`le-stage ${full ? 'le-stage--full' : ''}`} ref={stageRef}>
+              <CoverImage image={record?.image} alt={record?.imageAlt} className="le-stage-img" animated />
+              <div className="le-stage-scrim" aria-hidden="true" />
+              <div className="le-stage-title">
+                <h1 className="le-title">{title}</h1>
+                <LessonBadge number={number} />
               </div>
-            )}
-          </div>
-          <Progress pct={pct} label="Lesson progress" />
-          <div className="le-playerbar">
-            {playBtn('le-ctl--bar')}
-            <button type="button" className={`le-ctl le-ctl--bar ${RING}`} onClick={() => skip(-1)} aria-label="Previous sentence">
-              ⏮
-            </button>
-            <button type="button" className={`le-ctl le-ctl--bar ${RING}`} onClick={() => skip(1)} aria-label="Next sentence">
-              ⏭
-            </button>
-            <span className="le-time">
-              {elapsed} / {total}
-            </span>
-            <span className="le-spacer" />
-            <button type="button" className={`le-chip ${RING}`} onClick={cycleSpeed} aria-label={`Speed ${speedLabel}`}>
-              {speedLabel}
-            </button>
-            <button
-              type="button"
-              aria-pressed={captions}
-              className={`le-chip ${captions ? 'on' : ''} ${RING}`}
-              onClick={() => setCaptions((c) => !c)}
-              aria-label="Captions"
-            >
-              CC
-            </button>
-            <button type="button" className={`le-chip ${RING}`} onClick={fullscreen} aria-label="Full screen">
-              ⛶
-            </button>
+              {captions && (isPlaying || status === 'paused') && (
+                <div className="le-caption" aria-live="off">
+                  {boundary.seg === idx && segments[idx] ? (
+                    <>
+                      <span className="le-said">{segments[idx].slice(0, boundary.offset)}</span>
+                      <span className="le-unsaid">{segments[idx].slice(boundary.offset)}</span>
+                    </>
+                  ) : (
+                    <span className="le-unsaid">{segments[idx] || ''}</span>
+                  )}
+                </div>
+              )}
+              {full && (
+                <div className="le-full-ctl">
+                  <button type="button" className={`le-chip ${RING}`} onClick={isPlaying ? pause : play} aria-label={isPlaying ? 'Pause' : 'Play'}>
+                    {isPlaying ? '❚❚' : '▶'}
+                  </button>
+                  <button type="button" className={`le-chip ${RING}`} onClick={fullscreen} aria-label="Exit full screen">
+                    ✕
+                  </button>
+                </div>
+              )}
+            </div>
+            <Progress pct={pct} label="Lesson progress" />
+            <div className="le-playerbar">
+              {playBtn('le-ctl--bar')}
+              <button type="button" className={`le-ctl le-ctl--bar ${RING}`} onClick={() => skip(-1)} aria-label="Previous sentence">
+                ⏮
+              </button>
+              <button type="button" className={`le-ctl le-ctl--bar ${RING}`} onClick={() => skip(1)} aria-label="Next sentence">
+                ⏭
+              </button>
+              <span className="le-time">
+                {elapsed} / {total}
+              </span>
+              <span className="le-spacer" />
+              <button type="button" className={`le-chip ${RING}`} onClick={cycleSpeed} aria-label={`Speed ${speedLabel}`}>
+                {speedLabel}
+              </button>
+              <button
+                type="button"
+                aria-pressed={captions}
+                className={`le-chip ${captions ? 'on' : ''} ${RING}`}
+                onClick={() => setCaptions((c) => !c)}
+                aria-label="Captions"
+              >
+                CC
+              </button>
+              <button type="button" className={`le-chip ${RING}`} onClick={fullscreen} aria-label="Full screen">
+                ⛶
+              </button>
+            </div>
           </div>
           <p className="le-original">{lesson.title}</p>
           <ModePills mode={mode} setMode={setMode} />
@@ -555,10 +619,22 @@ export default function LessonExperience({
           {watchTab === 'transcript' && (
             <>
               <LevelChips level={level} setLevel={setLevel} />
-              <ol className="le-transcript">
+              {browsing && (isPlaying || status === 'paused') && (
+                <button type="button" className={`le-follow ${RING}`} onClick={followAgain}>
+                  ↓ Back to the current line
+                </button>
+              )}
+              <ol className="le-transcript" ref={transcriptRef} onWheel={browse} onTouchMove={browse}>
                 {segments.map((s, i) => (
                   <li key={i} ref={i === idx ? activeLineRef : null} className={`le-tline ${i === idx ? 'on' : ''}`}>
-                    <button type="button" className={`le-tline-btn ${RING}`} onClick={() => jumpTo(i)}>
+                    <button
+                      type="button"
+                      className={`le-tline-btn ${RING}`}
+                      onClick={() => {
+                        followAgain();
+                        jumpTo(i);
+                      }}
+                    >
                       <span className="le-tstamp">~{clock(starts[i])}</span>
                       <span className="le-ttext">{s}</span>
                     </button>
