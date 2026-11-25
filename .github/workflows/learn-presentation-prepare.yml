@@ -18,7 +18,7 @@ jobs:
   prepare:
     if: vars.LEARN_PRESENTATION_AUTOPREP == 'on'
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 180
     defaults: { run: { working-directory: app } }
     env:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
