@@ -85,6 +85,16 @@ The ledger is append-only (`jobs.jsonl`), so a kill mid-run loses nothing alread
 - `publish-covers` (free): new passing covers (own composed image, no needsReview)
   become a tree the workflow's publish job commits to `claude/learn-covers-<run>`;
   an existing cover or record with a cover is never replaced.
+- `ledger-check` (free; exit 6 = stale): run after every cache restore and before
+  every paid step (text, images, art-v2) and every originals verdict. A ledger that
+  knows fewer paid pictures than the originals manifest or the NAS verdict's
+  `expected`, or whose spend is negative, stops (incident run 45625192907: a pilot
+  ledger restored over the library's 176 pictures, total -$8.22).
+- `ledger-restore --artifact ID` (free; exit 7 = refused; workflow `only=ledger-restore`):
+  replaces `state/`, `images/` and `composed/` with a run artifact's, only when its
+  ledger keeps every current job key (adjustment rows aside: they re-apply once from
+  git), has at least as many succeeded picture jobs, and every paid picture it names
+  is present with the paid bytes (lib/ledger-restore.mjs).
 
 ## What it checks automatically
 

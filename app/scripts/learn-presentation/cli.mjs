@@ -3,6 +3,7 @@
 //   npx vite-node scripts/learn-presentation/cli.mjs <command> [flags]
 // Commands: estimate | text | images | status | export | retry-failed | part-recover
 //           | originals-backup (free; lib/originals-backup.mjs) | publish-covers (free; lib/publish-covers.mjs)
+//           | ledger-restore | ledger-check (free; lib/ledger-restore.mjs: the right ledger, never a stale one)
 // See README.md beside this file. Nothing here writes to a lesson.
 // =============================================================================
 import { verifyRecovery } from './lib/recovery.mjs';
@@ -17,7 +18,7 @@ import {
   nextLibraryBatch,
   scopeKeySet,
 } from './lib/scope.mjs';
-import { copyFileSync } from 'node:fs';
+import { copyFileSync, rmSync } from 'node:fs';
 import process from 'node:process';
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join, dirname, resolve } from 'node:path';
@@ -36,6 +37,7 @@ import {
   ORIGINALS_REPO,
   FALLBACK_ARTIFACT_ID,
   backupAndVerify,
+  downloadArtifact,
   fetchOriginalsState,
   missingSources,
   paidOriginals,
@@ -44,6 +46,7 @@ import {
 } from './lib/originals-backup.mjs';
 import { writePublishTree } from './lib/publish-covers.mjs';
 import { savePart, recoverPart } from './lib/part.mjs';
+import { ledgerFacts, restoreLedger, staleness } from './lib/ledger-restore.mjs';
 
 const SEED = resolve('src/lib/learn-presentation/presentation-seed.json');
 const ART = resolve('scripts/learn-presentation/art-direction-v2.json');
@@ -136,6 +139,22 @@ async function checkStorage(provider, stateDir, log) {
   return gate.open;
 }
 
+/** Incident 2026-11-25: a stale ledger never spends and never writes an originals verdict.
+ *  Compared with the private originals manifest and the NAS verdict; exit 6 when stale. */
+async function checkLedgerFresh(stateDir, log, { provider = null, ledgerKey = '' } = {}) {
+  if (provider && (provider.costCents === 0 || provider.name === 'local')) return true; // free: nothing is paid for
+  const facts = ledgerFacts(stateDir);
+  const repo = await fetchOriginalsState({ token: process.env.LEARN_ORIGINALS_TOKEN });
+  if (repo.error) log(`ledger check: originals manifest unreadable (${repo.error})`);
+  const s = staleness({ ...facts, manifest: repo.manifest, nasVerdict: process.env.LEARN_THUMBS_RECONCILED || '', ledgerKey });
+  log(`ledger check: ${facts.paidPictures} paid picture(s) · ${dollars(facts.spentCents)} spent · ${s.stale ? 'STALE' : 'current'}`);
+  for (const r of s.reasons) log(`  ✗ ${r}`);
+  if (!s.stale) return true;
+  log(`STOPPED before any spend: ${s.remedy}`);
+  process.exitCode = 6;
+  return false;
+}
+
 async function main() {
   const { cmd, flags } = parseArgs(process.argv.slice(2));
   const stateDir = resolve(flags.state || '.learn-presentation/state');
@@ -153,8 +172,37 @@ async function main() {
     );
     return;
   }
+  if (cmd === 'ledger-check') {
+    await checkLedgerFresh(stateDir, log, { ledgerKey: flags['ledger-key'] === true ? '' : flags['ledger-key'] });
+    return;
+  }
+  if (cmd === 'ledger-restore') {
+    // Free: the authoritative ledger + pictures from a run artifact, only as a superset of the current ledger.
+    const id = Number(flags.artifact);
+    if (!Number.isInteger(id) || id <= 0) {
+      log('ledger-restore REFUSED: --artifact <id> is required');
+      process.exitCode = 7;
+      return;
+    }
+    const tmpDir = resolve(process.env.RUNNER_TEMP || resolve(stateDir, '..'), 'lp-ledger-restore');
+    const { dir } = await downloadArtifact({ id, repo: process.env.GITHUB_REPOSITORY, token: process.env.GITHUB_TOKEN, tmpDir });
+    const r = restoreLedger({ root: resolve(stateDir, '..'), artifactDir: dir });
+    rmSync(tmpDir, { recursive: true, force: true });
+    const f = (x) => `${x.keys.length} jobs · ${x.pictureJobs} picture jobs · ${x.paidPictures} paid pictures · ${dollars(x.spentCents)}`;
+    log(`ledger-restore: current ${f(r.before)} | artifact ${id} ${f(r.after)}`);
+    for (const p of r.reasons) log(`  ✗ ${p}`);
+    if (!r.ok) {
+      log('ledger-restore REFUSED: the current ledger is left exactly as it was');
+      process.exitCode = 7;
+      return;
+    }
+    log(`ledger-restore: state/ and images/ replaced from artifact ${id} (${r.pictures} paid pictures present with the paid bytes)`);
+    return;
+  }
   if (cmd === 'originals-backup') {
     // Free: every paid original into the private repository, proven on a fresh clone (lib/originals-backup.mjs).
+    // A stale ledger never writes the verdict (run 45625192907 wrote "20 of 20" over the library's 176).
+    if (!(await checkLedgerFresh(stateDir, log))) return;
     const imagesDir = outDir;
     const list = paidOriginals(stateDir);
     let missing = missingSources(list, imagesDir);
@@ -237,6 +285,7 @@ async function main() {
     const beforeArt = shaMap(ledger);
     // raw:false — FLUX raw mode favours candid, muted renders; the new direction wants vivid natural color.
     const provider = String(flags.provider || 'bfl') === 'bfl' ? bflImage({ raw: false }) : imageProvider(String(flags.provider));
+    if (!(await checkLedgerFresh(stateDir, log, { provider }))) return;
     if (!(await checkStorage(provider, stateDir, log))) return;
     const t = await runArtV2({
       entries,
@@ -316,6 +365,7 @@ async function main() {
 
   if (cmd === 'text' || (retryFailed && flags.kind !== 'image')) {
     const provider = textProvider(String(flags.provider || 'anthropic'), flags.model ? { model: String(flags.model) } : {});
+    if (!(await checkLedgerFresh(stateDir, log, { provider }))) return;
     log(
       `Stage A (text) · ${items.length} lessons · ${provider.name}/${provider.model} · concurrency ${concurrency}${Number.isFinite(budget.cap) ? ` · cap ${dollars(budget.cap)}` : ''}`
     );
@@ -338,6 +388,7 @@ async function main() {
   }
   if (cmd === 'images' || (retryFailed && flags.kind !== 'text')) {
     const provider = imageProvider(String(flags.provider || 'bfl'));
+    if (!(await checkLedgerFresh(stateDir, log, { provider }))) return;
     const bucket = new TokenBucket(int(flags['per-minute'], 30));
     log(
       `Stage B (images) · ${items.length} lessons · ${provider.name}/${provider.model} · concurrency ${concurrency} · ${int(flags['per-minute'], 30)}/min${Number.isFinite(budget.cap) ? ` · cap ${dollars(budget.cap)}` : ''}`

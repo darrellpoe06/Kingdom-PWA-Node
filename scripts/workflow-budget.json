@@ -329,7 +329,14 @@
       "to": 23762,
       "dr": "DR-0076",
       "reason": "learn-presentation-prepare.yml (+23): permanent storage for paid pictures in the private originals repo, which the owner approved 2026-11-25 (the originals token, an actions: read line for the artifact fallback, and each part of 50 backed up and verified on a fresh clone before the next part may buy, all folded into the existing steps), plus a 17-line publish job. The publish job commits ONLY new passing covers to claude/learn-covers-<run>, opens the PR and dispatches CI there, so finished covers reach the app without a hand. Raised to the measured total, not above it."
+    },
+    {
+      "date": "2026-11-25",
+      "from": 23762,
+      "to": 23765,
+      "dr": "DR-0076",
+      "reason": "learn-presentation-prepare.yml (+3): the stale-ledger incident (run 45625192907 restored a 20-lesson pilot ledger over the library's 176 paid pictures, then saved it as the newest cache). An artifact_id input and its ARTIFACT_ID env for the free only=ledger-restore mode (superset-only, lib/ledger-restore.mjs), and one folded line that runs ledger-check after every cache restore so a stale ledger stops before any spend. Raised to the measured total, not above it."
     }
   ],
-  "totalLines": 23762
+  "totalLines": 23765
 }

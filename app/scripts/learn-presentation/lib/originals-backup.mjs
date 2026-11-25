@@ -237,17 +237,7 @@ export async function fetchOriginalsState({ token, repo = ORIGINALS_REPO, fetchI
  */
 export async function restoreFromArtifact({ id, repo, token, missing, imagesDir, tmpDir, fetchImpl = globalThis.fetch, unzip = defaultUnzip }) {
   if (!missing.length) return 0;
-  const zip = join(tmpDir, `artifact-${id}.zip`);
-  const dir = join(tmpDir, `artifact-${id}`);
-  mkdirSync(tmpDir, { recursive: true });
-  const r = await fetchImpl(`https://api.github.com/repos/${repo}/actions/artifacts/${id}/zip`, {
-    headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' },
-    redirect: 'follow',
-  });
-  if (!r.ok) throw new Error(`artifact ${id}: HTTP ${r.status}`);
-  writeFileSync(zip, Buffer.from(await r.arrayBuffer()));
-  rmSync(dir, { recursive: true, force: true });
-  unzip(zip, dir);
+  const { dir, zip } = await downloadArtifact({ id, repo, token, tmpDir, fetchImpl, unzip });
   let n = 0;
   for (const o of missing) {
     const hit = [join(dir, 'outbox', o.src), join(dir, 'images', o.src), join(dir, o.src)].find((p) => existsSync(p) && sha256File(p) === o.sha256);
@@ -261,6 +251,22 @@ export async function restoreFromArtifact({ id, repo, token, missing, imagesDir,
   return n;
 }
 
-function defaultUnzip(zip, dir) {
+/** Download one run artifact (GitHub API, GITHUB_TOKEN) and unzip it under tmpDir. The caller removes both. */
+export async function downloadArtifact({ id, repo, token, tmpDir, fetchImpl = globalThis.fetch, unzip = defaultUnzip }) {
+  const zip = join(tmpDir, `artifact-${id}.zip`);
+  const dir = join(tmpDir, `artifact-${id}`);
+  mkdirSync(tmpDir, { recursive: true });
+  const r = await fetchImpl(`https://api.github.com/repos/${repo}/actions/artifacts/${id}/zip`, {
+    headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' },
+    redirect: 'follow',
+  });
+  if (!r.ok) throw new Error(`artifact ${id}: HTTP ${r.status}`);
+  writeFileSync(zip, Buffer.from(await r.arrayBuffer()));
+  rmSync(dir, { recursive: true, force: true });
+  unzip(zip, dir);
+  return { dir, zip };
+}
+
+export function defaultUnzip(zip, dir) {
   execFileSync('unzip', ['-q', '-o', zip, '-d', dir], { stdio: ['ignore', 'pipe', 'pipe'] });
 }
