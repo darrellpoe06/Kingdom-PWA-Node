@@ -24,6 +24,7 @@ import { createBrowserTTS, segmentText, RATE_STEPS } from '../../lib/tts.js';
 import { motionBehavior } from '../../lib/gentle-motion.js';
 import { buildFollowMap, alignSegmentSpans, rangeFor, highlightSegment, clearReadingHighlights } from '../../lib/read-follow.js';
 import LessonStories from '../LessonStories.jsx';
+import { sentenceKeyOf } from '../../lib/learn-resume.js';
 import { storyFootnote, isTeachingSection } from '../../lib/story-truth.js';
 import LessonFigures from '../LessonFigures.jsx';
 import { ExperienceToolsContext, resumable, pacedFraction } from './LessonExperienceTools.jsx';
@@ -1014,6 +1015,26 @@ function ScriptureList({ lesson, verses }) {
 
 const SCALE_KEY = 'poe-lesson-experience:read-scale';
 const BOOKMARK_KEY = (id) => `poe-lesson-experience:${id}:bookmark`;
+// THE HIGHLIGHTER PEN (Darrell 2026-11-25: "also the ability to highlight when possible"). The
+// reader turns the pen on and taps a paragraph: it is marked, tapped again it takes the next
+// color, and after the last it is clear. Marks are the reader's own: kept on this device only,
+// per lesson, as a fingerprint of the paragraph (learn-resume's sentenceKeyOf, never its text),
+// so a mark follows its paragraph across reading levels. No true red in the pen: red is
+// reserved for the Blood wherever Scripture is marked (DR-0099), and lessons quote Scripture.
+export const HIGHLIGHT_KEY = (id) => `poe-lesson-experience:${id}:highlights`;
+export const HIGHLIGHT_PENS = ['gold', 'green', 'blue'];
+export function nextPen(current) {
+  const i = HIGHLIGHT_PENS.indexOf(current);
+  return i < 0 ? HIGHLIGHT_PENS[0] : HIGHLIGHT_PENS[i + 1] || null;
+}
+export function readHighlights(id) {
+  try {
+    const v = JSON.parse(saved.get(HIGHLIGHT_KEY(id), '{}'));
+    return v && typeof v === 'object' && !Array.isArray(v) ? v : {};
+  } catch {
+    return {};
+  }
+}
 const SCALES = [0.9, 1, 1.15, 1.3];
 
 const AUTO_TURN_KEY = 'poe-lesson-experience:auto-scroll';
@@ -1073,6 +1094,21 @@ function ReadMode({ lesson, record, title, number, paragraphs, level, setLevel, 
     return i >= 0 ? i : 1;
   });
   const [mark, setMark] = useState(() => Number(saved.get(BOOKMARK_KEY(lesson.id), -1)));
+  const [pen, setPen] = useState(false);
+  const [hl, setHl] = useState(() => readHighlights(lesson.id));
+  const paraKeys = useMemo(() => paragraphs.map((x) => sentenceKeyOf(x)), [paragraphs]);
+  const highlight = (i) => {
+    const k = paraKeys[i];
+    if (!k) return;
+    setHl((cur) => {
+      const next = { ...cur };
+      const to = nextPen(cur[k]);
+      if (to) next[k] = to;
+      else delete next[k];
+      saved.set(HIGHLIGHT_KEY(lesson.id), JSON.stringify(next));
+      return next;
+    });
+  };
   const [autoTurn, setAutoTurn] = useState(() => saved.get(AUTO_TURN_KEY, '1') !== '0');
   const paraRefs = useRef([]);
   const textRef = useRef(null);
@@ -1223,7 +1259,22 @@ function ReadMode({ lesson, record, title, number, paragraphs, level, setLevel, 
                 )}
                 <p
                   ref={(el) => (paraRefs.current[i] = el)}
-                  className={`le-book-p ${i === 0 ? 'le-book-p--first' : ''} ${mark === i ? 'marked' : ''} ${narratedPara === i ? 'narrating' : ''}`}
+                  className={`le-book-p ${i === 0 ? 'le-book-p--first' : ''} ${mark === i ? 'marked' : ''} ${narratedPara === i ? 'narrating' : ''}${hl[paraKeys[i]] ? ` le-hl le-hl--${hl[paraKeys[i]]}` : ''}${pen ? ' le-hl-pick' : ''}`}
+                  data-highlight={hl[paraKeys[i]] || undefined}
+                  {...(pen
+                    ? {
+                        role: 'button',
+                        tabIndex: 0,
+                        'aria-label': `Highlight paragraph ${i + 1}${hl[paraKeys[i]] ? `, now ${hl[paraKeys[i]]}` : ''}`,
+                        onClick: () => highlight(i),
+                        onKeyDown: (e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            highlight(i);
+                          }
+                        },
+                      }
+                    : {})}
                 >
                   {lead && <strong className="le-book-lead">{lead} </strong>}
                   {i === 0 && /^[A-Za-z]/.test(rest) ? (
@@ -1296,6 +1347,20 @@ function ReadMode({ lesson, record, title, number, paragraphs, level, setLevel, 
           >
             {mark === page ? '★' : '☆'}
           </button>
+          <button
+            type="button"
+            aria-pressed={pen}
+            className={`le-bb le-bb--text ${pen ? 'on' : ''} ${RING}`}
+            onClick={() => setPen((v) => !v)}
+            data-testid="le-highlight-pen"
+          >
+            {pen ? 'Done highlighting' : 'Highlight'}
+          </button>
+          {pen && (
+            <span className="le-hl-hint" role="status" data-read-skip="">
+              Tap a paragraph to mark it. Tap again to change the color or clear it.
+            </span>
+          )}
           {mark >= 0 && mark !== page && (
             <button type="button" className={`le-bb le-bb--text ${RING}`} onClick={() => go(mark)}>
               Go to bookmark

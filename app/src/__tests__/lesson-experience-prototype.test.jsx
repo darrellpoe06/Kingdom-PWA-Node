@@ -16,6 +16,10 @@ import LearnStudioPreview from '../components/learn-studio/LearnStudioPreview.js
 import LessonExperience, {
   PROTOTYPE_LESSON_ID,
   PAGE_LIGHT_KEY,
+  HIGHLIGHT_KEY,
+  HIGHLIGHT_PENS,
+  nextPen,
+  readHighlights,
   mapSegmentsToParagraphs,
   readingTextFor,
   storiesTextFor,
@@ -869,5 +873,51 @@ describe('the page has its own light: bright stays, dark is one press away', () 
     document.body.setAttribute('data-theme', 'night');
     render(<LessonExperience lesson={REAL_LESSON} record={null} onExit={vi.fn()} />);
     expect(root().className).not.toContain('le-root--darkpage');
+  });
+});
+
+// Darrell 2026-11-25: "also the ability to highlight when possible."
+describe('the highlighter pen on the Read page', () => {
+  afterEach(() => window.localStorage.removeItem(HIGHLIGHT_KEY(REAL_LESSON.id)));
+  const paras = () => [...container.querySelectorAll('.le-book-p')];
+  const penBtn = () => container.querySelector('[data-testid="le-highlight-pen"]');
+  it('cycles gold, green, blue, then clear; never red (DR-0099)', () => {
+    expect(HIGHLIGHT_PENS).not.toContain('red');
+    expect([nextPen(undefined), nextPen('gold'), nextPen('green'), nextPen('blue')]).toEqual(['gold', 'green', 'blue', null]);
+  });
+  it('with the pen off a tap marks nothing; with it on a tap marks the paragraph and the mark is kept on this device', () => {
+    render(<LessonExperience lesson={REAL_LESSON} record={null} onExit={vi.fn()} />);
+    click(byText('Read')[0]);
+    click(paras()[1]);
+    expect(paras()[1].getAttribute('data-highlight')).toBeNull();
+    click(penBtn());
+    expect(penBtn().getAttribute('aria-pressed')).toBe('true');
+    click(paras()[1]);
+    expect(paras()[1].getAttribute('data-highlight')).toBe('gold');
+    expect(paras()[0].getAttribute('data-highlight')).toBeNull();
+    click(paras()[1]);
+    expect(paras()[1].getAttribute('data-highlight')).toBe('green');
+    const kept = readHighlights(REAL_LESSON.id);
+    expect(Object.values(kept)).toEqual(['green']);
+    // what is kept is a fingerprint, never the paragraph's words
+    expect(Object.keys(kept)[0].length).toBeLessThan(40);
+    expect(REAL_LESSON.lesson).not.toContain(Object.keys(kept)[0]);
+  });
+  it('a kept mark is there when the lesson is opened again, and two more taps clear it', () => {
+    render(<LessonExperience lesson={REAL_LESSON} record={null} onExit={vi.fn()} />);
+    click(byText('Read')[0]);
+    click(penBtn());
+    click(paras()[2]);
+    act(() => root.unmount());
+    root = createRoot(container);
+    render(<LessonExperience lesson={REAL_LESSON} record={null} onExit={vi.fn()} />);
+    click(byText('Read')[0]);
+    expect(paras()[2].getAttribute('data-highlight')).toBe('gold');
+    click(penBtn());
+    click(paras()[2]);
+    click(paras()[2]);
+    click(paras()[2]);
+    expect(paras()[2].getAttribute('data-highlight')).toBeNull();
+    expect(readHighlights(REAL_LESSON.id)).toEqual({});
   });
 });

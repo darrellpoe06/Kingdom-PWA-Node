@@ -1286,3 +1286,32 @@
 .le-root--darkpage .le-quiz-opt {
   background: rgba(255, 255, 255, 0.06);
 }
+
+/* The highlighter pen: soft tints that keep the page's own ink readable on the bright page and
+   on the dark page alike (dark ink on a light tint, light ink on a dark tint). No true red. */
+.le-hl {
+  border-radius: 6px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  padding: 2px 6px;
+  margin-left: -6px;
+  margin-right: -6px;
+}
+.le-hl--gold {
+  background: rgba(231, 178, 60, 0.32);
+}
+.le-hl--green {
+  background: rgba(86, 168, 112, 0.3);
+}
+.le-hl--blue {
+  background: rgba(86, 140, 222, 0.3);
+}
+.le-hl-pick {
+  cursor: pointer;
+  outline: 1px dashed rgba(184, 134, 42, 0.55);
+  outline-offset: 4px;
+}
+.le-hl-hint {
+  font-size: 0.8125rem;
+  color: var(--le-ink-dim);
+}
