@@ -127,7 +127,10 @@ function textFor(lesson, level) {
 // into the text already -- recognized for display, never invented, and the
 // full paragraph that follows is never shortened.
 function sectionLeadOf(paragraph) {
-  const m = paragraph.match(/^([A-Z][A-Z ,'-]{2,48}?\.) /);
+  // Up to 90 capitals, colon allowed, so the opening "NOT WITH EYESERVICE:
+  // FAITHFUL WORK WHEN NO ONE IS WATCHING." reads as the article's headline
+  // too. Recognized, never rewritten: every character still renders.
+  const m = paragraph.match(/^([A-Z][A-Z ,':-]{2,90}?\.) /);
   return m ? { lead: m[1], rest: paragraph.slice(m[0].length) } : { lead: null, rest: paragraph };
 }
 
@@ -722,10 +725,7 @@ const SCALE_KEY = 'poe-lesson-experience:read-scale';
 const BOOKMARK_KEY = (id) => `poe-lesson-experience:${id}:bookmark`;
 const SCALES = [0.9, 1, 1.15, 1.3];
 
-// READ — an illustrated book page: the lesson's own words, every paragraph,
-// at the chosen reading level. The pager moves between the lesson's own
-// paragraphs; nothing is hidden, so the whole text is always on the page.
-const AUTO_TURN_KEY = 'poe-lesson-experience:auto-turn';
+const AUTO_TURN_KEY = 'poe-lesson-experience:auto-scroll';
 
 function scrollToPara(el) {
   try {
@@ -735,9 +735,27 @@ function scrollToPara(el) {
   }
 }
 
+// The reading line: a paragraph is "where you are" once its bottom has passed
+// this far below the top of the screen. Scroll position is the reading place.
+const READING_LINE = 120;
+// Room the docked bars take at the bottom; a spoken sentence below it is
+// scrolled up into view.
+const DOCK_ROOM = 150;
+
+/** Keep the spoken sentence in view: if it sits under the top edge or behind
+ * the dock, scroll so it rests about a third of the way down the screen. */
+function keepInView(rect) {
+  try {
+    const h = window.innerHeight || 0;
+    if (!rect || !h || (rect.top >= 70 && rect.bottom <= h - DOCK_ROOM)) return;
+    window.scrollBy({ top: rect.top - h * 0.33, behavior: motionBehavior() });
+  } catch {
+    /* no layout (tests) */
+  }
+}
+
 // READ — an illustrated book page: the lesson's own words, every paragraph,
-// at the chosen reading level. The pager moves between the lesson's own
-// paragraphs; nothing is hidden, so the whole text is always on the page.
+// at the chosen reading level, as ONE continuous scroll -- no page turning.
 //
 // READ ALOUD (Darrell, 2026-11-25: "listen while reading the beautifully
 // illustrated book without leaving Read mode"). It drives the SAME narrator as
@@ -745,7 +763,7 @@ function scrollToPara(el) {
 // Listen, come back, and it is still on the same sentence. The sentence being
 // spoken is painted with the house reading highlight (lib/read-follow.js, the
 // CSS Highlight API -- no DOM change, so not one character of the lesson is
-// altered), its paragraph carries a gold rule, and the page turns itself.
+// altered), its paragraph carries a gold rule, and the page scrolls with the voice.
 function ReadMode({ lesson, record, title, number, paragraphs, level, setLevel, modePills, page: rawPage, setPage, narration: n }) {
   const [scaleAt, setScaleAt] = useState(() => {
     const v = Number(saved.get(SCALE_KEY, 1));
@@ -758,6 +776,9 @@ function ReadMode({ lesson, record, title, number, paragraphs, level, setLevel, 
   const textRef = useRef(null);
   const followRef = useRef({ follow: null, spans: [] });
   const count = paragraphs.length;
+  // `page` is now simply the paragraph at the reading line -- Read is one
+  // continuous scroll (Darrell, 2026-11-25: "No turning pages just scrolling
+  // down"). It is still kept by the parent so the place survives mode trips.
   const page = Math.max(0, Math.min(count - 1, rawPage));
   const narrating = n.status !== 'idle';
   const isPlaying = n.status === 'playing';
@@ -769,36 +790,44 @@ function ReadMode({ lesson, record, title, number, paragraphs, level, setLevel, 
       const next = Math.max(0, Math.min(count - 1, to));
       setPage(next);
       scrollToPara(paraRefs.current[next]);
-      // Turning the page while the book is being read moves the voice too.
-      if (n.status === 'playing') n.jumpTo(firstSeg[next]);
     },
-    [count, setPage, n, firstSeg]
+    [count, setPage]
   );
+
+  // Scrolling IS the reading position: track the paragraph at the reading line.
+  useEffect(() => {
+    let raf = 0;
+    const onScroll = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        const els = paraRefs.current;
+        for (let i = 0; i < els.length; i += 1) {
+          const el = els[i];
+          if (el && el.getBoundingClientRect().bottom > READING_LINE) {
+            if (i !== page) setPage(i);
+            return;
+          }
+        }
+      });
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      cancelAnimationFrame(raf);
+    };
+  }, [page, setPage]);
 
   // Coming back to Read: if the voice is mid-lesson (playing OR paused in
   // Watch or Listen), open on the paragraph it is in -- that is the newest
   // place. Otherwise open on the saved reading page. Once per visit.
   const landedRef = useRef(false);
-  const turnedRef = useRef(-1);
   useEffect(() => {
     if (landedRef.current) return;
     landedRef.current = true;
     const to = narratedPara >= 0 ? narratedPara : page;
-    turnedRef.current = narratedPara;
     if (to !== page) setPage(to);
     if (to > 0) scrollToPara(paraRefs.current[to]);
   }, [narratedPara, page, setPage]);
-
-  // Automatic page turning: while the voice PLAYS, the page follows it into
-  // each new paragraph. Paused, the reader may browse freely.
-  useEffect(() => {
-    if (!autoTurn || !isPlaying || narratedPara < 0 || narratedPara === turnedRef.current) return;
-    turnedRef.current = narratedPara;
-    if (narratedPara !== page) {
-      setPage(narratedPara);
-      scrollToPara(paraRefs.current[narratedPara]);
-    }
-  }, [autoTurn, isPlaying, narratedPara, page, setPage]);
 
   // Map the rendered words once per text, then paint the spoken sentence.
   useEffect(() => {
@@ -813,8 +842,14 @@ function ReadMode({ lesson, record, title, number, paragraphs, level, setLevel, 
     }
     const { follow, spans } = followRef.current;
     const span = spans[n.idx];
-    if (follow && span) highlightSegment(rangeFor(follow, span.start, span.end));
-  }, [narrating, n.idx]);
+    const range = follow && span ? rangeFor(follow, span.start, span.end) : null;
+    if (range) highlightSegment(range);
+    // Auto-scroll: while the voice plays, the page scrolls with it.
+    if (autoTurn && isPlaying) {
+      if (range && range.getBoundingClientRect) keepInView(range.getBoundingClientRect());
+      else if (narratedPara >= 0) scrollToPara(paraRefs.current[narratedPara]);
+    }
+  }, [narrating, n.idx, autoTurn, isPlaying, narratedPara]);
 
   const readAloud = () => {
     if (isPlaying) return n.pause();
@@ -882,7 +917,14 @@ function ReadMode({ lesson, record, title, number, paragraphs, level, setLevel, 
                   className={`le-book-p ${i === 0 ? 'le-book-p--first' : ''} ${mark === i ? 'marked' : ''} ${narratedPara === i ? 'narrating' : ''}`}
                 >
                   {lead && <strong className="le-book-lead">{lead} </strong>}
-                  {renderWithVerses(rest, `p${i}`)}
+                  {i === 0 && /^[A-Za-z]/.test(rest) ? (
+                    <>
+                      <span className="le-dropcap">{rest[0]}</span>
+                      {renderWithVerses(rest.slice(1), `p${i}`)}
+                    </>
+                  ) : (
+                    renderWithVerses(rest, `p${i}`)
+                  )}
                 </p>
                 {i === 0 && lesson.bigIdea && (
                   <aside className="le-keyteach" data-read-skip="">
@@ -918,7 +960,7 @@ function ReadMode({ lesson, record, title, number, paragraphs, level, setLevel, 
               {n.speedLabel}
             </button>
             <button type="button" aria-pressed={autoTurn} className={`le-nchip ${autoTurn ? 'on' : ''} ${RING}`} onClick={toggleAutoTurn}>
-              Auto-turn
+              Auto-scroll
             </button>
           </div>
         )}
@@ -955,15 +997,6 @@ function ReadMode({ lesson, record, title, number, paragraphs, level, setLevel, 
             </button>
           )}
           <span className="le-spacer" />
-          <span className="le-bb-count">
-            {page + 1} of {count}
-          </span>
-          <button type="button" className={`le-bb le-bb--nav ${RING}`} onClick={() => go(page - 1)} aria-label="Previous paragraph" disabled={page === 0}>
-            ‹
-          </button>
-          <button type="button" className={`le-bb le-bb--nav ${RING}`} onClick={() => go(page + 1)} aria-label="Next paragraph" disabled={page >= count - 1}>
-            ›
-          </button>
         </div>
       </div>
     </section>

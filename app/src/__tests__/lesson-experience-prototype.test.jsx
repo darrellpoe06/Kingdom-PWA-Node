@@ -316,13 +316,14 @@ describe('four-mode reference layout -- real data only', () => {
     expect(container.querySelector('.le-time').textContent).toMatch(/^~\d+:\d\d \/ ~\d+:\d\d$/);
   });
 
-  it("Read has the book pager over the lesson's own paragraphs and the Key Teaching is the real big idea", () => {
+  it('Read is one continuous scroll of every paragraph (no pager) and the Key Teaching is the real big idea', () => {
     render(<LessonExperience lesson={REAL_LESSON} record={null} onExit={vi.fn()} />);
     click(byText('Read')[0]);
     const paras = REAL_LESSON.lesson.split(/\n\n+/).filter(Boolean).length;
-    expect(container.querySelector('.le-bb-count').textContent).toBe(`1 of ${paras}`);
-    expect(container.querySelector('.le-keyteach').textContent).toContain(REAL_LESSON.bigIdea);
     expect(container.querySelectorAll('.le-book-p').length).toBe(paras);
+    expect(container.querySelector('.le-bb-count')).toBeNull();
+    expect(container.querySelector('button[aria-label="Next paragraph"]')).toBeNull();
+    expect(container.querySelector('.le-keyteach').textContent).toContain(REAL_LESSON.bigIdea);
   });
 
   it('Study is the reference accordion: Reflection open, the real practice text, notes saved on the device', () => {
@@ -378,16 +379,17 @@ describe('a course link opens that course in the new look, every lesson as a gri
 });
 
 // Darrell, 2026-11-25: Read Aloud inside Read -- "listen while reading the
-// beautifully illustrated book without leaving Read mode." A fake narrator is
-// injected through the same `createNarrator` seam a future recorded voice
-// would use, so these tests also prove that contract.
-describe('Read Aloud inside Read mode', () => {
+// beautifully illustrated book without leaving Read mode" -- and "No turning
+// pages just scrolling down." A fake narrator is injected through the same
+// `createNarrator` seam a future recorded voice would use, so these tests
+// also prove that contract.
+describe('Read Aloud inside Read mode (one continuous scroll)', () => {
   const lessonText = REAL_LESSON.lesson;
   const segments = segmentText(lessonText);
   const paragraphs = lessonText.split(/\n\n+/).filter(Boolean);
   const { segPara, firstSeg } = mapSegmentsToParagraphs(paragraphs, segments);
 
-  let made;
+  let made, scrolled, saveRaf, saveScrollBy;
   const createNarrator = (opts) => {
     const e = {
       calls: [],
@@ -436,13 +438,36 @@ describe('Read Aloud inside Read mode', () => {
   };
   const narrator = () => made[made.length - 1];
   const byLabel = (label) => container.querySelector(`button[aria-label="${label}"]`);
-  const pageCount = () => container.querySelector('.le-bb-count').textContent;
-  const paraNarrating = () => [...container.querySelectorAll('.le-book-p')].findIndex((p) => p.classList.contains('narrating'));
+  const paras = () => [...container.querySelectorAll('.le-book-p')];
+  const paraNarrating = () => paras().findIndex((p) => p.classList.contains('narrating'));
   const openRead = () => render(<LessonExperience lesson={REAL_LESSON} record={null} onExit={vi.fn()} initialMode="read" createNarrator={createNarrator} />);
+  // Pretend the reader has scrolled so paragraph `k` sits at the reading line.
+  const scrollTo = (k) => {
+    paras().forEach((p, i) => {
+      p.getBoundingClientRect = () => ({ top: (i - k) * 300, bottom: (i - k) * 300 + 290 });
+    });
+    act(() => window.dispatchEvent(new Event('scroll')));
+  };
 
   beforeEach(() => {
     made = [];
+    scrolled = [];
     window.localStorage.clear();
+    saveRaf = window.requestAnimationFrame;
+    saveScrollBy = window.scrollBy;
+    window.requestAnimationFrame = (cb) => {
+      cb();
+      return 0;
+    };
+    window.scrollBy = vi.fn();
+    Element.prototype.scrollIntoView = function () {
+      scrolled.push(this);
+    };
+  });
+  afterEach(() => {
+    window.requestAnimationFrame = saveRaf;
+    window.scrollBy = saveScrollBy;
+    delete Element.prototype.scrollIntoView;
   });
 
   it('every spoken segment maps to the paragraph that really contains it', () => {
@@ -453,19 +478,19 @@ describe('Read Aloud inside Read mode', () => {
     });
   });
 
-  it('shows a prominent Read Aloud button and keeps every existing reading control', () => {
+  it('shows a prominent Read Aloud button and keeps the reading controls, with no page turning', () => {
     openRead();
     expect(container.querySelector('.le-aloud-cta').textContent).toContain('Read Aloud');
-    for (const label of ['Smaller text', 'Larger text', 'Bookmark this paragraph', 'Previous paragraph', 'Next paragraph']) {
+    for (const label of ['Smaller text', 'Larger text', 'Bookmark this paragraph', 'Read Aloud from this page']) {
       expect(byLabel(label)).toBeTruthy();
     }
-    expect(pageCount()).toBe(`1 of ${paragraphs.length}`);
+    expect(byLabel('Next paragraph')).toBeNull();
+    expect(paras().length).toBe(paragraphs.length);
   });
 
-  it('starts reading at the page you are on, with the right place counted', () => {
+  it('starts reading where you have scrolled to, with the right place counted', () => {
     openRead();
-    click(byLabel('Next paragraph'));
-    click(byLabel('Next paragraph'));
+    scrollTo(2);
     click(container.querySelector('.le-aloud-cta'));
     expect(narrator().text.startsWith(segments[firstSeg[2]])).toBe(true);
     // The engine counts the loaded remainder from 0; the place must not reset.
@@ -473,13 +498,24 @@ describe('Read Aloud inside Read mode', () => {
     expect(container.querySelector('.le-narrate')).toBeTruthy();
   });
 
-  it('highlights the paragraph being read and turns the page by itself', () => {
+  it('highlights the paragraph being read and scrolls down with the voice', () => {
     openRead();
     click(container.querySelector('.le-aloud-cta'));
     const target = firstSeg[5] + 1;
+    const before = scrolled.length + window.scrollBy.mock.calls.length;
     narrator().reach(target);
-    expect(pageCount()).toBe(`6 of ${paragraphs.length}`);
     expect(paraNarrating()).toBe(segPara[target]);
+    expect(scrolled.length + window.scrollBy.mock.calls.length).toBeGreaterThan(before);
+  });
+
+  it('Auto-scroll off: the voice keeps reading but the screen stays where you put it', () => {
+    openRead();
+    click(container.querySelector('.le-aloud-cta'));
+    click(byText('Auto-scroll')[0]);
+    const before = scrolled.length + window.scrollBy.mock.calls.length;
+    narrator().reach(firstSeg[4]);
+    expect(paraNarrating()).toBe(4);
+    expect(scrolled.length + window.scrollBy.mock.calls.length).toBe(before);
   });
 
   it('pause, resume, rewind and speed go to the narrator', () => {
@@ -506,19 +542,19 @@ describe('Read Aloud inside Read mode', () => {
     expect(container.querySelector('.le-listen-now').textContent).toBe(segments[target]);
     click(byText('Watch')[0]);
     expect(container.querySelector('.le-tline.on .le-ttext').textContent).toBe(segments[target]);
+    scrolled = [];
     click(byText('Read')[0]);
-    expect(pageCount()).toBe(`7 of ${paragraphs.length}`);
     expect(paraNarrating()).toBe(6);
+    expect(scrolled).toContain(paras()[6]);
   });
 
-  it('keeps the reading page across a trip to Study when nothing is being read', () => {
+  it('keeps the scroll place across a trip to Study when nothing is being read', () => {
     openRead();
-    click(byLabel('Next paragraph'));
-    click(byLabel('Next paragraph'));
-    click(byLabel('Next paragraph'));
+    scrollTo(3);
     click(byText('Study')[0]);
+    scrolled = [];
     click(byText('Read')[0]);
-    expect(pageCount()).toBe(`4 of ${paragraphs.length}`);
+    expect(scrolled).toContain(paras()[3]);
   });
 
   it('reading aloud never changes a character of the lesson', () => {

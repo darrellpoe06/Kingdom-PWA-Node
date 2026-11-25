@@ -41,3 +41,13 @@ Darrell asked to listen while reading, without leaving Read mode.
 - **Future recorded voice:** `createNarrator` (default `createBrowserTTS`) is the seam. The contract is documented above `LessonExperience`. Tests drive Read Aloud through a fake narrator on that same seam. No paid voice is generated.
 
 Verified: 38/38 prototype tests (8 new for Read Aloud); 82/82 including the learn-studio, motion and ui-standards suites; eslint, file-budget, format and legibility guards all pass.
+
+## Read as one scrolling article (same day, third pass)
+
+Darrell: "No turning pages just scrolling down" and "Still should look like an article that you want to read."
+
+- **No page turning:** the "n of N" counter and the prev/next buttons are removed. Read is one continuous scroll. The reading place is the paragraph at the reading line (120px from the top), tracked on scroll. It is saved per level and restored when you come back from Watch, Listen or Study. A−/A+, bookmark and Go to bookmark stay.
+- **Auto-scroll replaces auto-turn:** while the voice plays, the spoken sentence is kept about a third of the way down the screen. Measured in Chromium over 4 paragraphs, its top stayed at 278–279px. Read Aloud starts at the paragraph you have scrolled to.
+- **Article typography:** the opening all-capitals line and each section lead ("FIRST, THE MASTER WHO WENT AWAY.") render as headings, there is a drop cap on the first letter of the opening paragraph, the reading column is about 36em wide, and Scripture shows as gold-rule pull-quotes. Every character is the lesson's own; only how it is displayed changed.
+
+Verified: 39/39 prototype tests; 83/83 together with the learn-studio, motion and ui-standards suites; eslint, file-budget, format and legibility guards all pass; no errors and no horizontal scroll at 390px.

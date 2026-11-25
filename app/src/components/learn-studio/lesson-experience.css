@@ -413,7 +413,7 @@
   background: linear-gradient(180deg, var(--le-paper), var(--le-paper-2));
   color: var(--le-ink);
   border-radius: 14px;
-  padding: 22px 18px 28px;
+  padding: 24px 22px 32px;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
 }
 .le-book-title {
@@ -452,7 +452,7 @@
   font-size: 0.8125rem;
 }
 .le-read-hero {
-  margin: 0 -18px 14px;
+  margin: 0 -22px 14px;
 }
 .le-read-hero-img {
   width: 100%;
@@ -478,30 +478,51 @@
 }
 .le-book-text {
   font-family: 'Fraunces', Georgia, serif;
-  font-size: calc(1.0625rem * var(--le-read-scale));
-  line-height: 1.7;
+  font-size: calc(1.125rem * var(--le-read-scale));
+  line-height: 1.78;
+  color: #2a1c12;
+  max-width: 36em;
+  margin: 0 auto;
+  hyphens: auto;
+  -webkit-hyphens: auto;
 }
 .le-book-p {
-  margin: 0 0 14px;
+  margin: 0 0 1.15em;
   scroll-margin-top: 16px;
 }
 .le-book-p.marked {
   box-shadow: -10px 0 0 -7px #b8862a;
 }
-.le-book-p--first::first-letter {
+.le-dropcap {
   float: left;
-  font-size: 3.4em;
-  line-height: 0.85;
-  padding: 4px 8px 0 0;
-  color: #b8862a;
+  font-size: 3.6em;
+  line-height: 0.82;
+  padding: 0.08em 0.1em 0 0;
+  color: #9a6b1c;
   font-weight: 700;
 }
+/* A section lead ("FIRST, THE MASTER WHO WENT AWAY.") reads as the
+   section's heading. The characters are the lesson's own; only the display
+   changes. */
 .le-book-lead {
-  letter-spacing: 0.02em;
+  display: block;
+  margin: 0.4em 0 0.55em;
+  font-size: 1.12em;
+  line-height: 1.3;
+  letter-spacing: 0.05em;
+  color: #7d1016;
 }
+/* Scripture as a pull-quote inside the article: a gold rule and generous
+   italic, never a heavy box (gold, not red -- DR-0099). */
 .le-book .le-verse {
-  border-left-color: #b8862a;
-  background: rgba(184, 134, 42, 0.12);
+  margin: 1em 0 1em 0.2em;
+  padding: 0.15em 0 0.15em 1em;
+  border-left: 3px solid #b8862a;
+  border-radius: 0;
+  background: none;
+  font-size: 1.04em;
+  line-height: 1.6;
+  color: #4a3220;
 }
 .le-ornament {
   text-align: center;
