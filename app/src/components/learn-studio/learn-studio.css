@@ -374,6 +374,13 @@
 .ls-scroller--one {
   grid-auto-columns: min(460px, 100%);
 }
+/* A full page of lessons (a course, or a topic's See All): every card on the
+   page, wrapping -- not one card and a sliver beside empty space. */
+.ls-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(260px, 100%), 1fr));
+  gap: 22px 18px;
+}
 .ls-card {
   background: none;
   border: 0;

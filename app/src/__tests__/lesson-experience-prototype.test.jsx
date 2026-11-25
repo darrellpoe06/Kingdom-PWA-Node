@@ -289,3 +289,43 @@ describe("findPresentedLesson: a deep link reaches ANY lesson, not only the home
     expect(findPresentedLesson(null, null, null)).toBeNull();
   });
 });
+
+// Darrell, 2026-11-25, on ?course=healthy-living: "Fix it."
+describe('a course link opens that course in the new look, every lesson as a grid', () => {
+  const LIVING = COURSES.find((c) => c.key === 'living-lessons');
+
+  it('initialCourseKey opens a course page listing EVERY lesson in the course, not the home screen', () => {
+    render(<LearnStudioPreview courses={COURSES} onOpenLesson={vi.fn()} onExit={vi.fn()} ownerDevice initialCourseKey="living-lessons" />);
+    const grid = container.querySelector('.ls-grid');
+    expect(grid).toBeTruthy();
+    expect(grid.querySelectorAll('button.ls-card').length).toBe(LIVING.schedule.length);
+    expect(container.textContent).toContain(`${LIVING.schedule.length} lessons`);
+  });
+
+  it('ChurchLearn threads the course from the link too', () => {
+    const src = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'components', 'ChurchLearn.jsx'), 'utf8');
+    expect(src).toMatch(/initialCourseKey=\{deepLink && deepLink\.courseKey\}/);
+  });
+
+  it("a lesson link opens the cover first, and Back lands on that lesson's course page", () => {
+    render(
+      <LearnStudioPreview
+        courses={COURSES}
+        onOpenLesson={vi.fn()}
+        onExit={vi.fn()}
+        ownerDevice
+        initialCourseKey="living-lessons"
+        initialLessonId={PROTOTYPE_LESSON_ID}
+      />
+    );
+    expect(container.querySelector('.ls-cover')).toBeTruthy();
+    click(container.querySelector('.ls-cover .ls-back'));
+    expect(container.querySelector('.ls-grid')).toBeTruthy();
+  });
+
+  it('an unknown course in a link opens the normal home screen, never a dead page', () => {
+    render(<LearnStudioPreview courses={COURSES} onOpenLesson={vi.fn()} onExit={vi.fn()} ownerDevice initialCourseKey="no-such-course" />);
+    expect(container.querySelector('.ls-grid')).toBeNull();
+    expect(container.textContent).toContain('Discover Something New');
+  });
+});
