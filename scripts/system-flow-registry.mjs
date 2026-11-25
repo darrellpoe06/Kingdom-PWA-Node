@@ -1368,7 +1368,7 @@ const NODES = [
     id: 'kids-episode-narration', name: 'Kids episode narration (Kokoro voice render)',
     purpose: 'Speaks a Bible Adventures episode script (the KJV lines copied from the in-repo corpus) with the open Kokoro voice model on a runner, where its weights can be downloaded, one WAV per line plus timings, so the movie and its captions are timed to the voice (Jonah episode, 2026-11-19).',
     reads: [{ res: 'file:kids-episode-script', token: 'scripts/kids-episode/jonah.episode.json' }],
-    writes: [{ res: 'gh:artifact:jonah-narration', token: 'upload-artifact' }], seeds: [],
+    writes: [{ res: 'gh:branch:kids-episode-media', token: 'kids-episode-media' }], seeds: [],
   }),
   wf('church-site-probe.yml', {
     id: 'church-site-probe', name: 'Church site probe (read-only)',
@@ -2454,7 +2454,7 @@ const RESOURCES = {
   'db:agent_inbox#voice-transcript': { label: 'spoken lessons written down', proof: { ts: 'created_at', fresh: 30, where: "tags ? 'voice-transcript'", consumed: "tags ? 'mirrored'" } },
   'hosted:lesson-published': { label: 'a member\u2019s lesson marked published by the reader (DR-0639)' },
   'db:agent_inbox#lesson-published': { label: 'members\u2019 lessons published', proof: { ts: 'created_at', fresh: 30, where: "tags ? 'lesson-published'", consumed: "tags ? 'messaged:published'" } },
-  'gh:artifact:jonah-narration': { label: 'Episode narration render', sink: 'A person (or a session) downloads the run artifact to mix the episode; nothing else reads it, and it expires after 14 days.' },
+  'gh:branch:kids-episode-media': { label: 'Episode narration lines (media branch)', sink: 'A session fetches the branch to mix the episode (the sandbox cannot reach Actions artifacts); nothing else reads it, and each run replaces it.' },
   'file:kids-episode-script': { label: 'Bible Adventures episode script', source: 'Written by hand into the repo (scripts/kids-episode/<id>.episode.json); every KJV line in it is copied from app/public/bible/kjv by the episode builder, never typed.' },
   'db:church_site_archive': { label: 'the church office\u2019s calendars, letters and flyers, kept', sink: 'Members of the church read it in the archive under Times, by year and month (DR-1596).' },
   'db:church_calendar_leads': { label: 'the unit leaders the church office names', sink: 'A named leader may add events for their unit; the office reads and changes the list under Times (DR-1644).' },

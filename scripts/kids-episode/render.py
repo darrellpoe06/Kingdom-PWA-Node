@@ -69,6 +69,55 @@ CAMERA = {
 }
 
 
+# the closing credits, rolled over the key art (title lines in gold)
+CREDITS = [
+    ("Jonah and the Great Fish", True),
+    ("A Love Corner Bible Adventure", False),
+    ("", False),
+    ("Scripture", True),
+    ("The Book of Jonah, King James Version", False),
+    ("", False),
+    ("Animation", True),
+    ("Runway Gen-4.5, from The Love Corner\u2019s approved art", False),
+    ("", False),
+    ("Music and Sound", True),
+    ("An original score and sound made for this episode", False),
+    ("", False),
+    ("Voices", True),
+    ("Kokoro open voices (Apache-2.0)", False),
+    ("", False),
+    ("Produced by The Love Corner Kids Zone", True),
+    ("", False),
+    ("Salvation is of the LORD. Jonah 2:9", False),
+    ("To the glory of Yahweh", True),
+]
+CHILD = {}  # speaker -> semitones up (the guides), from the episode's childVoice
+
+
+def child(a, who):
+    """The guides' voices: the cast voice raised (pitch and formants, length kept);
+    'guides' (both together) is two raised copies a breath apart."""
+    import tempfile
+
+    def up(x, st):
+        with tempfile.TemporaryDirectory() as d:
+            i, o = os.path.join(d, "i.wav"), os.path.join(d, "o.wav")
+            sf.write(i, x, SR)
+            run(
+                ["ffmpeg", "-y", "-loglevel", "error", "-i", i, "-af"]
+                + [f"rubberband=pitch={2 ** (st / 12):.4f}:transients=smooth", o]
+            )
+            y, _ = sf.read(o, dtype="float32")
+        return y[: len(x)] if len(y) >= len(x) else np.pad(y, (0, len(x) - len(y)))
+
+    st = CHILD[who]
+    if who != "guides":
+        return up(a, st)
+    k = int(0.03 * SR)
+    b = np.pad(up(a, st + 2.5), (k, 0))[: len(a)]
+    return 0.62 * up(a, st) + 0.62 * b
+
+
 def run(cmd):
     r = subprocess.run(cmd, capture_output=True, text=True, check=False)
     if r.returncode != 0:
@@ -105,7 +154,7 @@ def plan(ep, tim):
     for k, b in enumerate(ep["beats"]):
         ls = by.get(b["id"], [])
         dur = LEAD + sum(x["seconds"] for x in ls) + GAP * max(0, len(ls) - 1) + TAIL
-        dur = max(dur, 5.0)
+        dur = max(dur, float(b.get("minDur", 5.0)))
         start = t
         cur = LEAD  # line times are relative to the beat's own start (mix and vtt add the start once)
         placed = []
@@ -199,6 +248,22 @@ def beat_video(b, out, draft):
             f"alpha='min(1,max(0,(t-2.6)/1.2))'[ttl]"
         )
         last = "ttl"
+    if b["id"] == "credits":
+        graph += f";[{last}]boxblur=12:2,eq=brightness=-0.32:saturation=0.7[dim]"
+        last = "dim"
+        roll = CREDITS
+        gap = 74
+        speed = (H + gap * len(roll)) / max(d - 1.0, 1.0)
+        for i, (txt, big) in enumerate(roll):
+            if not txt:
+                continue
+            esc = txt.replace("\\", "").replace(":", "\\:").replace("'", "\u2019")
+            graph += (
+                f";[{last}]drawtext=fontfile={FONT}:text='{esc}':fontsize={64 if big else 40}:"
+                f"fontcolor={'0xFFD86B' if big else 'white'}:borderw=3:bordercolor=0x2A1440:"
+                f"x=(w-text_w)/2:y=h+{i * gap}-t*{speed:.3f}[c{i}]"
+            )
+            last = f"c{i}"
     graph += f";[{last}]format=yuv420p,vignette=angle=PI/5,format=yuv420p[v]"
     run(
         [
@@ -358,6 +423,8 @@ def mix(beats, total, narr, out_wav):
             if a.ndim > 1:
                 a = a.mean(axis=1)
             a = resample(a, sr)
+            if l.get("who") in CHILD:
+                a = child(a, l["who"])
             i = int(l["at"] * SR) + int(b["start"] * SR)
             voice[i : i + len(a)] += a[: max(0, n - i)]
     # level the voice: speech RMS to about -19 dBFS whatever the voice model's own level
@@ -453,6 +520,7 @@ def main():
     with open(ep_path) as fh:
         ep = json.load(fh)
     tim = load_timings(ep, narr)
+    CHILD.update(ep.get("childVoice", {}))
     only = next(
         (a.split("=", 1)[1].split(",") for a in sys.argv if a.startswith("--beats=")),
         None,

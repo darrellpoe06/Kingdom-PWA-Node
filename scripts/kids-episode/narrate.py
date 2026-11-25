@@ -3,10 +3,11 @@
 
 Reads scripts/kids-episode/<id>.episode.json (the KJV lines are copied from the
 in-repo corpus by the episode builder, never typed by hand), speaks every line
-with one voice, and writes one WAV per line plus timings.json (seconds per
+with one voice, or with the episode's cast ("cast": a voice per speaker, the
+"who" of each line), and writes one WAV per line plus timings.json (seconds per
 line), so the movie is timed to the voice and the captions to the words.
 
-  python3 narrate.py <episode.json> <outDir> <voice> [--sample]
+  python3 narrate.py <episode.json> <outDir> <voice|cast> [--sample]
 
 --sample speaks only the first verse and one guide line (a short audition clip).
 Runs where Hugging Face is reachable (a GitHub runner); the weights are fetched
@@ -41,19 +42,32 @@ def prep(t):
     return t
 
 
-pipe = KPipeline(lang_code="a" if voice.startswith("a") else "b")
+CAST = ep.get("cast", {}) if voice == "cast" else {}
+PACE = ep.get("pace", {})  # per beat: the scene's pace (storm quicker, prayer slower)
+pipes = {}
+
+
+def speak(text, v, speed):
+    lang = "a" if v.startswith("a") else "b"
+    if lang not in pipes:
+        pipes[lang] = KPipeline(lang_code=lang)
+    return [a for _, _, a in pipes[lang](prep(text), voice=v, speed=speed)]
+
+
 SR = 24000
 lines = [(b["id"], i, l) for b in ep["beats"] for i, l in enumerate(b["lines"])]
 if sample:
     first_kjv = next(x for x in lines if x[2]["kind"] == "kjv")
-    first_guide = next(
-        x for x in lines if x[2]["kind"] == "narrator" and x[0] != "intro"
-    )
+    first_guide = next(x for x in lines if x[2]["kind"] != "kjv" and x[0] != "intro")
     lines = [first_kjv, first_guide]
 timings = []
 for bid, i, l in lines:
-    speed = 0.88 if l["kind"] == "kjv" else 0.95
-    chunks = [a for _, _, a in pipe(prep(l["text"]), voice=voice, speed=speed)]
+    who = l.get("who", "narrator")
+    v = CAST.get(who, voice if voice != "cast" else "am_michael")
+    if isinstance(v, list):  # several speakers together (the guides): the first voice
+        v = v[0]
+    speed = (0.88 if l["kind"] == "kjv" else 0.95) * PACE.get(bid, 1.0)
+    chunks = speak(l["text"], v, speed)
     audio = (
         np.concatenate([np.asarray(c, dtype=np.float32) for c in chunks])
         if chunks
@@ -68,6 +82,8 @@ for bid, i, l in lines:
             "file": f,
             "seconds": round(len(audio) / SR, 3),
             "kind": l["kind"],
+            "who": who,
+            "voice": v,
             "ref": l.get("ref"),
             "text": l["text"],
         }
