@@ -1422,7 +1422,12 @@ const NODES = [
       { res: 'http:api.bfl.ai', file: 'app/scripts/learn-presentation/providers/image.mjs', token: 'BFL_API_KEY' },
       { res: 'http:api.anthropic.com', file: 'app/scripts/learn-presentation/providers/text.mjs', token: 'ANTHROPIC_API_KEY' },
     ],
-    writes: [{ res: 'gh:artifact:learn-presentation-review', token: 'learn-presentation-review-' }],
+    writes: [
+      { res: 'gh:artifact:learn-presentation-review', token: 'learn-presentation-review-' },
+      // Paid originals kept permanently, verified on a fresh clone; the storage gate reads its verdict back (owner 2026-11-25).
+      { res: 'gh:repo:poetech-learn-originals', file: 'app/scripts/learn-presentation/lib/originals-backup.mjs', token: 'poetech-learn-originals' },
+      { res: 'gh:pr', token: 'gh pr create' },
+    ],
     seeds: [],
   }),
   wf('live-link-probe.yml', {
@@ -2476,6 +2481,7 @@ const RESOURCES = {
   'db:agent_inbox#voice-transcript': { label: 'spoken lessons written down', proof: { ts: 'created_at', fresh: 30, where: "tags ? 'voice-transcript'", consumed: "tags ? 'mirrored'" } },
   'hosted:lesson-published': { label: 'a member\u2019s lesson marked published by the reader (DR-0639)' },
   'db:agent_inbox#lesson-published': { label: 'members\u2019 lessons published', proof: { ts: 'created_at', fresh: 30, where: "tags ? 'lesson-published'", consumed: "tags ? 'messaged:published'" } },
+  'gh:repo:poetech-learn-originals': { label: 'the private repository of paid Learn picture originals', sink: 'Permanent storage the owner approved 2026-11-25; the storage gate in the same workflow reads its verdict.json back before any paid picture, and a person restores from it.' },
   'gh:branch:kids-episode-media': { label: 'Episode narration lines (media branch)', sink: 'A session fetches the branch to mix the episode (the sandbox cannot reach Actions artifacts); nothing else reads it, and each run replaces it.' },
   'file:kids-episode-script': { label: 'Bible Adventures episode script', source: 'Written by hand into the repo (scripts/kids-episode/<id>.episode.json); every KJV line in it is copied from app/public/bible/kjv by the episode builder, never typed.' },
   'db:church_site_archive': { label: 'the church office\u2019s calendars, letters and flyers, kept', sink: 'Members of the church read it in the archive under Times, by year and month (DR-1596).' },

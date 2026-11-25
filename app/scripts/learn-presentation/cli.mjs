@@ -2,6 +2,7 @@
 // learn-presentation CLI — run from app/:
 //   npx vite-node scripts/learn-presentation/cli.mjs <command> [flags]
 // Commands: estimate | text | images | status | export | retry-failed | part-recover
+//           | originals-backup (free; lib/originals-backup.mjs) | publish-covers (free; lib/publish-covers.mjs)
 // See README.md beside this file. Nothing here writes to a lesson.
 // =============================================================================
 import { verifyRecovery } from './lib/recovery.mjs';
@@ -30,7 +31,18 @@ import { imageProvider, bflImage } from './providers/image.mjs';
 import { loadArt, validateArt, resolveArtScope, runArtV2 } from './lib/art-v2.mjs';
 import { loadAdjustments, applyAdjustments } from './lib/adjust.mjs';
 import { loadDecisions, applyDecisions, decidedKeys } from './lib/decisions.mjs';
-import { storageGate, paidPictureShas } from './lib/storage-gate.mjs';
+import { storageGate, paidPictureShas, originalsGate, eitherGate } from './lib/storage-gate.mjs';
+import {
+  ORIGINALS_REPO,
+  FALLBACK_ARTIFACT_ID,
+  backupAndVerify,
+  fetchOriginalsState,
+  missingSources,
+  paidOriginals,
+  remoteUrl,
+  restoreFromArtifact,
+} from './lib/originals-backup.mjs';
+import { writePublishTree } from './lib/publish-covers.mjs';
 import { savePart, recoverPart } from './lib/part.mjs';
 
 const SEED = resolve('src/lib/learn-presentation/presentation-seed.json');
@@ -110,13 +122,15 @@ async function loadDHash(log) {
 }
 
 /** Owner 2026-11-24 (mandatory): no paid picture is bought until every picture
- *  already paid for is verified on the NAS. Paused = nothing bought, exit 4. */
-function checkStorage(provider, stateDir, log) {
-  const gate = storageGate({
-    paid: paidPictureShas(stateDir).size,
-    verdict: process.env.LEARN_THUMBS_RECONCILED || '',
-    costCents: provider.costCents != null ? provider.costCents : 6,
-  });
+ *  already paid for is verified in permanent storage: the NAS verdict OR the
+ *  private originals repository's verdict (2026-11-25). Paused = nothing bought, exit 4. */
+async function checkStorage(provider, stateDir, log) {
+  const paid = paidPictureShas(stateDir);
+  const costCents = provider.costCents != null ? provider.costCents : 6;
+  const nas = storageGate({ paid: paid.size, verdict: process.env.LEARN_THUMBS_RECONCILED || '', costCents });
+  const repo = nas.open || !costCents ? { verdict: '', manifest: null } : await fetchOriginalsState({ token: process.env.LEARN_ORIGINALS_TOKEN });
+  const gate = eitherGate(nas, originalsGate({ paidShas: paid, verdict: repo.verdict, manifest: repo.manifest, costCents }));
+  if (repo.error) log(`originals repository unreadable: ${repo.error}`);
   log(`storage gate: ${gate.open ? 'OPEN' : 'PAUSED: no picture bought'} · ${gate.reason}`);
   if (!gate.open) process.exitCode = 4;
   return gate.open;
@@ -137,6 +151,50 @@ async function main() {
         ? `part-recover: run ${r.partRun} was lost after a part save; its ledger and pictures are restored over run ${r.ledgerRun}'s`
         : `part-recover: nothing to merge (part ${r.partRun || 'none'}, ledger ${r.ledgerRun || 'none'})`
     );
+    return;
+  }
+  if (cmd === 'originals-backup') {
+    // Free: every paid original into the private repository, proven on a fresh clone (lib/originals-backup.mjs).
+    const imagesDir = outDir;
+    const list = paidOriginals(stateDir);
+    let missing = missingSources(list, imagesDir);
+    log(`originals: ${list.length} paid picture(s) in the ledger · ${missing.length} not on disk`);
+    const fb = flags['fallback-artifact'];
+    if (missing.length && fb) {
+      const id = fb === true ? FALLBACK_ARTIFACT_ID : Number(fb);
+      const n = await restoreFromArtifact({
+        id,
+        repo: process.env.GITHUB_REPOSITORY,
+        token: process.env.GITHUB_TOKEN,
+        missing,
+        imagesDir,
+        tmpDir: resolve(process.env.RUNNER_TEMP || stateDir, 'lp-artifact'),
+      });
+      missing = missingSources(list, imagesDir);
+      log(`originals: ${n} restored from artifact ${id} · ${missing.length} still missing`);
+    }
+    const token = process.env.LEARN_ORIGINALS_TOKEN;
+    if (!token) {
+      log('originals-backup STOPPED: LEARN_ORIGINALS_TOKEN is not set (nothing written)');
+      process.exitCode = 5;
+      return;
+    }
+    const { verdict, staged } = backupAndVerify({
+      stateDir,
+      imagesDir,
+      remote: remoteUrl(ORIGINALS_REPO, token),
+      secret: token,
+      runId: process.env.GITHUB_RUN_ID,
+      workDir: resolve(process.env.RUNNER_TEMP || resolve(stateDir, '..'), 'lp-originals'),
+    });
+    log(
+      `originals: ${staged.copied} copied · ${staged.already} already kept · ${staged.missingSource.length} absent from this run · ${staged.conflicts.length} conflict(s) · fresh clone verified ${verdict.verified} of ${verdict.expected}`
+    );
+    for (const p of verdict.missing.slice(0, 20)) log(`  ✗ not verified: ${p}`);
+    if (verdict.missing.length) {
+      log('originals-backup FAILED: permanent storage does not hold every paid picture; no further purchase');
+      process.exitCode = 5;
+    }
     return;
   }
   const inventory = learnInventory();
@@ -179,7 +237,7 @@ async function main() {
     const beforeArt = shaMap(ledger);
     // raw:false — FLUX raw mode favours candid, muted renders; the new direction wants vivid natural color.
     const provider = String(flags.provider || 'bfl') === 'bfl' ? bflImage({ raw: false }) : imageProvider(String(flags.provider));
-    if (!checkStorage(provider, stateDir, log)) return;
+    if (!(await checkStorage(provider, stateDir, log))) return;
     const t = await runArtV2({
       entries,
       ledger,
@@ -296,7 +354,7 @@ async function main() {
     // picture MEASURED on this account (balance before/after one picture).
     let runItems = items;
     let probe = null;
-    const stored = checkStorage(provider, stateDir, log);
+    const stored = await checkStorage(provider, stateDir, log);
     if (!stored) runItems = [];
     // --max-new N: buy at most N pictures in this part, so the ledger can be saved between parts.
     if (flags['max-new'] && flags['max-new'] !== true) {
@@ -490,6 +548,22 @@ async function main() {
       log('recovery check FAILED — stopping before any spend');
       process.exitCode = 3;
     }
+    return;
+  }
+  if (cmd === 'publish-covers') {
+    // Free: new passing covers -> a tree mirroring the repository, for the publish job (lib/publish-covers.mjs).
+    const to = resolve(flags.to || '.learn-presentation/publish');
+    const titles = new Map(inventory.flatMap((c) => c.lessons.map((l) => [l.id, typeof l.title === 'string' ? l.title : ''])));
+    const sel = writePublishTree({
+      exported: exportRecords(ledger).records,
+      repoRoot: resolve('..'),
+      composedDir: resolve(flags['composed-out'] || '.learn-presentation/composed'),
+      outRoot: to,
+      currentTitles: titles,
+    });
+    log(
+      `publish-covers: ${sel.add.length} new passing cover(s) (${sel.add.filter((a) => a.replaces).length} complete a titled record) · skipped ${JSON.stringify(sel.skipped)} -> ${to}`
+    );
     return;
   }
   if (cmd === 'export') {

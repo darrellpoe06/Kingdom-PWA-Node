@@ -23,14 +23,15 @@ globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 const inventory = learnInventory();
 const all = inventory.flatMap((c) => c.lessons.map((l) => ({ course: c, lesson: l })));
 const live = all.filter(({ course, lesson }) => isExperienceLesson(lesson, course));
-const ownCover = new Set(RECORDS.records.filter((r) => r.image && r.image.src).map((r) => r.lessonId));
+// The launched 150 plus every passing cover the publish lane lands later (own image, no needsReview).
+const ownCover = new Set(RECORDS.records.filter((r) => r.image && r.image.src && !(r.needsReview && r.needsReview.length)).map((r) => r.lessonId));
 const LL = 'living-lessons';
 const ID = REAL_LESSON.id;
 
 describe('which lessons are live in the new look', () => {
-  it('exactly the 150 lessons with their own finished cover, every one of them', () => {
-    expect(ownCover.size).toBe(150);
-    expect(live.length).toBe(150);
+  it('exactly the lessons with their own finished cover (the 150 launched, and any passing cover since), every one of them', () => {
+    expect(ownCover.size).toBeGreaterThanOrEqual(150);
+    expect(live.length).toBe(ownCover.size);
     expect(live.every(({ lesson }) => ownCover.has(lesson.id))).toBe(true);
   });
 
@@ -42,7 +43,7 @@ describe('which lessons are live in the new look', () => {
 
   it('a lesson without its own cover stays in its existing format', () => {
     const waiting = all.filter(({ lesson }) => !ownCover.has(lesson.id));
-    expect(waiting.length).toBe(994 - 150);
+    expect(waiting.length).toBe(all.length - ownCover.size);
     expect(waiting.some(({ course, lesson }) => isExperienceLesson(lesson, course))).toBe(false);
   });
 });

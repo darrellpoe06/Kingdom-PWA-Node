@@ -10,9 +10,11 @@
 // One rule, used by classic Learn (everyone) and Learn Studio (owner device):
 //   a lesson opens in the Experience  <=>  its presentation record is approved
 //   (VISIBLE_STATUSES, or listed in experience-approved.json -- Darrell's
-//   2026-11-25 approval of the 150 finished covers) AND it has its OWN image
-//   AND the lesson's original title is unchanged since approval (presentLesson's
-//   stale check). Department art never qualifies a lesson.
+//   2026-11-25 approval of the 150 finished covers, OR its record carries its
+//   OWN image and NO needsReview -- a finished cover that passed its checks,
+//   status 'review' included, as the publish lane lands them) AND it has its OWN
+//   image AND the lesson's original title is unchanged since approval
+//   (presentLesson's stale check). Department art never qualifies a lesson.
 // Everything else keeps its existing reader, untouched.
 // =============================================================================
 import React, { useMemo } from 'react';
@@ -27,8 +29,12 @@ const at = (s) => (typeof s === 'string' ? s.replace(/(^|, )learn-thumbs\//g, `$
 const withBase = (im) => im && im.src && { ...im, src: at(im.src), srcSet: im.srcSet && { webp: at(im.srcSet.webp) } };
 
 const APPROVED_IDS = new Set((APPROVED && APPROVED.lessonIds) || []);
+/** A finished cover that passed its checks: its own image, nothing left to review. */
+export const passingCover = (r) => !!(r && r.image && r.image.src) && !(Array.isArray(r.needsReview) ? r.needsReview.length : r.needsReview);
 const INDEX = presentationIndex(
-  ((RECORDS && RECORDS.records) || []).map((r) => (APPROVED_IDS.has(r.lessonId) && !VISIBLE_STATUSES.includes(r.status) ? { ...r, status: 'approved' } : r))
+  ((RECORDS && RECORDS.records) || []).map((r) =>
+    (APPROVED_IDS.has(r.lessonId) || passingCover(r)) && !VISIBLE_STATUSES.includes(r.status) ? { ...r, status: 'approved' } : r
+  )
 );
 
 const keyOf = (course) => course && (course.key || (course.meta && course.meta.key));
