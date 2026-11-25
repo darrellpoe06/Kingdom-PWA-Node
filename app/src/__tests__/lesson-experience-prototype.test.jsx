@@ -693,3 +693,15 @@ describe('Watch keeps the player in view while it plays', () => {
     expect(container.querySelector('.le-stage').classList.contains('le-stage--full')).toBe(false);
   });
 });
+
+describe('Watch: the Back to the current line button never shifts the transcript', () => {
+  it('renders after the list inside a positioned wrapper, not above it', () => {
+    const css = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '../components/learn-studio/lesson-experience.css'), 'utf8');
+    const rule = css.slice(css.indexOf('.le-follow {'), css.indexOf('}', css.indexOf('.le-follow {')));
+    expect(rule).toContain('position: absolute');
+    const src = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '../components/learn-studio/LessonExperience.jsx'), 'utf8');
+    const wrap = src.indexOf('le-transcript-wrap');
+    expect(wrap).toBeGreaterThan(-1);
+    expect(src.indexOf('le-follow', wrap)).toBeGreaterThan(src.indexOf('</ol>', wrap));
+  });
+});

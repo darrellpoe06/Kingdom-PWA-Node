@@ -619,28 +619,30 @@ export default function LessonExperience({
           {watchTab === 'transcript' && (
             <>
               <LevelChips level={level} setLevel={setLevel} />
-              {browsing && (isPlaying || status === 'paused') && (
-                <button type="button" className={`le-follow ${RING}`} onClick={followAgain}>
-                  ↓ Back to the current line
-                </button>
-              )}
-              <ol className="le-transcript" ref={transcriptRef} onWheel={browse} onTouchMove={browse}>
-                {segments.map((s, i) => (
-                  <li key={i} ref={i === idx ? activeLineRef : null} className={`le-tline ${i === idx ? 'on' : ''}`}>
-                    <button
-                      type="button"
-                      className={`le-tline-btn ${RING}`}
-                      onClick={() => {
-                        followAgain();
-                        jumpTo(i);
-                      }}
-                    >
-                      <span className="le-tstamp">~{clock(starts[i])}</span>
-                      <span className="le-ttext">{s}</span>
-                    </button>
-                  </li>
-                ))}
-              </ol>
+              <div className="le-transcript-wrap">
+                <ol className="le-transcript" ref={transcriptRef} onWheel={browse} onTouchMove={browse}>
+                  {segments.map((s, i) => (
+                    <li key={i} ref={i === idx ? activeLineRef : null} className={`le-tline ${i === idx ? 'on' : ''}`}>
+                      <button
+                        type="button"
+                        className={`le-tline-btn ${RING}`}
+                        onClick={() => {
+                          followAgain();
+                          jumpTo(i);
+                        }}
+                      >
+                        <span className="le-tstamp">~{clock(starts[i])}</span>
+                        <span className="le-ttext">{s}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ol>
+                {browsing && (isPlaying || status === 'paused') && (
+                  <button type="button" className={`le-follow ${RING}`} onClick={followAgain}>
+                    ↓ Back to the current line
+                  </button>
+                )}
+              </div>
             </>
           )}
           {watchTab === 'points' && <KeyPoints lesson={lesson} />}

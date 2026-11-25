@@ -344,9 +344,19 @@
   padding: 0 16px;
   background: var(--le-bg);
 }
+/* The "Back to the current line" button floats over the list, so showing
+   it never pushes the transcript (no layout jump). */
+.le-transcript-wrap {
+  position: relative;
+}
 .le-follow {
-  display: block;
-  margin: 0 auto 8px;
+  position: absolute;
+  left: 50%;
+  bottom: 10px;
+  transform: translateX(-50%);
+  z-index: 2;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+  white-space: nowrap;
   min-height: 36px;
   padding: 4px 14px;
   border-radius: 999px;
