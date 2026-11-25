@@ -81,7 +81,7 @@ export async function shareLesson(lesson, course, title) {
  * lesson of the same course; onClassic shows this lesson in the classic reader
  * (progress, downloads, every existing tool) -- also where a crash lands.
  */
-export default function LessonExperienceDoor({ lesson, course, onExit, onOpen, onClassic, initialMode = 'watch', initialLevel = 'adult' }) {
+export default function LessonExperienceDoor({ lesson, course, onExit, onOpen, onClassic, onLevel = null, initialMode = 'watch', initialLevel = 'adult' }) {
   const record = useMemo(() => experienceRecord(lesson, course), [lesson, course]);
   const more = useMemo(() => moreExperienceLessons(lesson, course), [lesson, course]);
   if (!record) return null;
@@ -98,6 +98,7 @@ export default function LessonExperienceDoor({ lesson, course, onExit, onOpen, o
         onOpenOther={(courseKey, lessonId) => onOpen && onOpen(courseKey, lessonId)}
         onShare={() => shareLesson(lesson, course, record.displayTitle)}
         onClassic={onClassic}
+        onLevel={onLevel}
       />
     </LessonExperienceBoundary>
   );

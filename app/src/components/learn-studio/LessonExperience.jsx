@@ -327,6 +327,7 @@ export default function LessonExperience({
   createNarrator = createBrowserTTS,
   onShare = null,
   onClassic = null,
+  onLevel = null,
 }) {
   const [mode, setMode] = useState(initialMode);
   const levels = useMemo(() => levelsOf(lesson), [lesson]);
@@ -370,6 +371,11 @@ export default function LessonExperience({
   const [full, setFull] = useState(false);
 
   const text = useMemo(() => readingText(lesson, level), [lesson, level]);
+  // The learner record names the version being read (DR-1257: "The version
+  // read should be recorded naturally"), on open and on every level change.
+  useEffect(() => {
+    if (onLevel) onLevel(level);
+  }, [level]); // eslint-disable-line react-hooks/exhaustive-deps
   const segments = useMemo(() => segmentText(text), [text]);
   const paragraphs = useMemo(() => (text || '').split(/\n\n+/).filter(Boolean), [text]);
   const number = lessonNumberOf(lesson.id);

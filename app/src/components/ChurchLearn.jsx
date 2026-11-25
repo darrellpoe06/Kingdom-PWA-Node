@@ -2560,7 +2560,7 @@ function CourseView({
       />
     );
   }
-  if (focusModule && classicId !== focusModule.id && isExperienceLesson(focusModule, course)) return <LessonExperienceDoor lesson={focusModule} course={course} onExit={toAllLessons} onOpen={(k, id) => openLesson(id)} onClassic={() => setClassicId(focusModule.id)} />;
+  if (focusModule && classicId !== focusModule.id && isExperienceLesson(focusModule, course)) return <LessonExperienceDoor key={focusModule.id} lesson={focusModule} course={course} onExit={toAllLessons} onOpen={(k, id) => openLesson(id)} onClassic={() => setClassicId(focusModule.id)} initialLevel={versionRead(focusModule, ageBand, levelOverride) || 'adult'} onLevel={(v) => recordPlace({ courseKey: course.key, lessonId: focusModule.id, version: v })} />;
   if (teaching) {
     return <Presenter presentable={coursePresentable(course)} initialAge={AGEBAND_TO_PRESENT_AGE[ageBand] || 'teen'} onClose={() => setTeaching(false)} />;
   }
