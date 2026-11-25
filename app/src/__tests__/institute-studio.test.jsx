@@ -297,3 +297,66 @@ describe('program courses as photographic cards (Darrell 2026-11-25: "vibrant, n
     expect(q('institute-courses-ministry-leadership')).toBeTruthy();
   });
 });
+
+// Darrell 2026-11-25, from the live preview: "Buttons don't go anywhere for anything on this screen."
+describe('every button on the studio home takes the reader somewhere', () => {
+  let scrolled;
+  let raf;
+  beforeEach(() => {
+    scrolled = [];
+    raf = window.requestAnimationFrame;
+    window.requestAnimationFrame = (fn) => {
+      fn();
+      return 0;
+    };
+    Element.prototype.scrollIntoView = function scrollIntoView() {
+      scrolled.push(this.getAttribute('data-testid'));
+    };
+  });
+  afterEach(() => {
+    window.requestAnimationFrame = raf;
+    delete Element.prototype.scrollIntoView;
+  });
+  it('Explore Programs, Enroll Today and every tile open their section AND scroll the reader to it', () => {
+    mount({ studioDefaultOn: true });
+    const want = [
+      ['institute-studio-explore', 'About'],
+      ['institute-studio-enroll', 'Enrollment'],
+      ['institute-studio-tile-certificates', 'Certificates'],
+      ['institute-studio-tile-resources', 'Resources'],
+    ];
+    for (const [id, label] of want) {
+      scrolled.length = 0;
+      click(q(id));
+      expect(activeTab().textContent.trim()).toBe(label);
+      expect(scrolled).toEqual(['institute-sections']);
+    }
+  });
+  it('the six feature items are buttons: each opens a real section, a filtered catalog, or Learn', () => {
+    const setChurchView = vi.fn();
+    mount({ studioDefaultOn: true, setChurchView });
+    const feats = [...container.querySelectorAll('.is-feats button')];
+    expect(feats.length).toBe(6);
+    click(q('institute-studio-feat-bookOpen'));
+    expect(activeTab().textContent.trim()).toBe('Courses');
+    expect(q('institute-course-filter-biblical-studies').getAttribute('aria-pressed')).toBe('true');
+    click(q('institute-studio-feat-users'));
+    expect(q('institute-course-filter-ministry-leadership').getAttribute('aria-pressed')).toBe('true');
+    click(q('institute-studio-feat-sparkle'));
+    expect(activeTab().textContent.trim()).toBe('Certificates');
+    click(q('institute-studio-feat-monitor'));
+    expect(activeTab().textContent.trim()).toBe('Resources');
+    click(q('institute-studio-feat-calendar'));
+    expect(setChurchView).toHaveBeenLastCalledWith('learn');
+  });
+  it('the three counters are buttons too: Enrolled, Completed and Certificates open where those live', () => {
+    mount({ studioDefaultOn: true });
+    click(q('institute-studio-stat-enrolled'));
+    expect(activeTab().textContent.trim()).toBe('Enrollment');
+    click(q('institute-studio-stat-completed'));
+    expect(activeTab().textContent.trim()).toBe('Students');
+    click(q('institute-studio-stat-certificates'));
+    expect(activeTab().textContent.trim()).toBe('Certificates');
+    expect(scrolled.at(-1)).toBe('institute-sections');
+  });
+});

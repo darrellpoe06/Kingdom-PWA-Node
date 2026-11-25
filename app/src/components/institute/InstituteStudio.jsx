@@ -51,13 +51,15 @@ export const BISHOP = Object.freeze({
   srcSet: `${BASE}lovecorner/bishop-lloyd-e-gwin-480.jpg 480w, ${BASE}lovecorner/bishop-lloyd-e-gwin-800.jpg 800w, ${BASE}lovecorner/bishop-lloyd-e-gwin-1200.jpg 1200w`,
 });
 
+// Each of the six is a door, not a label: `to` is the section it opens, `program` the course filter,
+// `learn` the Learn tab itself.
 const FEATURES = Object.freeze([
-  { icon: 'bookOpen', label: 'Bible-Based Courses' },
-  { icon: 'dove', label: 'Ministry Training' },
-  { icon: 'users', label: 'Leadership Development' },
-  { icon: 'sparkle', label: 'Certificates of Completion' },
-  { icon: 'monitor', label: 'Flexible & Online' },
-  { icon: 'calendar', label: 'Learn at Your Pace' },
+  { icon: 'bookOpen', label: 'Bible-Based Courses', to: 'courses', program: 'biblical-studies' },
+  { icon: 'dove', label: 'Ministry Training', to: 'courses', program: 'christian-education' },
+  { icon: 'users', label: 'Leadership Development', to: 'courses', program: 'ministry-leadership' },
+  { icon: 'sparkle', label: 'Certificates of Completion', to: 'certificates' },
+  { icon: 'monitor', label: 'Flexible & Online', to: 'resources' },
+  { icon: 'calendar', label: 'Learn at Your Pace', learn: true },
 ]);
 
 export const TILES = Object.freeze([
@@ -146,8 +148,15 @@ export default function InstituteStudio({
       <ul className="is-feats" aria-label="What the Institute offers">
         {FEATURES.map((f) => (
           <li key={f.label}>
-            <UiIcon name={f.icon} />
-            <span>{f.label}</span>
+            <button
+              type="button"
+              className={`is-feat ${FOCUS}`}
+              onClick={() => (f.learn ? onExplore() : onOpen(f.to, f.program || null))}
+              data-testid={`institute-studio-feat-${f.icon}`}
+            >
+              <UiIcon name={f.icon} />
+              <span>{f.label}</span>
+            </button>
           </li>
         ))}
       </ul>
@@ -184,26 +193,32 @@ export default function InstituteStudio({
             <p className="is-none">{signedIn ? 'Shown once you are enrolled in a program' : 'Sign in to see it'}</p>
           )}
         </div>
-        <dl className="is-stats">
-          <div data-testid="institute-studio-stat-enrolled">
-            <dt>
-              <UiIcon name="bookOpen" /> <b>{signedIn ? stats.enrolled : '—'}</b>
-            </dt>
-            <dd>Enrolled</dd>
+        <div className="is-stats">
+          <div>
+            <button type="button" className={`is-stat ${FOCUS}`} onClick={() => onOpen('enrollment')} data-testid="institute-studio-stat-enrolled">
+              <span className="is-stat-n">
+                <UiIcon name="bookOpen" /> <b>{signedIn ? stats.enrolled : '—'}</b>
+              </span>
+              <span className="is-stat-l">Enrolled</span>
+            </button>
           </div>
-          <div data-testid="institute-studio-stat-completed">
-            <dt>
-              <UiIcon name="check" /> <b>{signedIn ? stats.completed : '—'}</b>
-            </dt>
-            <dd>Completed</dd>
+          <div>
+            <button type="button" className={`is-stat ${FOCUS}`} onClick={() => onOpen('students')} data-testid="institute-studio-stat-completed">
+              <span className="is-stat-n">
+                <UiIcon name="check" /> <b>{signedIn ? stats.completed : '—'}</b>
+              </span>
+              <span className="is-stat-l">Completed</span>
+            </button>
           </div>
-          <div data-testid="institute-studio-stat-certificates">
-            <dt>
-              <UiIcon name="sparkle" /> <b>{signedIn ? stats.certificates : '—'}</b>
-            </dt>
-            <dd>Certificates</dd>
+          <div>
+            <button type="button" className={`is-stat ${FOCUS}`} onClick={() => onOpen('certificates')} data-testid="institute-studio-stat-certificates">
+              <span className="is-stat-n">
+                <UiIcon name="sparkle" /> <b>{signedIn ? stats.certificates : '—'}</b>
+              </span>
+              <span className="is-stat-l">Certificates</span>
+            </button>
           </div>
-        </dl>
+        </div>
       </section>
 
       <section aria-labelledby="is-cont-h">
