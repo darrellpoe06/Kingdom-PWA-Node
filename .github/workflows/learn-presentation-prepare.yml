@@ -18,7 +18,7 @@ jobs:
   prepare:
     if: vars.LEARN_PRESENTATION_AUTOPREP == 'on'
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 180
     defaults: { run: { working-directory: app } }
     env:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -83,7 +83,7 @@ jobs:
     timeout-minutes: 15
     permissions: { contents: write, pull-requests: write, actions: write } # push the branch, open the PR, dispatch CI on it
     steps:
-      - uses: actions/checkout@v7
+      - { uses: actions/checkout@v7, with: { ref: main } } # main as it is NOW: a covers PR cut from the dispatch commit conflicts once an earlier batch's covers land (#2887)
       - { id: get, uses: actions/download-artifact@v4, continue-on-error: true, with: { name: 'learn-covers-${{ github.run_id }}', path: . } }
       - name: Commit the new covers and open the PR (a GITHUB_TOKEN push fires no CI, so CI is dispatched on the branch, as keep-prs-current does)
         if: steps.get.outcome == 'success'

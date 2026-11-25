@@ -26,7 +26,7 @@ import process from 'node:process';
 import { createHash, randomBytes } from 'node:crypto';
 import { mkdir, rm, rename, writeFile, access } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
-import { tmpdir } from 'node:os';
+import { availableParallelism, tmpdir } from 'node:os';
 import { writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
@@ -44,6 +44,9 @@ if (!process.env.FONTCONFIG_FILE) {
   process.env.FONTCONFIG_FILE = conf;
 }
 const { default: sharp } = await import('sharp');
+// sharp defaults to ONE thread on glibc Linux (no jemalloc) — the GitHub runner. AVIF at
+// effort 4 then takes ~27 s per 1920 px frame; every core cuts it ~3.6x. Same settings, same output.
+sharp.concurrency(Math.max(1, availableParallelism()));
 const { dHash } = await import('./dhash.mjs');
 const { gradeImage } = await import('./grade.mjs');
 
