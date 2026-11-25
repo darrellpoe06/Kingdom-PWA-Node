@@ -490,20 +490,13 @@
       "to": 6022,
       "date": "2026-11-25",
       "why": "Darrell: \"our share links do/should go to each lesson... the new look needs to do that also... currently it doesn't... fix it too.\" A shared lesson link (?course=...&lesson=...) was parsed into deepLink and applied to resumeLessonId, but that only drives the CLASSIC render branch -- the owner device returns the LearnStudioPreview branch first and never reaches it, so a shared link silently landed on the Learn Studio home screen instead of the lesson. Threads deepLink.lessonId through as a new initialLessonId prop on LearnStudioPreview, which forwards it to LearnStudio's existing initialLesson prop. Raised to the measured size, not above it."
-    },
-    {
-      "file": "app/src/components/ChurchLearn.jsx",
-      "from": 6022,
-      "to": 6025,
-      "date": "2026-11-25",
-      "why": "Darrell approved the four-mode Lesson Experience for everyone, for lessons with their own completed cover only: \"Make those approximately 150 completed lessons publicly available to everyone ... Leave the remaining lessons in their existing format.\" Classic Learn is where everyone opens a lesson, so CourseView needs the door: one import, one state line (the lesson its reader chose to see in the classic reader), and one early return that opens LessonExperienceDoor when isExperienceLesson() is true. The rule itself, the approval ledger and every line of the experience live in components/learn-studio/. Raised to the measured size, not above it."
     }
   ],
   "budgets": {
     "app/src/lib/living-lessons-class.js": 33072,
     "app/src/lib/sovereign-ai-class.js": 16677,
     "app/src/lib/world-issues-class.js": 6789,
-    "app/src/components/ChurchLearn.jsx": 6025,
+    "app/src/components/ChurchLearn.jsx": 6022,
     "app/src/modules/properties/DoorTabs.jsx": 3352,
     "app/src/components/Rentals.jsx": 3220,
     "app/src/modules/properties/PropertiesApp.jsx": 2695,

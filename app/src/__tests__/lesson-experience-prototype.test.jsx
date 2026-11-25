@@ -188,30 +188,16 @@ describe("the lesson's own Read/Listen/age-chip buttons stay in the new look (no
     expect(byText('Listen').some((b) => b.getAttribute('aria-selected') === 'true')).toBe(true);
   });
 
-  // Expanded 2026-11-25 (Darrell approved all four modes): every lesson on the
-  // owner's device opens the Experience; with the preview not on (any other
-  // device), Read still hands off to the classic reader, unchanged.
-  it('a DIFFERENT lesson now opens the Experience too on the owner device', () => {
+  it('a DIFFERENT lesson still hands off to the classic reader, unchanged', () => {
     const onOpenLesson = vi.fn();
     render(<LearnStudioPreview courses={COURSES} onOpenLesson={onOpenLesson} onExit={vi.fn()} ownerDevice />);
     const card = openCoverByCard(container, 'A Sound Mind');
-    expect(card).toBeTruthy();
-    const readBtn = [...container.querySelectorAll('button')].find((b) => b.textContent.trim() === 'Read Lesson');
-    click(readBtn);
-    expect(onOpenLesson).not.toHaveBeenCalled();
-    expect(container.querySelector('.le-root')).toBeTruthy();
-    expect(container.querySelector('.le-book-text')).toBeTruthy();
-  });
-
-  it('off the owner device, Read still hands off to the classic reader, unchanged', () => {
-    const onOpenLesson = vi.fn();
-    render(<LearnStudioPreview courses={COURSES} onOpenLesson={onOpenLesson} onExit={vi.fn()} ownerDevice={false} />);
-    const card = openCoverByCard(container, 'A Sound Mind');
-    expect(card).toBeTruthy();
-    const readBtn = [...container.querySelectorAll('button')].find((b) => b.textContent.trim() === 'Read Lesson');
-    click(readBtn);
-    expect(onOpenLesson).toHaveBeenCalledTimes(1);
-    expect(container.querySelector('.le-root')).toBeNull();
+    if (card) {
+      const readBtn = [...container.querySelectorAll('button')].find((b) => b.textContent.trim() === 'Read Lesson');
+      click(readBtn);
+      expect(onOpenLesson).toHaveBeenCalledTimes(1);
+      expect(container.textContent).not.toContain('PROTOTYPE');
+    }
   });
 });
 
@@ -229,17 +215,15 @@ describe('More Lessons — a YouTube-style queue of all available lessons (same 
     expect(container.querySelector('.le-more-thumb')).toBeTruthy();
   });
 
-  it('tapping a More Lessons card opens that lesson in the same Experience (the next one in the course)', () => {
+  it('tapping a More Lessons row exits the overlay and opens that lesson the normal way', () => {
     const onOpenLesson = vi.fn();
     render(<LearnStudioPreview courses={COURSES} onOpenLesson={onOpenLesson} onExit={vi.fn()} ownerDevice />);
     click(byText('Try the new lesson experience')[0]);
     const row = container.querySelector('.le-more-card');
     expect(row).toBeTruthy();
-    const title = row.querySelector('.le-more-title').textContent;
     click(row);
-    expect(onOpenLesson).not.toHaveBeenCalled();
-    expect(container.querySelector('.le-root')).toBeTruthy();
-    expect(container.textContent).toContain(title);
+    expect(onOpenLesson).toHaveBeenCalledTimes(1);
+    expect(container.textContent).not.toContain('PROTOTYPE');
   });
 });
 

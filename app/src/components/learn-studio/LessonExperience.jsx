@@ -22,7 +22,6 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { createBrowserTTS, segmentText, RATE_STEPS } from '../../lib/tts.js';
 import { motionBehavior } from '../../lib/gentle-motion.js';
-import { lessonVersions, READING_VERSIONS } from '../../lib/learn-organize.js';
 import { buildFollowMap, alignSegmentSpans, rangeFor, highlightSegment, clearReadingHighlights } from '../../lib/read-follow.js';
 import './lesson-experience.css';
 
@@ -51,14 +50,13 @@ export class LessonExperienceBoundary extends React.Component {
   }
 }
 
-// The reading levels each lesson REALLY has, from the catalog's own
-// lessonVersions() -- the same function the integrity baseline counts its
-// 4,258 readings with, so the age chips shown are exactly those readings
-// (a band that only repeats the Adult text is not offered twice).
-function levelsOf(lesson) {
-  const ids = lessonVersions(lesson);
-  return READING_VERSIONS.filter((b) => ids.includes(b.id)).map((b) => ({ key: b.id, label: b.label }));
-}
+const LEVELS = [
+  { key: 'child', label: 'Child' },
+  { key: 'youth', label: 'Youth' },
+  { key: 'teen', label: 'Teen' },
+  { key: 'adult', label: 'Adult' },
+  { key: 'senior', label: 'Senior' },
+];
 
 // Small inline line icons (no icon library -- dependency skepticism) so the
 // four mode pills read like the approved reference, not as emoji.
@@ -74,7 +72,6 @@ const ICON_PATHS = {
   notes: 'M5 3h14v18H5zM9 8h6M9 12h6M9 16h4',
   check: 'M4 12l5 5L20 6',
   speaker: 'M4 9v6h4l5 4V5L8 9zM16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11',
-  share: 'M12 3v12M7 8l5-5 5 5M5 14v6h14v-6',
 };
 export function Icon({ name, size = 18 }) {
   return (
@@ -121,13 +118,9 @@ const PAGE_KEY = (id, level) => `poe-lesson-experience:${id}:${level}:read-page`
 const BROWSE_MS = 8000;
 const PROGRESS_KEY = (id, mode) => `poe-lesson-experience:${id}:${mode}`;
 
-/** The words of one reading, verbatim: the level's own text, and for Adult
- * the catalog's rule (levels.standard, else the lesson body). */
-export function readingText(lesson, level) {
-  const band = READING_VERSIONS.find((b) => b.id === level);
-  const levels = (lesson && lesson.levels) || {};
-  const own = band && typeof levels[band.key] === 'string' && levels[band.key].trim() ? levels[band.key] : '';
-  return own || (level === 'adult' && typeof lesson.lesson === 'string' ? lesson.lesson : '');
+function textFor(lesson, level) {
+  if (level !== 'adult' && lesson.levels && lesson.levels[level]) return lesson.levels[level];
+  return lesson.lesson;
 }
 
 // The lesson's OWN structural leads ("FIRST, THE MASTER WHO WENT AWAY.",
@@ -256,11 +249,10 @@ function ModePills({ mode, setMode }) {
   );
 }
 
-function LevelChips({ level, setLevel, levels }) {
-  if (!levels || levels.length < 2) return null;
+function LevelChips({ level, setLevel }) {
   return (
     <div className="le-levels" role="group" aria-label="Reading level">
-      {levels.map((l) => (
+      {LEVELS.map((l) => (
         <button
           key={l.key}
           type="button"
@@ -325,18 +317,9 @@ export default function LessonExperience({
   moreLessons = [],
   onOpenOther = null,
   createNarrator = createBrowserTTS,
-  onShare = null,
-  onClassic = null,
-  onLevel = null,
 }) {
   const [mode, setMode] = useState(initialMode);
-  const levels = useMemo(() => levelsOf(lesson), [lesson]);
-  // Start on the asked level when this lesson has it, else Adult, else the
-  // first reading it does have.
-  const [level, setLevel] = useState(() => {
-    const has = (k) => levels.some((l) => l.key === k);
-    return has(initialLevel) ? initialLevel : has('adult') ? 'adult' : (levels[0] && levels[0].key) || 'adult';
-  });
+  const [level, setLevel] = useState(initialLevel);
   const [status, setStatus] = useState('idle');
   const [idx, setIdx] = useState(0);
   const [boundary, setBoundary] = useState({ seg: -1, offset: 0 });
@@ -370,12 +353,7 @@ export default function LessonExperience({
   const [browsing, setBrowsing] = useState(false);
   const [full, setFull] = useState(false);
 
-  const text = useMemo(() => readingText(lesson, level), [lesson, level]);
-  // The learner record names the version being read (DR-1257: "The version
-  // read should be recorded naturally"), on open and on every level change.
-  useEffect(() => {
-    if (onLevel) onLevel(level);
-  }, [level]); // eslint-disable-line react-hooks/exhaustive-deps
+  const text = useMemo(() => textFor(lesson, level), [lesson, level]);
   const segments = useMemo(() => segmentText(text), [text]);
   const paragraphs = useMemo(() => (text || '').split(/\n\n+/).filter(Boolean), [text]);
   const number = lessonNumberOf(lesson.id);
@@ -405,7 +383,7 @@ export default function LessonExperience({
     [paragraphs, segments]
   );
 
-  const verses = useMemo(() => (readingText(lesson, 'adult') || text || '').match(VERSE_RE) || [], [lesson, text]);
+  const verses = useMemo(() => (lesson.lesson || '').match(VERSE_RE) || [], [lesson.lesson]);
 
   // One engine per (lesson, level) — switching reading level restarts clean.
   useEffect(() => {
@@ -617,7 +595,7 @@ export default function LessonExperience({
               </button>
             </div>
           </div>
-          {lesson.title !== title && <p className="le-original">{lesson.title}</p>}
+          <p className="le-original">{lesson.title}</p>
           <ModePills mode={mode} setMode={setMode} />
           {resumeNote}
           <div className="le-subtabs" role="tablist" aria-label="Lesson details">
@@ -640,7 +618,7 @@ export default function LessonExperience({
           </div>
           {watchTab === 'transcript' && (
             <>
-              <LevelChips level={level} setLevel={setLevel} levels={levels} />
+              <LevelChips level={level} setLevel={setLevel} />
               <div className="le-transcript-wrap">
                 <ol className="le-transcript" ref={transcriptRef} onWheel={browse} onTouchMove={browse}>
                   {segments.map((s, i) => (
@@ -675,7 +653,6 @@ export default function LessonExperience({
 
       {mode === 'read' && (
         <ReadMode
-          levels={levels}
           lesson={lesson}
           record={record}
           title={title}
@@ -720,9 +697,9 @@ export default function LessonExperience({
               </div>
             </div>
           </div>
-          {lesson.title !== title && <p className="le-original">{lesson.title}</p>}
+          <p className="le-original">{lesson.title}</p>
           <h2 className="le-listen-h">Full Audio Lesson</h2>
-          <LevelChips level={level} setLevel={setLevel} levels={levels} />
+          <LevelChips level={level} setLevel={setLevel} />
           <p className="le-listen-now" aria-live="polite">
             {segments[shownIdx] || 'Ready to begin.'}
           </p>
@@ -771,7 +748,7 @@ export default function LessonExperience({
       {mode === 'study' && (
         <>
           <ModePills mode={mode} setMode={setMode} />
-          <StudyMode lesson={lesson} record={record} number={number} verses={verses} onShare={onShare} onClassic={onClassic} />
+          <StudyMode lesson={lesson} record={record} number={number} verses={verses} />
         </>
       )}
     </div>
@@ -865,7 +842,7 @@ function keepInView(rect) {
 // spoken is painted with the house reading highlight (lib/read-follow.js, the
 // CSS Highlight API -- no DOM change, so not one character of the lesson is
 // altered), its paragraph carries a gold rule, and the page scrolls with the voice.
-function ReadMode({ lesson, record, title, number, paragraphs, level, setLevel, levels, modePills, page: rawPage, setPage, narration: n }) {
+function ReadMode({ lesson, record, title, number, paragraphs, level, setLevel, modePills, page: rawPage, setPage, narration: n }) {
   const [scaleAt, setScaleAt] = useState(() => {
     const v = Number(saved.get(SCALE_KEY, 1));
     const i = SCALES.indexOf(v);
@@ -979,10 +956,10 @@ function ReadMode({ lesson, record, title, number, paragraphs, level, setLevel, 
   return (
     <section className="le-read">
       {modePills}
-      <LevelChips level={level} setLevel={setLevel} levels={levels} />
+      <LevelChips level={level} setLevel={setLevel} />
       <div className="le-book" style={{ '--le-read-scale': SCALES[scaleAt] }}>
         <h1 className="le-book-title">{title}</h1>
-        {lesson.title !== title && <p className="le-original le-original--book">{lesson.title}</p>}
+        <p className="le-original le-original--book">{lesson.title}</p>
         {number != null && (
           <div className="le-book-rule">
             <span aria-hidden="true" />
@@ -1126,7 +1103,7 @@ function StudySection({ icon, title, open = false, children }) {
 // STUDY — the reference's study guide, filled only from the lesson's own
 // fields: anchor + verses, big idea + benefits, discussion prompts, the
 // in-app practice and the REAL quiz with its real explanations.
-function StudyMode({ lesson, record, number, verses, onShare, onClassic }) {
+function StudyMode({ lesson, record, number, verses }) {
   const [picked, setPicked] = useState({});
   const [notes, setNotes] = useState(() => saved.get(NOTES_KEY(lesson.id), ''));
   const prompts = lesson.facilitator?.discussionPrompts || [];
@@ -1166,11 +1143,9 @@ function StudyMode({ lesson, record, number, verses, onShare, onClassic }) {
           </StudySection>
         )}
 
-        {lesson.inApp && (
-          <StudySection icon="practice" title="Practice / Exercise">
-            <p className="le-practice">{lesson.inApp}</p>
-          </StudySection>
-        )}
+        <StudySection icon="practice" title="Practice / Exercise">
+          {lesson.inApp && <p className="le-practice">{lesson.inApp}</p>}
+        </StudySection>
 
         {questions.length > 0 && (
           <StudySection icon="check" title="Check Your Understanding">
@@ -1179,7 +1154,7 @@ function StudyMode({ lesson, record, number, verses, onShare, onClassic }) {
                 <li key={qi} className="le-quiz-q">
                   <p className="le-quiz-prompt">{q.q}</p>
                   <div className="le-quiz-opts">
-                    {(q.options || []).map((opt, oi) => {
+                    {q.options.map((opt, oi) => {
                       const show = picked[qi] != null;
                       const correct = oi === q.answer;
                       return (
@@ -1217,23 +1192,6 @@ function StudyMode({ lesson, record, number, verses, onShare, onClassic }) {
             }}
           />
         </StudySection>
-
-        {(onShare || onClassic) && (
-          <StudySection icon="share" title="Share & More">
-            <div className="le-more-actions">
-              {onShare && (
-                <button type="button" className={`le-quiz-opt ${RING}`} onClick={onShare}>
-                  Share this lesson link
-                </button>
-              )}
-              {onClassic && (
-                <button type="button" className={`le-quiz-opt ${RING}`} onClick={onClassic}>
-                  Open in the classic reader (progress, downloads)
-                </button>
-              )}
-            </div>
-          </StudySection>
-        )}
       </div>
     </section>
   );
