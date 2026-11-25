@@ -133,3 +133,69 @@ describe('the prototype is scoped to exactly one lesson id', () => {
     expect(PROTOTYPE_LESSON_ID).toBe(REAL_LESSON.id);
   });
 });
+
+// Darrell, 2026-11-25: "I like the new look until a user chooses the play or
+// read button -- they should keep the new look of the system." The lesson's
+// OWN cover buttons (reached by normal navigation, not the shortcut card)
+// must carry into the new Experience for the prototype lesson -- never drop
+// to the classic reader -- while every other lesson is untouched.
+const type = (input, value) =>
+  act(() => {
+    Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set.call(input, value);
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+
+function openCoverByCard(container, searchTerm) {
+  type(container.querySelector('input[type=search]'), searchTerm);
+  const card = [...container.querySelectorAll('button.ls-card')][0];
+  if (card) click(card);
+  return card;
+}
+
+describe("the lesson's own Read/Listen/age-chip buttons stay in the new look (not the classic hand-off)", () => {
+  it('Read Lesson on the real cover opens the Experience in Read mode, not onOpenLesson', () => {
+    const onOpenLesson = vi.fn();
+    render(<LearnStudioPreview courses={COURSES} onOpenLesson={onOpenLesson} onExit={vi.fn()} ownerDevice />);
+    expect(openCoverByCard(container, 'Eyeservice')).toBeTruthy();
+    const readBtn = [...container.querySelectorAll('button')].find((b) => b.textContent.trim() === 'Read Lesson');
+    expect(readBtn).toBeTruthy();
+    click(readBtn);
+    expect(onOpenLesson).not.toHaveBeenCalled();
+    expect(container.textContent).toContain('PROTOTYPE');
+    expect(byText('Read').some((b) => b.getAttribute('aria-selected') === 'true')).toBe(true);
+  });
+
+  it('an age chip on the real cover opens Read mode at that level', () => {
+    const onOpenLesson = vi.fn();
+    render(<LearnStudioPreview courses={COURSES} onOpenLesson={onOpenLesson} onExit={vi.fn()} ownerDevice />);
+    expect(openCoverByCard(container, 'Eyeservice')).toBeTruthy();
+    const chip = [...container.querySelectorAll('button.ls-chip')].find((b) => b.textContent.trim() === 'Child');
+    expect(chip).toBeTruthy();
+    click(chip);
+    expect(onOpenLesson).not.toHaveBeenCalled();
+    expect(container.textContent).toContain('Someone sent us a chart.');
+  });
+
+  it('▶ Listen on the real cover opens Listen mode', () => {
+    const onOpenLesson = vi.fn();
+    render(<LearnStudioPreview courses={COURSES} onOpenLesson={onOpenLesson} onExit={vi.fn()} ownerDevice />);
+    expect(openCoverByCard(container, 'Eyeservice')).toBeTruthy();
+    const listenBtn = [...container.querySelectorAll('button')].find((b) => b.textContent.trim() === '▶ Listen');
+    expect(listenBtn).toBeTruthy();
+    click(listenBtn);
+    expect(onOpenLesson).not.toHaveBeenCalled();
+    expect(byText('Listen').some((b) => b.getAttribute('aria-selected') === 'true')).toBe(true);
+  });
+
+  it('a DIFFERENT lesson still hands off to the classic reader, unchanged', () => {
+    const onOpenLesson = vi.fn();
+    render(<LearnStudioPreview courses={COURSES} onOpenLesson={onOpenLesson} onExit={vi.fn()} ownerDevice />);
+    const card = openCoverByCard(container, 'A Sound Mind');
+    if (card) {
+      const readBtn = [...container.querySelectorAll('button')].find((b) => b.textContent.trim() === 'Read Lesson');
+      click(readBtn);
+      expect(onOpenLesson).toHaveBeenCalledTimes(1);
+      expect(container.textContent).not.toContain('PROTOTYPE');
+    }
+  });
+});

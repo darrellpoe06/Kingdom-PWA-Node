@@ -133,9 +133,9 @@ function playFrom(engine, segments, fromIdx) {
   engine.play();
 }
 
-export default function LessonExperience({ lesson, record, onExit }) {
-  const [mode, setMode] = useState('watch');
-  const [level, setLevel] = useState('adult');
+export default function LessonExperience({ lesson, record, onExit, initialMode = 'watch', initialLevel = 'adult' }) {
+  const [mode, setMode] = useState(initialMode);
+  const [level, setLevel] = useState(initialLevel);
   const [status, setStatus] = useState('idle');
   const [idx, setIdx] = useState(0);
   const [boundary, setBoundary] = useState({ seg: -1, offset: 0 });

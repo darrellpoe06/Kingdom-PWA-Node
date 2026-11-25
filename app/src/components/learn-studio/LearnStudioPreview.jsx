@@ -56,6 +56,8 @@ export default function LearnStudioPreview({ courses, onOpenLesson, onExit, owne
   // the SAME owner-device signal that already defaults Learn Studio itself on
   // -- no one else's app ever shows this card.
   const [showExperience, setShowExperience] = useState(false);
+  const [experienceMode, setExperienceMode] = useState('watch');
+  const [experienceLevel, setExperienceLevel] = useState('adult');
   const prototypeRecord = index.get(PROTOTYPE_LESSON_ID) || null;
   // LearnStudio's own read/listen/version wrappers call this hand-off as
   // onRead(lesson, course, mode) / onListen(lesson, course) / onVersion(lesson,
@@ -65,14 +67,55 @@ export default function LearnStudioPreview({ courses, onOpenLesson, onExit, owne
   // while the rest of the app kept working (Darrell's wife, 2026-11-24: "They
   // were just static images without functionality added... the app still
   // moved"). courseKey mirrors presentationIndex's own derivation.
-  const open = (lesson, course) => {
+  const toClassic = (lesson, course) => {
     const courseKey = course && (course.key || (course.meta && course.meta.key));
     return lesson && courseKey && onOpenLesson(courseKey, lesson.id);
+  };
+  const isPrototypeLesson = (lesson) => ownerDevice && lesson && lesson.id === PROTOTYPE_LESSON_ID;
+  // Darrell, 2026-11-25: "I like the new look until a user chooses the play
+  // or read button -- they should keep the new look of the system." For the
+  // one prototype lesson, Read / Watch Video / Listen / an age chip now open
+  // the new Experience directly (in the matching mode/level) instead of
+  // dropping into the classic reader -- the cinematic look carries all the
+  // way through, not just on the cover. Every other lesson is unaffected: it
+  // still hands off to the real, unmodified classic reader exactly as before.
+  const openRead = (lesson, course, mode) => {
+    if (isPrototypeLesson(lesson)) {
+      setExperienceLevel('adult'); // the plain Read Lesson button is the full reading, whatever age chip was tapped before
+      setExperienceMode(mode === 'video' ? 'watch' : 'read');
+      setShowExperience(true);
+      return undefined;
+    }
+    return toClassic(lesson, course);
+  };
+  const openListen = (lesson, course) => {
+    if (isPrototypeLesson(lesson)) {
+      setExperienceLevel('adult');
+      setExperienceMode('listen');
+      setShowExperience(true);
+      return undefined;
+    }
+    return toClassic(lesson, course);
+  };
+  const openVersion = (lesson, course, v) => {
+    if (isPrototypeLesson(lesson)) {
+      setExperienceLevel(v || 'adult');
+      setExperienceMode('read');
+      setShowExperience(true);
+      return undefined;
+    }
+    return toClassic(lesson, course);
   };
   if (showExperience && ownerDevice) {
     return (
       <LessonExperienceBoundary onExit={() => setShowExperience(false)}>
-        <LessonExperience lesson={PROTOTYPE_LESSON} record={prototypeRecord} onExit={() => setShowExperience(false)} />
+        <LessonExperience
+          lesson={PROTOTYPE_LESSON}
+          record={prototypeRecord}
+          onExit={() => setShowExperience(false)}
+          initialMode={experienceMode}
+          initialLevel={experienceLevel}
+        />
       </LessonExperienceBoundary>
     );
   }
@@ -101,7 +144,7 @@ export default function LearnStudioPreview({ courses, onOpenLesson, onExit, owne
         </button>
       )}
       <LearnStudioErrorBoundary onExit={onExit}>
-        <LearnStudio courses={courses} index={index} preview topicCovers={topics} onRead={open} onListen={open} onVersion={open} onExit={onExit} />
+        <LearnStudio courses={courses} index={index} preview topicCovers={topics} onRead={openRead} onListen={openListen} onVersion={openVersion} onExit={onExit} />
       </LearnStudioErrorBoundary>
     </section>
   );
