@@ -599,7 +599,8 @@ def main():
             "mov_text",
             "-metadata:s:s:0",
             "language=eng",
-            "-shortest",
+            "-t",
+            f"{total:.3f}",  # not -shortest: the caption track ends before the credits
             "-movflags",
             "+faststart",
             mp4,
