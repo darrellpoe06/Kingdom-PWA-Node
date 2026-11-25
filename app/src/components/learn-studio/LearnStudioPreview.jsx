@@ -49,7 +49,18 @@ export class LearnStudioErrorBoundary extends React.Component {
 export default function LearnStudioPreview({ courses, onOpenLesson, onExit }) {
   const index = useMemo(() => presentationIndex(((RECORDS && RECORDS.records) || []).map((r) => ({ ...r, image: image(r.image) }))), []);
   const topics = useMemo(() => Object.fromEntries(Object.entries(TOPICS || {}).map(([k, v]) => [k, { ...v, image: image(v.image) }])), []);
-  const open = (x) => x && x.p && onOpenLesson(x.p.courseKey, x.p.lessonId);
+  // LearnStudio's own read/listen/version wrappers call this hand-off as
+  // onRead(lesson, course, mode) / onListen(lesson, course) / onVersion(lesson,
+  // course, v) -- see its doc comment. A single-argument (x) here (checking
+  // x.p) was a shape mismatch: it silently received the bare lesson object,
+  // found no .p, and no-op'd -- Read Lesson / Listen / an age chip did nothing
+  // while the rest of the app kept working (Darrell's wife, 2026-11-24: "They
+  // were just static images without functionality added... the app still
+  // moved"). courseKey mirrors presentationIndex's own derivation.
+  const open = (lesson, course) => {
+    const courseKey = course && (course.key || (course.meta && course.meta.key));
+    return lesson && courseKey && onOpenLesson(courseKey, lesson.id);
+  };
   return (
     <section className="w-full" aria-label="Learn">
       <LearnStudioErrorBoundary onExit={onExit}>
