@@ -811,7 +811,7 @@
    "courseKey": "infrastructure",
    "originalTitleAtApproval": "Own the iron — what \"sovereign infrastructure\" means",
    "displayTitle": "Who Really Holds the Keys to Your Family's Photos and Your Church's Sermons?",
-   "thumbHeadline": "OWN THE IRON",
+   "thumbHeadline": "YOUR DATA, YOUR KEYS",
    "promoDescription": "This lesson explains sovereign infrastructure as owning and governing the machines that run your data, automation, and A.I., at home and at church, instead of renting space on a distant company's computers. It also shows the honest responsibility that comes with ownership and why Yahweh calls us to tend this work faithfully as stewards.",
    "visual": {
     "prompt": "Cinematic 16:9 photograph in bright natural daylight and high-key exposure: a Black mother and her teenage daughter sit side by side at a sunlit wooden kitchen table in a clean, light-filled home, looking together at a laptop screen with calm, engaged expressions. A tall green potted plant and a sunny window sit softly blurred behind them. The main subject, the mother in a bold cobalt blue sweater, occupies the right half in a medium close-up, her face sharp, well lit, eyes visible, with soft open shadows and neutral white balance. The left third is a bright, uncluttered area of pale wall and daylight reserved for a headline. Full-frame camera look, shallow depth of field, natural skin tones, vivid natural color. No text, letters, numbers, logos, or signage anywhere in the image.",
@@ -819,10 +819,7 @@
    },
    "image": null,
    "status": "review",
-   "featured": false,
-   "needsReview": [
-    "headline-is-original (the thumbnail headline must not be the original title)"
-   ]
+   "featured": false
   },
   {
    "lessonId": "inf5-remote-access",
@@ -975,7 +972,7 @@
    "lessonId": "inf8-church-stack",
    "courseKey": "infrastructure",
    "originalTitleAtApproval": "The house of God — COLG’s sovereign stack",
-   "displayTitle": "Who Is a Church's Tech Built For, and Who Builds It When No One Else Will?",
+   "displayTitle": "Who Builds a Church's Tech When No One Else Will?",
    "thumbHeadline": "BUILT FOR THE FIRST COMMUNITY",
    "promoDescription": "This lesson shows how The Church of the Living God in Champaign-Urbana, a 44,000-square-foot house serving its largest African American community, gets its own sovereign tech stack: a NAS, the Sanctuary LED video wall, and the broadcast chain. It explains why the church's systems mirror the home stack and why documenting the build lets any church in a similar situation receive it as a gift from Yahweh.",
    "visual": {
@@ -984,10 +981,7 @@
    },
    "image": null,
    "status": "review",
-   "featured": false,
-   "needsReview": [
-    "generic-god (promoDescription: our authored voice names Yahweh (CLAUDE.md, DR-0210))"
-   ]
+   "featured": false
   },
   {
    "lessonId": "sov3-model-tier-landscape",
@@ -3618,20 +3612,16 @@
    "lessonId": "ll27-the-god-who-documents-his-grief",
    "courseKey": "living-lessons",
    "originalTitleAtApproval": "The God Who Documents His Grief (and teaches you to read your story by His)",
-   "displayTitle": "Does God Ever Grieve? What Yahweh's Tears in Scripture Teach You to Read Your Own Story",
+   "displayTitle": "Does Yahweh Grieve? What His Tears Teach You About Your Own Story",
    "thumbHeadline": "HE WEPT TOO",
-   "promoDescription": "This lesson shows how Scripture records Yahweh's own grief, from Genesis to the tears of Jesus, so that believers can trust Him with their pain. It then teaches a practical method, modeled by Joseph, for reading your own memories, both good and hard, in light of what the Word reveals about God's hand.",
+   "promoDescription": "This lesson shows how Scripture records Yahweh's own grief, from Genesis to the tears of Jesus, so that believers can trust Him with their pain. It then teaches a practical method, modeled by Joseph, for reading your own memories, both good and hard, in light of what the Word reveals about Yahweh's hand.",
    "visual": {
     "prompt": "Cinematic 16:9 photograph, bright natural daylight streaming through a large window in a clean, light-filled living room, high-key exposure, neutral white balance. A Black woman in her forties, warm and attentive, sits in a soft cream armchair on the right side of the frame in medium close-up, wearing a sunny yellow knit sweater, her face sharp and well lit, eyes visible and expressive with a calm, hopeful look as she holds an open paper journal on her lap. Lush green potted plants sit beside the window, with open sky and soft blurred greenery beyond. The left side of the frame is a bright, uncluttered area of white wall and pale wood floor for a headline. Lens 85mm full-frame look, shallow depth of field, soft open shadows, true-to-life skin tones, vivid natural greens and yellow. No text, letters, numbers, logos, or signage.",
     "alt": "A smiling Black woman in a yellow sweater reflects while writing in a journal beside a bright window with green plants."
    },
    "image": null,
    "status": "review",
-   "featured": false,
-   "needsReview": [
-    "generic-god (displayTitle: our authored voice names Yahweh (CLAUDE.md, DR-0210))",
-    "generic-god (promoDescription: our authored voice names Yahweh (CLAUDE.md, DR-0210))"
-   ]
+   "featured": false
   },
   {
    "lessonId": "ll31-the-best-way-preferred-accepted-natural-against",

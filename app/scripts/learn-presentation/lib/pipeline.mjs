@@ -130,7 +130,26 @@ function libraryDuplicate(ledger, item, displayTitle) {
   return null;
 }
 
-/** Stage A. Returns { done, skipped, needsReview, failed, stoppedByBudget }. */
+/**
+ * Every text + picture-prompt problem with one lesson's copy: the app's
+ * validateRecords(), the library-wide duplicate title, and the picture rules.
+ * Shared by Stage A and the human title decisions (lib/decisions.mjs).
+ */
+export function copyProblems({ ledger, courses, item, copy }) {
+  const rec = candidateRecord(item, copy);
+  const { errors } = validateRecords([rec], courses);
+  const msgs = errors.map((e) => `${e.code}${e.detail ? ` (${e.detail})` : ''}`);
+  const dup = libraryDuplicate(ledger, item, copy.displayTitle);
+  if (dup) msgs.push(`duplicate-display-title (same as ${dup})`);
+  msgs.push(...pictureProblems(copy.imagePrompt));
+  return { rec, msgs };
+}
+
+/**
+ * Stage A. Returns { done, skipped, needsReview, failed, stoppedByBudget }.
+ * `decided` (a Set of "course::lesson" keys, lib/decisions.mjs) names lessons
+ * whose title a person decided: no title is ever bought for them.
+ */
 export async function runText({
   items,
   ledger,
@@ -142,11 +161,12 @@ export async function runText({
   budget = new Budget(null),
   timeoutMs = 120000,
   retryFailed = false,
+  decided = null,
   sleep = realSleep,
   random = Math.random,
   log = () => {},
 }) {
-  const tally = { done: 0, skipped: 0, needsReview: 0, failed: 0, stoppedByBudget: false };
+  const tally = { done: 0, skipped: 0, decided: 0, needsReview: 0, failed: 0, stoppedByBudget: false };
   const cost = provider.costCents != null ? provider.costCents : 1;
   const avoid = () =>
     Object.values(ledger.records)
@@ -179,18 +199,14 @@ export async function runText({
       { attempts: 3, sleep, random }
     );
 
-  const check = (item, copy) => {
-    const rec = candidateRecord(item, copy);
-    const { errors } = validateRecords([rec], courses);
-    const msgs = errors.map((e) => `${e.code}${e.detail ? ` (${e.detail})` : ''}`);
-    const dup = libraryDuplicate(ledger, item, copy.displayTitle);
-    if (dup) msgs.push(`duplicate-display-title (same as ${dup})`);
-    msgs.push(...pictureProblems(copy.imagePrompt));
-    return { rec, msgs };
-  };
+  const check = (item, copy) => copyProblems({ ledger, courses, item, copy });
 
   await pool(items, concurrency, async (item) => {
     if (tally.stoppedByBudget) return;
+    if (decided && decided.has(`${item.courseKey}::${item.lessonId}`)) {
+      tally.decided += 1;
+      return;
+    }
     const d = ledger.decide({ courseKey: item.courseKey, lessonId: item.lessonId, kind: 'text', contentSha: item.contentSha, maxAttempts, retryFailed });
     if (!d.run) {
       tally.skipped += 1;

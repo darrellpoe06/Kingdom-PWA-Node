@@ -29,17 +29,25 @@ import { textProvider } from './providers/text.mjs';
 import { imageProvider, bflImage } from './providers/image.mjs';
 import { loadArt, validateArt, resolveArtScope, runArtV2 } from './lib/art-v2.mjs';
 import { loadAdjustments, applyAdjustments } from './lib/adjust.mjs';
+import { loadDecisions, applyDecisions, decidedKeys } from './lib/decisions.mjs';
 import { storageGate, paidPictureShas } from './lib/storage-gate.mjs';
 import { savePart, recoverPart } from './lib/part.mjs';
 
 const SEED = resolve('src/lib/learn-presentation/presentation-seed.json');
 const ART = resolve('scripts/learn-presentation/art-direction-v2.json');
 const ADJUSTMENTS = resolve('scripts/learn-presentation/ledger-adjustments.json');
+const DECISIONS = resolve('scripts/learn-presentation/title-decisions.json');
 
-/** Open the ledger and apply any reviewed adjustment not yet in it (append-only). */
-function openLedger(stateDir, log) {
+/**
+ * Open the ledger, apply any reviewed adjustment not yet in it (append-only),
+ * and apply the owner's title decisions (lib/decisions.mjs; free, no paid call).
+ */
+function openLedger(stateDir, log, inventory) {
   const ledger = new Ledger(stateDir);
   for (const id of applyAdjustments(ledger, loadAdjustments(ADJUSTMENTS))) log(`ledger adjustment applied: ${id}`);
+  const td = applyDecisions(ledger, loadDecisions(DECISIONS), { courses: coursesForValidation(inventory), log });
+  if (td.applied.length + td.held.length + td.waiting.length)
+    log(`title decisions: ${td.applied.length} applied · ${td.held.length} held · ${td.waiting.length} waiting on a generated record`);
   return ledger;
 }
 
@@ -161,7 +169,7 @@ async function main() {
       }
       throw e;
     }
-    const ledger = openLedger(stateDir, log);
+    const ledger = openLedger(stateDir, log, inventory);
     const already = ledger.spentCents();
     const imgLeft = Math.max(0, IMAGE_TOTAL_CAP_CENTS - imageSpentCents(ledger));
     const budget = new Budget(Math.min(imgLeft, remainingCents(flags['budget-cents'] !== undefined ? int(flags['budget-cents']) : null, already)));
@@ -219,7 +227,7 @@ async function main() {
     return;
   }
 
-  const ledger = openLedger(stateDir, log);
+  const ledger = openLedger(stateDir, log, inventory);
   const courses = coursesForValidation(inventory);
   // The full library runs in resumable batches: the next unfinished lessons only.
   if (spending && cmd !== 'compose' && String(flags.only).toLowerCase() === 'all') {
@@ -253,9 +261,21 @@ async function main() {
     log(
       `Stage A (text) · ${items.length} lessons · ${provider.name}/${provider.model} · concurrency ${concurrency}${Number.isFinite(budget.cap) ? ` · cap ${dollars(budget.cap)}` : ''}`
     );
-    const t = await runText({ items, ledger, provider, courses, batchId, concurrency, maxAttempts: int(flags['max-attempts'], 3), budget, retryFailed, log });
+    const t = await runText({
+      items,
+      ledger,
+      provider,
+      courses,
+      batchId,
+      concurrency,
+      maxAttempts: int(flags['max-attempts'], 3),
+      budget,
+      retryFailed,
+      decided: decidedKeys(loadDecisions(DECISIONS)),
+      log,
+    });
     log(
-      `text: ${t.done} done · ${t.skipped} skipped · ${t.needsReview} need review · ${t.failed} failed${t.outOfCredit ? ' · STOPPED: THE PROVIDER ACCOUNT IS OUT OF CREDIT (top it up; queued lessons resume)' : t.stoppedByBudget ? ' · STOPPED AT BUDGET CAP' : ''} · this run ${dollars(budget.spent)}`
+      `text: ${t.done} done · ${t.skipped} skipped · ${t.decided} decided by the owner (no title bought) · ${t.needsReview} need review · ${t.failed} failed${t.outOfCredit ? ' · STOPPED: THE PROVIDER ACCOUNT IS OUT OF CREDIT (top it up; queued lessons resume)' : t.stoppedByBudget ? ' · STOPPED AT BUDGET CAP' : ''} · this run ${dollars(budget.spent)}`
     );
   }
   if (cmd === 'images' || (retryFailed && flags.kind !== 'text')) {
