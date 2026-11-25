@@ -42,6 +42,8 @@ import {
 import * as defaultSync from '../lib/church-institute-sync.js';
 import { lessonUrl } from '../lib/lesson-links.js';
 import { resolveChurch } from '../lib/resolve-church.js';
+import InstituteStudio from './institute/InstituteStudio.jsx';
+import { isInstituteStudioOn, INSTITUTE_STUDIO_FLAG_KEY } from '../lib/institute-studio.js';
 
 const FOCUS = 'focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]';
 const STATUS_WORD = Object.freeze({ applied: 'Applied', accepted: 'Accepted', withdrawn: 'Withdrawn', completed: 'Completed' });
@@ -456,8 +458,11 @@ export default function ChurchInstitute({
   myUserId = null,
   isOffice = false,
   sync = defaultSync,
+  studioDefaultOn = false, // the approved redesign: owner-device preview (lib/institute-studio.js)
+  studentName = null,
 }) {
   const c = resolveChurch(church);
+  const [studio, setStudio] = useState(() => isInstituteStudioOn({ defaultOn: studioDefaultOn }));
   const programs = useMemo(
     () => PROGRAMS.map((p) => ({ ...p, status: programStatus(p), courses: programCourses(p), list: programCourseList(p) })),
     []
@@ -484,6 +489,21 @@ export default function ChurchInstitute({
   const [only, setOnly] = useState('all'); // the Courses tab's program filter
   const goLearn = () => {
     if (setChurchView) setChurchView('learn');
+  };
+  const catalog = useMemo(() => new Map(programs.flatMap((p) => p.list.map(({ course }) => [course.key, course]))), [programs]);
+  const openSection = (id, programKey = null) => {
+    if (programKey) setOnly(programKey);
+    else if (id === 'courses') setOnly('all');
+    setActive(id);
+  };
+  const leaveStudio = () => {
+    try {
+      window.localStorage.setItem(INSTITUTE_STUDIO_FLAG_KEY, '0');
+    } catch {
+      /* no storage: the switch still holds for this visit */
+    }
+    setStudio(false);
+    if (active === 'resources') setActive('about');
   };
 
   useEffect(() => {
@@ -762,6 +782,36 @@ export default function ChurchInstitute({
       ),
     },
   ];
+  if (studio) {
+    sections.push({
+      id: 'resources',
+      label: 'Resources',
+      icon: 'folder',
+      render: () => (
+        <div className="lc-stack" data-testid="institute-resources">
+          <h3 className="lc-h3">Academic Resources</h3>
+          <div className="lc-tiles">
+            <button type="button" onClick={goLearn} className={`lc-tile ${FOCUS}`}>
+              <b>Course materials</b>
+              <small>Every Institute course in Learn: watch, read, listen and study, with print and read-aloud</small>
+            </button>
+            <button type="button" onClick={() => setChurchView && setChurchView('scripture')} className={`lc-tile ${FOCUS}`}>
+              <b>The Bible</b>
+              <small>Read the Word in the church's Bible reader</small>
+            </button>
+            <button type="button" onClick={() => setActive('certificates')} className={`lc-tile ${FOCUS}`}>
+              <b>Verify a certificate</b>
+              <small>Check any Institute certificate by its verify code</small>
+            </button>
+            <button type="button" onClick={() => setActive('enrollment')} className={`lc-tile ${FOCUS}`}>
+              <b>How enrollment works</b>
+              <small>The steps from application to certificate</small>
+            </button>
+          </div>
+        </div>
+      ),
+    });
+  }
   if (isOffice && instanceId) {
     sections.push({
       id: 'office',
@@ -773,6 +823,19 @@ export default function ChurchInstitute({
 
   return (
     <div className="lc-home" data-testid="church-institute">
+      {studio ? (
+        <InstituteStudio
+          programs={programs}
+          catalog={catalog}
+          mine={mine}
+          standing={standing}
+          creds={creds}
+          signedIn={!!myUserId}
+          studentName={studentName}
+          onOpen={openSection}
+          onExplore={goLearn}
+        />
+      ) : (
       <section className="lc-band lc-band-institute" aria-labelledby="inst-h">
         <div className="lc-eyebrow lc-eyebrow-gold">{INSTITUTE_META.of}</div>
         <h2 id="inst-h" className="lc-h1 ts-chrome-region">
@@ -784,7 +847,13 @@ export default function ChurchInstitute({
           <InstituteArt />
         </span>
       </section>
+      )}
       <SectionTabs sections={sections} ariaLabel="Institute sections" idBase="institute" variant="sub" activeId={active} onActiveChange={setActive} />
+      {studio && (
+        <button type="button" onClick={leaveStudio} className={`lc-link self-start ${FOCUS}`} data-testid="institute-studio-leave">
+          Preview · back to the classic Institute
+        </button>
+      )}
     </div>
   );
 }
