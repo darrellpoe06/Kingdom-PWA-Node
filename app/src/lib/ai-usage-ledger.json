@@ -1346,6 +1346,21 @@
       "notes": "Teen read above its 6.0 ceiling on first build; bands shortened by hand. Agency site and podcast refused by the proxy; reported tier held. re-review 2026-12-16."
     },
     {
+      "id": "downloads-switch-off",
+      "date": "2026-11-25",
+      "task": "Downloads were PoeTech+ or the pass; one switch now keeps every download door closed by default, with a copy request to the administration",
+      "drs": [
+        "DR-1655"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.4,
+      "estimateWithoutAiHours": 4,
+      "notes": "81 of 81 across the download suites; the paid rule stays tested with the switch on."
+    },
+    {
       "id": "dr-1384-read-by-any-road",
       "date": "2026-11-10",
       "task": "A passed exam, Done, or every part seen finishes the reading with its version so the list shows READ; a 4-case gate, proven to catch",

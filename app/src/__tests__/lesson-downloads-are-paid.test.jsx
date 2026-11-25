@@ -46,19 +46,19 @@ const jsonRes = (obj, ok = true, status = 200) => ({ ok, status, json: async () 
 
 describe('the access rule (pure)', () => {
   it('signed out is the account prompt, whatever the tier', () => {
-    expect(downloadAccess({ signedIn: false, userTier: 'business' })).toBe(ACCESS.SIGN_IN);
+    expect(downloadAccess({ open: true, signedIn: false, userTier: 'business' })).toBe(ACCESS.SIGN_IN);
   });
   it('PoeTech+ and every higher tier carry downloads; the free tier does not', () => {
     for (const t of ['poetech-plus', 'family', 'premium', 'business']) expect(tierAllowsDownloads(t)).toBe(true);
     expect(tierAllowsDownloads('foundation')).toBe(false);
     expect(tierAllowsDownloads(undefined)).toBe(false);
-    expect(downloadAccess({ signedIn: true, userTier: 'poetech-plus' })).toBe(ACCESS.ALLOWED);
+    expect(downloadAccess({ open: true, signedIn: true, userTier: 'poetech-plus' })).toBe(ACCESS.ALLOWED);
   });
   it('the free tier: checking while the read is out, then pass = allowed, no pass = purchase, no answer = unknown', () => {
-    expect(downloadAccess({ signedIn: true, userTier: 'foundation', read: null })).toBe(ACCESS.CHECKING);
-    expect(downloadAccess({ signedIn: true, read: { ok: true, productIds: [DOWNLOAD_PASS_ID] } })).toBe(ACCESS.ALLOWED);
-    expect(downloadAccess({ signedIn: true, read: { ok: true, productIds: ['some-book'] } })).toBe(ACCESS.NEEDS_PURCHASE);
-    expect(downloadAccess({ signedIn: true, read: { ok: false, productIds: [] } })).toBe(ACCESS.UNKNOWN);
+    expect(downloadAccess({ open: true, signedIn: true, userTier: 'foundation', read: null })).toBe(ACCESS.CHECKING);
+    expect(downloadAccess({ open: true, signedIn: true, read: { ok: true, productIds: [DOWNLOAD_PASS_ID] } })).toBe(ACCESS.ALLOWED);
+    expect(downloadAccess({ open: true, signedIn: true, read: { ok: true, productIds: ['some-book'] } })).toBe(ACCESS.NEEDS_PURCHASE);
+    expect(downloadAccess({ open: true, signedIn: true, read: { ok: false, productIds: [] } })).toBe(ACCESS.UNKNOWN);
   });
 });
 
@@ -126,7 +126,7 @@ describe('the gate on screen', () => {
     const container = document.createElement('div');
     document.body.appendChild(container);
     const root = createRoot(container);
-    act(() => root.render(createElement(DownloadAccessProvider, props, createElement(DownloadGate, { label: 'Download' }, child))));
+    act(() => root.render(createElement(DownloadAccessProvider, { open: true, ...props }, createElement(DownloadGate, { label: 'Download' }, child))));
     return { container, root };
   };
 
@@ -233,5 +233,45 @@ describe('the gate on screen', () => {
     expect(container.textContent).toContain(DOWNLOAD_CHECK_FAILED);
     expect(container.textContent).not.toContain(DOWNLOAD_IS_PAID);
     act(() => root.unmount());
+  });
+});
+
+// DR-1655: the switch is OFF by default. No one takes a lesson away, at any
+// tier, with or without the pass; the door offers a copy request instead.
+import { DOWNLOADS_OPEN, requestLessonCopy } from '../lib/lesson-download-access.js';
+describe('downloads are switched off by default (DR-1655)', () => {
+  it('the switch ships off, and off means closed for every tier and the pass', () => {
+    expect(DOWNLOADS_OPEN).toBe(false);
+    expect(downloadAccess({ signedIn: true, userTier: 'business' })).toBe(ACCESS.CLOSED);
+    expect(downloadAccess({ signedIn: true, read: { ok: true, productIds: [DOWNLOAD_PASS_ID] } })).toBe(ACCESS.CLOSED);
+    expect(downloadAccess({ signedIn: false })).toBe(ACCESS.CLOSED);
+    expect(downloadAccess({ open: 'yes', signedIn: true, userTier: 'business' })).toBe(ACCESS.CLOSED);
+  });
+  it('the door is closed for PoeTech+ and offers to ask the administration for a copy', () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    act(() =>
+      root.render(
+        createElement(
+          DownloadAccessProvider,
+          { signedIn: true, userTier: 'business' },
+          createElement(DownloadGate, { label: 'Download' }, createElement('button', { 'data-testid': 'the-download' }, 'Download'))
+        )
+      )
+    );
+    expect(container.querySelector('[data-testid="the-download"]')).toBeNull();
+    expect(container.querySelector('[data-testid="downloads-closed-panel"]')).toBeTruthy();
+    expect(container.querySelector('[data-testid="request-copy"]').textContent).toBe('Ask the administration for a copy');
+    act(() => root.unmount());
+    container.remove();
+  });
+  it('a copy request rides the feedback pipe and reports what really happened', async () => {
+    const sent = [];
+    const ok = await requestLessonCopy({ what: 'this lesson', where: 'x', upload: async (item) => (sent.push(item), { uploaded: true }) });
+    expect(ok).toEqual({ ok: true });
+    expect(sent[0].text).toContain('Copy request');
+    expect(await requestLessonCopy({ upload: async () => ({ skipped: 'signed-out' }) })).toEqual({ ok: false, why: 'sign-in' });
+    expect(await requestLessonCopy({ upload: async () => ({ skipped: 'insert-error' }) })).toEqual({ ok: false, why: 'failed' });
   });
 });
