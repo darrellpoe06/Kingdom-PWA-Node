@@ -72,6 +72,20 @@ npx vite-node scripts/learn-presentation/cli.mjs export
 
 The ledger is append-only (`jobs.jsonl`), so a kill mid-run loses nothing already written.
 
+## Permanent storage and publishing (2026-11-25)
+
+- `originals-backup` (free): every paid original in the ledger is copied to the
+  private repo `darrellpoe06/poetech-learn-originals` at
+  `originals/<courseKey>/<lessonId>/<sha256>.<ext>`, listed in `manifest.json`, then
+  checked byte-for-byte on a FRESH clone; `verdict.json` records the result. Nothing
+  is overwritten or deleted. Needs `LEARN_ORIGINALS_TOKEN`; `--fallback-artifact ID`
+  restores missing pictures from a run artifact first (exit 5 = not all verified).
+- The storage gate opens on the NAS verdict OR this verdict (every paid sha verified
+  and in the manifest, under 72h old). The workflow backs up after every part of 50.
+- `publish-covers` (free): new passing covers (own composed image, no needsReview)
+  become a tree the workflow's publish job commits to `claude/learn-covers-<run>`;
+  an existing cover or record with a cover is never replaced.
+
 ## What it checks automatically
 
 - **The app's own validator** (`validateRecords`) runs on every result. It checks:

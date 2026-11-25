@@ -322,7 +322,14 @@
       "to": 23739,
       "dr": "DR-1656",
       "reason": "Four lines in rls-isolation.yml: the downloads-switch leg (its why line, feature, migrations 0237 + 0344, smoke), so the Governor-only wall on set_downloads_open is proven on every db-migrate dispatch. Raised to the measured total, not above it."
+    },
+    {
+      "date": "2026-11-25",
+      "from": 23739,
+      "to": 23762,
+      "dr": "DR-0076",
+      "reason": "learn-presentation-prepare.yml (+23): permanent storage for paid pictures in the private originals repo, which the owner approved 2026-11-25 (the originals token, an actions: read line for the artifact fallback, and each part of 50 backed up and verified on a fresh clone before the next part may buy, all folded into the existing steps), plus a 17-line publish job. The publish job commits ONLY new passing covers to claude/learn-covers-<run>, opens the PR and dispatches CI there, so finished covers reach the app without a hand. Raised to the measured total, not above it."
     }
   ],
-  "totalLines": 23739
+  "totalLines": 23762
 }
