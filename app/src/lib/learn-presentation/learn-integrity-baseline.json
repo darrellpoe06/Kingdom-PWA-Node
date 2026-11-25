@@ -1,5 +1,5 @@
 {
- "measuredAt": "2026-11-24T03:40:13.119Z",
+ "measuredAt": "2026-11-25T23:38:46.468Z",
  "counts": {
   "departments": 13,
   "courses": 51,
@@ -768,13 +768,13 @@
    "department": "Serve the House",
    "position": 8,
    "title": "The house of God — COLG’s sovereign stack",
-   "contentSha": "5b635d050a7c3d283b83ca89e798d800c567b3324980012d5e7779d889f116fe",
+   "contentSha": "44b86944a15e638ed6d7ec25e370ca904170ce3badb889fec9ca592937067bda",
    "versions": {
-    "child": "4c1a690ec6ce4bc2b419068ef5c700ec409e1d25fdcb605682931c35c78cb211",
-    "youth": "f7c92d0ba1c96702d2f29354119fc70503d6ba1db0679eda10c59a07de70b671",
-    "teen": "0c41421f46b8184caf3ae6d905ed1dd8ccec7b16a5980675fd027d76231a0d66",
-    "adult": "8dfa7ae2c980600f7532625e0bfb5120d40bce3c84f89d0d7429ef06f28de244",
-    "senior": "18b630e7e8de84578c4242b00ed54d8e1bcce70951e7d87aedc8b1f39a474c6b"
+    "child": "5846a045986f1797e6161b777fcf9ea7a3346a6f51a994e895883df44682a997",
+    "youth": "151bfda91f11f47cd2d40f421966fb3f876ee5c9d723e4f3d129604baef03c38",
+    "teen": "089103bfe9156dcee19a2179591a2dcac372b078e7b3c0c0c919b7e5059f33de",
+    "adult": "11101c2ab818600e663cd3b9c4cccf1085b0ac26a59fd7b78f8c5c1198bf1055",
+    "senior": "5d7626a5fedc059d2bcad53ac40d06a655a33c8861c020767e9202277edb1a64"
    }
   },
   {
@@ -12426,7 +12426,7 @@
    "department": "Kingdom Life & Stewardship",
    "position": 4,
    "title": "Group economics — the Body pools its strength",
-   "contentSha": "ea48d39a4757245e61abc91ff119c44cffa5b8ef90b4058c55213efcc5c777be",
+   "contentSha": "93453a9cbda15418a1a2b1a8ad9b14aaa30ec7ce2dfc25c55fffeb3b8e44b3f7",
    "versions": {
     "child": "e5c760de57d370f87baf674a774ca879b96d3f02a0be9c810bc2d0e64a0975e7",
     "adult": "60031e9cd023bba1c907296b4b9c26d0e154f89f823d489ec92c8f5b7a2ea32e",
