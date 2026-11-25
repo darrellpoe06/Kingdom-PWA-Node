@@ -32,7 +32,7 @@ import WordBuilder from './WordBuilder.jsx';
 import WhoAmI from './WhoAmI.jsx';
 import GrownUps, { moduleFor } from './GrownUps.jsx';
 import { activityRecord, TRAIL_COURSES, trailProgress } from '../../lib/kids/trail.js';
-import { LIBRARY_AGES, defaultLibraryAge, libraryLessons, libraryCounts } from '../../lib/kids/lesson-library.js';
+import { LIBRARY_AGES, defaultLibraryAge, libraryLessons, libraryCounts, LIBRARY_SORTS } from '../../lib/kids/lesson-library.js';
 
 const LIBRARY_PAGE = 24;
 /** Each age wears one of the zone's own bright tile colors (white words, as on the home tiles). */
@@ -47,8 +47,9 @@ export function LessonLibrary({ door = 'kids', onOpen, onBack, weeklyId = null }
   const [age, setAge] = useState(() => defaultLibraryAge(door));
   const [q, setQ] = useState('');
   const [shown, setShown] = useState(LIBRARY_PAGE);
+  const [sort, setSort] = useState('order'); // chronological by default (DR-1657)
   const counts = useMemo(() => libraryCounts(), []);
-  const rows = useMemo(() => libraryLessons(age, q), [age, q]);
+  const rows = useMemo(() => libraryLessons(age, q, { sort }), [age, q, sort]);
   const pickAge = (k) => {
     setAge(k);
     setShown(LIBRARY_PAGE);
@@ -87,6 +88,25 @@ export function LessonLibrary({ door = 'kids', onOpen, onBack, weeklyId = null }
           placeholder={`Find a ${a.label} lesson: David, prayer, kindness…`}
           data-testid="library-search"
         />
+      </label>
+      <label className="kz-sub" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <span>Order</span>
+        <select
+          value={sort}
+          onChange={(e) => {
+            setSort(e.target.value);
+            setShown(LIBRARY_PAGE);
+          }}
+          className={KZ_FOCUS}
+          style={{ minHeight: 44, borderRadius: 10, padding: '6px 10px', font: 'inherit' }}
+          data-testid="library-sort"
+        >
+          {LIBRARY_SORTS.map((o) => (
+            <option key={o.key} value={o.key}>
+              {o.label}
+            </option>
+          ))}
+        </select>
       </label>
       <p className="kz-sub" role="status" data-testid="library-count">
         {q.trim() ? `${rows.length} ${rows.length === 1 ? 'lesson matches' : 'lessons match'}` : `${rows.length} ${a.label} lessons`}

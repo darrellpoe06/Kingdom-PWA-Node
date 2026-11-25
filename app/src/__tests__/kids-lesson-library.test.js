@@ -30,9 +30,14 @@ describe('every lesson is offered, at the right age', () => {
     expect(libraryLessons('child', '', { living }).map((r) => r.lessonId)).toEqual(['ll1-a']);
     expect(libraryLessons('teen', '', { living }).map((r) => r.lessonId)).toEqual(['ll2-b']);
   });
-  it('Living Lessons read newest first; Little Learners keep teaching order; each row opens at its band', () => {
+  // DR-1657: chronological by default (first lesson first), every order on offer.
+  it('Living Lessons read in order by default; Little Learners keep teaching order; each row opens at its band', () => {
     const kids = libraryLessons('child');
-    expect(kids[0].lessonId).toBe([...LIVING_LESSONS_MODULES].reverse().find((m) => m.levels && m.levels.child).id);
+    expect(kids[0].lessonId).toBe(LIVING_LESSONS_MODULES.find((m) => m.levels && m.levels.child).id);
+    expect(libraryLessons('child', '', { sort: 'newest' })[0].lessonId).toBe([...LIVING_LESSONS_MODULES].reverse().find((m) => m.levels && m.levels.child).id);
+    const az = libraryLessons('child', '', { sort: 'az' }).map((r) => r.title);
+    expect(az.slice(0, 5)).toEqual([...az].slice(0, 5).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base', numeric: true })));
+    expect(libraryLessons('child', '', { sort: 'za' })[0].title).toBe(az[az.length - 1]);
     expect(kids.every((r) => r.courseKey === 'living-lessons' && r.band === 'child')).toBe(true);
     const little = libraryLessons('little');
     expect(little[0].lessonId).toBe(LITTLE_LEARNERS_MODULES[0].id);
