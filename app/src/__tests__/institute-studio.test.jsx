@@ -13,7 +13,15 @@ import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import ChurchInstitute from '../components/ChurchInstitute.jsx';
 import { COLG_DEFAULT_CHURCH } from '../lib/default-church.js';
-import { isInstituteStudioOn, studentStats, continueItems, nextUpCourse, firstName, instituteCourseKeys, INSTITUTE_STUDIO_FLAG_KEY } from '../lib/institute-studio.js';
+import {
+  isInstituteStudioOn,
+  studentStats,
+  continueItems,
+  nextUpCourse,
+  firstName,
+  instituteCourseKeys,
+  INSTITUTE_STUDIO_FLAG_KEY,
+} from '../lib/institute-studio.js';
 import { recordPlace } from '../lib/learn-resume.js';
 import { INSTITUTE_META } from '../lib/church-institute.js';
 
@@ -120,9 +128,15 @@ describe('the studio flag', () => {
   });
 });
 
-describe('the dashboard numbers are the student\'s own rows', () => {
+describe("the dashboard numbers are the student's own rows", () => {
   const mine = [
-    { id: 'a', status: 'accepted', course_keys: ['church-offices', 'handed-forward'], program_key: 'ministry-leadership', program_title: 'Ministry Leadership' },
+    {
+      id: 'a',
+      status: 'accepted',
+      course_keys: ['church-offices', 'handed-forward'],
+      program_key: 'ministry-leadership',
+      program_title: 'Ministry Leadership',
+    },
     { id: 'b', status: 'completed', course_keys: ['little-learners'], program_key: 'christian-education', program_title: 'Christian Education' },
     { id: 'c', status: 'withdrawn', course_keys: ['who-he-is'] },
   ];
@@ -157,7 +171,7 @@ describe('the dashboard numbers are the student\'s own rows', () => {
 });
 
 describe('the studio on the owner device', () => {
-  it('shows BG\'s original photo, his official title and the motto, and the honest empty states', () => {
+  it("shows BG's original photo, his official title and the motto, and the honest empty states", () => {
     mount({ studioDefaultOn: true });
     expect(q('institute-studio')).toBeTruthy();
     const img = q('institute-studio-leader').querySelector('img');
@@ -185,7 +199,14 @@ describe('the studio on the owner device', () => {
   });
   it('every tile opens its existing section; Resources exists only in the studio', () => {
     mount({ studioDefaultOn: true });
-    const want = { courses: 'Courses', enrollment: 'Enrollment', certificates: 'Certificates', students: 'Students', announcements: 'Announcements', resources: 'Resources' };
+    const want = {
+      courses: 'Courses',
+      enrollment: 'Enrollment',
+      certificates: 'Certificates',
+      students: 'Students',
+      announcements: 'Announcements',
+      resources: 'Resources',
+    };
     for (const [id, label] of Object.entries(want)) {
       click(q(`institute-studio-tile-${id}`));
       expect(activeTab().textContent.trim()).toBe(label);
@@ -194,7 +215,16 @@ describe('the studio on the owner device', () => {
   });
   it('a signed-in student sees their own counts, progress and Next Up from the seam', async () => {
     const sync = fakeSync();
-    sync.state.mine = [{ id: E, program_key: 'ministry-leadership', program_title: 'Ministry Leadership', course_keys: ['church-offices', 'handed-forward'], status: 'accepted', user_id: U }];
+    sync.state.mine = [
+      {
+        id: E,
+        program_key: 'ministry-leadership',
+        program_title: 'Ministry Leadership',
+        course_keys: ['church-offices', 'handed-forward'],
+        status: 'accepted',
+        user_id: U,
+      },
+    ];
     sync.state.creds = [];
     mount({ studioDefaultOn: true, instanceId: I, myUserId: U, studentName: 'Christina', sync });
     await flush();
@@ -205,7 +235,7 @@ describe('the studio on the owner device', () => {
     expect(q('institute-studio-progress').querySelector('[role="progressbar"]').getAttribute('aria-valuenow')).toBe('50');
     expect(q('institute-studio-next').textContent).toContain('Required for Ministry Leadership');
   });
-  it('Continue Learning reads the device\'s saved place in an Institute course', () => {
+  it("Continue Learning reads the device's saved place in an Institute course", () => {
     recordPlace({ courseKey: 'living-lessons', lessonId: 'll1-the-perfect-yahweh-expects', stage: 1, step: 1 });
     mount({ studioDefaultOn: true });
     expect(q('institute-studio-continue-empty')).toBeNull();

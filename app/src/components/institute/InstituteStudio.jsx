@@ -33,7 +33,11 @@ import { LITTLE_LEARNERS_MODULES } from '../../lib/little-learners-class.js';
 const LESSON_TITLES = new Map([...(LIVING_LESSONS_MODULES || []), ...(LITTLE_LEARNERS_MODULES || [])].filter((m) => m && m.id).map((m) => [m.id, m.title]));
 export function lessonTitle(lessonId) {
   if (LESSON_TITLES.get(lessonId)) return LESSON_TITLES.get(lessonId);
-  const words = String(lessonId || '').replace(/^[a-z]+\d+-/, '').split('-').filter(Boolean).join(' ');
+  const words = String(lessonId || '')
+    .replace(/^[a-z]+\d+-/, '')
+    .split('-')
+    .filter(Boolean)
+    .join(' ');
   return words ? words.charAt(0).toUpperCase() + words.slice(1) : String(lessonId || '');
 }
 
@@ -205,7 +209,10 @@ export default function InstituteStudio({
       <section aria-labelledby="is-cont-h">
         <div className="is-head">
           <h3 id="is-cont-h" className="is-h">
-            <span className="is-play" aria-hidden="true">▶</span> Continue Learning
+            <span className="is-play" aria-hidden="true">
+              ▶
+            </span>{' '}
+            Continue Learning
           </h3>
           <button type="button" className={`is-more ${FOCUS}`} onClick={onExplore}>
             View my courses <span aria-hidden="true">→</span>
@@ -240,7 +247,11 @@ export default function InstituteStudio({
             ))
           )}
           {nextCourse && (
-            <a className={`is-card is-lesson is-next ${FOCUS}`} href={lessonUrl({ courseKey: next.courseKey, course: nextCourse })} data-testid="institute-studio-next">
+            <a
+              className={`is-card is-lesson is-next ${FOCUS}`}
+              href={lessonUrl({ courseKey: next.courseKey, course: nextCourse })}
+              data-testid="institute-studio-next"
+            >
               {art(next.programKey) && <img src={art(next.programKey)} alt="" loading="lazy" className="is-lesson-img" />}
               <span className="is-lesson-b">
                 <em>Next Up for You</em>
@@ -264,7 +275,13 @@ export default function InstituteStudio({
         </div>
         <div className="is-progs">
           {programs.map((p) => (
-            <button key={p.key} type="button" className={`is-pcard ${FOCUS}`} onClick={() => onOpen('courses', p.key)} data-testid={`institute-studio-program-${p.key}`}>
+            <button
+              key={p.key}
+              type="button"
+              className={`is-pcard ${FOCUS}`}
+              onClick={() => onOpen('courses', p.key)}
+              data-testid={`institute-studio-program-${p.key}`}
+            >
               <span className="is-pimg">
                 {art(p.key) && <img src={art(p.key)} alt={PROGRAM_ART[p.key].alt} loading="lazy" />}
                 <b>{p.title}</b>
