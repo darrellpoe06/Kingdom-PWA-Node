@@ -29,8 +29,13 @@ vi.mock('../lib/supabase.js', () => ({
 import { subscribeSermons } from '../lib/choir-sync.js';
 import { READ_TIMEOUT_MS } from '../lib/bounded-read.js';
 
-beforeEach(() => { vi.useFakeTimers(); queryFactory = makeHangingQuery; });
-afterEach(() => { vi.useRealTimers(); });
+beforeEach(() => {
+  vi.useFakeTimers();
+  queryFactory = makeHangingQuery;
+});
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 describe('subscribeSermons: a stranded read fails fast to Retry instead of hanging forever', () => {
   it('calls onError (never onChange) once READ_TIMEOUT_MS elapses on a request that never settles', async () => {
