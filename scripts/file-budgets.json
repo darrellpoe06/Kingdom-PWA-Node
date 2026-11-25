@@ -483,13 +483,20 @@
       "to": 6014,
       "date": "2026-11-24",
       "why": "One line: a dedicated learnStudioDefaultOn prop. The owner's wife opened the app on her phone (a native shell with no address bar, so ?learnStudio=1 can never reach it) and still saw classic Learn. The first fix defaulted the preview on for isGovernor, but that gate covers every class facilitator, not just the owner, and broke church-learn-play-and-courses.test.jsx's Governor-mode Play-button test (the preview has no Play/facilitator panel at all). learnStudioDefaultOn is computed by the shell from the existing FAMILY_EMAIL_PROFILES persona (darrell/christina only), never isGovernor. Raised to the measured size, not above it."
+    },
+    {
+      "file": "app/src/components/ChurchLearn.jsx",
+      "from": 6014,
+      "to": 6022,
+      "date": "2026-11-25",
+      "why": "Darrell: \"our share links do/should go to each lesson... the new look needs to do that also... currently it doesn't... fix it too.\" A shared lesson link (?course=...&lesson=...) was parsed into deepLink and applied to resumeLessonId, but that only drives the CLASSIC render branch -- the owner device returns the LearnStudioPreview branch first and never reaches it, so a shared link silently landed on the Learn Studio home screen instead of the lesson. Threads deepLink.lessonId through as a new initialLessonId prop on LearnStudioPreview, which forwards it to LearnStudio's existing initialLesson prop. Raised to the measured size, not above it."
     }
   ],
   "budgets": {
     "app/src/lib/living-lessons-class.js": 33072,
     "app/src/lib/sovereign-ai-class.js": 16677,
     "app/src/lib/world-issues-class.js": 6789,
-    "app/src/components/ChurchLearn.jsx": 6014,
+    "app/src/components/ChurchLearn.jsx": 6022,
     "app/src/modules/properties/DoorTabs.jsx": 3352,
     "app/src/components/Rentals.jsx": 3220,
     "app/src/modules/properties/PropertiesApp.jsx": 2695,

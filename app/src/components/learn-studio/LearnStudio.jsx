@@ -10,8 +10,9 @@
 // directly under the new display title — visible text, never a tooltip.
 // =============================================================================
 import React, { useMemo, useState, useEffect } from 'react';
-import { studioHome, searchPresented, presentLesson, SHELVES, shelfForDepartment, interimHeadline } from '../../lib/learn-presentation/presentation.js';
+import { studioHome, searchPresented, presentLesson, SHELVES, shelfForDepartment, interimHeadline, findPresentedLesson } from '../../lib/learn-presentation/presentation.js';
 import { READING_VERSIONS } from '../../lib/learn-organize.js';
+import { lessonUrl } from '../../lib/lesson-links.js';
 
 const versionLabel = (id) => (READING_VERSIONS.find((b) => b.id === id) || { label: id }).label;
 // A keyboard user must SEE where they are (ui-standards focus-ring). Gold, never red (red is reserved, DR-0099).
@@ -121,7 +122,7 @@ function Card({ x, onOpen }) {
   );
 }
 
-function Row({ icon = 'play', title, note, items, onOpen, onSeeAll }) {
+function Row({ icon = 'play', title, note, items, onOpen, onSeeAll, grid = false }) {
   if (!items || !items.length) return null;
   return (
     <section className="ls-row">
@@ -137,7 +138,7 @@ function Row({ icon = 'play', title, note, items, onOpen, onSeeAll }) {
           </button>
         )}
       </header>
-      <div className="ls-scroller">
+      <div className={grid ? 'ls-grid ts-grid-collapse' : 'ls-scroller'}>
         {items.map((x) => (
           <Card key={`${x.p.courseKey}::${x.p.lessonId}`} x={x} onOpen={onOpen} />
         ))}
@@ -214,8 +215,16 @@ function TopicGrid({ topics, covers, onPick }) {
 export function LessonCover({ x, next, onBack, onRead, onListen, onVersion, onOpen }) {
   const { p } = x;
   const [shared, setShared] = useState(false);
+  // Darrell, 2026-11-25: "our share links do/should go to each lesson... the
+  // new look needs to do that also... currently it doesn't." This used to
+  // share window.location.href -- the generic Learn page, no course/lesson at
+  // all, since Learn Studio never pushes a URL as it navigates. lessonUrl() is
+  // the SAME real deep-link builder the classic reader's own Share uses
+  // (?course=...&lesson=...), so a link shared from here opens exactly this
+  // lesson for anyone, and (via ChurchLearn's deepLink -> initialLessonId)
+  // lands back in this same new look for the owner's device.
   const share = async () => {
-    const url = typeof window !== 'undefined' ? window.location.href : '';
+    const url = lessonUrl({ courseKey: p.courseKey, lessonId: p.lessonId, course: x.course });
     try {
       if (navigator.share) await navigator.share({ title: p.displayTitle, url });
       else await navigator.clipboard.writeText(url);
@@ -314,21 +323,52 @@ export default function LearnStudio({
   onVersion,
   onExit,
   initialLesson = null,
+  initialCourse = null,
 }) {
   const home = useMemo(() => studioHome(courses, index, { places, progress, preview }), [courses, index, places, progress, preview]);
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(null);
   const [shelf, setShelf] = useState(null);
+  // A COURSE PAGE IN THE NEW LOOK (Darrell, 2026-11-25, on a course link like
+  // ?course=healthy-living: "Fix it"). Every lesson in the course, as a grid --
+  // a lesson without its own picture wears its department's approved art (the
+  // existing Art fallback), so nothing new is generated and nothing is hidden.
+  const [courseKey, setCourseKey] = useState(null);
+  const courseOpened = React.useRef(false);
+  // With a lesson in the link too, the lesson's cover shows first and Back
+  // lands on its course; a stale lesson id still lands on the course.
+  useEffect(() => {
+    if (!initialCourse || courseOpened.current) return;
+    courseOpened.current = true;
+    setCourseKey(initialCourse);
+  }, [initialCourse]);
+  const pickedCourse = useMemo(() => {
+    if (!courseKey) return null;
+    const c = (courses || []).find((k) => (k.key || (k.meta && k.meta.key)) === courseKey);
+    if (!c) return null;
+    const items = (c.schedule || [])
+      .filter((l) => l && l.id)
+      .map((l) => ({ lesson: l, course: c, p: presentLesson(l, c, index, { preview }) }))
+      .filter((x) => x.p);
+    return { title: (c.meta && c.meta.title) || courseKey, items };
+  }, [courseKey, courses, index, preview]);
   const all = useMemo(() => [...home.discover, ...home.featuredAll, ...home.shelves.flatMap((s) => s.items)], [home]);
   const opened = React.useRef(null);
   useEffect(() => {
     if (!initialLesson || opened.current === initialLesson) return;
-    const hit = all.find((x) => x.p.lessonId === initialLesson);
+    // A DEEP LINK MUST OPEN ANY PRESENTED LESSON, NOT ONLY A HOME-CURATED ONE
+    // (Darrell, 2026-11-25: "our share links do/should go to each lesson...
+    // the new look needs to do that also"). `all` is only the home screen's
+    // picks (discover/featured/shelves) -- a real lesson absent from every
+    // pick (reachable today only via search) silently failed to open. Fall
+    // back to the full catalog, the same lookup search already uses.
+    const inHome = all.find((x) => x.p.lessonId === initialLesson);
+    const hit = inHome || findPresentedLesson(courses, index, initialLesson, { preview });
     if (hit) {
       opened.current = initialLesson; // open once; Back to Learn must stay back
       setOpen(hit);
     }
-  }, [initialLesson, all]);
+  }, [initialLesson, all, courses, index, preview]);
   const results = useMemo(() => (query.trim() ? searchPresented(courses, index, query, { preview }) : []), [courses, index, query, preview]);
   const read = (x, mode) => onRead && onRead(x.lesson, x.course, mode);
   const listen = (x) => onListen && onListen(x.lesson, x.course);
@@ -395,12 +435,19 @@ export default function LearnStudio({
               No lesson matches “{query.trim()}”. Search reads new titles, original titles, courses and lesson numbers; try a word from the original title.
             </p>
           )
+        ) : pickedCourse ? (
+          <>
+            <button type="button" className={`ls-back ${RING}`} onClick={() => setCourseKey(null)}>
+              ‹ Back to Learn
+            </button>
+            <Row title={pickedCourse.title} note={`${pickedCourse.items.length} lessons`} items={pickedCourse.items} onOpen={openLesson} grid />
+          </>
         ) : pickedShelf ? (
           <>
             <button type="button" className={`ls-back ${RING}`} onClick={() => setShelf(null)}>
               ‹ Back to Learn
             </button>
-            <Row title={pickedShelf.label} items={pickedShelf.items} onOpen={openLesson} />
+            <Row title={pickedShelf.label} items={pickedShelf.items} onOpen={openLesson} grid />
           </>
         ) : (
           <>

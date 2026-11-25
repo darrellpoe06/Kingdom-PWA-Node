@@ -175,6 +175,21 @@ export function allLessons(courses) {
   return out;
 }
 
+/**
+ * Find and present ONE lesson anywhere in the full catalog, by id -- not only
+ * among a home screen's curated picks (discover/featured/shelves), which a
+ * link or an "open lesson X" request must not be limited to. Returns the same
+ * { lesson, course, p } shape studioHome's lists use, or null.
+ */
+export function findPresentedLesson(courses, index, lessonId, { preview = false } = {}) {
+  if (!lessonId) return null;
+  const hit = allLessons(courses).find((x) => x.lesson.id === lessonId);
+  if (!hit) return null;
+  const p = presentLesson(hit.lesson, hit.course, index, { preview });
+  if (!p) return null;
+  return { ...hit, p };
+}
+
 // Discovery shelves group DEPARTMENTS; they never reorganize courses (spec §7).
 // A department not listed here still appears in Explore by Topic.
 export const SHELVES = Object.freeze([
