@@ -1,7 +1,7 @@
 // =============================================================================
 // learn-presentation CLI — run from app/:
 //   npx vite-node scripts/learn-presentation/cli.mjs <command> [flags]
-// Commands: estimate | text | images | status | export | retry-failed
+// Commands: estimate | text | images | status | export | retry-failed | part-recover
 // See README.md beside this file. Nothing here writes to a lesson.
 // =============================================================================
 import { verifyRecovery } from './lib/recovery.mjs';
@@ -30,6 +30,7 @@ import { imageProvider, bflImage } from './providers/image.mjs';
 import { loadArt, validateArt, resolveArtScope, runArtV2 } from './lib/art-v2.mjs';
 import { loadAdjustments, applyAdjustments } from './lib/adjust.mjs';
 import { storageGate, paidPictureShas } from './lib/storage-gate.mjs';
+import { savePart, recoverPart } from './lib/part.mjs';
 
 const SEED = resolve('src/lib/learn-presentation/presentation-seed.json');
 const ART = resolve('scripts/learn-presentation/art-direction-v2.json');
@@ -120,6 +121,16 @@ async function main() {
   const batchId = String(flags.batch || 'library-v1');
   const log = (m) => process.stdout.write(`${m}\n`);
 
+  if (cmd === 'part-recover') {
+    // A lost runner's newest part save (lib/part.mjs): merged only when it is newer than the full ledger.
+    const r = recoverPart(resolve(stateDir, '..'), flags['ledger-key'] === true ? '' : flags['ledger-key']);
+    log(
+      r.recovered
+        ? `part-recover: run ${r.partRun} was lost after a part save; its ledger and pictures are restored over run ${r.ledgerRun}'s`
+        : `part-recover: nothing to merge (part ${r.partRun || 'none'}, ledger ${r.ledgerRun || 'none'})`
+    );
+    return;
+  }
   const inventory = learnInventory();
   const all = buildItems(inventory);
 
@@ -219,7 +230,20 @@ async function main() {
   // The combined ceiling: this stage may spend the smaller of its own cap and
   // what is left of TOTAL_CAP_CENTS after everything the ledger has recorded.
   const already = ledger.spentCents();
-  const budget = new Budget(remainingCents(flags['budget-cents'] !== undefined ? int(flags['budget-cents']) : null, already));
+  let stageCap = flags['budget-cents'] !== undefined ? int(flags['budget-cents']) : null;
+  // --run-mark FILE: the run's cap is shared by every part of it. The first part
+  // writes what the ledger held before it; each later part may spend only what is left.
+  if (flags['run-mark'] && flags['run-mark'] !== true) {
+    const mark = resolve(String(flags['run-mark']));
+    let start = already;
+    try {
+      start = Number(readFileSync(mark, 'utf8').trim());
+    } catch {
+      writeFileSync(mark, `${already}\n`);
+    }
+    if (stageCap != null) stageCap = Math.max(0, stageCap - Math.max(0, already - start));
+  }
+  const budget = new Budget(remainingCents(stageCap, already));
   if (spending && cmd !== 'compose')
     log(`spend so far ${dollars(already)} of ${dollars(TOTAL_CAP_CENTS)} combined · this stage may spend up to ${dollars(budget.cap)}`);
   const retryFailed = cmd === 'retry-failed';
@@ -254,6 +278,17 @@ async function main() {
     let probe = null;
     const stored = checkStorage(provider, stateDir, log);
     if (!stored) runItems = [];
+    // --max-new N: buy at most N pictures in this part, so the ledger can be saved between parts.
+    if (flags['max-new'] && flags['max-new'] !== true) {
+      runItems = runItems
+        .filter((it) => {
+          const r = ledger.getRecord(it.courseKey, it.lessonId);
+          const d = ledger.decide({ courseKey: it.courseKey, lessonId: it.lessonId, kind: 'image', contentSha: it.contentSha, retryFailed });
+          return r && r.status === 'review' && r.contentSha === it.contentSha && d.run;
+        })
+        .slice(0, int(flags['max-new']));
+      log(`this part buys at most ${runItems.length} picture(s)`);
+    }
     if (stored && provider.name === 'bfl') {
       const { bflCredits } = await import('./providers/image.mjs');
       const readBalance = () =>
@@ -320,6 +355,7 @@ async function main() {
       log,
     });
     outboxNew(beforeImg, ledger, outDir, log);
+    if (flags['save-part']) log(`part saved: ${savePart(resolve(stateDir, '..'), process.env.GITHUB_RUN_ID)} (the workflow caches it now)`);
     if (probe) for (const k of ['done', 'needsReview', 'failed']) t[k] += probe[k] || 0;
     if (probe && probe.outOfCredit) t.outOfCredit = true;
     log(

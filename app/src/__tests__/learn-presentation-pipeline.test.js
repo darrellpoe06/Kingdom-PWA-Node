@@ -17,7 +17,8 @@ import { estimate } from '../../scripts/learn-presentation/lib/prices.mjs';
 import { anthropicText } from '../../scripts/learn-presentation/providers/text.mjs';
 import { bflImage } from '../../scripts/learn-presentation/providers/image.mjs';
 import { verifyRecovery } from '../../scripts/learn-presentation/lib/recovery.mjs';
-import { writeFileSync, rmSync } from 'node:fs';
+import { writeFileSync, rmSync, cpSync, mkdirSync } from 'node:fs';
+import { savePart, recoverPart } from '../../scripts/learn-presentation/lib/part.mjs';
 
 const deepFreeze = (o) => {
   if (o && typeof o === 'object' && !Object.isFrozen(o)) {
@@ -822,5 +823,208 @@ describe('the provider says no: unbilled, and an empty account stops the run', (
     });
     expect(t.done).toBe(1);
     expect(l.spentCents()).toBe(12); // the billed failure + the success, not the refused 429
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Never pay for one picture twice (audit 2026-11-25): (a) a run killed after BFL
+// finished but before the ledger said so, (b) a lost runner whose end-of-run
+// ledger save never ran, (c) a poll timeout that led to a fresh submit. Each
+// test below fails on the code before the fix.
+// ---------------------------------------------------------------------------
+describe('a picture BFL already accepted is never bought again', () => {
+  const goodRecord = (l, it) =>
+    l.putRecord({
+      courseKey: it.courseKey,
+      lessonId: it.lessonId,
+      status: 'review',
+      contentSha: it.contentSha,
+      visual: { prompt: 'A bright daylight photograph of a smiling Black family.', alt: 'a' },
+      image: null,
+    });
+  // A BFL that counts submits; poll(url, n, signal) answers each poll.
+  const fakeBfl = (poll) => {
+    const seen = { submits: 0, polls: [] };
+    const fetchImpl = async (url, opts = {}) => {
+      if (url.endsWith('/flux-pro-1.1-ultra')) {
+        seen.submits += 1;
+        return { ok: true, status: 200, json: async () => ({ id: `job${seen.submits}`, polling_url: `https://poll/job${seen.submits}` }) };
+      }
+      if (url.startsWith('https://poll/')) {
+        seen.polls.push(url);
+        return poll(url, seen.polls.length, opts.signal);
+      }
+      return { ok: true, status: 200, headers: { get: () => 'image/jpeg' }, arrayBuffer: async () => new Uint8Array([7, 7, 7]).buffer };
+    };
+    return { seen, fetchImpl };
+  };
+  const ready = { ok: true, status: 200, json: async () => ({ status: 'Ready', result: { sample: 'https://cdn/x.jpg' } }) };
+  const pending = { ok: true, status: 200, json: async () => ({ status: 'Pending' }) };
+  const keyOf = (it) => `b|${it.courseKey}|${it.lessonId}|image|${it.contentSha}`;
+
+  it('the spend and the BFL job id are on the ledger the moment BFL accepts the submit', async () => {
+    const l = ledger();
+    const [a] = items;
+    goodRecord(l, a);
+    let atFirstPoll = null;
+    const { seen, fetchImpl } = fakeBfl(() => {
+      if (!atFirstPoll) atFirstPoll = { spent: l.spentCents(), job: l.jobs.get(keyOf(a)) };
+      return ready;
+    });
+    const t = await runImages({
+      items: [a],
+      ledger: l,
+      provider: bflImage({ apiKey: 'k', fetchImpl, sleep: noSleep }),
+      outDir: join(dir, 'img'),
+      batchId: 'b',
+      sleep: noSleep,
+    });
+    expect(t.done).toBe(1);
+    expect(seen.submits).toBe(1);
+    expect(atFirstPoll.spent).toBe(6);
+    expect(atFirstPoll.job.submitted).toMatchObject({ id: 'job1', pollingUrl: 'https://poll/job1' });
+    expect(l.spentCents()).toBe(6);
+  });
+
+  it('(a) a run killed after BFL returned the picture is replayed by polling the same job, not by buying it again', async () => {
+    const l = ledger();
+    const [a] = items;
+    goodRecord(l, a);
+    const killed = join(dir, 'killed');
+    // Run 1: BFL finishes; the runner dies before the ledger records success.
+    const run1 = fakeBfl(() => {
+      rmSync(killed, { recursive: true, force: true });
+      cpSync(join(dir, 'state'), killed, { recursive: true });
+      return ready;
+    });
+    await runImages({
+      items: [a],
+      ledger: l,
+      provider: bflImage({ apiKey: 'k', fetchImpl: run1.fetchImpl, sleep: noSleep }),
+      outDir: join(dir, 'img'),
+      batchId: 'b',
+      sleep: noSleep,
+    });
+    // Run 2 opens the ledger as the kill left it, after the 10-minute lease.
+    const l2 = new Ledger(killed, { clock: () => Date.now() + 11 * 60 * 1000 });
+    const run2 = fakeBfl(() => ready);
+    const t = await runImages({
+      items: [a],
+      ledger: l2,
+      provider: bflImage({ apiKey: 'k', fetchImpl: run2.fetchImpl, sleep: noSleep }),
+      outDir: join(dir, 'img2'),
+      batchId: 'b',
+      sleep: noSleep,
+    });
+    expect(t.done).toBe(1);
+    expect(run2.seen.submits).toBe(0);
+    expect(run2.seen.polls).toEqual(['https://poll/job1']);
+    expect(l2.spentCents()).toBe(6);
+  });
+
+  it('(c) a poll that times out resumes the same BFL job id on the retry, with no second submit', async () => {
+    const l = ledger();
+    const [a] = items;
+    goodRecord(l, a);
+    const { seen, fetchImpl } = fakeBfl((url, n, signal) =>
+      n === 1 ? new Promise((_, reject) => signal.addEventListener('abort', () => reject(new Error('aborted')))) : ready
+    );
+    const t = await runImages({
+      items: [a],
+      ledger: l,
+      provider: bflImage({ apiKey: 'k', fetchImpl, sleep: noSleep }),
+      outDir: join(dir, 'img'),
+      batchId: 'b',
+      timeoutMs: 30,
+      sleep: noSleep,
+    });
+    expect(t.done).toBe(1);
+    expect(seen.submits).toBe(1);
+    expect(seen.polls).toEqual(['https://poll/job1', 'https://poll/job1']);
+    expect(l.spentCents()).toBe(6);
+  });
+
+  it('(c) the poll limit is a retry of the same job too, and a later run resumes it', async () => {
+    const l = ledger();
+    const [a] = items;
+    goodRecord(l, a);
+    const { seen, fetchImpl } = fakeBfl(() => pending);
+    const t = await runImages({
+      items: [a],
+      ledger: l,
+      provider: bflImage({ apiKey: 'k', fetchImpl, sleep: noSleep, maxPolls: 2 }),
+      outDir: join(dir, 'img'),
+      batchId: 'b',
+      sleep: noSleep,
+    });
+    expect(t.failed).toBe(1);
+    expect(seen.submits).toBe(1);
+    expect(new Set(seen.polls)).toEqual(new Set(['https://poll/job1']));
+    expect(l.spentCents()).toBe(6);
+    const next = fakeBfl(() => ready);
+    const t2 = await runImages({
+      items: [a],
+      ledger: l,
+      provider: bflImage({ apiKey: 'k', fetchImpl: next.fetchImpl, sleep: noSleep }),
+      outDir: join(dir, 'img'),
+      batchId: 'b',
+      sleep: noSleep,
+    });
+    expect(t2.done).toBe(1);
+    expect(next.seen.submits).toBe(0);
+    expect(l.spentCents()).toBe(6);
+  });
+
+  it('only an EXPIRED job is bought anew, and the earlier charge still counts', async () => {
+    const l = ledger();
+    const [a] = items;
+    goodRecord(l, a);
+    l.write({
+      batchId: 'b',
+      courseKey: a.courseKey,
+      lessonId: a.lessonId,
+      kind: 'image',
+      contentSha: a.contentSha,
+      idempotencyKey: keyOf(a),
+      state: 'failed',
+      attempts: 1,
+      costCents: 6,
+      submitted: { id: 'old', pollingUrl: 'https://poll/old' },
+    });
+    const { seen, fetchImpl } = fakeBfl((url) => (url === 'https://poll/old' ? { ok: false, status: 404, text: async () => 'Task not found' } : ready));
+    const t = await runImages({
+      items: [a],
+      ledger: l,
+      provider: bflImage({ apiKey: 'k', fetchImpl, sleep: noSleep }),
+      outDir: join(dir, 'img'),
+      batchId: 'b',
+      sleep: noSleep,
+    });
+    expect(t.done).toBe(1);
+    expect(seen.polls[0]).toBe('https://poll/old');
+    expect(seen.submits).toBe(1);
+    expect(l.spentCents()).toBe(12);
+  });
+
+  it('(b) a lost runner: the newest part save is merged over an older full ledger, never over a newer one', () => {
+    const root = join(dir, 'lp');
+    const put = (p, s) => {
+      mkdirSync(join(root, p, '..'), { recursive: true });
+      writeFileSync(join(root, p), s);
+    };
+    put('state/jobs.jsonl', 'old\n');
+    put('outbox/c/x.jpg', 'X');
+    savePart(root, 200);
+    put('state/jobs.jsonl', 'older-full\n');
+    rmSync(join(root, 'outbox'), { recursive: true });
+    expect(recoverPart(root, 'learn-presentation-ledger-100')).toMatchObject({ recovered: true, partRun: 200, ledgerRun: 100 });
+    expect(readFileSync(join(root, 'state/jobs.jsonl'), 'utf8')).toBe('old\n');
+    expect(readFileSync(join(root, 'images/c/x.jpg'), 'utf8')).toBe('X');
+    expect(readFileSync(join(root, 'outbox/c/x.jpg'), 'utf8')).toBe('X');
+    expect(existsSync(join(root, 'part'))).toBe(false);
+    savePart(root, 200);
+    put('state/jobs.jsonl', 'full-200\n');
+    expect(recoverPart(root, 'learn-presentation-ledger-200').recovered).toBe(false);
+    expect(readFileSync(join(root, 'state/jobs.jsonl'), 'utf8')).toBe('full-200\n');
   });
 });
