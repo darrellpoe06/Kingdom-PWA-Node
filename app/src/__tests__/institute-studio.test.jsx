@@ -253,7 +253,12 @@ describe('the studio on the owner device', () => {
 describe('program courses as photographic cards (Darrell 2026-11-25: "vibrant, not a bunch of links")', () => {
   it('courseCovers takes one image per course; review art only in preview, never a title', () => {
     const records = [
-      { courseKey: 'who-he-is', status: 'review', displayTitle: 'X', image: { src: 'learn-thumbs/a/w1280.webp', srcSet: { webp: 'learn-thumbs/a/w640.webp 640w' } } },
+      {
+        courseKey: 'who-he-is',
+        status: 'review',
+        displayTitle: 'X',
+        image: { src: 'learn-thumbs/a/w1280.webp', srcSet: { webp: 'learn-thumbs/a/w640.webp 640w' } },
+      },
       { courseKey: 'who-he-is', status: 'review', image: { src: 'learn-thumbs/b/w1280.webp' } },
       { courseKey: 'made-in-time', status: 'published', image: { src: 'learn-thumbs/c/w1280.webp' } },
       { courseKey: 'living-lessons', status: 'review' },
