@@ -17,6 +17,7 @@
 //   (presentLesson's stale check). Department art never qualifies a lesson.
 // Everything else keeps its existing reader, untouched.
 // =============================================================================
+import { neighborLessons } from './LessonNav.jsx';
 import React, { useMemo } from 'react';
 import LessonExperience, { LessonExperienceBoundary } from './LessonExperience.jsx';
 import RECORDS from '../../lib/learn-presentation/presentation-records.json';
@@ -90,6 +91,7 @@ export default function LessonExperienceDoor({
 }) {
   const record = useMemo(() => experienceRecord(lesson, course), [lesson, course]);
   const more = useMemo(() => moreExperienceLessons(lesson, course), [lesson, course]);
+  const near = useMemo(() => neighborLessons(lesson, course, record && record.courseKey), [lesson, course, record]);
   if (!record) return null;
   return (
     <LessonExperienceBoundary onExit={onFullPage || onExit}>
@@ -101,6 +103,8 @@ export default function LessonExperienceDoor({
         initialMode={initialMode}
         initialLevel={initialLevel}
         moreLessons={more}
+        prevLesson={near.prev}
+        nextLesson={near.next}
         onOpenOther={(courseKey, lessonId) => onOpen && onOpen(courseKey, lessonId)}
         onFullPage={onFullPage}
         lessonTools={lessonTools}

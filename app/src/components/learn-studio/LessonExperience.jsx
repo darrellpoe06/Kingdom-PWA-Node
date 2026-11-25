@@ -24,6 +24,7 @@ import { createBrowserTTS, segmentText, RATE_STEPS } from '../../lib/tts.js';
 import { motionBehavior } from '../../lib/gentle-motion.js';
 import { buildFollowMap, alignSegmentSpans, rangeFor, highlightSegment, clearReadingHighlights } from '../../lib/read-follow.js';
 import LessonStories from '../LessonStories.jsx';
+import LessonNav from './LessonNav.jsx';
 import { sentenceKeyOf } from '../../lib/learn-resume.js';
 import { storiesTextFor, HIGHLIGHT_KEY, HIGHLIGHT_PENS, nextPen, readHighlights, saveHighlights } from './lesson-reading.js';
 
@@ -393,6 +394,8 @@ export default function LessonExperience({
   initialLevel = 'adult',
   moreLessons = [],
   onOpenOther = null,
+  prevLesson = null,
+  nextLesson = null,
   onFullPage = null,
   createNarrator = createBrowserTTS,
   lessonTools = null,
@@ -933,6 +936,7 @@ export default function LessonExperience({
                     <StudyMode lesson={lesson} record={record} number={number} verses={verses} />
                   </>
                 )}
+                <LessonNav prev={prevLesson} next={nextLesson} onOpen={onOpenOther} />
               </>
             )}
           </div>

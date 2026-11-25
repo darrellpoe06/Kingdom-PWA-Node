@@ -10,6 +10,7 @@
 // and re-crash), instead of taking the whole app's React tree down with it.
 // Darrell's wife, 2026-11-24, with every button in the app frozen: this
 // boundary is the fix for THAT CLASS of failure, whatever the exact cause.
+import { neighborLessons } from './LessonNav.jsx';
 import React, { useMemo, useState } from 'react';
 import LearnStudio from './LearnStudio.jsx';
 import { presentationIndex, isLearnStudioOn, STUDIO_FLAG_KEY, allLessons } from '../../lib/learn-presentation/presentation.js';
@@ -118,6 +119,8 @@ export default function LearnStudioPreview({ courses, onOpenLesson, onExit, owne
           initialMode={experienceMode}
           initialLevel={experienceLevel}
           moreLessons={moreLessons}
+          prevLesson={neighborLessons(active.lesson, active.course, activeCourseKey).prev}
+          nextLesson={neighborLessons(active.lesson, active.course, activeCourseKey).next}
           onOpenOther={openOther}
           onFullPage={() => {
             setActive(null);
