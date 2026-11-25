@@ -347,14 +347,18 @@ describe('four-mode reference layout -- real data only', () => {
     expect(container.querySelector('.le-time').textContent).toMatch(/^~\d+:\d\d \/ ~\d+:\d\d$/);
   });
 
-  it('Read is one continuous scroll of every paragraph (no pager) and the Key Teaching is the real big idea', () => {
+  it('Read is one continuous scroll of every paragraph (no pager) and the big idea is read exactly once', () => {
     render(<LessonExperience lesson={REAL_LESSON} record={null} onExit={vi.fn()} />);
     click(byText('Read')[0]);
     const paras = REAL_LESSON.lesson.split(/\n\n+/).filter(Boolean).length;
     expect(container.querySelectorAll('.le-book-p').length).toBe(paras);
     expect(container.querySelector('.le-bb-count')).toBeNull();
     expect(container.querySelector('button[aria-label="Next paragraph"]')).toBeNull();
-    expect(container.querySelector('.le-keyteach').textContent).toContain(REAL_LESSON.bigIdea);
+    // The Key Teaching box shows the big idea only when the text does not
+    // already say it (ll338's text does), so it is never read twice.
+    const sq = (t) => t.replace(/\s+/g, ' ');
+    const page = sq(container.querySelector('.le-book').textContent);
+    expect(page.split(sq(REAL_LESSON.bigIdea).slice(0, 60)).length - 1).toBe(1);
   });
 
   it('Study is the reference accordion: Reflection open, the real practice text, notes saved on the device', () => {

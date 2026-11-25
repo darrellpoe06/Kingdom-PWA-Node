@@ -917,6 +917,17 @@ function keepInView(rect) {
 // CSS Highlight API -- no DOM change, so not one character of the lesson is
 // altered), its paragraph carries a gold rule, and the page scrolls with the voice.
 function ReadMode({ lesson, record, title, number, paragraphs, level, setLevel, modePills, page: rawPage, setPage, narration: n }) {
+  // The Key Teaching box repeats the big idea; 40 of 337 lessons already carry
+  // it in their own text (measured 2026-11-25), so it shows only when it adds.
+  const bigIdeaInText = useMemo(() => {
+    const sq = (t) =>
+      String(t || '')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .toLowerCase();
+    const b = sq(lesson.bigIdea);
+    return !!b && sq(paragraphs.join(' ')).includes(b.slice(0, Math.min(b.length, 60)));
+  }, [lesson.bigIdea, paragraphs]);
   const [scaleAt, setScaleAt] = useState(() => {
     const v = Number(saved.get(SCALE_KEY, 1));
     const i = SCALES.indexOf(v);
@@ -1078,7 +1089,7 @@ function ReadMode({ lesson, record, title, number, paragraphs, level, setLevel, 
                     renderWithVerses(rest, `p${i}`)
                   )}
                 </p>
-                {i === 0 && lesson.bigIdea && (
+                {i === 0 && lesson.bigIdea && !bigIdeaInText && (
                   <aside className="le-keyteach" data-read-skip="">
                     <span className="le-keyteach-k">KEY TEACHING</span>
                     <p>{lesson.bigIdea}</p>

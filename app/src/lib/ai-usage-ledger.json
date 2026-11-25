@@ -3487,6 +3487,21 @@
       "notes": "Darrell, spoken: some say they are righteous and Yahweh says no"
     },
     {
+      "id": "no-lesson-says-it-twice",
+      "date": "2026-11-25",
+      "task": "The Kids bubble repeated section one (946 of 946) and Key Teaching repeated the text (40 of 337); each now shows only what the reading does not already say",
+      "drs": [
+        "DR-1659"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.4,
+      "estimateWithoutAiHours": 3,
+      "notes": "The new test caught 3 title-is-first-line cases on its first run."
+    },
+    {
       "id": "dr-1465-ll305-search-me-heart",
       "date": "2026-11-13",
       "task": "L305 Search Me, and Know My Heart: the heart searched with Him; his testimony beside the BLS Q3 2026 medians",
