@@ -762,3 +762,30 @@ describe('the new look keeps every classic lesson feature', () => {
     expect(onOpenLesson).toHaveBeenCalledWith('living-lessons', PROTOTYPE_LESSON_ID);
   });
 });
+
+// Darrell 2026-11-25: both views for kids and adults; the Kids Zone promise
+// ("no profile, no chat") travels with a child into the new look.
+import { LessonConversation, YOUNG_LEVELS, kidsZoneHref } from '../components/learn-studio/LessonExperience.jsx';
+describe('kids in the new look; grown-ups into the Kids Zone', () => {
+  const LESSON = { id: 'll1-x', title: 'T', lesson: 'Body.', stories: [{ title: 'A taught story', body: 'Once.', kind: 'parable' }] };
+  it('at Child, Youth and Teen: the taught stories stay, no one else’s posts and no posting', () => {
+    for (const level of YOUNG_LEVELS) {
+      render(React.createElement(LessonConversation, { lesson: LESSON, level }));
+      expect(container.querySelector('[data-young="true"]')).toBeTruthy();
+      expect(container.textContent).toContain('A taught story');
+      expect(container.textContent).not.toContain('Stories & Perspectives');
+      expect(container.querySelector('[data-testid="add-perspective"], [data-testid="add-perspective-open"]')).toBeNull();
+    }
+  });
+  it('at Adult and Senior: Stories & Perspectives with the add-yours entry', () => {
+    for (const level of ['adult', 'senior']) {
+      render(React.createElement(LessonConversation, { lesson: LESSON, level }));
+      expect(container.querySelector('[data-young="true"]')).toBeNull();
+      expect(container.textContent).toContain('Stories & Perspectives');
+      expect(container.querySelector('[data-testid="add-perspective"]')).toBeTruthy();
+    }
+  });
+  it('the Kids Zone link goes to the youth door on this same app', () => {
+    expect(kidsZoneHref({ pathname: '/lovecorner/app/' })).toBe('/lovecorner/app/?view=church&sub=youth');
+  });
+});

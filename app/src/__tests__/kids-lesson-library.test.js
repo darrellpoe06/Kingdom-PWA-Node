@@ -59,3 +59,25 @@ describe('every lesson is offered, at the right age', () => {
     expect(lessonLabel('other')).toBeNull();
   });
 });
+
+// Darrell 2026-11-25: "make sure the lesson is align with the age demographics."
+// Measured: every row of every age opens at THAT age's own authored version.
+import { bandOpening } from '../lib/learn-framework.js';
+import { LITTLE_LEARNERS_MODULES as LITTLE_ALL } from '../lib/little-learners-class.js';
+import { LIVING_LESSONS_MODULES as LIVING_ALL } from '../lib/living-lessons-class.js';
+describe('every lesson opens at its age (DR-1657)', () => {
+  const byId = new Map([...LIVING_ALL, ...LITTLE_ALL].map((m) => [m.id, m]));
+  it('Kids, Youth and Teen each open at their own written version; Little Ones at the little course', () => {
+    for (const a of LIBRARY_AGES) {
+      const off = libraryLessons(a.key)
+        .map((r) => ({ r, o: bandOpening(byId.get(r.lessonId), r.band) }))
+        .filter(({ o }) => !o.own || (a.courseKey === 'living-lessons' && o.levelId !== a.depth))
+        .map(({ r, o }) => `${a.key}:${r.lessonId}:${o.levelId}`);
+      expect(off).toEqual([]);
+    }
+  });
+  it('proven to catch: a Kids row opened at the Teen band reads the Teen words, not the Kids words', () => {
+    const r = libraryLessons('child')[0];
+    expect(bandOpening(byId.get(r.lessonId), 'teen').levelId).not.toBe('child');
+  });
+});
