@@ -315,7 +315,14 @@
       "to": 23735,
       "dr": "DR-1653",
       "reason": "Three lines for the Cloudflare Tunnel road (DR-1653): one ledger read of cf-tunnel's own last-run.json in loops-health.yml, plus its where-the-install-stands diagnosis, so the new loop is witnessed before its services.json entry is allowed (a-service-comes-home); and VITE_SUPABASE_FALLBACK_URL in the deploy build env (with its two-line why), empty until the repo variable SB_TUNNEL_ORIGIN is set. Raised to the measured total, not above it."
+    },
+    {
+      "date": "2026-11-25",
+      "from": 23735,
+      "to": 23739,
+      "dr": "DR-1656",
+      "reason": "Four lines in rls-isolation.yml: the downloads-switch leg (its why line, feature, migrations 0237 + 0344, smoke), so the Governor-only wall on set_downloads_open is proven on every db-migrate dispatch. Raised to the measured total, not above it."
     }
   ],
-  "totalLines": 23735
+  "totalLines": 23739
 }

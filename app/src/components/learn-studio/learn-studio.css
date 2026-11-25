@@ -115,7 +115,10 @@
   color: #111 !important;
 }
 .ls-btn--ghost {
-  background: rgba(255, 255, 255, 0.22);
+  /* Dark glass, not white glass: white text on white-tinted glass failed over
+     bright photos (2.5:1 measured 2026-11-25). */
+  background: rgba(0, 0, 0, 0.55);
+  border-color: rgba(255, 255, 255, 0.7);
   backdrop-filter: blur(6px);
   color: #fff;
 }
@@ -125,7 +128,7 @@
   gap: 10px;
   border: 2px solid #fff;
   padding: 6px 22px 6px 6px;
-  background: rgba(0, 0, 0, 0.28);
+  background: rgba(0, 0, 0, 0.55);
   backdrop-filter: blur(6px);
   color: #fff;
 }
@@ -182,8 +185,13 @@
   line-height: 0.98;
   letter-spacing: -0.01em;
   color: #fff;
+  /* A tight dark edge (the first three) keeps the headline 4.5:1+ over any
+     photo, bright sky included; measured 2026-11-25 at ~2:1 with the soft
+     shadow alone (WCAG 2.1 AA 1.4.3). The look is the same headline. */
   text-shadow:
-    0 2px 0 rgba(0, 0, 0, 0.35),
+    0 0 2px rgba(0, 0, 0, 0.9),
+    0 0 1px rgba(0, 0, 0, 0.95),
+    0 1px 3px rgba(0, 0, 0, 0.85),
     0 4px 14px rgba(0, 0, 0, 0.55);
   pointer-events: none;
 }

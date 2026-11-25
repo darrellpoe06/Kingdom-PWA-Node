@@ -20,9 +20,23 @@ import { buildCatalogCourseDescriptors } from '../lib/learn-catalog.js';
 import { createClipCache, memoryBackend, _setDeviceClipCacheForTests, CAP_KEY } from '../lib/clip-cache.js';
 import { getReadTarget } from '../lib/read-target.js';
 import {
-  lessonVersions, bandsForChoice, planDownload, runDownload, removeDownloads, checkRoom,
-  lessonReading, readingPieces, savedLevels, savedReadingFor, courseContext, memoryWords,
-  _setDeviceWordsForTests, saveChoice, loadChoice, readRegistry, REGISTRY_KEY,
+  lessonVersions,
+  bandsForChoice,
+  planDownload,
+  runDownload,
+  removeDownloads,
+  checkRoom,
+  lessonReading,
+  readingPieces,
+  savedLevels,
+  savedReadingFor,
+  courseContext,
+  memoryWords,
+  _setDeviceWordsForTests,
+  saveChoice,
+  loadChoice,
+  readRegistry,
+  REGISTRY_KEY,
 } from '../lib/lesson-downloads.js';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
@@ -47,7 +61,10 @@ function harness({ capBytes = 1e12 } = {}) {
   const cache = createClipCache({ backend: memoryBackend(), capBytes: () => capBytes });
   const words = memoryWords();
   const fetched = [];
-  const fetchPiece = async (spoken) => { fetched.push(spoken); return { blob: fakeBlob() }; };
+  const fetchPiece = async (spoken) => {
+    fetched.push(spoken);
+    return { blob: fakeBlob() };
+  };
   _setDeviceClipCacheForTests(cache);
   _setDeviceWordsForTests(words);
   return { cache, words, fetched, deps: { cache, words, fetchPiece, offline: () => false } };
@@ -66,7 +83,7 @@ afterEach(() => {
   if (realOnLine) Object.defineProperty(Navigator.prototype, 'onLine', realOnLine);
 });
 
-describe('the reading levels are the lesson\'s own (Adult only / All reading levels)', () => {
+describe("the reading levels are the lesson's own (Adult only / All reading levels)", () => {
   it('names the real bands, the adult first, and counts the same words once', () => {
     expect(LEVELED).toBeTruthy();
     const v = lessonVersions(LEVELED);
@@ -120,19 +137,34 @@ describe('one lesson: saved, then read with no connection', () => {
     const container = document.createElement('div');
     document.body.appendChild(container);
     const root = createRoot(container);
-    act(() => root.render(createElement(ChurchLearn, {
-      extraCourses: COURSES, progress: {}, toggleModule: () => {}, quizState: {}, recordQuiz: () => {},
-      learnLevel: 'auto', setLearnLevel: () => {}, ageBand: 'adult', setAgeBand: () => {},
-    })));
+    act(() =>
+      root.render(
+        createElement(ChurchLearn, {
+          extraCourses: COURSES,
+          progress: {},
+          toggleModule: () => {},
+          quizState: {},
+          recordQuiz: () => {},
+          learnLevel: 'auto',
+          setLearnLevel: () => {},
+          ageBand: 'adult',
+          setAgeBand: () => {},
+        })
+      )
+    );
     const sel = container.querySelector('#learn-course-pick');
     act(() => {
       Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, 'value').set.call(sel, 'living-lessons');
       sel.dispatchEvent(new Event('change', { bubbles: true }));
     });
     const titleBtn = [...container.querySelectorAll('button')].find((b) => (b.textContent || '').includes(LEVELED.title));
-    act(() => { titleBtn.click(); });
+    act(() => {
+      titleBtn.click();
+    });
     const start = [...container.querySelectorAll('button')].find((b) => /^(Start|Continue) this /.test(b.textContent || ''));
-    act(() => { start.click(); });
+    act(() => {
+      start.click();
+    });
     const t = getReadTarget();
     expect(t && t.owner).toBe(LEVELED.id);
     expect(t.preferText).toBe(true);
@@ -146,7 +178,10 @@ describe('one lesson: saved, then read with no connection', () => {
   });
 
   it('a level that is not saved says so offline instead of failing', () => {
-    window.localStorage.setItem(REGISTRY_KEY, JSON.stringify({ v: 1, lessons: { [LEVELED.id]: { course: 'living-lessons', title: LEVELED.title, levels: { adult: { words: 1, voice: 'female' } } } } }));
+    window.localStorage.setItem(
+      REGISTRY_KEY,
+      JSON.stringify({ v: 1, lessons: { [LEVELED.id]: { course: 'living-lessons', title: LEVELED.title, levels: { adult: { words: 1, voice: 'female' } } } } })
+    );
     onLine = false;
     const container = document.createElement('div');
     const root = createRoot(container);
@@ -176,7 +211,15 @@ describe('a course or every lesson: progress, pause, and skipping what is here',
     expect(seen[0]).toBe('1 of 3');
     expect(seen.at(-1)).toBe('3 of 3');
     const firstKeys = new Set(readingPieces(lessonReading(three[0].module, 'adult', CTX), 'female').map((p) => p.spoken));
-    expect(h.fetched.slice(firstFetches).some((s) => firstKeys.has(s) && !readingPieces(lessonReading(three[1].module, 'adult', CTX), 'female').concat(readingPieces(lessonReading(three[2].module, 'adult', CTX), 'female')).some((p) => p.spoken === s))).toBe(false);
+    expect(
+      h.fetched.slice(firstFetches).some(
+        (s) =>
+          firstKeys.has(s) &&
+          !readingPieces(lessonReading(three[1].module, 'adult', CTX), 'female')
+            .concat(readingPieces(lessonReading(three[2].module, 'adult', CTX), 'female'))
+            .some((p) => p.spoken === s)
+      )
+    ).toBe(false);
   });
 
   it('pauses and resumes', async () => {
@@ -194,7 +237,7 @@ describe('a course or every lesson: progress, pause, and skipping what is here',
     expect(progress.at(-1)).toBe(2);
   });
 
-  it('adding the children\'s levels later tops up without fetching the adult version again', async () => {
+  it("adding the children's levels later tops up without fetching the adult version again", async () => {
     const h = harness();
     const items = [{ module: LEVELED, ctx: CTX }];
     await runDownload({ plan: await planDownload(items, { choice: 'adult', storage: window.localStorage }), deps: h.deps });
@@ -206,7 +249,11 @@ describe('a course or every lesson: progress, pause, and skipping what is here',
     const after = h.fetched.slice(before);
     expect(after.length).toBeGreaterThan(0);
     expect(after.filter((s) => adultSpoken.has(s))).toEqual([]);
-    expect(Object.keys(savedLevels(LEVELED.id)).sort()).toEqual(lessonVersions(LEVELED).map((v) => v.id).sort());
+    expect(Object.keys(savedLevels(LEVELED.id)).sort()).toEqual(
+      lessonVersions(LEVELED)
+        .map((v) => v.id)
+        .sort()
+    );
   });
 
   it('a failure is kept with its reason; the words are still saved', async () => {
@@ -246,17 +293,25 @@ describe('storage honesty', () => {
     const root = createRoot(container);
     const items = LL.schedule.slice(0, 2).map((m) => ({ module: m, ctx: CTX }));
     await act(async () => {
-      root.render(createElement(DownloadPanel, {
-        items, scope: 'course:living-lessons', what: 'this course', removeWhich: () => true,
-        deps: { ...h.deps, space: async () => ({ free: 3 * MB, quota: 3 * MB, usage: 0 }) },
-      }));
+      root.render(
+        createElement(DownloadPanel, {
+          items,
+          scope: 'course:living-lessons',
+          what: 'this course',
+          removeWhich: () => true,
+          deps: { ...h.deps, space: async () => ({ free: 3 * MB, quota: 3 * MB, usage: 0 }) },
+        })
+      );
       await new Promise((r) => setTimeout(r, 300));
     });
     const short = container.querySelector('[data-testid="download-room-short"]');
     expect(short).toBeTruthy();
     expect(short.textContent).toMatch(/free/);
     expect(container.querySelector('[data-testid="download-start"]')).toBeNull();
-    await act(async () => { container.querySelector('[data-testid="download-words-only"]').click(); await new Promise((r) => setTimeout(r, 300)); });
+    await act(async () => {
+      container.querySelector('[data-testid="download-words-only"]').click();
+      await new Promise((r) => setTimeout(r, 300));
+    });
     expect(h.fetched.length).toBe(0);
     expect(Object.keys(readRegistry().lessons)).toHaveLength(2);
     expect(container.querySelector('[data-testid="download-summary"]').textContent).toMatch(/Saved 2 lessons/);
@@ -292,12 +347,26 @@ describe('downloading needs an account (DR-0698)', () => {
     expect(container.querySelector('[data-testid="download-needs-account"]')).toBeTruthy();
     expect(container.querySelector('[data-testid="lesson-download-open"]')).toBeNull();
     // DR-1652: signed in AND entitled (PoeTech+ or the pass) opens the door.
-    act(() => root.render(createElement(DownloadAccessProvider, { signedIn: true, forceAccess: ACCESS.ALLOWED },
-      createElement(LessonDownloadButton, { module: LEVELED, course: LL, signedIn: true }))));
+    act(() =>
+      root.render(
+        createElement(
+          DownloadAccessProvider,
+          { signedIn: true, forceAccess: ACCESS.ALLOWED },
+          createElement(LessonDownloadButton, { module: LEVELED, course: LL, signedIn: true })
+        )
+      )
+    );
     expect(container.querySelector('[data-testid="lesson-download-open"]')).toBeTruthy();
     // Signed in but without either: the purchase prompt, never the download.
-    act(() => root.render(createElement(DownloadAccessProvider, { signedIn: true, forceAccess: ACCESS.NEEDS_PURCHASE },
-      createElement(LessonDownloadButton, { module: LEVELED, course: LL, signedIn: true }))));
+    act(() =>
+      root.render(
+        createElement(
+          DownloadAccessProvider,
+          { signedIn: true, forceAccess: ACCESS.NEEDS_PURCHASE },
+          createElement(LessonDownloadButton, { module: LEVELED, course: LL, signedIn: true })
+        )
+      )
+    );
     expect(container.querySelector('[data-testid="lesson-download-open"]')).toBeNull();
     expect(container.querySelector('[data-testid="download-needs-purchase"]')).toBeTruthy();
     // No provider at all: fail closed.
@@ -310,7 +379,17 @@ describe('downloading needs an account (DR-0698)', () => {
     const container = document.createElement('div');
     document.body.appendChild(container);
     const root = createRoot(container);
-    const props = { extraCourses: COURSES, progress: {}, toggleModule: () => {}, quizState: {}, recordQuiz: () => {}, learnLevel: 'auto', setLearnLevel: () => {}, ageBand: 'adult', setAgeBand: () => {} };
+    const props = {
+      extraCourses: COURSES,
+      progress: {},
+      toggleModule: () => {},
+      quizState: {},
+      recordQuiz: () => {},
+      learnLevel: 'auto',
+      setLearnLevel: () => {},
+      ageBand: 'adult',
+      setAgeBand: () => {},
+    };
     // "Download this course" belongs to an OPEN course, and no course is open
     // until one is chosen (DR-1183). Chosen through the picker, which this file
     // already uses above.
@@ -325,20 +404,43 @@ describe('downloading needs an account (DR-0698)', () => {
     // Both download doors are the Downloads area's (DR-1190): one tap.
     const downloads = () => {
       const tab = container.querySelector('#learn-area-tab-downloads');
-      if (tab && tab.getAttribute('aria-selected') !== 'true') act(() => { tab.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+      if (tab && tab.getAttribute('aria-selected') !== 'true')
+        act(() => {
+          tab.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+        });
     };
-    act(() => root.render(createElement(ChurchLearn, { ...props, signedIn: true, userTier: 'poetech-plus' })));
+    act(() => root.render(createElement(ChurchLearn, { ...props, signedIn: true, userTier: 'poetech-plus', downloadsOpen: true })));
     pick();
     downloads();
     const all = container.querySelector('[data-testid="download-all-open"]');
     expect(all.textContent).toMatch(/Download every lesson \(\d+\)/);
     expect(container.querySelector('[data-testid="download-course-open"]').textContent).toMatch(/Download this course \(\d+ lessons\)/);
-    act(() => root.render(createElement(ChurchLearn, { ...props, signedIn: false })));
+    act(() => root.render(createElement(ChurchLearn, { ...props, signedIn: false, downloadsOpen: true })));
     pick();
     downloads();
     expect(container.querySelector('[data-testid="download-all-open"]')).toBeNull();
     expect(container.querySelector('[data-testid="lesson-download-open"]')).toBeNull();
     expect(container.querySelector('[data-testid="learn-download-all"] [data-testid="download-needs-account"]')).toBeTruthy();
+    act(() => root.unmount());
+    container.remove();
+  });
+
+  // DR-1656: the switch is in Learn > Downloads for the Governor only.
+  it('the downloads switch shows in Downloads for the Governor and for no one else', () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    const props = { extraCourses: COURSES, progress: {}, toggleModule: () => {}, quizState: {}, recordQuiz: () => {}, learnLevel: 'auto', setLearnLevel: () => {}, ageBand: 'adult', setAgeBand: () => {}, signedIn: true };
+    const downloads = () => {
+      const tab = container.querySelector('#learn-area-tab-downloads');
+      if (tab && tab.getAttribute('aria-selected') !== 'true') act(() => { tab.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+    };
+    act(() => root.render(createElement(ChurchLearn, { ...props, isGovernor: true })));
+    downloads();
+    expect(container.querySelector('[data-testid="downloads-switch"]')).toBeTruthy();
+    act(() => root.render(createElement(ChurchLearn, { ...props, isGovernor: false })));
+    downloads();
+    expect(container.querySelector('[data-testid="downloads-switch"]')).toBeNull();
     act(() => root.unmount());
     container.remove();
   });

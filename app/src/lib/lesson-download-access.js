@@ -29,6 +29,21 @@ import { tierMeets } from './tiers.js';
 import { PLUS_TIER, TIMEOUT_MS } from './poetech-plus.js';
 import { readMyBookEntitlements } from './book-entitlements-cloud.js';
 
+/**
+ * THE DOWNLOADS SWITCH (DR-1655). Darrell 2026-11-25: "We actually don't want
+ * downloads unless we have a specific reason... so make that behind a control
+ * ... no one can by default... asking the administration for copies of the
+ * content... however I'm not allowing it currently... but want to be able to
+ * at will." OFF: no one takes a lesson off the page, at any tier, with or
+ * without the pass; the door offers to ask the administration for a copy. ON:
+ * the DR-1652 rule (PoeTech+ or the Download Pass) decides. Only Darrell's word
+ * flips it. Reading and Play stay free for everyone either way.
+ */
+export const DOWNLOADS_OPEN = false;
+// DR-1656: the live switch is stored (platform_switches, migration 0344) and
+// flipped in the app by the Governor; DOWNLOADS_OPEN is what the app uses when
+// the stored answer has not come back (in flight, an error, a timeout): closed.
+
 /** The one-time product in STRIPE_CATALOG that unlocks downloads for a person. */
 export const DOWNLOAD_PASS_ID = 'learn-download-pass';
 export const DOWNLOAD_PASS_TITLE = 'PoeTech Lesson Download Pass';
@@ -40,6 +55,7 @@ export const ACCESS = Object.freeze({
   ALLOWED: 'allowed', // PoeTech+ (or higher) or the pass is theirs
   NEEDS_PURCHASE: 'needs-purchase', // the database answered: neither is theirs
   UNKNOWN: 'unknown', // the read did not answer: shut, with a retry
+  CLOSED: 'closed', // the administration has downloads switched off for everyone
 });
 
 const asStr = (v) => (typeof v === 'string' ? v : '');
@@ -54,8 +70,10 @@ export function tierAllowsDownloads(userTier) {
  *   signedIn   — the shell's !!authSession
  *   userTier   — the app's tier (family grant, or synced from the member row)
  *   read       — { ok, productIds } from readMyBookEntitlements, or null while in flight
+ *   open       — the downloads switch; anything but true is closed (fail closed)
  */
-export function downloadAccess({ signedIn = false, userTier = 'foundation', read = null } = {}) {
+export function downloadAccess({ signedIn = false, userTier = 'foundation', read = null, open = DOWNLOADS_OPEN } = {}) {
+  if (open !== true) return ACCESS.CLOSED;
   if (!signedIn) return ACCESS.SIGN_IN;
   if (tierAllowsDownloads(userTier)) return ACCESS.ALLOWED;
   if (!read) return ACCESS.CHECKING;
@@ -146,4 +164,50 @@ const SAY = Object.freeze({
 /** Plain words for a checkout answer. Pure. */
 export function sayPassError(code) {
   return SAY[code] || `Checkout could not start (${asStr(code) || 'no answer'}). Nothing was charged.`;
+}
+
+/**
+ * Ask the administration for a copy (DR-1655), through the same feedback
+ * pipe every other request in the app rides (feedback table, the space the
+ * person stands in, triaged by the stewards). -> { ok } or { ok:false, why }.
+ */
+export async function requestLessonCopy({ what = 'a lesson', where = '', upload } = {}) {
+  const send = upload || (await import('./feedback-sync.js')).uploadFeedback;
+  const text = `Copy request: please send me a copy of ${asStr(what) || 'a lesson'}.${where ? ` (${asStr(where)})` : ''}`;
+  try {
+    const r = await send({ text, area: 'Learn: copy request', sentiment: 'neutral' }, { activeTab: 'Learn: copy request' });
+    if (r && r.uploaded) return { ok: true };
+    return { ok: false, why: r && r.skipped === 'signed-out' ? 'sign-in' : 'failed' };
+  } catch {
+    return { ok: false, why: 'failed' };
+  }
+}
+
+function withTimeout(p, ms) {
+  let t;
+  return Promise.race([p, new Promise((_, rej) => (t = setTimeout(() => rej(new Error('timeout')), ms)))]).finally(() => clearTimeout(t));
+}
+
+/** The stored switch (DR-1656). -> { ok, open }. Anything but the database's own true is closed. */
+export async function readDownloadsOpen(client, ms = TIMEOUT_MS) {
+  if (!client || typeof client.rpc !== 'function') return { ok: false, open: false };
+  try {
+    const { data, error } = await withTimeout(Promise.resolve(client.rpc('downloads_open')), ms);
+    if (error) return { ok: false, open: false };
+    return { ok: true, open: data === true };
+  } catch {
+    return { ok: false, open: false };
+  }
+}
+
+/** The Governor flips the switch (DR-1656). -> { ok, open } or { ok:false, why }. */
+export async function setDownloadsOpen(client, on, ms = TIMEOUT_MS) {
+  if (!client || typeof client.rpc !== 'function') return { ok: false, why: 'failed' };
+  try {
+    const { data, error } = await withTimeout(Promise.resolve(client.rpc('set_downloads_open', { on_in: on === true })), ms);
+    if (error) return { ok: false, why: error.code === '42501' ? 'not-governor' : 'failed' };
+    return { ok: true, open: data === true };
+  } catch (e) {
+    return { ok: false, why: e && e.message === 'timeout' ? 'timeout' : 'failed' };
+  }
 }

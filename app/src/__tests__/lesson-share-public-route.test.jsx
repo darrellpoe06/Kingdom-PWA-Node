@@ -26,15 +26,16 @@ import { isPublicChurchRoute } from '../lib/access-gate.js';
 import { buildHealthyLivingSchedule, HEALTHY_LIVING_META } from '../lib/healthy-living-course.js';
 import { buildSelfPacedDescriptors } from '../lib/learn-catalog.js';
 import { SHARE_HOW_TO } from '../lib/lesson-share.js';
-import {
-  captureShareOpen, resetShareOpenForTest, recordLessonShare, recordShareOpen, reportShareLanded,
-} from '../lib/lesson-share-record.js';
+import { captureShareOpen, resetShareOpenForTest, recordLessonShare, recordShareOpen, reportShareLanded } from '../lib/lesson-share-record.js';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
 let container, root;
 const setSearch = (search) => window.history.replaceState({}, '', `${window.location.pathname}${search}`);
-const flush = () => act(async () => { await new Promise((r) => setTimeout(r, 0)); });
+const flush = () =>
+  act(async () => {
+    await new Promise((r) => setTimeout(r, 0));
+  });
 
 beforeEach(() => {
   window.localStorage.clear();
@@ -53,11 +54,21 @@ afterEach(() => {
   setSearch('');
 });
 
-const mount = (props = {}) => act(() => root.render(createElement(ChurchLearn, {
-  progress: {}, quizState: {}, learnLevel: 'auto', setLearnLevel: () => {}, ageBand: 'adult', setAgeBand: () => {},
-  extraCourses: buildSelfPacedDescriptors({}),
-  ...props,
-})));
+const mount = (props = {}) =>
+  act(() =>
+    root.render(
+      createElement(ChurchLearn, {
+        progress: {},
+        quizState: {},
+        learnLevel: 'auto',
+        setLearnLevel: () => {},
+        ageBand: 'adult',
+        setAgeBand: () => {},
+        extraCourses: buildSelfPacedDescriptors({}),
+        ...props,
+      })
+    )
+  );
 
 const clickTab = (label) => {
   const tab = [...container.querySelectorAll('[role="tab"]')].find((b) => (b.textContent || '').includes(label));
@@ -101,7 +112,8 @@ describe('signed out, the shared link opens the lesson for reading and listening
     const play = [...card.querySelectorAll('button')].find((b) => /▶ Play/.test(b.textContent || ''));
     expect(play, '▶ Play is offered signed out').toBeTruthy();
 
-    await flush(); await flush();
+    await flush();
+    await flush();
     expect(sink).toHaveBeenCalledTimes(1);
     expect(sink).toHaveBeenCalledWith(TOKEN, 'ok', '');
   });
@@ -109,7 +121,7 @@ describe('signed out, the shared link opens the lesson for reading and listening
   it('copying the lesson’s full text asks a signed-out reader to sign in, and opens the sign-in dialog', () => {
     const lesson = buildHealthyLivingSchedule()[1];
     setSearch(lessonQuery({ courseKey: HEALTHY_LIVING_META.key, lessonId: lesson.id }));
-    mount({ signedIn: false });
+    mount({ signedIn: false, downloadsOpen: true }); // the rule when the switch is on (DR-1655)
     const card = document.getElementById(`learn-lesson-${lesson.id}`);
     const labels = [...card.querySelectorAll('button')].map((b) => (b.textContent || '').trim());
     expect(labels).not.toContain('Copy lesson');
@@ -122,7 +134,7 @@ describe('signed out, the shared link opens the lesson for reading and listening
   });
 
   it('Paper & print: signed out, the download asks for an account; signed in, the downloads are there', () => {
-    mount({ signedIn: false });
+    mount({ signedIn: false, downloadsOpen: true }); // the rule when the switch is on (DR-1655)
     openCourse(HEALTHY_LIVING_META.key);
     clickTab('Paper & print');
     expect(container.textContent).toMatch(/Downloading needs an account/);
@@ -130,11 +142,20 @@ describe('signed out, the shared link opens the lesson for reading and listening
     expect(container.textContent).not.toMatch(/Copy markdown/);
     act(() => root.unmount());
     root = createRoot(container);
-    mount({ signedIn: true, userTier: 'poetech-plus' }); // DR-1652: export is PoeTech+ or the pass
+    mount({ signedIn: true, userTier: 'poetech-plus', downloadsOpen: true }); // DR-1652: export is PoeTech+ or the pass
     openCourse(HEALTHY_LIVING_META.key);
     clickTab('Paper & print');
     expect(container.textContent).toMatch(/Download \.md/);
     expect(container.textContent).not.toMatch(/Downloading needs an account/);
+  });
+
+  it('with the switch off (the default, DR-1655), Paper & print is closed even for PoeTech+ and offers a copy request', () => {
+    mount({ signedIn: true, userTier: 'poetech-plus' });
+    openCourse(HEALTHY_LIVING_META.key);
+    clickTab('Paper & print');
+    expect(container.textContent).toMatch(/Downloads are closed right now/);
+    expect(container.textContent).toMatch(/Ask the administration for a copy/);
+    expect(container.textContent).not.toMatch(/Download \.md/);
   });
 
   it('a stale shared link records the failure and its reason', async () => {
@@ -162,13 +183,21 @@ describe('a share writes a record', { timeout: 60000 }, () => {
     const rpc = vi.spyOn(supabase, 'rpc').mockResolvedValue({ data: 'ok', error: null });
     const shared = [];
     const orig = navigator.share;
-    Object.defineProperty(navigator, 'share', { configurable: true, writable: true, value: async (p) => { shared.push(p); } });
+    Object.defineProperty(navigator, 'share', {
+      configurable: true,
+      writable: true,
+      value: async (p) => {
+        shared.push(p);
+      },
+    });
     try {
       mount({ signedIn: true });
       const card = document.getElementById(`learn-lesson-${lesson.id}`);
       const btn = [...card.querySelectorAll('button')].find((b) => b.title === 'Share this lesson using your usual apps');
       expect(btn).toBeTruthy();
-      await act(async () => { btn.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+      await act(async () => {
+        btn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      });
       await flush();
 
       expect(shared).toHaveLength(1);
@@ -212,7 +241,14 @@ describe('an open writes an event, with nothing about the person', () => {
   it('the watchdog records failed when no surface shows the lesson (the DR-0296 class), and one open is one row', () => {
     const sink = vi.fn();
     let fire = null;
-    captureShareOpen(`?s=${TOKEN}`, { sink, timeoutMs: 30000, setTimer: (fn) => { fire = fn; return 1; } });
+    captureShareOpen(`?s=${TOKEN}`, {
+      sink,
+      timeoutMs: 30000,
+      setTimer: (fn) => {
+        fire = fn;
+        return 1;
+      },
+    });
     fire();
     expect(sink).toHaveBeenCalledWith(TOKEN, 'failed', 'lesson not on screen within 30s');
     expect(reportShareLanded({ ok: true })).toBe(false);

@@ -188,16 +188,27 @@ describe("the lesson's own Read/Listen/age-chip buttons stay in the new look (no
     expect(byText('Listen').some((b) => b.getAttribute('aria-selected') === 'true')).toBe(true);
   });
 
-  it('a DIFFERENT lesson still hands off to the classic reader, unchanged', () => {
+  // Approved 2026-11-25 ("Update them to our new look?!!!!!! Yet?!!!!"):
+  // every lesson opens in the new look, not only the prototype.
+  it('a DIFFERENT lesson opens in the new look too, with its own title', () => {
     const onOpenLesson = vi.fn();
     render(<LearnStudioPreview courses={COURSES} onOpenLesson={onOpenLesson} onExit={vi.fn()} ownerDevice />);
     const card = openCoverByCard(container, 'A Sound Mind');
-    if (card) {
-      const readBtn = [...container.querySelectorAll('button')].find((b) => b.textContent.trim() === 'Read Lesson');
-      click(readBtn);
-      expect(onOpenLesson).toHaveBeenCalledTimes(1);
-      expect(container.textContent).not.toContain('PROTOTYPE');
-    }
+    expect(card).toBeTruthy();
+    const readBtn = [...container.querySelectorAll('button')].find((b) => b.textContent.trim() === 'Read Lesson');
+    click(readBtn);
+    expect(onOpenLesson).not.toHaveBeenCalled();
+    expect(byText('Read').some((b) => b.getAttribute('aria-selected') === 'true')).toBe(true);
+  });
+
+  it('off the owner device, every lesson still hands off to the classic reader', () => {
+    const onOpenLesson = vi.fn();
+    render(<LearnStudioPreview courses={COURSES} onOpenLesson={onOpenLesson} onExit={vi.fn()} ownerDevice={false} />);
+    const card = openCoverByCard(container, 'A Sound Mind');
+    expect(card).toBeTruthy();
+    click([...container.querySelectorAll('button')].find((b) => b.textContent.trim() === 'Read Lesson'));
+    expect(onOpenLesson).toHaveBeenCalledTimes(1);
+    expect(container.textContent).not.toContain('PROTOTYPE');
   });
 });
 
@@ -215,15 +226,35 @@ describe('More Lessons — a YouTube-style queue of all available lessons (same 
     expect(container.querySelector('.le-more-thumb')).toBeTruthy();
   });
 
-  it('tapping a More Lessons row exits the overlay and opens that lesson the normal way', () => {
+  it('tapping a More Lessons row stays in the new look and opens THAT lesson', () => {
     const onOpenLesson = vi.fn();
     render(<LearnStudioPreview courses={COURSES} onOpenLesson={onOpenLesson} onExit={vi.fn()} ownerDevice />);
     click(byText('Try the new lesson experience')[0]);
     const row = container.querySelector('.le-more-card');
     expect(row).toBeTruthy();
+    const picked = row.textContent;
     click(row);
-    expect(onOpenLesson).toHaveBeenCalledTimes(1);
-    expect(container.textContent).not.toContain('PROTOTYPE');
+    expect(onOpenLesson).not.toHaveBeenCalled();
+    expect(container.textContent).toContain('PROTOTYPE');
+    expect(container.textContent).not.toContain('Not with Eyeservice');
+    expect(picked.length).toBeGreaterThan(0);
+  });
+});
+
+// The 37 lessons that carry only age versions (measured 2026-11-25) open with
+// their own words, never empty.
+import { textFor } from '../components/learn-studio/LessonExperience.jsx';
+describe('every one of the 994 lessons has words to open with', () => {
+  it('textFor finds text for every lesson in the catalog', () => {
+    const empty = COURSES.flatMap((c) => c.schedule)
+      .filter((l) => l && l.id && !textFor(l, 'adult').trim())
+      .map((l) => l.id);
+    expect(empty).toEqual([]);
+  });
+  it('an age-only lesson reads its oldest age version as the full reading', () => {
+    expect(textFor({ levels: { child: 'c', senior: 'S' } }, 'adult')).toBe('S');
+    expect(textFor({ lesson: 'A', levels: { senior: 'S' } }, 'adult')).toBe('A');
+    expect(textFor({ lesson: 'A', levels: { child: 'c' } }, 'child')).toBe('c');
   });
 });
 
@@ -316,21 +347,33 @@ describe('four-mode reference layout -- real data only', () => {
     expect(container.querySelector('.le-time').textContent).toMatch(/^~\d+:\d\d \/ ~\d+:\d\d$/);
   });
 
-  it('Read is one continuous scroll of every paragraph (no pager) and the Key Teaching is the real big idea', () => {
+  it('Read is one continuous scroll of every paragraph (no pager) and the big idea is read exactly once', () => {
     render(<LessonExperience lesson={REAL_LESSON} record={null} onExit={vi.fn()} />);
     click(byText('Read')[0]);
     const paras = REAL_LESSON.lesson.split(/\n\n+/).filter(Boolean).length;
     expect(container.querySelectorAll('.le-book-p').length).toBe(paras);
     expect(container.querySelector('.le-bb-count')).toBeNull();
     expect(container.querySelector('button[aria-label="Next paragraph"]')).toBeNull();
-    expect(container.querySelector('.le-keyteach').textContent).toContain(REAL_LESSON.bigIdea);
+    // The Key Teaching box shows the big idea only when the text does not
+    // already say it (ll338's text does), so it is never read twice.
+    const sq = (t) => t.replace(/\s+/g, ' ');
+    const page = sq(container.querySelector('.le-book').textContent);
+    expect(page.split(sq(REAL_LESSON.bigIdea).slice(0, 60)).length - 1).toBe(1);
   });
 
   it('Study is the reference accordion: Reflection open, the real practice text, notes saved on the device', () => {
     render(<LessonExperience lesson={REAL_LESSON} record={null} onExit={vi.fn()} />);
     click(byText('Study')[0]);
     const titles = [...container.querySelectorAll('.le-acc-title')].map((n) => n.textContent);
-    expect(titles).toEqual(['Scripture Focus', 'Key Takeaways', 'Reflection Questions', 'Practice / Exercise', 'Check Your Understanding', 'My Notes']);
+    expect(titles).toEqual([
+      'Scripture Focus',
+      'Key Takeaways',
+      'Reflection Questions',
+      'Practice / Exercise',
+      'Check Your Understanding',
+      'My Notes',
+      'Stories & Perspectives',
+    ]);
     const reflect = [...container.querySelectorAll('.le-acc')].find((d) => d.textContent.includes('Reflection Questions'));
     expect(reflect.open).toBe(true);
     expect(container.textContent).toContain(REAL_LESSON.inApp);
@@ -703,5 +746,50 @@ describe('Watch: the Back to the current line button never shifts the transcript
     const wrap = src.indexOf('le-transcript-wrap');
     expect(wrap).toBeGreaterThan(-1);
     expect(src.indexOf('le-follow', wrap)).toBeGreaterThan(src.indexOf('</ol>', wrap));
+  });
+});
+
+// "We don't like losing features ever!!!" (Darrell, 2026-11-25): the classic
+// page's stories, perspectives, add-yours and charts ride the new look, and the
+// rest of its tools are one tap away for THIS lesson.
+describe('the new look keeps every classic lesson feature', () => {
+  it('Read ends with Stories & Perspectives, the add-yours entry, and the full-page tools', () => {
+    const onOpenLesson = vi.fn();
+    render(<LearnStudioPreview courses={COURSES} onOpenLesson={onOpenLesson} onExit={vi.fn()} ownerDevice />);
+    click(byText('Try the new lesson experience')[0]);
+    click(byText('Read').find((b) => b.getAttribute('role') === 'tab' || b.getAttribute('aria-selected') != null));
+    expect(container.querySelector('[data-testid="lesson-stories"]')).toBeTruthy();
+    expect(container.textContent).toContain('Stories & Perspectives');
+    const full = byText('open the full lesson page')[0];
+    expect(full).toBeTruthy();
+    click(full);
+    expect(onOpenLesson).toHaveBeenCalledWith('living-lessons', PROTOTYPE_LESSON_ID);
+  });
+});
+
+// Darrell 2026-11-25: both views for kids and adults; the Kids Zone promise
+// ("no profile, no chat") travels with a child into the new look.
+import { LessonConversation, YOUNG_LEVELS, kidsZoneHref } from '../components/learn-studio/LessonExperience.jsx';
+describe('kids in the new look; grown-ups into the Kids Zone', () => {
+  const LESSON = { id: 'll1-x', title: 'T', lesson: 'Body.', stories: [{ title: 'A taught story', body: 'Once.', kind: 'parable' }] };
+  it('at Child, Youth and Teen: the taught stories stay, no one else’s posts and no posting', () => {
+    for (const level of YOUNG_LEVELS) {
+      render(React.createElement(LessonConversation, { lesson: LESSON, level }));
+      expect(container.querySelector('[data-young="true"]')).toBeTruthy();
+      expect(container.textContent).toContain('A taught story');
+      expect(container.textContent).not.toContain('Stories & Perspectives');
+      expect(container.querySelector('[data-testid="add-perspective"], [data-testid="add-perspective-open"]')).toBeNull();
+    }
+  });
+  it('at Adult and Senior: Stories & Perspectives with the add-yours entry', () => {
+    for (const level of ['adult', 'senior']) {
+      render(React.createElement(LessonConversation, { lesson: LESSON, level }));
+      expect(container.querySelector('[data-young="true"]')).toBeNull();
+      expect(container.textContent).toContain('Stories & Perspectives');
+      expect(container.querySelector('[data-testid="add-perspective"]')).toBeTruthy();
+    }
+  });
+  it('the Kids Zone link goes to the youth door on this same app', () => {
+    expect(kidsZoneHref({ pathname: '/lovecorner/app/' })).toBe('/lovecorner/app/?view=church&sub=youth');
   });
 });
