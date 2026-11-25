@@ -9,9 +9,7 @@ const res = (status) => ({ status, ok: status < 400 });
 
 describe('rewriteToFallback', () => {
   it('moves a request under the primary base onto the fallback base', () => {
-    expect(rewriteToFallback(`${PRIMARY}/auth/v1/token?grant_type=password`, PRIMARY, FALLBACK)).toBe(
-      `${FALLBACK}/auth/v1/token?grant_type=password`
-    );
+    expect(rewriteToFallback(`${PRIMARY}/auth/v1/token?grant_type=password`, PRIMARY, FALLBACK)).toBe(`${FALLBACK}/auth/v1/token?grant_type=password`);
     expect(rewriteToFallback(`${PRIMARY}/rest/v1/choir_sermons`, `${PRIMARY}/`, `${FALLBACK}/`)).toBe(`${FALLBACK}/rest/v1/choir_sermons`);
   });
   it('never rewrites a URL that is not under the primary (no lookalike prefix)', () => {
@@ -93,7 +91,7 @@ describe('createFailoverFetch', () => {
     await expect(ff(`${PRIMARY}/x`, {})).rejects.toThrow('Failed to fetch');
   });
 
-  it('a primary 502 with the tunnel also failing returns the primary\'s own answer', async () => {
+  it("a primary 502 with the tunnel also failing returns the primary's own answer", async () => {
     const f = vi.fn(async (url) => (String(url).startsWith(PRIMARY) ? res(502) : res(503)));
     const ff = createFailoverFetch({ primary: PRIMARY, fallback: FALLBACK, fetchImpl: f });
     expect((await ff(`${PRIMARY}/x`, {})).status).toBe(502);
