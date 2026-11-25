@@ -9,64 +9,400 @@
     "dryland": "Jonah 2:10 Jonah on dry land, the two guides beside him",
     "nineveh": "Jonah 3:3-4 Jonah at the gate of Nineveh, the crowd",
     "believe": "Jonah 3:5 the people kneel, Jonah and the guides",
-    "king": "Jonah 3:6 the king of Nineveh in sackcloth"
+    "king": "Jonah 3:6 the king of Nineveh in sackcloth",
+    "angry": "Jonah 4:1-5 Jonah sits angry in his booth east of the city",
+    "gourd": "Jonah 4:6 the gourd grows over Jonah; he is glad",
+    "worm": "Jonah 4:7-8 the gourd withers; the sun and the east wind",
+    "compassion": "Jonah 4:8-11 Jonah in the heat; the people and cattle of Nineveh",
+    "lesson": "Closing: the two guides with the lesson scroll and Jonah 2:9"
   },
   "beats": {
     "b1": [
-      { "still": "jonah-1", "w": 13, "cam": [1.18, 1.06, 0.62, 0.5, 0.45, 0.48] },
-      { "clip": "joppa", "src": [0, 5], "w": 10 },
-      { "clip": "joppa", "src": [0.3, 3.3], "w": 7, "crop": [1.5, 1.6, 0.26, 0.32] },
-      { "clip": "joppa", "src": [1.0, 4.2], "w": 7, "crop": [1.45, 1.55, 0.72, 0.62] },
-      { "clip": "joppa", "src": [2.0, 5.0], "w": 6, "crop": [1.0, 1.12, 0.45, 0.45] }
+      {
+        "still": "jonah-1",
+        "w": 13,
+        "cam": [1.18, 1.06, 0.62, 0.5, 0.45, 0.48]
+      },
+      {
+        "clip": "joppa",
+        "src": [0, 5],
+        "w": 10
+      },
+      {
+        "clip": "joppa",
+        "src": [0.3, 3.3],
+        "w": 7,
+        "crop": [1.5, 1.6, 0.26, 0.32]
+      },
+      {
+        "clip": "joppa",
+        "src": [1.0, 4.2],
+        "w": 7,
+        "crop": [1.45, 1.55, 0.72, 0.62]
+      }
     ],
     "b2": [
-      { "clip": "storm", "src": [0, 5], "w": 10 },
-      { "clip": "storm", "src": [0.8, 4.4], "w": 8, "crop": [1.45, 1.6, 0.47, 0.36] },
-      { "still": "jonah-2", "ambience": "storm", "w": 9, "cam": [1.05, 1.2, 0.55, 0.62, 0.5, 0.42] },
-      { "clip": "storm", "src": [0, 3.6], "w": 8, "crop": [1.55, 1.65, 0.22, 0.5] }
+      {
+        "clip": "storm",
+        "src": [0, 5],
+        "w": 10
+      },
+      {
+        "clip": "storm",
+        "src": [0.8, 4.4],
+        "w": 8,
+        "crop": [1.45, 1.6, 0.47, 0.36]
+      },
+      {
+        "still": "jonah-2",
+        "ambience": "storm",
+        "w": 9,
+        "cam": [1.05, 1.2, 0.55, 0.62, 0.5, 0.42]
+      },
+      {
+        "clip": "storm",
+        "src": [0, 3.6],
+        "w": 8,
+        "crop": [1.55, 1.65, 0.22, 0.5]
+      },
+      {
+        "clip": "storm",
+        "src": [2.6, 5.0],
+        "w": 5,
+        "crop": [1.4, 1.5, 0.25, 0.3]
+      }
     ],
     "b3": [
-      { "clip": "storm", "src": [2.6, 5.0], "w": 6, "crop": [1.25, 1.4, 0.55, 0.4] },
-      { "clip": "sea", "src": [0, 3.9], "w": 9 },
-      { "clip": "sea", "src": [1.0, 3.9], "w": 7, "crop": [1.35, 1.5, 0.42, 0.42] }
+      {
+        "clip": "storm",
+        "src": [0, 5],
+        "w": 10
+      },
+      {
+        "clip": "storm",
+        "src": [0, 3.6],
+        "w": 8,
+        "crop": [1.55, 1.65, 0.22, 0.5]
+      },
+      {
+        "still": "jonah-2",
+        "ambience": "storm",
+        "w": 10,
+        "cam": [1.05, 1.2, 0.4, 0.55, 0.5, 0.45]
+      },
+      {
+        "clip": "storm",
+        "src": [0.8, 4.4],
+        "w": 8,
+        "crop": [1.45, 1.6, 0.47, 0.36]
+      },
+      {
+        "clip": "storm",
+        "src": [2.6, 5.0],
+        "w": 6,
+        "crop": [1.25, 1.4, 0.55, 0.4]
+      },
+      {
+        "still": "jonah-2",
+        "ambience": "storm-calm",
+        "w": 9,
+        "cam": [1.3, 1.15, 0.3, 0.25, 0.55, 0.5]
+      },
+      {
+        "clip": "sea",
+        "src": [0, 3.9],
+        "w": 9
+      },
+      {
+        "clip": "sea",
+        "src": [1.0, 3.9],
+        "w": 7,
+        "crop": [1.35, 1.5, 0.42, 0.42]
+      }
     ],
     "b4": [
-      { "clip": "swallow", "src": [0, 3.4], "w": 7 },
-      { "clip": "swallow", "src": [1.4, 3.4], "w": 5, "crop": [1.25, 1.4, 0.45, 0.5] },
-      { "still": "jonah-3", "ambience": "sea", "w": 5, "cam": [1.02, 1.18, 0.55, 0.7, 0.5, 0.5] }
+      {
+        "clip": "swallow",
+        "src": [0, 3.4],
+        "w": 7
+      },
+      {
+        "clip": "swallow",
+        "src": [1.4, 3.4],
+        "w": 5,
+        "crop": [1.25, 1.4, 0.45, 0.5]
+      },
+      {
+        "still": "jonah-3",
+        "ambience": "sea",
+        "w": 5,
+        "cam": [1.02, 1.18, 0.55, 0.7, 0.5, 0.5]
+      }
     ],
     "b5": [
-      { "clip": "prayer", "src": [0, 5], "w": 10 },
-      { "clip": "prayer", "src": [1.0, 5.0], "w": 9, "crop": [1.3, 1.45, 0.5, 0.42] },
-      { "still": "jonah-4", "ambience": "underwater", "w": 8, "cam": [1.2, 1.06, 0.5, 0.5, 0.38, 0.48] },
-      { "clip": "prayer", "src": [2.4, 5.0], "w": 8, "crop": [1.6, 1.7, 0.55, 0.4] }
+      {
+        "clip": "prayer",
+        "src": [0, 5],
+        "w": 10
+      },
+      {
+        "clip": "prayer",
+        "src": [1.0, 5.0],
+        "w": 9,
+        "crop": [1.3, 1.45, 0.5, 0.42]
+      },
+      {
+        "still": "jonah-4",
+        "ambience": "underwater",
+        "w": 8,
+        "cam": [1.2, 1.06, 0.5, 0.5, 0.38, 0.48]
+      },
+      {
+        "clip": "prayer",
+        "src": [1.5, 5.0],
+        "w": 8,
+        "crop": [1.6, 1.7, 0.55, 0.4]
+      }
     ],
     "b6": [
-      { "clip": "dryland", "src": [0, 5], "w": 10 },
-      { "clip": "dryland", "src": [0, 2.6], "w": 5, "crop": [1.6, 1.7, 0.76, 0.42] }
+      {
+        "clip": "dryland",
+        "src": [0, 5],
+        "w": 10
+      },
+      {
+        "clip": "dryland",
+        "src": [0, 2.6],
+        "w": 5,
+        "crop": [1.6, 1.7, 0.76, 0.42]
+      }
     ],
     "b7": [
-      { "still": "jonah-6", "w": 11, "cam": [1.16, 1.04, 0.6, 0.5, 0.4, 0.48] },
-      { "clip": "nineveh", "src": [0, 5], "w": 10 },
-      { "clip": "nineveh", "src": [0, 2.4], "w": 6, "crop": [1.55, 1.65, 0.18, 0.36] },
-      { "clip": "nineveh", "src": [0.5, 4.5], "w": 8, "crop": [1.45, 1.55, 0.7, 0.6] },
-      { "clip": "nineveh", "src": [2.0, 5.0], "w": 7, "crop": [1.05, 1.15, 0.5, 0.45] }
+      {
+        "still": "jonah-6",
+        "w": 11,
+        "cam": [1.16, 1.04, 0.6, 0.5, 0.4, 0.48]
+      },
+      {
+        "clip": "nineveh",
+        "src": [0, 5],
+        "w": 10
+      },
+      {
+        "clip": "nineveh",
+        "src": [0, 2.4],
+        "w": 6,
+        "crop": [1.55, 1.65, 0.18, 0.36]
+      },
+      {
+        "clip": "nineveh",
+        "src": [0.5, 4.5],
+        "w": 8,
+        "crop": [1.45, 1.55, 0.7, 0.6]
+      }
     ],
     "b8": [
-      { "clip": "believe", "src": [0, 5], "w": 9 },
-      { "clip": "believe", "src": [1.0, 5.0], "w": 7, "crop": [1.65, 1.75, 0.17, 0.62] },
-      { "clip": "king", "src": [0, 5], "w": 9 },
-      { "clip": "king", "src": [1.6, 5.0], "w": 7, "crop": [1.45, 1.55, 0.3, 0.38] }
+      {
+        "clip": "believe",
+        "src": [0, 5],
+        "w": 10
+      },
+      {
+        "clip": "believe",
+        "src": [1, 5],
+        "w": 8,
+        "crop": [1.65, 1.75, 0.17, 0.62]
+      },
+      {
+        "clip": "believe",
+        "src": [0, 5],
+        "w": 9,
+        "crop": [1.4, 1.5, 0.62, 0.6]
+      },
+      {
+        "clip": "king",
+        "src": [0, 5],
+        "w": 10
+      },
+      {
+        "clip": "king",
+        "src": [1.6, 5],
+        "w": 8,
+        "crop": [1.45, 1.55, 0.3, 0.38]
+      },
+      {
+        "still": "jonah-7",
+        "ambience": "hush",
+        "w": 10,
+        "cam": [1.02, 1.16, 0.45, 0.55, 0.52, 0.5]
+      },
+      {
+        "clip": "king",
+        "src": [0, 5],
+        "w": 9,
+        "crop": [1.4, 1.5, 0.75, 0.5]
+      }
     ],
     "b9": [
-      { "still": "jonah-8", "ambience": "morning", "w": 12, "cam": [1.0, 1.14, 0.6, 0.62, 0.45, 0.42] },
-      { "clip": "believe", "src": [2.5, 5.0], "w": 6, "crop": [1.25, 1.35, 0.6, 0.55] }
+      {
+        "still": "jonah-8",
+        "ambience": "morning",
+        "w": 12,
+        "cam": [1.0, 1.14, 0.6, 0.62, 0.45, 0.42]
+      },
+      {
+        "clip": "believe",
+        "src": [2.5, 5.0],
+        "w": 6,
+        "crop": [1.25, 1.35, 0.6, 0.55]
+      }
     ],
     "b10": [
-      { "still": "jonah-8b", "ambience": "evening", "w": 22, "cam": [2.3, 2.45, 0.22, 0.2, 0.22, 0.2] },
-      { "clip": "nineveh", "src": [2.6, 5.0], "w": 8, "crop": [1.3, 1.4, 0.72, 0.58] },
-      { "clip": "nineveh", "src": [0.4, 4.4], "w": 10, "crop": [1.35, 1.45, 0.62, 0.62] },
-      { "clip": "believe", "src": [0, 3.2], "w": 7, "crop": [1.65, 1.75, 0.17, 0.62] }
+      {
+        "clip": "angry",
+        "src": [0, 5],
+        "w": 10
+      },
+      {
+        "clip": "angry",
+        "src": [1, 5],
+        "w": 8,
+        "crop": [1.45, 1.55, 0.3, 0.3]
+      },
+      {
+        "still": "jonah-8b",
+        "ambience": "evening",
+        "w": 8,
+        "cam": [2.3, 2.45, 0.22, 0.2, 0.22, 0.2]
+      },
+      {
+        "clip": "angry",
+        "src": [2, 5],
+        "w": 7,
+        "crop": [1.3, 1.4, 0.32, 0.55]
+      }
+    ],
+    "b11": [
+      {
+        "clip": "angry",
+        "src": [2.5, 5],
+        "w": 5,
+        "crop": [1.0, 1.1, 0.5, 0.45]
+      },
+      {
+        "clip": "gourd",
+        "src": [0, 5],
+        "w": 10
+      },
+      {
+        "clip": "gourd",
+        "src": [1, 4],
+        "w": 6,
+        "crop": [1.4, 1.5, 0.3, 0.35]
+      },
+      {
+        "clip": "gourd",
+        "src": [3, 5],
+        "w": 5,
+        "crop": [1.35, 1.45, 0.75, 0.35]
+      }
+    ],
+    "b12": [
+      {
+        "clip": "worm",
+        "src": [0, 3],
+        "w": 6.5
+      },
+      {
+        "clip": "worm",
+        "src": [3, 5],
+        "w": 5,
+        "crop": [1.25, 1.35, 0.6, 0.42]
+      },
+      {
+        "clip": "worm",
+        "src": [0, 3],
+        "w": 6,
+        "crop": [1.4, 1.5, 0.2, 0.4]
+      },
+      {
+        "clip": "compassion",
+        "src": [0, 2.6],
+        "w": 6
+      },
+      {
+        "clip": "compassion",
+        "src": [0, 2.6],
+        "w": 5,
+        "crop": [1.5, 1.6, 0.25, 0.38]
+      },
+      {
+        "still": "jonah-8b",
+        "ambience": "evening",
+        "w": 8,
+        "cam": [2.3, 2.45, 0.22, 0.2, 0.22, 0.2]
+      }
+    ],
+    "b13": [
+      {
+        "clip": "compassion",
+        "src": [2.6, 5],
+        "w": 6
+      },
+      {
+        "clip": "compassion",
+        "src": [2.6, 5],
+        "w": 5,
+        "crop": [1.4, 1.5, 0.7, 0.55]
+      },
+      {
+        "clip": "nineveh",
+        "src": [0.5, 4.5],
+        "w": 8,
+        "crop": [1.45, 1.55, 0.7, 0.6]
+      },
+      {
+        "clip": "king",
+        "src": [0, 5],
+        "w": 8,
+        "crop": [1.4, 1.5, 0.75, 0.5]
+      },
+      {
+        "clip": "believe",
+        "src": [0, 3.2],
+        "w": 7,
+        "crop": [1.65, 1.75, 0.17, 0.62]
+      }
+    ],
+    "outro": [
+      {
+        "clip": "lesson",
+        "src": [0, 5],
+        "w": 10
+      },
+      {
+        "clip": "lesson",
+        "src": [0, 5],
+        "w": 9,
+        "crop": [1.7, 1.8, 0.18, 0.42]
+      },
+      {
+        "clip": "lesson",
+        "src": [0, 5],
+        "w": 9,
+        "crop": [1.7, 1.8, 0.84, 0.42]
+      },
+      {
+        "clip": "lesson",
+        "src": [1, 5],
+        "w": 8,
+        "crop": [1.8, 1.9, 0.5, 0.8]
+      },
+      {
+        "clip": "lesson",
+        "src": [2, 5],
+        "w": 7
+      }
     ]
   }
 }
