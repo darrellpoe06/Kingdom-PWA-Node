@@ -153,3 +153,24 @@ export function firstName(name) {
   if (!s || s.includes('@')) return null;
   return s.split(/\s+/)[0];
 }
+
+/**
+ * One cover image per course, taken from the lesson artwork already shipped in
+ * public/learn-thumbs (presentation-records.json). The first eligible record of
+ * a course wins. `preview` (the owner-device studio) admits records still in
+ * review, the same rule the owner-only Learn studio uses; without it only
+ * approved/published records count, so a public launch shows only released art.
+ * Images only: titles always come from the catalog, never from a review record.
+ * @returns {Map<string, {src:string, srcSet:string}>}
+ */
+export function courseCovers(records = [], { preview = false, visible = ['approved', 'published'] } = {}) {
+  const out = new Map();
+  for (const r of Array.isArray(records) ? records : []) {
+    if (!r || !r.courseKey || out.has(r.courseKey)) continue;
+    if (!(preview || visible.includes(r.status))) continue;
+    const img = r.image;
+    if (!img || !img.src) continue;
+    out.set(r.courseKey, { src: img.src, srcSet: (img.srcSet && img.srcSet.webp) || '' });
+  }
+  return out;
+}
