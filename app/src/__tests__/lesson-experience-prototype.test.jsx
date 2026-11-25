@@ -52,8 +52,7 @@ afterEach(() => {
 });
 const render = (el) => act(() => root.render(el));
 const click = (node) => act(() => node.dispatchEvent(new MouseEvent('click', { bubbles: true })));
-const byText = (text, tag = 'button') =>
-  [...container.querySelectorAll(tag)].filter((n) => n.textContent.trim().includes(text));
+const byText = (text, tag = 'button') => [...container.querySelectorAll(tag)].filter((n) => n.textContent.trim().includes(text));
 
 const COURSES = learnInventory().map((c) => ({ key: c.key, meta: { ...(c.meta || {}), key: c.key }, schedule: c.lessons }));
 
@@ -89,7 +88,7 @@ describe('the lesson is preserved verbatim, not summarized or rewritten', () => 
     );
   });
 
-  it('switching reading level shows that level\'s own real text, not a rewrite of the adult version', () => {
+  it("switching reading level shows that level's own real text, not a rewrite of the adult version", () => {
     render(<LessonExperience lesson={REAL_LESSON} record={null} onExit={vi.fn()} />);
     click(byText('Read')[0]);
     click(byText('Child')[0]);

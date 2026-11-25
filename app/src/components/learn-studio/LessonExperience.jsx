@@ -109,13 +109,7 @@ function CoverImage({ image, alt, className, animated = false }) {
   return (
     <picture>
       {image.srcSet && image.srcSet.webp && <source type="image/webp" srcSet={at(image.srcSet.webp)} sizes="100vw" />}
-      <img
-        className={`${className}${animated ? ' le-kenburns' : ''}`}
-        src={at(image.src)}
-        alt={alt || ''}
-        loading="eager"
-        decoding="async"
-      />
+      <img className={`${className}${animated ? ' le-kenburns' : ''}`} src={at(image.src)} alt={alt || ''} loading="eager" decoding="async" />
     </picture>
   );
 }
@@ -305,12 +299,7 @@ export default function LessonExperience({ lesson, record, onExit }) {
           {resumedFrom > 0 && status === 'idle' && <p className="le-resume-note">Resumed where you left off — tap Play to continue.</p>}
           <div className="le-transcript" ref={transcriptRef}>
             {segments.map((s, i) => (
-              <p
-                key={i}
-                ref={i === idx ? activeLineRef : null}
-                className={`le-tline ${i === idx ? 'on' : ''}`}
-                onClick={() => jumpTo(i)}
-              >
+              <p key={i} ref={i === idx ? activeLineRef : null} className={`le-tline ${i === idx ? 'on' : ''}`} onClick={() => jumpTo(i)}>
                 {s}
               </p>
             ))}
