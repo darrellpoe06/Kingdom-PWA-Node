@@ -199,3 +199,29 @@ describe("the lesson's own Read/Listen/age-chip buttons stay in the new look (no
     }
   });
 });
+
+// Darrell, 2026-11-25: "the all listed should populate like YouTube... so all
+// available can be seen in a list of options."
+describe('More Lessons — a YouTube-style queue of all available lessons (same course)', () => {
+  it('Watch mode lists other real lessons (never the prototype lesson itself), each with its real image', () => {
+    const onOpenLesson = vi.fn();
+    render(<LearnStudioPreview courses={COURSES} onOpenLesson={onOpenLesson} onExit={vi.fn()} ownerDevice />);
+    click(byText('Try the new lesson experience')[0]);
+    expect(container.textContent).toContain('More Lessons');
+    const rows = [...container.querySelectorAll('.le-more-card')];
+    expect(rows.length).toBeGreaterThan(0);
+    expect(rows.some((r) => r.textContent.includes('Not with Eyeservice'))).toBe(false);
+    expect(container.querySelector('.le-more-thumb')).toBeTruthy();
+  });
+
+  it('tapping a More Lessons row exits the overlay and opens that lesson the normal way', () => {
+    const onOpenLesson = vi.fn();
+    render(<LearnStudioPreview courses={COURSES} onOpenLesson={onOpenLesson} onExit={vi.fn()} ownerDevice />);
+    click(byText('Try the new lesson experience')[0]);
+    const row = container.querySelector('.le-more-card');
+    expect(row).toBeTruthy();
+    click(row);
+    expect(onOpenLesson).toHaveBeenCalledTimes(1);
+    expect(container.textContent).not.toContain('PROTOTYPE');
+  });
+});

@@ -133,7 +133,7 @@ function playFrom(engine, segments, fromIdx) {
   engine.play();
 }
 
-export default function LessonExperience({ lesson, record, onExit, initialMode = 'watch', initialLevel = 'adult' }) {
+export default function LessonExperience({ lesson, record, onExit, initialMode = 'watch', initialLevel = 'adult', moreLessons = [], onOpenOther = null }) {
   const [mode, setMode] = useState(initialMode);
   const [level, setLevel] = useState(initialLevel);
   const [status, setStatus] = useState('idle');
@@ -307,6 +307,7 @@ export default function LessonExperience({ lesson, record, onExit, initialMode =
               </p>
             ))}
           </div>
+          <MoreLessons items={moreLessons} onOpen={onOpenOther} />
         </section>
       )}
 
@@ -417,6 +418,29 @@ function StudyMode({ lesson }) {
           </ul>
         </>
       )}
+    </section>
+  );
+}
+
+// YouTube-style "up next" queue: every available lesson in the same course,
+// as a thumbnail + title row, so the whole list of options is visible at a
+// glance (Darrell, 2026-11-25: "the all listed should populate like
+// YouTube... so all available can be seen in a list of options"). Tapping a
+// row exits this overlay and opens that lesson the normal way.
+function MoreLessons({ items, onOpen }) {
+  if (!items || !items.length) return null;
+  return (
+    <section className="le-more">
+      <h2 className="le-more-h">More Lessons</h2>
+      <div className="le-more-grid ts-grid-collapse">
+        {items.map((r) => (
+          <button key={r.lessonId} type="button" className={`le-more-card ${RING}`} onClick={() => onOpen && onOpen(r.courseKey, r.lessonId)}>
+            <CoverImage image={r.image} alt={r.imageAlt} className="le-more-thumb" />
+            <span className="le-more-title">{r.displayTitle}</span>
+            <span className="le-more-meta">{r.courseTitle}</span>
+          </button>
+        ))}
+      </div>
     </section>
   );
 }

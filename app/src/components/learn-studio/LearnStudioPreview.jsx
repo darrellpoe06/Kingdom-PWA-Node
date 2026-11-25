@@ -59,6 +59,18 @@ export default function LearnStudioPreview({ courses, onOpenLesson, onExit, owne
   const [experienceMode, setExperienceMode] = useState('watch');
   const [experienceLevel, setExperienceLevel] = useState('adult');
   const prototypeRecord = index.get(PROTOTYPE_LESSON_ID) || null;
+  // Darrell, 2026-11-25: "the all listed should populate like YouTube... so
+  // all available can be seen in a list of options." A YouTube-style queue of
+  // other real lessons (same course, real cinematic cover each) -- reuses the
+  // SAME approved images already indexed, no new art. Tapping a DIFFERENT
+  // lesson exits the overlay and opens it the normal way (classic reader);
+  // only the one prototype lesson has the new Experience so far.
+  const moreLessons = useMemo(() => {
+    if (!prototypeRecord) return [];
+    return [...index.values()]
+      .filter((r) => r.courseKey === prototypeRecord.courseKey && r.lessonId !== PROTOTYPE_LESSON_ID && r.image && r.image.src)
+      .slice(0, 12);
+  }, [index, prototypeRecord]);
   // LearnStudio's own read/listen/version wrappers call this hand-off as
   // onRead(lesson, course, mode) / onListen(lesson, course) / onVersion(lesson,
   // course, v) -- see its doc comment. A single-argument (x) here (checking
@@ -106,6 +118,10 @@ export default function LearnStudioPreview({ courses, onOpenLesson, onExit, owne
     }
     return toClassic(lesson, course);
   };
+  const openOther = (courseKey, lessonId) => {
+    setShowExperience(false);
+    onOpenLesson(courseKey, lessonId);
+  };
   if (showExperience && ownerDevice) {
     return (
       <LessonExperienceBoundary onExit={() => setShowExperience(false)}>
@@ -115,6 +131,8 @@ export default function LearnStudioPreview({ courses, onOpenLesson, onExit, owne
           onExit={() => setShowExperience(false)}
           initialMode={experienceMode}
           initialLevel={experienceLevel}
+          moreLessons={moreLessons}
+          onOpenOther={openOther}
         />
       </LessonExperienceBoundary>
     );
