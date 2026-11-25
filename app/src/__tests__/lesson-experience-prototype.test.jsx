@@ -82,7 +82,7 @@ describe('the prototype entry is private to the owner device', () => {
   it('opens the prototype overlay on tap, with all four modes', () => {
     render(<LearnStudioPreview courses={COURSES} onOpenLesson={vi.fn()} onExit={vi.fn()} ownerDevice />);
     click(byText('Try the new lesson experience')[0]);
-    expect(container.textContent).toContain('PROTOTYPE');
+    expect(container.textContent).toContain('Owner preview');
     for (const label of ['Watch', 'Read', 'Listen', 'Study']) {
       expect(byText(label).length).toBeGreaterThan(0);
     }
@@ -173,7 +173,7 @@ describe("the lesson's own Read/Listen/age-chip buttons stay in the new look (no
     expect(readBtn).toBeTruthy();
     click(readBtn);
     expect(onOpenLesson).not.toHaveBeenCalled();
-    expect(container.textContent).toContain('PROTOTYPE');
+    expect(container.textContent).toContain('Owner preview');
     expect(byText('Read').some((b) => b.getAttribute('aria-selected') === 'true')).toBe(true);
   });
 
@@ -219,7 +219,7 @@ describe("the lesson's own Read/Listen/age-chip buttons stay in the new look (no
     expect(card).toBeTruthy();
     click([...container.querySelectorAll('button')].find((b) => b.textContent.trim() === 'Read Lesson'));
     expect(onOpenLesson).toHaveBeenCalledTimes(1);
-    expect(container.textContent).not.toContain('PROTOTYPE');
+    expect(container.textContent).not.toContain('Owner preview');
   });
 });
 
@@ -246,7 +246,7 @@ describe('More Lessons — a YouTube-style queue of all available lessons (same 
     const picked = row.textContent;
     click(row);
     expect(onOpenLesson).not.toHaveBeenCalled();
-    expect(container.textContent).toContain('PROTOTYPE');
+    expect(container.textContent).toContain('Owner preview');
     expect(container.textContent).not.toContain('Not with Eyeservice');
     expect(picked.length).toBeGreaterThan(0);
   });

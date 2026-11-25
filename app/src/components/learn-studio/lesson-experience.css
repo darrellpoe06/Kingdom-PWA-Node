@@ -1374,3 +1374,12 @@
   color: var(--le-dim);
   font-size: 0.9375rem;
 }
+
+/* THE PLAYER PINS BELOW THE APP'S HEADER, AND ITS CONTROLS STAY IN VIEW (useChromeTop.js). The picture
+   is capped so the picture, the progress bar and the control row always fit under the header together. */
+.le-player {
+  top: var(--le-chrome-top, 0px);
+}
+.le-player .le-stage:not(.le-stage--full):not(:fullscreen) {
+  max-height: max(160px, calc(100svh - var(--le-chrome-top, 0px) - 300px));
+}

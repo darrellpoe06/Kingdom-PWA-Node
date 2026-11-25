@@ -25,6 +25,8 @@ import { motionBehavior } from '../../lib/gentle-motion.js';
 import { buildFollowMap, alignSegmentSpans, rangeFor, highlightSegment, clearReadingHighlights } from '../../lib/read-follow.js';
 import LessonStories from '../LessonStories.jsx';
 import LessonNav from './LessonNav.jsx';
+import useChromeTop from './useChromeTop.js';
+import { shippedSrcSet } from '../../lib/institute-studio.js';
 import { sentenceKeyOf } from '../../lib/learn-resume.js';
 import { storiesTextFor, HIGHLIGHT_KEY, HIGHLIGHT_PENS, nextPen, readHighlights, saveHighlights } from './lesson-reading.js';
 
@@ -240,7 +242,8 @@ function renderWithVerses(text, keyPrefix) {
 
 function CoverImage({ image, alt, className, animated = false }) {
   const BASE = (import.meta.env && import.meta.env.BASE_URL) || '/';
-  const at = (s) => (typeof s === 'string' ? s.replace(/(^|, )learn-thumbs\//g, `$1${BASE}learn-thumbs/`) : s);
+  // Only the sizes that are shipped (w640, w1280): a record may list sizes with no file, and a sharp screen then picks a 404.
+  const at = (s) => (typeof s === 'string' ? (s.includes(' ') ? shippedSrcSet(s) : s).replace(/(^|, )learn-thumbs\//g, `$1${BASE}learn-thumbs/`) : s);
   if (!image || !image.src) return <div className={`${className} le-img--empty`} aria-hidden="true" />;
   return (
     <picture>
@@ -450,6 +453,8 @@ export default function LessonExperience({
     [lesson.id, level]
   );
   const stageRef = useRef(null);
+  const rootRef = useRef(null);
+  useChromeTop(rootRef);
   const activeLineRef = useRef(null);
   // WATCH: the transcript is its own scroll box under a pinned player
   // (Darrell, 2026-11-25: narration "scrolls the screen away from the video
@@ -676,7 +681,7 @@ export default function LessonExperience({
       <button type="button" className={`le-back ${RING}`} onClick={onExit}>
         ‹ Back to Learn
       </button>
-      {!lessonTools && <span className="le-proto-badge">PROTOTYPE · private, for review</span>}
+      {!lessonTools && <span className="le-proto-badge">Owner preview · this lesson is not public yet</span>}
       <button type="button" className={`le-pagelight ${RING}`} onClick={togglePage} aria-pressed={darkPage} data-testid="le-page-light">
         {darkPage ? 'Bright page' : 'Dark page'}
       </button>
@@ -691,6 +696,7 @@ export default function LessonExperience({
       <LevelContext.Provider value={level}>
         <ExperienceToolsContext.Provider value={lessonTools}>
           <div
+            ref={rootRef}
             className={`le-root le-root--${mode}${darkPage ? ' le-root--darkpage' : ''}`}
             aria-label={lessonTools ? 'Lesson' : 'Lesson Experience (prototype)'}
           >

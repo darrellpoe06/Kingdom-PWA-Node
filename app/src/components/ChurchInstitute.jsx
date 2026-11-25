@@ -110,7 +110,8 @@ function PopulationPaths({ paths, testid = 'institute-by-age' }) {
   return (
     <div className="mt-2" data-testid={testid}>
       <p className="lc-small">
-        <b>By age, young to seniors.</b> Each lesson carries its own words for each age.
+        <b>By age, young to seniors.</b> Each row opens one course written for that age, and counts that course only: Living Lessons from the Word, and Little
+        Learners for the little ones. The Institute's other courses are listed above.
       </p>
       <ul className="lc-ages mt-1" aria-label="Lessons by age">
         {paths.map((r) => (
@@ -118,7 +119,9 @@ function PopulationPaths({ paths, testid = 'institute-by-age' }) {
             <a href={lessonUrl({ courseKey: r.courseKey })} className={`lc-age ${FOCUS}`} data-testid={`institute-age-${r.key}`} data-count={r.count}>
               <b>{r.label}</b>
               <small>ages {r.range}</small>
-              <small>{r.count} lessons ›</small>
+              <small>
+                {r.count} {r.courseKey === 'living-lessons' ? 'Living Lessons' : 'Little Learners lessons'} ›
+              </small>
             </a>
           </li>
         ))}

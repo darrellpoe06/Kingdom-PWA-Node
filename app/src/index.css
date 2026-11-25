@@ -491,7 +491,7 @@ body:has(.fixed.inset-0.z-50) .chrome-dock {
    Reading text is rem so large print scales it (UX-PATTERNS 2b); targets
    are 36px+ (2g); nothing here animates on its own (2e, reduced motion).
    =================================================================== */
-:root{--is-ember:#5E140E;--is-crimson:#8E2217;--is-gold-hi:#E9C766;--is-gold-bright:#F2B526;--is-gold-title:#F6D77A;--is-photo-bg:#2a2a2a;--lc-red:#C03222;--lc-heart:#E43C28;--lc-black:#1A1012;--lc-white:#FFFFFF;--lc-gold:#CFA63C;--lc-gold-ink:#7A5C14;--lc-gold-tint:#FBF3DC;--lc-red-tint:#FFF0EE;--lc-red-deep:#8E2217;--lc-muted:#6B4440;--lc-line:#F2D9D5;--lc-ink:#1A1012;--lc-paper:#FFFFFF;--lc-display:"Fraunces",Georgia,serif}
+:root{--is-ok-ink:#226B40;--is-ember:#5E140E;--is-crimson:#8E2217;--is-gold-hi:#E9C766;--is-gold-bright:#F2B526;--is-gold-title:#F6D77A;--is-photo-bg:#2a2a2a;--lc-red:#C03222;--lc-heart:#E43C28;--lc-black:#1A1012;--lc-white:#FFFFFF;--lc-gold:#CFA63C;--lc-gold-ink:#7A5C14;--lc-gold-tint:#FBF3DC;--lc-red-tint:#FFF0EE;--lc-red-deep:#8E2217;--lc-muted:#6B4440;--lc-line:#F2D9D5;--lc-ink:#1A1012;--lc-paper:#FFFFFF;--lc-display:"Fraunces",Georgia,serif}
 [data-theme="midnight"]{--lc-paper:#141010;--lc-ink:#F3ECEC;--lc-muted:#C9B6B6;--lc-line:#3A2A2A;--lc-red-tint:#2A1614;--lc-gold-tint:#2A2412;--lc-gold-ink:#E2C66A;--lc-red-deep:#F0A79C}
 [data-theme="night"]{--lc-paper:#241617;--lc-ink:#F6ECE9;--lc-muted:#D8B9B2;--lc-line:#4F2C2C;--lc-red-tint:#30181A;--lc-gold-tint:#2E2416;--lc-gold-ink:#E4B93E;--lc-red-deep:#FFB3A7}
 .lc-home{display:flex;flex-direction:column;gap:1.125rem;color:var(--lc-ink)}
@@ -1130,11 +1130,11 @@ html[data-reader-rails="sides"] header[data-read-skip] {
 .is-lesson-img{width:100%;aspect-ratio:16/10;object-fit:cover;border-radius:.625rem;display:block}
 .is-lesson-b{display:flex;flex-direction:column;min-width:0;gap:.125rem}
 .is-lesson-b b{font-family:var(--lc-display);font-size:1rem;line-height:1.2}
-.is-lesson-b em{font-style:normal;font-family:var(--lc-display);font-weight:700;color:var(--lc-red);font-size:.95rem}
+.is-lesson-b em{font-style:normal;font-family:var(--lc-display);font-weight:700;color:var(--lc-red-deep);font-size:.95rem}
 .is-lesson-b small{color:var(--lc-muted);font-size:.78rem}
 .is-go{grid-column:1/-1;justify-self:start;min-height:40px;padding:0 1rem;border-radius:999px;display:inline-flex;align-items:center;font-weight:800;font-size:.85rem}
 .is-go-red{background:var(--lc-red);color:var(--lc-white)}
-.is-go-line{border:2px solid var(--lc-red);color:var(--lc-red)}
+.is-go-line{border:2px solid var(--lc-red-deep);color:var(--lc-red-deep)}
 .is-progs{display:grid;grid-template-columns:1fr;gap:.75rem}
 .is-pcard{display:flex;flex-direction:column;text-align:left;padding:0;border:1px solid var(--lc-line);border-radius:1rem;overflow:hidden;background:var(--lc-paper);color:var(--lc-ink);cursor:pointer;box-shadow:0 8px 20px rgba(26,16,18,.12)}
 .is-pimg{position:relative;display:block;aspect-ratio:16/9;background:var(--lc-black)}
@@ -1196,3 +1196,10 @@ html[data-reader-rails="sides"] header[data-read-skip] {
 .is-cbody small{font-size:.8rem;line-height:1.4;color:var(--lc-muted)}
 .is-cbody .is-go{margin-top:auto;align-self:flex-start;grid-column:auto}
 .is-go-gold{background:linear-gradient(180deg,var(--is-gold-hi),var(--lc-gold));color:var(--lc-black)}
+/* Accessibility pass on the Institute studio (axe-core 4.10.2, WCAG 2.1 A/AA, 390px, 2026-11-25). Text that was
+   brand red on a dark page measured 3.09-3.72:1; it now uses the theme's own readable red (--lc-red-deep: dark on
+   light themes, light on dark themes). The "available" chip measured 4.43:1; the course-filter buttons were white
+   on a light page (1.1:1) in light themes. Scoped to the studio so the public Institute is unchanged. */
+.is-root .lc-link{color:var(--lc-red-deep)}
+.is-root .lc-status-ok{color:var(--is-ok-ink)}
+.is-root .lc-inst-btns .lc-btn-ghost{background:var(--lc-paper);color:var(--lc-ink);border:1px solid var(--lc-muted)}
