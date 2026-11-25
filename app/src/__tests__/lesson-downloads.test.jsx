@@ -424,4 +424,24 @@ describe('downloading needs an account (DR-0698)', () => {
     act(() => root.unmount());
     container.remove();
   });
+
+  // DR-1656: the switch is in Learn > Downloads for the Governor only.
+  it('the downloads switch shows in Downloads for the Governor and for no one else', () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    const props = { extraCourses: COURSES, progress: {}, toggleModule: () => {}, quizState: {}, recordQuiz: () => {}, learnLevel: 'auto', setLearnLevel: () => {}, ageBand: 'adult', setAgeBand: () => {}, signedIn: true };
+    const downloads = () => {
+      const tab = container.querySelector('#learn-area-tab-downloads');
+      if (tab && tab.getAttribute('aria-selected') !== 'true') act(() => { tab.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+    };
+    act(() => root.render(createElement(ChurchLearn, { ...props, isGovernor: true })));
+    downloads();
+    expect(container.querySelector('[data-testid="downloads-switch"]')).toBeTruthy();
+    act(() => root.render(createElement(ChurchLearn, { ...props, isGovernor: false })));
+    downloads();
+    expect(container.querySelector('[data-testid="downloads-switch"]')).toBeNull();
+    act(() => root.unmount());
+    container.remove();
+  });
 });

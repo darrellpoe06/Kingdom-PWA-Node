@@ -28,7 +28,8 @@ import {
   startDownloadPassCheckout,
   sayPassError,
   requestLessonCopy,
-  DOWNLOADS_OPEN,
+  readDownloadsOpen,
+  setDownloadsOpen,
 } from '../lib/lesson-download-access.js';
 
 export const DOWNLOAD_IS_PAID = 'Downloading a lesson is part of PoeTech+, or a one-time Download Pass. Reading and ▶ Play stay free for everyone.';
@@ -45,13 +46,29 @@ export function DownloadAccessProvider({
   signedIn = false,
   userTier = 'foundation',
   forceAccess = null,
-  open = DOWNLOADS_OPEN,
+  open: openProp,
   client = supabase,
   fetchImpl,
   children,
 }) {
   const [read, setRead] = useState(null);
   const [nonce, setNonce] = useState(0);
+  // DR-1656: the switch is read from the database unless a caller (a test)
+  // states it. Until the database answers true, downloads are closed.
+  const [switchRead, setSwitchRead] = useState(null);
+  const [switchNonce, setSwitchNonce] = useState(0);
+  const live = openProp === undefined;
+  useEffect(() => {
+    if (!live) return undefined;
+    let alive = true;
+    Promise.resolve(readDownloadsOpen(client)).then((r) => {
+      if (alive) setSwitchRead(r);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [live, client, switchNonce]);
+  const open = live ? !!(switchRead && switchRead.ok && switchRead.open === true) : openProp;
   const closed = open !== true;
   const needRead = !forceAccess && !closed && signedIn && !tierAllowsDownloads(userTier);
 
@@ -72,8 +89,13 @@ export function DownloadAccessProvider({
   }, [needRead, client, nonce]);
 
   const recheck = useCallback(() => setNonce((n) => n + 1), []);
+  const recheckSwitch = useCallback(() => setSwitchNonce((n) => n + 1), []);
   const access = forceAccess || downloadAccess({ signedIn, userTier, read, open });
-  const value = useMemo(() => ({ access, recheck, client, fetchImpl }), [access, recheck, client, fetchImpl]);
+  const switchState = live ? (switchRead ? (switchRead.ok ? (switchRead.open ? 'open' : 'closed') : 'unknown') : 'checking') : open ? 'open' : 'closed';
+  const value = useMemo(
+    () => ({ access, recheck, client, fetchImpl, switchState, recheckSwitch }),
+    [access, recheck, client, fetchImpl, switchState, recheckSwitch]
+  );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 
@@ -81,11 +103,7 @@ export function DownloadAccessProvider({
 export function withDownloadAccess(Component) {
   function WithDownloadAccess(props) {
     return (
-      <DownloadAccessProvider
-        signedIn={props.signedIn !== false}
-        userTier={props.userTier || 'foundation'}
-        open={props.downloadsOpen === undefined ? DOWNLOADS_OPEN : props.downloadsOpen}
-      >
+      <DownloadAccessProvider signedIn={props.signedIn !== false} userTier={props.userTier || 'foundation'} open={props.downloadsOpen}>
         <Component {...props} />
       </DownloadAccessProvider>
     );
@@ -302,4 +320,55 @@ export function DownloadGate({ label = 'Download', compact = false, children }) 
   if (access === ACCESS.SIGN_IN) return <DownloadNeedsAccount compact={compact} label={label} />;
   if (access !== ACCESS.ALLOWED) return <DownloadNeedsPurchase compact={compact} label={label} />;
   return <>{children}</>;
+}
+
+/**
+ * THE DOWNLOADS SWITCH, in the app (DR-1656). Shown to the Governor only; the
+ * database refuses anyone else (set_downloads_open, 0344). It says where the
+ * switch stands as the database answered, and never claims a flip that did
+ * not land.
+ */
+export function DownloadsSwitch({ flip = setDownloadsOpen }) {
+  const { client, switchState, recheckSwitch } = useDownloadAccess();
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState('');
+  const isOpen = switchState === 'open';
+  const go = async () => {
+    setBusy(true);
+    setNote('');
+    const r = await flip(client, !isOpen);
+    setBusy(false);
+    if (r && r.ok) {
+      setNote(r.open ? 'Downloads are open. PoeTech+ and Download Pass holders can download.' : 'Downloads are closed for everyone.');
+    } else {
+      setNote(r && r.why === 'not-governor' ? 'Only the Governor can change this.' : 'The switch did not answer, so nothing changed. Try again in a moment.');
+    }
+    recheckSwitch();
+  };
+  const where = { open: 'Open', closed: 'Closed', checking: 'Checking…', unknown: 'Could not be read (treated as closed)' }[switchState] || 'Closed';
+  return (
+    <span data-testid="downloads-switch" className="block border border-[#E8E4DC] bg-[#FAF8F4] p-3 mb-3">
+      <span className="block text-[0.6875rem] uppercase tracking-wider text-[#5A5751]">Downloads switch · Governor only</span>
+      <span className="block text-[0.8125rem] text-[#1A1815] mt-1" style={SERIF}>
+        Downloads are <strong data-testid="downloads-switch-state">{where}</strong>. When closed, no one can download, copy or export a lesson, at any tier;
+        they can ask the administration for a copy.
+      </span>
+      <span className="flex flex-wrap gap-2 mt-2 items-center">
+        <button
+          type="button"
+          disabled={busy || switchState === 'checking'}
+          onClick={go}
+          data-testid="downloads-switch-flip"
+          className={`${BTN} bg-[#1A1815] text-white border-[#1A1815] hover:bg-[#B85838]`}
+        >
+          {busy ? 'Saving…' : isOpen ? 'Close downloads' : 'Open downloads'}
+        </button>
+        {note && (
+          <span role="status" className="text-[0.6875rem] text-[#5A5751]" style={SERIF}>
+            {note}
+          </span>
+        )}
+      </span>
+    </span>
+  );
 }

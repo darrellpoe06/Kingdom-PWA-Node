@@ -935,6 +935,15 @@ const NODES = [
     writes: [{ res: 'db:video_transcripts', token: 'video_transcripts' }],
     seeds: ['sermon-reader', 'harvest-ledger', 'harvest-health'],
   }),
+  // DR-1656: the downloads switch. The Governor flips it in Learn > Downloads;
+  // every download door reads it; closed until the database answers true.
+  app('app/src/lib/lesson-download-access.js', {
+    id: 'downloads-switch', name: 'The downloads switch (Governor only)',
+    purpose: 'The Governor opens or closes every download door in the app; everyone reads where it stands, and anything but the database\u2019s own true is closed.',
+    writes: [{ res: 'db:platform_switches', token: "rpc('set_downloads_open'" }],
+    reads: [{ res: 'db:platform_switches', token: "rpc('downloads_open')" }],
+    seeds: [],
+  }),
   app('app/src/lib/choir-sync.js', {
     id: 'sermon-store', name: 'Service record (sermons + songs)',
     purpose: 'Stewards add and correct services and songs by hand.',
@@ -2581,6 +2590,7 @@ const RESOURCES = {
   'nas:ytzero-inbox': { label: 'the chosen-channels inbox', sink: 'Darrell reads it himself at its LAN page (port 3701); it is a personal inbox by design, not data another workflow uses.' },
   'nas:wf18-bearer': { label: 'the n8n wf18 bearer', open: { blocker: 'Its only reader is n8n wf18, which leaves by Darrell’s decision (DR-0617, PR #1774). This workflow leaves with n8n once wf18’s replacement is proven.', reReview: '2026-10-01' } },
   'auth:users': { label: 'sign-in accounts' },
+  'db:platform_switches': { label: 'platform-wide switches the Governor flips (downloads, DR-1656)', sink: 'Read back by every download door in the app (downloads_open); the row is the switch, so its consumer is the app itself.' },
   'db:member_subscriptions': { label: "each PoeTech+ member's own paid tier (written only by the Stripe webhook)" },
   'db:book_conversations': { label: "each book's purchaser-gated conversation and reviews (0051, 0324)", source: 'Written by holders of the book through RLS (user_owns_book); the app reads the review summary through book_review_summary(), numbers only.' },
   'local:book-reviews': { label: "the device's own copy of the reviews it left (book-reviews.js)", sink: 'Read back by the Bookstore and the storefront on this device until the cloud row answers.' },

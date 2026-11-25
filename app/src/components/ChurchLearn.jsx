@@ -71,7 +71,7 @@ import { markArrivalsSeen, SCREEN_KINDS } from '../lib/arrivals.js';
 import { newShareToken } from '../lib/lesson-share.js';
 import { recordLessonShare, pendingShareToken, reportShareLanded, waitForElement } from '../lib/lesson-share-record.js';
 import DownloadNeedsAccount from './DownloadNeedsAccount.jsx';
-import { withDownloadAccess, DownloadGate } from './DownloadAccess.jsx';
+import { withDownloadAccess, DownloadGate, DownloadsSwitch } from './DownloadAccess.jsx';
 import LessonShareLedger from './LessonShareLedger.jsx';
 import { LessonDownloadButton, CourseDownloadButton, AllDownloadButton, SavedMark, OfflineLevelNote, useDownloads, useOnline } from './LessonDownloads.jsx';
 import { savedReadingFor } from '../lib/lesson-downloads.js';
@@ -5791,6 +5791,7 @@ function ChurchLearn({
             />
           </div>
         )}
+        {learnArea === 'downloads' && isGovernor && !lessonFocus && <DownloadsSwitch />}
         {/* DOWNLOAD THIS COURSE (DR-0722) — every lesson, at the levels chosen.
             In the Downloads area beside the catalog's download (DR-1190). */}
         {learnArea === 'downloads' && courseOpen && !lessonFocus && (
@@ -5798,7 +5799,6 @@ function ChurchLearn({
             <CourseDownloadButton course={active} signedIn={signedIn} />
           </div>
         )}
-
 
         {/* Derived catalog line — counted LIVE from the mounted courses (never a
             hand-typed number, DR-0121). The >= 40-lesson floor is machine-held

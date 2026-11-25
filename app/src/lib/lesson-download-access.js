@@ -40,6 +40,9 @@ import { readMyBookEntitlements } from './book-entitlements-cloud.js';
  * flips it. Reading and Play stay free for everyone either way.
  */
 export const DOWNLOADS_OPEN = false;
+// DR-1656: the live switch is stored (platform_switches, migration 0344) and
+// flipped in the app by the Governor; DOWNLOADS_OPEN is what the app uses when
+// the stored answer has not come back (in flight, an error, a timeout): closed.
 
 /** The one-time product in STRIPE_CATALOG that unlocks downloads for a person. */
 export const DOWNLOAD_PASS_ID = 'learn-download-pass';
@@ -177,5 +180,34 @@ export async function requestLessonCopy({ what = 'a lesson', where = '', upload 
     return { ok: false, why: r && r.skipped === 'signed-out' ? 'sign-in' : 'failed' };
   } catch {
     return { ok: false, why: 'failed' };
+  }
+}
+
+function withTimeout(p, ms) {
+  let t;
+  return Promise.race([p, new Promise((_, rej) => (t = setTimeout(() => rej(new Error('timeout')), ms)))]).finally(() => clearTimeout(t));
+}
+
+/** The stored switch (DR-1656). -> { ok, open }. Anything but the database's own true is closed. */
+export async function readDownloadsOpen(client, ms = TIMEOUT_MS) {
+  if (!client || typeof client.rpc !== 'function') return { ok: false, open: false };
+  try {
+    const { data, error } = await withTimeout(Promise.resolve(client.rpc('downloads_open')), ms);
+    if (error) return { ok: false, open: false };
+    return { ok: true, open: data === true };
+  } catch {
+    return { ok: false, open: false };
+  }
+}
+
+/** The Governor flips the switch (DR-1656). -> { ok, open } or { ok:false, why }. */
+export async function setDownloadsOpen(client, on, ms = TIMEOUT_MS) {
+  if (!client || typeof client.rpc !== 'function') return { ok: false, why: 'failed' };
+  try {
+    const { data, error } = await withTimeout(Promise.resolve(client.rpc('set_downloads_open', { on_in: on === true })), ms);
+    if (error) return { ok: false, why: error.code === '42501' ? 'not-governor' : 'failed' };
+    return { ok: true, open: data === true };
+  } catch (e) {
+    return { ok: false, why: e && e.message === 'timeout' ? 'timeout' : 'failed' };
   }
 }

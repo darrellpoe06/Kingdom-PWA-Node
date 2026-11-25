@@ -275,3 +275,81 @@ describe('downloads are switched off by default (DR-1655)', () => {
     expect(await requestLessonCopy({ upload: async () => ({ skipped: 'insert-error' }) })).toEqual({ ok: false, why: 'failed' });
   });
 });
+
+// DR-1656: the switch lives in the database and the Governor flips it in the app.
+import { readDownloadsOpen, setDownloadsOpen } from '../lib/lesson-download-access.js';
+import { DownloadsSwitch } from '../components/DownloadAccess.jsx';
+const rpcClient = (answers) => ({
+  calls: [],
+  rpc(name, args) {
+    this.calls.push([name, args]);
+    const a = answers[name];
+    return Promise.resolve(typeof a === 'function' ? a(args) : a);
+  },
+});
+describe('the stored downloads switch (DR-1656)', () => {
+  it('reads only the database’s own true as open; an error or a missing client is closed', async () => {
+    expect(await readDownloadsOpen(rpcClient({ downloads_open: { data: true, error: null } }))).toEqual({ ok: true, open: true });
+    expect(await readDownloadsOpen(rpcClient({ downloads_open: { data: false, error: null } }))).toEqual({ ok: true, open: false });
+    expect(await readDownloadsOpen(rpcClient({ downloads_open: { data: 'yes', error: null } }))).toEqual({ ok: true, open: false });
+    expect(await readDownloadsOpen(rpcClient({ downloads_open: { data: null, error: { code: 'PGRST202' } } }))).toEqual({ ok: false, open: false });
+    expect(await readDownloadsOpen(null)).toEqual({ ok: false, open: false });
+    expect(await readDownloadsOpen({ rpc: () => new Promise(() => {}) }, 20)).toEqual({ ok: false, open: false });
+  });
+  it('a refusal from the database is reported as not the Governor, never as done', async () => {
+    expect(await setDownloadsOpen(rpcClient({ set_downloads_open: { data: null, error: { code: '42501' } } }), true)).toEqual({
+      ok: false,
+      why: 'not-governor',
+    });
+    const c = rpcClient({ set_downloads_open: (a) => ({ data: a.on_in, error: null }) });
+    expect(await setDownloadsOpen(c, true)).toEqual({ ok: true, open: true });
+    expect(c.calls[0]).toEqual(['set_downloads_open', { on_in: true }]);
+  });
+  it('with the database saying open, PoeTech+ gets the door; saying closed, no one does', async () => {
+    const mount = async (open) => {
+      const container = document.createElement('div');
+      document.body.appendChild(container);
+      const root = createRoot(container);
+      const client = rpcClient({ downloads_open: { data: open, error: null } });
+      await act(async () => {
+        root.render(
+          createElement(
+            DownloadAccessProvider,
+            { signedIn: true, userTier: 'business', client },
+            createElement(DownloadGate, { label: 'Download' }, createElement('button', { 'data-testid': 'the-download' }, 'Download'))
+          )
+        );
+      });
+      const got = !!container.querySelector('[data-testid="the-download"]');
+      act(() => root.unmount());
+      container.remove();
+      return got;
+    };
+    expect(await mount(true)).toBe(true);
+    expect(await mount(false)).toBe(false);
+  });
+  it('the Governor’s switch shows where it stands and flips it, re-reading the database after', async () => {
+    let stored = false;
+    const client = rpcClient({
+      downloads_open: () => ({ data: stored, error: null }),
+      set_downloads_open: (a) => ((stored = a.on_in), { data: stored, error: null }),
+    });
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    await act(async () => {
+      root.render(createElement(DownloadAccessProvider, { signedIn: true, userTier: 'business', client }, createElement(DownloadsSwitch)));
+    });
+    expect(container.querySelector('[data-testid="downloads-switch-state"]').textContent).toBe('Closed');
+    const flip = container.querySelector('[data-testid="downloads-switch-flip"]');
+    expect(flip.textContent).toBe('Open downloads');
+    await act(async () => {
+      flip.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    await act(async () => {});
+    expect(stored).toBe(true);
+    expect(container.querySelector('[data-testid="downloads-switch-state"]').textContent).toBe('Open');
+    act(() => root.unmount());
+    container.remove();
+  });
+});

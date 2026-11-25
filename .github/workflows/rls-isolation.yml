@@ -66,6 +66,10 @@ jobs:
           # The church office's posts are kept (DR-1596): a member reads only
           # their church's archive, only the reader's service role writes it,
           # one row per content, and a past calendar event is archived, never deleted.
+          # Downloads open only on Darrell's word (DR-1656).
+          - feature: downloads-switch
+            migrations: "0344-downloads-open-only-on-darrells-word.sql"
+            smokes: "0344-downloads-switch-smoke.sql"
           - feature: church-site-archive
             migrations: "0342-what-the-church-office-posts-is-kept.sql"
             smokes: "0342-church-site-archive-smoke.sql"
