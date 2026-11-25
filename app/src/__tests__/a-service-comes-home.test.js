@@ -114,6 +114,12 @@ const LOOPS_ON_THE_WAY = {
   // the row could not be written -- this gate refused the services.json entry
   // until the witness actually looked.
   'nas-heartbeat': { witness: 'loops-health.yml' },
+  // Born BY the Way (DR-1653, 2026-11-25): the second road out, a Cloudflare
+  // Tunnel the NAS dials, decided in DR-1622 after two lockouts where the box
+  // ran but its Tailscale login lapsed. loops-health reads its last-run.json
+  // in its own home, its install path, its cron lines, and the token file and
+  // container in the dark-loop diagnosis.
+  'cf-tunnel': { witness: 'loops-health.yml' },
   // Born BY the Way (DR-1414, under DR-1360, 2026-11-10): the house counts its
   // own lesson queue, reversing the last road that reached IN to answer "what is
   // waiting?". This gate caught the services.json entry on the first push with

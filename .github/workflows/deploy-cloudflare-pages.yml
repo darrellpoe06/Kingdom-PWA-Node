@@ -245,6 +245,10 @@ jobs:
           # Sovereign values (set by the armed repoint steps above) take
           # precedence; the hosted secrets remain the un-armed fallback.
           VITE_SUPABASE_URL: ${{ env.SOVEREIGN_SB_URL || secrets.VITE_SUPABASE_URL }}
+          # The second road (DR-1653): the Cloudflare Tunnel's public hostname.
+          # Unset until the repo variable SB_TUNNEL_ORIGIN is set, so the app's
+          # fetch stays the platform fetch (sb-failover.js is off without it).
+          VITE_SUPABASE_FALLBACK_URL: ${{ vars.SB_TUNNEL_ORIGIN }}
           # Unset in a normal build, so cameras.js keeps its same-origin '/cams'
           # default and cameras.test.js keeps pinning it. Set only by the
           # 2026-10-09 unlock step above, for as long as the Pages Functions

@@ -427,6 +427,19 @@ const NODES = [
     writes: [{ res: 'db:agent_inbox#lesson', token: 'row_for' }],
     seeds: ['lesson-builder'],
   }),
+  // DR-1653 (decided in DR-1622): the NAS's SECOND road out, a Cloudflare
+  // Tunnel it dials, so a lapsed Tailscale login is no longer a lockout. Off
+  // until the token Darrell's Cloudflare account mints is on the box.
+  rider('service:cf-tunnel', 'infra/nas-loops/loops/cf_tunnel.py', {
+    id: 'cf-tunnel', name: 'The second road out (Cloudflare Tunnel)',
+    purpose: 'Each services-sync cycle the NAS keeps one pinned cloudflared container running from its own token file, reaching the sovereign gateway on the host, and writes last-run.json; with no token it does nothing and says so. The app fails over to this road when the Funnel cannot be reached.',
+    reads: [
+      { res: 'nas:clock', token: 'services-sync' },
+      { res: 'nas:secret:cloudflared-token', token: 'cloudflared-token.txt' },
+    ],
+    writes: [{ res: 'nas:cf-tunnel', token: 'def start' }],
+    seeds: [],
+  }),
   // DR-1360: the NAS pulls each learn-presentation review artifact before it
   // expires and keeps the paid pictures; no runner pushes into the house.
   rider('service:learn-thumbs-pull', 'infra/nas-loops/learn-thumbs-pull.py', {
@@ -2538,6 +2551,8 @@ const RESOURCES = {
   'nas:learn-thumbs': { label: 'the paid Learn pictures kept on the NAS (masters + each run\u2019s ledger)', sink: 'The durable copy of pictures already paid for, kept because the GitHub artifact expires and the runner cache evicts in 7 days; a person reads it at /volume1/PoeTech/learn-thumbs, and a later publish or re-compose step reads the masters from here rather than paying again.' },
   'gh:artifact:learn-presentation-review': { label: 'the Learn thumbnail review package (records + composed images)', sink: 'The owner reviews it before approval; approved records are published to the Learn presentation store in a separate, approved step (migration 0343), never automatically.' },
   'http:api.anthropic.com': { label: 'Anthropic Messages API (lesson display titles)', source: 'An outside provider: writes the promotional title, headline and image prompt from the lesson text; every result is machine-validated and stays in review until a person approves.' },
+  'nas:secret:cloudflared-token': { label: 'the Cloudflare Tunnel token on the NAS (DR-1653)', source: 'Minted only in Darrell’s own Cloudflare account (Zero Trust, Tunnels) and placed on the box by his hand; nothing in this repository can mint or write it, and its absence is the tunnel’s off switch.' },
+  'nas:cf-tunnel': { label: 'the second road out: the cloudflared container and its ledger (DR-1653)', sink: 'The running tunnel IS the product: the app fails over to it (lib/sb-failover.js); loops-health reads /volume1/PoeTech/cf-tunnel/last-run.json so a down road is seen.' },
   'http:voice': { label: 'the reading voice studio', route: '/voice' },
   'http:voice-lite': { label: 'the NAS audio voice (Piper)', route: '/voice-lite' },
   'http:cams': { label: 'the family camera road on the NAS (go2rtc)', route: '/cams' },
