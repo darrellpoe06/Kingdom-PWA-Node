@@ -4900,7 +4900,7 @@ export default function ChurchLearn({
   // FULL WIDTH, LIKE EVERY OTHER PAGE (Darrell 2026-09-14: "the lessons are
   // supposed to be the full width of the window... like all pages").
   const [studioFlag] = useState(() => isLearnStudioOn({ defaultOn: learnStudioDefaultOn })), [studio, setStudio] = useState(studioFlag); // owner preview: on by default for the owner's device (no URL needed in the native app), opt-in elsewhere
-  if (studio) return <LearnStudioPreview courses={courses} onOpenLesson={(k, id) => { setStudio(false); openLessonFromList(k, id); }} onExit={() => setStudio(false)} />;
+  if (studio) return <LearnStudioPreview courses={courses} onOpenLesson={(k, id) => { setStudio(false); openLessonFromList(k, id); }} onExit={() => setStudio(false)} ownerDevice={learnStudioDefaultOn} />;
   // MEASURED in a real browser at 1440px rather than guessed: window 1440,
   // <main> 1440, and the lesson card 768 -- constrained by exactly this one
   // `max-w-3xl` on the section below. It was the ONLY limiter in the whole

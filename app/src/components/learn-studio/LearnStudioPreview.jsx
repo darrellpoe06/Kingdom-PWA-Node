@@ -10,13 +10,15 @@
 // and re-crash), instead of taking the whole app's React tree down with it.
 // Darrell's wife, 2026-11-24, with every button in the app frozen: this
 // boundary is the fix for THAT CLASS of failure, whatever the exact cause.
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import LearnStudio from './LearnStudio.jsx';
 import { presentationIndex, isLearnStudioOn, STUDIO_FLAG_KEY } from '../../lib/learn-presentation/presentation.js';
 
 export { isLearnStudioOn };
 import RECORDS from '../../lib/learn-presentation/presentation-records.json';
 import TOPICS from '../../lib/learn-presentation/presentation-topics.json';
+import LessonExperience, { LessonExperienceBoundary, PROTOTYPE_LESSON_ID } from './LessonExperience.jsx';
+import PROTOTYPE_LESSON from '../../lib/living-lessons/ll338-not-with-eyeservice.js';
 
 // Covers ship under public/learn-thumbs with base-relative paths; resolve them
 // against the app's base (web /poetech-app/, native /).
@@ -46,9 +48,15 @@ export class LearnStudioErrorBoundary extends React.Component {
   }
 }
 
-export default function LearnStudioPreview({ courses, onOpenLesson, onExit }) {
+export default function LearnStudioPreview({ courses, onOpenLesson, onExit, ownerDevice = false }) {
   const index = useMemo(() => presentationIndex(((RECORDS && RECORDS.records) || []).map((r) => ({ ...r, image: image(r.image) }))), []);
   const topics = useMemo(() => Object.fromEntries(Object.entries(TOPICS || {}).map(([k, v]) => [k, { ...v, image: image(v.image) }])), []);
+  // PRIVATE PROTOTYPE (Darrell, 2026-11-25): one lesson, four modes (Watch /
+  // Read / Listen / Study), for his approval before any wider build. Gated to
+  // the SAME owner-device signal that already defaults Learn Studio itself on
+  // -- no one else's app ever shows this card.
+  const [showExperience, setShowExperience] = useState(false);
+  const prototypeRecord = index.get(PROTOTYPE_LESSON_ID) || null;
   // LearnStudio's own read/listen/version wrappers call this hand-off as
   // onRead(lesson, course, mode) / onListen(lesson, course) / onVersion(lesson,
   // course, v) -- see its doc comment. A single-argument (x) here (checking
@@ -61,8 +69,37 @@ export default function LearnStudioPreview({ courses, onOpenLesson, onExit }) {
     const courseKey = course && (course.key || (course.meta && course.meta.key));
     return lesson && courseKey && onOpenLesson(courseKey, lesson.id);
   };
+  if (showExperience && ownerDevice) {
+    return (
+      <LessonExperienceBoundary onExit={() => setShowExperience(false)}>
+        <LessonExperience lesson={PROTOTYPE_LESSON} record={prototypeRecord} onExit={() => setShowExperience(false)} />
+      </LessonExperienceBoundary>
+    );
+  }
+
   return (
     <section className="w-full" aria-label="Learn">
+      {ownerDevice && prototypeRecord && (
+        <button
+          type="button"
+          onClick={() => setShowExperience(true)}
+          style={{
+            display: 'block',
+            width: '100%',
+            margin: '0 0 12px',
+            padding: '12px 16px',
+            borderRadius: 14,
+            border: '1px solid #f2bf2e',
+            background: 'rgba(242,191,46,0.1)',
+            color: '#f2bf2e',
+            fontWeight: 700,
+            fontSize: '0.9375rem',
+            textAlign: 'left',
+          }}
+        >
+          ✦ Try the new lesson experience (prototype) — Not with Eyeservice
+        </button>
+      )}
       <LearnStudioErrorBoundary onExit={onExit}>
         <LearnStudio courses={courses} index={index} preview topicCovers={topics} onRead={open} onListen={open} onVersion={open} onExit={onExit} />
       </LearnStudioErrorBoundary>

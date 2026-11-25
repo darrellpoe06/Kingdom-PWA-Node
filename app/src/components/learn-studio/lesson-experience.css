@@ -1,0 +1,395 @@
+/* Lesson Experience — private prototype. Same brand tokens as learn-studio.css
+   (dark, red/black/white/gold); font sizes in rem throughout (DR-0276) so the
+   app's text-size control (A/A+/A++) reaches every mode. */
+.le-root {
+  --le-bg: #0f0b0d;
+  --le-panel: #1a1416;
+  --le-line: #2c2326;
+  --le-text: #f6f2ee;
+  --le-dim: #b9b0aa;
+  --le-gold: #f2bf2e;
+  --le-red: #d7261e;
+  background: var(--le-bg);
+  color: var(--le-text);
+  min-height: 100vh;
+  padding: 12px 16px 48px;
+  font-family: 'DM Sans', system-ui, sans-serif;
+  max-width: 900px;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+.le-root *,
+.le-root *::before,
+.le-root *::after {
+  box-sizing: border-box;
+}
+.le-root button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.le-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.le-back {
+  background: none;
+  border: none;
+  color: var(--le-gold);
+  font-size: 1rem;
+  font-weight: 600;
+  padding: 8px 0;
+}
+.le-back:focus-visible {
+  outline: 2px solid var(--le-gold);
+  outline-offset: 2px;
+}
+.le-proto-badge {
+  font-size: 0.6875rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--le-red);
+  border: 1px solid var(--le-red);
+  border-radius: 999px;
+  padding: 3px 10px;
+}
+
+.le-title {
+  font-family: 'LS Display', 'DM Sans', system-ui, sans-serif;
+  font-weight: 900;
+  font-size: clamp(1.375rem, 4.5vw, 2.25rem);
+  line-height: 1.1;
+  margin: 4px 0 2px;
+}
+.le-original {
+  color: var(--le-dim);
+  font-size: 0.9375rem;
+  font-style: italic;
+  margin: 0 0 16px;
+}
+
+.le-modes {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  margin-bottom: 14px;
+}
+.le-mode {
+  flex: 0 0 auto;
+  background: var(--le-panel);
+  border: 1px solid var(--le-line);
+  border-radius: 999px;
+  padding: 10px 16px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.le-mode.on {
+  background: var(--le-gold);
+  color: #241b08;
+  border-color: var(--le-gold);
+}
+.le-mode:focus-visible {
+  outline: 2px solid var(--le-gold);
+  outline-offset: 2px;
+}
+
+.le-levels {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  margin-bottom: 16px;
+}
+.le-level {
+  flex: 0 0 auto;
+  background: transparent;
+  border: 1px solid var(--le-line);
+  color: var(--le-dim);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 0.8125rem;
+}
+.le-level.on {
+  border-color: var(--le-gold);
+  color: var(--le-gold);
+}
+
+/* WATCH */
+.le-stage {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  border-radius: 18px;
+  overflow: hidden;
+  background: #000;
+}
+.le-stage-img,
+.le-img--empty {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+@keyframes le-kenburns {
+  0% {
+    transform: scale(1) translate(0, 0);
+  }
+  100% {
+    transform: scale(1.1) translate(-1.5%, -1.5%);
+  }
+}
+.le-kenburns {
+  animation: le-kenburns 22s ease-in-out infinite alternate;
+}
+@media (prefers-reduced-motion: reduce) {
+  .le-kenburns {
+    animation: none;
+  }
+}
+.le-stage-scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, 0.72) 100%);
+  pointer-events: none;
+}
+.le-caption {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 18px 20px 20px;
+  font-size: clamp(1rem, 3.4vw, 1.375rem);
+  line-height: 1.4;
+  font-weight: 600;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6);
+}
+.le-said {
+  color: var(--le-gold);
+}
+.le-unsaid {
+  color: var(--le-text);
+  opacity: 0.68;
+}
+
+.le-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 14px 0;
+}
+.le-ctl {
+  background: var(--le-panel);
+  border: 1px solid var(--le-line);
+  border-radius: 999px;
+  width: 2.5rem;
+  height: 2.5rem;
+  font-size: 1.125rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+.le-ctl--play {
+  background: var(--le-red);
+  border-color: var(--le-red);
+  width: 3rem;
+  height: 3rem;
+  font-size: 1.25rem;
+}
+.le-ctl:focus-visible {
+  outline: 2px solid var(--le-gold);
+  outline-offset: 2px;
+}
+.le-progress {
+  flex: 1;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--le-line);
+  overflow: hidden;
+}
+.le-progress-fill {
+  height: 100%;
+  background: var(--le-gold);
+  transition: width 0.3s ease;
+}
+.le-progress-label {
+  font-size: 0.75rem;
+  color: var(--le-dim);
+  flex: 0 0 auto;
+}
+.le-resume-note {
+  font-size: 0.875rem;
+  color: var(--le-gold);
+  margin: -6px 0 12px;
+}
+
+.le-transcript {
+  max-height: 40vh;
+  overflow-y: auto;
+  border-top: 1px solid var(--le-line);
+  padding-top: 12px;
+}
+.le-tline {
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: var(--le-dim);
+  padding: 6px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.le-tline.on {
+  color: var(--le-text);
+  background: rgba(242, 191, 46, 0.12);
+  font-weight: 600;
+}
+
+/* READ — the illustrated book */
+.le-read-hero {
+  margin: 0 0 18px;
+  border-radius: 18px;
+  overflow: hidden;
+  position: relative;
+}
+.le-read-hero-img {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  display: block;
+}
+.le-read-hero figcaption {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 14px 18px;
+  font-family: 'LS Display', sans-serif;
+  font-weight: 800;
+  font-size: 1rem;
+  letter-spacing: 0.03em;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.6) 100%);
+}
+.le-book {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 1.0625rem;
+  line-height: 1.85;
+  color: var(--le-text);
+}
+.le-book-p {
+  margin: 0 0 1.4em;
+}
+.le-book-lead {
+  color: var(--le-gold);
+  font-family: 'LS Display', sans-serif;
+  font-weight: 800;
+  font-size: 0.9em;
+  letter-spacing: 0.02em;
+}
+.le-verse {
+  display: inline-block;
+  margin: 0.15em 0;
+  padding: 0.5em 0.9em;
+  border-left: 3px solid var(--le-red);
+  background: var(--le-panel);
+  border-radius: 0 10px 10px 0;
+  font-size: 0.95em;
+  font-style: italic;
+}
+
+/* LISTEN — audiobook */
+.le-listen-art {
+  border-radius: 18px;
+  overflow: hidden;
+  aspect-ratio: 1 / 1;
+  max-width: 320px;
+  margin: 0 auto 18px;
+}
+.le-listen-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.le-listen-now {
+  text-align: center;
+  font-size: 1.0625rem;
+  line-height: 1.6;
+  min-height: 3.2em;
+  margin-bottom: 8px;
+}
+
+/* STUDY */
+.le-study-h {
+  font-family: 'LS Display', sans-serif;
+  font-weight: 800;
+  font-size: 1.0625rem;
+  color: var(--le-gold);
+  margin: 24px 0 10px;
+}
+.le-study-bigidea {
+  font-size: 1rem;
+  line-height: 1.7;
+}
+.le-anchor {
+  padding-left: 1.2em;
+  font-size: 0.9375rem;
+  line-height: 1.7;
+  color: var(--le-dim);
+}
+.le-quiz {
+  list-style: none;
+  padding: 0;
+}
+.le-quiz-q {
+  background: var(--le-panel);
+  border: 1px solid var(--le-line);
+  border-radius: 14px;
+  padding: 14px;
+  margin-bottom: 14px;
+}
+.le-quiz-prompt {
+  font-weight: 700;
+  margin: 0 0 10px;
+}
+.le-quiz-opts {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.le-quiz-opt {
+  text-align: left;
+  background: var(--le-bg);
+  border: 1px solid var(--le-line);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 0.9375rem;
+}
+.le-quiz-opt.correct {
+  border-color: #3fa34d;
+  background: rgba(63, 163, 77, 0.15);
+}
+.le-quiz-opt.wrong {
+  border-color: var(--le-red);
+  background: rgba(215, 38, 30, 0.15);
+}
+.le-quiz-explain {
+  margin-top: 10px;
+  font-size: 0.875rem;
+  color: var(--le-dim);
+  font-style: italic;
+}
+.le-prompts {
+  font-size: 0.9375rem;
+  line-height: 1.7;
+  padding-left: 1.2em;
+}
+
+@media (min-width: 720px) {
+  .le-root {
+    padding: 24px 28px 60px;
+  }
+}
