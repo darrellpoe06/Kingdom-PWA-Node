@@ -25,6 +25,7 @@ import { motionBehavior } from '../../lib/gentle-motion.js';
 import { buildFollowMap, alignSegmentSpans, rangeFor, highlightSegment, clearReadingHighlights } from '../../lib/read-follow.js';
 import LessonStories from '../LessonStories.jsx';
 import LessonFigures from '../LessonFigures.jsx';
+import { ExperienceToolsContext, resumable, pacedFraction } from './LessonExperienceTools.jsx';
 import './lesson-experience.css';
 
 const RING = 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2';
@@ -384,11 +385,18 @@ export default function LessonExperience({
   onOpenOther = null,
   onFullPage = null,
   createNarrator = createBrowserTTS,
+  lessonTools = null,
 }) {
   const [mode, setMode] = useState(initialMode);
   const [level, setLevel] = useState(initialLevel);
   const [status, setStatus] = useState('idle');
   const [idx, setIdx] = useState(0);
+  // The classic lesson space's own features, when classic Learn opens this
+  // (LessonExperienceTools.jsx). Level first: nothing starts until the reader
+  // has seen "Who is learning?" and tapped Start.
+  const [started, setStarted] = useState(() => !(lessonTools && lessonTools.levelFirst));
+  const [resume, setResume] = useState(() => (lessonTools && lessonTools.place ? resumable(lessonTools.place()) : null));
+  const [landing, setLanding] = useState(0);
   const [boundary, setBoundary] = useState({ seg: -1, offset: 0 });
   const [resumedFrom, setResumedFrom] = useState(0);
   const [rate, setRateState] = useState(1);
@@ -423,6 +431,17 @@ export default function LessonExperience({
   const text = useMemo(() => textFor(lesson, level), [lesson, level]);
   const segments = useMemo(() => segmentText(text), [text]);
   const paragraphs = useMemo(() => (text || '').split(/\n\n+/).filter(Boolean), [text]);
+
+  // PROGRESS ON EVIDENCE (DR-1384/1386), through the classic space's savePlace:
+  // the version on screen, what was heard, and what was seen (paced, so a
+  // flick to the end credits nothing). The read is credited by CourseView's
+  // own floor check, never here.
+  const words = useMemo(() => (text.match(/\S+/g) || []).length, [text]);
+  const seenRef = useRef({ from: 0, at: Date.now() });
+  useEffect(() => {
+    if (lessonTools && started) lessonTools.onLevel(level);
+    seenRef.current = { from: 0, at: Date.now() };
+  }, [level, started]); // eslint-disable-line react-hooks/exhaustive-deps
   const number = lessonNumberOf(lesson.id);
   const title = record?.displayTitle || lesson.title;
 
@@ -575,6 +594,39 @@ export default function LessonExperience({
   const shownIdx = resumedFrom > 0 && status === 'idle' ? resumedFrom : idx;
   const pct = segments.length ? Math.round((shownIdx / segments.length) * 100) : 0;
   const isPlaying = status === 'playing';
+
+  // Heard: each sentence the voice reaches (and the whole, at the end).
+  const lastStatus = useRef(status);
+  useEffect(() => {
+    if (!lessonTools || !segments.length) return;
+    if (status === 'playing') lessonTools.onHeard((idx + 1) / segments.length, level);
+    else if (status === 'idle' && lastStatus.current === 'playing' && idx >= segments.length - 1) lessonTools.onHeard(1, level);
+    lastStatus.current = status;
+  }, [idx, status]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Seen: how far down the article the reader has really read, paced.
+  useEffect(() => {
+    if (!lessonTools || mode !== 'read' || !paragraphs.length) return;
+    const raw = Math.min(1, (readPage + 1) / paragraphs.length);
+    const f = pacedFraction({ raw, from: seenRef.current.from, words, startedAt: seenRef.current.at });
+    if (f > seenRef.current.from) {
+      seenRef.current.from = f;
+      lessonTools.onSeen(f, level);
+    }
+  }, [readPage, mode]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Resume: "Pick up where you left off" from the shared learner record.
+  const continueReading = () => {
+    if (!resume) return;
+    if (resume.heard > resume.seen && segments.length) {
+      jumpTo(Math.min(segments.length - 1, Math.floor(resume.heard * segments.length)));
+    } else {
+      setMode('read');
+      setReadPage(Math.min(paragraphs.length - 1, Math.floor(resume.seen * paragraphs.length)));
+      setLanding((n) => n + 1);
+    }
+    setResume(null);
+  };
   const elapsed = `~${clock(starts[shownIdx] || 0)}`;
   const total = `~${clock(starts[segments.length] || 0)}`;
   const speedLabel = (SPEEDS.find((s) => s.value === rate) || SPEEDS[1]).label;
@@ -591,7 +643,7 @@ export default function LessonExperience({
       <button type="button" className={`le-back ${RING}`} onClick={onExit}>
         ‹ Back to Learn
       </button>
-      <span className="le-proto-badge">PROTOTYPE · private, for review</span>
+      {!lessonTools && <span className="le-proto-badge">PROTOTYPE · private, for review</span>}
       <a className={`le-kidslink ${RING}`} href={kidsZoneHref()} data-testid="le-kids-zone">
         Kids Zone
       </a>
@@ -601,229 +653,254 @@ export default function LessonExperience({
   return (
     <FullPageContext.Provider value={onFullPage}>
       <LevelContext.Provider value={level}>
-        <div className={`le-root le-root--${mode}`} aria-label="Lesson Experience (prototype)">
-          {header}
-
-          {mode === 'watch' && (
-            <section className="le-watch">
-              <div className="le-player">
-                <div className={`le-stage ${full ? 'le-stage--full' : ''}`} ref={stageRef}>
-                  <CoverImage image={record?.image} alt={record?.imageAlt} className="le-stage-img" animated />
-                  <div className="le-stage-scrim" aria-hidden="true" />
-                  <div className="le-stage-title">
-                    <h1 className="le-title">{title}</h1>
-                    <LessonBadge number={number} />
+        <ExperienceToolsContext.Provider value={lessonTools}>
+          <div className={`le-root le-root--${mode}`} aria-label={lessonTools ? 'Lesson' : 'Lesson Experience (prototype)'}>
+            {header}
+            {lessonTools && lessonTools.screenHint}
+            {!started ? (
+              <section className="le-start" data-testid="lesson-experience-start">
+                <h1 className="le-title le-start-title">{record?.displayTitle || lesson.title}</h1>
+                {record?.displayTitle && record.displayTitle !== lesson.title && <p className="le-original">{lesson.title}</p>}
+                {lessonTools.levelFirst}
+                <button type="button" className={`le-aloud-cta ${RING}`} onClick={() => setStarted(true)}>
+                  Start this lesson
+                </button>
+              </section>
+            ) : (
+              <>
+                {resume && (
+                  <div className="le-resume" data-testid="lesson-experience-resume">
+                    <span>Pick up where you left off</span>
+                    <button type="button" className={`le-nchip on ${RING}`} onClick={continueReading}>
+                      Continue →
+                    </button>
                   </div>
-                  {captions && (isPlaying || status === 'paused') && (
-                    <div className="le-caption" aria-live="off">
-                      {boundary.seg === idx && segments[idx] ? (
-                        <>
-                          <span className="le-said">{segments[idx].slice(0, boundary.offset)}</span>
-                          <span className="le-unsaid">{segments[idx].slice(boundary.offset)}</span>
-                        </>
-                      ) : (
-                        <span className="le-unsaid">{segments[idx] || ''}</span>
+                )}
+
+                {mode === 'watch' && (
+                  <section className="le-watch">
+                    <div className="le-player">
+                      <div className={`le-stage ${full ? 'le-stage--full' : ''}`} ref={stageRef}>
+                        <CoverImage image={record?.image} alt={record?.imageAlt} className="le-stage-img" animated />
+                        <div className="le-stage-scrim" aria-hidden="true" />
+                        <div className="le-stage-title">
+                          <h1 className="le-title">{title}</h1>
+                          <LessonBadge number={number} />
+                        </div>
+                        {captions && (isPlaying || status === 'paused') && (
+                          <div className="le-caption" aria-live="off">
+                            {boundary.seg === idx && segments[idx] ? (
+                              <>
+                                <span className="le-said">{segments[idx].slice(0, boundary.offset)}</span>
+                                <span className="le-unsaid">{segments[idx].slice(boundary.offset)}</span>
+                              </>
+                            ) : (
+                              <span className="le-unsaid">{segments[idx] || ''}</span>
+                            )}
+                          </div>
+                        )}
+                        {full && (
+                          <div className="le-full-ctl">
+                            <button type="button" className={`le-chip ${RING}`} onClick={isPlaying ? pause : play} aria-label={isPlaying ? 'Pause' : 'Play'}>
+                              {isPlaying ? '❚❚' : '▶'}
+                            </button>
+                            <button type="button" className={`le-chip ${RING}`} onClick={fullscreen} aria-label="Exit full screen">
+                              ✕
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                      <Progress pct={pct} label="Lesson progress" />
+                      <div className="le-playerbar">
+                        {playBtn('le-ctl--bar')}
+                        <button type="button" className={`le-ctl le-ctl--bar ${RING}`} onClick={() => skip(-1)} aria-label="Previous sentence">
+                          ⏮
+                        </button>
+                        <button type="button" className={`le-ctl le-ctl--bar ${RING}`} onClick={() => skip(1)} aria-label="Next sentence">
+                          ⏭
+                        </button>
+                        <span className="le-time">
+                          {elapsed} / {total}
+                        </span>
+                        <span className="le-spacer" />
+                        <button type="button" className={`le-chip ${RING}`} onClick={cycleSpeed} aria-label={`Speed ${speedLabel}`}>
+                          {speedLabel}
+                        </button>
+                        <button
+                          type="button"
+                          aria-pressed={captions}
+                          className={`le-chip ${captions ? 'on' : ''} ${RING}`}
+                          onClick={() => setCaptions((c) => !c)}
+                          aria-label="Captions"
+                        >
+                          CC
+                        </button>
+                        <button type="button" className={`le-chip ${RING}`} onClick={fullscreen} aria-label="Full screen">
+                          ⛶
+                        </button>
+                      </div>
+                    </div>
+                    <p className="le-original">{lesson.title}</p>
+                    <ModePills mode={mode} setMode={setMode} />
+                    {resumeNote}
+                    <div className="le-subtabs" role="tablist" aria-label="Lesson details">
+                      {[
+                        ['transcript', 'Transcript'],
+                        ['points', 'Key Points'],
+                        ['scriptures', 'Scriptures'],
+                      ].map(([k, label]) => (
+                        <button
+                          key={k}
+                          type="button"
+                          role="tab"
+                          aria-selected={watchTab === k}
+                          className={`le-subtab ${watchTab === k ? 'on' : ''} ${RING}`}
+                          onClick={() => setWatchTab(k)}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                    {watchTab === 'transcript' && (
+                      <>
+                        <LevelChips level={level} setLevel={setLevel} />
+                        <div className="le-transcript-wrap">
+                          <ol className="le-transcript" ref={transcriptRef} onWheel={browse} onTouchMove={browse}>
+                            {segments.map((s, i) => (
+                              <li key={i} ref={i === idx ? activeLineRef : null} className={`le-tline ${i === idx ? 'on' : ''}`}>
+                                <button
+                                  type="button"
+                                  className={`le-tline-btn ${RING}`}
+                                  onClick={() => {
+                                    followAgain();
+                                    jumpTo(i);
+                                  }}
+                                >
+                                  <span className="le-tstamp">~{clock(starts[i])}</span>
+                                  <span className="le-ttext">{s}</span>
+                                </button>
+                              </li>
+                            ))}
+                          </ol>
+                          {browsing && (isPlaying || status === 'paused') && (
+                            <button type="button" className={`le-follow ${RING}`} onClick={followAgain}>
+                              ↓ Back to the current line
+                            </button>
+                          )}
+                        </div>
+                      </>
+                    )}
+                    {watchTab === 'points' && <KeyPoints lesson={lesson} />}
+                    {watchTab === 'scriptures' && <ScriptureList lesson={lesson} verses={verses} />}
+                    <MoreLessons items={moreLessons} onOpen={onOpenOther} />
+                  </section>
+                )}
+
+                {mode === 'read' && (
+                  <ReadMode
+                    key={`read-${landing}`}
+                    lesson={lesson}
+                    record={record}
+                    title={title}
+                    number={number}
+                    paragraphs={paragraphs}
+                    level={level}
+                    setLevel={setLevel}
+                    modePills={<ModePills mode={mode} setMode={setMode} />}
+                    page={readPage}
+                    setPage={setReadPage}
+                    narration={{
+                      status,
+                      idx,
+                      resumedFrom,
+                      segments,
+                      pct,
+                      elapsed,
+                      total,
+                      speedLabel,
+                      pause,
+                      resume: play,
+                      jumpTo,
+                      skip,
+                      cycleSpeed,
+                    }}
+                  />
+                )}
+
+                {mode === 'listen' && (
+                  <section className="le-listen">
+                    <ModePills mode={mode} setMode={setMode} />
+                    <div className="le-listen-art">
+                      <CoverImage image={record?.image} alt={record?.imageAlt} className="le-listen-img" />
+                      <div className="le-stage-scrim" aria-hidden="true" />
+                      <div className="le-listen-title">
+                        <h1 className="le-title">{title}</h1>
+                        <LessonBadge number={number} />
+                        <div className={`le-wave ${isPlaying ? 'on' : ''}`} aria-hidden="true">
+                          {Array.from({ length: 28 }, (_, i) => (
+                            <i key={i} style={{ animationDelay: `${(i % 7) * 0.11}s`, height: `${30 + ((i * 37) % 70)}%` }} />
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    <p className="le-original">{lesson.title}</p>
+                    <h2 className="le-listen-h">Full Audio Lesson</h2>
+                    <LevelChips level={level} setLevel={setLevel} />
+                    <p className="le-listen-now" aria-live="polite">
+                      {segments[shownIdx] || 'Ready to begin.'}
+                    </p>
+                    <Progress pct={pct} label="Listening progress" />
+                    <div className="le-times">
+                      <span>{elapsed}</span>
+                      <span>{total}</span>
+                    </div>
+                    <div className="le-transport">
+                      <button type="button" className={`le-ctl ${RING}`} onClick={() => skip(-1)} aria-label="Back 1 sentence">
+                        ⏮
+                      </button>
+                      {playBtn('le-ctl--play')}
+                      <button type="button" className={`le-ctl ${RING}`} onClick={() => skip(1)} aria-label="Forward 1 sentence">
+                        ⏭
+                      </button>
+                    </div>
+                    {resumeNote}
+                    <div className="le-listen-tools">
+                      <button type="button" className={`le-tool ${RING}`} onClick={cycleSpeed}>
+                        <strong>{speedLabel}</strong>
+                        <span>Speed</span>
+                      </button>
+                      {chapters.length > 0 && (
+                        <button type="button" aria-expanded={showChapters} className={`le-tool ${RING}`} onClick={() => setShowChapters((v) => !v)}>
+                          <strong>☰</strong>
+                          <span>Chapters</span>
+                        </button>
                       )}
                     </div>
-                  )}
-                  {full && (
-                    <div className="le-full-ctl">
-                      <button type="button" className={`le-chip ${RING}`} onClick={isPlaying ? pause : play} aria-label={isPlaying ? 'Pause' : 'Play'}>
-                        {isPlaying ? '❚❚' : '▶'}
-                      </button>
-                      <button type="button" className={`le-chip ${RING}`} onClick={fullscreen} aria-label="Exit full screen">
-                        ✕
-                      </button>
-                    </div>
-                  )}
-                </div>
-                <Progress pct={pct} label="Lesson progress" />
-                <div className="le-playerbar">
-                  {playBtn('le-ctl--bar')}
-                  <button type="button" className={`le-ctl le-ctl--bar ${RING}`} onClick={() => skip(-1)} aria-label="Previous sentence">
-                    ⏮
-                  </button>
-                  <button type="button" className={`le-ctl le-ctl--bar ${RING}`} onClick={() => skip(1)} aria-label="Next sentence">
-                    ⏭
-                  </button>
-                  <span className="le-time">
-                    {elapsed} / {total}
-                  </span>
-                  <span className="le-spacer" />
-                  <button type="button" className={`le-chip ${RING}`} onClick={cycleSpeed} aria-label={`Speed ${speedLabel}`}>
-                    {speedLabel}
-                  </button>
-                  <button
-                    type="button"
-                    aria-pressed={captions}
-                    className={`le-chip ${captions ? 'on' : ''} ${RING}`}
-                    onClick={() => setCaptions((c) => !c)}
-                    aria-label="Captions"
-                  >
-                    CC
-                  </button>
-                  <button type="button" className={`le-chip ${RING}`} onClick={fullscreen} aria-label="Full screen">
-                    ⛶
-                  </button>
-                </div>
-              </div>
-              <p className="le-original">{lesson.title}</p>
-              <ModePills mode={mode} setMode={setMode} />
-              {resumeNote}
-              <div className="le-subtabs" role="tablist" aria-label="Lesson details">
-                {[
-                  ['transcript', 'Transcript'],
-                  ['points', 'Key Points'],
-                  ['scriptures', 'Scriptures'],
-                ].map(([k, label]) => (
-                  <button
-                    key={k}
-                    type="button"
-                    role="tab"
-                    aria-selected={watchTab === k}
-                    className={`le-subtab ${watchTab === k ? 'on' : ''} ${RING}`}
-                    onClick={() => setWatchTab(k)}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-              {watchTab === 'transcript' && (
-                <>
-                  <LevelChips level={level} setLevel={setLevel} />
-                  <div className="le-transcript-wrap">
-                    <ol className="le-transcript" ref={transcriptRef} onWheel={browse} onTouchMove={browse}>
-                      {segments.map((s, i) => (
-                        <li key={i} ref={i === idx ? activeLineRef : null} className={`le-tline ${i === idx ? 'on' : ''}`}>
-                          <button
-                            type="button"
-                            className={`le-tline-btn ${RING}`}
-                            onClick={() => {
-                              followAgain();
-                              jumpTo(i);
-                            }}
-                          >
-                            <span className="le-tstamp">~{clock(starts[i])}</span>
-                            <span className="le-ttext">{s}</span>
-                          </button>
-                        </li>
-                      ))}
-                    </ol>
-                    {browsing && (isPlaying || status === 'paused') && (
-                      <button type="button" className={`le-follow ${RING}`} onClick={followAgain}>
-                        ↓ Back to the current line
-                      </button>
+                    {showChapters && (
+                      <ol className="le-chapters">
+                        {chapters.map((c) => (
+                          <li key={c.at}>
+                            <button type="button" className={`le-chapter ${RING}`} onClick={() => jumpTo(c.at)}>
+                              <span>{c.lead}</span>
+                              <span className="le-tstamp">~{clock(starts[c.at])}</span>
+                            </button>
+                          </li>
+                        ))}
+                      </ol>
                     )}
-                  </div>
-                </>
-              )}
-              {watchTab === 'points' && <KeyPoints lesson={lesson} />}
-              {watchTab === 'scriptures' && <ScriptureList lesson={lesson} verses={verses} />}
-              <MoreLessons items={moreLessons} onOpen={onOpenOther} />
-            </section>
-          )}
-
-          {mode === 'read' && (
-            <ReadMode
-              lesson={lesson}
-              record={record}
-              title={title}
-              number={number}
-              paragraphs={paragraphs}
-              level={level}
-              setLevel={setLevel}
-              modePills={<ModePills mode={mode} setMode={setMode} />}
-              page={readPage}
-              setPage={setReadPage}
-              narration={{
-                status,
-                idx,
-                resumedFrom,
-                segments,
-                pct,
-                elapsed,
-                total,
-                speedLabel,
-                pause,
-                resume: play,
-                jumpTo,
-                skip,
-                cycleSpeed,
-              }}
-            />
-          )}
-
-          {mode === 'listen' && (
-            <section className="le-listen">
-              <ModePills mode={mode} setMode={setMode} />
-              <div className="le-listen-art">
-                <CoverImage image={record?.image} alt={record?.imageAlt} className="le-listen-img" />
-                <div className="le-stage-scrim" aria-hidden="true" />
-                <div className="le-listen-title">
-                  <h1 className="le-title">{title}</h1>
-                  <LessonBadge number={number} />
-                  <div className={`le-wave ${isPlaying ? 'on' : ''}`} aria-hidden="true">
-                    {Array.from({ length: 28 }, (_, i) => (
-                      <i key={i} style={{ animationDelay: `${(i % 7) * 0.11}s`, height: `${30 + ((i * 37) % 70)}%` }} />
-                    ))}
-                  </div>
-                </div>
-              </div>
-              <p className="le-original">{lesson.title}</p>
-              <h2 className="le-listen-h">Full Audio Lesson</h2>
-              <LevelChips level={level} setLevel={setLevel} />
-              <p className="le-listen-now" aria-live="polite">
-                {segments[shownIdx] || 'Ready to begin.'}
-              </p>
-              <Progress pct={pct} label="Listening progress" />
-              <div className="le-times">
-                <span>{elapsed}</span>
-                <span>{total}</span>
-              </div>
-              <div className="le-transport">
-                <button type="button" className={`le-ctl ${RING}`} onClick={() => skip(-1)} aria-label="Back 1 sentence">
-                  ⏮
-                </button>
-                {playBtn('le-ctl--play')}
-                <button type="button" className={`le-ctl ${RING}`} onClick={() => skip(1)} aria-label="Forward 1 sentence">
-                  ⏭
-                </button>
-              </div>
-              {resumeNote}
-              <div className="le-listen-tools">
-                <button type="button" className={`le-tool ${RING}`} onClick={cycleSpeed}>
-                  <strong>{speedLabel}</strong>
-                  <span>Speed</span>
-                </button>
-                {chapters.length > 0 && (
-                  <button type="button" aria-expanded={showChapters} className={`le-tool ${RING}`} onClick={() => setShowChapters((v) => !v)}>
-                    <strong>☰</strong>
-                    <span>Chapters</span>
-                  </button>
+                  </section>
                 )}
-              </div>
-              {showChapters && (
-                <ol className="le-chapters">
-                  {chapters.map((c) => (
-                    <li key={c.at}>
-                      <button type="button" className={`le-chapter ${RING}`} onClick={() => jumpTo(c.at)}>
-                        <span>{c.lead}</span>
-                        <span className="le-tstamp">~{clock(starts[c.at])}</span>
-                      </button>
-                    </li>
-                  ))}
-                </ol>
-              )}
-            </section>
-          )}
 
-          {mode === 'study' && (
-            <>
-              <ModePills mode={mode} setMode={setMode} />
-              <StudyMode lesson={lesson} record={record} number={number} verses={verses} />
-            </>
-          )}
-        </div>
+                {mode === 'study' && (
+                  <>
+                    <ModePills mode={mode} setMode={setMode} />
+                    <StudyMode lesson={lesson} record={record} number={number} verses={verses} />
+                  </>
+                )}
+              </>
+            )}
+          </div>
+        </ExperienceToolsContext.Provider>
       </LevelContext.Provider>
     </FullPageContext.Provider>
   );
@@ -964,6 +1041,13 @@ function ReadMode({ lesson, record, title, number, paragraphs, level, setLevel, 
       cancelAnimationFrame(raf);
       raf = requestAnimationFrame(() => {
         const els = paraRefs.current;
+        // At the very bottom the last paragraphs can never reach the reading
+        // line; the reader has still reached the end of the article.
+        const doc = document.documentElement;
+        if (els.length && doc.scrollHeight > window.innerHeight && window.innerHeight + window.scrollY >= doc.scrollHeight - 4) {
+          if (els.length - 1 !== page) setPage(els.length - 1);
+          return;
+        }
         for (let i = 0; i < els.length; i += 1) {
           const el = els[i];
           if (el && el.getBoundingClientRect().bottom > READING_LINE) {
@@ -1190,6 +1274,7 @@ function StudySection({ icon, title, open = false, children }) {
 // fields: anchor + verses, big idea + benefits, discussion prompts, the
 // in-app practice and the REAL quiz with its real explanations.
 function StudyMode({ lesson, record, number, verses }) {
+  const tools = React.useContext(ExperienceToolsContext);
   const [picked, setPicked] = useState({});
   const [notes, setNotes] = useState(() => saved.get(NOTES_KEY(lesson.id), ''));
   const prompts = lesson.facilitator?.discussionPrompts || [];
@@ -1206,6 +1291,12 @@ function StudyMode({ lesson, record, number, verses }) {
       </div>
 
       <div className="le-study-card">
+        {tools && tools.downloads && (
+          <StudySection icon="notes" title="Downloads & Sharing">
+            {tools.downloads}
+          </StudySection>
+        )}
+
         <StudySection icon="scripture" title="Scripture Focus">
           <ScriptureList lesson={lesson} verses={verses} />
         </StudySection>

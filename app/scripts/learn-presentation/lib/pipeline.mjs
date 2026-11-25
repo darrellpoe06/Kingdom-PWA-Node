@@ -130,7 +130,26 @@ function libraryDuplicate(ledger, item, displayTitle) {
   return null;
 }
 
-/** Stage A. Returns { done, skipped, needsReview, failed, stoppedByBudget }. */
+/**
+ * Every text + picture-prompt problem with one lesson's copy: the app's
+ * validateRecords(), the library-wide duplicate title, and the picture rules.
+ * Shared by Stage A and the human title decisions (lib/decisions.mjs).
+ */
+export function copyProblems({ ledger, courses, item, copy }) {
+  const rec = candidateRecord(item, copy);
+  const { errors } = validateRecords([rec], courses);
+  const msgs = errors.map((e) => `${e.code}${e.detail ? ` (${e.detail})` : ''}`);
+  const dup = libraryDuplicate(ledger, item, copy.displayTitle);
+  if (dup) msgs.push(`duplicate-display-title (same as ${dup})`);
+  msgs.push(...pictureProblems(copy.imagePrompt));
+  return { rec, msgs };
+}
+
+/**
+ * Stage A. Returns { done, skipped, needsReview, failed, stoppedByBudget }.
+ * `decided` (a Set of "course::lesson" keys, lib/decisions.mjs) names lessons
+ * whose title a person decided: no title is ever bought for them.
+ */
 export async function runText({
   items,
   ledger,
@@ -142,11 +161,12 @@ export async function runText({
   budget = new Budget(null),
   timeoutMs = 120000,
   retryFailed = false,
+  decided = null,
   sleep = realSleep,
   random = Math.random,
   log = () => {},
 }) {
-  const tally = { done: 0, skipped: 0, needsReview: 0, failed: 0, stoppedByBudget: false };
+  const tally = { done: 0, skipped: 0, decided: 0, needsReview: 0, failed: 0, stoppedByBudget: false };
   const cost = provider.costCents != null ? provider.costCents : 1;
   const avoid = () =>
     Object.values(ledger.records)
@@ -179,18 +199,14 @@ export async function runText({
       { attempts: 3, sleep, random }
     );
 
-  const check = (item, copy) => {
-    const rec = candidateRecord(item, copy);
-    const { errors } = validateRecords([rec], courses);
-    const msgs = errors.map((e) => `${e.code}${e.detail ? ` (${e.detail})` : ''}`);
-    const dup = libraryDuplicate(ledger, item, copy.displayTitle);
-    if (dup) msgs.push(`duplicate-display-title (same as ${dup})`);
-    msgs.push(...pictureProblems(copy.imagePrompt));
-    return { rec, msgs };
-  };
+  const check = (item, copy) => copyProblems({ ledger, courses, item, copy });
 
   await pool(items, concurrency, async (item) => {
     if (tally.stoppedByBudget) return;
+    if (decided && decided.has(`${item.courseKey}::${item.lessonId}`)) {
+      tally.decided += 1;
+      return;
+    }
     const d = ledger.decide({ courseKey: item.courseKey, lessonId: item.lessonId, kind: 'text', contentSha: item.contentSha, maxAttempts, retryFailed });
     if (!d.run) {
       tally.skipped += 1;
@@ -341,31 +357,53 @@ export async function runImages({
     // Without this a retry would overwrite that spend and the $5 cap would undercount.
     const prior = ledger.costSoFar(base.idempotencyKey);
     const attempts = (d.attempts || 0) + 1;
-    ledger.write({ ...base, state: 'running', attempts, leaseUntil: ledger.leaseUntil(), costCents: prior });
+    // A job the provider already ACCEPTED (and billed) on an earlier try or run
+    // — killed after BFL finished, or a poll that timed out — is resumed by its
+    // id, never bought again. Only an expired or finished-badly job is dropped.
+    const last = ledger.jobs.get(base.idempotencyKey);
+    let submitted = (last && last.submitted) || null;
+    ledger.write({ ...base, state: 'running', attempts, leaseUntil: ledger.leaseUntil(), costCents: prior, submitted });
     // Per-TRY reservation, as in Stage A: each generation request (retries
     // included) reserves its own cost before it is sent, and a failed request
-    // is charged, because the provider may already have billed it.
+    // is charged, because the provider may already have billed it. A provider
+    // that reports its submit (onSubmitted) is charged AT the submit, on the
+    // ledger, before any polling; a resumed poll costs nothing.
     const meter = { c: 0 };
     try {
       const out = await retry(
         async () => {
-          const held = budget.reserve(cost);
-          if (bucket) await bucket.take();
+          const resume = submitted;
+          const held = resume ? 0 : budget.reserve(cost);
+          let charged = !!resume;
+          const onSubmitted = (job) => {
+            charged = true;
+            budget.settle(held, cost);
+            meter.c += cost;
+            submitted = { id: job.id || null, pollingUrl: job.pollingUrl || null };
+            ledger.write({ ...base, state: 'running', attempts, leaseUntil: ledger.leaseUntil(), costCents: prior + meter.c, submitted });
+          };
+          if (bucket && !resume) await bucket.take();
           try {
             const r = await withTimeout(
-              (signal) => provider.generate({ prompt: finalImagePrompt(rec.visual.prompt), signal }),
+              (signal) => provider.generate({ prompt: finalImagePrompt(rec.visual.prompt), signal, resume, onSubmitted }),
               timeoutMs,
               `image ${item.lessonId}`
             );
-            const c = r.costCents != null ? r.costCents : cost;
-            budget.settle(held, c);
-            meter.c += c;
+            if (!charged) {
+              const c = r.costCents != null ? r.costCents : cost;
+              budget.settle(held, c);
+              meter.c += c;
+            }
             return r;
           } catch (e) {
             // Charged unless the provider refused it unprocessed (never billed).
-            const c = e && e.billed === false ? 0 : cost;
-            budget.settle(held, c);
-            meter.c += c;
+            if (!charged) {
+              const c = e && e.billed === false ? 0 : cost;
+              budget.settle(held, c);
+              meter.c += c;
+            }
+            // The accepted job is gone (expired) or finished badly: the next try submits anew.
+            if (e && (e.expired || e.jobDone)) submitted = null;
             throw e;
           }
         },
@@ -400,11 +438,19 @@ export async function runImages({
         // lesson stays queued (not failed) and resumes when there is money.
         tally.stoppedByBudget = true;
         if (e.outOfCredit) tally.outOfCredit = true;
-        ledger.write({ ...base, state: 'queued', attempts: attempts - 1, costCents: prior + meter.c, leaseUntil: null, lastError: e.message });
+        ledger.write({ ...base, state: 'queued', attempts: attempts - 1, costCents: prior + meter.c, leaseUntil: null, lastError: e.message, submitted });
         log(`${e.outOfCredit ? 'provider out of credit' : 'budget'}: ${e.message}`);
         return;
       }
-      ledger.write({ ...base, state: 'failed', attempts, costCents: prior + meter.c, leaseUntil: null, lastError: String(e && e.message ? e.message : e) });
+      ledger.write({
+        ...base,
+        state: 'failed',
+        attempts,
+        costCents: prior + meter.c,
+        leaseUntil: null,
+        lastError: String(e && e.message ? e.message : e),
+        submitted,
+      });
       tally.failed += 1;
       log(`image ✗ ${item.courseKey}/${item.lessonId}: ${e.message}`);
     }

@@ -1,0 +1,60 @@
+{
+  "schema": "learn-title-decisions/v1",
+  "owner": "Darrell Poe",
+  "date": "2026-11-25",
+  "note": "Human-approved promotional copy for lessons whose generated titles were flagged needs-review. Applied by lib/decisions.mjs every time the CLI opens the ledger: the decided text is used verbatim, no new title is bought for these lessons, and the record joins the normal picture batches. Original lesson titles are never changed. An override clears ONE named text check on ONE field; duplicate titles, duplicate pictures and the picture-prompt rules always still apply.",
+  "decisions": [
+    {
+      "courseKey": "infrastructure",
+      "lessonId": "inf1-what-is-sovereign",
+      "originalTitle": "Own the iron — what \"sovereign infrastructure\" means",
+      "displayTitle": "Who Really Holds the Keys to Your Family's Photos and Your Church's Sermons?",
+      "thumbHeadline": "YOUR DATA, YOUR KEYS"
+    },
+    {
+      "courseKey": "infrastructure",
+      "lessonId": "inf8-church-stack",
+      "originalTitle": "The house of God — COLG’s sovereign stack",
+      "displayTitle": "Who Builds a Church's Tech When No One Else Will?",
+      "thumbHeadline": "BUILT FOR THE FIRST COMMUNITY",
+      "overrides": [
+        {
+          "code": "generic-god",
+          "field": "promoDescription",
+          "reason": "\"The Church of the Living God\" is the church's proper name, not a generic \"God\" in our voice; it stays as written."
+        }
+      ]
+    },
+    {
+      "courseKey": "living-lessons",
+      "lessonId": "ll27-the-god-who-documents-his-grief",
+      "originalTitle": "The God Who Documents His Grief (and teaches you to read your story by His)",
+      "displayTitle": "Does Yahweh Grieve? What His Tears Teach You About Your Own Story",
+      "thumbHeadline": "HE WEPT TOO",
+      "promoDescription": "This lesson shows how Scripture records Yahweh's own grief, from Genesis to the tears of Jesus, so that believers can trust Him with their pain. It then teaches a practical method, modeled by Joseph, for reading your own memories, both good and hard, in light of what the Word reveals about Yahweh's hand."
+    },
+    {
+      "courseKey": "living-lessons",
+      "lessonId": "ll73-the-house-of-el-and-the-only-saviour",
+      "originalTitle": "The House of El — the Borrowed Name and the Only Saviour",
+      "displayTitle": "Whose Name Are You Really Calling On?",
+      "thumbHeadline": "THE ONLY SAVIOUR",
+      "promoDescription": "This lesson examines the \"El\" in Superman's birth name and shows how the Word uses that same word for Yahweh, with Yahweh alone as the true Saviour. It contrasts a fictional rescuer who cannot be hurt with the Son who saved by giving His life, and it shows how to test such stories by Scripture."
+    },
+    {
+      "courseKey": "living-lessons",
+      "lessonId": "ll88-four-soils-heart-conditions-and-the-kings-eternal-program",
+      "originalTitle": "The King’s Program, Part 2 — The Four Soils: Heart Conditions, the Subconscious Ground, and Where the Eternal Program Runs",
+      "displayTitle": "Why Does the Same Word Grow in One Heart and Die in Another?",
+      "thumbHeadline": "FOUR SOILS, ONE SEED",
+      "imagePrompt": "Cinematic 16:9 photograph of a Black woman in her forties, kneeling in a sunlit vegetable garden beside a raised wooden bed, gently sifting rich, crumbly soil through her fingers and smiling with calm, focused attention. She wears a bold cobalt blue cardigan. She is positioned in the right half of the frame in a medium close-up, her face sharp, expressive and well lit with eyes clearly visible. Lush green leafy plants and healthy young sprouts surround her, with a softly blurred background of open sky and a bright white garden fence. Bright natural daylight from the side, high-key exposure, soft open shadows, neutral white balance, true-to-life skin tones, vivid natural greens and blues, full-frame camera look, shallow depth of field, 85mm lens. The left third is bright, open and uncluttered for a headline. No text, letters, numbers, logos or signage anywhere in the image."
+    },
+    {
+      "courseKey": "living-lessons",
+      "lessonId": "ll137-look-and-live-the-serpent-on-the-pole-the-son-lifted-up-and-why-believing-him-over-the-liar-is-the-whole-cure",
+      "originalTitle": "Look and Live — the Serpent on the Pole, the Son Lifted Up, and Why Believing Him Over the Liar Is the Whole Cure",
+      "displayTitle": "Why Did Yahweh Tell a Dying People to Look at a Serpent?",
+      "thumbHeadline": "LOOK UP AND LIVE"
+    }
+  ]
+}

@@ -49,39 +49,54 @@ export function bflImage({
     name: 'bfl',
     model,
     costCents,
-    async generate({ prompt, signal }) {
-      const sub = await fetchImpl(`https://api.bfl.ai/v1/${model}`, {
-        method: 'POST',
-        signal,
-        headers: { 'content-type': 'application/json', accept: 'application/json', 'x-key': apiKey },
-        body: JSON.stringify({ prompt, aspect_ratio: '16:9', raw, output_format: 'jpeg', safety_tolerance: 2 }),
-      });
-      if (!sub.ok) {
-        // A refused submit was never processed, so it was never billed (batch 1,
-        // 2026-11-24: 44x 402 "Insufficient credits", 23x 429 "credit balance is low").
-        const err = await readError(sub, 'bfl submit');
-        err.billed = false;
-        if (sub.status === 402) {
-          err.outOfCredit = true;
-          err.retryable = false;
+    // resume: { id, pollingUrl } of a job BFL already accepted (and billed) —
+    // poll it again instead of paying for a new one. onSubmitted fires the
+    // moment BFL accepts a submit, BEFORE any polling, so the caller can put
+    // the charge and the job id on record (a kill or a poll timeout after
+    // this point never buys the same picture twice).
+    async generate({ prompt, signal, resume = null, onSubmitted = null }) {
+      let pollUrl = resume && (resume.pollingUrl || (resume.id && `https://api.bfl.ai/v1/get_result?id=${encodeURIComponent(resume.id)}`));
+      if (!pollUrl) {
+        const sub = await fetchImpl(`https://api.bfl.ai/v1/${model}`, {
+          method: 'POST',
+          signal,
+          headers: { 'content-type': 'application/json', accept: 'application/json', 'x-key': apiKey },
+          body: JSON.stringify({ prompt, aspect_ratio: '16:9', raw, output_format: 'jpeg', safety_tolerance: 2 }),
+        });
+        if (!sub.ok) {
+          // A refused submit was never processed, so it was never billed (batch 1,
+          // 2026-11-24: 44x 402 "Insufficient credits", 23x 429 "credit balance is low").
+          const err = await readError(sub, 'bfl submit');
+          err.billed = false;
+          if (sub.status === 402) {
+            err.outOfCredit = true;
+            err.retryable = false;
+          }
+          throw err;
         }
-        throw err;
+        const { id, polling_url: url } = await sub.json();
+        pollUrl = need(url, 'bfl: no polling_url in response');
+        if (onSubmitted) await onSubmitted({ id: id || null, pollingUrl: pollUrl, costCents });
       }
-      const { polling_url: pollUrl } = await sub.json();
-      need(pollUrl, 'bfl: no polling_url in response');
+      // A resumed job BFL no longer holds (404 / "Task not found" / the result
+      // link gone) is EXPIRED: only then may the caller submit anew. Polling is free.
+      const expired = (msg) => Object.assign(new ProviderError(`bfl: resumed job expired (${msg})`, { retryable: true, billed: false }), { expired: true });
       for (let i = 0; i < maxPolls; i += 1) {
         if (signal && signal.aborted) throw new ProviderError('bfl: aborted while polling', { retryable: true });
         await sleep(pollMs);
         const r = await fetchImpl(pollUrl, { signal, headers: { accept: 'application/json', 'x-key': apiKey } });
+        if (resume && r.status === 404) throw expired('HTTP 404');
         if (!r.ok) throw await readError(r, 'bfl poll');
         const j = await r.json();
+        if (resume && /not found/i.test(j.status || '')) throw expired(j.status);
         if (j.status === 'Ready') {
           const img = await fetchImpl(j.result.sample, { signal });
+          if (resume && (img.status === 403 || img.status === 404)) throw expired(`download HTTP ${img.status}`);
           if (!img.ok) throw await readError(img, 'bfl download');
           return { bytes: await toBuf(img), ext: extOf(img.headers.get('content-type')), model, costCents };
         }
-        if (/moderated/i.test(j.status || '')) throw new ProviderError(`bfl: ${j.status}`, { retryable: false });
-        if (j.status === 'Error' || j.status === 'Failed') throw new ProviderError(`bfl: ${j.status}`, { retryable: true });
+        if (/moderated/i.test(j.status || '')) throw Object.assign(new ProviderError(`bfl: ${j.status}`, { retryable: false }), { jobDone: true });
+        if (j.status === 'Error' || j.status === 'Failed') throw Object.assign(new ProviderError(`bfl: ${j.status}`, { retryable: true }), { jobDone: true });
       }
       throw new ProviderError('bfl: polling limit reached', { retryable: true });
     },
