@@ -402,3 +402,22 @@ describe('a course card only asks for pictures that are shipped', () => {
     expect(img.hasAttribute('srcset')).toBe(false);
   });
 });
+
+// Darrell 2026-11-25: "Should be open by default... the Program button... looks better."
+describe('programs open with their course cards showing', () => {
+  it('in the studio every program is open on arrival, and the reader can still fold one away', () => {
+    mount({ studioDefaultOn: true });
+    for (const key of ['biblical-studies', 'ministry-leadership', 'christian-education']) {
+      expect(q(`institute-program-more-${key}`).open).toBe(true);
+    }
+    const first = q('institute-program-more-biblical-studies');
+    first.open = false;
+    click(q('institute-studio-tile-certificates'));
+    click(q('institute-studio-explore'));
+    expect(q('institute-program-more-ministry-leadership').open).toBe(true);
+  });
+  it('outside the studio the programs stay folded, as before', () => {
+    mount();
+    expect(q('institute-program-more-biblical-studies').open).toBe(false);
+  });
+});

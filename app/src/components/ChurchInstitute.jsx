@@ -597,7 +597,18 @@ export default function ChurchInstitute({
                   <p className="lc-p">{p.blurb}</p>
                   <Status kind={p.status} />
                   {p.list.length > 0 && (
-                    <details className="lc-inst-more mt-2" data-testid={`institute-program-more-${p.key}`}>
+                    <details
+                      className="lc-inst-more mt-2"
+                      data-testid={`institute-program-more-${p.key}`}
+                      // In the studio every program opens with its course cards showing (Darrell 2026-11-25:
+                      // "Should be open by default... looks better"); the reader can still fold one away.
+                      ref={(el) => {
+                        if (el && studio && !el.dataset.opened) {
+                          el.dataset.opened = '1';
+                          el.open = true;
+                        }
+                      }}
+                    >
                       <summary className={`lc-btn lc-btn-gold ${FOCUS}`} data-testid={`institute-program-count-${p.key}`}>
                         Explore {p.list.length} courses
                       </summary>
