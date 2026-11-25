@@ -22,6 +22,7 @@ import {
   instituteCourseKeys,
   INSTITUTE_STUDIO_FLAG_KEY,
   courseCovers,
+  shippedSrcSet,
 } from '../lib/institute-studio.js';
 import { recordPlace } from '../lib/learn-resume.js';
 import { INSTITUTE_META } from '../lib/church-institute.js';
@@ -242,11 +243,12 @@ describe('the studio on the owner device', () => {
     expect(q('institute-studio-continue-empty')).toBeNull();
     expect(q('institute-studio-continue-ll1-the-perfect-yahweh-expects')).toBeTruthy();
   });
-  it('the classic Institute returns on one press, and stays off on this device', () => {
+  // Darrell 2026-11-25: "No need to go back to the other view... why is that an option?"
+  it('offers no way back to the classic view on the page; only the ?instituteStudio=0 address switch turns it off', () => {
     mount({ studioDefaultOn: true });
-    click(q('institute-studio-leave'));
-    expect(q('institute-studio')).toBeNull();
-    expect(window.localStorage.getItem(INSTITUTE_STUDIO_FLAG_KEY)).toBe('0');
+    expect(q('institute-studio-leave')).toBeNull();
+    expect(container.textContent).not.toMatch(/classic Institute/i);
+    expect(isInstituteStudioOn({ search: '?instituteStudio=0', storage: mem(), defaultOn: true })).toBe(false);
   });
 });
 
@@ -295,5 +297,108 @@ describe('program courses as photographic cards (Darrell 2026-11-25: "vibrant, n
     click(t);
     expect(q('institute-course-cards-ministry-leadership')).toBeNull();
     expect(q('institute-courses-ministry-leadership')).toBeTruthy();
+  });
+});
+
+// Darrell 2026-11-25, from the live preview: "Buttons don't go anywhere for anything on this screen."
+describe('every button on the studio home takes the reader somewhere', () => {
+  let scrolled;
+  let raf;
+  beforeEach(() => {
+    scrolled = [];
+    raf = window.requestAnimationFrame;
+    window.requestAnimationFrame = (fn) => {
+      fn();
+      return 0;
+    };
+    Element.prototype.scrollIntoView = function scrollIntoView() {
+      scrolled.push(this.getAttribute('data-testid'));
+    };
+  });
+  afterEach(() => {
+    window.requestAnimationFrame = raf;
+    delete Element.prototype.scrollIntoView;
+  });
+  it('Explore Programs, Enroll Today and every tile open their section AND scroll the reader to it', () => {
+    mount({ studioDefaultOn: true });
+    const want = [
+      ['institute-studio-explore', 'About'],
+      ['institute-studio-enroll', 'Enrollment'],
+      ['institute-studio-tile-certificates', 'Certificates'],
+      ['institute-studio-tile-resources', 'Resources'],
+    ];
+    for (const [id, label] of want) {
+      scrolled.length = 0;
+      click(q(id));
+      expect(activeTab().textContent.trim()).toBe(label);
+      expect(scrolled).toEqual(['institute-sections']);
+    }
+  });
+  it('the six feature items are buttons: each opens a real section, a filtered catalog, or Learn', () => {
+    const setChurchView = vi.fn();
+    mount({ studioDefaultOn: true, setChurchView });
+    const feats = [...container.querySelectorAll('.is-feats button')];
+    expect(feats.length).toBe(6);
+    click(q('institute-studio-feat-bookOpen'));
+    expect(activeTab().textContent.trim()).toBe('Courses');
+    expect(q('institute-course-filter-biblical-studies').getAttribute('aria-pressed')).toBe('true');
+    click(q('institute-studio-feat-users'));
+    expect(q('institute-course-filter-ministry-leadership').getAttribute('aria-pressed')).toBe('true');
+    click(q('institute-studio-feat-sparkle'));
+    expect(activeTab().textContent.trim()).toBe('Certificates');
+    click(q('institute-studio-feat-monitor'));
+    expect(activeTab().textContent.trim()).toBe('Resources');
+    click(q('institute-studio-feat-calendar'));
+    expect(setChurchView).toHaveBeenLastCalledWith('learn');
+  });
+  it('the three counters are buttons too: Enrolled, Completed and Certificates open where those live', () => {
+    mount({ studioDefaultOn: true });
+    click(q('institute-studio-stat-enrolled'));
+    expect(activeTab().textContent.trim()).toBe('Enrollment');
+    click(q('institute-studio-stat-completed'));
+    expect(activeTab().textContent.trim()).toBe('Students');
+    click(q('institute-studio-stat-certificates'));
+    expect(activeTab().textContent.trim()).toBe('Certificates');
+    expect(scrolled.at(-1)).toBe('institute-sections');
+  });
+});
+
+// Darrell 2026-11-25, with a screenshot of broken pictures on the course cards: "Do we have thumbnails?"
+describe('a course card only asks for pictures that are shipped', () => {
+  it('drops the listed sizes that have no file (320 and 1920) and keeps 640 and 1280', () => {
+    const listed = 'learn-thumbs/a/b/w1920.webp 1920w, learn-thumbs/a/b/w1280.webp 1280w, learn-thumbs/a/b/w640.webp 640w, learn-thumbs/a/b/w320.webp 320w';
+    expect(shippedSrcSet(listed)).toBe('learn-thumbs/a/b/w1280.webp 1280w, learn-thumbs/a/b/w640.webp 640w');
+    expect(shippedSrcSet('')).toBe('');
+    expect(
+      courseCovers([{ courseKey: 'k', status: 'review', image: { src: 'learn-thumbs/a/b/w1280.webp', srcSet: { webp: listed } } }], { preview: true }).get('k')
+        .srcSet
+    ).not.toMatch(/1920|w320/);
+  });
+  it('every size a REAL record is given is a file that exists in public/learn-thumbs', async () => {
+    const fs = await import('node:fs');
+    const path = await import('node:path');
+    const records = (await import('../lib/learn-presentation/presentation-records.json')).default.records;
+    const covers = courseCovers(records, { preview: true });
+    expect(covers.size).toBeGreaterThan(10);
+    const missing = [];
+    for (const [key, c] of covers) {
+      for (const f of [
+        c.src,
+        ...c.srcSet
+          .split(', ')
+          .filter(Boolean)
+          .map((x) => x.split(' ')[0]),
+      ]) {
+        if (!fs.existsSync(path.resolve(__dirname, '../../public', f))) missing.push(`${key}: ${f}`);
+      }
+    }
+    expect(missing).toEqual([]);
+  });
+  it('a picture that still fails falls back once to the program photograph', () => {
+    mount({ studioDefaultOn: true });
+    const img = q('institute-program-cards-biblical-studies-who-he-is').querySelector('img');
+    act(() => img.dispatchEvent(new Event('error')));
+    expect(img.getAttribute('src')).toMatch(/learn-thumbs\/topics\/faith\/w640\.webp$/);
+    expect(img.hasAttribute('srcset')).toBe(false);
   });
 });

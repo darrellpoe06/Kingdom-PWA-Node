@@ -44,6 +44,17 @@ export default function InstituteCourseCards({ items = [], covers = new Map(), s
                     sizes="(min-width: 900px) 300px, 90vw"
                     alt=""
                     loading="lazy"
+                    onError={(e) => {
+                      // A picture that fails to load falls back once to the program photograph, never a broken icon.
+                      const el = e.currentTarget;
+                      if (el.dataset.fell || !fallback) {
+                        el.style.display = 'none';
+                        return;
+                      }
+                      el.dataset.fell = '1';
+                      el.removeAttribute('srcset');
+                      el.src = `${BASE}${fallback}`;
+                    }}
                   />
                 )}
                 <span className={`is-cbadge ${required ? 'is-cbadge-req' : ''}`}>{required ? 'Required for the certificate' : 'Open study'}</span>
