@@ -4906,7 +4906,7 @@ function ChurchLearn({
   // lesson link and landed on the Learn Studio home screen. Threaded through
   // as initialLessonId -> LearnStudio's own initialLesson prop (already
   // supported, already tested) opens the real lesson's cover directly.
-  if (studio) return <LearnStudioPreview courses={courses} onOpenLesson={(k, id) => { setStudio(false); openLessonFromList(k, id); }} onExit={() => setStudio(false)} ownerDevice={learnStudioDefaultOn} initialLessonId={deepLink && deepLink.lessonId} />;
+  if (studio) return <LearnStudioPreview courses={courses} onOpenLesson={(k, id) => { setStudio(false); openLessonFromList(k, id); }} onExit={() => setStudio(false)} ownerDevice={learnStudioDefaultOn} initialLessonId={deepLink && deepLink.lessonId} initialCourseKey={deepLink && deepLink.courseKey} />;
   // MEASURED in a real browser at 1440px rather than guessed: window 1440,
   // <main> 1440, and the lesson card 768 -- constrained by exactly this one
   // `max-w-3xl` on the section below. It was the ONLY limiter in the whole

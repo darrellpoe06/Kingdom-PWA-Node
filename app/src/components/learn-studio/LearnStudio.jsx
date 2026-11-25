@@ -122,7 +122,7 @@ function Card({ x, onOpen }) {
   );
 }
 
-function Row({ icon = 'play', title, note, items, onOpen, onSeeAll }) {
+function Row({ icon = 'play', title, note, items, onOpen, onSeeAll, grid = false }) {
   if (!items || !items.length) return null;
   return (
     <section className="ls-row">
@@ -138,7 +138,7 @@ function Row({ icon = 'play', title, note, items, onOpen, onSeeAll }) {
           </button>
         )}
       </header>
-      <div className="ls-scroller">
+      <div className={grid ? 'ls-grid ts-grid-collapse' : 'ls-scroller'}>
         {items.map((x) => (
           <Card key={`${x.p.courseKey}::${x.p.lessonId}`} x={x} onOpen={onOpen} />
         ))}
@@ -323,11 +323,35 @@ export default function LearnStudio({
   onVersion,
   onExit,
   initialLesson = null,
+  initialCourse = null,
 }) {
   const home = useMemo(() => studioHome(courses, index, { places, progress, preview }), [courses, index, places, progress, preview]);
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(null);
   const [shelf, setShelf] = useState(null);
+  // A COURSE PAGE IN THE NEW LOOK (Darrell, 2026-11-25, on a course link like
+  // ?course=healthy-living: "Fix it"). Every lesson in the course, as a grid --
+  // a lesson without its own picture wears its department's approved art (the
+  // existing Art fallback), so nothing new is generated and nothing is hidden.
+  const [courseKey, setCourseKey] = useState(null);
+  const courseOpened = React.useRef(false);
+  // With a lesson in the link too, the lesson's cover shows first and Back
+  // lands on its course; a stale lesson id still lands on the course.
+  useEffect(() => {
+    if (!initialCourse || courseOpened.current) return;
+    courseOpened.current = true;
+    setCourseKey(initialCourse);
+  }, [initialCourse]);
+  const pickedCourse = useMemo(() => {
+    if (!courseKey) return null;
+    const c = (courses || []).find((k) => (k.key || (k.meta && k.meta.key)) === courseKey);
+    if (!c) return null;
+    const items = (c.schedule || [])
+      .filter((l) => l && l.id)
+      .map((l) => ({ lesson: l, course: c, p: presentLesson(l, c, index, { preview }) }))
+      .filter((x) => x.p);
+    return { title: (c.meta && c.meta.title) || courseKey, items };
+  }, [courseKey, courses, index, preview]);
   const all = useMemo(() => [...home.discover, ...home.featuredAll, ...home.shelves.flatMap((s) => s.items)], [home]);
   const opened = React.useRef(null);
   useEffect(() => {
@@ -411,12 +435,19 @@ export default function LearnStudio({
               No lesson matches “{query.trim()}”. Search reads new titles, original titles, courses and lesson numbers; try a word from the original title.
             </p>
           )
+        ) : pickedCourse ? (
+          <>
+            <button type="button" className={`ls-back ${RING}`} onClick={() => setCourseKey(null)}>
+              ‹ Back to Learn
+            </button>
+            <Row title={pickedCourse.title} note={`${pickedCourse.items.length} lessons`} items={pickedCourse.items} onOpen={openLesson} grid />
+          </>
         ) : pickedShelf ? (
           <>
             <button type="button" className={`ls-back ${RING}`} onClick={() => setShelf(null)}>
               ‹ Back to Learn
             </button>
-            <Row title={pickedShelf.label} items={pickedShelf.items} onOpen={openLesson} />
+            <Row title={pickedShelf.label} items={pickedShelf.items} onOpen={openLesson} grid />
           </>
         ) : (
           <>
