@@ -9,7 +9,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import React, { createElement, act } from 'react';
 import { createRoot } from 'react-dom/client';
 import ChurchLearn from '../components/ChurchLearn.jsx';
-import LessonExperience from '../components/learn-studio/LessonExperience.jsx';
+import LessonExperience, { readingTextFor } from '../components/learn-studio/LessonExperience.jsx';
 import { lessonQuery } from '../lib/lesson-links.js';
 import { buildSelfPacedDescriptors } from '../lib/learn-catalog.js';
 import { learnInventory } from '../lib/learn-presentation/integrity.js';
@@ -222,7 +222,7 @@ describe('heard is credited from the voice itself', () => {
         <LessonExperience lesson={REAL_LESSON} record={null} onExit={() => {}} initialMode="listen" createNarrator={createNarrator} lessonTools={tools} />
       )
     );
-    const n = segmentText(REAL_LESSON.lesson).length;
+    const n = segmentText(readingTextFor(REAL_LESSON, 'adult')).length; // the teaching and its stories
     act(() => opts.onState({ status: 'playing', segmentIndex: 0 }));
     act(() => opts.onState({ status: 'playing', segmentIndex: n - 1 }));
     act(() => opts.onState({ status: 'idle', segmentIndex: 0 }));

@@ -24,6 +24,7 @@ import { createBrowserTTS, segmentText, RATE_STEPS } from '../../lib/tts.js';
 import { motionBehavior } from '../../lib/gentle-motion.js';
 import { buildFollowMap, alignSegmentSpans, rangeFor, highlightSegment, clearReadingHighlights } from '../../lib/read-follow.js';
 import LessonStories from '../LessonStories.jsx';
+import { storyFootnote, isTeachingSection } from '../../lib/story-truth.js';
 import LessonFigures from '../LessonFigures.jsx';
 import { ExperienceToolsContext, resumable, pacedFraction } from './LessonExperienceTools.jsx';
 import './lesson-experience.css';
@@ -31,6 +32,7 @@ import './lesson-experience.css';
 const RING = 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2';
 
 export const PROTOTYPE_LESSON_ID = 'll338-not-with-eyeservice';
+export const PAGE_LIGHT_KEY = 'poe-lesson-page-light';
 
 // Scoped to this ONE overlay: a crash here closes just the prototype and
 // returns to the normal Learn Studio home, never the classic-Learn fallback
@@ -188,6 +190,40 @@ export function textFor(lesson, level) {
   const own = (v) => (typeof v === 'string' && v.trim() ? v : null);
   if (level !== 'adult' && lesson.levels && own(lesson.levels[level])) return lesson.levels[level];
   return own(lesson.lesson) || LEVEL_FALLBACK.map((k) => lesson.levels && own(lesson.levels[k])).find(Boolean) || '';
+}
+
+// THE STORIES ARE PART OF THE LESSON (Darrell 2026-11-25, from the live build: "What happened to
+// the stories, both of them being read?" and "Also displayed... they may end up being the most
+// looked forward to... sometimes it's hard to understand a lesson so these help us"). The classic
+// reader speaks every story after the teaching (lesson-flow.js readAloudTextFromArc); the new look
+// narrated only the teaching and left the stories one tap deep in Study. They now follow the
+// teaching in the same reading, so Watch, Read and Listen all show AND speak them. Each story is
+// its own words verbatim; the lead says what it is (a parable is never called a record, DR-0811)
+// in the same capitals the lesson's own section leads use, so it gets the same ornament, bold
+// lead and chapter jump; its truth footnote follows it, as on the classic page.
+export function storiesTextFor(lesson) {
+  const stories = lesson && Array.isArray(lesson.stories) ? lesson.stories : [];
+  const parts = [];
+  for (const st of stories) {
+    if (!st || typeof st.body !== 'string' || !st.body.trim()) continue;
+    const kind = isTeachingSection(st) ? 'MORE ON THIS LESSON' : st.kind === 'testimony' ? 'A TRUE STORY' : 'A PARABLE';
+    const name = String(st.title || st.heading || '')
+      .toUpperCase()
+      .replace(/[^A-Z ,':-]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    parts.push(`${name ? `${kind}: ${name}` : kind}. ${st.body.trim()}`);
+    // A bare reference ("Luke 16:10") gets its full stop, so the voice ends it there and
+    // never runs it into the truth line that follows.
+    if (typeof st.verse === 'string' && st.verse.trim()) parts.push(/[.!?"”)]$/.test(st.verse.trim()) ? st.verse.trim() : `${st.verse.trim()}.`);
+    parts.push(storyFootnote(st));
+  }
+  return parts.join('\n\n');
+}
+
+/** The whole reading every mode shows and speaks: the teaching at this level, then the lesson's stories. */
+export function readingTextFor(lesson, level) {
+  return [textFor(lesson, level), storiesTextFor(lesson)].filter(Boolean).join('\n\n');
 }
 
 // The lesson's OWN structural leads ("FIRST, THE MASTER WHO WENT AWAY.",
@@ -388,6 +424,26 @@ export default function LessonExperience({
   lessonTools = null,
 }) {
   const [mode, setMode] = useState(initialMode);
+  // THE PAGE'S OWN LIGHT (Darrell 2026-11-25: "dark mode needs to respect the wishes of the dark
+  // mode... why so much white?" and "the screen's brightness is what some people really want... at
+  // least an option"). Both are kept: the cream page stays, and one press turns the page dark. The
+  // choice is remembered on this device; with no choice made, the app's darkest theme (midnight)
+  // opens dark and every other theme opens on the bright page it always had.
+  const [darkPage, setDarkPage] = useState(() => {
+    const v = saved.get(PAGE_LIGHT_KEY, '');
+    if (v === 'dark' || v === 'bright') return v === 'dark';
+    try {
+      const t = document.querySelector('[data-theme]');
+      return !!t && t.getAttribute('data-theme') === 'midnight';
+    } catch {
+      return false;
+    }
+  });
+  const togglePage = () =>
+    setDarkPage((d) => {
+      saved.set(PAGE_LIGHT_KEY, d ? 'bright' : 'dark');
+      return !d;
+    });
   const [level, setLevel] = useState(initialLevel);
   const [status, setStatus] = useState('idle');
   const [idx, setIdx] = useState(0);
@@ -428,7 +484,7 @@ export default function LessonExperience({
   const [browsing, setBrowsing] = useState(false);
   const [full, setFull] = useState(false);
 
-  const text = useMemo(() => textFor(lesson, level), [lesson, level]);
+  const text = useMemo(() => readingTextFor(lesson, level), [lesson, level]);
   const segments = useMemo(() => segmentText(text), [text]);
   const paragraphs = useMemo(() => (text || '').split(/\n\n+/).filter(Boolean), [text]);
 
@@ -644,6 +700,9 @@ export default function LessonExperience({
         ‹ Back to Learn
       </button>
       {!lessonTools && <span className="le-proto-badge">PROTOTYPE · private, for review</span>}
+      <button type="button" className={`le-pagelight ${RING}`} onClick={togglePage} aria-pressed={darkPage} data-testid="le-page-light">
+        {darkPage ? 'Bright page' : 'Dark page'}
+      </button>
       <a className={`le-kidslink ${RING}`} href={kidsZoneHref()} data-testid="le-kids-zone">
         Kids Zone
       </a>
@@ -654,7 +713,10 @@ export default function LessonExperience({
     <FullPageContext.Provider value={onFullPage}>
       <LevelContext.Provider value={level}>
         <ExperienceToolsContext.Provider value={lessonTools}>
-          <div className={`le-root le-root--${mode}`} aria-label={lessonTools ? 'Lesson' : 'Lesson Experience (prototype)'}>
+          <div
+            className={`le-root le-root--${mode}${darkPage ? ' le-root--darkpage' : ''}`}
+            aria-label={lessonTools ? 'Lesson' : 'Lesson Experience (prototype)'}
+          >
             {header}
             {lessonTools && lessonTools.screenHint}
             {!started ? (
