@@ -1,7 +1,9 @@
 // =============================================================================
 // learn-presentation CLI — run from app/:
 //   npx vite-node scripts/learn-presentation/cli.mjs <command> [flags]
-// Commands: estimate | text | images | status | export | retry-failed
+// Commands: estimate | text | images | status | export | retry-failed | part-recover
+//           | originals-backup (free; lib/originals-backup.mjs) | publish-covers (free; lib/publish-covers.mjs)
+//           | ledger-restore | ledger-check (free; lib/ledger-restore.mjs: the right ledger, never a stale one)
 // See README.md beside this file. Nothing here writes to a lesson.
 // =============================================================================
 import { verifyRecovery } from './lib/recovery.mjs';
@@ -16,7 +18,7 @@ import {
   nextLibraryBatch,
   scopeKeySet,
 } from './lib/scope.mjs';
-import { copyFileSync } from 'node:fs';
+import { copyFileSync, rmSync } from 'node:fs';
 import process from 'node:process';
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join, dirname, resolve } from 'node:path';
@@ -29,16 +31,38 @@ import { textProvider } from './providers/text.mjs';
 import { imageProvider, bflImage } from './providers/image.mjs';
 import { loadArt, validateArt, resolveArtScope, runArtV2 } from './lib/art-v2.mjs';
 import { loadAdjustments, applyAdjustments } from './lib/adjust.mjs';
-import { storageGate, paidPictureShas } from './lib/storage-gate.mjs';
+import { loadDecisions, applyDecisions, decidedKeys } from './lib/decisions.mjs';
+import { storageGate, paidPictureShas, originalsGate, eitherGate } from './lib/storage-gate.mjs';
+import {
+  ORIGINALS_REPO,
+  FALLBACK_ARTIFACT_ID,
+  backupAndVerify,
+  downloadArtifact,
+  fetchOriginalsState,
+  missingSources,
+  paidOriginals,
+  remoteUrl,
+  restoreFromArtifact,
+} from './lib/originals-backup.mjs';
+import { writePublishTree } from './lib/publish-covers.mjs';
+import { savePart, recoverPart } from './lib/part.mjs';
+import { ledgerFacts, restoreLedger, staleness } from './lib/ledger-restore.mjs';
 
 const SEED = resolve('src/lib/learn-presentation/presentation-seed.json');
 const ART = resolve('scripts/learn-presentation/art-direction-v2.json');
 const ADJUSTMENTS = resolve('scripts/learn-presentation/ledger-adjustments.json');
+const DECISIONS = resolve('scripts/learn-presentation/title-decisions.json');
 
-/** Open the ledger and apply any reviewed adjustment not yet in it (append-only). */
-function openLedger(stateDir, log) {
+/**
+ * Open the ledger, apply any reviewed adjustment not yet in it (append-only),
+ * and apply the owner's title decisions (lib/decisions.mjs; free, no paid call).
+ */
+function openLedger(stateDir, log, inventory) {
   const ledger = new Ledger(stateDir);
   for (const id of applyAdjustments(ledger, loadAdjustments(ADJUSTMENTS))) log(`ledger adjustment applied: ${id}`);
+  const td = applyDecisions(ledger, loadDecisions(DECISIONS), { courses: coursesForValidation(inventory), log });
+  if (td.applied.length + td.held.length + td.waiting.length)
+    log(`title decisions: ${td.applied.length} applied · ${td.held.length} held · ${td.waiting.length} waiting on a generated record`);
   return ledger;
 }
 
@@ -101,16 +125,34 @@ async function loadDHash(log) {
 }
 
 /** Owner 2026-11-24 (mandatory): no paid picture is bought until every picture
- *  already paid for is verified on the NAS. Paused = nothing bought, exit 4. */
-function checkStorage(provider, stateDir, log) {
-  const gate = storageGate({
-    paid: paidPictureShas(stateDir).size,
-    verdict: process.env.LEARN_THUMBS_RECONCILED || '',
-    costCents: provider.costCents != null ? provider.costCents : 6,
-  });
+ *  already paid for is verified in permanent storage: the NAS verdict OR the
+ *  private originals repository's verdict (2026-11-25). Paused = nothing bought, exit 4. */
+async function checkStorage(provider, stateDir, log) {
+  const paid = paidPictureShas(stateDir);
+  const costCents = provider.costCents != null ? provider.costCents : 6;
+  const nas = storageGate({ paid: paid.size, verdict: process.env.LEARN_THUMBS_RECONCILED || '', costCents });
+  const repo = nas.open || !costCents ? { verdict: '', manifest: null } : await fetchOriginalsState({ token: process.env.LEARN_ORIGINALS_TOKEN });
+  const gate = eitherGate(nas, originalsGate({ paidShas: paid, verdict: repo.verdict, manifest: repo.manifest, costCents }));
+  if (repo.error) log(`originals repository unreadable: ${repo.error}`);
   log(`storage gate: ${gate.open ? 'OPEN' : 'PAUSED: no picture bought'} · ${gate.reason}`);
   if (!gate.open) process.exitCode = 4;
   return gate.open;
+}
+
+/** Incident 2026-11-25: a stale ledger never spends and never writes an originals verdict.
+ *  Compared with the private originals manifest and the NAS verdict; exit 6 when stale. */
+async function checkLedgerFresh(stateDir, log, { provider = null, ledgerKey = '' } = {}) {
+  if (provider && (provider.costCents === 0 || provider.name === 'local')) return true; // free: nothing is paid for
+  const facts = ledgerFacts(stateDir);
+  const repo = await fetchOriginalsState({ token: process.env.LEARN_ORIGINALS_TOKEN });
+  if (repo.error) log(`ledger check: originals manifest unreadable (${repo.error})`);
+  const s = staleness({ ...facts, manifest: repo.manifest, nasVerdict: process.env.LEARN_THUMBS_RECONCILED || '', ledgerKey });
+  log(`ledger check: ${facts.paidPictures} paid picture(s) · ${dollars(facts.spentCents)} spent · ${s.stale ? 'STALE' : 'current'}`);
+  for (const r of s.reasons) log(`  ✗ ${r}`);
+  if (!s.stale) return true;
+  log(`STOPPED before any spend: ${s.remedy}`);
+  process.exitCode = 6;
+  return false;
 }
 
 async function main() {
@@ -120,6 +162,89 @@ async function main() {
   const batchId = String(flags.batch || 'library-v1');
   const log = (m) => process.stdout.write(`${m}\n`);
 
+  if (cmd === 'part-recover') {
+    // A lost runner's newest part save (lib/part.mjs): merged only when it is newer than the full ledger.
+    const r = recoverPart(resolve(stateDir, '..'), flags['ledger-key'] === true ? '' : flags['ledger-key']);
+    log(
+      r.recovered
+        ? `part-recover: run ${r.partRun} was lost after a part save; its ledger and pictures are restored over run ${r.ledgerRun}'s`
+        : `part-recover: nothing to merge (part ${r.partRun || 'none'}, ledger ${r.ledgerRun || 'none'})`
+    );
+    return;
+  }
+  if (cmd === 'ledger-check') {
+    await checkLedgerFresh(stateDir, log, { ledgerKey: flags['ledger-key'] === true ? '' : flags['ledger-key'] });
+    return;
+  }
+  if (cmd === 'ledger-restore') {
+    // Free: the authoritative ledger + pictures from a run artifact, only as a superset of the current ledger.
+    const id = Number(flags.artifact);
+    if (!Number.isInteger(id) || id <= 0) {
+      log('ledger-restore REFUSED: --artifact <id> is required');
+      process.exitCode = 7;
+      return;
+    }
+    const tmpDir = resolve(process.env.RUNNER_TEMP || resolve(stateDir, '..'), 'lp-ledger-restore');
+    const { dir } = await downloadArtifact({ id, repo: process.env.GITHUB_REPOSITORY, token: process.env.GITHUB_TOKEN, tmpDir });
+    const r = restoreLedger({ root: resolve(stateDir, '..'), artifactDir: dir });
+    rmSync(tmpDir, { recursive: true, force: true });
+    const f = (x) => `${x.keys.length} jobs · ${x.pictureJobs} picture jobs · ${x.paidPictures} paid pictures · ${dollars(x.spentCents)}`;
+    log(`ledger-restore: current ${f(r.before)} | artifact ${id} ${f(r.after)}`);
+    for (const p of r.reasons) log(`  ✗ ${p}`);
+    if (!r.ok) {
+      log('ledger-restore REFUSED: the current ledger is left exactly as it was');
+      process.exitCode = 7;
+      return;
+    }
+    log(`ledger-restore: state/ and images/ replaced from artifact ${id} (${r.pictures} paid pictures present with the paid bytes)`);
+    return;
+  }
+  if (cmd === 'originals-backup') {
+    // Free: every paid original into the private repository, proven on a fresh clone (lib/originals-backup.mjs).
+    // A stale ledger never writes the verdict (run 45625192907 wrote "20 of 20" over the library's 176).
+    if (!(await checkLedgerFresh(stateDir, log))) return;
+    const imagesDir = outDir;
+    const list = paidOriginals(stateDir);
+    let missing = missingSources(list, imagesDir);
+    log(`originals: ${list.length} paid picture(s) in the ledger · ${missing.length} not on disk`);
+    const fb = flags['fallback-artifact'];
+    if (missing.length && fb) {
+      const id = fb === true ? FALLBACK_ARTIFACT_ID : Number(fb);
+      const n = await restoreFromArtifact({
+        id,
+        repo: process.env.GITHUB_REPOSITORY,
+        token: process.env.GITHUB_TOKEN,
+        missing,
+        imagesDir,
+        tmpDir: resolve(process.env.RUNNER_TEMP || stateDir, 'lp-artifact'),
+      });
+      missing = missingSources(list, imagesDir);
+      log(`originals: ${n} restored from artifact ${id} · ${missing.length} still missing`);
+    }
+    const token = process.env.LEARN_ORIGINALS_TOKEN;
+    if (!token) {
+      log('originals-backup STOPPED: LEARN_ORIGINALS_TOKEN is not set (nothing written)');
+      process.exitCode = 5;
+      return;
+    }
+    const { verdict, staged } = backupAndVerify({
+      stateDir,
+      imagesDir,
+      remote: remoteUrl(ORIGINALS_REPO, token),
+      secret: token,
+      runId: process.env.GITHUB_RUN_ID,
+      workDir: resolve(process.env.RUNNER_TEMP || resolve(stateDir, '..'), 'lp-originals'),
+    });
+    log(
+      `originals: ${staged.copied} copied · ${staged.already} already kept · ${staged.missingSource.length} absent from this run · ${staged.conflicts.length} conflict(s) · fresh clone verified ${verdict.verified} of ${verdict.expected}`
+    );
+    for (const p of verdict.missing.slice(0, 20)) log(`  ✗ not verified: ${p}`);
+    if (verdict.missing.length) {
+      log('originals-backup FAILED: permanent storage does not hold every paid picture; no further purchase');
+      process.exitCode = 5;
+    }
+    return;
+  }
   const inventory = learnInventory();
   const all = buildItems(inventory);
 
@@ -150,7 +275,7 @@ async function main() {
       }
       throw e;
     }
-    const ledger = openLedger(stateDir, log);
+    const ledger = openLedger(stateDir, log, inventory);
     const already = ledger.spentCents();
     const imgLeft = Math.max(0, IMAGE_TOTAL_CAP_CENTS - imageSpentCents(ledger));
     const budget = new Budget(Math.min(imgLeft, remainingCents(flags['budget-cents'] !== undefined ? int(flags['budget-cents']) : null, already)));
@@ -160,7 +285,8 @@ async function main() {
     const beforeArt = shaMap(ledger);
     // raw:false — FLUX raw mode favours candid, muted renders; the new direction wants vivid natural color.
     const provider = String(flags.provider || 'bfl') === 'bfl' ? bflImage({ raw: false }) : imageProvider(String(flags.provider));
-    if (!checkStorage(provider, stateDir, log)) return;
+    if (!(await checkLedgerFresh(stateDir, log, { provider }))) return;
+    if (!(await checkStorage(provider, stateDir, log))) return;
     const t = await runArtV2({
       entries,
       ledger,
@@ -208,7 +334,7 @@ async function main() {
     return;
   }
 
-  const ledger = openLedger(stateDir, log);
+  const ledger = openLedger(stateDir, log, inventory);
   const courses = coursesForValidation(inventory);
   // The full library runs in resumable batches: the next unfinished lessons only.
   if (spending && cmd !== 'compose' && String(flags.only).toLowerCase() === 'all') {
@@ -219,23 +345,50 @@ async function main() {
   // The combined ceiling: this stage may spend the smaller of its own cap and
   // what is left of TOTAL_CAP_CENTS after everything the ledger has recorded.
   const already = ledger.spentCents();
-  const budget = new Budget(remainingCents(flags['budget-cents'] !== undefined ? int(flags['budget-cents']) : null, already));
+  let stageCap = flags['budget-cents'] !== undefined ? int(flags['budget-cents']) : null;
+  // --run-mark FILE: the run's cap is shared by every part of it. The first part
+  // writes what the ledger held before it; each later part may spend only what is left.
+  if (flags['run-mark'] && flags['run-mark'] !== true) {
+    const mark = resolve(String(flags['run-mark']));
+    let start = already;
+    try {
+      start = Number(readFileSync(mark, 'utf8').trim());
+    } catch {
+      writeFileSync(mark, `${already}\n`);
+    }
+    if (stageCap != null) stageCap = Math.max(0, stageCap - Math.max(0, already - start));
+  }
+  const budget = new Budget(remainingCents(stageCap, already));
   if (spending && cmd !== 'compose')
     log(`spend so far ${dollars(already)} of ${dollars(TOTAL_CAP_CENTS)} combined · this stage may spend up to ${dollars(budget.cap)}`);
   const retryFailed = cmd === 'retry-failed';
 
   if (cmd === 'text' || (retryFailed && flags.kind !== 'image')) {
     const provider = textProvider(String(flags.provider || 'anthropic'), flags.model ? { model: String(flags.model) } : {});
+    if (!(await checkLedgerFresh(stateDir, log, { provider }))) return;
     log(
       `Stage A (text) · ${items.length} lessons · ${provider.name}/${provider.model} · concurrency ${concurrency}${Number.isFinite(budget.cap) ? ` · cap ${dollars(budget.cap)}` : ''}`
     );
-    const t = await runText({ items, ledger, provider, courses, batchId, concurrency, maxAttempts: int(flags['max-attempts'], 3), budget, retryFailed, log });
+    const t = await runText({
+      items,
+      ledger,
+      provider,
+      courses,
+      batchId,
+      concurrency,
+      maxAttempts: int(flags['max-attempts'], 3),
+      budget,
+      retryFailed,
+      decided: decidedKeys(loadDecisions(DECISIONS)),
+      log,
+    });
     log(
-      `text: ${t.done} done · ${t.skipped} skipped · ${t.needsReview} need review · ${t.failed} failed${t.outOfCredit ? ' · STOPPED: THE PROVIDER ACCOUNT IS OUT OF CREDIT (top it up; queued lessons resume)' : t.stoppedByBudget ? ' · STOPPED AT BUDGET CAP' : ''} · this run ${dollars(budget.spent)}`
+      `text: ${t.done} done · ${t.skipped} skipped · ${t.decided} decided by the owner (no title bought) · ${t.needsReview} need review · ${t.failed} failed${t.outOfCredit ? ' · STOPPED: THE PROVIDER ACCOUNT IS OUT OF CREDIT (top it up; queued lessons resume)' : t.stoppedByBudget ? ' · STOPPED AT BUDGET CAP' : ''} · this run ${dollars(budget.spent)}`
     );
   }
   if (cmd === 'images' || (retryFailed && flags.kind !== 'text')) {
     const provider = imageProvider(String(flags.provider || 'bfl'));
+    if (!(await checkLedgerFresh(stateDir, log, { provider }))) return;
     const bucket = new TokenBucket(int(flags['per-minute'], 30));
     log(
       `Stage B (images) · ${items.length} lessons · ${provider.name}/${provider.model} · concurrency ${concurrency} · ${int(flags['per-minute'], 30)}/min${Number.isFinite(budget.cap) ? ` · cap ${dollars(budget.cap)}` : ''}`
@@ -252,8 +405,19 @@ async function main() {
     // picture MEASURED on this account (balance before/after one picture).
     let runItems = items;
     let probe = null;
-    const stored = checkStorage(provider, stateDir, log);
+    const stored = await checkStorage(provider, stateDir, log);
     if (!stored) runItems = [];
+    // --max-new N: buy at most N pictures in this part, so the ledger can be saved between parts.
+    if (flags['max-new'] && flags['max-new'] !== true) {
+      runItems = runItems
+        .filter((it) => {
+          const r = ledger.getRecord(it.courseKey, it.lessonId);
+          const d = ledger.decide({ courseKey: it.courseKey, lessonId: it.lessonId, kind: 'image', contentSha: it.contentSha, retryFailed });
+          return r && r.status === 'review' && r.contentSha === it.contentSha && d.run;
+        })
+        .slice(0, int(flags['max-new']));
+      log(`this part buys at most ${runItems.length} picture(s)`);
+    }
     if (stored && provider.name === 'bfl') {
       const { bflCredits } = await import('./providers/image.mjs');
       const readBalance = () =>
@@ -320,6 +484,7 @@ async function main() {
       log,
     });
     outboxNew(beforeImg, ledger, outDir, log);
+    if (flags['save-part']) log(`part saved: ${savePart(resolve(stateDir, '..'), process.env.GITHUB_RUN_ID)} (the workflow caches it now)`);
     if (probe) for (const k of ['done', 'needsReview', 'failed']) t[k] += probe[k] || 0;
     if (probe && probe.outOfCredit) t.outOfCredit = true;
     log(
@@ -434,6 +599,22 @@ async function main() {
       log('recovery check FAILED — stopping before any spend');
       process.exitCode = 3;
     }
+    return;
+  }
+  if (cmd === 'publish-covers') {
+    // Free: new passing covers -> a tree mirroring the repository, for the publish job (lib/publish-covers.mjs).
+    const to = resolve(flags.to || '.learn-presentation/publish');
+    const titles = new Map(inventory.flatMap((c) => c.lessons.map((l) => [l.id, typeof l.title === 'string' ? l.title : ''])));
+    const sel = writePublishTree({
+      exported: exportRecords(ledger).records,
+      repoRoot: resolve('..'),
+      composedDir: resolve(flags['composed-out'] || '.learn-presentation/composed'),
+      outRoot: to,
+      currentTitles: titles,
+    });
+    log(
+      `publish-covers: ${sel.add.length} new passing cover(s) (${sel.add.filter((a) => a.replaces).length} complete a titled record) · skipped ${JSON.stringify(sel.skipped)} -> ${to}`
+    );
     return;
   }
   if (cmd === 'export') {

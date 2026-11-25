@@ -130,27 +130,6 @@ export default function LearnStudioPreview({ courses, onOpenLesson, onExit, owne
 
   return (
     <section className="w-full" aria-label="Learn">
-      {ownerDevice && prototypeRecord && (
-        <button
-          type="button"
-          onClick={() => open(PROTOTYPE_LESSON, catalog.find((x) => x.lesson.id === PROTOTYPE_LESSON_ID)?.course || null, 'watch', 'adult')}
-          style={{
-            display: 'block',
-            width: '100%',
-            margin: '0 0 12px',
-            padding: '12px 16px',
-            borderRadius: 14,
-            border: '1px solid #f2bf2e',
-            background: 'rgba(242,191,46,0.1)',
-            color: '#f2bf2e',
-            fontWeight: 700,
-            fontSize: '0.9375rem',
-            textAlign: 'left',
-          }}
-        >
-          ✦ Try the new lesson experience (prototype) — Not with Eyeservice
-        </button>
-      )}
       <LearnStudioErrorBoundary onExit={onExit}>
         <LearnStudio
           courses={courses}
@@ -165,6 +144,27 @@ export default function LearnStudioPreview({ courses, onOpenLesson, onExit, owne
           initialCourse={initialCourseKey}
         />
       </LearnStudioErrorBoundary>
+      {ownerDevice && prototypeRecord && (
+        <button
+          type="button"
+          onClick={() => open(PROTOTYPE_LESSON, catalog.find((x) => x.lesson.id === PROTOTYPE_LESSON_ID)?.course || null, 'watch', 'adult')}
+          style={{
+            display: 'block',
+            width: '100%',
+            margin: '12px 0 0',
+            padding: '12px 16px',
+            borderRadius: 14,
+            border: '1px solid #f2bf2e',
+            background: 'rgba(242,191,46,0.1)',
+            color: '#f2bf2e',
+            fontWeight: 700,
+            fontSize: '0.9375rem',
+            textAlign: 'left',
+          }}
+        >
+          ✦ Try the new lesson experience (prototype) — Not with Eyeservice
+        </button>
+      )}
     </section>
   );
 }

@@ -20,6 +20,13 @@
 // waits for it: a picture is stored before the next one is bought. Unknown is
 // never open (DR-0076): no verdict, an unreadable one or a stale one = paused.
 // Free providers (cost 0) are not gated: nothing is paid for.
+//
+// SECOND verified source (owner 2026-11-25, DR-0076): the private repository
+// darrellpoe06/poetech-learn-originals (lib/originals-backup.mjs). Its
+// verdict.json is written only after a FRESH clone was checked byte-for-byte.
+// Same semantics: open only when the verdict is fresh, says nothing missing, and
+// EVERY sha the current ledger paid for is among its verified shas and in its
+// manifest. Either verified source opens the gate; neither = paused.
 // =============================================================================
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
@@ -77,4 +84,42 @@ export function storageGate({ paid, verdict, costCents = 6, nowMs = Date.now() }
   if (missing > 0) return { open: false, reason: `the NAS is missing ${missing} paid picture(s)` };
   if (verified < paid) return { open: false, reason: `the NAS has verified ${verified} of the ${paid} paid pictures (the last batch is not stored yet)` };
   return { open: true, reason: `the NAS holds all ${paid} paid pictures (verified ${v.at})` };
+}
+
+/**
+ * The private-repository verdict (lib/originals-backup.mjs).
+ * @param {object} o
+ * @param {Set<string>} o.paidShas   every sha the ledger paid for
+ * @param {string} o.verdict         raw verdict.json ('' if absent)
+ * @param {object|null} o.manifest   parsed manifest.json
+ */
+export function originalsGate({ paidShas, verdict, manifest, costCents = 6, nowMs = Date.now() }) {
+  if (!costCents) return { open: true, reason: 'free provider: nothing is paid for' };
+  if (!String(verdict || '').trim()) return { open: false, reason: 'the private originals repository has no verdict yet' };
+  let v;
+  try {
+    v = JSON.parse(verdict);
+  } catch {
+    return { open: false, reason: 'the originals verdict is unreadable' };
+  }
+  const at = Date.parse(v.at || '');
+  if (!Number.isFinite(at)) return { open: false, reason: 'the originals verdict has no time' };
+  const ageH = (nowMs - at) / 3600000;
+  if (ageH > STALE_HOURS) return { open: false, reason: `the originals verdict is ${Math.round(ageH)}h old (over ${STALE_HOURS}h)` };
+  if (!Array.isArray(v.missing) || !Array.isArray(v.shas)) return { open: false, reason: 'the originals verdict has no missing/shas lists' };
+  if (v.missing.length) return { open: false, reason: `the originals repository is missing ${v.missing.length} paid picture(s)` };
+  const verified = new Set(v.shas.map((s) => String(s).toLowerCase()));
+  const listed = new Set(((manifest && manifest.entries) || []).map((e) => String(e.sha256).toLowerCase()));
+  const unverified = [...paidShas].filter((s) => !verified.has(s) || !listed.has(s));
+  if (unverified.length)
+    return {
+      open: false,
+      reason: `the originals repository has not verified ${unverified.length} of the ${paidShas.size} paid pictures (back up before buying more)`,
+    };
+  return { open: true, reason: `the originals repository holds all ${paidShas.size} paid pictures (verified ${v.at})` };
+}
+
+/** Either verified permanent store opens the gate; both reasons are kept for the log. */
+export function eitherGate(nas, originals) {
+  return { open: !!(nas.open || originals.open), reason: `NAS: ${nas.reason} | originals repo: ${originals.reason}` };
 }

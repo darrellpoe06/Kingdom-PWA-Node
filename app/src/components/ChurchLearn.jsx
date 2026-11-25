@@ -166,6 +166,7 @@ import PoeTechShowcase from './PoeTechShowcase.jsx'; // DR-1428: a PoeTech subje
 import LessonVideo from './LessonVideo.jsx'; // DR-1448: the lesson's walk-through, when one is recorded
 import { LESSON_DIAGRAMS } from './lesson-diagrams.jsx'; // DR-1611: lesson figures authored outside this file
 import LearnStudioPreview, { isLearnStudioOn } from './learn-studio/LearnStudioPreview.jsx'; // the redesigned Learn: owner preview, this device only
+import LessonExperienceDoor, { isExperienceLesson } from './learn-studio/LessonExperienceDoor.jsx'; import { experienceTools } from './learn-studio/LessonExperienceTools.jsx'; // the four-mode look for lessons with their own approved cover; the classic space's own tools travel with it
 
 const fmtDate = formatClassDate;
 
@@ -2006,6 +2007,7 @@ function CourseView({
   // in BOTH directions. Opening a lesson records the resume place, so even a
   // reload lands one "Resume →" tap from the same spot.
   const [focusId, setFocusId] = useState(null);
+  const [experienceId, setExperienceId] = useState(null); // the lesson open in the four-mode look (its own approved cover only)
   useHistoryValue(focusId, setFocusId, { base: null, key: 'learn-lesson-focus' });
 
   // THE EXACT LOCATION IS KEPT AND RESTORED (Darrell 2026-09-14: "Lessons keep
@@ -2558,6 +2560,7 @@ function CourseView({
       />
     );
   }
+  if (focusModule && experienceId === focusModule.id && isExperienceLesson(focusModule, course)) return <LessonExperienceDoor key={`${focusModule.id}:${ageBand}:${levelOverride || ''}`} lesson={focusModule} course={course} onExit={() => setExperienceId(null)} onOpen={(k, id) => { openLesson(id); setExperienceId(id); }} onFullPage={() => setExperienceId(null)} initialLevel={versionRead(focusModule, ageBand, levelOverride) || 'adult'} lessonTools={experienceTools({ module: focusModule, course, signedIn, ageBand, levelOverride, learnLevel, setAgeBand, setLearnLevel, LevelControl: LessonLevelControl, versionCount: lessonVersionCount(focusModule), savePlace, awake, touchDevice })} />;
   if (teaching) {
     return <Presenter presentable={coursePresentable(course)} initialAge={AGEBAND_TO_PRESENT_AGE[ageBand] || 'teen'} onClose={() => setTeaching(false)} />;
   }
@@ -3063,6 +3066,7 @@ function CourseView({
             <>
               {/* Actions: start the week (tutor + launch), and mark done */}
               <div className="flex flex-wrap gap-2 mt-3 items-center" data-testid={head ? 'lesson-head-row' : 'lesson-foot-row'} data-folded={headFolded ? 'true' : 'false'}>
+                {head && isExperienceLesson(m, course) && <button type="button" data-testid="open-lesson-experience" onClick={() => setExperienceId(m.id)} className="px-3 py-1.5 rounded-full text-sm font-semibold bg-[#A3141C] text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2">▶ Watch · Read · Listen · Study</button>}
                 {tutorOpen && (
                   <>
                     <button

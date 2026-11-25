@@ -28,7 +28,15 @@ export const PILOT_MAX_LESSONS = 20;
 // pictures (300c + 1770c - 990c). So: combined = 1343 + 6000; pictures = 1080 + 5500.
 // Measured need: 844 pictures x 6c = 5064c; 774 titles ~ 774-832c. A batch that
 // reaches either cap stops itself with the rest left queued (never overdrawn).
-export const TOTAL_CAP_CENTS = 7343;
+// OWNER 2026-11-25: "$58 of NEW spend" (once the originals are in permanent
+// storage). The audit measured the ledger at 1482c spent (newest ledger cache,
+// run 45461834765), so combined = 1482 + 5800 = 7282c: lower than the 7343c
+// above, because the $58 is counted from what was actually spent. Pictures stay
+// at 1080 + 5500 = 6580c, what the $55 of BFL credit allows on top of the
+// picture spend at the 2026-11-24 approval.
+export const SPENT_AT_APPROVAL_CENTS = 1482;
+export const NEW_SPEND_APPROVED_CENTS = 5800;
+export const TOTAL_CAP_CENTS = SPENT_AT_APPROVAL_CENTS + NEW_SPEND_APPROVED_CENTS; // 7282
 export const IMAGE_TOTAL_CAP_CENTS = 6580;
 export const FULL_LIBRARY_ENABLED = true;
 export const LIBRARY_BATCH = 200;
