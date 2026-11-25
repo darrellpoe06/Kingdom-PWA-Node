@@ -21,6 +21,7 @@ import {
   firstName,
   instituteCourseKeys,
   INSTITUTE_STUDIO_FLAG_KEY,
+  courseCovers,
 } from '../lib/institute-studio.js';
 import { recordPlace } from '../lib/learn-resume.js';
 import { INSTITUTE_META } from '../lib/church-institute.js';
@@ -246,5 +247,53 @@ describe('the studio on the owner device', () => {
     click(q('institute-studio-leave'));
     expect(q('institute-studio')).toBeNull();
     expect(window.localStorage.getItem(INSTITUTE_STUDIO_FLAG_KEY)).toBe('0');
+  });
+});
+
+describe('program courses as photographic cards (Darrell 2026-11-25: "vibrant, not a bunch of links")', () => {
+  it('courseCovers takes one image per course; review art only in preview, never a title', () => {
+    const records = [
+      {
+        courseKey: 'who-he-is',
+        status: 'review',
+        displayTitle: 'X',
+        image: { src: 'learn-thumbs/a/w1280.webp', srcSet: { webp: 'learn-thumbs/a/w640.webp 640w' } },
+      },
+      { courseKey: 'who-he-is', status: 'review', image: { src: 'learn-thumbs/b/w1280.webp' } },
+      { courseKey: 'made-in-time', status: 'published', image: { src: 'learn-thumbs/c/w1280.webp' } },
+      { courseKey: 'living-lessons', status: 'review' },
+    ];
+    const preview = courseCovers(records, { preview: true });
+    expect(preview.get('who-he-is')).toEqual({ src: 'learn-thumbs/a/w1280.webp', srcSet: 'learn-thumbs/a/w640.webp 640w' });
+    expect(preview.has('living-lessons')).toBe(false);
+    expect([...courseCovers(records).keys()]).toEqual(['made-in-time']);
+  });
+  it('in the studio a program drop-down shows cards, each opening its course, Required first-class', () => {
+    mount({ studioDefaultOn: true });
+    expect(q('institute-program-cards-biblical-studies')).toBeTruthy();
+    expect(q('institute-program-courses-biblical-studies')).toBeNull();
+    const card = q('institute-program-cards-biblical-studies-who-he-is');
+    expect(card.getAttribute('href')).toContain('who-he-is');
+    expect(card.textContent).toContain('Required for the certificate');
+    expect(card.querySelector('img')).toBeTruthy(); // program photograph until the lesson art loads
+    expect(q('institute-program-cards-biblical-studies-who-he-is-go').textContent).toBe('Start course →');
+  });
+  it('a course begun on this device invites Continue, not Start', () => {
+    recordPlace({ courseKey: 'who-he-is', lessonId: 'whi1', stage: 1, step: 0 });
+    mount({ studioDefaultOn: true });
+    expect(q('institute-program-cards-biblical-studies-who-he-is-go').textContent).toBe('Continue →');
+  });
+  it('the Courses tab shows the same cards in the studio, and the classic list everywhere else', () => {
+    mount({ studioDefaultOn: true });
+    click(q('institute-studio-tile-courses'));
+    expect(q('institute-course-cards-ministry-leadership')).toBeTruthy();
+    act(() => root.unmount());
+    root = createRoot(container);
+    window.localStorage.clear();
+    mount();
+    const t = [...container.querySelectorAll('[role="tab"]')].find((b) => (b.textContent || '').trim() === 'Courses');
+    click(t);
+    expect(q('institute-course-cards-ministry-leadership')).toBeNull();
+    expect(q('institute-courses-ministry-leadership')).toBeTruthy();
   });
 });

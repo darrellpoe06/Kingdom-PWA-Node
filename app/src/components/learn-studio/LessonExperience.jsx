@@ -24,6 +24,10 @@ import { createBrowserTTS, segmentText, RATE_STEPS } from '../../lib/tts.js';
 import { motionBehavior } from '../../lib/gentle-motion.js';
 import { buildFollowMap, alignSegmentSpans, rangeFor, highlightSegment, clearReadingHighlights } from '../../lib/read-follow.js';
 import LessonStories from '../LessonStories.jsx';
+import { sentenceKeyOf } from '../../lib/learn-resume.js';
+import { storiesTextFor, HIGHLIGHT_KEY, HIGHLIGHT_PENS, nextPen, readHighlights, saveHighlights } from './lesson-reading.js';
+
+export { storiesTextFor, HIGHLIGHT_KEY, HIGHLIGHT_PENS, nextPen, readHighlights };
 import LessonFigures from '../LessonFigures.jsx';
 import { ExperienceToolsContext, resumable, pacedFraction } from './LessonExperienceTools.jsx';
 import './lesson-experience.css';
@@ -31,6 +35,7 @@ import './lesson-experience.css';
 const RING = 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2';
 
 export const PROTOTYPE_LESSON_ID = 'll338-not-with-eyeservice';
+export const PAGE_LIGHT_KEY = 'poe-lesson-page-light';
 
 // Scoped to this ONE overlay: a crash here closes just the prototype and
 // returns to the normal Learn Studio home, never the classic-Learn fallback
@@ -188,6 +193,11 @@ export function textFor(lesson, level) {
   const own = (v) => (typeof v === 'string' && v.trim() ? v : null);
   if (level !== 'adult' && lesson.levels && own(lesson.levels[level])) return lesson.levels[level];
   return own(lesson.lesson) || LEVEL_FALLBACK.map((k) => lesson.levels && own(lesson.levels[k])).find(Boolean) || '';
+}
+
+/** The whole reading every mode shows and speaks: the teaching at this level, then the lesson's stories. */
+export function readingTextFor(lesson, level) {
+  return [textFor(lesson, level), storiesTextFor(lesson)].filter(Boolean).join('\n\n');
 }
 
 // The lesson's OWN structural leads ("FIRST, THE MASTER WHO WENT AWAY.",
@@ -388,6 +398,26 @@ export default function LessonExperience({
   lessonTools = null,
 }) {
   const [mode, setMode] = useState(initialMode);
+  // THE PAGE'S OWN LIGHT (Darrell 2026-11-25: "dark mode needs to respect the wishes of the dark
+  // mode... why so much white?" and "the screen's brightness is what some people really want... at
+  // least an option"). Both are kept: the cream page stays, and one press turns the page dark. The
+  // choice is remembered on this device; with no choice made, the app's darkest theme (midnight)
+  // opens dark and every other theme opens on the bright page it always had.
+  const [darkPage, setDarkPage] = useState(() => {
+    const v = saved.get(PAGE_LIGHT_KEY, '');
+    if (v === 'dark' || v === 'bright') return v === 'dark';
+    try {
+      const t = document.querySelector('[data-theme]');
+      return !!t && t.getAttribute('data-theme') === 'midnight';
+    } catch {
+      return false;
+    }
+  });
+  const togglePage = () =>
+    setDarkPage((d) => {
+      saved.set(PAGE_LIGHT_KEY, d ? 'bright' : 'dark');
+      return !d;
+    });
   const [level, setLevel] = useState(initialLevel);
   const [status, setStatus] = useState('idle');
   const [idx, setIdx] = useState(0);
@@ -428,7 +458,7 @@ export default function LessonExperience({
   const [browsing, setBrowsing] = useState(false);
   const [full, setFull] = useState(false);
 
-  const text = useMemo(() => textFor(lesson, level), [lesson, level]);
+  const text = useMemo(() => readingTextFor(lesson, level), [lesson, level]);
   const segments = useMemo(() => segmentText(text), [text]);
   const paragraphs = useMemo(() => (text || '').split(/\n\n+/).filter(Boolean), [text]);
 
@@ -644,6 +674,9 @@ export default function LessonExperience({
         ‹ Back to Learn
       </button>
       {!lessonTools && <span className="le-proto-badge">PROTOTYPE · private, for review</span>}
+      <button type="button" className={`le-pagelight ${RING}`} onClick={togglePage} aria-pressed={darkPage} data-testid="le-page-light">
+        {darkPage ? 'Bright page' : 'Dark page'}
+      </button>
       <a className={`le-kidslink ${RING}`} href={kidsZoneHref()} data-testid="le-kids-zone">
         Kids Zone
       </a>
@@ -654,7 +687,10 @@ export default function LessonExperience({
     <FullPageContext.Provider value={onFullPage}>
       <LevelContext.Provider value={level}>
         <ExperienceToolsContext.Provider value={lessonTools}>
-          <div className={`le-root le-root--${mode}`} aria-label={lessonTools ? 'Lesson' : 'Lesson Experience (prototype)'}>
+          <div
+            className={`le-root le-root--${mode}${darkPage ? ' le-root--darkpage' : ''}`}
+            aria-label={lessonTools ? 'Lesson' : 'Lesson Experience (prototype)'}
+          >
             {header}
             {lessonTools && lessonTools.screenHint}
             {!started ? (
@@ -1011,6 +1047,21 @@ function ReadMode({ lesson, record, title, number, paragraphs, level, setLevel, 
     return i >= 0 ? i : 1;
   });
   const [mark, setMark] = useState(() => Number(saved.get(BOOKMARK_KEY(lesson.id), -1)));
+  const [pen, setPen] = useState(false);
+  const [hl, setHl] = useState(() => readHighlights(lesson.id));
+  const paraKeys = useMemo(() => paragraphs.map((x) => sentenceKeyOf(x)), [paragraphs]);
+  const highlight = (i) => {
+    const k = paraKeys[i];
+    if (!k) return;
+    setHl((cur) => {
+      const next = { ...cur };
+      const to = nextPen(cur[k]);
+      if (to) next[k] = to;
+      else delete next[k];
+      saveHighlights(lesson.id, next);
+      return next;
+    });
+  };
   const [autoTurn, setAutoTurn] = useState(() => saved.get(AUTO_TURN_KEY, '1') !== '0');
   const paraRefs = useRef([]);
   const textRef = useRef(null);
@@ -1161,7 +1212,22 @@ function ReadMode({ lesson, record, title, number, paragraphs, level, setLevel, 
                 )}
                 <p
                   ref={(el) => (paraRefs.current[i] = el)}
-                  className={`le-book-p ${i === 0 ? 'le-book-p--first' : ''} ${mark === i ? 'marked' : ''} ${narratedPara === i ? 'narrating' : ''}`}
+                  className={`le-book-p ${i === 0 ? 'le-book-p--first' : ''} ${mark === i ? 'marked' : ''} ${narratedPara === i ? 'narrating' : ''}${hl[paraKeys[i]] ? ` le-hl le-hl--${hl[paraKeys[i]]}` : ''}${pen ? ' le-hl-pick' : ''}`}
+                  data-highlight={hl[paraKeys[i]] || undefined}
+                  {...(pen
+                    ? {
+                        role: 'button',
+                        tabIndex: 0,
+                        'aria-label': `Highlight paragraph ${i + 1}${hl[paraKeys[i]] ? `, now ${hl[paraKeys[i]]}` : ''}`,
+                        onClick: () => highlight(i),
+                        onKeyDown: (e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            highlight(i);
+                          }
+                        },
+                      }
+                    : {})}
                 >
                   {lead && <strong className="le-book-lead">{lead} </strong>}
                   {i === 0 && /^[A-Za-z]/.test(rest) ? (
@@ -1234,6 +1300,20 @@ function ReadMode({ lesson, record, title, number, paragraphs, level, setLevel, 
           >
             {mark === page ? '★' : '☆'}
           </button>
+          <button
+            type="button"
+            aria-pressed={pen}
+            className={`le-bb le-bb--text ${pen ? 'on' : ''} ${RING}`}
+            onClick={() => setPen((v) => !v)}
+            data-testid="le-highlight-pen"
+          >
+            {pen ? 'Done highlighting' : 'Highlight'}
+          </button>
+          {pen && (
+            <span className="le-hl-hint" role="status" data-read-skip="">
+              Tap a paragraph to mark it. Tap again to change the color or clear it.
+            </span>
+          )}
           {mark >= 0 && mark !== page && (
             <button type="button" className={`le-bb le-bb--text ${RING}`} onClick={() => go(mark)}>
               Go to bookmark

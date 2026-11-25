@@ -13,7 +13,17 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import LearnStudioPreview from '../components/learn-studio/LearnStudioPreview.jsx';
-import LessonExperience, { PROTOTYPE_LESSON_ID, mapSegmentsToParagraphs } from '../components/learn-studio/LessonExperience.jsx';
+import LessonExperience, {
+  PROTOTYPE_LESSON_ID,
+  PAGE_LIGHT_KEY,
+  HIGHLIGHT_KEY,
+  HIGHLIGHT_PENS,
+  nextPen,
+  readHighlights,
+  mapSegmentsToParagraphs,
+  readingTextFor,
+  storiesTextFor,
+} from '../components/learn-studio/LessonExperience.jsx';
 import { segmentText } from '../lib/tts.js';
 import REAL_LESSON from '../lib/living-lessons/ll338-not-with-eyeservice.js';
 import { learnInventory } from '../lib/learn-presentation/integrity.js';
@@ -350,7 +360,8 @@ describe('four-mode reference layout -- real data only', () => {
   it('Read is one continuous scroll of every paragraph (no pager) and the big idea is read exactly once', () => {
     render(<LessonExperience lesson={REAL_LESSON} record={null} onExit={vi.fn()} />);
     click(byText('Read')[0]);
-    const paras = REAL_LESSON.lesson.split(/\n\n+/).filter(Boolean).length;
+    // The reading is the teaching AND the lesson's stories (Darrell 2026-11-25).
+    const paras = readingTextFor(REAL_LESSON, 'adult').split(/\n\n+/).filter(Boolean).length;
     expect(container.querySelectorAll('.le-book-p').length).toBe(paras);
     expect(container.querySelector('.le-bb-count')).toBeNull();
     expect(container.querySelector('button[aria-label="Next paragraph"]')).toBeNull();
@@ -427,7 +438,7 @@ describe('a course link opens that course in the new look, every lesson as a gri
 // `createNarrator` seam a future recorded voice would use, so these tests
 // also prove that contract.
 describe('Read Aloud inside Read mode (one continuous scroll)', () => {
-  const lessonText = REAL_LESSON.lesson;
+  const lessonText = readingTextFor(REAL_LESSON, 'adult');
   const segments = segmentText(lessonText);
   const paragraphs = lessonText.split(/\n\n+/).filter(Boolean);
   const { segPara, firstSeg } = mapSegmentsToParagraphs(paragraphs, segments);
@@ -791,5 +802,122 @@ describe('kids in the new look; grown-ups into the Kids Zone', () => {
   });
   it('the Kids Zone link goes to the youth door on this same app', () => {
     expect(kidsZoneHref({ pathname: '/lovecorner/app/' })).toBe('/lovecorner/app/?view=church&sub=youth');
+  });
+});
+
+// Darrell 2026-11-25, from the live build: "What happened to the stories, both of them being
+// read?" and "Also displayed... they may end up being the most looked forward to." Every story a
+// lesson carries follows its teaching in the one reading that Watch, Read and Listen show and speak.
+describe("the lesson's stories are shown and read with the lesson", () => {
+  const stories = (REAL_LESSON.stories || []).filter((s) => s && s.body);
+  it('the real lesson carries stories, and each one is in the reading, word for word, under a lead that says what it is', () => {
+    expect(stories.length).toBeGreaterThanOrEqual(2);
+    const text = storiesTextFor(REAL_LESSON);
+    for (const st of stories) {
+      expect(text).toContain(st.body.trim());
+      expect(text).toMatch(st.kind === 'testimony' ? /A TRUE STORY/ : /A PARABLE|MORE ON THIS LESSON/);
+    }
+    expect(readingTextFor(REAL_LESSON, 'adult').startsWith(REAL_LESSON.lesson)).toBe(true);
+    expect(readingTextFor(REAL_LESSON, 'adult').endsWith(text)).toBe(true);
+  });
+  it('a parable is never read as a record: its truth line follows it (DR-0811)', () => {
+    const text = storiesTextFor({ stories: [{ kind: 'parable', title: 'The Lamp', body: 'A lamp was lit.' }] });
+    expect(text).toBe(`A PARABLE: THE LAMP. A lamp was lit.\n\n${text.split('\n\n')[1]}`);
+    expect(text.split('\n\n')[1]).toMatch(/^A parable, not a record/);
+  });
+  it('a lesson with no stories reads exactly its teaching', () => {
+    expect(readingTextFor({ lesson: 'A' }, 'adult')).toBe('A');
+    expect(storiesTextFor({ stories: [{ kind: 'parable', title: 'x', body: ' ' }] })).toBe('');
+  });
+  it('Read shows every story on the page, and the voice is given them too', () => {
+    render(<LessonExperience lesson={REAL_LESSON} record={null} onExit={vi.fn()} />);
+    click(byText('Read')[0]);
+    const page = container.querySelector('.le-book-text').textContent;
+    for (const st of stories) expect(page).toContain(st.body.trim().slice(0, 60));
+    // The voice speaks the same text the page shows: every story is in the spoken segments.
+    const spoken = segmentText(readingTextFor(REAL_LESSON, 'adult')).join(' ');
+    for (const st of stories) expect(spoken).toContain(st.body.trim().slice(0, 40));
+  });
+});
+
+// Darrell 2026-11-25: "dark mode needs to respect the wishes of the dark mode... why so much
+// white?" and "the screen's brightness is what some people really want... at least an option."
+describe('the page has its own light: bright stays, dark is one press away', () => {
+  const root = () => container.querySelector('.le-root');
+  const sw = () => container.querySelector('[data-testid="le-page-light"]');
+  afterEach(() => {
+    window.localStorage.removeItem(PAGE_LIGHT_KEY);
+    document.body.removeAttribute('data-theme');
+  });
+  it('opens bright by default, and one press turns the page dark and is remembered', () => {
+    render(<LessonExperience lesson={REAL_LESSON} record={null} onExit={vi.fn()} />);
+    expect(root().className).not.toContain('le-root--darkpage');
+    expect(sw().textContent).toBe('Dark page');
+    click(sw());
+    expect(root().className).toContain('le-root--darkpage');
+    expect(sw().textContent).toBe('Bright page');
+    expect(sw().getAttribute('aria-pressed')).toBe('true');
+    expect(window.localStorage.getItem(PAGE_LIGHT_KEY)).toBe('dark');
+    click(sw());
+    expect(root().className).not.toContain('le-root--darkpage');
+    expect(window.localStorage.getItem(PAGE_LIGHT_KEY)).toBe('bright');
+  });
+  it('the darkest theme (midnight) opens dark with no choice made; a saved Bright choice wins over it', () => {
+    document.body.setAttribute('data-theme', 'midnight');
+    render(<LessonExperience lesson={REAL_LESSON} record={null} onExit={vi.fn()} />);
+    expect(root().className).toContain('le-root--darkpage');
+    click(sw());
+    expect(window.localStorage.getItem(PAGE_LIGHT_KEY)).toBe('bright');
+  });
+  it('every other theme still opens on the bright page it always had', () => {
+    document.body.setAttribute('data-theme', 'night');
+    render(<LessonExperience lesson={REAL_LESSON} record={null} onExit={vi.fn()} />);
+    expect(root().className).not.toContain('le-root--darkpage');
+  });
+});
+
+// Darrell 2026-11-25: "also the ability to highlight when possible."
+describe('the highlighter pen on the Read page', () => {
+  afterEach(() => window.localStorage.removeItem(HIGHLIGHT_KEY(REAL_LESSON.id)));
+  const paras = () => [...container.querySelectorAll('.le-book-p')];
+  const penBtn = () => container.querySelector('[data-testid="le-highlight-pen"]');
+  it('cycles gold, green, blue, then clear; never red (DR-0099)', () => {
+    expect(HIGHLIGHT_PENS).not.toContain('red');
+    expect([nextPen(undefined), nextPen('gold'), nextPen('green'), nextPen('blue')]).toEqual(['gold', 'green', 'blue', null]);
+  });
+  it('with the pen off a tap marks nothing; with it on a tap marks the paragraph and the mark is kept on this device', () => {
+    render(<LessonExperience lesson={REAL_LESSON} record={null} onExit={vi.fn()} />);
+    click(byText('Read')[0]);
+    click(paras()[1]);
+    expect(paras()[1].getAttribute('data-highlight')).toBeNull();
+    click(penBtn());
+    expect(penBtn().getAttribute('aria-pressed')).toBe('true');
+    click(paras()[1]);
+    expect(paras()[1].getAttribute('data-highlight')).toBe('gold');
+    expect(paras()[0].getAttribute('data-highlight')).toBeNull();
+    click(paras()[1]);
+    expect(paras()[1].getAttribute('data-highlight')).toBe('green');
+    const kept = readHighlights(REAL_LESSON.id);
+    expect(Object.values(kept)).toEqual(['green']);
+    // what is kept is a fingerprint, never the paragraph's words
+    expect(Object.keys(kept)[0].length).toBeLessThan(40);
+    expect(REAL_LESSON.lesson).not.toContain(Object.keys(kept)[0]);
+  });
+  it('a kept mark is there when the lesson is opened again, and two more taps clear it', () => {
+    render(<LessonExperience lesson={REAL_LESSON} record={null} onExit={vi.fn()} />);
+    click(byText('Read')[0]);
+    click(penBtn());
+    click(paras()[2]);
+    act(() => root.unmount());
+    root = createRoot(container);
+    render(<LessonExperience lesson={REAL_LESSON} record={null} onExit={vi.fn()} />);
+    click(byText('Read')[0]);
+    expect(paras()[2].getAttribute('data-highlight')).toBe('gold');
+    click(penBtn());
+    click(paras()[2]);
+    click(paras()[2]);
+    click(paras()[2]);
+    expect(paras()[2].getAttribute('data-highlight')).toBeNull();
+    expect(readHighlights(REAL_LESSON.id)).toEqual({});
   });
 });

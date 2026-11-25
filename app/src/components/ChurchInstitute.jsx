@@ -43,7 +43,9 @@ import * as defaultSync from '../lib/church-institute-sync.js';
 import { lessonUrl } from '../lib/lesson-links.js';
 import { resolveChurch } from '../lib/resolve-church.js';
 import InstituteStudio from './institute/InstituteStudio.jsx';
-import { isInstituteStudioOn, INSTITUTE_STUDIO_FLAG_KEY } from '../lib/institute-studio.js';
+import InstituteCourseCards from './institute/InstituteCourseCards.jsx';
+import { listPlaces } from '../lib/learn-resume.js';
+import { isInstituteStudioOn, INSTITUTE_STUDIO_FLAG_KEY, courseCovers } from '../lib/institute-studio.js';
 
 const FOCUS = 'focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]';
 const STATUS_WORD = Object.freeze({ applied: 'Applied', accepted: 'Accepted', withdrawn: 'Withdrawn', completed: 'Completed' });
@@ -463,6 +465,24 @@ export default function ChurchInstitute({
 }) {
   const c = resolveChurch(church);
   const [studio, setStudio] = useState(() => isInstituteStudioOn({ defaultOn: studioDefaultOn }));
+  // Course covers for the studio's photographic cards: the lesson-art records load
+  // only when the studio is on (owner device), so the public Institute never pays for them.
+  const [covers, setCovers] = useState(() => new Map());
+  useEffect(() => {
+    if (!studio) return undefined;
+    let on = true;
+    import('../lib/learn-presentation/presentation-records.json')
+      .then((m) => {
+        if (on) setCovers(courseCovers((m.default || m).records, { preview: true }));
+      })
+      .catch(() => {
+        /* no covers: the cards fall back to the program photograph */
+      });
+    return () => {
+      on = false;
+    };
+  }, [studio]);
+  const started = useMemo(() => new Set(studio ? listPlaces({ inProgress: true }).map((x) => x.courseKey) : []), [studio]);
   const programs = useMemo(
     () => PROGRAMS.map((p) => ({ ...p, status: programStatus(p), courses: programCourses(p), list: programCourseList(p) })),
     []
@@ -586,11 +606,22 @@ export default function ChurchInstitute({
                         {p.courses.length} required for the certificate · {p.list.length - p.courses.length} more for open study
                         {p.byAge ? ' · lessons for every age, young to seniors' : ''}
                       </p>
-                      <ul className="lc-stack mt-2" aria-label={`${p.title} courses`} data-testid={`institute-program-courses-${p.key}`}>
-                        {p.list.map(({ course, required }) => (
-                          <CourseRow key={course.key} course={course} required={required} testid={`institute-program-${p.key}-course-${course.key}`} />
-                        ))}
-                      </ul>
+                      {studio ? (
+                        <InstituteCourseCards
+                          items={p.list}
+                          covers={covers}
+                          started={started}
+                          programKey={p.key}
+                          label={`${p.title} courses`}
+                          testid={`institute-program-cards-${p.key}`}
+                        />
+                      ) : (
+                        <ul className="lc-stack mt-2" aria-label={`${p.title} courses`} data-testid={`institute-program-courses-${p.key}`}>
+                          {p.list.map(({ course, required }) => (
+                            <CourseRow key={course.key} course={course} required={required} testid={`institute-program-${p.key}-course-${course.key}`} />
+                          ))}
+                        </ul>
+                      )}
                       {p.byAge && <PopulationPaths paths={paths} testid={`institute-by-age-${p.key}`} />}
                     </details>
                   )}
@@ -642,6 +673,16 @@ export default function ChurchInstitute({
                 <h4 id={`inst-courses-${p.key}`} className="lc-prog-t mb-1">
                   {p.title}
                 </h4>
+                {studio ? (
+                  <InstituteCourseCards
+                    items={mine.map(({ course, required }) => ({ course, required, note: alsoIn(course.key, p.key) }))}
+                    covers={covers}
+                    started={started}
+                    programKey={p.key}
+                    label={`${p.title} courses`}
+                    testid={`institute-course-cards-${p.key}`}
+                  />
+                ) : (
                 <ol className="lc-stack" aria-label={`${p.title} courses`}>
                   {mine.map(({ course, required }) => (
                     <CourseRow
@@ -654,6 +695,7 @@ export default function ChurchInstitute({
                     />
                   ))}
                 </ol>
+                )}
                 {p.byAge && <PopulationPaths paths={paths} testid={`institute-courses-by-age-${p.key}`} />}
               </section>
             );
@@ -822,7 +864,7 @@ export default function ChurchInstitute({
   }
 
   return (
-    <div className="lc-home" data-testid="church-institute">
+    <div className={`lc-home${studio ? ' is-root' : ''}`} data-testid="church-institute">
       {studio ? (
         <InstituteStudio
           programs={programs}

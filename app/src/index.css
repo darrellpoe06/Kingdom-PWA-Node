@@ -1126,7 +1126,7 @@ html[data-reader-rails="sides"] header[data-read-skip] {
 .is-lesson-b b{font-family:var(--lc-display);font-size:1rem;line-height:1.2}
 .is-lesson-b em{font-style:normal;font-family:var(--lc-display);font-weight:700;color:var(--lc-red);font-size:.95rem}
 .is-lesson-b small{color:var(--lc-muted);font-size:.78rem}
-.is-go{grid-column:1/-1;justify-self:end;min-height:40px;padding:0 1rem;border-radius:999px;display:inline-flex;align-items:center;font-weight:800;font-size:.85rem}
+.is-go{grid-column:1/-1;justify-self:start;min-height:40px;padding:0 1rem;border-radius:999px;display:inline-flex;align-items:center;font-weight:800;font-size:.85rem}
 .is-go-red{background:var(--lc-red);color:var(--lc-white)}
 .is-go-line{border:2px solid var(--lc-red);color:var(--lc-red)}
 .is-progs{display:grid;grid-template-columns:1fr;gap:.75rem}
@@ -1146,22 +1146,47 @@ html[data-reader-rails="sides"] header[data-read-skip] {
 .is-tile-ic{width:2.75rem;height:2.75rem;border-radius:.75rem;display:grid;place-items:center;font-size:1.35rem;color:var(--lc-white)}
 .is-tile-red{background:linear-gradient(180deg,var(--lc-heart),var(--lc-red))}
 .is-tile-gold{background:linear-gradient(180deg,var(--is-gold-hi),var(--lc-gold));color:var(--lc-black)}
-@media (min-width:640px){
-  .is-cont{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .is-lesson{grid-template-columns:8.5rem minmax(0,1fr) auto}
-  .is-go{grid-column:auto}
+/* Layout follows the Institute's OWN width (container queries), not the screen's: on a Fold, a tablet
+   or a split pane, the Institute column is narrower than the viewport, and large print scales rem, so
+   rem thresholds track the reader's text size (Darrell 2026-11-25: letter-by-letter titles on the Fold). */
+.is-root{container-type:inline-size;container-name:inst}
+.is-root .is-studio,.is-root .is-cgrid{overflow-wrap:break-word;word-break:normal}
+.is-root .is-title{font-size:clamp(.85rem,4.4cqi,2.6rem)}
+.is-root .is-tagline{font-size:clamp(.82rem,2.6cqi,1.05rem)}
+.is-root .is-lede{font-size:clamp(.8rem,2.4cqi,.95rem)}
+.is-root .is-leader-cap b{font-size:clamp(.8rem,2.6cqi,1.25rem)}
+.is-root .is-leader-cap i{font-size:clamp(.72rem,2.2cqi,1rem)}
+.is-root .is-leader-cap span{font-size:clamp(.64rem,1.9cqi,.82rem)}
+@container inst (min-width:40rem){
   .is-progs{grid-template-columns:repeat(2,minmax(0,1fr))}
   .is-welcome{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
   .is-stats{grid-column:1/-1}
+  .is-lesson{grid-template-columns:9rem minmax(0,1fr)}
 }
-@media (min-width:900px){
+@container inst (min-width:54rem){
+  .is-cont{grid-template-columns:repeat(2,minmax(0,1fr))}
   .is-hero{padding:1.5rem 0 0 1.75rem;grid-template-columns:minmax(0,1fr) minmax(0,34%)}
   .is-leader-ph{aspect-ratio:1/1}
   .is-crest{width:5rem}
   .is-feats{grid-template-columns:repeat(6,minmax(0,1fr))}
-  .is-welcome{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr) minmax(0,1.2fr);align-items:center}
-  .is-stats{grid-column:auto}
-  .is-progs{grid-template-columns:repeat(3,minmax(0,1fr))}
   .is-tiles{grid-template-columns:repeat(6,minmax(0,1fr))}
   .is-tile{border-bottom:0}
 }
+@container inst (min-width:62rem){
+  .is-welcome{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr) minmax(0,1.2fr);align-items:center}
+  .is-stats{grid-column:auto}
+  .is-progs{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+/* Course cards: a program's courses as photographic invitations (InstituteCourseCards.jsx). */
+.is-cgrid{list-style:none;margin:.75rem 0 0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,15rem),1fr));gap:.75rem}
+.is-ccard{display:flex;flex-direction:column;height:100%;border-radius:1rem;overflow:hidden;background:var(--lc-paper);border:1px solid var(--lc-line);color:var(--lc-ink);text-decoration:none;box-shadow:0 10px 24px rgba(26,16,18,.16);transition:transform .15s ease,box-shadow .15s ease}
+.is-ccard:hover{transform:translateY(-2px);box-shadow:0 14px 30px rgba(26,16,18,.24)}
+.is-cimg{position:relative;display:block;aspect-ratio:16/10;background:linear-gradient(160deg,var(--lc-black),var(--is-crimson))}
+.is-cimg img{width:100%;height:100%;object-fit:cover;display:block}
+.is-cimg b{position:absolute;left:0;right:0;bottom:0;padding:2rem .75rem .625rem;font-family:var(--lc-display);font-weight:700;font-size:1.1rem;line-height:1.2;color:var(--is-gold-title);background:linear-gradient(180deg,transparent,rgba(10,4,5,.9));text-shadow:0 2px 6px rgba(0,0,0,.6)}
+.is-cbadge{position:absolute;top:.5rem;left:.5rem;padding:.2rem .6rem;border-radius:999px;font-size:.7rem;font-weight:800;background:rgba(10,4,5,.72);color:var(--lc-white);border:1px solid rgba(255,255,255,.35)}
+.is-cbadge-req{background:var(--lc-gold);color:var(--lc-black);border-color:var(--lc-gold)}
+.is-cbody{display:flex;flex-direction:column;gap:.375rem;padding:.625rem .75rem .75rem;flex:1 1 auto}
+.is-cbody small{font-size:.8rem;line-height:1.4;color:var(--lc-muted)}
+.is-cbody .is-go{margin-top:auto;align-self:flex-start;grid-column:auto}
+.is-go-gold{background:linear-gradient(180deg,var(--is-gold-hi),var(--lc-gold));color:var(--lc-black)}

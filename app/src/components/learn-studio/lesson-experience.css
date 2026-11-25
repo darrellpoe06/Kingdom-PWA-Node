@@ -1232,3 +1232,99 @@
     padding-right: 8px;
   }
 }
+
+/* THE DARK PAGE (Darrell 2026-11-25). One switch in the lesson's top bar. Additive: only the
+   page's own tokens and the surfaces painted with literal light colors change; every rule above
+   is untouched and the bright page is exactly what it was. Scripture callouts stay gold (DR-0099). */
+.le-root--darkpage {
+  --le-paper: #1b1314;
+  --le-paper-2: #261b1d;
+  --le-ink: #f1e9df;
+  --le-ink-dim: #c9bdb4;
+}
+.le-root--darkpage .le-keyteach {
+  background: radial-gradient(120% 120% at 50% 0%, #3a2a16, #2a1f12);
+  color: var(--le-ink);
+}
+.le-root--darkpage .le-notes,
+.le-root--darkpage .le-conversation {
+  background: #241a1b;
+  color: var(--le-ink);
+}
+.le-pagelight {
+  margin-left: auto;
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--le-line);
+  background: var(--le-panel);
+  color: var(--le-text);
+  font-weight: 700;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+.le-pagelight + .le-kidslink {
+  margin-left: 0;
+}
+.le-root--darkpage .le-conversation-sub {
+  color: var(--le-ink-dim);
+}
+/* The reading's hard-coded inks (the five dark text colors above, measured 2026-11-25) follow the
+   dark page too; the crimson leads lift to a warm light red so they stay readable on dark. */
+.le-root--darkpage .le-book-text {
+  color: var(--le-ink);
+}
+.le-root--darkpage .le-book .le-verse {
+  color: var(--le-ink-dim);
+}
+.le-root--darkpage .le-book-lead,
+.le-root--darkpage .le-wordfirst-k,
+.le-root--darkpage .le-bb.on,
+.le-root--darkpage .le-bb--aloud {
+  color: #f0a79c;
+}
+.le-root--darkpage .le-quiz-opt {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* The highlighter pen: soft tints that keep the page's own ink readable on the bright page and
+   on the dark page alike (dark ink on a light tint, light ink on a dark tint). No true red. */
+.le-hl {
+  border-radius: 6px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  padding: 2px 6px;
+  margin-left: -6px;
+  margin-right: -6px;
+}
+.le-hl--gold {
+  background: rgba(231, 178, 60, 0.32);
+}
+.le-hl--green {
+  background: rgba(86, 168, 112, 0.3);
+}
+.le-hl--blue {
+  background: rgba(86, 140, 222, 0.3);
+}
+.le-hl-pick {
+  cursor: pointer;
+  outline: 1px dashed rgba(184, 134, 42, 0.55);
+  outline-offset: 4px;
+}
+.le-hl-hint {
+  font-size: 0.8125rem;
+  color: var(--le-ink-dim);
+}
+/* THE READ-ALONG HIGHLIGHT ON THE BRIGHT PAGE (Darrell 2026-11-25, screenshot on Midnight: the
+   sentence being read showed WHITE on a pale orange wash on the cream page). Midnight's own rule
+   (index.css, DR-0424) paints the spoken sentence white for its black background; the lesson's
+   bright page is cream, so the white vanished. On the bright page the highlight keeps the page's
+   dark ink under a rust wash, in every theme; the dark page keeps Midnight's light-on-dark. */
+.le-root:not(.le-root--darkpage) *::highlight(poe-read-seg) {
+  background-color: rgba(184, 88, 56, 0.28);
+  color: #23170f;
+}
+.le-root:not(.le-root--darkpage) *::highlight(poe-resume-mark) {
+  background-color: rgba(90, 110, 61, 0.3);
+  color: #23170f;
+}
