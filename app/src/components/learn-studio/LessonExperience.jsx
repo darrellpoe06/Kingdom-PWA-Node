@@ -21,7 +21,10 @@
 // =============================================================================
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { createBrowserTTS, segmentText } from '../../lib/tts.js';
+import { motionBehavior } from '../../lib/gentle-motion.js';
 import './lesson-experience.css';
+
+const RING = 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2';
 
 export const PROTOTYPE_LESSON_ID = 'll338-not-with-eyeservice';
 
@@ -186,7 +189,7 @@ export default function LessonExperience({ lesson, record, onExit }) {
 
   useEffect(() => {
     try {
-      if (activeLineRef.current) activeLineRef.current.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      if (activeLineRef.current) activeLineRef.current.scrollIntoView({ block: 'center', behavior: motionBehavior() });
     } catch {
       /* no scrollIntoView (tests) */
     }
@@ -229,7 +232,7 @@ export default function LessonExperience({ lesson, record, onExit }) {
   return (
     <div className="le-root" aria-label="Lesson Experience (prototype)">
       <header className="le-top">
-        <button type="button" className="le-back" onClick={onExit}>
+        <button type="button" className={`le-back ${RING}`} onClick={onExit}>
           ‹ Back to Learn
         </button>
         <span className="le-proto-badge">PROTOTYPE — private, for review</span>
@@ -245,7 +248,7 @@ export default function LessonExperience({ lesson, record, onExit }) {
             type="button"
             role="tab"
             aria-selected={mode === m.key}
-            className={`le-mode ${mode === m.key ? 'on' : ''}`}
+            className={`le-mode ${mode === m.key ? 'on' : ''} ${RING}`}
             onClick={() => setMode(m.key)}
           >
             <span aria-hidden="true">{m.icon}</span> {m.label}
@@ -256,7 +259,7 @@ export default function LessonExperience({ lesson, record, onExit }) {
       {mode !== 'study' && (
         <div className="le-levels">
           {LEVELS.map((l) => (
-            <button key={l.key} type="button" className={`le-level ${level === l.key ? 'on' : ''}`} onClick={() => setLevel(l.key)}>
+            <button key={l.key} type="button" className={`le-level ${level === l.key ? 'on' : ''} ${RING}`} onClick={() => setLevel(l.key)}>
               {l.label}
             </button>
           ))}
@@ -280,13 +283,13 @@ export default function LessonExperience({ lesson, record, onExit }) {
             </div>
           </div>
           <div className="le-controls">
-            <button type="button" className="le-ctl" onClick={() => skip(-1)} aria-label="Previous sentence">
+            <button type="button" className={`le-ctl ${RING}`} onClick={() => skip(-1)} aria-label="Previous sentence">
               ⏮
             </button>
-            <button type="button" className="le-ctl le-ctl--play" onClick={isPlaying ? pause : play} aria-label={isPlaying ? 'Pause' : 'Play'}>
+            <button type="button" className={`le-ctl le-ctl--play ${RING}`} onClick={isPlaying ? pause : play} aria-label={isPlaying ? 'Pause' : 'Play'}>
               {isPlaying ? '⏸' : '▶'}
             </button>
-            <button type="button" className="le-ctl" onClick={() => skip(1)} aria-label="Next sentence">
+            <button type="button" className={`le-ctl ${RING}`} onClick={() => skip(1)} aria-label="Next sentence">
               ⏭
             </button>
             <div className="le-progress" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
@@ -334,13 +337,13 @@ export default function LessonExperience({ lesson, record, onExit }) {
           </div>
           <p className="le-listen-now">{segments[idx] || 'Ready to begin.'}</p>
           <div className="le-controls">
-            <button type="button" className="le-ctl" onClick={() => skip(-1)} aria-label="Back 1 sentence">
+            <button type="button" className={`le-ctl ${RING}`} onClick={() => skip(-1)} aria-label="Back 1 sentence">
               ⏮
             </button>
-            <button type="button" className="le-ctl le-ctl--play" onClick={isPlaying ? pause : play} aria-label={isPlaying ? 'Pause' : 'Play'}>
+            <button type="button" className={`le-ctl le-ctl--play ${RING}`} onClick={isPlaying ? pause : play} aria-label={isPlaying ? 'Pause' : 'Play'}>
               {isPlaying ? '⏸' : '▶'}
             </button>
-            <button type="button" className="le-ctl" onClick={() => skip(1)} aria-label="Forward 1 sentence">
+            <button type="button" className={`le-ctl ${RING}`} onClick={() => skip(1)} aria-label="Forward 1 sentence">
               ⏭
             </button>
             <div className="le-progress" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
@@ -390,7 +393,7 @@ function StudyMode({ lesson }) {
                   <button
                     key={oi}
                     type="button"
-                    className={`le-quiz-opt ${show && correct ? 'correct' : ''} ${show && isChosen && !correct ? 'wrong' : ''}`}
+                    className={`le-quiz-opt ${show && correct ? 'correct' : ''} ${show && isChosen && !correct ? 'wrong' : ''} ${RING}`}
                     onClick={() => setPicked((p) => ({ ...p, [qi]: oi }))}
                     disabled={show}
                   >
