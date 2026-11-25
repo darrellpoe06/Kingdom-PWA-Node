@@ -1008,6 +1008,10 @@
   font-weight: 700;
   font-size: 0.875rem;
 }
+.le-more-actions {
+  display: grid;
+  gap: 8px;
+}
 .le-practice {
   margin: 0;
 }
