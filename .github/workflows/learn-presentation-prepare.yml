@@ -1,5 +1,5 @@
 # Learn presentation: prepare a title + cinematic thumbnail for each new lesson, for APPROVAL only (never edits a lesson, never publishes).
-# Brakes: $73.43 combined, pictures $65.80 (spent at approval + the $60 / $55 the owner approved), both read from the ledger, retries included (lib/scope.mjs); per-run cap (titles <= 20%); batches of 200; one run at a time; OFF unless vars.LEARN_PRESENTATION_AUTOPREP == 'on'. Detail: docs/99-session-notes/2026-11-24-learn-redesign-art-direction-v2.md Manual (dispatch) only: the full library (approved 2026-11-24) runs batch by batch. Paid work is saved (cache + artifact) even when a later step fails; the NAS pulls each batch (learn-thumbs-pull, DR-1360). Storage first: no paid picture until the NAS has verified every one already paid for (owner 2026-11-24).
+# Brakes: $73.43 combined, pictures $65.80 (spent at approval + the $60 / $55 the owner approved), both read from the ledger, retries included (lib/scope.mjs); per-run cap (titles <= 20%); batches of 200; one run at a time; OFF unless vars.LEARN_PRESENTATION_AUTOPREP == 'on'. Detail: docs/99-session-notes/2026-11-24-learn-redesign-art-direction-v2.md Manual (dispatch) only: the full library (approved 2026-11-24) runs batch by batch. Paid work is saved (cache + artifact) even when a later step fails, and after every part of 50 pictures (a lost runner; lib/part.mjs); the NAS pulls each batch (learn-thumbs-pull, DR-1360). Storage first: no paid picture until the NAS has verified every one already paid for (owner 2026-11-24).
 name: Learn presentation — prepare new lessons
 on:
   workflow_dispatch:
@@ -28,33 +28,33 @@ jobs:
       CLI: npx vite-node scripts/learn-presentation/cli.mjs
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
-        with: { node-version: 22 }
+      - { uses: actions/setup-node@v7, with: { node-version: 22 } }
       - run: npm ci --ignore-scripts --no-audit --no-fund && (cd scripts/learn-thumbs && npm ci --no-audit --no-fund && npm test) # compositor proven before any paid call
-      - id: ledger
-        uses: actions/cache/restore@v4
-        with: { path: app/.learn-presentation, key: 'learn-presentation-ledger-${{ github.run_id }}', restore-keys: learn-presentation-ledger- }
-      - name: A saved ledger is required (no double spend, no regeneration)
-        if: steps.ledger.outputs.cache-matched-key == '' && github.event.inputs.fresh_ledger != 'yes'
-        run: echo "::error::No saved ledger was restored; stopping before any spend. Type yes in fresh_ledger only for a first run." && exit 1
-      - name: The author's lessons are intact before anything runs
-        run: npx vitest run src/__tests__/learn-integrity-baseline.test.js
+      - { id: ledger, uses: actions/cache/restore@v4, with: { path: app/.learn-presentation, key: 'learn-presentation-ledger-${{ github.run_id }}', restore-keys: learn-presentation-ledger- } }
+      - { uses: actions/cache/restore@v4, with: { path: app/.learn-presentation/part, key: 'learn-presentation-part-${{ github.run_id }}', restore-keys: learn-presentation-part- } } # the newest per-part save; a LOST runner never reaches the end-of-run save (lib/part.mjs)
+      - { name: 'A saved ledger is required (no double spend, no regeneration)', if: "steps.ledger.outputs.cache-matched-key == '' && github.event.inputs.fresh_ledger != 'yes'", run: 'echo "::error::No saved ledger was restored; stopping before any spend. Type yes in fresh_ledger only for a first run." && exit 1' }
+      - { name: The author's lessons are intact before anything runs, run: npx vitest run src/__tests__/learn-integrity-baseline.test.js }
       - name: Titles and images (one cap for the whole run; resumes, never redoes finished work)
         run: |
           set -euo pipefail; rm -rf .learn-presentation/outbox # each run's artifact carries only its own new pictures (the NAS pulls them, DR-1360)
+          $CLI part-recover --ledger-key '${{ steps.ledger.outputs.cache-matched-key }}' # a lost run's pictures come back, never re-bought
           SCOPE="--only ${ONLY/#art:*/seed}"; TEXT_CAP=$(( CAP / 5 )); IMAGE_CAP=$(( CAP - TEXT_CAP )); echo "cap ${CAP}c = text ${TEXT_CAP}c + images ${IMAGE_CAP}c"
           $CLI status; [ "${{ github.event.inputs.fresh_ledger }}" = yes ] || $CLI verify-resume --min-cents 98 --min-text 10 --min-images 10 # recovery proven before any spend; scope validated in code (<= 20, never all)
-          case "$ONLY" in backup) mkdir -p .learn-presentation/outbox && cp -r .learn-presentation/images/. .learn-presentation/outbox/ && echo "backup: every stored picture is in this artifact for the NAS (free)" ;; art:*) $CLI art-v2 --only "${ONLY#art:}" --budget-cents "$CAP" ;; *) $CLI text $SCOPE --budget-cents "$TEXT_CAP"; $CLI images $SCOPE --provider bfl --budget-cents "$IMAGE_CAP" --concurrency 6 --per-minute 30 ;; esac
+          case "$ONLY" in backup) mkdir -p .learn-presentation/outbox && cp -r .learn-presentation/images/. .learn-presentation/outbox/ && echo "backup: every stored picture is in this artifact for the NAS (free)" ;; art:*) $CLI art-v2 --only "${ONLY#art:}" --budget-cents "$CAP" ;; *) $CLI text $SCOPE --budget-cents "$TEXT_CAP"; echo "PICS=$CLI images $SCOPE --provider bfl --budget-cents $IMAGE_CAP --run-mark $RUNNER_TEMP/lp-mark --max-new 50 --save-part --concurrency 6 --per-minute 30" >> "$GITHUB_ENV" ;; esac
+      - { name: Pictures part 1 of 4, if: "env.PICS != ''", run: $PICS } # four parts of 50, the ledger cached after each: a lost runner loses at most one part's record
+      - { uses: actions/cache/save@v4, if: "always() && env.PICS != ''", with: { path: app/.learn-presentation/part, key: 'learn-presentation-part-${{ github.run_id }}-${{ github.run_attempt }}-1' } }
+      - { name: Pictures part 2 of 4, if: "env.PICS != ''", run: $PICS }
+      - { uses: actions/cache/save@v4, if: "always() && env.PICS != ''", with: { path: app/.learn-presentation/part, key: 'learn-presentation-part-${{ github.run_id }}-${{ github.run_attempt }}-2' } }
+      - { name: Pictures part 3 of 4, if: "env.PICS != ''", run: $PICS }
+      - { uses: actions/cache/save@v4, if: "always() && env.PICS != ''", with: { path: app/.learn-presentation/part, key: 'learn-presentation-part-${{ github.run_id }}-${{ github.run_attempt }}-3' } }
+      - { name: Pictures part 4 of 4, if: "env.PICS != ''", run: $PICS }
+      - { uses: actions/cache/save@v4, if: "always() && env.PICS != ''", with: { path: app/.learn-presentation/part, key: 'learn-presentation-part-${{ github.run_id }}-${{ github.run_attempt }}-4' } }
       - name: Compose thumbnails (free; a failure here never loses paid work)
         if: always()
         continue-on-error: true
         run: 'if [ "$ONLY" = all ] || [ "$ONLY" = backup ]; then echo "library batch, compose runs as a separate free step"; else $CLI compose --only "${ONLY/#art:*/seed}"; fi'
-      - name: Export the review package
-        if: always()
-        run: $CLI export --to .learn-presentation/review-export.json && $CLI status
-      - uses: actions/cache/save@v4
-        if: always()
-        with: { path: app/.learn-presentation, key: 'learn-presentation-ledger-${{ github.run_id }}' }
+      - { name: Export the review package, if: always(), run: rm -rf .learn-presentation/part && $CLI export --to .learn-presentation/review-export.json && $CLI status } # part/ is in its own cache
+      - { uses: actions/cache/save@v4, if: always(), with: { path: app/.learn-presentation, key: 'learn-presentation-ledger-${{ github.run_id }}' } }
       - name: The author's lessons are still intact
         if: always()
         run: npx vitest run src/__tests__/learn-integrity-baseline.test.js
