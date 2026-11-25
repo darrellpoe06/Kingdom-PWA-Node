@@ -273,12 +273,12 @@
 .le-unsaid {
   color: #fff;
 }
-.le-watch > .le-progress {
+.le-player > .le-progress {
   margin: 0 -16px;
   border-radius: 0;
 }
 @media (min-width: 640px) {
-  .le-watch > .le-progress {
+  .le-player > .le-progress {
     margin: 0;
   }
 }
@@ -325,6 +325,81 @@
   list-style: none;
   margin: 0;
   padding: 0;
+  /* Its own scroll box: narration moves this list, never the page. */
+  position: relative;
+  /* Fits the screen under the pinned player (stage is 16:10 of the width,
+     plus progress and controls), so the whole box is visible at once. */
+  max-height: max(200px, calc(100vh - 62.5vw - 76px));
+  max-height: max(200px, calc(100dvh - 62.5vw - 76px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+/* The player (picture, progress, controls) stays pinned while you read on. */
+.le-player {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  margin: 0 -16px;
+  padding: 0 16px;
+  background: var(--le-bg);
+}
+/* The "Back to the current line" button floats over the list, so showing
+   it never pushes the transcript (no layout jump). */
+.le-transcript-wrap {
+  position: relative;
+}
+.le-follow {
+  position: absolute;
+  left: 50%;
+  bottom: 10px;
+  transform: translateX(-50%);
+  z-index: 2;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+  white-space: nowrap;
+  min-height: 36px;
+  padding: 4px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--le-gold);
+  background: var(--le-panel);
+  color: var(--le-gold);
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+.le-root .le-follow {
+  color: var(--le-gold);
+}
+/* Full screen: the cinematic stage and its captions fill the screen. */
+.le-stage.le-stage--full,
+.le-stage:fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  aspect-ratio: auto;
+  border-radius: 0;
+}
+.le-stage--full .le-caption,
+.le-stage:fullscreen .le-caption {
+  font-size: 1.375rem;
+  bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  left: 24px;
+  right: 24px;
+}
+.le-full-ctl {
+  position: absolute;
+  top: calc(12px + env(safe-area-inset-top, 0px));
+  right: 12px;
+  display: flex;
+  gap: 8px;
+}
+.le-full-ctl .le-chip {
+  min-width: 44px;
+  min-height: 44px;
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
 }
 .le-tline {
   margin: 0 0 6px;
