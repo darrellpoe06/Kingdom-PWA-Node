@@ -10,8 +10,9 @@
 // directly under the new display title — visible text, never a tooltip.
 // =============================================================================
 import React, { useMemo, useState, useEffect } from 'react';
-import { studioHome, searchPresented, presentLesson, SHELVES, shelfForDepartment, interimHeadline } from '../../lib/learn-presentation/presentation.js';
+import { studioHome, searchPresented, presentLesson, SHELVES, shelfForDepartment, interimHeadline, findPresentedLesson } from '../../lib/learn-presentation/presentation.js';
 import { READING_VERSIONS } from '../../lib/learn-organize.js';
+import { lessonUrl } from '../../lib/lesson-links.js';
 
 const versionLabel = (id) => (READING_VERSIONS.find((b) => b.id === id) || { label: id }).label;
 // A keyboard user must SEE where they are (ui-standards focus-ring). Gold, never red (red is reserved, DR-0099).
@@ -214,8 +215,16 @@ function TopicGrid({ topics, covers, onPick }) {
 export function LessonCover({ x, next, onBack, onRead, onListen, onVersion, onOpen }) {
   const { p } = x;
   const [shared, setShared] = useState(false);
+  // Darrell, 2026-11-25: "our share links do/should go to each lesson... the
+  // new look needs to do that also... currently it doesn't." This used to
+  // share window.location.href -- the generic Learn page, no course/lesson at
+  // all, since Learn Studio never pushes a URL as it navigates. lessonUrl() is
+  // the SAME real deep-link builder the classic reader's own Share uses
+  // (?course=...&lesson=...), so a link shared from here opens exactly this
+  // lesson for anyone, and (via ChurchLearn's deepLink -> initialLessonId)
+  // lands back in this same new look for the owner's device.
   const share = async () => {
-    const url = typeof window !== 'undefined' ? window.location.href : '';
+    const url = lessonUrl({ courseKey: p.courseKey, lessonId: p.lessonId, course: x.course });
     try {
       if (navigator.share) await navigator.share({ title: p.displayTitle, url });
       else await navigator.clipboard.writeText(url);
@@ -323,12 +332,19 @@ export default function LearnStudio({
   const opened = React.useRef(null);
   useEffect(() => {
     if (!initialLesson || opened.current === initialLesson) return;
-    const hit = all.find((x) => x.p.lessonId === initialLesson);
+    // A DEEP LINK MUST OPEN ANY PRESENTED LESSON, NOT ONLY A HOME-CURATED ONE
+    // (Darrell, 2026-11-25: "our share links do/should go to each lesson...
+    // the new look needs to do that also"). `all` is only the home screen's
+    // picks (discover/featured/shelves) -- a real lesson absent from every
+    // pick (reachable today only via search) silently failed to open. Fall
+    // back to the full catalog, the same lookup search already uses.
+    const inHome = all.find((x) => x.p.lessonId === initialLesson);
+    const hit = inHome || findPresentedLesson(courses, index, initialLesson, { preview });
     if (hit) {
       opened.current = initialLesson; // open once; Back to Learn must stay back
       setOpen(hit);
     }
-  }, [initialLesson, all]);
+  }, [initialLesson, all, courses, index, preview]);
   const results = useMemo(() => (query.trim() ? searchPresented(courses, index, query, { preview }) : []), [courses, index, query, preview]);
   const read = (x, mode) => onRead && onRead(x.lesson, x.course, mode);
   const listen = (x) => onListen && onListen(x.lesson, x.course);

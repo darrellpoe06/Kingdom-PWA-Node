@@ -4898,7 +4898,15 @@ function ChurchLearn({
   // FULL WIDTH, LIKE EVERY OTHER PAGE (Darrell 2026-09-14: "the lessons are
   // supposed to be the full width of the window... like all pages").
   const [studioFlag] = useState(() => isLearnStudioOn({ defaultOn: learnStudioDefaultOn })), [studio, setStudio] = useState(studioFlag); // owner preview: on by default for the owner's device (no URL needed in the native app), opt-in elsewhere
-  if (studio) return <LearnStudioPreview courses={courses} onOpenLesson={(k, id) => { setStudio(false); openLessonFromList(k, id); }} onExit={() => setStudio(false)} ownerDevice={learnStudioDefaultOn} />;
+  // A SHARED LESSON LINK MUST LAND IN THE NEW LOOK TOO (Darrell, 2026-11-25:
+  // "our share links do/should go to each lesson... the new look needs to do
+  // that also... currently it doesn't"). Below, deepLink.lessonId drives
+  // resumeLessonId for the classic view -- but that branch is never reached
+  // while studio is true, so the owner's device silently ignored a shared
+  // lesson link and landed on the Learn Studio home screen. Threaded through
+  // as initialLessonId -> LearnStudio's own initialLesson prop (already
+  // supported, already tested) opens the real lesson's cover directly.
+  if (studio) return <LearnStudioPreview courses={courses} onOpenLesson={(k, id) => { setStudio(false); openLessonFromList(k, id); }} onExit={() => setStudio(false)} ownerDevice={learnStudioDefaultOn} initialLessonId={deepLink && deepLink.lessonId} />;
   // MEASURED in a real browser at 1440px rather than guessed: window 1440,
   // <main> 1440, and the lesson card 768 -- constrained by exactly this one
   // `max-w-3xl` on the section below. It was the ONLY limiter in the whole

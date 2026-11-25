@@ -48,7 +48,7 @@ export class LearnStudioErrorBoundary extends React.Component {
   }
 }
 
-export default function LearnStudioPreview({ courses, onOpenLesson, onExit, ownerDevice = false }) {
+export default function LearnStudioPreview({ courses, onOpenLesson, onExit, ownerDevice = false, initialLessonId = null }) {
   const index = useMemo(() => presentationIndex(((RECORDS && RECORDS.records) || []).map((r) => ({ ...r, image: image(r.image) }))), []);
   const topics = useMemo(() => Object.fromEntries(Object.entries(TOPICS || {}).map(([k, v]) => [k, { ...v, image: image(v.image) }])), []);
   // PRIVATE PROTOTYPE (Darrell, 2026-11-25): one lesson, four modes (Watch /
@@ -162,7 +162,17 @@ export default function LearnStudioPreview({ courses, onOpenLesson, onExit, owne
         </button>
       )}
       <LearnStudioErrorBoundary onExit={onExit}>
-        <LearnStudio courses={courses} index={index} preview topicCovers={topics} onRead={openRead} onListen={openListen} onVersion={openVersion} onExit={onExit} />
+        <LearnStudio
+          courses={courses}
+          index={index}
+          preview
+          topicCovers={topics}
+          onRead={openRead}
+          onListen={openListen}
+          onVersion={openVersion}
+          onExit={onExit}
+          initialLesson={initialLessonId}
+        />
       </LearnStudioErrorBoundary>
     </section>
   );

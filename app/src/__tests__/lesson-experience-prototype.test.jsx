@@ -225,3 +225,67 @@ describe('More Lessons — a YouTube-style queue of all available lessons (same 
     expect(container.textContent).not.toContain('PROTOTYPE');
   });
 });
+
+// Darrell, 2026-11-25: "our share links do/should go to each lesson... the
+// new look needs to do that also... currently it doesn't... fix it too."
+import { lessonQuery } from '../lib/lesson-links.js';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
+
+const setSearch = (search) => window.history.replaceState({}, '', `${window.location.pathname}${search}`);
+
+describe('a shared lesson link lands on the SAME lesson in the new look (owner device)', () => {
+  afterEach(() => setSearch(''));
+
+  it('ChurchLearn threads a parsed deep link into LearnStudioPreview as initialLessonId', () => {
+    const src = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'components', 'ChurchLearn.jsx'), 'utf8');
+    expect(src).toMatch(/initialLessonId=\{deepLink && deepLink\.lessonId\}/);
+  });
+
+  it('LearnStudioPreview opens the real cover for a lessonId OUTSIDE the home screen picks (the regression) via initialLessonId', () => {
+    render(<LearnStudioPreview courses={COURSES} onOpenLesson={vi.fn()} onExit={vi.fn()} ownerDevice initialLessonId={PROTOTYPE_LESSON_ID} />);
+    expect(container.textContent).toContain('Who Is Watching When You Work Alone?');
+    expect(container.querySelector('.ls-cover')).toBeTruthy();
+  });
+});
+
+describe("the new look's own Share button builds a real lesson link, not the bare page URL", () => {
+  it('shares a URL carrying this exact course and lesson, not window.location.href', () => {
+    const onOpenLesson = vi.fn();
+    render(<LearnStudioPreview courses={COURSES} onOpenLesson={onOpenLesson} onExit={vi.fn()} ownerDevice />);
+    const card = openCoverByCard(container, 'Eyeservice');
+    expect(card).toBeTruthy();
+    const shareBtn = [...container.querySelectorAll('button')].find((b) => b.textContent.trim() === 'Share');
+    expect(shareBtn).toBeTruthy();
+    const written = [];
+    navigator.clipboard = {
+      writeText: (s) => {
+        written.push(s);
+        return Promise.resolve();
+      },
+    };
+    const realShare = navigator.share;
+    delete navigator.share;
+    click(shareBtn);
+    navigator.share = realShare;
+    expect(written[0]).toContain(lessonQuery({ courseKey: 'living-lessons', lessonId: PROTOTYPE_LESSON_ID }));
+    expect(written[0]).not.toBe(window.location.href);
+  });
+});
+
+import { findPresentedLesson } from '../lib/learn-presentation/presentation.js';
+
+describe("findPresentedLesson: a deep link reaches ANY lesson, not only the home screen's curated picks", () => {
+  it('finds the lesson by scanning the full catalog, even with an EMPTY presentation index (the home screen would show nothing here)', () => {
+    const hit = findPresentedLesson(COURSES, new Map(), PROTOTYPE_LESSON_ID, { preview: true });
+    expect(hit).toBeTruthy();
+    expect(hit.lesson.id).toBe(PROTOTYPE_LESSON_ID);
+    expect(hit.p.lessonId).toBe(PROTOTYPE_LESSON_ID);
+  });
+
+  it('returns null for a lesson id that does not exist, never throwing', () => {
+    expect(findPresentedLesson(COURSES, new Map(), 'no-such-lesson-id')).toBeNull();
+    expect(findPresentedLesson(null, null, null)).toBeNull();
+  });
+});
