@@ -10,13 +10,22 @@
 // directly under the new display title — visible text, never a tooltip.
 // =============================================================================
 import React, { useMemo, useState, useEffect } from 'react';
-import { studioHome, searchPresented, presentLesson, SHELVES, shelfForDepartment, interimHeadline, findPresentedLesson } from '../../lib/learn-presentation/presentation.js';
+import {
+  studioHome,
+  searchPresented,
+  presentLesson,
+  SHELVES,
+  shelfForDepartment,
+  interimHeadline,
+  findPresentedLesson,
+} from '../../lib/learn-presentation/presentation.js';
 import { READING_VERSIONS } from '../../lib/learn-organize.js';
 import { lessonUrl } from '../../lib/lesson-links.js';
 
 const versionLabel = (id) => (READING_VERSIONS.find((b) => b.id === id) || { label: id }).label;
 // A keyboard user must SEE where they are (ui-standards focus-ring). Gold, never red (red is reserved, DR-0099).
 const RING = 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2';
+import LessonsInOrder from './LessonsInOrder.jsx';
 import './learn-studio.css';
 
 /** 2–3 balanced lines, the same rule the thumbnail compositor uses. */
@@ -451,6 +460,7 @@ export default function LearnStudio({
           </>
         ) : (
           <>
+            <LessonsInOrder courses={courses} index={index} preview={preview} onOpen={(x) => read(x)} />
             <Hero slides={heroSlides} onOpen={openLesson} onListen={listen} />
             <Row icon="play" title="Continue Learning" items={home.continueLearning} onOpen={openLesson} />
             <Row icon="star" title="Discover Something New" note="Hand-picked lessons" items={home.discover} onOpen={openLesson} />
