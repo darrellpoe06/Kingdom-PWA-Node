@@ -2228,6 +2228,21 @@
       "notes": "Darrell: How could I have 99% and not have read it"
     },
     {
+      "id": "wcag-statement-every-app",
+      "date": "2026-11-25",
+      "task": "No app named its accessibility standard; every door's Appearance & Accessibility sheet now states WCAG 2.1 AA with measured and unproven lines and a barrier report",
+      "drs": [
+        "DR-1660"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.8,
+      "estimateWithoutAiHours": 6,
+      "notes": "axe-core run on rendered pages; the first empty-page scan was caught and discarded."
+    },
+    {
       "id": "deploy-lock-one-job",
       "date": "2026-11-19",
       "task": "The deploy lock moves to the deploy job, which now runs the boot check; dispatches run outside it on the upload; measured from run 44476228421",
