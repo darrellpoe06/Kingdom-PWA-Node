@@ -4,11 +4,13 @@
 
 > "We want to use technology to support our businesses and The Church Of The Living God community and Ai LLMs as local support systems supported by the PoeTech app and use that as a module for other churches anywhere who need development and infrastructure support. We are in the largest African American community in the Champaign Urbana-Champaign area. Our church family pulled together to build a 44000 sqft church. We could not and still can't find technology support so we have to cultivate it internally however all the full time support staff for the church are elderly and technology is not their first love or choice. We want to build systems that can support these types of communities. African American churches seem to have difficulty getting support from the broader technology companies in their areas. PoeTech needs to be able to fill those gaps."
 
+*Correction, 2026-11-25, by the owner: the church building is 33,000 square feet, not 44,000. The quotation above is kept as it was spoken; every other mention in this document uses the corrected figure.*
+
 This is a mission-level foundation. Joins THE-WAY, MIND-OF-CHRIST, EXCELLENCE-STANDARD, ANXIETY-CLARITY-PRINCIPLE, AI-FOUNDATION-INTERNAL-OPERATIONS, GOVERNANCE-EXECUTION-ADVISORY, SEED-DATA-AS-ASPIRATION, BUSINESS-PROCESS-CONNECTIONS, PERPETUAL-PIPELINE-HEALTH, AI-MEDIA-PRODUCTION-PLATFORM-VISION, and VISION-FAIRNESS-STANDARD as senior foundation. It is also a binding constraint on how PoeTech goes to market and who PoeTech serves first.
 
 ## The mission
 
-PoeTech exists to serve communities the mainstream tech industry has overlooked, underserved, or actively failed. The Church of the Living God — the Poe family's home church, pastored by **Bishop Gwin** (Darrell's father in love), one of the largest African American Non-Denominational churches in the Champaign-Urbana area, the church family that pulled together to build their own 44,000 square foot building — is the FIRST such community. The platform that works for them works for any church or community in their situation. The module they need becomes a SKOS module that ships nationally to other churches in similar circumstances.
+PoeTech exists to serve communities the mainstream tech industry has overlooked, underserved, or actively failed. The Church of the Living God — the Poe family's home church, pastored by **Bishop Gwin** (Darrell's father in love), one of the largest African American Non-Denominational churches in the Champaign-Urbana area, the church family that pulled together to build their own 33,000 square foot building — is the FIRST such community. The platform that works for them works for any church or community in their situation. The module they need becomes a SKOS module that ships nationally to other churches in similar circumstances.
 
 This is not a charity model. This is not "build it for affluent customers and trickle it down." This is the historic biblical pattern reversed in modern technology: the King serves the marginalized first, and what serves the marginalized well serves everyone.
 
@@ -18,7 +20,7 @@ This is not a charity model. This is not "build it for affluent customers and tr
 
 Mainstream technology companies prioritize markets they understand and customers they look like. African American communities — and many other historically marginalized communities — receive less sales attention, less product customization, less local support, and less consideration in product design from the major tech vendors. This is well-documented and unchanging.
 
-The result: institutions in these communities have to cultivate their own technology capacity internally. The Church of the Living God is a concrete example — they built a 44,000 sqft physical structure because the community came together; they have to similarly build their own technology capacity because the tech industry didn't come together for them.
+The result: institutions in these communities have to cultivate their own technology capacity internally. The Church of the Living God is a concrete example — they built a 33,000 sqft physical structure because the community came together; they have to similarly build their own technology capacity because the tech industry didn't come together for them.
 
 ### Elderly staff, tech not their first love
 
@@ -189,7 +191,7 @@ The Governor (Darrell, with Christina as co-Governor for any church-touching dec
 
 ## Closing
 
-The Church of the Living God built their own 44,000 sqft building because the community came together when no one else would. The Church Module is the technology version of that pattern: the platform serves them because no one else does, and what serves them well becomes what serves many similar communities well.
+The Church of the Living God built their own 33,000 sqft building because the community came together when no one else would. The Church Module is the technology version of that pattern: the platform serves them because no one else does, and what serves them well becomes what serves many similar communities well.
 
 PoeTech earns trust by being the partner who came when others didn't. PoeTech keeps trust by never extracting from the trust given. The Kingdom of Yahweh shows up in the work when the work is done for the communities the Kingdom always centers — the overlooked, the underserved, the ones the mainstream tech industry forgot.
 

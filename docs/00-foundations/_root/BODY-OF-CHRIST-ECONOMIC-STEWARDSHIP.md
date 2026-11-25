@@ -295,7 +295,7 @@ This gives the mission its evidentiary integrity: against the misunderstanding o
 
 ## 9. COLG as Proof-of-Concept Congregation
 
-The Church of the Living God — pastored by **Bishop Gwin** (Darrell's father in love), one of the largest African American congregations in Champaign-Urbana, the named first community of `COMMUNITY-FIRST-MISSION.md`, the church family that pooled their own capital to build a 44,000-square-foot building — is the proof-of-concept congregation. The doctrine here is tested first against COLG's real needs.
+The Church of the Living God — pastored by **Bishop Gwin** (Darrell's father in love), one of the largest African American congregations in Champaign-Urbana, the named first community of `COMMUNITY-FIRST-MISSION.md`, the church family that pooled their own capital to build a 33,000-square-foot building — is the proof-of-concept congregation. The doctrine here is tested first against COLG's real needs.
 
 Concrete implications:
 

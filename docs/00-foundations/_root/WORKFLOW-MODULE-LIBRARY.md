@@ -16,7 +16,7 @@ PoeTech's workflow layer (n8n on the NAS, eventually any equivalent engine) is b
 
 ## The three concentric sources of "what to prebuild"
 
-1. **Local state needs** — Champaign-Urbana specifically, COLG (Church of the Living God) as the named first community per [COMMUNITY-FIRST-MISSION](./COMMUNITY-FIRST-MISSION.md). The 44,000-sqft church with elderly tech-novice staff is the canonical first user; whatever they need defines the local-state-driven module set.
+1. **Local state needs** — Champaign-Urbana specifically, COLG (Church of the Living God) as the named first community per [COMMUNITY-FIRST-MISSION](./COMMUNITY-FIRST-MISSION.md). The 33,000-sqft church with elderly tech-novice staff is the canonical first user; whatever they need defines the local-state-driven module set.
 2. **Worldwide development needs** — broader trends in family stewardship, community resilience, sovereign infrastructure, family-OS patterns. What every family or community of similar shape needs that mainstream tech is failing to deliver.
 3. **Darrell's personal vision and interests** — the specific modules he is called to build: biblical economics, the Holy Spirit Integration Worldview, family-voice loops, jubilee-direction debt cancellation, the Mind of Christ / The Way mental stewardship sequence, etc. These are not "user requests" — they are the spiritual + intellectual spine of the system.
 
