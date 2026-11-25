@@ -86,9 +86,12 @@ describe('in classic Learn, for everyone: the new look with every lesson feature
     );
   const click = (n) => act(() => n.dispatchEvent(new MouseEvent('click', { bubbles: true })));
   const button = (re) => [...container.querySelectorAll('button')].find((b) => re.test(b.textContent.trim()));
+  // The classic lesson page opens unchanged; its header offers the new look.
   const openLive = () => {
     setSearch(lessonQuery({ courseKey: LL, lessonId: ID }));
     mount();
+    expect(document.getElementById(`learn-lesson-${ID}`)).toBeTruthy();
+    click(container.querySelector('[data-testid="open-lesson-experience"]'));
   };
   const start = () => click(button(/^Start this lesson$/));
   const tab = (name) => click([...container.querySelectorAll('button[role="tab"]')].find((b) => b.textContent.trim() === name));
@@ -182,7 +185,7 @@ describe('in classic Learn, for everyone: the new look with every lesson feature
     expect(hint.className).toContain('ts-chrome-region');
   });
 
-  it('the full classic page is one tap away, and a lesson still waiting for its cover opens classic, unchanged', () => {
+  it('the full classic page is one tap away, and a lesson still waiting for its cover has no new-look button', () => {
     openLive();
     start();
     tab('Read');
@@ -197,6 +200,7 @@ describe('in classic Learn, for everyone: the new look with every lesson feature
     mount();
     expect(container.querySelector('.le-root')).toBeNull();
     expect(document.getElementById(`learn-lesson-${waiting.id}`)).toBeTruthy();
+    expect(container.querySelector('[data-testid="open-lesson-experience"]')).toBeNull();
   });
 });
 
