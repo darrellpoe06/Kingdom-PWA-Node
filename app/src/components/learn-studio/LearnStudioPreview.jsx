@@ -12,16 +12,20 @@
 // boundary is the fix for THAT CLASS of failure, whatever the exact cause.
 import React, { useMemo, useState } from 'react';
 import LearnStudio from './LearnStudio.jsx';
-import { presentationIndex, isLearnStudioOn, STUDIO_FLAG_KEY } from '../../lib/learn-presentation/presentation.js';
+import { presentationIndex, isLearnStudioOn, STUDIO_FLAG_KEY, allLessons } from '../../lib/learn-presentation/presentation.js';
 
 export { isLearnStudioOn };
 import RECORDS from '../../lib/learn-presentation/presentation-records.json';
 import TOPICS from '../../lib/learn-presentation/presentation-topics.json';
-import LessonExperience, { LessonExperienceBoundary, PROTOTYPE_LESSON_ID } from './LessonExperience.jsx';
+import LessonExperience, { LessonExperienceBoundary, PROTOTYPE_LESSON_ID, textFor } from './LessonExperience.jsx';
 import PROTOTYPE_LESSON from '../../lib/living-lessons/ll338-not-with-eyeservice.js';
 
 // Covers ship under public/learn-thumbs with base-relative paths; resolve them
 // against the app's base (web /poetech-app/, native /).
+const courseKeyOf = (course) => (course && (course.key || (course.meta && course.meta.key))) || null;
+// The Experience reads the lesson's own words (adult text, or an age version
+// when that is all a lesson carries; see textFor). Every one of the 994 has one.
+const hasOwnText = (lesson) => !!lesson && !!textFor(lesson, 'adult').trim();
 const BASE = (import.meta.env && import.meta.env.BASE_URL) || '/';
 const at = (s) => (typeof s === 'string' ? s.replace(/(^|, )learn-thumbs\//g, `$1${BASE}learn-thumbs/`) : s);
 const image = (im) => im && im.src && { ...im, src: at(im.src), srcSet: im.srcSet && { webp: at(im.srcSet.webp) } };
@@ -51,26 +55,26 @@ export class LearnStudioErrorBoundary extends React.Component {
 export default function LearnStudioPreview({ courses, onOpenLesson, onExit, ownerDevice = false, initialLessonId = null, initialCourseKey = null }) {
   const index = useMemo(() => presentationIndex(((RECORDS && RECORDS.records) || []).map((r) => ({ ...r, image: image(r.image) }))), []);
   const topics = useMemo(() => Object.fromEntries(Object.entries(TOPICS || {}).map(([k, v]) => [k, { ...v, image: image(v.image) }])), []);
-  // PRIVATE PROTOTYPE (Darrell, 2026-11-25): one lesson, four modes (Watch /
-  // Read / Listen / Study), for his approval before any wider build. Gated to
-  // the SAME owner-device signal that already defaults Learn Studio itself on
-  // -- no one else's app ever shows this card.
-  const [showExperience, setShowExperience] = useState(false);
+  // The Lesson Experience (Watch / Read / Listen / Study). Built as a ONE-lesson
+  // prototype (ll338) for Darrell's approval; approved 2026-11-25: "Update them
+  // to our new look?!!!!!! Yet?!!!!" Every lesson now opens here (all 994 have
+  // their own words), on the SAME owner-device signal that defaults Learn
+  // Studio on. Only a lesson with no words at all would go to the classic
+  // reader, so nothing is ever opened empty.
+  const [active, setActive] = useState(null); // { lesson, course } open in the Experience, or null
   const [experienceMode, setExperienceMode] = useState('watch');
   const [experienceLevel, setExperienceLevel] = useState('adult');
+  const catalog = useMemo(() => allLessons(courses), [courses]);
   const prototypeRecord = index.get(PROTOTYPE_LESSON_ID) || null;
+  const activeRecord = active ? index.get(active.lesson.id) || null : null;
+  const activeCourseKey = active ? courseKeyOf(active.course) : null;
   // Darrell, 2026-11-25: "the all listed should populate like YouTube... so
-  // all available can be seen in a list of options." A YouTube-style queue of
-  // other real lessons (same course, real cinematic cover each) -- reuses the
-  // SAME approved images already indexed, no new art. Tapping a DIFFERENT
-  // lesson exits the overlay and opens it the normal way (classic reader);
-  // only the one prototype lesson has the new Experience so far.
+  // all available can be seen in a list of options." Other real lessons of the
+  // SAME course, each with its real approved cover; no new art.
   const moreLessons = useMemo(() => {
-    if (!prototypeRecord) return [];
-    return [...index.values()]
-      .filter((r) => r.courseKey === prototypeRecord.courseKey && r.lessonId !== PROTOTYPE_LESSON_ID && r.image && r.image.src)
-      .slice(0, 12);
-  }, [index, prototypeRecord]);
+    if (!active) return [];
+    return [...index.values()].filter((r) => r.courseKey === activeCourseKey && r.lessonId !== active.lesson.id && r.image && r.image.src).slice(0, 12);
+  }, [index, active, activeCourseKey]);
   // LearnStudio's own read/listen/version wrappers call this hand-off as
   // onRead(lesson, course, mode) / onListen(lesson, course) / onVersion(lesson,
   // course, v) -- see its doc comment. A single-argument (x) here (checking
@@ -80,55 +84,37 @@ export default function LearnStudioPreview({ courses, onOpenLesson, onExit, owne
   // were just static images without functionality added... the app still
   // moved"). courseKey mirrors presentationIndex's own derivation.
   const toClassic = (lesson, course) => {
-    const courseKey = course && (course.key || (course.meta && course.meta.key));
+    const courseKey = courseKeyOf(course);
     return lesson && courseKey && onOpenLesson(courseKey, lesson.id);
   };
-  const isPrototypeLesson = (lesson) => ownerDevice && lesson && lesson.id === PROTOTYPE_LESSON_ID;
-  // Darrell, 2026-11-25: "I like the new look until a user chooses the play
-  // or read button -- they should keep the new look of the system." For the
-  // one prototype lesson, Read / Watch Video / Listen / an age chip now open
-  // the new Experience directly (in the matching mode/level) instead of
-  // dropping into the classic reader -- the cinematic look carries all the
-  // way through, not just on the cover. Every other lesson is unaffected: it
-  // still hands off to the real, unmodified classic reader exactly as before.
-  const openRead = (lesson, course, mode) => {
-    if (isPrototypeLesson(lesson)) {
-      setExperienceLevel('adult'); // the plain Read Lesson button is the full reading, whatever age chip was tapped before
-      setExperienceMode(mode === 'video' ? 'watch' : 'read');
-      setShowExperience(true);
-      return undefined;
-    }
-    return toClassic(lesson, course);
+  const opens = (lesson) => ownerDevice && hasOwnText(lesson);
+  const open = (lesson, course, mode, level) => {
+    setExperienceLevel(level);
+    setExperienceMode(mode);
+    setActive({ lesson, course });
   };
-  const openListen = (lesson, course) => {
-    if (isPrototypeLesson(lesson)) {
-      setExperienceLevel('adult');
-      setExperienceMode('listen');
-      setShowExperience(true);
-      return undefined;
-    }
-    return toClassic(lesson, course);
-  };
-  const openVersion = (lesson, course, v) => {
-    if (isPrototypeLesson(lesson)) {
-      setExperienceLevel(v || 'adult');
-      setExperienceMode('read');
-      setShowExperience(true);
-      return undefined;
-    }
-    return toClassic(lesson, course);
-  };
+  // Darrell, 2026-11-25: "I like the new look until a user chooses the play or
+  // read button -- they should keep the new look of the system." Read / Watch
+  // Video / Listen / an age chip open the Experience in the matching mode.
+  const openRead = (lesson, course, mode) => (opens(lesson) ? open(lesson, course, mode === 'video' ? 'watch' : 'read', 'adult') : toClassic(lesson, course));
+  const openListen = (lesson, course) => (opens(lesson) ? open(lesson, course, 'listen', 'adult') : toClassic(lesson, course));
+  const openVersion = (lesson, course, v) => (opens(lesson) ? open(lesson, course, 'read', v || 'adult') : toClassic(lesson, course));
+  // A More Lessons row stays in the new look too; only a lesson with no text
+  // of its own (or one not in this catalog) goes to the classic reader.
   const openOther = (courseKey, lessonId) => {
-    setShowExperience(false);
-    onOpenLesson(courseKey, lessonId);
+    const hit = catalog.find((x) => x.lesson.id === lessonId && courseKeyOf(x.course) === courseKey);
+    if (hit && opens(hit.lesson)) return open(hit.lesson, hit.course, 'watch', 'adult');
+    setActive(null);
+    return onOpenLesson(courseKey, lessonId);
   };
-  if (showExperience && ownerDevice) {
+  if (active && ownerDevice) {
     return (
-      <LessonExperienceBoundary onExit={() => setShowExperience(false)}>
+      <LessonExperienceBoundary onExit={() => setActive(null)}>
         <LessonExperience
-          lesson={PROTOTYPE_LESSON}
-          record={prototypeRecord}
-          onExit={() => setShowExperience(false)}
+          key={active.lesson.id}
+          lesson={active.lesson}
+          record={activeRecord}
+          onExit={() => setActive(null)}
           initialMode={experienceMode}
           initialLevel={experienceLevel}
           moreLessons={moreLessons}
@@ -143,7 +129,7 @@ export default function LearnStudioPreview({ courses, onOpenLesson, onExit, owne
       {ownerDevice && prototypeRecord && (
         <button
           type="button"
-          onClick={() => setShowExperience(true)}
+          onClick={() => open(PROTOTYPE_LESSON, catalog.find((x) => x.lesson.id === PROTOTYPE_LESSON_ID)?.course || null, 'watch', 'adult')}
           style={{
             display: 'block',
             width: '100%',

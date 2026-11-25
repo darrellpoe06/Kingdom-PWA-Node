@@ -118,9 +118,15 @@ const PAGE_KEY = (id, level) => `poe-lesson-experience:${id}:${level}:read-page`
 const BROWSE_MS = 8000;
 const PROGRESS_KEY = (id, mode) => `poe-lesson-experience:${id}:${mode}`;
 
-function textFor(lesson, level) {
-  if (level !== 'adult' && lesson.levels && lesson.levels[level]) return lesson.levels[level];
-  return lesson.lesson;
+// The full reading is the lesson's own adult text; 37 of the 994 lessons
+// (Church Offices, The Word Out, the two Project Management courses, measured
+// 2026-11-25) carry only age-level versions, so their full reading is the
+// oldest age version they have. Their own words either way, never empty.
+const LEVEL_FALLBACK = ['senior', 'teen', 'youth', 'child'];
+export function textFor(lesson, level) {
+  const own = (v) => (typeof v === 'string' && v.trim() ? v : null);
+  if (level !== 'adult' && lesson.levels && own(lesson.levels[level])) return lesson.levels[level];
+  return own(lesson.lesson) || LEVEL_FALLBACK.map((k) => lesson.levels && own(lesson.levels[k])).find(Boolean) || '';
 }
 
 // The lesson's OWN structural leads ("FIRST, THE MASTER WHO WENT AWAY.",
@@ -383,7 +389,7 @@ export default function LessonExperience({
     [paragraphs, segments]
   );
 
-  const verses = useMemo(() => (lesson.lesson || '').match(VERSE_RE) || [], [lesson.lesson]);
+  const verses = useMemo(() => textFor(lesson, 'adult').match(VERSE_RE) || [], [lesson]);
 
   // One engine per (lesson, level) — switching reading level restarts clean.
   useEffect(() => {

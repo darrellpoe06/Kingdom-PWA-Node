@@ -188,16 +188,27 @@ describe("the lesson's own Read/Listen/age-chip buttons stay in the new look (no
     expect(byText('Listen').some((b) => b.getAttribute('aria-selected') === 'true')).toBe(true);
   });
 
-  it('a DIFFERENT lesson still hands off to the classic reader, unchanged', () => {
+  // Approved 2026-11-25 ("Update them to our new look?!!!!!! Yet?!!!!"):
+  // every lesson opens in the new look, not only the prototype.
+  it('a DIFFERENT lesson opens in the new look too, with its own title', () => {
     const onOpenLesson = vi.fn();
     render(<LearnStudioPreview courses={COURSES} onOpenLesson={onOpenLesson} onExit={vi.fn()} ownerDevice />);
     const card = openCoverByCard(container, 'A Sound Mind');
-    if (card) {
-      const readBtn = [...container.querySelectorAll('button')].find((b) => b.textContent.trim() === 'Read Lesson');
-      click(readBtn);
-      expect(onOpenLesson).toHaveBeenCalledTimes(1);
-      expect(container.textContent).not.toContain('PROTOTYPE');
-    }
+    expect(card).toBeTruthy();
+    const readBtn = [...container.querySelectorAll('button')].find((b) => b.textContent.trim() === 'Read Lesson');
+    click(readBtn);
+    expect(onOpenLesson).not.toHaveBeenCalled();
+    expect(byText('Read').some((b) => b.getAttribute('aria-selected') === 'true')).toBe(true);
+  });
+
+  it('off the owner device, every lesson still hands off to the classic reader', () => {
+    const onOpenLesson = vi.fn();
+    render(<LearnStudioPreview courses={COURSES} onOpenLesson={onOpenLesson} onExit={vi.fn()} ownerDevice={false} />);
+    const card = openCoverByCard(container, 'A Sound Mind');
+    expect(card).toBeTruthy();
+    click([...container.querySelectorAll('button')].find((b) => b.textContent.trim() === 'Read Lesson'));
+    expect(onOpenLesson).toHaveBeenCalledTimes(1);
+    expect(container.textContent).not.toContain('PROTOTYPE');
   });
 });
 
@@ -215,15 +226,35 @@ describe('More Lessons — a YouTube-style queue of all available lessons (same 
     expect(container.querySelector('.le-more-thumb')).toBeTruthy();
   });
 
-  it('tapping a More Lessons row exits the overlay and opens that lesson the normal way', () => {
+  it('tapping a More Lessons row stays in the new look and opens THAT lesson', () => {
     const onOpenLesson = vi.fn();
     render(<LearnStudioPreview courses={COURSES} onOpenLesson={onOpenLesson} onExit={vi.fn()} ownerDevice />);
     click(byText('Try the new lesson experience')[0]);
     const row = container.querySelector('.le-more-card');
     expect(row).toBeTruthy();
+    const picked = row.textContent;
     click(row);
-    expect(onOpenLesson).toHaveBeenCalledTimes(1);
-    expect(container.textContent).not.toContain('PROTOTYPE');
+    expect(onOpenLesson).not.toHaveBeenCalled();
+    expect(container.textContent).toContain('PROTOTYPE');
+    expect(container.textContent).not.toContain('Not with Eyeservice');
+    expect(picked.length).toBeGreaterThan(0);
+  });
+});
+
+// The 37 lessons that carry only age versions (measured 2026-11-25) open with
+// their own words, never empty.
+import { textFor } from '../components/learn-studio/LessonExperience.jsx';
+describe('every one of the 994 lessons has words to open with', () => {
+  it('textFor finds text for every lesson in the catalog', () => {
+    const empty = COURSES.flatMap((c) => c.schedule)
+      .filter((l) => l && l.id && !textFor(l, 'adult').trim())
+      .map((l) => l.id);
+    expect(empty).toEqual([]);
+  });
+  it('an age-only lesson reads its oldest age version as the full reading', () => {
+    expect(textFor({ levels: { child: 'c', senior: 'S' } }, 'adult')).toBe('S');
+    expect(textFor({ lesson: 'A', levels: { senior: 'S' } }, 'adult')).toBe('A');
+    expect(textFor({ lesson: 'A', levels: { child: 'c' } }, 'child')).toBe('c');
   });
 });
 
