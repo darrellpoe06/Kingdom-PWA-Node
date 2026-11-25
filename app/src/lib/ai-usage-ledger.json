@@ -3457,6 +3457,21 @@
       "notes": "Darrell, spoken: how can someone be good and do nothing at the same time?"
     },
     {
+      "id": "lessons-first-on-learn-home",
+      "date": "2026-11-26",
+      "task": "The new Learn home showed no lesson without scrolling; the lessons now list first, in order, one tap into the new look",
+      "drs": [
+        "DR-1661"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.4,
+      "estimateWithoutAiHours": 3,
+      "notes": "111 of 111 across the Learn home suites."
+    },
+    {
       "id": "dr-1627-app-map",
       "date": "2026-11-24",
       "task": "A map of where you can go in every app: one searchable sheet mounted in PoeTech, Poe Properties, Moore Divahs and TLC",

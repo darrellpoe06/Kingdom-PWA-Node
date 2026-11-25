@@ -1195,3 +1195,40 @@
   font-size: 0.875rem;
   text-decoration: none;
 }
+
+/* ON A PHONE THE WORDS GET THE WIDTH (DR-1661). Darrell 2026-11-26: "the words
+   leave a lot of room around the edge of screens." The page, the card, the
+   Key Teaching box and the verse rule each added a side margin; together they
+   took about a quarter of a 390px screen. Auto-hyphenation then broke words
+   ("chas-ing", "hear-ken") to fit what was left. */
+.le-back {
+  white-space: nowrap;
+}
+.le-top {
+  flex-wrap: wrap;
+}
+@media (max-width: 539px) {
+  .le-root {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+  .le-book {
+    padding: 18px 12px 28px;
+  }
+  .le-keyteach {
+    padding: 16px 10px 12px;
+  }
+  .le-book .le-verse {
+    margin-left: 0;
+    padding-left: 0.7em;
+  }
+  .le-book-text {
+    hyphens: manual;
+    -webkit-hyphens: manual;
+    overflow-wrap: break-word;
+  }
+  .le-study-card {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+}
