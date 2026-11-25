@@ -22,6 +22,7 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { createBrowserTTS, segmentText, RATE_STEPS } from '../../lib/tts.js';
 import { motionBehavior } from '../../lib/gentle-motion.js';
+import { buildFollowMap, alignSegmentSpans, rangeFor, highlightSegment, clearReadingHighlights } from '../../lib/read-follow.js';
 import './lesson-experience.css';
 
 const RING = 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2';
@@ -70,6 +71,7 @@ const ICON_PATHS = {
   practice: 'M4 20h4L19 9l-4-4L4 16z',
   notes: 'M5 3h14v18H5zM9 8h6M9 12h6M9 16h4',
   check: 'M4 12l5 5L20 6',
+  speaker: 'M4 9v6h4l5 4V5L8 9zM16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11',
 };
 export function Icon({ name, size = 18 }) {
   return (
@@ -112,6 +114,7 @@ function lessonNumberOf(id) {
   return m ? Number(m[1]) : null;
 }
 
+const PAGE_KEY = (id, level) => `poe-lesson-experience:${id}:${level}:read-page`;
 const PROGRESS_KEY = (id, mode) => `poe-lesson-experience:${id}:${mode}`;
 
 function textFor(lesson, level) {
@@ -173,12 +176,54 @@ function themeLines(theme) {
 /** Reads from `fromIdx` to the end of `segments`, by reloading the remainder
  * (the engine has no seek; this is the prototype's honest, public-API-only way
  * to jump). Stable because segmentText() re-splits the same sentence text the
- * same way every time. */
-function playFrom(engine, segments, fromIdx) {
-  const remainder = segments.slice(Math.max(0, fromIdx)).join(' ');
+ * same way every time.
+ *
+ * The engine counts the REMAINDER from 0, so the caller must add `fromIdx`
+ * back to every segmentIndex it reports. `offsetRef` holds that number; it is
+ * set AFTER stop() so the stop's own idle report is not shifted. (Before this
+ * existed, any skip, jump or resume put the highlight, the progress bar and
+ * the saved place back near the start.) */
+function playFrom(engine, segments, fromIdx, offsetRef) {
+  const from = Math.max(0, fromIdx);
   engine.stop();
-  engine.load(remainder);
+  if (offsetRef) offsetRef.current = from;
+  engine.load(segments.slice(from).join(' '));
   engine.play();
+}
+
+/**
+ * Which paragraph each spoken segment sits in, and the first segment of each
+ * paragraph -- computed from the text itself, so Read can highlight, turn the
+ * page and start "Read Aloud" at the page you are on. segmentText() returns
+ * EXACT substrings of the whitespace-collapsed text (lib/tts.js), so a moving
+ * indexOf over the same collapse finds every one; nothing is guessed.
+ */
+export function mapSegmentsToParagraphs(paragraphs, segments) {
+  const starts = [];
+  let full = '';
+  for (const p of paragraphs) {
+    if (full) full += ' ';
+    starts.push(full.length);
+    full += String(p).replace(/\s+/g, ' ').trim();
+  }
+  const segPara = [];
+  const firstSeg = paragraphs.map(() => -1);
+  let cursor = 0;
+  segments.forEach((seg, si) => {
+    const at = full.indexOf(seg, cursor);
+    let pi = si > 0 ? segPara[si - 1] : 0;
+    if (at >= 0) {
+      cursor = at + seg.length;
+      pi = 0;
+      while (pi + 1 < starts.length && starts[pi + 1] <= at) pi += 1;
+    }
+    segPara.push(pi);
+    if (firstSeg[pi] < 0) firstSeg[pi] = si;
+  });
+  for (let i = firstSeg.length - 1; i >= 0; i -= 1) {
+    if (firstSeg[i] < 0) firstSeg[i] = i + 1 < firstSeg.length ? firstSeg[i + 1] : Math.max(0, segments.length - 1);
+  }
+  return { segPara, firstSeg };
 }
 
 function ModePills({ mode, setMode }) {
@@ -250,7 +295,25 @@ const saved = {
   },
 };
 
-export default function LessonExperience({ lesson, record, onExit, initialMode = 'watch', initialLevel = 'adult', moreLessons = [], onOpenOther = null }) {
+// THE NARRATOR CONTRACT. Every mode drives ONE narrator, created by
+// `createNarrator` -- today lib/tts.js's createBrowserTTS (the device's own
+// voice, no cost). A future recorded voice (e.g. ElevenLabs audio, generated
+// only after Darrell approves the spend) plugs in here by implementing the
+// same small surface: load(text), play(), pause(), resume(), stop(),
+// setRate(r), an `onState({ status, segmentIndex })` option and an optional
+// `onBoundary(segmentIndex, charOffset)`. Segments are segmentText(text), so
+// recorded audio keyed per segment lines up with the highlight, the page
+// turns and the saved place without changing any of this file.
+export default function LessonExperience({
+  lesson,
+  record,
+  onExit,
+  initialMode = 'watch',
+  initialLevel = 'adult',
+  moreLessons = [],
+  onOpenOther = null,
+  createNarrator = createBrowserTTS,
+}) {
   const [mode, setMode] = useState(initialMode);
   const [level, setLevel] = useState(initialLevel);
   const [status, setStatus] = useState('idle');
@@ -262,6 +325,18 @@ export default function LessonExperience({ lesson, record, onExit, initialMode =
   const [watchTab, setWatchTab] = useState('transcript');
   const [showChapters, setShowChapters] = useState(false);
   const engineRef = useRef(null);
+  const offsetRef = useRef(0);
+  // The Read page, per reading level, kept here (not inside Read) so it
+  // survives a trip to Watch or Listen, and saved so it survives a reload.
+  const [readPages, setReadPages] = useState({});
+  const readPage = readPages[level] ?? (Number(saved.get(PAGE_KEY(lesson.id, level), 0)) || 0);
+  const setReadPage = useCallback(
+    (n) => {
+      setReadPages((m) => ({ ...m, [level]: n }));
+      saved.set(PAGE_KEY(lesson.id, level), n);
+    },
+    [lesson.id, level]
+  );
   const stageRef = useRef(null);
   const activeLineRef = useRef(null);
 
@@ -307,21 +382,23 @@ export default function LessonExperience({ lesson, record, onExit, initialMode =
     } catch {
       /* no speech support (tests, unsupported browser) */
     }
-    const engine = createBrowserTTS({
+    offsetRef.current = 0;
+    const engine = createNarrator({
       synth,
       Utterance,
       onState: (s) => {
         setStatus(s.status);
-        setIdx(s.segmentIndex);
+        // An idle report (stop, or the end) says segment 0; keep the place.
+        if (s.status !== 'idle') setIdx(offsetRef.current + s.segmentIndex);
       },
     });
-    engine.onBoundary = (segIdx, charOffset) => setBoundary({ seg: segIdx, offset: charOffset });
+    engine.onBoundary = (segIdx, charOffset) => setBoundary({ seg: offsetRef.current + segIdx, offset: charOffset });
     engine.load(text);
     engineRef.current = engine;
     const resumeAt = Number(saved.get(PROGRESS_KEY(lesson.id, level), 0));
     if (resumeAt > 0 && resumeAt < segments.length) setResumedFrom(resumeAt);
     return () => engine.stop();
-  }, [text, lesson.id, level, segments.length]);
+  }, [text, lesson.id, level, segments.length, createNarrator]);
 
   useEffect(() => saved.set(PROGRESS_KEY(lesson.id, level), idx), [idx, lesson.id, level]);
 
@@ -338,7 +415,7 @@ export default function LessonExperience({ lesson, record, onExit, initialMode =
     if (!engine) return;
     if (status === 'paused') engine.resume();
     else if (resumedFrom > 0) {
-      playFrom(engine, segments, resumedFrom);
+      playFrom(engine, segments, resumedFrom, offsetRef);
       setResumedFrom(0);
     } else engine.play();
   }, [status, resumedFrom, segments]);
@@ -349,7 +426,7 @@ export default function LessonExperience({ lesson, record, onExit, initialMode =
       const engine = engineRef.current;
       if (!engine) return;
       setResumedFrom(0);
-      playFrom(engine, segments, Math.max(0, Math.min(segments.length - 1, target)));
+      playFrom(engine, segments, Math.max(0, Math.min(segments.length - 1, target)), offsetRef);
     },
     [segments]
   );
@@ -503,6 +580,23 @@ export default function LessonExperience({ lesson, record, onExit, initialMode =
           level={level}
           setLevel={setLevel}
           modePills={<ModePills mode={mode} setMode={setMode} />}
+          page={readPage}
+          setPage={setReadPage}
+          narration={{
+            status,
+            idx,
+            resumedFrom,
+            segments,
+            pct,
+            elapsed,
+            total,
+            speedLabel,
+            pause,
+            resume: play,
+            jumpTo,
+            skip,
+            cycleSpeed,
+          }}
         />
       )}
 
@@ -631,30 +725,103 @@ const SCALES = [0.9, 1, 1.15, 1.3];
 // READ — an illustrated book page: the lesson's own words, every paragraph,
 // at the chosen reading level. The pager moves between the lesson's own
 // paragraphs; nothing is hidden, so the whole text is always on the page.
-function ReadMode({ lesson, record, title, number, paragraphs, level, setLevel, modePills }) {
+const AUTO_TURN_KEY = 'poe-lesson-experience:auto-turn';
+
+function scrollToPara(el) {
+  try {
+    if (el) el.scrollIntoView({ block: 'start', behavior: motionBehavior() });
+  } catch {
+    /* no scrollIntoView (tests) */
+  }
+}
+
+// READ — an illustrated book page: the lesson's own words, every paragraph,
+// at the chosen reading level. The pager moves between the lesson's own
+// paragraphs; nothing is hidden, so the whole text is always on the page.
+//
+// READ ALOUD (Darrell, 2026-11-25: "listen while reading the beautifully
+// illustrated book without leaving Read mode"). It drives the SAME narrator as
+// Watch and Listen, so the place is one place: start it here, switch to
+// Listen, come back, and it is still on the same sentence. The sentence being
+// spoken is painted with the house reading highlight (lib/read-follow.js, the
+// CSS Highlight API -- no DOM change, so not one character of the lesson is
+// altered), its paragraph carries a gold rule, and the page turns itself.
+function ReadMode({ lesson, record, title, number, paragraphs, level, setLevel, modePills, page: rawPage, setPage, narration: n }) {
   const [scaleAt, setScaleAt] = useState(() => {
     const v = Number(saved.get(SCALE_KEY, 1));
     const i = SCALES.indexOf(v);
     return i >= 0 ? i : 1;
   });
-  const [page, setPage] = useState(0);
   const [mark, setMark] = useState(() => Number(saved.get(BOOKMARK_KEY(lesson.id), -1)));
+  const [autoTurn, setAutoTurn] = useState(() => saved.get(AUTO_TURN_KEY, '1') !== '0');
   const paraRefs = useRef([]);
+  const textRef = useRef(null);
+  const followRef = useRef({ follow: null, spans: [] });
   const count = paragraphs.length;
+  const page = Math.max(0, Math.min(count - 1, rawPage));
+  const narrating = n.status !== 'idle';
+  const isPlaying = n.status === 'playing';
+  const { segPara, firstSeg } = useMemo(() => mapSegmentsToParagraphs(paragraphs, n.segments), [paragraphs, n.segments]);
+  const narratedPara = narrating ? segPara[n.idx] : -1;
 
   const go = useCallback(
     (to) => {
       const next = Math.max(0, Math.min(count - 1, to));
       setPage(next);
-      try {
-        const el = paraRefs.current[next];
-        if (el) el.scrollIntoView({ block: 'start', behavior: motionBehavior() });
-      } catch {
-        /* no scrollIntoView (tests) */
-      }
+      scrollToPara(paraRefs.current[next]);
+      // Turning the page while the book is being read moves the voice too.
+      if (n.status === 'playing') n.jumpTo(firstSeg[next]);
     },
-    [count]
+    [count, setPage, n, firstSeg]
   );
+
+  // Coming back to Read: if the voice is mid-lesson (playing OR paused in
+  // Watch or Listen), open on the paragraph it is in -- that is the newest
+  // place. Otherwise open on the saved reading page. Once per visit.
+  const landedRef = useRef(false);
+  const turnedRef = useRef(-1);
+  useEffect(() => {
+    if (landedRef.current) return;
+    landedRef.current = true;
+    const to = narratedPara >= 0 ? narratedPara : page;
+    turnedRef.current = narratedPara;
+    if (to !== page) setPage(to);
+    if (to > 0) scrollToPara(paraRefs.current[to]);
+  }, [narratedPara, page, setPage]);
+
+  // Automatic page turning: while the voice PLAYS, the page follows it into
+  // each new paragraph. Paused, the reader may browse freely.
+  useEffect(() => {
+    if (!autoTurn || !isPlaying || narratedPara < 0 || narratedPara === turnedRef.current) return;
+    turnedRef.current = narratedPara;
+    if (narratedPara !== page) {
+      setPage(narratedPara);
+      scrollToPara(paraRefs.current[narratedPara]);
+    }
+  }, [autoTurn, isPlaying, narratedPara, page, setPage]);
+
+  // Map the rendered words once per text, then paint the spoken sentence.
+  useEffect(() => {
+    const follow = buildFollowMap(textRef.current);
+    followRef.current = { follow, spans: follow ? alignSegmentSpans(follow, n.segments) : [] };
+    return () => clearReadingHighlights();
+  }, [paragraphs, n.segments]);
+  useEffect(() => {
+    if (!narrating) {
+      clearReadingHighlights();
+      return;
+    }
+    const { follow, spans } = followRef.current;
+    const span = spans[n.idx];
+    if (follow && span) highlightSegment(rangeFor(follow, span.start, span.end));
+  }, [narrating, n.idx]);
+
+  const readAloud = () => {
+    if (isPlaying) return n.pause();
+    if (n.status === 'paused' && segPara[n.idx] === page) return n.resume();
+    const want = n.resumedFrom > 0 ? n.resumedFrom : n.idx;
+    n.jumpTo(segPara[want] === page && !narrating ? want : firstSeg[page]);
+  };
 
   const setScale = (i) => {
     const at = Math.max(0, Math.min(SCALES.length - 1, i));
@@ -665,6 +832,12 @@ function ReadMode({ lesson, record, title, number, paragraphs, level, setLevel, 
     const next = mark === page ? -1 : page;
     setMark(next);
     saved.set(BOOKMARK_KEY(lesson.id), next);
+  };
+  const toggleAutoTurn = () => {
+    setAutoTurn((v) => {
+      saved.set(AUTO_TURN_KEY, v ? '0' : '1');
+      return !v;
+    });
   };
 
   return (
@@ -690,22 +863,29 @@ function ReadMode({ lesson, record, title, number, paragraphs, level, setLevel, 
             <span className="le-wordfirst-ref">{lesson.anchor.ref}</span>
           </div>
         )}
-        <article className="le-book-text">
+        <button type="button" className={`le-aloud-cta ${isPlaying ? 'on' : ''} ${RING}`} onClick={readAloud} aria-pressed={isPlaying}>
+          <Icon name="speaker" size={20} />
+          <span>{isPlaying ? 'Pause Read Aloud' : n.status === 'paused' ? 'Resume Read Aloud' : 'Read Aloud'}</span>
+        </button>
+        <article className="le-book-text" ref={textRef}>
           {paragraphs.map((p, i) => {
             const { lead, rest } = sectionLeadOf(p);
             return (
               <React.Fragment key={i}>
                 {lead && i > 0 && (
-                  <div className="le-ornament" aria-hidden="true">
+                  <div className="le-ornament" aria-hidden="true" data-read-skip="">
                     ❖
                   </div>
                 )}
-                <p ref={(el) => (paraRefs.current[i] = el)} className={`le-book-p ${i === 0 ? 'le-book-p--first' : ''} ${mark === i ? 'marked' : ''}`}>
+                <p
+                  ref={(el) => (paraRefs.current[i] = el)}
+                  className={`le-book-p ${i === 0 ? 'le-book-p--first' : ''} ${mark === i ? 'marked' : ''} ${narratedPara === i ? 'narrating' : ''}`}
+                >
                   {lead && <strong className="le-book-lead">{lead} </strong>}
                   {renderWithVerses(rest, `p${i}`)}
                 </p>
                 {i === 0 && lesson.bigIdea && (
-                  <aside className="le-keyteach">
+                  <aside className="le-keyteach" data-read-skip="">
                     <span className="le-keyteach-k">KEY TEACHING</span>
                     <p>{lesson.bigIdea}</p>
                   </aside>
@@ -715,43 +895,76 @@ function ReadMode({ lesson, record, title, number, paragraphs, level, setLevel, 
           })}
         </article>
       </div>
-      <div className="le-bookbar">
-        <button type="button" className={`le-bb ${RING}`} onClick={() => setScale(scaleAt - 1)} aria-label="Smaller text" disabled={scaleAt === 0}>
-          A−
-        </button>
-        <button
-          type="button"
-          className={`le-bb ${RING}`}
-          onClick={() => setScale(scaleAt + 1)}
-          aria-label="Larger text"
-          disabled={scaleAt === SCALES.length - 1}
-        >
-          A+
-        </button>
-        <button
-          type="button"
-          aria-pressed={mark === page}
-          className={`le-bb ${mark === page ? 'on' : ''} ${RING}`}
-          onClick={toggleMark}
-          aria-label="Bookmark this paragraph"
-        >
-          {mark === page ? '★' : '☆'}
-        </button>
-        {mark >= 0 && mark !== page && (
-          <button type="button" className={`le-bb le-bb--text ${RING}`} onClick={() => go(mark)}>
-            Go to bookmark
-          </button>
+      <div className="le-readdock">
+        {narrating && (
+          <div className="le-narrate" role="group" aria-label="Read Aloud">
+            <div className="le-narrate-progress" aria-hidden="true">
+              <div style={{ width: `${n.pct}%` }} />
+            </div>
+            <button type="button" className={`le-nb ${RING}`} onClick={() => n.skip(-1)} aria-label="Rewind one sentence">
+              ↺
+            </button>
+            <button type="button" className={`le-nb le-nb--play ${RING}`} onClick={readAloud} aria-label={isPlaying ? 'Pause' : 'Resume'}>
+              {isPlaying ? '❚❚' : '▶'}
+            </button>
+            <button type="button" className={`le-nb ${RING}`} onClick={() => n.skip(1)} aria-label="Forward one sentence">
+              ↻
+            </button>
+            <span className="le-narrate-time">
+              {n.elapsed} / {n.total}
+            </span>
+            <span className="le-spacer" />
+            <button type="button" className={`le-nchip ${RING}`} onClick={n.cycleSpeed} aria-label={`Speed ${n.speedLabel}`}>
+              {n.speedLabel}
+            </button>
+            <button type="button" aria-pressed={autoTurn} className={`le-nchip ${autoTurn ? 'on' : ''} ${RING}`} onClick={toggleAutoTurn}>
+              Auto-turn
+            </button>
+          </div>
         )}
-        <span className="le-spacer" />
-        <span className="le-bb-count">
-          {page + 1} of {count}
-        </span>
-        <button type="button" className={`le-bb le-bb--nav ${RING}`} onClick={() => go(page - 1)} aria-label="Previous paragraph" disabled={page === 0}>
-          ‹
-        </button>
-        <button type="button" className={`le-bb le-bb--nav ${RING}`} onClick={() => go(page + 1)} aria-label="Next paragraph" disabled={page >= count - 1}>
-          ›
-        </button>
+        <div className="le-bookbar">
+          <button type="button" className={`le-bb ${RING}`} onClick={() => setScale(scaleAt - 1)} aria-label="Smaller text" disabled={scaleAt === 0}>
+            A−
+          </button>
+          <button
+            type="button"
+            className={`le-bb ${RING}`}
+            onClick={() => setScale(scaleAt + 1)}
+            aria-label="Larger text"
+            disabled={scaleAt === SCALES.length - 1}
+          >
+            A+
+          </button>
+          <button
+            type="button"
+            aria-pressed={mark === page}
+            className={`le-bb ${mark === page ? 'on' : ''} ${RING}`}
+            onClick={toggleMark}
+            aria-label="Bookmark this paragraph"
+          >
+            {mark === page ? '★' : '☆'}
+          </button>
+          {mark >= 0 && mark !== page && (
+            <button type="button" className={`le-bb le-bb--text ${RING}`} onClick={() => go(mark)}>
+              Go to bookmark
+            </button>
+          )}
+          {!narrating && (
+            <button type="button" className={`le-bb le-bb--aloud ${RING}`} onClick={readAloud} aria-label="Read Aloud from this page">
+              <Icon name="speaker" size={18} />
+            </button>
+          )}
+          <span className="le-spacer" />
+          <span className="le-bb-count">
+            {page + 1} of {count}
+          </span>
+          <button type="button" className={`le-bb le-bb--nav ${RING}`} onClick={() => go(page - 1)} aria-label="Previous paragraph" disabled={page === 0}>
+            ‹
+          </button>
+          <button type="button" className={`le-bb le-bb--nav ${RING}`} onClick={() => go(page + 1)} aria-label="Next paragraph" disabled={page >= count - 1}>
+            ›
+          </button>
+        </div>
       </div>
     </section>
   );

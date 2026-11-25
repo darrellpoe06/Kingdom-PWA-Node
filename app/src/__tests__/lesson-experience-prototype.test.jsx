@@ -13,7 +13,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import LearnStudioPreview from '../components/learn-studio/LearnStudioPreview.jsx';
-import LessonExperience, { PROTOTYPE_LESSON_ID } from '../components/learn-studio/LessonExperience.jsx';
+import LessonExperience, { PROTOTYPE_LESSON_ID, mapSegmentsToParagraphs } from '../components/learn-studio/LessonExperience.jsx';
+import { segmentText } from '../lib/tts.js';
 import REAL_LESSON from '../lib/living-lessons/ll338-not-with-eyeservice.js';
 import { learnInventory } from '../lib/learn-presentation/integrity.js';
 
@@ -373,5 +374,161 @@ describe('a course link opens that course in the new look, every lesson as a gri
     render(<LearnStudioPreview courses={COURSES} onOpenLesson={vi.fn()} onExit={vi.fn()} ownerDevice initialCourseKey="no-such-course" />);
     expect(container.querySelector('.ls-grid')).toBeNull();
     expect(container.textContent).toContain('Discover Something New');
+  });
+});
+
+// Darrell, 2026-11-25: Read Aloud inside Read -- "listen while reading the
+// beautifully illustrated book without leaving Read mode." A fake narrator is
+// injected through the same `createNarrator` seam a future recorded voice
+// would use, so these tests also prove that contract.
+describe('Read Aloud inside Read mode', () => {
+  const lessonText = REAL_LESSON.lesson;
+  const segments = segmentText(lessonText);
+  const paragraphs = lessonText.split(/\n\n+/).filter(Boolean);
+  const { segPara, firstSeg } = mapSegmentsToParagraphs(paragraphs, segments);
+
+  let made;
+  const createNarrator = (opts) => {
+    const e = {
+      calls: [],
+      text: '',
+      status: 'idle',
+      at: 0,
+      onBoundary() {},
+      load(t) {
+        this.text = t;
+        this.calls.push('load');
+      },
+      play() {
+        this.status = 'playing';
+        this.at = 0;
+        this.calls.push('play');
+        opts.onState({ status: 'playing', segmentIndex: 0 });
+      },
+      pause() {
+        this.status = 'paused';
+        this.calls.push('pause');
+        opts.onState({ status: 'paused', segmentIndex: this.at });
+      },
+      resume() {
+        this.status = 'playing';
+        this.calls.push('resume');
+        opts.onState({ status: 'playing', segmentIndex: this.at });
+      },
+      stop() {
+        this.calls.push('stop');
+        if (this.status !== 'idle') {
+          this.status = 'idle';
+          opts.onState({ status: 'idle', segmentIndex: 0 });
+        }
+      },
+      setRate(r) {
+        this.calls.push(['rate', r]);
+      },
+      // test-only: the engine reports reaching segment i of what it loaded
+      reach(i) {
+        this.at = i;
+        act(() => opts.onState({ status: this.status, segmentIndex: i }));
+      },
+    };
+    made.push(e);
+    return e;
+  };
+  const narrator = () => made[made.length - 1];
+  const byLabel = (label) => container.querySelector(`button[aria-label="${label}"]`);
+  const pageCount = () => container.querySelector('.le-bb-count').textContent;
+  const paraNarrating = () => [...container.querySelectorAll('.le-book-p')].findIndex((p) => p.classList.contains('narrating'));
+  const openRead = () => render(<LessonExperience lesson={REAL_LESSON} record={null} onExit={vi.fn()} initialMode="read" createNarrator={createNarrator} />);
+
+  beforeEach(() => {
+    made = [];
+    window.localStorage.clear();
+  });
+
+  it('every spoken segment maps to the paragraph that really contains it', () => {
+    expect(segPara.length).toBe(segments.length);
+    for (let i = 1; i < segPara.length; i += 1) expect(segPara[i]).toBeGreaterThanOrEqual(segPara[i - 1]);
+    paragraphs.forEach((p, pi) => {
+      expect(p.replace(/\s+/g, ' ')).toContain(segments[firstSeg[pi]]);
+    });
+  });
+
+  it('shows a prominent Read Aloud button and keeps every existing reading control', () => {
+    openRead();
+    expect(container.querySelector('.le-aloud-cta').textContent).toContain('Read Aloud');
+    for (const label of ['Smaller text', 'Larger text', 'Bookmark this paragraph', 'Previous paragraph', 'Next paragraph']) {
+      expect(byLabel(label)).toBeTruthy();
+    }
+    expect(pageCount()).toBe(`1 of ${paragraphs.length}`);
+  });
+
+  it('starts reading at the page you are on, with the right place counted', () => {
+    openRead();
+    click(byLabel('Next paragraph'));
+    click(byLabel('Next paragraph'));
+    click(container.querySelector('.le-aloud-cta'));
+    expect(narrator().text.startsWith(segments[firstSeg[2]])).toBe(true);
+    // The engine counts the loaded remainder from 0; the place must not reset.
+    expect(paraNarrating()).toBe(2);
+    expect(container.querySelector('.le-narrate')).toBeTruthy();
+  });
+
+  it('highlights the paragraph being read and turns the page by itself', () => {
+    openRead();
+    click(container.querySelector('.le-aloud-cta'));
+    const target = firstSeg[5] + 1;
+    narrator().reach(target);
+    expect(pageCount()).toBe(`6 of ${paragraphs.length}`);
+    expect(paraNarrating()).toBe(segPara[target]);
+  });
+
+  it('pause, resume, rewind and speed go to the narrator', () => {
+    openRead();
+    click(container.querySelector('.le-aloud-cta'));
+    narrator().reach(4);
+    click(byLabel('Pause'));
+    expect(narrator().calls).toContain('pause');
+    click(byLabel('Resume'));
+    expect(narrator().calls).toContain('resume');
+    click(byLabel('Rewind one sentence'));
+    expect(narrator().text.startsWith(segments[3])).toBe(true);
+    click(byLabel('Speed 1×'));
+    expect(made.some((e) => e.calls.some((c) => Array.isArray(c) && c[0] === 'rate' && c[1] === 1.5))).toBe(true);
+  });
+
+  it('keeps the narration place across Read -> Listen -> Watch -> Read', () => {
+    openRead();
+    click(container.querySelector('.le-aloud-cta'));
+    const target = firstSeg[6] + 1;
+    narrator().reach(target);
+    click(byLabel('Pause'));
+    click(byText('Listen')[0]);
+    expect(container.querySelector('.le-listen-now').textContent).toBe(segments[target]);
+    click(byText('Watch')[0]);
+    expect(container.querySelector('.le-tline.on .le-ttext').textContent).toBe(segments[target]);
+    click(byText('Read')[0]);
+    expect(pageCount()).toBe(`7 of ${paragraphs.length}`);
+    expect(paraNarrating()).toBe(6);
+  });
+
+  it('keeps the reading page across a trip to Study when nothing is being read', () => {
+    openRead();
+    click(byLabel('Next paragraph'));
+    click(byLabel('Next paragraph'));
+    click(byLabel('Next paragraph'));
+    click(byText('Study')[0]);
+    click(byText('Read')[0]);
+    expect(pageCount()).toBe(`4 of ${paragraphs.length}`);
+  });
+
+  it('reading aloud never changes a character of the lesson', () => {
+    openRead();
+    const before = container.querySelector('.le-book-text').textContent;
+    click(container.querySelector('.le-aloud-cta'));
+    narrator().reach(firstSeg[3]);
+    expect(container.querySelector('.le-book-text').textContent).toBe(before);
+    expect(before).toContain(
+      '"For the kingdom of heaven is as a man travelling into a far country, who called his own servants, and delivered unto them his goods." (Matthew 25:14)'
+    );
   });
 });

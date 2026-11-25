@@ -538,13 +538,16 @@
   font-size: 1rem;
   line-height: 1.55;
 }
-.le-bookbar {
+.le-readdock {
   position: sticky;
   bottom: 0;
+  z-index: 2;
+  margin: 12px -16px 0;
+}
+.le-bookbar {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin: 12px -16px 0;
   padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
   background: var(--le-paper);
   color: var(--le-ink);
@@ -572,6 +575,96 @@
 .le-root .le-bb--nav {
   background: var(--le-crimson);
   color: #fff;
+}
+/* The prominent Read Aloud button on the book page itself. */
+.le-aloud-cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 52px;
+  margin: 0 0 18px;
+  border-radius: 999px;
+  border: 2px solid #c9a86a;
+  background: linear-gradient(180deg, var(--le-crimson-hi), var(--le-crimson));
+  font-weight: 700;
+  font-size: 1.0625rem;
+  letter-spacing: 0.02em;
+  box-shadow: 0 6px 18px rgba(163, 20, 28, 0.35);
+}
+.le-root .le-aloud-cta {
+  color: #fff;
+}
+.le-aloud-cta.on {
+  background: #2a1a1c;
+  border-color: var(--le-gold);
+}
+.le-root .le-bb--aloud {
+  color: #8e1219;
+}
+/* The paragraph being read: a gold rule in the margin. The sentence itself is
+   painted by lib/read-follow.js with the house ::highlight(poe-read-seg)
+   rust -- never true red (DR-0099). */
+.le-book-p.narrating {
+  box-shadow: -12px 0 0 -8px #b8862a;
+}
+/* The compact narration bar: black and gold over the cream reading bar. */
+.le-narrate {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px 6px;
+  background: #160d0f;
+  color: #fff;
+  border-top: 1px solid rgba(231, 178, 60, 0.45);
+}
+.le-narrate-progress {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.12);
+}
+.le-narrate-progress > div {
+  height: 100%;
+  background: var(--le-gold);
+}
+.le-nb {
+  min-width: 44px;
+  min-height: 44px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  font-size: 1.25rem;
+}
+.le-nb--play {
+  background: radial-gradient(circle at 35% 30%, #e0353c, var(--le-crimson));
+  box-shadow: 0 0 0 3px rgba(231, 178, 60, 0.35);
+  font-size: 1rem;
+}
+.le-narrate-time {
+  white-space: nowrap;
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--le-dim);
+  margin-left: 4px;
+}
+.le-nchip {
+  min-height: 36px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  background: transparent;
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.le-nchip.on {
+  border-color: var(--le-gold);
+  color: var(--le-gold);
 }
 .le-bb-count {
   font-size: 0.875rem;
