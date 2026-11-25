@@ -14,6 +14,8 @@ import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import ChurchLearn from '../components/ChurchLearn.jsx';
 import { DownloadPanel, LessonDownloadButton, OfflineLevelNote } from '../components/LessonDownloads.jsx';
+import { DownloadAccessProvider } from '../components/DownloadAccess.jsx';
+import { ACCESS } from '../lib/lesson-download-access.js';
 import { buildCatalogCourseDescriptors } from '../lib/learn-catalog.js';
 import { createClipCache, memoryBackend, _setDeviceClipCacheForTests, CAP_KEY } from '../lib/clip-cache.js';
 import { getReadTarget } from '../lib/read-target.js';
@@ -289,8 +291,18 @@ describe('downloading needs an account (DR-0698)', () => {
     act(() => root.render(createElement(LessonDownloadButton, { module: LEVELED, course: LL, signedIn: false })));
     expect(container.querySelector('[data-testid="download-needs-account"]')).toBeTruthy();
     expect(container.querySelector('[data-testid="lesson-download-open"]')).toBeNull();
-    act(() => root.render(createElement(LessonDownloadButton, { module: LEVELED, course: LL, signedIn: true })));
+    // DR-1652: signed in AND entitled (PoeTech+ or the pass) opens the door.
+    act(() => root.render(createElement(DownloadAccessProvider, { signedIn: true, forceAccess: ACCESS.ALLOWED },
+      createElement(LessonDownloadButton, { module: LEVELED, course: LL, signedIn: true }))));
     expect(container.querySelector('[data-testid="lesson-download-open"]')).toBeTruthy();
+    // Signed in but without either: the purchase prompt, never the download.
+    act(() => root.render(createElement(DownloadAccessProvider, { signedIn: true, forceAccess: ACCESS.NEEDS_PURCHASE },
+      createElement(LessonDownloadButton, { module: LEVELED, course: LL, signedIn: true }))));
+    expect(container.querySelector('[data-testid="lesson-download-open"]')).toBeNull();
+    expect(container.querySelector('[data-testid="download-needs-purchase"]')).toBeTruthy();
+    // No provider at all: fail closed.
+    act(() => root.render(createElement(LessonDownloadButton, { module: LEVELED, course: LL, signedIn: true })));
+    expect(container.querySelector('[data-testid="lesson-download-open"]')).toBeNull();
     act(() => root.unmount());
   });
 
@@ -315,7 +327,7 @@ describe('downloading needs an account (DR-0698)', () => {
       const tab = container.querySelector('#learn-area-tab-downloads');
       if (tab && tab.getAttribute('aria-selected') !== 'true') act(() => { tab.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
     };
-    act(() => root.render(createElement(ChurchLearn, { ...props, signedIn: true })));
+    act(() => root.render(createElement(ChurchLearn, { ...props, signedIn: true, userTier: 'poetech-plus' })));
     pick();
     downloads();
     const all = container.querySelector('[data-testid="download-all-open"]');

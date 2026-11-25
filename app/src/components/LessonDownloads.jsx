@@ -17,9 +17,14 @@
 //   5. Remove downloads for the same scope.
 // Downloading needs a signed-in account (DR-0698): a signed-out reader gets
 // the same sign-in prompt every download uses.
+// DR-1652 (2026-11-24): downloading is now PAID: PoeTech+ or the one-time
+// Download Pass (components/DownloadAccess.jsx). A signed-in reader without
+// either meets the purchase prompt at the door; reading and Play stay free.
 // =============================================================================
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import DownloadNeedsAccount from './DownloadNeedsAccount.jsx';
+import { useDownloadAccess, DownloadNeedsPurchase } from './DownloadAccess.jsx';
+import { ACCESS } from '../lib/lesson-download-access.js';
 import {
   LEVEL_BANDS, bandLabel, lessonVersions, normalizeChoice, choiceWords, loadChoice, saveChoice,
   planDownload, runDownload, removeDownloads, checkRoom, deviceSpace, askToKeep, heldVoiceBytes,
@@ -463,7 +468,10 @@ export function DownloadPanel({ items, scope, what, removeWhich, deps = null, on
 
 function Door({ signedIn, label, openLabel, testid, panel, savedBadge = false }) {
   const [open, setOpen] = useState(false);
-  if (!signedIn) return <DownloadNeedsAccount compact label="Download" />;
+  const { access } = useDownloadAccess();
+  if (!signedIn || access === ACCESS.SIGN_IN) return <DownloadNeedsAccount compact label="Download" />;
+  // DR-1652: a download is PoeTech+ or the one-time Download Pass.
+  if (access !== ACCESS.ALLOWED) return <DownloadNeedsPurchase compact label="Download" />;
   return (
     <>
       <button

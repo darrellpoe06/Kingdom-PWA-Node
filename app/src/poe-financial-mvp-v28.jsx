@@ -4600,7 +4600,7 @@ ${THEME_CSS}
             setAgeBand={setLearnAgeBand}
             onEngagement={onLearnEngagement}
             submitHelper={submitHelper}
-            initialDept={churchView === 'eternal-algorithms' ? 'the-eternal-algorithms' : null} /* the retired Church route opens Learn on its department (DR-0432) */ eternalStudyProps={{ email: authSession?.user?.email, view, churchView, setView, setChurchView }} signedIn={!!authSession} /* DR-0698: downloads ask a signed-out reader for an account */
+            initialDept={churchView === 'eternal-algorithms' ? 'the-eternal-algorithms' : null} /* the retired Church route opens Learn on its department (DR-0432) */ eternalStudyProps={{ email: authSession?.user?.email, view, churchView, setView, setChurchView }} signedIn={!!authSession} /* DR-0698: downloads ask a signed-out reader for an account */ userTier={data.userTier} /* DR-1652: downloads are PoeTech+ or the Download Pass */
           />;
         })()}
         {view === 'church' && churchView === 'conference' && (

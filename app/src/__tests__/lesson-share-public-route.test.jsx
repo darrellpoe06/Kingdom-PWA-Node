@@ -125,16 +125,16 @@ describe('signed out, the shared link opens the lesson for reading and listening
     mount({ signedIn: false });
     openCourse(HEALTHY_LIVING_META.key);
     clickTab('Paper & print');
-    expect(container.textContent).toMatch(/Downloading needs a free account/);
+    expect(container.textContent).toMatch(/Downloading needs an account/);
     expect(container.textContent).not.toMatch(/Download \.md/);
     expect(container.textContent).not.toMatch(/Copy markdown/);
     act(() => root.unmount());
     root = createRoot(container);
-    mount({ signedIn: true });
+    mount({ signedIn: true, userTier: 'poetech-plus' }); // DR-1652: export is PoeTech+ or the pass
     openCourse(HEALTHY_LIVING_META.key);
     clickTab('Paper & print');
     expect(container.textContent).toMatch(/Download \.md/);
-    expect(container.textContent).not.toMatch(/Downloading needs a free account/);
+    expect(container.textContent).not.toMatch(/Downloading needs an account/);
   });
 
   it('a stale shared link records the failure and its reason', async () => {

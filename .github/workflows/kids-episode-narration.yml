@@ -1,23 +1,19 @@
 name: Kids episode narration (Kokoro voice render)
-# One-shot on push: speaks a Bible Adventures episode script with Kokoro
-# (Apache-2.0) where Hugging Face is reachable; budget = timeout, lock = concurrency.
+# One-shot on push: speaks an episode script with its cast (Kokoro, Apache-2.0) where Hugging Face is
+# reachable and keeps the lines on the kids-episode-media branch (git is the sandbox's road); budget = timeout, lock = concurrency.
 on:
   push:
     paths: ['scripts/kids-episode/**', '.github/workflows/kids-episode-narration.yml']
   workflow_dispatch: {}
 permissions:
-  contents: read
+  contents: write
 concurrency:
-  group: kids-episode-narration-${{ github.ref }}
-  cancel-in-progress: false
+  group: kids-episode-narration
+  cancel-in-progress: true
 jobs:
   narrate:
     runs-on: ubuntu-latest
     timeout-minutes: 40
-    strategy:
-      fail-fast: false
-      matrix:
-        voice: [am_onyx, am_michael, am_fenrir, am_adam]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -26,10 +22,9 @@ jobs:
       - run: |
           sudo apt-get update -qq && sudo apt-get install -y -qq espeak-ng >/dev/null
           pip install -q "$(grep '^kokoro==' infra/requirements-ci.txt)" "$(grep '^soundfile==' infra/requirements-ci.txt)"
-      - run: python3 scripts/kids-episode/narrate.py scripts/kids-episode/jonah.episode.json out/sample-${{ matrix.voice }} ${{ matrix.voice }} --sample
-      - run: python3 scripts/kids-episode/narrate.py scripts/kids-episode/jonah.episode.json out/full-${{ matrix.voice }} ${{ matrix.voice }}
-      - uses: actions/upload-artifact@v4
-        with:
-          name: jonah-narration-${{ matrix.voice }}
-          path: out
-          retention-days: 14
+      - run: python3 scripts/kids-episode/narrate.py scripts/kids-episode/jonah.episode.json out/jonah-cast cast
+      - name: Keep the lines on the media branch (one orphan commit named by the source sha, replaced each run)
+        run: |
+          cd out && git init -q -b kids-episode-media && git add -A
+          git -c user.name=github-actions -c user.email=github-actions@users.noreply.github.com commit -qm "jonah narration from ${GITHUB_SHA}"
+          git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" kids-episode-media
