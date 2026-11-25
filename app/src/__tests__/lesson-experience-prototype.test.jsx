@@ -10,6 +10,7 @@
 //      its REAL explanations, not a rebuilt one.
 // =============================================================================
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { neighborLessons } from '../components/learn-studio/LessonNav.jsx';
 import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import LearnStudioPreview from '../components/learn-studio/LearnStudioPreview.jsx';
@@ -919,5 +920,59 @@ describe('the highlighter pen on the Read page', () => {
     click(paras()[2]);
     expect(paras()[2].getAttribute('data-highlight')).toBeNull();
     expect(readHighlights(REAL_LESSON.id)).toEqual({});
+  });
+});
+
+// Darrell 2026-11-25, at the end of a lesson: "What about the next or last lesson? Options!"
+describe('Previous lesson / Next lesson at the end of the lesson', () => {
+  const course = {
+    key: 'c',
+    schedule: [
+      { id: 'a', title: 'Alpha' },
+      { id: REAL_LESSON.id, title: REAL_LESSON.title },
+      { id: 'z', title: 'Omega' },
+    ],
+  };
+  const q = (id) => container.querySelector(`[data-testid="${id}"]`);
+  it("neighborLessons is the course's own order, one step each way, with no wrap-around", () => {
+    expect(neighborLessons(REAL_LESSON, course)).toEqual({
+      prev: { courseKey: 'c', lessonId: 'a', title: 'Alpha' },
+      next: { courseKey: 'c', lessonId: 'z', title: 'Omega' },
+    });
+    expect(neighborLessons({ id: 'a' }, course).prev).toBeNull();
+    expect(neighborLessons({ id: 'z' }, course).next).toBeNull();
+    expect(neighborLessons({ id: 'nope' }, course)).toEqual({ prev: null, next: null });
+  });
+  it('both buttons show in every mode, name the lesson, and open it through the host', () => {
+    const onOpenOther = vi.fn();
+    const near = neighborLessons(REAL_LESSON, course);
+    render(<LessonExperience lesson={REAL_LESSON} record={null} onExit={vi.fn()} prevLesson={near.prev} nextLesson={near.next} onOpenOther={onOpenOther} />);
+    for (const mode of ['Read', 'Listen', 'Study', 'Watch']) {
+      click(byText(mode)[0]);
+      expect(q('le-prev-lesson').textContent).toContain('Alpha');
+      expect(q('le-next-lesson').textContent).toContain('Omega');
+    }
+    click(q('le-next-lesson'));
+    expect(onOpenOther).toHaveBeenLastCalledWith('c', 'z');
+    click(q('le-prev-lesson'));
+    expect(onOpenOther).toHaveBeenLastCalledWith('c', 'a');
+  });
+  it('at the end of the course it says so instead of going blank; with no neighbors at all it shows nothing', () => {
+    render(
+      <LessonExperience
+        lesson={REAL_LESSON}
+        record={null}
+        onExit={vi.fn()}
+        prevLesson={{ courseKey: 'c', lessonId: 'a', title: 'Alpha' }}
+        nextLesson={null}
+        onOpenOther={vi.fn()}
+      />
+    );
+    expect(q('le-next-none').textContent).toBe('This is the last lesson of the course.');
+    expect(q('le-prev-lesson')).toBeTruthy();
+    act(() => root.unmount());
+    root = createRoot(container);
+    render(<LessonExperience lesson={REAL_LESSON} record={null} onExit={vi.fn()} />);
+    expect(q('le-lesson-nav')).toBeNull();
   });
 });
