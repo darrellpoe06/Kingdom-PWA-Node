@@ -2691,6 +2691,21 @@
       "notes": ""
     },
     {
+      "id": "cloudflare-tunnel-road",
+      "date": "2026-11-25",
+      "task": "The NAS had one road out (the Tailscale Funnel); built the second, a Cloudflare Tunnel the NAS dials, plus app failover, off until armed",
+      "drs": [
+        "DR-1653"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.5,
+      "estimateWithoutAiHours": 12,
+      "notes": "Not armed: token only from Darrell's Cloudflare account. Proven to catch: fallback replaced by a rethrow fails 2 cases."
+    },
+    {
       "id": "poetech-plus-on-pricing",
       "date": "2026-11-12",
       "task": "PoeTech+ is bought from the pricing page's Checkout window",

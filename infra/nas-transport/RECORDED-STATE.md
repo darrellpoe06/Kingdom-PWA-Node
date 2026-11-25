@@ -46,6 +46,16 @@ transport without reading this file, keeping every row true, and using `funnel`
 | `/libraries` | `http://127.0.0.1:8802` (poetech-libraries.service) | the libraries road's HEALTH door (DR-1121; the Jellyfin and Audiobookshelf pilots of DR-1119, corrected): `GET /health` (open; 200 only when Jellyfin answers `/System/Info/Public` and Audiobookshelf answers `/status` on loopback AND the shelf folders are on the pool; 503 with each reason in words). NOTHING of either server passes here: their TV and phone apps cannot carry the family key, so the servers are served on the TAILNET only (`tailscale serve --https=8096` → Jellyfin `ghcr.io/jellyfin/jellyfin:12.2` on `127.0.0.1:8096`; `--https=13378` → Audiobookshelf `ghcr.io/advplyr/audiobookshelf:2.37.1` on `127.0.0.1:13378`), never the Funnel, each behind its own login, which the home-accounts loop makes for every family member. Shelves read-only: `/volume1/PoeTech/library/{video,audio}`, `/volume1/docker/ytzero/downloads`, `/volume1/PoeTech/lesson-voice`. | intended state added 2026-10-19 (DR-1121 merge); actuated idempotently by `infra/nas-libraries/install.sh` via services-sync, which makes the shelves and the servers' folders, moves the door onto the repo's code BEFORE any step that can stop it, and serves the two tailnet ports and mounts `/libraries` ONLY after both servers answer and the door is 200. Witness: `libraries-health.yml` (health + the home-accounts loop's last ledger; where the install stands on failure); selftest gates merge in ci.yml. |
 | `/llm` | `http://127.0.0.1:8804` (poetech-llm.service) | Ari's road (DR-1649): `llm_server.py`, a locked door in front of the house's own Ollama. `POST /llm/chat` takes the family bridge bearer and relays one chat; `GET /llm/health` is open and says why in words. With no key set it refuses every chat | the box's own readout of 2026-11-24 (nas-funnel-report run 45471214852) showed no `/llm` row and no port answering it; installed by `infra/nas-llm/install.sh` on services-sync, which mounts only after the door answers on loopback |
 
+## The second road out: Cloudflare Tunnel (DR-1653, decided in DR-1622) — NOT YET ARMED
+
+The NAS dials OUT to Cloudflare (nothing at home accepts calls in), so a lapsed
+Tailscale login no longer closes sign-in and data. It is support beside the
+Funnel, never a replacement.
+
+| Public hostname | Service on the NAS | State |
+| --- | --- | --- |
+| `sb.poetech.us` (set in Darrell's Cloudflare dashboard; a token tunnel is configured remotely) | `http://localhost:8800` (the sovereign Supabase gateway, the same target as the Funnel's `/sb`) | **not armed.** Actuator: `infra/nas-loops/loops/cf_tunnel.py` (services-sync rider `cf-tunnel`), which does nothing until `/volume1/PoeTech/secrets/cloudflared-token.txt` exists. The app half (`app/src/lib/sb-failover.js`) is off until the repo variable `SB_TUNNEL_ORIGIN` is set. Witness: loops-health reads `/volume1/PoeTech/cf-tunnel/last-run.json`. Proof of done (DR-1622): sign-in works with the Funnel deliberately off. |
+
 ## UNACTUATED — same-origin routes that currently reach nothing
 
 **These are declared gaps, not accepted ones.** Each has a Pages Function that

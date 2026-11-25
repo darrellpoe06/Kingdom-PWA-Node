@@ -118,6 +118,12 @@
       "description": "Ensure the public Funnel serves the RECORDED-STATE sovereign rows (/mcp, /nas-photos) — the funnel_watchdog.py restore riding the ALREADY-ARMED services-sync clock, so the 2026-08-03 dark-funnel class heals with ZERO new DSM entries (Darrell: humans don't do anything). Idempotent and silent when the endpoint answers; bounded re-assert + one package restart when dark (DR-0268; RECORDED-STATE rule 1). Witness: funnel-health (its own, on the Way since 2026-10-20: every sovereign mount asked through the Funnel from outside; where the install stands on a failure, the box's own funnel status and the watchdog's last lines)."
     },
     {
+      "name": "cf-tunnel",
+      "install": "infra/nas-loops/loops/cf-tunnel.sh",
+      "enabled": true,
+      "description": "The NAS's SECOND road out, a Cloudflare Tunnel the NAS dials (DR-1653, decided in DR-1622 'No outside system is the only door'). On 2026-11-23 and 2026-11-24 the box ran the whole time but its Tailscale login lapsed, the Funnel closed, and sign-in, The Word, photos and cameras went dark together because the Funnel was the only road. cf_tunnel.py keeps ONE pinned cloudflared container (poetech-cf-tunnel, host network, reaching the sovereign gateway at 127.0.0.1:8800) running from /volume1/PoeTech/secrets/cloudflared-token.txt. NO TOKEN = a quiet no-op: that file is the off switch, and only Darrell's Cloudflare account can mint it. Brakes: every docker call capped at 60 s and the pass at 240 s (under the 480 s rider), a flock so a second fire skips, the token never on a command line (0600 env file). Ledger: /volume1/PoeTech/cf-tunnel/last-run.json (history in ledger.jsonl). The app's half is app/src/lib/sb-failover.js, off until VITE_SUPABASE_FALLBACK_URL is built in."
+    },
+    {
       "name": "choir-dates",
       "install": "infra/church-media-golive/choir_dates_install.sh",
       "enabled": true,
