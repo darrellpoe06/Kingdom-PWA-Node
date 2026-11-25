@@ -155,6 +155,21 @@ export function firstName(name) {
 }
 
 /**
+ * Only the sizes that are really shipped. MEASURED 2026-11-25: 826 of 976 records list four
+ * widths (320, 640, 1280, 1920) while public/learn-thumbs holds only w640 and w1280 for every
+ * lesson (982 each; zero w320, zero w1920). On a sharp screen the browser picked the 1920
+ * candidate, got a 404 and drew a broken image (Darrell's Fold, the Institute course cards).
+ */
+export const SHIPPED_THUMB_WIDTHS = Object.freeze([640, 1280]);
+export function shippedSrcSet(srcSet) {
+  return String(srcSet || '')
+    .split(',')
+    .map((x) => x.trim())
+    .filter((x) => SHIPPED_THUMB_WIDTHS.some((w) => new RegExp(`/w${w}\\.webp\\s+${w}w$`).test(x)))
+    .join(', ');
+}
+
+/**
  * One cover image per course, taken from the lesson artwork already shipped in
  * public/learn-thumbs (presentation-records.json). The first eligible record of
  * a course wins. `preview` (the owner-device studio) admits records still in
@@ -170,7 +185,7 @@ export function courseCovers(records = [], { preview = false, visible = ['approv
     if (!(preview || visible.includes(r.status))) continue;
     const img = r.image;
     if (!img || !img.src) continue;
-    out.set(r.courseKey, { src: img.src, srcSet: (img.srcSet && img.srcSet.webp) || '' });
+    out.set(r.courseKey, { src: img.src, srcSet: shippedSrcSet(img.srcSet && img.srcSet.webp) });
   }
   return out;
 }

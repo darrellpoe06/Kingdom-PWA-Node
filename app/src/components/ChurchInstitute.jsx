@@ -46,7 +46,7 @@ import InstituteStudio from './institute/InstituteStudio.jsx';
 import InstituteCourseCards from './institute/InstituteCourseCards.jsx';
 import { listPlaces } from '../lib/learn-resume.js';
 import { motionBehavior } from '../lib/gentle-motion.js';
-import { isInstituteStudioOn, INSTITUTE_STUDIO_FLAG_KEY, courseCovers } from '../lib/institute-studio.js';
+import { isInstituteStudioOn, courseCovers } from '../lib/institute-studio.js';
 
 const FOCUS = 'focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]';
 const STATUS_WORD = Object.freeze({ applied: 'Applied', accepted: 'Accepted', withdrawn: 'Withdrawn', completed: 'Completed' });
@@ -460,7 +460,7 @@ export default function ChurchInstitute({
   studentName = null,
 }) {
   const c = resolveChurch(church);
-  const [studio, setStudio] = useState(() => isInstituteStudioOn({ defaultOn: studioDefaultOn }));
+  const [studio] = useState(() => isInstituteStudioOn({ defaultOn: studioDefaultOn }));
   // Course covers for the studio's photographic cards: the lesson-art records load
   // only when the studio is on (owner device), so the public Institute never pays for them.
   const [covers, setCovers] = useState(() => new Map());
@@ -520,15 +520,6 @@ export default function ChurchInstitute({
     };
     if (typeof requestAnimationFrame === 'function') requestAnimationFrame(go);
     else go();
-  };
-  const leaveStudio = () => {
-    try {
-      window.localStorage.setItem(INSTITUTE_STUDIO_FLAG_KEY, '0');
-    } catch {
-      /* no storage: the switch still holds for this visit */
-    }
-    setStudio(false);
-    if (active === 'resources') setActive('about');
   };
 
   useEffect(() => {
@@ -896,11 +887,6 @@ export default function ChurchInstitute({
       <div ref={sectionsRef} tabIndex={-1} className="is-sections" data-testid="institute-sections">
         <SectionTabs sections={sections} ariaLabel="Institute sections" idBase="institute" variant="sub" activeId={active} onActiveChange={setActive} />
       </div>
-      {studio && (
-        <button type="button" onClick={leaveStudio} className={`lc-link self-start ${FOCUS}`} data-testid="institute-studio-leave">
-          Preview · back to the classic Institute
-        </button>
-      )}
     </div>
   );
 }
