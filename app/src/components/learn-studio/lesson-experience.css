@@ -1,18 +1,27 @@
-/* Lesson Experience — private prototype. Same brand tokens as learn-studio.css
-   (dark, red/black/white/gold); font sizes in rem throughout (DR-0276) so the
-   app's text-size control (A/A+/A++) reaches every mode. */
+/* Lesson Experience — private prototype, styled to Darrell's approved
+   four-phone reference (2026-11-25): near-black chrome with deep-crimson
+   active pills (Watch, Listen), a cream illustrated book page (Read) and a
+   cream accordion study guide (Study). Same brand family as learn-studio.css.
+   Font sizes in rem throughout (DR-0276) so the app's text-size control
+   reaches every mode. Scripture callouts use GOLD, never red: true red in a
+   Scripture color code is reserved for the Blood (DR-0099). */
 .le-root {
-  --le-bg: #0f0b0d;
-  --le-panel: #1a1416;
-  --le-line: #2c2326;
+  --le-bg: #120c0d;
+  --le-panel: #1d1415;
+  --le-line: #33262a;
   --le-text: #f6f2ee;
-  --le-dim: #b9b0aa;
-  --le-gold: #f2bf2e;
-  --le-red: #d7261e;
-  background: var(--le-bg);
+  --le-dim: #c2b8b2;
+  --le-gold: #e7b23c;
+  --le-crimson: #a3141c;
+  --le-crimson-hi: #c41d25;
+  --le-paper: #f7efe1;
+  --le-paper-2: #efe3cc;
+  --le-ink: #23170f;
+  --le-ink-dim: #5d4a3c;
+  background: radial-gradient(120% 60% at 50% 0%, #2a1013 0%, var(--le-bg) 60%);
   color: var(--le-text);
   min-height: 100vh;
-  padding: 12px 16px 48px;
+  padding: 12px 16px 96px;
   font-family: 'DM Sans', system-ui, sans-serif;
   max-width: 900px;
   margin: 0 auto;
@@ -28,7 +37,19 @@
   color: inherit;
   cursor: pointer;
 }
+.le-root button:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+.le-icon {
+  flex: none;
+  vertical-align: -3px;
+}
+.le-spacer {
+  flex: 1;
+}
 
+/* ---- header ---- */
 .le-top {
   display: flex;
   align-items: center;
@@ -39,93 +60,169 @@
 .le-back {
   background: none;
   border: none;
-  color: var(--le-gold);
-  font-size: 1rem;
-  font-weight: 600;
-  padding: 8px 0;
-}
-.le-back:focus-visible {
-  outline: 2px solid var(--le-gold);
-  outline-offset: 2px;
+  color: var(--le-dim);
+  font-size: 0.9375rem;
+  padding: 6px 0;
+  min-height: 44px;
 }
 .le-proto-badge {
   font-size: 0.6875rem;
   letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--le-red);
-  border: 1px solid var(--le-red);
+  color: var(--le-gold);
+  border: 1px solid rgba(231, 178, 60, 0.45);
   border-radius: 999px;
   padding: 3px 10px;
-}
-
-.le-title {
-  font-family: 'LS Display', 'DM Sans', system-ui, sans-serif;
-  font-weight: 900;
-  font-size: clamp(1.375rem, 4.5vw, 2.25rem);
-  line-height: 1.1;
-  margin: 4px 0 2px;
-}
-.le-original {
-  color: var(--le-dim);
-  font-size: 0.9375rem;
-  font-style: italic;
-  margin: 0 0 16px;
-}
-
-.le-modes {
-  display: flex;
-  gap: 8px;
-  overflow-x: auto;
-  padding-bottom: 4px;
-  margin-bottom: 14px;
-}
-.le-mode {
-  flex: 0 0 auto;
-  background: var(--le-panel);
-  border: 1px solid var(--le-line);
-  border-radius: 999px;
-  padding: 10px 16px;
-  font-size: 0.9375rem;
-  font-weight: 600;
   white-space: nowrap;
 }
-.le-mode.on {
-  background: var(--le-gold);
-  color: #241b08;
-  border-color: var(--le-gold);
+.le-title {
+  font-family: 'Fraunces', Georgia, serif;
+  font-weight: 700;
+  font-size: 1.625rem;
+  line-height: 1.12;
+  margin: 0;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.55);
 }
-.le-mode:focus-visible {
-  outline: 2px solid var(--le-gold);
-  outline-offset: 2px;
+.le-original {
+  font-size: 0.8125rem;
+  color: var(--le-dim);
+  margin: 10px 0 0;
+}
+.le-badge {
+  display: inline-block;
+  margin-top: 10px;
+  padding: 3px 14px;
+  border-radius: 999px;
+  background: var(--le-crimson);
+  border: 1px solid rgba(231, 178, 60, 0.55);
+  color: #fff;
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 0.9375rem;
+}
+
+/* ---- the four mode pills ---- */
+.le-modes {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin: 14px 0;
+}
+.le-mode {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 8px 6px;
+  border-radius: 10px;
+  border: 1px solid var(--le-line);
+  background: var(--le-panel);
+  font-size: 0.9375rem;
+  color: var(--le-text);
+}
+.le-mode.on {
+  background: linear-gradient(180deg, var(--le-crimson-hi), var(--le-crimson));
+  border-color: #d9454b;
+  font-weight: 700;
+  box-shadow: 0 4px 14px rgba(163, 20, 28, 0.45);
 }
 
 .le-levels {
   display: flex;
   gap: 6px;
+  margin: 0 0 14px;
   overflow-x: auto;
-  margin-bottom: 16px;
+  scrollbar-width: none;
 }
 .le-level {
-  flex: 0 0 auto;
-  background: transparent;
   border: 1px solid var(--le-line);
-  color: var(--le-dim);
+  background: transparent;
   border-radius: 999px;
   padding: 6px 12px;
+  min-height: 36px;
+  flex: none;
   font-size: 0.8125rem;
+  color: var(--le-dim);
 }
 .le-level.on {
   border-color: var(--le-gold);
   color: var(--le-gold);
 }
 
-/* WATCH */
+/* ---- shared progress + controls ---- */
+.le-progress {
+  position: relative;
+  height: 4px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.18);
+}
+.le-progress-fill {
+  height: 100%;
+  border-radius: 4px;
+  background: var(--le-crimson-hi);
+}
+.le-progress-dot {
+  position: absolute;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(196, 29, 37, 0.45);
+}
+.le-ctl {
+  background: none;
+  border: none;
+  font-size: 1.375rem;
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 50%;
+}
+.le-ctl--play {
+  width: 72px;
+  height: 72px;
+  font-size: 1.625rem;
+  background: radial-gradient(circle at 35% 30%, #e0353c, var(--le-crimson));
+  box-shadow:
+    0 0 0 6px rgba(163, 20, 28, 0.28),
+    0 8px 24px rgba(163, 20, 28, 0.5);
+}
+.le-chip {
+  border: 1px solid var(--le-line);
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 6px;
+  min-width: 40px;
+  min-height: 36px;
+  padding: 4px 8px;
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+.le-chip.on {
+  border-color: var(--le-text);
+}
+.le-tstamp {
+  font-variant-numeric: tabular-nums;
+  font-size: 0.75rem;
+}
+.le-resume-note {
+  font-size: 0.8125rem;
+  color: var(--le-gold);
+  margin: 8px 0;
+}
+
+/* ---- WATCH ---- */
 .le-stage {
   position: relative;
   aspect-ratio: 16 / 10;
-  border-radius: 18px;
+  border-radius: 14px 14px 0 0;
   overflow: hidden;
   background: #000;
+  margin: 0 -16px;
+}
+@media (min-width: 640px) {
+  .le-stage {
+    margin: 0;
+  }
 }
 .le-stage-img,
 .le-img--empty {
@@ -146,114 +243,216 @@
 .le-kenburns {
   animation: le-kenburns 22s ease-in-out infinite alternate;
 }
-@media (prefers-reduced-motion: reduce) {
-  .le-kenburns {
-    animation: none;
-  }
-}
 .le-stage-scrim {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, 0.72) 100%);
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0) 30%, rgba(0, 0, 0, 0.55) 100%), linear-gradient(180deg, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, 0.78) 100%);
   pointer-events: none;
+}
+.le-stage-title {
+  position: absolute;
+  right: 16px;
+  top: 22%;
+  max-width: 62%;
+  text-align: right;
 }
 .le-caption {
   position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  padding: 18px 20px 20px;
-  font-size: clamp(1rem, 3.4vw, 1.375rem);
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  text-align: center;
+  font-size: 1.0625rem;
   line-height: 1.4;
   font-weight: 600;
-  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6);
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.9);
 }
 .le-said {
   color: var(--le-gold);
 }
 .le-unsaid {
+  color: #fff;
+}
+.le-watch > .le-progress {
+  margin: 0 -16px;
+  border-radius: 0;
+}
+@media (min-width: 640px) {
+  .le-watch > .le-progress {
+    margin: 0;
+  }
+}
+.le-playerbar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 0;
+}
+.le-ctl--bar {
+  font-size: 1.125rem;
+  min-width: 40px;
+}
+.le-playerbar .le-chip {
+  margin-left: 4px;
+}
+.le-time {
+  white-space: nowrap;
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--le-dim);
+}
+.le-subtabs {
+  display: flex;
+  border-bottom: 1px solid var(--le-line);
+  margin: 4px 0 12px;
+}
+.le-subtab {
+  flex: 1;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 10px 4px;
+  min-height: 44px;
+  font-size: 0.9375rem;
+  color: var(--le-dim);
+}
+.le-subtab.on {
   color: var(--le-text);
-  opacity: 0.68;
+  font-weight: 700;
+  border-bottom-color: var(--le-gold);
+}
+.le-transcript {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.le-tline {
+  margin: 0 0 6px;
+}
+.le-tline-btn {
+  display: grid;
+  grid-template-columns: 52px 1fr;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  padding: 10px 10px;
+}
+.le-tline-btn .le-tstamp {
+  align-self: start;
+  justify-self: start;
+  color: var(--le-dim);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.le-ttext {
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--le-dim);
+}
+.le-tline.on .le-tline-btn {
+  background: linear-gradient(90deg, rgba(163, 20, 28, 0.5), rgba(163, 20, 28, 0.28));
+  border-color: rgba(217, 69, 75, 0.55);
+}
+.le-tline.on .le-tstamp {
+  background: var(--le-crimson-hi);
+  color: #fff;
+}
+.le-tline.on .le-ttext {
+  color: #fff;
+}
+.le-points-big {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 1.0625rem;
+  line-height: 1.55;
+  margin: 0 0 12px;
+}
+.le-points-list,
+.le-verse-list {
+  margin: 0;
+  padding-left: 1.1em;
+  line-height: 1.55;
+}
+.le-points-list li,
+.le-verse-list li {
+  margin-bottom: 8px;
+}
+.le-verse-list {
+  list-style: none;
+  padding: 0;
+}
+.le-scrips-anchor {
+  margin: 0 0 8px;
+}
+.le-anchor {
+  margin: 0 0 12px;
+  padding-left: 1.2em;
+  line-height: 1.5;
+  font-size: 0.9375rem;
+}
+.le-anchor li {
+  margin-bottom: 6px;
 }
 
-.le-controls {
+/* Scripture callout -- the EXACT verse characters, framed in gold. */
+.le-verse {
+  display: block;
+  margin: 10px 0;
+  padding: 10px 14px;
+  border-left: 3px solid var(--le-gold);
+  background: rgba(231, 178, 60, 0.08);
+  border-radius: 0 8px 8px 0;
+  font-style: italic;
+}
+
+/* ---- READ: the illustrated book page ---- */
+.le-book {
+  --le-read-scale: 1;
+  background: linear-gradient(180deg, var(--le-paper), var(--le-paper-2));
+  color: var(--le-ink);
+  border-radius: 14px;
+  padding: 22px 18px 28px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+}
+.le-book-title {
+  font-family: 'Fraunces', Georgia, serif;
+  font-weight: 700;
+  font-size: 1.75rem;
+  line-height: 1.12;
+  text-align: center;
+  margin: 0;
+}
+.le-original--book {
+  color: var(--le-ink-dim);
+  text-align: center;
+  margin-top: 6px;
+}
+.le-book-rule {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin: 14px 0;
+  margin: 10px 0 14px;
 }
-.le-ctl {
-  background: var(--le-panel);
-  border: 1px solid var(--le-line);
-  border-radius: 999px;
-  width: 2.5rem;
-  height: 2.5rem;
-  font-size: 1.125rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex: 0 0 auto;
-}
-.le-ctl--play {
-  background: var(--le-red);
-  border-color: var(--le-red);
-  width: 3rem;
-  height: 3rem;
-  font-size: 1.25rem;
-}
-.le-ctl:focus-visible {
-  outline: 2px solid var(--le-gold);
-  outline-offset: 2px;
-}
-.le-progress {
+.le-book-rule > span[aria-hidden] {
   flex: 1;
-  height: 6px;
-  border-radius: 999px;
-  background: var(--le-line);
-  overflow: hidden;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #b8862a);
 }
-.le-progress-fill {
-  height: 100%;
-  background: var(--le-gold);
-  transition: width 0.3s ease;
+.le-book-rule > span[aria-hidden]:last-child {
+  background: linear-gradient(90deg, #b8862a, transparent);
 }
-.le-progress-label {
-  font-size: 0.75rem;
-  color: var(--le-dim);
-  flex: 0 0 auto;
+.le-badge--book {
+  margin: 0;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 0.8125rem;
 }
-.le-resume-note {
-  font-size: 0.875rem;
-  color: var(--le-gold);
-  margin: -6px 0 12px;
-}
-
-.le-transcript {
-  max-height: 40vh;
-  overflow-y: auto;
-  border-top: 1px solid var(--le-line);
-  padding-top: 12px;
-}
-.le-tline {
-  font-size: 0.9375rem;
-  line-height: 1.6;
-  color: var(--le-dim);
-  padding: 6px 8px;
-  border-radius: 8px;
-  cursor: pointer;
-}
-.le-tline.on {
-  color: var(--le-text);
-  background: rgba(242, 191, 46, 0.12);
-  font-weight: 600;
-}
-
-/* READ — the illustrated book */
 .le-read-hero {
-  margin: 0 0 18px;
-  border-radius: 18px;
-  overflow: hidden;
-  position: relative;
+  margin: 0 -18px 14px;
 }
 .le-read-hero-img {
   width: 100%;
@@ -261,140 +460,430 @@
   object-fit: cover;
   display: block;
 }
-.le-read-hero figcaption {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  padding: 14px 18px;
-  font-family: 'LS Display', sans-serif;
-  font-weight: 800;
-  font-size: 1rem;
-  letter-spacing: 0.03em;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.6) 100%);
+.le-wordfirst {
+  text-align: center;
+  margin: 0 0 12px;
 }
-.le-book {
+.le-wordfirst-k {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #8e1219;
+}
+.le-wordfirst-ref {
   font-family: 'Fraunces', Georgia, serif;
-  font-size: 1.0625rem;
-  line-height: 1.85;
-  color: var(--le-text);
+  font-weight: 700;
+  font-size: 1.25rem;
+}
+.le-book-text {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: calc(1.0625rem * var(--le-read-scale));
+  line-height: 1.7;
 }
 .le-book-p {
-  margin: 0 0 1.4em;
+  margin: 0 0 14px;
+  scroll-margin-top: 16px;
+}
+.le-book-p.marked {
+  box-shadow: -10px 0 0 -7px #b8862a;
+}
+.le-book-p--first::first-letter {
+  float: left;
+  font-size: 3.4em;
+  line-height: 0.85;
+  padding: 4px 8px 0 0;
+  color: #b8862a;
+  font-weight: 700;
 }
 .le-book-lead {
-  color: var(--le-gold);
-  font-family: 'LS Display', sans-serif;
-  font-weight: 800;
-  font-size: 0.9em;
   letter-spacing: 0.02em;
 }
-.le-verse {
-  display: inline-block;
-  margin: 0.15em 0;
-  padding: 0.5em 0.9em;
-  border-left: 3px solid var(--le-red);
-  background: var(--le-panel);
-  border-radius: 0 10px 10px 0;
-  font-size: 0.95em;
-  font-style: italic;
+.le-book .le-verse {
+  border-left-color: #b8862a;
+  background: rgba(184, 134, 42, 0.12);
+}
+.le-ornament {
+  text-align: center;
+  color: #b8862a;
+  margin: 6px 0 14px;
+  letter-spacing: 0.5em;
+}
+.le-keyteach {
+  margin: 18px 0;
+  padding: 18px 16px 14px;
+  border-radius: 10px;
+  background: radial-gradient(120% 120% at 50% 0%, #f3e2bd, #e6cf9f);
+  border: 1px solid #c9a86a;
+  text-align: center;
+  position: relative;
+}
+.le-keyteach-k {
+  position: absolute;
+  top: -11px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--le-crimson);
+  color: #fff;
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 2px 10px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+.le-keyteach p {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.55;
+}
+.le-bookbar {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 12px -16px 0;
+  padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
+  background: var(--le-paper);
+  color: var(--le-ink);
+  border-top: 1px solid #d9c7a4;
+}
+.le-bb {
+  min-width: 44px;
+  min-height: 44px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  font-size: 1.0625rem;
+  font-weight: 700;
+}
+.le-root .le-bb {
+  color: var(--le-ink);
+}
+.le-bb.on {
+  color: #8e1219;
+}
+.le-bb--text {
+  font-size: 0.8125rem;
+  text-decoration: underline;
+}
+.le-root .le-bb--nav {
+  background: var(--le-crimson);
+  color: #fff;
+}
+.le-bb-count {
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+  margin-right: 4px;
 }
 
-/* LISTEN — audiobook */
+/* ---- LISTEN ---- */
+.le-listen {
+  text-align: center;
+}
 .le-listen-art {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  max-width: 420px;
+  margin: 4px auto 0;
   border-radius: 18px;
   overflow: hidden;
-  aspect-ratio: 1 / 1;
-  max-width: 320px;
-  margin: 0 auto 18px;
+  box-shadow:
+    0 0 0 1px rgba(217, 69, 75, 0.35),
+    0 18px 50px rgba(0, 0, 0, 0.6);
 }
 .le-listen-img {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+.le-listen-art .le-stage-scrim {
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0) 35%, rgba(20, 4, 6, 0.9) 100%);
+}
+.le-listen-title {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 14px;
+}
+.le-wave {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  height: 28px;
+  margin-top: 12px;
+}
+.le-wave i {
   display: block;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--le-gold);
+  opacity: 0.85;
+  transform-origin: center;
+}
+@keyframes le-wave {
+  0%,
+  100% {
+    transform: scaleY(0.45);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+.le-wave.on i {
+  animation: le-wave 0.9s ease-in-out infinite;
+}
+.le-listen-h {
+  font-size: 1.1875rem;
+  font-weight: 700;
+  margin: 14px 0 10px;
+}
+.le-listen .le-levels {
+  justify-content: safe center;
 }
 .le-listen-now {
-  text-align: center;
+  font-family: 'Fraunces', Georgia, serif;
   font-size: 1.0625rem;
-  line-height: 1.6;
-  min-height: 3.2em;
-  margin-bottom: 8px;
+  line-height: 1.5;
+  min-height: 3em;
+  margin: 0 0 14px;
 }
-
-/* STUDY */
-.le-study-h {
-  font-family: 'LS Display', sans-serif;
-  font-weight: 800;
+.le-times {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8125rem;
+  color: var(--le-dim);
+  font-variant-numeric: tabular-nums;
+  margin-top: 8px;
+}
+.le-transport {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  margin: 10px 0 18px;
+}
+.le-listen-tools {
+  display: flex;
+  justify-content: center;
+  gap: 36px;
+}
+.le-tool {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  background: none;
+  border: none;
+  min-width: 64px;
+  min-height: 52px;
+}
+.le-tool strong {
   font-size: 1.0625rem;
-  color: var(--le-gold);
-  margin: 24px 0 10px;
 }
-.le-study-bigidea {
-  font-size: 1rem;
-  line-height: 1.7;
-}
-.le-anchor {
-  padding-left: 1.2em;
-  font-size: 0.9375rem;
-  line-height: 1.7;
+.le-tool span {
+  font-size: 0.8125rem;
   color: var(--le-dim);
 }
-.le-quiz {
+.le-chapters {
   list-style: none;
   padding: 0;
+  margin: 14px 0 0;
+  text-align: left;
+}
+.le-chapter {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--le-line);
+  border-radius: 10px;
+  background: var(--le-panel);
+  margin-bottom: 6px;
+  text-align: left;
+  font-size: 0.9375rem;
+}
+
+/* ---- STUDY ---- */
+.le-study-hero {
+  position: relative;
+  height: 150px;
+  border-radius: 14px 14px 0 0;
+  overflow: hidden;
+}
+.le-study-hero-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.le-study-hero-scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, rgba(18, 6, 8, 0.92) 0%, rgba(18, 6, 8, 0.5) 60%, rgba(18, 6, 8, 0.2) 100%);
+}
+.le-study-hero-text {
+  position: absolute;
+  left: 18px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.le-study-title {
+  font-family: 'Fraunces', Georgia, serif;
+  font-weight: 700;
+  font-size: 1.875rem;
+  margin: 0;
+}
+.le-study-sub {
+  margin: 4px 0 0;
+  font-size: 1.0625rem;
+  color: var(--le-dim);
+}
+.le-study-card {
+  background: linear-gradient(180deg, var(--le-paper), var(--le-paper-2));
+  color: var(--le-ink);
+  border-radius: 0 0 14px 14px;
+  padding: 6px 12px 12px;
+}
+.le-acc {
+  border-bottom: 1px solid #dccaa6;
+}
+.le-acc:last-child {
+  border-bottom: none;
+}
+.le-acc-sum {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  padding: 8px 4px;
+  list-style: none;
+  cursor: pointer;
+}
+.le-acc-sum::-webkit-details-marker {
+  display: none;
+}
+.le-acc-icon {
+  display: inline-flex;
+  color: #b8862a;
+}
+.le-acc-title {
+  flex: 1;
+  font-size: 1.0625rem;
+  font-weight: 700;
+}
+.le-acc-chev {
+  font-size: 1.25rem;
+  line-height: 1;
+}
+.le-acc[open] .le-acc-chev {
+  transform: rotate(180deg);
+}
+.le-acc-body {
+  padding: 0 4px 14px 36px;
+  line-height: 1.55;
+}
+.le-study-card .le-verse {
+  border-left-color: #b8862a;
+  background: rgba(184, 134, 42, 0.12);
+}
+.le-prompts {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.le-prompts li {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+.le-num {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #7d1016;
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.875rem;
+}
+.le-practice {
+  margin: 0;
+}
+.le-quiz {
+  margin: 0;
+  padding-left: 1.1em;
 }
 .le-quiz-q {
-  background: var(--le-panel);
-  border: 1px solid var(--le-line);
-  border-radius: 14px;
-  padding: 14px;
-  margin-bottom: 14px;
+  margin-bottom: 16px;
 }
 .le-quiz-prompt {
   font-weight: 700;
-  margin: 0 0 10px;
+  margin: 0 0 8px;
 }
 .le-quiz-opts {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  display: grid;
+  gap: 6px;
 }
 .le-quiz-opt {
   text-align: left;
-  background: var(--le-bg);
-  border: 1px solid var(--le-line);
-  border-radius: 10px;
+  min-height: 44px;
   padding: 10px 12px;
-  font-size: 0.9375rem;
+  border-radius: 8px;
+  border: 1px solid #cdb78e;
+  background: rgba(255, 255, 255, 0.55);
+}
+.le-root .le-quiz-opt {
+  color: var(--le-ink);
+}
+.le-quiz-opt:disabled {
+  opacity: 1;
 }
 .le-quiz-opt.correct {
-  border-color: #3fa34d;
-  background: rgba(63, 163, 77, 0.15);
+  border-color: #2f7d4f;
+  background: rgba(47, 125, 79, 0.14);
+  font-weight: 700;
 }
 .le-quiz-opt.wrong {
-  border-color: var(--le-red);
-  background: rgba(215, 38, 30, 0.15);
+  border-color: #7a6a5a;
+  background: rgba(0, 0, 0, 0.06);
+  text-decoration: line-through;
 }
 .le-quiz-explain {
-  margin-top: 10px;
-  font-size: 0.875rem;
-  color: var(--le-dim);
+  margin: 8px 0 0;
   font-style: italic;
+  color: var(--le-ink-dim);
 }
-.le-prompts {
-  font-size: 0.9375rem;
-  line-height: 1.7;
-  padding-left: 1.2em;
+.le-notes-label {
+  display: block;
+  font-size: 0.8125rem;
+  color: var(--le-ink-dim);
+  margin-bottom: 6px;
+}
+.le-notes {
+  width: 100%;
+  border: 1px solid #cdb78e;
+  border-radius: 8px;
+  padding: 10px;
+  font: inherit;
+  font-size: 1rem;
+  background: #fffaf0;
+  color: var(--le-ink);
 }
 
-@media (min-width: 720px) {
-  .le-root {
-    padding: 24px 28px 60px;
-  }
-}
-
-/* MORE LESSONS — a YouTube-style queue of other real lessons */
+/* ---- More Lessons: a YouTube-style grid of cards ---- */
 .le-more {
   margin-top: 18px;
   padding-top: 14px;
@@ -407,8 +896,6 @@
   margin: 0 0 10px;
   color: var(--le-dim);
 }
-/* A real grid of cards (thumbnail on top, title below), like YouTube's own
-   home feed -- not a thin list of rows. */
 .le-more-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -454,4 +941,11 @@
 .le-more-meta {
   font-size: 0.75rem;
   color: var(--le-dim);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .le-kenburns,
+  .le-wave.on i {
+    animation: none;
+  }
 }
