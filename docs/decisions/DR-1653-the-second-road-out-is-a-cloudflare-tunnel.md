@@ -26,7 +26,13 @@ On 2026-11-23 and again 2026-11-24/25 the NAS ran the whole time (uptime ~34 day
 - `sb-failover.test.js`: 12 of 12 pass. Proven to catch: with the fallback call replaced by a rethrow, 2 tests fail.
 - `interconnect-guard`: 0 findings, 46 NAS riders placed; `funnel-actuation-guard` exit 0; the NAS and witness suites 125 of 125.
 
-## Not yet verified (said plainly, DR-0076)
+## Impact
+
+- Until a token is on the box and the app knows the tunnel's address, nothing changes: the rider writes `no-token`, and the app's fetch is the platform fetch, byte for byte.
+- Once armed, a lapsed Tailscale login no longer closes sign-in and data: calls that cannot reach the Funnel go to the tunnel. Realtime websockets still ride the Funnel only.
+- One more container on the NAS (cloudflared, small), started and watched by the existing services-sync clock; no new timer.
+
+## Verification after merge
 
 Nothing has run on the NAS or against a real tunnel. The token can only be minted in Darrell's Cloudflare account. Done means DR-1622's proof: **sign-in works with the Funnel deliberately off.**
 
