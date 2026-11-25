@@ -2,6 +2,10 @@
 
 **Date:** 2026-11-19 · **For:** Darrell · **Status:** plan only. Nothing here changes the live Jonah experience. The Theater keeps reading "read aloud now · episode coming soon" until a finished episode file lands (the landed manifest, DR-1527).
 
+## Status, 2026-11-25: the complete cut is in review
+
+The complete movie (9 min 37 s, Jonah 1 to 4, -16.5 LUFS) is built from Darrell's fourteen Runway Gen-4.5 clips with the approved stills between them (`scripts/kids-episode/jonah.shots.json`). Every line is spoken by its character from the cast in `jonah.episode.json` (Kokoro open voices, Apache-2.0; Yahweh's words stay with the narrator), and the guides close with the lesson, the memory verse and goodbye, then the credits. It is in Darrell's private review and is not in the Theater until he approves it.
+
 ## 1. What we already have, and what we can reuse
 
 | Asset | Where | Reuse in the episode |
