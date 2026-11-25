@@ -22,7 +22,8 @@ The Lesson Experience (Watch / Read / Listen / Study) was built as a private pro
 1. **Every lesson opens in the Experience** on the owner devices (the same signal that already defaults Learn Studio on). Read, Watch Video, Listen and the age chips open it in the matching mode.
 2. **A More Lessons row stays in the new look** and opens that lesson in the Experience.
 3. **An age-only lesson reads its oldest age version as the full reading** (senior, then teen, youth, child). Its own words, never empty, never invented.
-4. Off the owner devices nothing changes: every lesson still opens in the classic reader.
+4. **The look changes; no feature is lost.** The classic page's Stories & Perspectives (the lesson's stories, the space's steward-reviewed perspectives, the reader's own "add yours", the same `LessonStories` component and table) close every Read and sit in Study. The lesson's charts (`LessonFigures`) render there too. Share, download, media and next lesson are one tap away on the full lesson page for that lesson. Downloads stay PoeTech+ or the Download Pass (DR-1652): the new look has no download of its own.
+5. Off the owner devices nothing changes: every lesson still opens in the classic reader.
 
 ## Impact
 
@@ -31,7 +32,7 @@ The Lesson Experience (Watch / Read / Listen / Study) was built as a private pro
 
 ## Verification after merge
 
-- `lesson-experience-prototype.test.jsx` + Learn Studio suites: 70 of 70 pass. New cases: a different lesson opens in the Experience; off the owner device it still hands off; a More Lessons row opens that lesson in place; `textFor` finds words for every one of the 994.
+- `lesson-experience-prototype.test.jsx` + Learn Studio suites: 71 of 71 pass, including a case that Read ends with Stories & Perspectives and the full-page tools open THIS lesson. New cases: a different lesson opens in the Experience; off the owner device it still hands off; a More Lessons row opens that lesson in place; `textFor` finds words for every one of the 994.
 - Darrell confirms on his phone that a lesson other than 338 opens in the new look.
 
 `re-review: 2026-12-02`

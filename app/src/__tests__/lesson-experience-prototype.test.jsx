@@ -361,7 +361,15 @@ describe('four-mode reference layout -- real data only', () => {
     render(<LessonExperience lesson={REAL_LESSON} record={null} onExit={vi.fn()} />);
     click(byText('Study')[0]);
     const titles = [...container.querySelectorAll('.le-acc-title')].map((n) => n.textContent);
-    expect(titles).toEqual(['Scripture Focus', 'Key Takeaways', 'Reflection Questions', 'Practice / Exercise', 'Check Your Understanding', 'My Notes']);
+    expect(titles).toEqual([
+      'Scripture Focus',
+      'Key Takeaways',
+      'Reflection Questions',
+      'Practice / Exercise',
+      'Check Your Understanding',
+      'My Notes',
+      'Stories & Perspectives',
+    ]);
     const reflect = [...container.querySelectorAll('.le-acc')].find((d) => d.textContent.includes('Reflection Questions'));
     expect(reflect.open).toBe(true);
     expect(container.textContent).toContain(REAL_LESSON.inApp);
@@ -734,5 +742,23 @@ describe('Watch: the Back to the current line button never shifts the transcript
     const wrap = src.indexOf('le-transcript-wrap');
     expect(wrap).toBeGreaterThan(-1);
     expect(src.indexOf('le-follow', wrap)).toBeGreaterThan(src.indexOf('</ol>', wrap));
+  });
+});
+
+// "We don't like losing features ever!!!" (Darrell, 2026-11-25): the classic
+// page's stories, perspectives, add-yours and charts ride the new look, and the
+// rest of its tools are one tap away for THIS lesson.
+describe('the new look keeps every classic lesson feature', () => {
+  it('Read ends with Stories & Perspectives, the add-yours entry, and the full-page tools', () => {
+    const onOpenLesson = vi.fn();
+    render(<LearnStudioPreview courses={COURSES} onOpenLesson={onOpenLesson} onExit={vi.fn()} ownerDevice />);
+    click(byText('Try the new lesson experience')[0]);
+    click(byText('Read').find((b) => b.getAttribute('role') === 'tab' || b.getAttribute('aria-selected') != null));
+    expect(container.querySelector('[data-testid="lesson-stories"]')).toBeTruthy();
+    expect(container.textContent).toContain('Stories & Perspectives');
+    const full = byText('open the full lesson page')[0];
+    expect(full).toBeTruthy();
+    click(full);
+    expect(onOpenLesson).toHaveBeenCalledWith('living-lessons', PROTOTYPE_LESSON_ID);
   });
 });

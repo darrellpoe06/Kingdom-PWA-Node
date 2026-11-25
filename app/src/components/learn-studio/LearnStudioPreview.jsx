@@ -119,6 +119,10 @@ export default function LearnStudioPreview({ courses, onOpenLesson, onExit, owne
           initialLevel={experienceLevel}
           moreLessons={moreLessons}
           onOpenOther={openOther}
+          onFullPage={() => {
+            setActive(null);
+            toClassic(active.lesson, active.course);
+          }}
         />
       </LessonExperienceBoundary>
     );
