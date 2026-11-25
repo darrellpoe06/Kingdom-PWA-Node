@@ -290,6 +290,52 @@ describe("findPresentedLesson: a deep link reaches ANY lesson, not only the home
   });
 });
 
+// The four-mode redesign to the approved reference (2026-11-25): every new
+// section is filled from the lesson's own fields, never a painted value.
+describe('four-mode reference layout -- real data only', () => {
+  it('Watch > Key Points shows the real big idea and benefits, verbatim', () => {
+    render(<LessonExperience lesson={REAL_LESSON} record={null} onExit={vi.fn()} />);
+    click(byText('Key Points')[0]);
+    expect(container.textContent).toContain(REAL_LESSON.bigIdea);
+    for (const b of REAL_LESSON.benefits) expect(container.textContent).toContain(b);
+  });
+
+  it('Watch > Scriptures lists the anchor and the exact verse quotations from the lesson', () => {
+    render(<LessonExperience lesson={REAL_LESSON} record={null} onExit={vi.fn()} />);
+    click(byText('Scriptures')[0]);
+    expect(container.textContent).toContain(REAL_LESSON.anchor.ref);
+    expect(container.textContent).toContain('(Matthew 25:14)');
+  });
+
+  it('every time shown is marked as an estimate (~), never an exact painted clock', () => {
+    render(<LessonExperience lesson={REAL_LESSON} record={null} onExit={vi.fn()} />);
+    const stamps = [...container.querySelectorAll('.le-tstamp')].map((n) => n.textContent);
+    expect(stamps.length).toBeGreaterThan(0);
+    expect(stamps.every((t) => t.startsWith('~'))).toBe(true);
+    expect(container.querySelector('.le-time').textContent).toMatch(/^~\d+:\d\d \/ ~\d+:\d\d$/);
+  });
+
+  it("Read has the book pager over the lesson's own paragraphs and the Key Teaching is the real big idea", () => {
+    render(<LessonExperience lesson={REAL_LESSON} record={null} onExit={vi.fn()} />);
+    click(byText('Read')[0]);
+    const paras = REAL_LESSON.lesson.split(/\n\n+/).filter(Boolean).length;
+    expect(container.querySelector('.le-bb-count').textContent).toBe(`1 of ${paras}`);
+    expect(container.querySelector('.le-keyteach').textContent).toContain(REAL_LESSON.bigIdea);
+    expect(container.querySelectorAll('.le-book-p').length).toBe(paras);
+  });
+
+  it('Study is the reference accordion: Reflection open, the real practice text, notes saved on the device', () => {
+    render(<LessonExperience lesson={REAL_LESSON} record={null} onExit={vi.fn()} />);
+    click(byText('Study')[0]);
+    const titles = [...container.querySelectorAll('.le-acc-title')].map((n) => n.textContent);
+    expect(titles).toEqual(['Scripture Focus', 'Key Takeaways', 'Reflection Questions', 'Practice / Exercise', 'Check Your Understanding', 'My Notes']);
+    const reflect = [...container.querySelectorAll('.le-acc')].find((d) => d.textContent.includes('Reflection Questions'));
+    expect(reflect.open).toBe(true);
+    expect(container.textContent).toContain(REAL_LESSON.inApp);
+    expect(container.textContent).not.toContain('Download');
+  });
+});
+
 // Darrell, 2026-11-25, on ?course=healthy-living: "Fix it."
 describe('a course link opens that course in the new look, every lesson as a grid', () => {
   const LIVING = COURSES.find((c) => c.key === 'living-lessons');
