@@ -17,7 +17,9 @@ import { recentUsed } from '../../lib/ux-signals.js';
 import { LessonProgressFor } from '../LessonProgressBar.jsx';
 
 const RING = 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2';
-export const COURSE_VIEW_KEY = 'poe-learn-course-view';
+// '-2' (Darrell 2026-11-26, on a course page that opened in words: "Fix learn!!! Images at the top of the
+// page remember?"): every device opens a course in Pictures once more; List stays one tap away.
+export const COURSE_VIEW_KEY = 'poe-learn-course-view-2';
 export const COURSE_VIEWS = Object.freeze([
   { key: 'pictures', label: 'Pictures' },
   { key: 'list', label: 'List' },
@@ -99,8 +101,11 @@ export default function CourseLessonsView({ title, items, onOpen, renderPictures
       /* no storage: the choice holds for this visit */
     }
   };
-  return (
-    <div data-testid="course-lessons-view" data-view={view}>
+  // PICTURES AT THE TOP OF THE COURSE TOO (DR-1686's rule, on the course page): in Pictures the lessons
+  // lead and the course's words, parts, Recently opened and the pickers follow them; in List the
+  // pickers stay above the list, where choosing an order starts.
+  const controls = (
+    <>
       {(meta.tagline || meta.audience || complete) && (
         <header className="ls-course-head" data-testid="course-view-head">
           {meta.tagline && <p className="ls-course-tagline">{meta.tagline}</p>}
@@ -175,9 +180,13 @@ export default function CourseLessonsView({ title, items, onOpen, renderPictures
           </select>
         </label>
       </div>
-      {view === 'pictures' ? (
-        renderPictures(rows)
-      ) : renderList ? (
+    </>
+  );
+  return (
+    <div data-testid="course-lessons-view" data-view={view}>
+      {view === 'pictures' && renderPictures(rows)}
+      {controls}
+      {view === 'pictures' ? null : renderList ? (
         renderList(order, partIds)
       ) : (
         <section className="ls-inorder" aria-label={`${title}, as a list`}>
