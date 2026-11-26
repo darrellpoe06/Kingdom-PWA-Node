@@ -12,7 +12,7 @@
 // version inside the child window (about three to ten minutes for ages 6-10),
 // the other bands real shares of the adult teaching.
 import { describe, it, expect } from 'vitest';
-import TEACHING from '../lib/eternal-algorithms-teaching.js';
+import TEACHING, { PARTS, mergeParts } from '../lib/eternal-algorithms-teaching.js';
 import { buildEternalProcessingCourses } from '../lib/eternal-algorithms-course.js';
 import {
   stringsOf,
@@ -34,6 +34,18 @@ const SHARE_FLOOR = 0.6; // youth, teen, senior (DR-0418)
 
 const MODULES = buildEternalProcessingCourses().flatMap((c) => c.schedule || []);
 const ids = Object.keys(TEACHING);
+
+describe('Eternal Algorithms authored lessons are split into parts without loss', () => {
+  it('every part is merged, and no pattern sits in two parts', () => {
+    const total = PARTS.reduce((n, part) => n + Object.keys(part).length, 0);
+    expect(Object.keys(TEACHING).length).toBe(total);
+  });
+  it('the merge refuses a pattern id written into two parts (proven to catch)', () => {
+    const entry = { lesson: 'x', levels: {} };
+    expect(() => mergeParts([{ 'gh-a': entry }, { 'gh-a': entry }])).toThrow(/more than one part/);
+    expect(Object.keys(mergeParts([{ 'gh-a': entry }, { 'gh-b': entry }]))).toEqual(['gh-a', 'gh-b']);
+  });
+});
 
 describe('Eternal Algorithms authored lessons', () => {
   it('there is at least one, and every one belongs to a real pattern the course renders', () => {
