@@ -63,13 +63,15 @@ jobs:
         run: |
           set -euo pipefail
           # Idempotent: skip creation if a PR for this branch is already open.
-          existing=$(gh pr list --repo "$REPO" --head "$BRANCH" --state open --json number --jq '.[0].number // empty')
+          # pr-open-or-adopt.sh reads the DATABASE, not GitHub's lagging SEARCH
+          # index, and adopts a PR a concurrent run just opened rather than
+          # failing on it -- 15 of the 30 most recent failures here. DR-1668.
+          existing=$(bash scripts/pr-open-or-adopt.sh --probe)
           # A branch that is AT main has nothing to open (2026-09-22): after a
           # merge the working branch is restarted on main's tip, and that push
           # fires this workflow with zero commits ahead. `gh pr create` then
-          # hard-fails ("No commits between main and <branch>") and the lane
-          # shows a red run for a state that is entirely correct. Red must
-          # mean something; this is a clean no-op, said out loud.
+          # hard-fails ("No commits between main and <branch>") — red for a
+          # correct state. Red must mean something; this is a clean no-op.
           ahead=$(gh api "repos/$REPO/compare/main...$BRANCH" --jq '.ahead_by' 2>/dev/null || echo "?")
           if [ -z "$existing" ] && [ "$ahead" = "0" ]; then
             echo "$BRANCH is at main (0 commits ahead) — nothing to open. Not an error."
@@ -81,21 +83,19 @@ jobs:
           else
             subject=$(git log -1 --pretty=%s)
             body=$(git log -1 --pretty=%b)
-            # GitHub caps a PR title at 256 chars; a longer commit subject makes
-            # `gh pr create` hard-fail ("GraphQL: Title is too long") and the
-            # branch is left with NO PR — invisible until someone notices the
-            # missing PR (2026-07-30 incident, REV-0217). pr-safe-title.sh
-            # truncates; when it had to, we carry the FULL subject into the body
-            # so nothing is lost. (Script is proven-to-catch in vitest.)
+            # GitHub caps a PR title at 256 chars; a longer subject made
+            # `gh pr create` hard-fail and left the branch with NO PR —
+            # invisible until noticed (2026-07-30, REV-0217). pr-safe-title.sh
+            # truncates (proven-to-catch in vitest); when it had to, the FULL
+            # subject goes into the body so nothing is lost.
             title=$(bash scripts/pr-safe-title.sh "$subject")
             if [ "$title" != "$subject" ]; then
               body="$(printf '%s\n\n%s' "$subject" "$body")"
             fi
-            num=$(gh pr create --repo "$REPO" --base main --head "$BRANCH" \
-                    --title "$title" \
-                    --body "${body:-Opened automatically on push. Rides auto-merge on green CI; label \`hold\` to keep it out of the merge lane.}" \
-                  | grep -oE '[0-9]+$' | tail -1)
-            echo "Opened PR #$num for $BRANCH."
+            # Opens it, or adopts a concurrent run's. A real fault still fails.
+            num=$(bash scripts/pr-open-or-adopt.sh --open "$title" \
+                    "${body:-Opened automatically on push. Rides auto-merge on green CI; label \`hold\` to keep it out of the merge lane.}")
+            echo "PR #$num is open for $BRANCH."
           fi
           # Respect the hold gate (Tier C soak). Otherwise enable native
           # auto-merge (squash) — it still defers to branch protection and the
