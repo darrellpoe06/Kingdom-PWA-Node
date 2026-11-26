@@ -1,5 +1,5 @@
 {
- "measuredAt": "2026-11-26T17:47:34.564Z",
+ "measuredAt": "2026-11-26T17:53:14.560Z",
  "counts": {
   "departments": 13,
   "courses": 51,
@@ -741,13 +741,13 @@
    "department": "Serve the House",
    "position": 5,
    "title": "Reaching it safely from anywhere — Tailscale & WireGuard",
-   "contentSha": "5b5a4c72f1cc85f7882f7c6ff133cf9bedade16dafbae572ed0d59915a13298c",
+   "contentSha": "ed0df3834da1b6b69d4e3d7aea61ad38a8c297606c33f1bb8d613e1dc804cc5c",
    "versions": {
-    "child": "74635c8d6e94e0d2814d3716210661fb61b9e9e3054876094e654d7b09f9913f",
-    "youth": "784a8d0ee1dc578cc78337a493105200b56aba544eb9d2f5f30a01180e674967",
-    "teen": "d934b97d9f4e4c52153c1f2747d7defa8090e8b8e14635676df5116f4314d5bd",
-    "adult": "9fa85322e0040e65bf168863d958b1002728ea5bc99f78997ed0c6ac02b93fac",
-    "senior": "4ea4bfbe970b48a92bb593507b8b70e1c65a31c505506049aadcc8a36477234c"
+    "child": "2567c7bdf740e5eb793165a3f6d5abf07674a2b2bf8343378360ad91159225ff",
+    "youth": "a542599b72a2519eea0b2ee4ae06a95aaf8e0cbab1b2647b471734ee3262b133",
+    "teen": "13f230f18c174f42ae2cc010ed8a36d8ccd1d21515261e7744e2d88dc08bcc71",
+    "adult": "470ce995d838751dfb25117560ceb454e23fe4861a23fd51aa1ee480c0d4dee8",
+    "senior": "ef8d98f05aabf5f47b553506565ffc5c0c4f783ed3faba79afeddf071443922c"
    }
   },
   {
