@@ -1252,3 +1252,116 @@
     margin-left: 0;
   }
 }
+
+/* THE CLASSIC TOOLS, IN PICTURES (Darrell 2026-11-26: "We have pictures. Why are we showing words
+   all the time?"). Colors come from learn-classic-skin.css; these are the picture layouts the classic
+   tools take only inside the new look (StudioTools.jsx). The classic page never carries these classes. */
+.ls-course-cards {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(min(220px, 100%), 1fr));
+}
+.ls-course-card > button {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  height: 100%;
+  padding: 0 0 12px !important;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid var(--ls-line) !important;
+}
+.ls-course-card > button > span:not(.ls-course-cover) {
+  padding: 0 12px;
+}
+.ls-course-cover {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: linear-gradient(135deg, #2c2326, #1a1416);
+  overflow: hidden;
+}
+.ls-course-cover img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.ls-course-cover .ls-mini-code {
+  font-size: 1.5rem;
+}
+.ls-tool-row {
+  display: flex !important;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 12px;
+}
+li.ls-tool-row {
+  flex-wrap: wrap;
+}
+li.ls-tool-row > button:first-child {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.ls-tool-words {
+  display: block;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.ls-tool-thumb {
+  position: relative;
+  flex: none;
+  display: block;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.ls-tool-thumb .ls-mini-thumb {
+  width: 96px;
+}
+@media (max-width: 400px) {
+  .ls-tool-thumb .ls-mini-thumb {
+    width: 76px;
+  }
+}
+.ls-tile {
+  position: relative;
+  border-radius: 12px;
+}
+.ls-tile-cover {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.ls-tile--pic::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(15, 11, 13, 0.55) 0%, rgba(15, 11, 13, 0.1) 40%, rgba(15, 11, 13, 0.85) 100%);
+}
+.ls-root .ls-classic-skin .ls-tile.ls-tile--pic > span {
+  position: relative;
+  z-index: 1;
+  color: #fff !important;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+}
+.ls-root .ls-classic-skin .ls-tile.ls-tile--pic > span:first-of-type {
+  color: var(--ls-gold) !important;
+}
+/* On a phone the lesson's picture and words take the row; Continue and Play wrap under them. */
+@media (max-width: 520px) {
+  li.ls-tool-row > button:first-child {
+    flex: 1 1 100%;
+  }
+  li.ls-tool-row {
+    justify-content: flex-end;
+  }
+}

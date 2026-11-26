@@ -37,6 +37,7 @@
 // rem sizes so large print scales (2b); 44px+ targets (2g); in place (2e).
 import React, { useMemo, useState } from 'react';
 import { learnDepartments, courseLessonCount, courseStandingLabel } from '../lib/learn-organize.js';
+import { useStudioTools, StudioLessonThumb } from './learn-studio/StudioTools.jsx';
 
 export const LESSONS_PAGE = 10;
 export const LESSON_SQUARES_PAGE = 12;
@@ -67,10 +68,12 @@ const SERIF = { fontFamily: '"Fraunces", serif' };
 const plural = (n, one) => `${n} ${n === 1 ? one : `${one}s`}`;
 const titleOf = (c) => (c && c.meta && c.meta.title) || (c && c.key) || '';
 
-function Tile({ mark, title, foot, onClick, testid, label }) {
+function Tile({ mark, title, foot, onClick, testid, label, studio = false, cover = null }) {
+  // Inside the new look a tile is a picture: its cover fills it (never blank -- no cover keeps the words on the panel).
   return (
     <li>
-      <button type="button" onClick={onClick} className={TILE} data-testid={testid} aria-label={label} title={title}>
+      <button type="button" onClick={onClick} className={`${TILE}${studio ? ' ls-tile' : ''}${cover ? ' ls-tile--pic' : ''}`} data-testid={testid} aria-label={label} title={title}>
+        {cover && <img className="ls-tile-cover" src={cover.src} alt="" loading="lazy" decoding="async" data-testid="ls-tile-cover" />}
         <span className="text-[0.625rem] uppercase tracking-wider text-[#B85838] font-semibold">{mark}</span>
         <span className="text-[0.75rem] leading-tight font-semibold line-clamp-3" style={SERIF}>
           {title}
@@ -83,6 +86,8 @@ function Tile({ mark, title, foot, onClick, testid, label }) {
 
 export default function LearnSquares({ courses = [], ctx = null, onOpenLesson = null, onOpenCourse = null }) {
   const areas = useMemo(() => learnDepartments(courses), [courses]);
+  const studio = useStudioTools(); // null on the classic page; the new look's picture lookups inside it
+  const pic = (image) => ({ studio: !!studio, cover: image || null });
   const [areaId, setAreaId] = useState(null);
   const [courseKey, setCourseKey] = useState(null);
   const [page, setPage] = useState(0);
@@ -153,6 +158,7 @@ export default function LearnSquares({ courses = [], ctx = null, onOpenLesson = 
                 label={`${a.label}: ${plural(a.courses.length, 'course')}, ${plural(a.lessons, 'lesson')}`}
                 onClick={() => go(a.id, null)}
                 testid={`square-area-${a.id}`}
+                {...pic(studio && studio.departmentCover(a.label))}
               />
             ))}
           </ul>
@@ -169,6 +175,7 @@ export default function LearnSquares({ courses = [], ctx = null, onOpenLesson = 
               label={`${titleOf(c)}: ${plural(courseLessonCount(c), 'lesson')}${ctx ? `, ${courseStandingLabel(c, ctx)}` : ''}`}
               onClick={() => go(area.id, c.key)}
               testid={`square-course-${c.key}`}
+              {...pic(studio && studio.courseCover(c.key, area.label))}
             />
           ))}
         </ul>
@@ -219,6 +226,7 @@ export default function LearnSquares({ courses = [], ctx = null, onOpenLesson = 
                   label={`Lesson ${first + i + 1}: ${m.title || m.id}`}
                   onClick={() => onOpenLesson && onOpenLesson(course.key, m.id)}
                   testid={`square-lesson-${m.id}`}
+                  {...pic(studio && studio.lessonCover(course.key, m.id))}
                 />
               ))}
             </ul>
@@ -232,6 +240,7 @@ export default function LearnSquares({ courses = [], ctx = null, onOpenLesson = 
                     className={`w-full min-h-[44px] flex items-center gap-2 text-left px-2 py-1 border bg-white text-[#1A1815] border-[#E8E4DC] hover:border-[#1A1815] ${FOCUS}`}
                     data-testid={`square-lesson-${m.id}`}
                   >
+                    <StudioLessonThumb tools={studio} courseKey={course.key} lessonId={m.id} label={String(first + i + 1)} />
                     <span className="text-[0.625rem] text-[#B85838] font-semibold min-w-[1.75rem]">{first + i + 1}</span>
                     <span className="text-[0.75rem] leading-snug" style={SERIF}>
                       {m.title || m.id}

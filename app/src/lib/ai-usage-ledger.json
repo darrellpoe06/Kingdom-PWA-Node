@@ -3113,6 +3113,21 @@
       "notes": "No token meter in this session; tokens and cost are null. oreilly.com, arxiv.org and the newsletter's site gave no answer from this sandbox, so the book stays the newsletter's report. Whether naming the span lowers the builder's failure rate is not measured; re-review 2026-11-25."
     },
     {
+      "id": "learn-tools-new-look",
+      "date": "2026-11-26",
+      "task": "The classic Learn tools in the new look: generated dark skin, course picture cards, lesson covers",
+      "drs": [
+        "DR-1695"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.2,
+      "estimateWithoutAiHours": 12,
+      "notes": ""
+    },
+    {
       "id": "grownups-weekly-pick-has-notes",
       "date": "2026-11-19",
       "task": "The Grown-ups weekly pick rotates only over lessons with facilitator notes, so How to lead it always shows; year guard and fixed-list proven-to-catch",
