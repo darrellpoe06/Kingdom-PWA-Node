@@ -29,6 +29,8 @@ import LessonsInOrder from './LessonsInOrder.jsx';
 import { shippedSrcSet } from '../../lib/institute-studio.js';
 import { scrollToStudioTools } from '../../lib/learn-studio-bridge.js';
 import CourseLessonsView from './CourseLessonsView.jsx';
+import RelationshipTracks from './RelationshipTracks.jsx';
+import { relationshipTracks } from '../../lib/learn-presentation/relationship-tracks.js';
 import { PlaceLookupContext, LessonProgressFor } from '../LessonProgressBar.jsx';
 import { placeLookup } from '../../lib/lesson-progress.js';
 import './learn-studio.css';
@@ -423,6 +425,12 @@ export default function LearnStudio({
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(null);
   const [shelf, setShelf] = useState(null);
+  // Guided tracks on the Relationships page (DR-1702): progress from the same places and record; built only when that page is open.
+  const onRelationships = shelf === 'relationships';
+  const tracks = useMemo(
+    () => (onRelationships ? relationshipTracks(courses, index, { preview, findPlace, done }) : []),
+    [onRelationships, courses, index, preview, findPlace, done]
+  );
   // A COURSE PAGE IN THE NEW LOOK (Darrell, 2026-11-25, on a course link like
   // ?course=healthy-living: "Fix it"). Every lesson in the course, as a grid --
   // a lesson without its own picture wears its department's approved art (the
@@ -616,6 +624,17 @@ export default function LearnStudio({
               <button type="button" className={`ls-back ${RING}`} onClick={() => setShelf(null)}>
                 ‹ Back to Learn
               </button>
+              {pickedShelf.id === 'relationships' && (
+                <RelationshipTracks
+                  tracks={tracks}
+                  onRead={(x) => read(x)}
+                  art={(p, headline) => (
+                    <Art p={p} sizes="(max-width: 640px) 92vw, 460px">
+                      <Headline text={headline} />
+                    </Art>
+                  )}
+                />
+              )}
               <Row title={pickedShelf.label} items={pickedShelf.items} onOpen={openLesson} grid />
             </>
           ) : (
