@@ -1,5 +1,5 @@
 {
- "measuredAt": "2026-11-26T19:00:01.572Z",
+ "measuredAt": "2026-11-26T19:06:54.271Z",
  "counts": {
   "departments": 13,
   "courses": 51,
@@ -861,13 +861,13 @@
    "department": "A.I. The Way",
    "position": 3,
    "title": "The model-tier landscape — what runs where",
-   "contentSha": "4779353b28c619af35fa10787571d5e57a8bd62361069d9ac007cba2ffe5991b",
+   "contentSha": "ebe48b382f25376632b38c724b6ae5ff44d42c7a3388b1623589b95828a15ec8",
    "versions": {
-    "child": "b5ed38489a174f3a84c9e60ff1fa6078f01eb923dfe81e1e452edcd7ae7b09da",
-    "youth": "d392b72b8dd54f03f0f3d21dc552cfb25e17b9cab6ce38fa1e65a572dec32d7a",
-    "teen": "a2f78090bd189757b3af937bd542f1e8a3b3aa3b9fb3129855e90ce2b41a92f8",
-    "adult": "8d4db27d8f27857eb50253f19c8e4fadc18782c85ddeb3df328421b0d447c18a",
-    "senior": "2301b3654d5c2be9e1ade392654d7403fb188c868a55272fffd20cc4fb913740"
+    "child": "819940caac66382fee90afac69770565f42adafe7b5bf70e52db227ec79d896d",
+    "youth": "ff2f4738a6e9d4e17ea603f3bfe9fb79fafcad41bf9cb5ee9b38e8dd97a762ed",
+    "teen": "b4e09e18552e57fa78cb0625f0a43a63399dac6a7682258d45abb57c187167db",
+    "adult": "6dd48a7250be1afebc0451098f12754c31e3d0a892fee568d085638a86244fb7",
+    "senior": "7c4a614668d92d584f12a5ff1b56940dede58e179bd9e3fed2fb24afc8d98d1a"
    }
   },
   {
