@@ -2564,6 +2564,21 @@
       "notes": "Darrell: the months are not populating in the next month (Migdal screenshot)"
     },
     {
+      "id": "finished-product-not-a-prototype",
+      "date": "2026-11-26",
+      "task": "The new look as the finished product: shipped picture sizes, no prototype wording, quiz grades filed, verse spacing, resume after an ended pause, header garage button that stays put",
+      "drs": [
+        "DR-1669"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1,
+      "estimateWithoutAiHours": 10,
+      "notes": "each fix proven to catch"
+    },
+    {
       "id": "standing-load-proposed",
       "date": "2026-11-19",
       "task": "Measured the runner pool's standing load (39 scheduled workflows, the workflow_run heals, Auto-merge's poll) and proposed six Tier C trims",

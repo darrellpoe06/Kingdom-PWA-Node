@@ -590,14 +590,20 @@
 /* Scripture as a pull-quote inside the article: a gold rule and generous
    italic, never a heavy box (gold, not red -- DR-0099). */
 .le-book .le-verse {
-  margin: 1em 0 1em 0.2em;
-  padding: 0.15em 0 0.15em 1em;
+  /* Fixed, small spacing (rem, not em): a larger text size enlarges the WORDS, never the gaps or the
+     box around them (Darrell 2026-11-26: "we need to see text enlarge... not the squares"). */
+  margin: 0.5rem 0 0.5rem 0.2rem;
+  padding: 0.1rem 0 0.1rem 0.75rem;
   border-left: 3px solid #b8862a;
   border-radius: 0;
   background: none;
   font-size: 1.04em;
-  line-height: 1.6;
+  line-height: 1.5;
   color: #4a3220;
+}
+/* Verses quoted back to back read as one passage, not islands. */
+.le-book .le-verse + .le-verse {
+  margin-top: 0.25rem;
 }
 .le-ornament {
   text-align: center;
@@ -1414,4 +1420,16 @@
 }
 .le-player .le-stage:not(.le-stage--full):not(:fullscreen) {
   max-height: max(160px, calc(100svh - var(--le-chrome-top, 0px) - 300px));
+}
+.le-start-over {
+  margin-left: 0.25rem;
+  min-height: 36px;
+  padding: 0 0.75rem;
+  border-radius: 999px;
+  border: 1px solid #b8862a;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
 }

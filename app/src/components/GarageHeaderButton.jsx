@@ -22,6 +22,13 @@
 // raises those two events), and no longer treats a cancel as a thumb lifting.
 // And the answer is said ON SCREEN, not only to a screen reader: a driver with
 // the phone in a cradle could not tell a refused press from a slow one.
+//
+// THE BUTTON STAYS PUT WHILE HELD (Darrell 2026-11-26: "the button for the garage door keeps moving
+// on long pause... inside the header... so it moves when the screen adjusts"). The spoken answer sat
+// IN the header row, and the label changed length (Hold / Telling / Sent): each change resized the
+// row, the button slid out from under the thumb, and pointerleave cancelled the hold. Now the answer
+// floats below the button (out of the row), the button keeps the width of its longest label, and
+// the press captures the pointer so nothing nearby moving can end the hold before the thumb lifts.
 // =============================================================================
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import UiIcon from './UiIcon.jsx';
@@ -86,8 +93,12 @@ export default function GarageHeaderButton({ token: given = undefined, fetchImpl
     setHint('Hold it down for a moment to move the door.');
     setTimeout(() => { if (alive.current) setHint(''); }, 2500);
   }, []);
-  const beginHold = useCallback(() => {
+  const beginHold = useCallback((e) => {
     if (!door || busy || rest) return;
+    // Keep this touch on the button until it lifts, whatever moves around it.
+    try {
+      if (e && e.currentTarget && e.pointerId != null && e.currentTarget.setPointerCapture) e.currentTarget.setPointerCapture(e.pointerId);
+    } catch { /* capture is a nicety */ }
     // A hold already running is KEPT: a held key repeats keydown, and restarting
     // the clock on each repeat meant a held key could never finish (2026-11-18).
     if (timer.current) return;
@@ -107,7 +118,7 @@ export default function GarageHeaderButton({ token: given = undefined, fetchImpl
   if (!token || !door) return null;
 
   return (
-    <div data-testid="garage-header" className="ts-chrome-region shrink-0 self-stretch flex items-center border-l border-[#E8E4DC]">
+    <div data-testid="garage-header" className="ts-chrome-region relative shrink-0 self-stretch flex items-center border-l border-[#E8E4DC]">
       <button
         type="button"
         data-testid="garage-header-press"
@@ -128,7 +139,12 @@ export default function GarageHeaderButton({ token: given = undefined, fetchImpl
         <span aria-hidden="true" data-testid="garage-header-fill" className="absolute inset-y-0 left-0 bg-[#E8E4DC] pointer-events-none" style={{ width: `${Math.round(progress * 100)}%` }} />
         <span className="relative flex items-center gap-1.5">
           <UiIcon name="home" />
-          {busy ? 'Telling' : rest ? 'Sent' : `Hold · ${garages.length > 1 ? door.nickname : 'Garage'}`}
+          {/* Every label in one grid cell: the button is always as wide as the longest, so it never resizes. */}
+          <span className="inline-grid" data-testid="garage-header-label">
+            {[`Hold · ${garages.length > 1 ? door.nickname : 'Garage'}`, 'Telling', 'Sent'].map((t, i) => (
+              <span key={t} style={{ gridArea: '1 / 1', visibility: (busy ? 1 : rest ? 2 : 0) === i ? 'visible' : 'hidden' }} aria-hidden={(busy ? 1 : rest ? 2 : 0) === i ? undefined : 'true'}>{t}</span>
+            ))}
+          </span>
         </span>
       </button>
       {garages.length > 1 ? (
@@ -143,7 +159,8 @@ export default function GarageHeaderButton({ token: given = undefined, fetchImpl
         </select>
       ) : null}
       {/* The answer, in words, where a driver can read it. */}
-      {(said || hint) ? <span data-testid="garage-header-said" role="status" aria-live="polite" className="px-2 text-[0.625rem] leading-tight text-[#5A5751]">{said || hint}</span>
+      {/* Out of the row (absolute, under the button): saying it never moves the button being held. */}
+      {(said || hint) ? <span data-testid="garage-header-said" role="status" aria-live="polite" className="absolute right-0 top-full z-50 mt-1 max-w-[16rem] w-max px-2 py-1 rounded border border-[#E8E4DC] bg-[#FAF8F4] shadow text-[0.625rem] leading-tight text-[#5A5751] pointer-events-none">{said || hint}</span>
         : <span data-testid="garage-header-said" role="status" aria-live="polite" className="sr-only" />}
     </div>
   );

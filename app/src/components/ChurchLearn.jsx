@@ -123,8 +123,8 @@ import { wantsSections, sectionLessons, divisionOf } from '../lib/lesson-section
 import { rememberedFolds, rememberFolds, toggleFold, foldAll, openAll, visibleItems, foldAllOffer } from '../lib/lesson-month-fold.js';
 import LessonNeighbors from './LessonNeighbors.jsx';
 import MyPaces from './MyPaces.jsx';
-import { noteSeenRise, noteEarsPace, recordPacedAttempt } from '../lib/pace-understanding.js';
-import { hasReadEvidence, readingReached, attemptIntegrity, attemptIntegrityLine, pacedSeen, READ_FLOOR } from '../lib/test-integrity.js';
+import { noteSeenRise, noteEarsPace } from '../lib/pace-understanding.js';
+import { hasReadEvidence, readingReached, attemptIntegrityLine, pacedSeen, READ_FLOOR } from '../lib/test-integrity.js';
 import { isNumberedCourse, ownNumber, inNumberOrder, numberLabel, lessonCountLabel, ordersFor, orderLessons, withMonthHeadings, formatAdded, datesFollowNumbers, DEFAULT_LESSON_ORDER, rememberedLessonOrder, rememberLessonOrder } from '../lib/lesson-order.js';
 import { subscribeTextSize } from '../lib/text-size.js';
 import { plainWordsFor, plainWordLine } from '../lib/learn-plain-words.js';
@@ -133,6 +133,7 @@ import { noteUse } from '../lib/usage-events.js';
 import { getPlace, getPlaceFor, listPlaces, placeInProgress, placeWhere, recordPlace, finishPlace, clearPlace, getTimeFit, recordTimeFit, refreshPlace, placeIsFinished, placeFinishes, versionsRead, PLACE_FINISHED_EVENT, readingIsFresh } from '../lib/learn-resume.js';
 import { versionRead, deckVersion, bandVersion } from '../lib/lesson-read-mark.js';
 import { studioRecord, studioMarkFor, scrollToStudioTools } from '../lib/learn-studio-bridge.js';
+import { fileQuizAttempt } from '../lib/quiz-attempt.js';
 import { unitLabels } from '../lib/learn-units.js';
 import { ContinueOffer, ContinueChip, RowContinue, resolvePlaces } from './LessonContinue.jsx';
 import LatestLessons from './LatestLessons.jsx';
@@ -2561,11 +2562,8 @@ function CourseView({
       />
     );
   }
-  const recordQuizWithIntegrity = (id, r) => { // ONE quiz record, two screens: the lesson page and the lesson screen file the same attempt the same way.
-    // DR-1386: every attempt carries how it was taken; a pass credits READ only with evidence of reading.
-    const paced = r ? recordPacedAttempt({ lessonId: id, at: r.at, pct: r.pct, passed: r.passed }) : null;
-    const integrity = { ...attemptIntegrity({ reached: readingReached(getPlaceFor(course.key, id)), ms: r && r.ms, questions: r && r.questions }), ...(paced ? { eyesWpm: paced.eyesWpm, earsWpm: paced.earsWpm, firstTry: paced.firstTry } : {}) };
-    if (recordQuiz) recordQuiz(id, { ...r, integrity });
+  const recordQuizWithIntegrity = (id, r) => { // ONE quiz record, every screen (lib/quiz-attempt.js; DR-1386): a pass credits READ only with evidence of reading.
+    const integrity = fileQuizAttempt({ courseKey: course.key, lessonId: id, result: r, recordQuiz });
     if (r && r.passed) finishRead(id);
     return integrity; };
   if (focusModule && experienceId === focusModule.id && isExperienceLesson(focusModule, course)) return <LessonExperienceDoor key={`${focusModule.id}:${ageBand}:${levelOverride || ''}`} lesson={focusModule} course={course} onExit={() => setExperienceId(null)} onOpen={(k, id) => { openLesson(id); setExperienceId(id); }} onFullPage={() => setExperienceId(null)} initialLevel={versionRead(focusModule, ageBand, levelOverride) || 'adult'} lessonTools={experienceTools({ module: focusModule, course, signedIn, ageBand, levelOverride, learnLevel, setAgeBand, setLearnLevel, LevelControl: LessonLevelControl, versionCount: lessonVersionCount(focusModule), savePlace, awake, touchDevice, quizSaved: quizState[focusModule.id] || null, quizSaves: !!recordQuiz, onRecordQuiz: (id, r) => { const back = recordQuizWithIntegrity(id, r); if (onEngagement) onEngagement(r.passed ? 'quiz-passed' : 'quiz-failed', id); return back; } })} />;
@@ -4920,7 +4918,7 @@ function ChurchLearn({
     <section className="w-full" aria-labelledby="learn-h" data-testid={studio ? 'learn-studio-tools' : undefined}>
       <div className="print:hidden">
         {!studio && <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">Church · Learn</div>}
-        {studioFlag && !studio && <button type="button" onClick={() => setStudio(true)} className="mt-2 text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border-2 border-[#1A1815] text-white bg-[#1A1815] hover:bg-[#3a352f] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">‹ New Learn (preview)</button>}
+        {studioFlag && !studio && <button type="button" onClick={() => setStudio(true)} className="mt-2 text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border-2 border-[#1A1815] text-white bg-[#1A1815] hover:bg-[#3a352f] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">‹ The new Learn</button>}
         {/* THE DEPARTMENTS (DR-0432). One row of sliding tabs over the whole
             program: Courses (everything, as usual) and one tab per department
             derived from the catalog's own categories — so it reads like a
@@ -6029,6 +6027,7 @@ function ChurchLearn({
     return <LearnStudioPreview courses={courses} onOpenLesson={(k, id) => { setStudio(false); openLessonClassic(k, id); }} onExit={() => setStudio(false)} ownerDevice={learnStudioDefaultOn}
       initialLessonId={deepLink && deepLink.lessonId} initialCourseKey={deepLink && deepLink.courseKey} tools={classicLearn} ctx={studioRec.ctx} places={studioRec.begun} done={studioRec.done}
       continueCount={inProgress.length} recordCount={recordHead ? recordHead.lessonsRead : 0} markFor={studioMarkFor({ places: devicePlaces, recordFor: myRecordFor, ageBand })}
+      quiz={{ saves: !!recordQuiz, saved: (id) => (quizState && quizState[id]) || null, record: (k, id, r) => fileQuizAttempt({ courseKey: k, lessonId: id, result: r, recordQuiz: recordQuiz ? (mid, res) => recordQuiz(mid, res, k) : null }) }}
       onTool={onTool} registerOpener={(fn) => { studioOpenRef.current = fn; }} onCourse={(k) => { if (k) openCourseFromRecord(k); }} onDepartment={onDepartment} />;
   }
   return classicLearn;

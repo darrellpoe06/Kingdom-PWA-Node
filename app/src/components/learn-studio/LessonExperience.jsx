@@ -35,6 +35,8 @@ import LessonFigures from '../LessonFigures.jsx';
 import StudyQuiz from './StudyQuiz.jsx';
 import { ExperienceToolsContext, resumable, pacedFraction } from './LessonExperienceTools.jsx';
 import './lesson-experience.css';
+import { renderWithVerses, verseParts, VERSE_RE } from './lesson-verses.jsx';
+export { verseParts };
 
 const RING = 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2';
 
@@ -54,7 +56,7 @@ export class LessonExperienceBoundary extends React.Component {
     return { crashed: true };
   }
   componentDidCatch(error, info) {
-    console.error('Lesson Experience prototype crashed; closing it.', error, info && info.componentStack);
+    console.error('Lesson Experience crashed; closing it.', error, info && info.componentStack);
     this.props.onExit();
   }
   render() {
@@ -214,31 +216,6 @@ function sectionLeadOf(paragraph) {
   // too. Recognized, never rewritten: every character still renders.
   const m = paragraph.match(/^([A-Z][A-Z ,':-]{2,90}?\.) /);
   return m ? { lead: m[1], rest: paragraph.slice(m[0].length) } : { lead: null, rest: paragraph };
-}
-
-// A quoted verse with its own reference, e.g. `"...text..." (Colossians 3:23)`
-// -- the EXACT original run of characters (quote marks, parens and all) is
-// kept intact; this only wraps it in a styled callout, it never rewrites a
-// single character of it.
-const VERSE_RE = /"[^"]+"\s*\([^)]+\)/g;
-
-function renderWithVerses(text, keyPrefix) {
-  const out = [];
-  let last = 0;
-  let m;
-  let i = 0;
-  VERSE_RE.lastIndex = 0;
-  while ((m = VERSE_RE.exec(text))) {
-    if (m.index > last) out.push(<span key={`${keyPrefix}-t${i++}`}>{text.slice(last, m.index)}</span>);
-    out.push(
-      <span className="le-verse" key={`${keyPrefix}-v${i++}`}>
-        {m[0]}
-      </span>
-    );
-    last = m.index + m[0].length;
-  }
-  if (last < text.length) out.push(<span key={`${keyPrefix}-t${i}`}>{text.slice(last)}</span>);
-  return out;
 }
 
 function CoverImage({ image, alt, className, animated = false }) {
@@ -587,8 +564,21 @@ export default function LessonExperience({
     else if (resumedFrom > 0) {
       playFrom(engine, segments, resumedFrom, offsetRef);
       setResumedFrom(0);
+    } else if (idx > 0 && idx < segments.length - 1) {
+      // PLAY CONTINUES FROM THE PLACE (Darrell 2026-11-26: "I just paused the lesson and it stopped
+      // and didn't start or ask if I wanted to start where I left off"). A pause that something else
+      // ended (the screen locking, the app going to the background, a call) leaves the player idle
+      // with its sentence kept; Play used to start the lesson over from the first sentence.
+      playFrom(engine, segments, idx, offsetRef);
     } else engine.play();
-  }, [status, resumedFrom, segments]);
+  }, [status, resumedFrom, segments, idx]);
+  const startOver = useCallback(() => {
+    const engine = engineRef.current;
+    if (!engine) return;
+    setResumedFrom(0);
+    saved.set(PROGRESS_KEY(lesson.id, level), 0);
+    playFrom(engine, segments, 0, offsetRef);
+  }, [segments, lesson.id, level]);
 
   const pause = useCallback(() => engineRef.current && engineRef.current.pause(), []);
   const jumpTo = useCallback(
@@ -669,7 +659,16 @@ export default function LessonExperience({
   const elapsed = `~${clock(starts[shownIdx] || 0)}`;
   const total = `~${clock(starts[segments.length] || 0)}`;
   const speedLabel = (SPEEDS.find((s) => s.value === rate) || SPEEDS[1]).label;
-  const resumeNote = resumedFrom > 0 && status === 'idle' && <p className="le-resume-note">Resumed where you left off. Tap play to continue.</p>;
+  // Where you left off, said plainly, with the choice to start over (also after a pause something else ended).
+  const leftAt = resumedFrom > 0 ? resumedFrom : idx > 0 && idx < segments.length - 1 ? idx : 0;
+  const resumeNote = leftAt > 0 && status === 'idle' && (
+    <p className="le-resume-note" data-testid="le-resume-note">
+      Paused at ~{clock(starts[leftAt] || 0)}. Tap play to continue where you left off.{' '}
+      <button type="button" className={`le-start-over ${RING}`} onClick={startOver} data-testid="le-start-over">
+        Start over
+      </button>
+    </p>
+  );
 
   const playBtn = (cls) => (
     <button type="button" className={`le-ctl ${cls} ${RING}`} onClick={isPlaying ? pause : play} aria-label={isPlaying ? 'Pause' : 'Play'}>
@@ -864,6 +863,7 @@ export default function LessonExperience({
                       jumpTo,
                       skip,
                       cycleSpeed,
+                      note: resumeNote,
                     }}
                   />
                 )}
@@ -1206,6 +1206,7 @@ function ReadMode({ lesson, record, title, number, paragraphs, level, setLevel, 
           <Icon name="speaker" size={20} />
           <span>{isPlaying ? 'Pause Read Aloud' : n.status === 'paused' ? 'Resume Read Aloud' : 'Read Aloud'}</span>
         </button>
+        {n.note || null}
         <article className="le-book-text" ref={textRef}>
           {paragraphs.map((p, i) => {
             const { lead, rest } = sectionLeadOf(p);

@@ -101,8 +101,12 @@ export default function OpenerButton({ rows = undefined, fetchImpl = null }) {
     setTimeout(() => setHint(''), 2500);
   }, []);
 
-  const beginHold = useCallback(() => {
+  const beginHold = useCallback((e) => {
     if (!offer) return;
+    // The press keeps this touch until it lifts, whatever moves around it (2026-11-26, the garage button moving while held).
+    try {
+      if (e && e.currentTarget && e.pointerId != null && e.currentTarget.setPointerCapture) e.currentTarget.setPointerCapture(e.pointerId);
+    } catch { /* capture is a nicety */ }
     if (timer.current) return; // a running hold is kept; a repeated keydown must not restart it
     const at = Date.now();
     setProgress(0);
@@ -128,7 +132,7 @@ export default function OpenerButton({ rows = undefined, fetchImpl = null }) {
   return (
     <div
       data-testid="opener-control"
-      className="ts-chrome-region shrink-0 self-stretch flex items-center border-l border-[#E8E4DC]"
+      className="ts-chrome-region relative shrink-0 self-stretch flex items-center border-l border-[#E8E4DC]"
     >
       <button
         type="button"
@@ -156,7 +160,12 @@ export default function OpenerButton({ rows = undefined, fetchImpl = null }) {
         />
         <span className="relative flex items-center gap-1.5">
           <UiIcon name="home" />
-          {busy ? 'Pressing' : offer.name}
+          {/* Both labels in one grid cell: the button keeps one width while it is held. */}
+          <span className="inline-grid">
+            {[offer.name, 'Pressing'].map((t, i) => (
+              <span key={t} style={{ gridArea: '1 / 1', visibility: (busy ? 1 : 0) === i ? 'visible' : 'hidden' }} aria-hidden={(busy ? 1 : 0) === i ? undefined : 'true'}>{t}</span>
+            ))}
+          </span>
         </span>
       </button>
       {/* ANY SYSTEM OPENER (Darrell 2026-10-08: "the garage door opener and any
@@ -175,7 +184,7 @@ export default function OpenerButton({ rows = undefined, fetchImpl = null }) {
         </select>
       ) : null}
       {/* What actually happened, in words, for a driver who cannot read a color. */}
-      {(said || hint) ? <span data-testid="opener-said" role="status" aria-live="polite" className="px-2 text-[0.625rem] leading-tight text-[#5A5751]">{said || hint}</span>
+      {(said || hint) ? <span data-testid="opener-said" role="status" aria-live="polite" className="absolute right-0 top-full z-50 mt-1 max-w-[16rem] w-max px-2 py-1 rounded border border-[#E8E4DC] bg-[#FAF8F4] shadow text-[0.625rem] leading-tight text-[#5A5751] pointer-events-none">{said || hint}</span>
         : <span data-testid="opener-said" role="status" aria-live="polite" className="sr-only" />}
     </div>
   );
