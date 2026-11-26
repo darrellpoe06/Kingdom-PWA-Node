@@ -25,10 +25,13 @@
 // gloss (SCRIPTURE-REFERENCE-STANDARD), never a quoted translation.
 // =============================================================================
 
-import { PV_PRICE_MESSAGES } from './prophetic-voices/price.js';
-import { PV_DARBY_MESSAGES } from './prophetic-voices/darby.js';
+import { PV_PRICE_MESSAGES, PV_PRICE_OPENER } from './prophetic-voices/price.js';
+import { PV_DARBY_MESSAGES, PV_DARBY_OPENER } from './prophetic-voices/darby.js';
 import { PV_MUNROE_LESSONS } from './prophetic-voices/munroe.js';
-import { PV_DIOP_MESSAGES, PV_OBENGA_MESSAGES, PV_WILLIAMS_MESSAGES } from './prophetic-voices/scholars.js';
+import {
+  PV_DIOP_MESSAGES, PV_OBENGA_MESSAGES, PV_WILLIAMS_MESSAGES,
+  PV_DIOP_OPENER, PV_OBENGA_OPENER, PV_WILLIAMS_OPENER,
+} from './prophetic-voices/scholars.js';
 
 export const PV_PROPOSED_COHORT_START = null;
 export const PV_CONFIRMED_COHORT = { startDate: null, confirmed: false };
@@ -164,6 +167,22 @@ const PV_OPENERS = [
   // ---------------------------------------------------------------------------
   {
     id: 'pv-diop',
+    figures: [
+      {
+        id: 'pv-diop-portrait',
+        kind: 'image',
+        title: 'Dr. Cheikh Anta Diop',
+        src: '/lesson-figures/prophetic-voices/cheikh-anta-diop.webp',
+        width: 241,
+        height: 383,
+        alt: 'A black-and-white portrait photograph of Dr. Cheikh Anta Diop as a young man in the late 1940s, wearing an open-collared shirt and jacket.',
+        caption: 'Dr. Cheikh Anta Diop as a young man, in the late 1940s, the years he was preparing the thesis that became Nations nègres et culture.',
+        source: 'Photograph, late 1940s, author unknown; public domain. Wikimedia Commons, File:Cheikh_Anta_Diop,_late_1940s.jpg (as of 2026-11-26).',
+        depictsPeople: true,
+        photographOf: 'Dr. Cheikh Anta Diop',
+        license: 'Public domain',
+      },
+    ],
     title: 'Dr. Cheikh Anta Diop — the scientist who put Kemet back in Africa',
     voice: { name: 'Dr. Cheikh Anta Diop', ministry: 'Senegalese physicist, historian, egyptologist; founder of the radiocarbon-dating lab at IFAN, Dakar', era: '1923-1986; the 1974 UNESCO Cairo Symposium' },
     bigIdea: 'Dr. Cheikh Anta Diop — trained in physics and chemistry in Paris — brought SCIENTIFIC methods to a question the Eurocentric mainstream had answered by assumption: was ancient Kemet (Egypt) a Black African civilization, continuous with the rest of Africa? At the 1974 UNESCO Cairo Symposium, he and Théophile Obenga stood almost alone defending the African thesis with evidence — and were largely marginalized for it.',
@@ -204,6 +223,22 @@ const PV_OPENERS = [
   },
   {
     id: 'pv-obenga',
+    figures: [
+      {
+        id: 'pv-obenga-portrait',
+        kind: 'image',
+        title: 'Dr. Théophile Obenga',
+        src: '/lesson-figures/prophetic-voices/theophile-obenga.webp',
+        width: 720,
+        height: 621,
+        alt: 'A photograph of Dr. Théophile Obenga in glasses, a dark suit and a kente stole, speaking in front of bookshelves.',
+        caption: 'Dr. Théophile Obenga, speaking among books.',
+        source: 'Photograph by Teham, licensed CC BY-SA 3.0 (creativecommons.org/licenses/by-sa/3.0). Wikimedia Commons, File:Obenga_2.JPG (as of 2026-11-26).',
+        depictsPeople: true,
+        photographOf: 'Dr. Théophile Obenga',
+        license: 'CC BY-SA 3.0, by Teham',
+      },
+    ],
     title: 'Dr. Théophile Obenga — the tongue that carried the truth',
     voice: { name: 'Dr. Théophile Obenga', ministry: 'Congolese linguist, egyptologist, historian; co-defender of the African-origin thesis', era: 'b. 1936; the 1974 UNESCO Cairo Symposium; longtime professor (incl. San Francisco State)' },
     bigIdea: 'Dr. Théophile Obenga carried Diop’s work into LANGUAGE, arguing a deep genetic kinship between ancient Egyptian and the languages of Africa — that the tongue itself preserves the continuity the record-keepers tried to sever. He was the second scholar standing with Diop at Cairo in 1974, and like Diop was largely unheard by the mainstream.',
@@ -335,8 +370,19 @@ const PV_SEQUENCES = {
   'pv-williams': PV_WILLIAMS_MESSAGES,
 };
 const PV_PLACED_AFTER = { 'pv-darby': PV_MUNROE_LESSONS };
+// The opening lesson, upgraded from the fetched sources by the voice's own file
+// (Darrell 2026-11-26: "All of these are too short!!!"). Fields given there
+// replace the original's; anything not given stays as first written.
+const PV_OPENER_UPGRADES = {
+  'pv-price': PV_PRICE_OPENER,
+  'pv-darby': PV_DARBY_OPENER,
+  'pv-diop': PV_DIOP_OPENER,
+  'pv-obenga': PV_OBENGA_OPENER,
+  'pv-williams': PV_WILLIAMS_OPENER,
+};
 
-export const PV_MODULES = PV_OPENERS.flatMap((m) => {
+export const PV_MODULES = PV_OPENERS.flatMap((first) => {
+  const m = { ...first, ...(PV_OPENER_UPGRADES[first.id] || {}) };
   const own = [m, ...(PV_SEQUENCES[m.id] || [])];
   return [...own, ...(PV_PLACED_AFTER[m.id] || [])];
 });
