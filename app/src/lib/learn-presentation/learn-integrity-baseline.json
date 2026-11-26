@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T07:05:17.350Z",
+ "measuredAt": "2026-11-26T07:09:13.517Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4392
+  "readings": 4394
  },
  "departments": [
   {
@@ -14363,11 +14363,13 @@
    "department": "The Eternal Algorithms",
    "position": 30,
    "title": "Friendship With the World Is Enmity With Yahweh (no neutral middle)",
-   "contentSha": "0978e05f3b2a0e1f8aa93d37c3b6d93bc538fba5a183c0c3a183b81b48ad94f2",
+   "contentSha": "b23e686c50ceb072fcc743214fba1a7c44b5fa3f4467d9d5e5e68b7a16b33de5",
    "versions": {
-    "teen": "7d0d6e55d26d4d4b80b30889b04ab9ffebde7228986b2603e4c6163674830bd8",
-    "adult": "e3e8dcfa11f8750e662adc6efbe5095f9a1b4ba1b9a4bc1f1e3feb3877518af1",
-    "senior": "31e54c48fe2012634d054f937f34c75cf87acea1f816f2ea9739815c7891371a"
+    "child": "34158c94b78a6baab086ff846b4f8386e37f37dfda3ffe0909f5868a92cfa790",
+    "youth": "b077b0a346c5504525146aecdab079eb87abc89d09ea1cf833434f79f8e87dff",
+    "teen": "379b32738c31cc74a96a00c1749b33a425dd21c08c173115d5a5aef9ab40fab5",
+    "adult": "b747a72b3f150ac787dc2689a2b80219a099ed33b05e661dbecd9a2b5cab0a82",
+    "senior": "28e297702c0270074c41eb6beff0c188742307af5fafd67c00338d554b9f5a14"
    }
   },
   {
