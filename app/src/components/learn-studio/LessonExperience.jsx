@@ -22,6 +22,7 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { createBrowserTTS, segmentText } from '../../lib/tts.js';
 import { useLessonSpeed, giveSpeed, speedLabelFor } from './lesson-speed.js';
+import { useLessonBackground, paragraphStep } from './lesson-background.js'; // the lock screen + screen-off playback (DR-1705)
 import { motionBehavior } from '../../lib/gentle-motion.js';
 import { buildFollowMap, alignSegmentSpans, rangeFor, highlightSegment, clearReadingHighlights } from '../../lib/read-follow.js';
 import LessonStories from '../LessonStories.jsx';
@@ -563,6 +564,7 @@ export default function LessonExperience({
     if (!engine) return;
     // Play always starts at the listener's speed, whatever the narrator was left holding.
     giveSpeed(engine, rateRef.current);
+    claimBackground(); // inside the tap: the phone's card, its buttons, and the keep-alive (DR-1705)
     if (status === 'paused') engine.resume();
     else if (resumedFrom > 0) {
       playFrom(engine, segments, resumedFrom, offsetRef);
@@ -574,14 +576,15 @@ export default function LessonExperience({
       // with its sentence kept; Play used to start the lesson over from the first sentence.
       playFrom(engine, segments, idx, offsetRef);
     } else engine.play();
-  }, [status, resumedFrom, segments, idx, rateRef]);
+  }, [status, resumedFrom, segments, idx, rateRef]); // eslint-disable-line react-hooks/exhaustive-deps -- claimBackground is stable (declared below)
   const startOver = useCallback(() => {
     const engine = engineRef.current;
     if (!engine) return;
     setResumedFrom(0);
     saved.set(PROGRESS_KEY(lesson.id, level), 0);
+    claimBackground();
     playFrom(engine, segments, 0, offsetRef);
-  }, [segments, lesson.id, level]);
+  }, [segments, lesson.id, level]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const pause = useCallback(() => engineRef.current && engineRef.current.pause(), []);
   const jumpTo = useCallback(
@@ -589,11 +592,15 @@ export default function LessonExperience({
       const engine = engineRef.current;
       if (!engine) return;
       setResumedFrom(0);
+      claimBackground();
       playFrom(engine, segments, Math.max(0, Math.min(segments.length - 1, target)), offsetRef);
     },
-    [segments]
+    [segments] // eslint-disable-line react-hooks/exhaustive-deps
   );
   const skip = useCallback((delta) => jumpTo(idx + delta), [jumpTo, idx]);
+  const paraMap = useMemo(() => mapSegmentsToParagraphs(paragraphs, segments), [paragraphs, segments]); // the phone's next/previous step a paragraph
+  const claimBackground = useLessonBackground({ status, position: starts[idx] || 0, duration: starts[segments.length] || 0, rate, title, album: record?.courseTitle || '',
+    controls: { play: () => play(), pause, next: () => jumpTo(paragraphStep(paraMap.segPara, paraMap.firstSeg, idx, 1)), prev: () => jumpTo(paragraphStep(paraMap.segPara, paraMap.firstSeg, idx, -1)) } });
 
   const fullscreen = useCallback(() => {
     if (full) {
