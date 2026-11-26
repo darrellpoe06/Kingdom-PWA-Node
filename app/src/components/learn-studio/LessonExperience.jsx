@@ -33,7 +33,7 @@ import { storiesTextFor, HIGHLIGHT_KEY, HIGHLIGHT_PENS, nextPen, readHighlights,
 export { storiesTextFor, HIGHLIGHT_KEY, HIGHLIGHT_PENS, nextPen, readHighlights };
 import LessonFigures from '../LessonFigures.jsx';
 import StudyQuiz from './StudyQuiz.jsx';
-import { ExperienceToolsContext, resumable, pacedFraction, VoiceNote } from './LessonExperienceTools.jsx';
+import { ExperienceToolsContext, resumable, pacedFraction, VoiceNote, useCaptionPlace, CaptionPlaceChip, PresentChip } from './LessonExperienceTools.jsx';
 import './lesson-experience.css';
 import { useLanding } from './lesson-landing.js';
 import { renderWithVerses, verseParts, VERSE_RE } from './lesson-verses.jsx';
@@ -359,15 +359,10 @@ const saved = {
   },
 };
 
-// THE NARRATOR CONTRACT. Every mode drives ONE narrator, created by
-// `createNarrator` -- today lib/tts.js's createBrowserTTS (the device's own
-// voice, no cost). A future recorded voice (e.g. ElevenLabs audio, generated
-// only after Darrell approves the spend) plugs in here by implementing the
-// same small surface: load(text), play(), pause(), resume(), stop(),
-// setRate(r), an `onState({ status, segmentIndex })` option and an optional
-// `onBoundary(segmentIndex, charOffset)`. Segments are segmentText(text), so
-// recorded audio keyed per segment lines up with the highlight, the page
-// turns and the saved place without changing any of this file.
+// THE NARRATOR CONTRACT. Every mode drives ONE narrator from `createNarrator` (the device voice, or
+// the listener's own cloned voice, DR-1685): load, play, pause, resume, stop, setRate, onState({ status,
+// segmentIndex }), optional onBoundary. Segments are segmentText(text), so the highlight, the page
+// turns and the saved place follow whatever voice reads.
 export default function LessonExperience({
   lesson,
   record,
@@ -381,6 +376,7 @@ export default function LessonExperience({
   onFullPage = null,
   createNarrator = createBrowserTTS,
   lessonTools = null,
+  onPresent = null,
 }) {
   const [mode, setMode] = useState(initialMode);
   // THE PAGE'S OWN LIGHT (Darrell 2026-11-25: "dark mode needs to respect the wishes of the dark
@@ -417,6 +413,7 @@ export default function LessonExperience({
   const [rate, setRateState] = useState(1);
   const [voiceNote, setVoiceNote] = useState(''); // whose voice reads, when it is the listener's own (DR-1685)
   const [captions, setCaptions] = useState(true);
+  const [capPlace, cycleCapPlace] = useCaptionPlace();
   const [watchTab, setWatchTab] = useState('transcript');
   const [showChapters, setShowChapters] = useState(false);
   const engineRef = useRef(null);
@@ -730,7 +727,7 @@ export default function LessonExperience({
                 {mode === 'watch' && (
                   <section className="le-watch">
                     <div className="le-player">
-                      <div className={`le-stage ${full ? 'le-stage--full' : ''}`} ref={stageRef}>
+                      <div className={`le-stage le-cap-${capPlace} ${full ? 'le-stage--full' : ''}`} ref={stageRef} data-caption-place={capPlace}>
                         <CoverImage image={record?.image} alt={record?.imageAlt} className="le-stage-img" animated />
                         <div className="le-stage-scrim" aria-hidden="true" />
                         <div className="le-stage-title">
@@ -754,6 +751,7 @@ export default function LessonExperience({
                             <button type="button" className={`le-chip ${RING}`} onClick={isPlaying ? pause : play} aria-label={isPlaying ? 'Pause' : 'Play'}>
                               {isPlaying ? '❚❚' : '▶'}
                             </button>
+                            <CaptionPlaceChip place={capPlace} onCycle={cycleCapPlace} className={RING} />
                             <button type="button" className={`le-chip ${RING}`} onClick={fullscreen} aria-label="Exit full screen">
                               ✕
                             </button>
@@ -785,6 +783,8 @@ export default function LessonExperience({
                         >
                           CC
                         </button>
+                        <CaptionPlaceChip place={capPlace} onCycle={cycleCapPlace} className={RING} />
+                        <PresentChip onPresent={onPresent} className={RING} />
                         <button type="button" className={`le-chip ${RING}`} onClick={fullscreen} aria-label="Full screen">
                           ⛶
                         </button>

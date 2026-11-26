@@ -21,7 +21,8 @@
 //   place       -> getPlaceFor, the record "Continue where you left off" reads.
 //   screenHint  -> the useScreenAwake hint, same text and test id.
 // =============================================================================
-import React from 'react';
+import React, { useCallback, useState } from 'react';
+import { CAPTION_PLACE_LABEL, nextCaptionPlace, readCaptionPlace, saveCaptionPlace } from './lesson-reading.js';
 import { AGE_BANDS, DEFAULT_AGE_BAND, resolveForAge } from '../../lib/learn-framework.js';
 import { DownloadGate } from '../DownloadAccess.jsx';
 import { LessonDownloadButton } from '../LessonDownloads.jsx';
@@ -124,4 +125,49 @@ export function VoiceNote({ line }) {
       {line}
     </p>
   ) : null;
+}
+
+/** Where the spoken words land on the picture: Top (default), Middle or Bottom, kept per device. */
+export function useCaptionPlace() {
+  const [place, setPlace] = useState(readCaptionPlace);
+  const cycle = useCallback(() => {
+    setPlace((p) => {
+      const n = nextCaptionPlace(p);
+      saveCaptionPlace(n);
+      return n;
+    });
+  }, []);
+  return [place, cycle];
+}
+
+/** The chip that moves the words: one tap, Top -> Middle -> Bottom. */
+export function CaptionPlaceChip({ place, onCycle, className = '' }) {
+  return (
+    <button
+      type="button"
+      className={`le-chip ${className}`}
+      onClick={onCycle}
+      data-testid="le-caption-place"
+      aria-label={`${CAPTION_PLACE_LABEL[place]}. Tap to move the words.`}
+    >
+      {CAPTION_PLACE_LABEL[place]}
+    </button>
+  );
+}
+
+/** Present to the room (DR-0451's deck + the projected class screen, ?audience=1): the new look's
+ *  door into the projector workflow, which before lived only on the classic lesson list. */
+export function PresentChip({ onPresent, className = '' }) {
+  if (typeof onPresent !== 'function') return null;
+  return (
+    <button
+      type="button"
+      className={`le-chip ${className}`}
+      onClick={onPresent}
+      data-testid="le-present"
+      aria-label="Present to the room: open the presenter and the projector screen"
+    >
+      Present
+    </button>
+  );
 }

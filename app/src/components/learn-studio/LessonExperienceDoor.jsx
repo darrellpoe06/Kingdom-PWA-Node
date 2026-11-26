@@ -89,6 +89,7 @@ export default function LessonExperienceDoor({
   lessonTools = null,
   initialMode = 'watch',
   initialLevel = 'adult',
+  onPresent = null,
 }) {
   const record = useMemo(() => experienceRecord(lesson, course), [lesson, course]);
   const more = useMemo(() => moreExperienceLessons(lesson, course), [lesson, course]);
@@ -113,6 +114,7 @@ export default function LessonExperienceDoor({
         onFullPage={onFullPage}
         lessonTools={lessonTools}
         createNarrator={narrator}
+        onPresent={onPresent}
       />
     </LessonExperienceBoundary>
   );
