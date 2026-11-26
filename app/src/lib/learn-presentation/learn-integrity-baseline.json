@@ -1,5 +1,5 @@
 {
- "measuredAt": "2026-11-26T17:17:58.378Z",
+ "measuredAt": "2026-11-26T17:26:40.171Z",
  "counts": {
   "departments": 13,
   "courses": 51,
@@ -681,13 +681,13 @@
    "department": "Serve the House",
    "position": 1,
    "title": "Own the iron — what \"sovereign infrastructure\" means",
-   "contentSha": "beadbb7aa75e5a770639867f6cc35a76971909b126ed8d639065199a9a68038d",
+   "contentSha": "360a08cd971e447335d947e1c87c9ac7614f4fda342cf1f62f30175d7a649a38",
    "versions": {
-    "child": "05ab1c5d12fc09bd53627dc55d6ca633f41d4bb3c5e702aca9e6af82c188a8b4",
-    "youth": "71647305c42e101986485a1720942000f7558615a4006167e4d81beef0c8d583",
-    "teen": "d1e268e08b9bb21de10df6759a50cdeeac397b2e7d6175efb5f2250f61454f67",
-    "adult": "74d291837594553bfc1eaa0e34a105e99c589a3e5c70a17ea51af6770de6cdc4",
-    "senior": "3c1e906483e2e7e106b0b3b67a2094e96f97d5eb9ea425251dcff12b3517258b"
+    "child": "2f3fb6482cdbd8b82ceb53f5daf89dbf28025959b8e9896d97672b82c6d8cca4",
+    "youth": "760c1b692492401f0a3250e239f3425631fda94632758ce19dc958f0ff248a3f",
+    "teen": "cca3bc620882e5a4859952920d1f9d21f6e299dfefb2c7490e996ec14e58ad15",
+    "adult": "72d519f9610c27fc996c8d22a6e29d88ef8cd5579be6edeb6101635044cf5e68",
+    "senior": "24aebc964082f5490eeb8da0693f450bd90e4c28bd49c2d00f56601e612512c7"
    }
   },
   {
