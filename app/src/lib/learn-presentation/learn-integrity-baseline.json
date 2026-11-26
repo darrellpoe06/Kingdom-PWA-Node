@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T14:47:28.290Z",
+ "measuredAt": "2026-11-26T14:53:55.023Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4554
+  "readings": 4556
  },
  "departments": [
   {
@@ -12927,11 +12927,13 @@
    "department": "The Eternal Algorithms",
    "position": 3,
    "title": "The Tree by the Rivers (delight in the law)",
-   "contentSha": "0ad4d071f00b9b97face51564d537af014ed28b83dc62f39224e170d8fa03b91",
+   "contentSha": "dd1524ac9ed7382a856b74ecbd11e9548a0705d079a1f06a795c5302ee9e32f3",
    "versions": {
-    "teen": "8aed11d336090c4eb538552536728be1f576d3f43baa37a57715948799a574f6",
-    "adult": "e74b70ba8b117aece7c81e2757aa98d9fdc5294dbda3c5f0689e3bc4f9c087eb",
-    "senior": "15500b65ab91d8af971c7ebbaa021dc2ff022954bb29d673af87b4ec9b2c2344"
+    "child": "95c81e8a755ec5742d3de92771622f3912ad47fe0fb9e3a927a1e37dfcf6d0fd",
+    "youth": "257a547ff0abe765f2e4b9f696c371428e949b3c977c07b000900b2fe356a208",
+    "teen": "6980da5df9dd92fc6e0fcda93e634b3d46ae5806991190481dcf55abeb5347cd",
+    "adult": "cad135da6811a2c1f53bb00375fac7a2123c03c80e62d979c009062c8c83dc10",
+    "senior": "0cffe7c326aa1cf13d0c05528d2351a154d52c5621bcd59710ef30b97e116120"
    }
   },
   {
