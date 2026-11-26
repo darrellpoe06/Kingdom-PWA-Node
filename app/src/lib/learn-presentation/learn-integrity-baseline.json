@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T13:54:06.740Z",
+ "measuredAt": "2026-11-26T14:00:38.883Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4532
+  "readings": 4534
  },
  "departments": [
   {
@@ -13044,11 +13044,13 @@
    "department": "The Eternal Algorithms",
    "position": 12,
    "title": "The Honour of Kings (search out the matter)",
-   "contentSha": "13345797977935d47b945f2c1c6e77d8789846deb47ec1ce401832505830b9de",
+   "contentSha": "038670cdcf3c2d38c5ebca6c16ec9122e799d1d1486f268a9a4ec9d99d157260",
    "versions": {
-    "teen": "f3fdfbd989413ff45c2db1b2e208071bdf77e9c35f7f3e820ffba5f43e16b4bf",
-    "adult": "1bf6d9124c0de53d094a5c799e7a0dc404a18de575e03a7e13f5e90976396212",
-    "senior": "a20b1a20efe47e40b2c60b414879f75cb0b84c2b31988ea39556107b885e5514"
+    "child": "84854dc3a3c37acb610170f8ee16467ee875826bab6b7493e9c18ff86ce3b55a",
+    "youth": "96dbd7af932551e0e4298a49cca01ac8a7bbe58902a5c93711447c641d74bb3d",
+    "teen": "827c88692e4e2360c30ac36c87c94fa645b1c16e4adc6a1b309fde1b3f537508",
+    "adult": "c612789610fb6d4cbaf1be9cba6d2970fb12074d408c31071e374ab647a551ab",
+    "senior": "40b7ce2e599f5236a512883c543f6b19d76aa78c9ca805d075935d37a712c5fb"
    }
   },
   {
