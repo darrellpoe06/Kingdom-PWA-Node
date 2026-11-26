@@ -29,6 +29,7 @@
 import { lessonShareText } from './lesson-format.js';
 import { SHARE_HOW_TO, lessonShareMessage, lessonSummary, withShareToken, isShareToken } from './lesson-share.js';
 import { courseDepartment } from './learn-organize.js';
+import { lessonPreviewUrl } from './learn-link-preview.js';
 
 export const LEARN_LINK_PARAMS = { course: 'course', lesson: 'lesson' };
 
@@ -268,7 +269,8 @@ export function lessonSharePayload(module, {
   const m = module || {};
   const title = String(m.title || courseTitle || 'A lesson worth reading').trim();
   const from = String(courseTitle || '').trim();
-  const link = token ? withShareToken(url, token) : String(url || '');
+  // The link a person sends previews as the lesson (picture + title, DR-1673) and lands in it.
+  const link = lessonPreviewUrl(token ? withShareToken(url, token) : String(url || ''));
   const text = lessonShareMessage({
     title,
     from: [from, brand].filter(Boolean).join(' · '),
@@ -341,7 +343,7 @@ export function sectionSharePayload(module, { label = '', text = '', url = '', c
   const m = module || {};
   const title = [line(label) || 'A word worth sharing', line(m.title)].filter(Boolean).join(' — ');
   const from = line(courseTitle);
-  const link = token ? withShareToken(url, token) : String(url || '');
+  const link = lessonPreviewUrl(token ? withShareToken(url, token) : String(url || ''));
   const body = [line(text), from && `— ${from}, The Love Corner`].filter(Boolean).join('\n');
   const message = [title, '', body, link ? `\n${link}` : '', `\n${SHARE_HOW_TO.church}`]
     .filter((x) => x !== '').join('\n').replace(/\n{3,}/g, '\n\n').trim();

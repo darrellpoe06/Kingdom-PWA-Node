@@ -9,7 +9,8 @@
 // Inside an opened lesson the author's COMPLETE ORIGINAL TITLE is shown in full,
 // directly under the new display title — visible text, never a tooltip.
 // =============================================================================
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useCallback, useMemo, useState, useEffect } from 'react';
+import { useHistoryValue } from '../../lib/nav-history.js';
 import {
   studioHome,
   searchPresented,
@@ -418,6 +419,17 @@ export default function LearnStudio({
   // existing Art fallback), so nothing new is generated and nothing is hidden.
   const [courseKey, setCourseKey] = useState(null);
   const [allCoursesTick, setAllCoursesTick] = useState(0);
+  // THE PHONE'S BACK GOES TO THE LAST PAGE (Darrell 2026-11-26: "Back button should go to the last
+  // page the user was on!!!" -- "Not close the app or start over"). A course page, a shelf and a
+  // lesson's cover each take one history step when they open, so Back closes the one on top and
+  // lands where the reader was; their own Back to Learn gives the step back (useHistoryValue,
+  // the primitive the classic lesson space has used since DR-0262).
+  useHistoryValue(courseKey, setCourseKey, { base: null, key: 'ls-course' });
+  useHistoryValue(shelf, setShelf, { base: null, key: 'ls-shelf' });
+  const closeCover = useCallback((v) => {
+    if (v == null) setOpen(null);
+  }, []);
+  useHistoryValue(open ? (open.p && open.p.lessonId) || 'cover' : null, closeCover, { base: null, key: 'ls-cover' });
   useEffect(() => {
     if (!allCoursesTick) return;
     const el = typeof document !== 'undefined' && document.querySelector('[data-testid="ls-courses"]');

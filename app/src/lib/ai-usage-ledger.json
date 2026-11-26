@@ -723,6 +723,21 @@
       "notes": "Measured first commit 19:37:26Z to the ledger commit on claude/measure-growth-yahwehs-way; the reading of the thread, the repository-wide unbuilt-passage measurement, the primary-source checking and the authoring before that first commit are NOT on the record, so 0.3 understates the real elapsed time. Estimate is this session's own, for a 14th course lesson carrying five reader versions (child 705, youth 1102, teen 1604, senior 2833, adult 1114 words), two authored stories, 51 pinned references fetched verbatim from the KJV corpus, a 43-case pinned gate proven to catch twice, a decision record, a session note, and a trust-but-verify audit of a benchmark newsletter whose primary sources were unreachable."
     },
     {
+      "id": "lesson-link-previews",
+      "date": "2026-11-26",
+      "task": "A shared lesson link previews as the lesson: picture and title, refreshing into the lesson with the same share token",
+      "drs": [
+        "DR-1673"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.7,
+      "estimateWithoutAiHours": 8,
+      "notes": "fail-safe route; proven to catch"
+    },
+    {
       "id": "sov69-at-his-day-or-at-evening",
       "date": "2026-11-05",
       "task": "Lesson sov69: at his day, or at evening - the latency requirement is in the Word as law, and our own watchman runs on the wrong mechanism",
@@ -1156,6 +1171,21 @@
       "wallClockHours": 1.6,
       "estimateWithoutAiHours": 5,
       "notes": "Wall clock measured from the first read of the blocked PRs to the commit at 21:13:15Z; the fix itself was minutes, the diagnosis was the hour. Two of my own measurements were wrong first and only surfaced because they contradicted each other: a hardcoded stale SHA reported both legs success (keep-prs-current had moved the heads on 2026-11-07), and a heredoc inside a loop ate the loop's stdin so every iteration printed the same numbers. Estimate without AI assumes a person reading four unrelated red PRs and finding the shared cause. Proven to catch: the literal restored fails today. Tokens and dollars null: no meter exposed."
+    },
+    {
+      "id": "new-look-every-lesson-feature",
+      "date": "2026-11-26",
+      "task": "Back goes back, Ari in the lesson screen, the classic tools and reading credit in the new look, seen/heard counts as begun, Institute portrait at every size",
+      "drs": [
+        "DR-1674"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.2,
+      "estimateWithoutAiHours": 14,
+      "notes": "feature inventory; each fix proven to catch"
     },
     {
       "id": "a-forward-safe-case-may-not-name-the-number",

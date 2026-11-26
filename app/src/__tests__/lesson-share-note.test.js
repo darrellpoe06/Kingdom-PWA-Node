@@ -40,7 +40,8 @@ describe('the message: title, summary, link, and the how-to LAST', () => {
 
   it('carries the title, a short summary, the link with its token, and ends with the how-to', () => {
     expect(p.title).toBe('Rest Is a Gift');
-    const link = `${URL}&s=${token}`;
+    // The sent link goes through the lesson's preview page (DR-1673): same query, same token.
+    const link = `${URL}&s=${token}`.replace('/lovecorner/app/?', '/l/lovecorner/?');
     expect(p.url).toBe(link);
     const iTitle = p.text.indexOf('Rest Is a Gift');
     const iSummary = p.text.indexOf('Yahweh made the Sabbath for man, not man for the Sabbath. Rest is received, not earned.');

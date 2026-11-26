@@ -380,9 +380,15 @@ export function getPlaceFor(courseKey, lessonId, opts = {}) {
  * `started` is still recorded (it orders what the map keeps); it just no
  * longer claims a place worth continuing. DR-0702.
  */
+// SEEN OR HEARD IS PROGRESS TOO (DR-1674; Darrell 2026-11-26: "Left of reading something I'm
+// interested in and can't find it!!!"). A lesson read or listened to in the new lesson screen keeps
+// its witnesses (seen / heard, paced, each only rising) and may never write a step or a sentence,
+// so it fell off every Continue list. Past the same 2% the "Pick up where you left off" offer uses
+// (resumable, LessonExperienceTools), the reading is begun. A flick cannot reach it: seen is paced.
+export const BEGUN_FLOOR = 0.02;
 export function placeInProgress(place) {
   if (!place || place.done === true) return false;
-  return place.stage > 0 || place.step > 0 || place.sentence > 0;
+  return place.stage > 0 || place.step > 0 || place.sentence > 0 || Number(place.seen) > BEGUN_FLOOR || Number(place.heard) > BEGUN_FLOOR;
 }
 
 /**

@@ -39,6 +39,8 @@ import { useLanding } from './landing-guard.js';
 import { sectionLeadOf, withSectionBreaks } from './lesson-sections.js';
 import { placeParagraph, recordReadPlace } from './lesson-place.js';
 import ReadSections, { readSections } from './ReadSections.jsx';
+import AskAri from './AskAri.jsx';
+import { ARI } from '../../lib/ari.js';
 import { renderWithVerses, verseParts, VERSE_RE } from './lesson-verses.jsx';
 export { verseParts };
 
@@ -1407,6 +1409,9 @@ function StudyMode({ lesson, record, number, verses }) {
       </div>
 
       <div className="le-study-card">
+        <StudySection icon="reflect" title={`Ask ${ARI.name}`} open>
+          <AskAri lesson={lesson} />
+        </StudySection>
         {tools && tools.downloads && (
           <StudySection icon="notes" title="Downloads & Sharing">
             {tools.downloads}

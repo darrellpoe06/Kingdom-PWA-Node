@@ -1445,3 +1445,50 @@
   font-weight: 700;
   cursor: pointer;
 }
+
+/* ---- ASK ARI (DR-1674) ---- */
+.le-ari-thread {
+  display: grid;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+.le-ari-msg {
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  border-radius: 10px;
+  border: 1px solid var(--le-line);
+  background: var(--le-panel);
+  line-height: 1.5;
+}
+.le-ari-msg--user {
+  justify-self: end;
+  max-width: 90%;
+}
+.le-ari-tag {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  color: var(--le-gold);
+}
+.le-ari-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-end;
+}
+.le-ari-send {
+  min-height: 44px;
+  padding: 0 1rem;
+  border-radius: 10px;
+  border: 1px solid var(--le-gold);
+  color: var(--le-gold);
+  background: transparent;
+  font-weight: 700;
+}
+.le-ari-send:disabled {
+  opacity: 0.5;
+}
+.le-ari-offline,
+.le-ari-honesty {
+  font-size: 0.8125rem;
+  color: var(--le-dim);
+}

@@ -14,6 +14,7 @@ import { neighborLessons } from './LessonNav.jsx';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import LearnDashboard from './LearnDashboard.jsx';
 import { recordUse } from '../../lib/ux-signals.js';
+import { useHistoryValue } from '../../lib/nav-history.js';
 import LearnStudio from './LearnStudio.jsx';
 import { presentationIndex, isLearnStudioOn, STUDIO_FLAG_KEY, allLessons } from '../../lib/learn-presentation/presentation.js';
 
@@ -59,6 +60,7 @@ const NO_DONE = new Set();
 const NO_CTX = Object.freeze({ places: NO_PLACES, progress: {} });
 
 export default function LearnStudioPreview({
+  lessonToolsFor = null,
   courses,
   onOpenLesson,
   onExit,
@@ -89,6 +91,11 @@ export default function LearnStudioPreview({
   // Studio on. Only a lesson with no words at all would go to the classic
   // reader, so nothing is ever opened empty.
   const [active, setActive] = useState(null); // { lesson, course } open in the Experience, or null
+  // Back closes the open lesson and lands where the reader was (DR-1674), never out of the app.
+  const closeActive = React.useCallback((v) => {
+    if (v == null) setActive(null);
+  }, []);
+  useHistoryValue(active ? active.lesson.id : null, closeActive, { base: null, key: 'ls-lesson' });
   const [experienceMode, setExperienceMode] = useState('watch');
   const [experienceLevel, setExperienceLevel] = useState('adult');
   const catalog = useMemo(() => allLessons(courses), [courses]);
@@ -166,16 +173,20 @@ export default function LearnStudioPreview({
           record={activeRecord}
           onExit={() => setActive(null)}
           lessonTools={
-            quiz
-              ? {
-                  onLevel() {},
-                  onHeard() {},
-                  onSeen() {},
-                  quizSaves: !!quiz.saves,
-                  quizSaved: quiz.saved(active.lesson.id),
-                  onRecordQuiz: (id, r) => quiz.record(activeCourseKey, id, r),
-                }
-              : null
+            // The classic space's full tools when the Learn page hands them over (DR-1674): reading
+            // credit, place, downloads, age first; else only the quiz, as before.
+            lessonToolsFor
+              ? lessonToolsFor(active.lesson, active.course)
+              : quiz
+                ? {
+                    onLevel() {},
+                    onHeard() {},
+                    onSeen() {},
+                    quizSaves: !!quiz.saves,
+                    quizSaved: quiz.saved(active.lesson.id),
+                    onRecordQuiz: (id, r) => quiz.record(activeCourseKey, id, r),
+                  }
+                : null
           }
           initialMode={experienceMode}
           initialLevel={experienceLevel}
