@@ -13,6 +13,10 @@
 
 Darrell spoke one teaching in ten movements and closed it in prayer. Built as L343 the way L342 was: scaffolded by `scripts/new-lesson.mjs` (L343 and this record reserved on origin), every quotation written as a kjv token and filled by `scripts/fill-verses.mjs` from `app/public/bible/kjv`, the shared gate in its test. His words are rendered for meaning (DR-0331); none is put in double quotes. His two pictures stay his, named as his: the way people built AI (the made thing does not define its purpose), and Mr. Miyagi's wax on, wax off from the film The Karate Kid.
 
+## Impact
+
+A reader meets Darrell's own word as a full lesson: that righteousness begins with believing Yahweh and is lived out by doing what He says, with the Word under each line and his prayer at the end. One lesson file and one test; no shared line edited, no schema, no other lesson moved.
+
 ## Decision
 
 `ll343-unbelievers-are-not-righteous`, ORDER 343, ADDED 2026-11-26, title *Unbelievers Are Not Righteous — Believe Him, Then Do What He Says*, his first line as the lead. Ten movements, each taught from the Word:
