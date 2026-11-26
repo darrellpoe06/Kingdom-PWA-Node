@@ -69,7 +69,10 @@ import { planAbbreviationFixes, proseName } from '../../../scripts/fix-quote-abb
 // part files the Eternal Algorithms teaching map was split into on 2026-11-26
 // (file-budget-guard, DR-1339): the single file they replace sat under lib/*.js
 // at a pin of zero, and the parts keep exactly that coverage.
-const LOADERS = import.meta.glob(['../lib/*.js', '../lib/living-lessons/ll*.js', '../lib/eternal-algorithms-teaching/part-*.js']);
+// The Prophetic Voices sequences live one file per voice (lib/prophetic-voices/,
+// 2026-11-26: each teacher's own message, lesson by lesson), so they are stores
+// at the default pin of zero as well.
+const LOADERS = import.meta.glob(['../lib/*.js', '../lib/living-lessons/ll*.js', '../lib/eternal-algorithms-teaching/part-*.js', '../lib/prophetic-voices/*.js']);
 const key = (rel) => `../lib/${rel.replace('app/src/lib/', '')}`;
 const load = (rel) => LOADERS[key(rel)]();
 
