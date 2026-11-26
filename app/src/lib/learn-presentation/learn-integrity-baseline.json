@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T03:44:16.968Z",
+ "measuredAt": "2026-11-26T03:47:36.469Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4294
+  "readings": 4296
  },
  "departments": [
   {
@@ -13900,11 +13900,13 @@
    "department": "The Eternal Algorithms",
    "position": 37,
    "title": "All power is given unto Me — so what you carry is delegated",
-   "contentSha": "9de4690f08c25b4c20c81077a831c8a8d2b26084c12ffefe8988588a5f2197d4",
+   "contentSha": "1ffed9c02c5c811e51f08e5589e07e5042ddcea4315cab07e728058efaf0d8b4",
    "versions": {
-    "teen": "8994e634bff37301b0ab270423944b1c323d96832cdf0111512cfbf072658e31",
-    "adult": "0641deda0e34187c2b20f27348261927c8e7afb8d283ab6b70a867df9eefbd4d",
-    "senior": "408f0fddb8c6460982b1f18f904bbc4849d44d569ac93f8493afc8c2c39b1925"
+    "child": "6e10bcc3995c58c98bddebe6b012639de9995bbeb13f2be2d11050c7dd2bd1ad",
+    "youth": "4f31af329da27dcc6028b402715ab83ff52a39a8f75a8b64d93356a1f2d81407",
+    "teen": "0e4897cc895ffb30dadb1c5fd43c9680f69f62ca0250fe1ac4753749b29bed73",
+    "adult": "8bef7c38e2d044e92e71c452fb93482827173f64dc0b9e9e0ceb79eab04e99df",
+    "senior": "3d2d1cafd2d62d06fb1c232534d58c2b71a1090519d952fd0d678df98c6c78e3"
    }
   },
   {
