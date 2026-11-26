@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T10:49:54.101Z",
+ "measuredAt": "2026-11-26T10:54:16.817Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4462
+  "readings": 4464
  },
  "departments": [
   {
@@ -14260,11 +14260,13 @@
    "department": "The Eternal Algorithms",
    "position": 19,
    "title": "Confess → He Is Faithful to Forgive",
-   "contentSha": "964bd3afa0b4112fb375d47eca4e85451ce624d888afd08bbd52efb88b8d9b52",
+   "contentSha": "7e7d665030751b2e6fb8bf3dcbaac577666e2b8b4067b9ed9c4046cfbbf8a8fc",
    "versions": {
-    "teen": "ba3ae3be20256a57bbe437df9cfce95a81121482dc6b8114095803f6b2768ba2",
-    "adult": "6ce4d4f85a914ff73cadbcbaa56b8927c1645c050896bb4411105010363e3b34",
-    "senior": "caf9fc477c9204cdcf0e30416fcc228a5ccb76e51d98f8b59a519986b7a4d0e1"
+    "child": "dd84203255b38707a48c34e3c665461369207c7b5804a00cdb61e93b43b59622",
+    "youth": "cd0c34caef67e7e1f0edad32dc9c7d18246814a94d432164ac2597d6310a5205",
+    "teen": "59f4853f0001d0f0fd81332acd9738dfea40ea72ef3a45ea3858874bd07badd1",
+    "adult": "abd64d54d7f293fc2399458209ebf2d882d5d58693889840a8ab7a3cf4866b6a",
+    "senior": "cc6d8e22d3b909853f8519dbf895de3e3bcd03530bc100d5c3000ce2220ed9b2"
    }
   },
   {
