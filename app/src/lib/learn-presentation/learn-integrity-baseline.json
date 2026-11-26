@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T09:04:12.404Z",
+ "measuredAt": "2026-11-26T09:08:24.280Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4434
+  "readings": 4436
  },
  "departments": [
   {
@@ -13337,11 +13337,13 @@
    "department": "The Eternal Algorithms",
    "position": 10,
    "title": "Known Before You Were Formed (the purpose predates you)",
-   "contentSha": "917e9d59340adba3cdfc8b6072268d6ce374e7012aee7681da8edac95094a9a9",
+   "contentSha": "c1584a4392a4af0242b30ee9069fef374e7514f1ee3c22d36ed9ec867c53daa2",
    "versions": {
-    "teen": "b4bafac3841652392cb6755eade42f8d0ce2f1a03d347f20b369382ee01e1222",
-    "adult": "a75d84318f00e60bd8487a810eaf98378f2d4026922e3136ec1c0facee18b707",
-    "senior": "9f2cec986f72384a76b00e3856819cd0d54881c8e474b0e06e4f65eebd904adf"
+    "child": "a3e8ef3ae8d29fdb2512464600657444506b3f3c3c9876b853a9d364475374dc",
+    "youth": "ac8c7b5f9f71d945825cae0bf0f33685476dd7bfa821fee691b06d875b8f5e6b",
+    "teen": "3a082eb4589ba7bd4f513306dc12e13db98e9e49b19b464cc121a4b52be8a244",
+    "adult": "d532a81d363ca4fc4b8783282068668c3ceb4514dec6d0a657f71e97839800c2",
+    "senior": "38b206ab79c035ebfbfa276716bfd8c8fbbb4eb173626751100fc9d59169ce33"
    }
   },
   {
