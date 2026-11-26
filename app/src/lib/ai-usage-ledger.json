@@ -2751,6 +2751,23 @@
       "notes": "First real run read the site (4 pictures) and died at the retired tailnet join; the NAS pass is rehearsed on a mock database and pinned by 7 tests, two proven to catch."
     },
     {
+      "id": "my-voice-in-the-new-look",
+      "date": "2026-11-26",
+      "task": "Traced My voice end to end for Darrell (consent granted; no engine answers /voice; the new lesson look spoke only the phone voice); the new look now asks the clone sentence by sentence and says whose voice reads; one ConnectBot paste wakes the NAS clone; member door and capacity named",
+      "drs": [
+        "DR-1685"
+      ],
+      "prs": [
+        2941
+      ],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.7,
+      "estimateWithoutAiHours": 8,
+      "notes": ""
+    },
+    {
       "id": "poetech-plus-checkout",
       "date": "2026-11-12",
       "task": "PoeTech+ checkout: verified buyer, member_subscriptions row (0321), webhook lifecycle, money counted once, truthful button in both apps, cancel portal, one-secret keys workflow",
