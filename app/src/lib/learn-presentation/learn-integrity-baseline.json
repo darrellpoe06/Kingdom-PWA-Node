@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T07:44:26.113Z",
+ "measuredAt": "2026-11-26T07:48:27.643Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4408
+  "readings": 4410
  },
  "departments": [
   {
@@ -14319,11 +14319,13 @@
    "department": "The Eternal Algorithms",
    "position": 26,
    "title": "The God of This World (we left Him; the world is occupied, not neutral)",
-   "contentSha": "19640bbd6485a834991a04b92e2dd1a179c4444911d6d26ddcda75dad0a39e2d",
+   "contentSha": "3d9588b07b5fbe904f34569593c7b80f096315bdd2e12677a24f8159e6710d60",
    "versions": {
-    "teen": "91f7a9602fd89de8d66b94c76022e65fe9bc5eeaf293bf541f1c3bffca3d0503",
-    "adult": "9cbbf1fd63263023c5ffaa1334a42899fa8dbf25b33a5d649c618372e519835a",
-    "senior": "0b56a088870aa6015fc54c875a32e97f73584ea962b39d83229ffe150272eb77"
+    "child": "4828e7e355d490b2af4e01916229d99b00b77ac1257e5db32d59116823554b89",
+    "youth": "89955a9dec2800ae6c84894e40396326d0e0f6584b15a0b3bfb841c7ee37cd37",
+    "teen": "7cde451bfbf5655ee6c0f155ada3a4f55763846186c1ac6b5591ac77f24a4cb1",
+    "adult": "940fe9840e03865851d454ce0fae8d541831411900cb7f3ea4eb9d42640602b3",
+    "senior": "2e74c231bd5f4c565fb542bc2aa33679deeb4bc68302db3597be3d6ae14748f4"
    }
   },
   {
