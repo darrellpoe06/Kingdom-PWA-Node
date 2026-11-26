@@ -23,7 +23,12 @@ export function studioMarkFor({ places, recordFor, ageBand }) {
   return (lesson, courseKey) => {
     if (!lesson) return '';
     const place = (places || []).find((pl) => pl && pl.lessonId === lesson.id && (!courseKey || pl.courseKey === courseKey)) || null;
-    const mark = readMark({ place, record: recordFor ? recordFor(lesson.id) : null, versions: lessonVersions(lesson), attributed: bandVersion(lesson, ageBand) });
+    const mark = readMark({
+      place,
+      record: recordFor ? recordFor(lesson.id) : null,
+      versions: lessonVersions(lesson),
+      attributed: bandVersion(lesson, ageBand),
+    });
     return mark.read ? readMarkLabel(mark) : '';
   };
 }
