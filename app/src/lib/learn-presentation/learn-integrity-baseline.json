@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T05:08:37.810Z",
+ "measuredAt": "2026-11-26T05:13:50.483Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4340
+  "readings": 4342
  },
  "departments": [
   {
@@ -13808,11 +13808,13 @@
    "department": "The Eternal Algorithms",
    "position": 29,
    "title": "Why the thief Comes for Your Identity (steal the potential, redirect the credit)",
-   "contentSha": "7432844ae144b423a0beba4307e8f03c51ba8d147a8c000a865a85aa6a90bc0e",
+   "contentSha": "5ef694142734c49914c7a7c993a7feea1e73d70655bfb0e4cb92596e759363c6",
    "versions": {
-    "teen": "08d5fa1a55ce3541359832a58362d4f58bb52eb9f3eb5e3737ececb6cd072596",
-    "adult": "3ee08531877a2e25274e6f09493b0c579faaa24835a7344b2020e6e6e48890e2",
-    "senior": "fa752445f0f972878427b2421383281fe52136d0e4a32a3ac14a09f00791e0ff"
+    "child": "b9235abdd8a7aa7e40defc84c873d30a30e25d0c79597f2fa406339d2c41da65",
+    "youth": "5106189151276ea9c28c04f91d9596ee1b7b26bf112ffbd0ad7699b755225bc9",
+    "teen": "9e9e428d1bf14f525b99e2543667a2a1903b623fd933d51be2a9f5b6f3322d5a",
+    "adult": "d611df92002dd0eafe1facd4d7f5c9cad4fdbce7bf52a1f36600fdd71a96a182",
+    "senior": "79b46457249640541720b6d8e9b23e33896810d2bc7fb71f4022e2aa22bfd7f0"
    }
   },
   {
