@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T09:49:24.666Z",
+ "measuredAt": "2026-11-26T10:08:19.288Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4448
+  "readings": 4450
  },
  "departments": [
   {
@@ -14291,11 +14291,13 @@
    "department": "The Eternal Algorithms",
    "position": 22,
    "title": "Forsake Not the Assembling (the Tribe congregates)",
-   "contentSha": "0f02c4c8127e8f790e230b7edb25bb5c1b6b10513d8d18568936a69bcee739d5",
+   "contentSha": "f81fde6bab7b7df4647ae896bddd6ef16087f927d6b66a7c2decce3338aadcc8",
    "versions": {
-    "teen": "605335314a302ba7491c7f077f293476c377a025c194a494e7ee1816de588dd6",
-    "adult": "b110c1387d9abc8d04d0d8fab033aba67815d65ff7cca395b0491c24fb63f03f",
-    "senior": "be87238fb5118f77e14c2b78ec1c9de493579567366fa409678bf48402aacb6c"
+    "child": "610cbf6bfd1bd9975f8bfecd5db62a3c264d637cc2bf5c1ab5950fd31607b378",
+    "youth": "6ad9b165bdf6833a5a80bdc06359d4830b5a9d32eb77b157341e7f466efb0aee",
+    "teen": "3372f854d4ae957f0cb94467c5b62030197bd3a07de2189efdc89ea7ee605838",
+    "adult": "13528ff730127a4ad02c47f1ebb2c36fb5ea1ff40600dcd70ddedeb93628f51e",
+    "senior": "9294f8e6eaf1025bf24f1d175c984dc42ba2194a3fe9badb4d4363aaed245683"
    }
   },
   {
