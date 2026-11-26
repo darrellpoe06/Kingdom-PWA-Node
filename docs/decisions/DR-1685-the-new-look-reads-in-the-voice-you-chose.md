@@ -11,7 +11,7 @@
 
 Darrell, 2026-11-26: *"Can our speech and or readers be better or enhanced? I want the reader to read in my voice!!!!! Haven't had that happen yet!!!!!"* Then: *"And any users who are interested!!!!!!"* The house has built "My voice" six times (DR-0721, 1131, 1482, 1494, 1538, 1555). He has never heard it.
 
-## SHOULD vs ARE (traced 2026-11-26, his account)
+## What was measured (SHOULD vs ARE, traced 2026-11-26, his account)
 
 **SHOULD** (DR-0721, DR-1538): pick "My voice" once; every lesson reads in it when an engine answers (the tower's XTTS, or the NAS's own OpenVoice converter when the tower is dark); when none answers, the reader says so in one sentence.
 
@@ -24,6 +24,10 @@ Darrell, 2026-11-26: *"Can our speech and or readers be better or enhanced? I wa
 5. **A tap of Read Aloud today**, new look: the phone's voice reads, and nothing says it isn't his. Classic look: the clone is asked, `/voice/speak` falls through to the camera forwarder, and the stand-in reads with DR-0721's sentence.
 
 **GAPS:** G1, the new look ignores the chosen voice (fixed here). G2, no engine answers (one paste, below). G3, the sample exists on one device only (named; see Decision 4). G4, no witness can see the clone's install state (the runner road's key is dead; the DR-1360 direction stands).
+
+## Impact
+
+Picking My voice now reaches the clone from the new lesson look as well as the classic one, and a stand-in never reads without a line saying so. Nothing changes for a listener who has not picked a person voice.
 
 ## Decision
 
@@ -52,6 +56,5 @@ It may take up to 20 minutes, because PyTorch is the large download. The last li
 
 ## Better and enhanced (Step 3), next with dates
 
-- Shipped here: the new look honors the chosen voice and says the reason on the page.
 - The new look's System voice asks the NAS man's voice (voice-lite) as classic does, one voice across both looks (DR-1482); the NAS reports the clone's install state itself (DR-1360): `re-review: 2026-12-01`.
 - Natural pauses at paragraph ends, measured on real clips after the first `rtf`; the member door and per-member capacity (Decision 4): `re-review: 2026-12-03`. Clone pieces cached per lesson and voice on the device, instant and offline on a second listen: `re-review: 2026-12-05`.
