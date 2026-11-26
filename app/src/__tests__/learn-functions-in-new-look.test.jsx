@@ -394,3 +394,17 @@ describe('every picture offers only the sizes that ship', () => {
     }
   });
 });
+
+// Darrell 2026-11-26, on the Learn home: "start with the images... should be maybe a drop down defaulting
+// closed... so the images below are showing initially". DR-1678.
+describe('the Learn home leads with pictures; the Lessons list is a closed drop-down', () => {
+  it('the list sits in a drop-down that starts closed, names its count, and opens on a tap with every control', () => {
+    act(() => root.render(<LearnStudioPreview courses={COURSES} onOpenLesson={vi.fn()} onExit={vi.fn()} ownerDevice ctx={CTX} />));
+    const fold = $('lessons-in-order-fold');
+    expect(fold).toBeTruthy();
+    expect(fold.open).toBe(false);
+    expect($('lessons-in-order-toggle').textContent).toMatch(/Lessons.*\d+ lessons/);
+    fold.open = true;
+    expect(fold.querySelector('.ls-inorder-picks')).toBeTruthy();
+  });
+});

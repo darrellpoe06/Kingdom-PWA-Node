@@ -47,6 +47,8 @@ export function monthLabelFrom(date, offset) {
 export function freqToMonthly(amount, frequency) {
   const a = Number(amount) || 0;
   switch (frequency) {
+    case 'weekly': return (a * 52) / 12;
+    case 'biweekly': return (a * 26) / 12;
     case 'monthly': return a;
     case 'quarterly': return a / 3;
     case 'semi-annual': return a / 6;

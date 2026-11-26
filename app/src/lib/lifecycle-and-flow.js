@@ -73,7 +73,8 @@ export function ensureLifecycle(item, by = 'system') {
     },
   };
 }
-export function frequencyToMonthly(amount, frequency) { switch (frequency) { case 'monthly': return amount; case 'quarterly': return amount / 3; case 'semi-annual': return amount / 6; case 'annual': return amount / 12; case 'biennial': return amount / 24; default: return 0; } }
+// weekly / biweekly (DR-1678: members asked for an every-two-weeks bill): a year's payments over 12 months.
+export function frequencyToMonthly(amount, frequency) { switch (frequency) { case 'weekly': return (amount * 52) / 12; case 'biweekly': return (amount * 26) / 12; case 'monthly': return amount; case 'quarterly': return amount / 3; case 'semi-annual': return amount / 6; case 'annual': return amount / 12; case 'biennial': return amount / 24; default: return 0; } }
 
 // =============================================================================
 // CONNECTED-CONTEXT helpers (r36) — per /docs/00-foundations/_root/CONNECTED-CONTEXT.md

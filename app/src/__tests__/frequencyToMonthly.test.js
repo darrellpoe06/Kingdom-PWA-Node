@@ -24,8 +24,13 @@ describe('frequencyToMonthly', () => {
     expect(frequencyToMonthly(2400, 'biennial')).toBe(100);
   });
 
+  it('weekly and every two weeks: a year of payments over 12 months (DR-1678)', () => {
+    expect(frequencyToMonthly(120, 'weekly')).toBe(520);
+    expect(frequencyToMonthly(120, 'biweekly')).toBe(260);
+  });
+
   it('unknown frequency returns 0 (defensive default)', () => {
-    expect(frequencyToMonthly(1000, 'weekly')).toBe(0);
+    expect(frequencyToMonthly(1000, 'daily')).toBe(0);
     expect(frequencyToMonthly(1000, undefined)).toBe(0);
   });
 });

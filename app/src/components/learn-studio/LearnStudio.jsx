@@ -673,6 +673,7 @@ export default function LearnStudio({
         ) : (
           <>
             <LessonsInOrder
+              foldable
               courses={courses}
               index={index}
               preview={preview}

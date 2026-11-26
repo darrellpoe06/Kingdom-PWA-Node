@@ -4570,7 +4570,7 @@ ${THEME_CSS}
           const onLearnEngagement = authSession
             ? ({ courseKey, courseTitle, moduleId, ageBand, signal }) => addFeedback({
                 area: 'church-learn', rating: 'neutral', category: 'general',
-                text: engagementFeedbackText({ courseKey, courseTitle, moduleId, ageBand, signal, who: authSession?.user?.email || 'A learner' }),
+                text: engagementFeedbackText({ courseKey, courseTitle, moduleId, ageBand, signal, who: 'A learner' }), // DR-1678: no email in a row every member of the space can read; the summary counts by age band
               })
             : null;
 

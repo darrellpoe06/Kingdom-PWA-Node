@@ -25,7 +25,7 @@ export default function Calendar({ data, reserves, addRecurring, addIncident, ad
   // date on an event made it VANISH from the list; a cleared amount silently
   // became $0. Surface a message and BLOCK the save instead (review, 2026-07-18).
   const [editError, setEditError] = useState('');
-  const startEditRecur = (r) => { setEditError(''); setEditRecurForm({ name: r.name || '', amount: r.amount || 0, frequency: r.frequency || 'monthly', category: r.category || 'other', nextDue: r.nextDue || '', entityId: r.entityId || 'e-personal' }); setEditingRecurId(r.id); setEditingEventId(null); };
+  const startEditRecur = (r) => { setEditError(''); setEditRecurForm({ name: r.name || '', amount: r.amount || 0, frequency: r.frequency || 'monthly', category: r.category || 'other', nextDue: r.nextDue || '', entityId: r.entityId || 'e-personal', notes: r.notes || '' }); setEditingRecurId(r.id); setEditingEventId(null); };
   const cancelEditRecur = () => { setEditingRecurId(null); setEditError(''); };
   const saveEditRecur = () => {
     if (!editingRecurId) return;
@@ -95,7 +95,7 @@ export default function Calendar({ data, reserves, addRecurring, addIncident, ad
             <div className="grid grid-cols-2 gap-2">
               <input type="number" className="p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="Amount" value={newRecur.amount} onChange={e => setNewRecur({...newRecur, amount: e.target.value})} />
               <select className="p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={newRecur.frequency} onChange={e => setNewRecur({...newRecur, frequency: e.target.value})}>
-                <option value="monthly">Monthly</option><option value="quarterly">Quarterly</option><option value="semi-annual">Semi-annual</option><option value="annual">Annual</option><option value="biennial">Biennial</option>
+                <option value="weekly">Weekly</option><option value="biweekly">Every two weeks</option><option value="monthly">Monthly</option><option value="quarterly">Quarterly</option><option value="semi-annual">Semi-annual</option><option value="annual">Annual</option><option value="biennial">Biennial</option>
               </select>
             </div>
             <div className="grid grid-cols-2 gap-2">
@@ -107,6 +107,7 @@ export default function Calendar({ data, reserves, addRecurring, addIncident, ad
               </select>
             </div>
             <DateField value={newRecur.nextDue} onChange={v => setNewRecur({...newRecur, nextDue: v})} className="w-full" />
+            <textarea className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" rows="2" placeholder="Notes (account number hint, who to call, what it covers)" value={newRecur.notes || ''} onChange={e => setNewRecur({...newRecur, notes: e.target.value})} />
             <button type="button" onClick={submitRecur} className="w-full bg-[#1A1815] text-[#FAF8F4] py-2 text-xs uppercase tracking-wider">Add</button>
           </div>
         )}
@@ -117,6 +118,7 @@ export default function Calendar({ data, reserves, addRecurring, addIncident, ad
                 <div className="flex-1 min-w-0">
                   <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{r.name}</div>
                   <div className="text-xs text-[#5A5751]">{r.frequency} · {r.category}{r.nextDue ? ` · next ${r.nextDue}` : ''}</div>
+                  {r.notes && <div className="text-xs text-[#5A5751] whitespace-pre-wrap">{r.notes}</div>}
                 </div>
                 <div className="flex items-baseline gap-2 shrink-0">
                   <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{fmt(r.amount)}</div>
@@ -133,11 +135,12 @@ export default function Calendar({ data, reserves, addRecurring, addIncident, ad
                     <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Amount</label><input type="number" step="0.01" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={editRecurForm.amount} onChange={e => setEditRecurForm({ ...editRecurForm, amount: parseFloat(e.target.value) || 0 })} /></div>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                    <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Frequency</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={editRecurForm.frequency} onChange={e => setEditRecurForm({ ...editRecurForm, frequency: e.target.value })}><option value="monthly">monthly</option><option value="quarterly">quarterly</option><option value="semi-annual">semi-annual</option><option value="annual">annual</option><option value="biennial">biennial</option></select></div>
+                    <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Frequency</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={editRecurForm.frequency} onChange={e => setEditRecurForm({ ...editRecurForm, frequency: e.target.value })}><option value="weekly">weekly</option><option value="biweekly">every two weeks</option><option value="monthly">monthly</option><option value="quarterly">quarterly</option><option value="semi-annual">semi-annual</option><option value="annual">annual</option><option value="biennial">biennial</option></select></div>
                     <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Category</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={editRecurForm.category} onChange={e => setEditRecurForm({ ...editRecurForm, category: e.target.value })}><option value="compliance">compliance</option><option value="vehicle">vehicle</option><option value="insurance">insurance</option><option value="professional">professional</option><option value="business">business</option><option value="housing">housing</option><option value="health">health</option><option value="subscription">subscription</option><option value="other">other</option></select></div>
                     <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Entity</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={editRecurForm.entityId} onChange={e => setEditRecurForm({ ...editRecurForm, entityId: e.target.value })}><option value="e-personal">Personal</option><option value="e-poeprops">Steward Real Estate</option><option value="e-poetech">Cornerstone Tech</option><option value="e-tlc">Wellness Practice</option></select></div>
                   </div>
                   <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Next due date</label><input type="date" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={editRecurForm.nextDue} onChange={e => setEditRecurForm({ ...editRecurForm, nextDue: e.target.value })} /></div>
+                  <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Notes</label><textarea className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" rows="2" value={editRecurForm.notes || ''} onChange={e => setEditRecurForm({ ...editRecurForm, notes: e.target.value })} /></div>
                   {editError && <div className="text-[0.6875rem] text-[#B85838]" style={{ fontFamily: '"Fraunces", serif' }}>{editError}</div>}
                   <div className="flex gap-2">
                     <button type="button" onClick={saveEditRecur} className="flex-1 bg-[#1A1815] text-white px-4 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">Save changes</button>

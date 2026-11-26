@@ -68,7 +68,7 @@ export function riderProblem(skipped) {
     case 'no-church':
       return 'Your account is not linked to the church yet, so there is nowhere to send this. Ask the office to add you, then send it again.';
     case 'incomplete':
-      return 'The request needs your name and either a pickup area or an address before it can be sent.';
+      return 'The request needs your name, a phone number, the pickup address and which van before it can be sent.';
     case 'insert-error':
       return 'The church could not be reached just now. Your request was NOT sent — please tell the bus coordinator directly so you are not left waiting.';
     default:
@@ -707,12 +707,17 @@ function RequestsPanel({ requests, canEdit, reportSkip }) {
 // anyone who isn't on the ministry roster. Files a structured request the
 // coordinator + drivers see; the rider tracks their own below.
 // -----------------------------------------------------------------------------
+// A required field's mark: a star, said aloud as "required".
+function Req() {
+  return <span className="text-[#991B1B]" aria-label="required" title="required">*</span>;
+}
+
 function RiderRequestPanel({ slots, myRequests, reportSkip }) {
   const runs = useMemo(() => upcomingServices(todayIso(), slots, 8), [slots]);
   const [form, setForm] = useState({
     riderName: '', riderPhone: '', pickupArea: '', pickupAddress: '',
     serviceDate: runs[0]?.date || '', serviceSlot: runs[0]?.slotId || null,
-    passengers: 1, accessibleNeeded: false, notes: '',
+    passengers: 1, accessibleNeeded: false, vanChoice: '', notes: '',
   });
   const [errors, setErrors] = useState({});
   const [busy, setBusy] = useState(false);
@@ -726,7 +731,7 @@ function RiderRequestPanel({ slots, myRequests, reportSkip }) {
     setErrors(v.errors);
     if (!v.ok) return;
     setBusy(true);
-    const r = await submitRideRequest(form);
+    const r = await submitRideRequest({ ...form, accessibleNeeded: form.vanChoice === 'accessible' });
     setBusy(false);
     reportSkip(r);
     if (r && r.skipped) setProblem(riderProblem(r.skipped));
@@ -745,22 +750,24 @@ function RiderRequestPanel({ slots, myRequests, reportSkip }) {
         {sent && <p className="text-xs text-[#3F5226] mb-2" role="status">Your ride request was sent. You'll see its status below — a driver will confirm your pickup.</p>}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           <div>
-            <label className={LABEL}>Your name</label>
+            <label className={LABEL}>Your name <Req /></label>
             <input className={FIELD} value={form.riderName} onChange={(e) => set('riderName', e.target.value)} placeholder="First and last" />
             {errors.riderName && <p className="text-[0.6875rem] text-[#991B1B] mt-0.5">{errors.riderName}</p>}
           </div>
           <div>
-            <label className={LABEL}>Phone (so a driver can reach you)</label>
-            <input className={FIELD} value={form.riderPhone} onChange={(e) => set('riderPhone', e.target.value)} placeholder="(optional)" inputMode="tel" />
+            <label className={LABEL}>Phone (so a driver can reach you) <Req /></label>
+            <input className={FIELD} value={form.riderPhone} onChange={(e) => set('riderPhone', e.target.value)} placeholder="217-555-0100" inputMode="tel" aria-required="true" />
+            {errors.riderPhone && <p className="text-[0.6875rem] text-[#991B1B] mt-0.5">{errors.riderPhone}</p>}
           </div>
           <div>
-            <label className={LABEL}>Pickup area</label>
+            <label className={LABEL}>Pickup area (helps the driver plan)</label>
             <input className={FIELD} value={form.pickupArea} onChange={(e) => set('pickupArea', e.target.value)} placeholder="e.g. Urbana, Champaign south" />
             {errors.pickupArea && <p className="text-[0.6875rem] text-[#991B1B] mt-0.5">{errors.pickupArea}</p>}
           </div>
           <div>
-            <label className={LABEL}>Pickup address</label>
-            <input className={FIELD} value={form.pickupAddress} onChange={(e) => set('pickupAddress', e.target.value)} placeholder="Street address (optional)" />
+            <label className={LABEL}>Pickup address <Req /></label>
+            <input className={FIELD} value={form.pickupAddress} onChange={(e) => set('pickupAddress', e.target.value)} placeholder="Street address" aria-required="true" />
+            {errors.pickupAddress && <p className="text-[0.6875rem] text-[#991B1B] mt-0.5">{errors.pickupAddress}</p>}
           </div>
           <div>
             <label className={LABEL}>Which service</label>
@@ -778,10 +785,18 @@ function RiderRequestPanel({ slots, myRequests, reportSkip }) {
             {errors.passengers && <p className="text-[0.6875rem] text-[#991B1B] mt-0.5">{errors.passengers}</p>}
           </div>
         </div>
-        <label className="flex items-center gap-2 mt-2 text-xs text-[#1A1815]">
-          <input type="checkbox" checked={form.accessibleNeeded} onChange={(e) => set('accessibleNeeded', e.target.checked)} />
-          I need the accessibility van (wheelchair / walker)
-        </label>
+        <fieldset className="mt-2" aria-required="true">
+          <legend className={LABEL}>Which van <Req /></legend>
+          <label className="flex items-center gap-2 text-xs text-[#1A1815] min-h-[36px]">
+            <input type="radio" name="van-choice" checked={form.vanChoice === 'regular'} onChange={() => set('vanChoice', 'regular')} />
+            The regular van
+          </label>
+          <label className="flex items-center gap-2 text-xs text-[#1A1815] min-h-[36px]">
+            <input type="radio" name="van-choice" checked={form.vanChoice === 'accessible'} onChange={() => set('vanChoice', 'accessible')} />
+            The accessible van (wheelchair / walker)
+          </label>
+          {errors.vanChoice && <p className="text-[0.6875rem] text-[#991B1B] mt-0.5">{errors.vanChoice}</p>}
+        </fieldset>
         <div className="mt-2">
           <label className={LABEL}>Anything else</label>
           <textarea className={FIELD} rows={2} value={form.notes} onChange={(e) => set('notes', e.target.value)} placeholder="Number of steps, a helper coming, timing… (optional)" />

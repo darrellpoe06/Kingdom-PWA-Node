@@ -439,6 +439,21 @@
       "notes": ""
     },
     {
+      "id": "learn-home-pictures-first-quick-fixes",
+      "date": "2026-11-26",
+      "task": "Learn home leads with pictures (Lessons folds closed); member quick fixes: ride form required fields, every-two-weeks bills with notes, no email in learning signals",
+      "drs": [
+        "DR-1678"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.8,
+      "estimateWithoutAiHours": 7,
+      "notes": "from the REV-0262 triage of 151 notes"
+    },
+    {
       "id": "seven-gates-not-two",
       "date": "2026-11-05",
       "task": "Seven lesson gates lose a frozen census; the class guard reads identifiers (another session's work, ledgered at the first merge after DR-1347)",

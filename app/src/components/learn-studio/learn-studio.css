@@ -1228,3 +1228,28 @@
   font-size: 1.375rem;
   line-height: 1.25;
 }
+
+/* The Learn home's Lessons list folds under its heading, closed, so the pictures lead (DR-1678). */
+.ls-inorder-summary {
+  cursor: pointer;
+  list-style: none;
+  min-height: 44px;
+  align-items: center;
+}
+.ls-inorder-summary::-webkit-details-marker {
+  display: none;
+}
+.ls-inorder-summary::after {
+  content: '▾';
+  margin-left: 0.5rem;
+  color: var(--ls-gold, #e7b23c);
+  transition: transform 0.15s;
+}
+.ls-inorder-fold:not([open]) .ls-inorder-summary::after {
+  transform: rotate(-90deg);
+}
+@media (prefers-reduced-motion: reduce) {
+  .ls-inorder-summary::after {
+    transition: none;
+  }
+}
