@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T08:07:10.393Z",
+ "measuredAt": "2026-11-26T08:10:39.098Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4418
+  "readings": 4420
  },
  "departments": [
   {
@@ -13357,11 +13357,13 @@
    "department": "The Eternal Algorithms",
    "position": 12,
    "title": "The First and the Last (past, present, and future at once)",
-   "contentSha": "0ba9f0b020eb0999a46ca334a9cc320a0ba7adb704d40449cca56866cb105127",
+   "contentSha": "85b6a2482a58595f90d9710cf15c14a3944cfa908427780cf8d2c7686cdda255",
    "versions": {
-    "teen": "7e21fa0dcaab0954a36bc0c0840938995063e8438ed5fbef4ac22e6493a18927",
-    "adult": "12cd8e7aed2ff4d13966baefb2f6907f8616c1680f3e11e93536ad9c527bdbee",
-    "senior": "4984c348916bd25930ec193ab732ccdadd6968672a4661bd1702a2040156bf61"
+    "child": "6f1ac6861ce6ddca8428487074551088f7f1518ba31153cf726dc4c05ad5a7b7",
+    "youth": "4be6cd7edfcee2afa64b60c9ecbcd5e350464324a47b929321449df070b8b33a",
+    "teen": "baef91b498de01403ea87129b964c8a3cac740bfc94b00bf7b09e9d284b91809",
+    "adult": "a4a299b253f65d82a5b89b6967be8483059367a9059bc34701fd783a020c4776",
+    "senior": "a8c55a64f9c2449728e0fc6d0ee9758c3ed414d182f24464596c3c31d9fa65b0"
    }
   },
   {
