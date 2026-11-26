@@ -59,11 +59,13 @@ import { rememberedFolds, rememberFolds, toggleFold, foldAll, openAll, visibleIt
 import { getPlaceFor } from '../lib/learn-resume.js';
 import { RowContinue } from './LessonContinue.jsx';
 import { bandVersion } from '../lib/lesson-read-mark.js';
+import { useStudioTools, StudioLessonThumb } from './learn-studio/StudioTools.jsx';
 
 /** The fold memory's key for this list: one list, every course. */
 export const LATEST_FOLD_KEY = 'latest:every-course';
 
 export default function LatestLessons({ courses, onOpen, onPlay = null, onContinue = null, recordFor = null, onReadVersion = null, ageBand = null, scope = 'every course' }) {
+  const studio = useStudioTools(); // inside the new look: each row leads with its lesson's cover (StudioTools.jsx)
   const [folded, setFolded] = useState(() => rememberedFolds(LATEST_FOLD_KEY));
   const setFolds = (next) => { setFolded(next); rememberFolds(LATEST_FOLD_KEY, next); };
   const latest = latestLessons(courses);
@@ -142,7 +144,7 @@ export default function LatestLessons({ courses, onOpen, onPlay = null, onContin
             </button>
           </li>
         ) : (
-          <li key={`${r.courseKey}:${r.lessonId}`} data-lesson-id={r.lessonId} data-course-key={r.courseKey} data-added={r.added} className="flex flex-wrap items-center gap-2">
+          <li key={`${r.courseKey}:${r.lessonId}`} data-lesson-id={r.lessonId} data-course-key={r.courseKey} data-added={r.added} className={`flex flex-wrap items-center gap-2${studio ? ' ls-tool-row' : ''}`}>
             {/* The title opens the lesson's own space — first in the row, as
                 the course list has it, so the same tap means the same thing. */}
             <button
@@ -151,6 +153,8 @@ export default function LatestLessons({ courses, onOpen, onPlay = null, onContin
               className="flex-[1_1_12rem] min-w-0 text-left py-2 min-h-[44px] text-sm text-[#1A1815] [overflow-wrap:anywhere] hover:text-[#B85838] hover:underline focus:outline focus:outline-2 focus:outline-[#B85838]"
               style={{ fontFamily: '"Fraunces", serif' }}
             >
+              <StudioLessonThumb tools={studio} courseKey={r.courseKey} lessonId={r.lessonId} label={r.n != null ? `L${r.n}` : ''} />
+              <span className={studio ? 'ls-tool-words' : 'contents'}>
               <span className="block text-[#5A5751] text-[0.6875rem] leading-snug" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                 <span className="whitespace-nowrap">{formatAdded(r.added)}</span>
                 {' · '}<span>{r.courseTitle}</span>
@@ -168,6 +172,7 @@ export default function LatestLessons({ courses, onOpen, onPlay = null, onContin
               {r.sameTitleIn && r.sameTitleIn.length ? (
                 <span className="block text-[#5A5751] text-[0.6875rem] leading-snug" data-testid="latest-same-title">same title, another lesson: {r.sameTitleIn.join(', ')}</span>
               ) : null}
+              </span>
             </button>
             {/* THE LESSON'S OWN STATE, as the course list shows it (DR-0631):
                 Continue on a lesson begun, FINISHED on one read to the end —

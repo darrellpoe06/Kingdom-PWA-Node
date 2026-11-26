@@ -721,7 +721,7 @@ export default function Presenter({
 
   if (!cur) {
     return (
-      <div style={{ position: 'fixed', inset: 0, zIndex: 60, background: '#FAF8F4', color: '#1A1815', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, textAlign: 'center', fontFamily: '"Fraunces", Georgia, serif' }} data-reading="true" role="dialog" aria-label={`Present — ${title}`}>
+      <div data-classic-paper style={{ position: 'fixed', inset: 0, zIndex: 60, background: '#FAF8F4', color: '#1A1815', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, textAlign: 'center', fontFamily: '"Fraunces", Georgia, serif' }} data-reading="true" role="dialog" aria-label={`Present — ${title}`}>
         <div>
           <p style={{ fontSize: '1.125rem', marginBottom: 16 }}>There’s nothing to present here yet.</p>
           {onClose && <button type="button" onClick={onClose} style={btn.ghost}>Close ✕</button>}
@@ -793,7 +793,7 @@ export default function Presenter({
       </span>
     );
     return (
-      <div style={{ position: 'fixed', inset: 0, zIndex: 70, background: '#14110E', color: '#FAF8F4', display: 'flex', flexDirection: 'column', fontFamily: '"Fraunces", Georgia, serif' }} data-reading="true" role="dialog" aria-label={`Presenting — ${title}`}>
+      <div data-classic-paper style={{ position: 'fixed', inset: 0, zIndex: 70, background: '#14110E', color: '#FAF8F4', display: 'flex', flexDirection: 'column', fontFamily: '"Fraunces", Georgia, serif' }} data-reading="true" role="dialog" aria-label={`Presenting — ${title}`}>
         {/* THE SLIDE CARRIES THE ROOM'S SIZE (DR-0451). --slide-scale multiplies
             every font size on the slide and nothing else on the screen, so the
             words for the room grow without the speaker's own panel growing
@@ -851,7 +851,7 @@ export default function Presenter({
   }
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 60, background: '#FAF8F4', color: '#1A1815', overflowY: 'auto', fontFamily: '"Fraunces", Georgia, serif' }} data-reading="true" role="dialog" aria-label={`Present — ${title}`}>
+    <div data-classic-paper style={{ position: 'fixed', inset: 0, zIndex: 60, background: '#FAF8F4', color: '#1A1815', overflowY: 'auto', fontFamily: '"Fraunces", Georgia, serif' }} data-reading="true" role="dialog" aria-label={`Present — ${title}`}>
       {/* Sticky control bar — controls-in-context: scene nav + timer reachable at
           any scroll. IT IS CHROME, AND IT FOLDS (DR-0451). Darrell 2026-09-17,
           from this exact bar on his phone: "the controls are taking over the

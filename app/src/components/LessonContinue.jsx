@@ -36,6 +36,7 @@ import { unitLabels } from '../lib/learn-units.js';
 import { ownNumber } from '../lib/lesson-order.js';
 import LessonProgressBar from './LessonProgressBar.jsx';
 import { lessonProgress, isUnfinished } from '../lib/lesson-progress.js';
+import { useStudioTools, StudioLessonThumb } from './learn-studio/StudioTools.jsx';
 
 const SERIF = { fontFamily: '"Fraunces", serif' };
 const MONO = { fontFamily: '"JetBrains Mono", monospace' };
@@ -88,6 +89,7 @@ function howFar(place) {
 /** The top-of-Learn offer: the latest lesson, then every other one begun (or the closest to finished first). */
 export function ContinueOffer({ items, onContinue, onRefresh, onForget, now = Date.now(), max = 4 }) {
   const [order, setOrder] = React.useState('latest');
+  const studio = useStudioTools(); // inside the new look: each lesson leads with its cover (StudioTools.jsx)
   if (!Array.isArray(items) || items.length === 0) return null;
   const canOrder = items.length > 1 && items.some((x) => isUnfinished(lessonProgress(x.place)));
   const shown = canOrder && order === 'closest' ? orderClosest(items) : items;
@@ -120,14 +122,17 @@ export function ContinueOffer({ items, onContinue, onRefresh, onForget, now = Da
         onClick={() => onContinue(place)}
         data-testid="continue-latest"
         aria-label={`Continue ${lesson.title}, ${placeWhere(place)}${howFar(place)}`}
-        className={`w-full text-left px-4 py-3 min-h-[56px] border-2 border-[#5A6E3D] bg-[#5A6E3D] text-white hover:bg-[#4a5a31] ${FOCUS}`}
+        className={`w-full text-left px-4 py-3 min-h-[56px] border-2 border-[#5A6E3D] bg-[#5A6E3D] text-white hover:bg-[#4a5a31] ${FOCUS}${studio ? ' ls-tool-row ls-tool-row--lead' : ''}`}
       >
+        <StudioLessonThumb tools={studio} courseKey={place.courseKey} lessonId={place.lessonId} label={String(ownNumber(lesson, course.schedule))} bar={false} />
+        <span className={studio ? 'ls-tool-words' : 'contents'}>
         <span className="block text-[0.8125rem] uppercase tracking-wider font-semibold">Continue →</span>
         <span className="block text-base leading-snug mt-0.5" style={SERIF}>{lessonLabel(course, lesson)}</span>
         <span className="block text-[0.75rem] opacity-90 mt-0.5">
           {course.meta.title} · {placeWhere(place)}{placeAgo(place.at, now) ? ` · ${placeAgo(place.at, now)}` : ''}
         </span>
         <LessonProgressBar place={place} look="oncolor" silent />
+        </span>
       </button>
       <div className="flex flex-wrap gap-2 mt-2">
         {place.step > 0 && (
@@ -163,13 +168,16 @@ export function ContinueOffer({ items, onContinue, onRefresh, onForget, now = Da
                   type="button"
                   onClick={() => onContinue(p)}
                   aria-label={`Continue ${l.title}, ${placeWhere(p)}${howFar(p)}`}
-                  className={`w-full text-left px-2 py-2 min-h-[44px] border border-[#5A6E3D]/50 bg-white text-[#1A1815] hover:border-[#5A6E3D] ${FOCUS}`}
+                  className={`w-full text-left px-2 py-2 min-h-[44px] border border-[#5A6E3D]/50 bg-white text-[#1A1815] hover:border-[#5A6E3D] ${FOCUS}${studio ? ' ls-tool-row' : ''}`}
                 >
+                  <StudioLessonThumb tools={studio} courseKey={p.courseKey} lessonId={p.lessonId} label={String(ownNumber(l, c.schedule))} bar={false} />
+                  <span className={studio ? 'ls-tool-words' : 'contents'}>
                   <span className="block text-sm leading-snug" style={SERIF}>{lessonLabel(c, l)}</span>
                   <span className="block text-[0.6875rem] text-[#5A5751]">
                     Continue → {c.meta.title} · {placeWhere(p)}{placeAgo(p.at, now) ? ` · ${placeAgo(p.at, now)}` : ''}
                   </span>
-                  <LessonProgressBar place={p} look="classic" silent />
+                  <LessonProgressBar place={p} look={studio ? 'studio' : 'classic'} silent />
+                  </span>
                 </button>
               </li>
             ))}

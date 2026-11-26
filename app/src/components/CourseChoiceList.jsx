@@ -14,6 +14,7 @@
 // lib/learn-course-choice.js, which derives them from the mounted catalog.
 import React from 'react';
 import { courseChoiceRows, standingWords, choiceWords } from '../lib/learn-course-choice.js';
+import { useStudioTools, StudioCourseCover } from './learn-studio/StudioTools.jsx';
 
 const STATE_TONE = {
   completed: 'text-[#5A6E3D]',
@@ -31,21 +32,24 @@ export function CourseChoiceList({
     // (DR-0121: live derivation), so the memo keys on what actually changes.
     [courses, catalog, sortKey], // eslint-disable-line react-hooks/exhaustive-deps
   );
+  // Inside the new look every course is a picture card (its cover over its words); on the classic page, a row.
+  const studio = useStudioTools();
   return (
-    <div data-testid="course-choice-list">
+    <div data-testid="course-choice-list" data-look={studio ? 'cards' : 'rows'}>
       <p className="text-[0.75rem] text-[#1A1815] mb-3" data-testid="course-choice-words" role="status">
         {choiceWords(rows, { sortLabel, departmentLabel })}
       </p>
       {rows.length > 0 && (
-        <ul className="border-t border-[#E8E4DC]">
+        <ul className={studio ? 'ls-course-cards' : 'border-t border-[#E8E4DC]'}>
           {rows.map((r) => (
-            <li key={r.key} className="border-b border-[#E8E4DC]">
+            <li key={r.key} className={studio ? 'ls-course-card' : 'border-b border-[#E8E4DC]'}>
               <button
                 type="button"
                 onClick={() => onChoose && onChoose(r.key)}
                 data-course={r.key}
                 className="w-full text-left px-3 py-3 min-h-[56px] bg-white hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
               >
+                <StudioCourseCover tools={studio} courseKey={r.key} department={r.department} title={r.title} />
                 <span className="flex items-baseline justify-between gap-3 flex-wrap">
                   <span className="text-[0.9375rem] text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>
                     {r.title}

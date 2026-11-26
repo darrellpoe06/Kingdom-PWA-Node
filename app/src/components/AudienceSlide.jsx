@@ -46,7 +46,7 @@ const SLIDE_FS = (clampExpr) => `calc(${clampExpr} * var(--slide-scale, 1))`;
 function InviteCorner({ invite }) {
   if (!invite || !invite.url) return null;
   return (
-    <div className="bg-white text-[#1A1815]" style={{ position: 'fixed', right: 'clamp(16px, 2vw, 40px)', bottom: 'clamp(16px, 2vw, 40px)', zIndex: 5, borderRadius: 10, padding: 'clamp(10px, 1vw, 16px)', textAlign: 'center', boxShadow: '0 4px 24px rgba(0,0,0,0.45)' }}>
+    <div data-classic-paper className="bg-white text-[#1A1815]" style={{ position: 'fixed', right: 'clamp(16px, 2vw, 40px)', bottom: 'clamp(16px, 2vw, 40px)', zIndex: 5, borderRadius: 10, padding: 'clamp(10px, 1vw, 16px)', textAlign: 'center', boxShadow: '0 4px 24px rgba(0,0,0,0.45)' }}>
       <QRCodeSVG value={invite.url} size={132} level="M" role="img" aria-label="Scan to follow along on your phone" style={{ display: 'block', width: 'clamp(96px, 10vw, 180px)', height: 'auto' }} />
       <div style={{ fontSize: SLIDE_FS('clamp(11px, 1vw, 15px)'), letterSpacing: '0.14em', textTransform: 'uppercase', marginTop: 8, fontWeight: 600 }}>Follow along</div>
       {invite.code && (

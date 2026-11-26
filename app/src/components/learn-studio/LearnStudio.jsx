@@ -32,6 +32,8 @@ import CourseLessonsView from './CourseLessonsView.jsx';
 import { PlaceLookupContext, LessonProgressFor } from '../LessonProgressBar.jsx';
 import { placeLookup } from '../../lib/lesson-progress.js';
 import './learn-studio.css';
+import './learn-classic-skin.css';
+import { StudioToolsContext, studioToolsFor } from './StudioTools.jsx';
 
 /** 2–3 balanced lines, the same rule the thumbnail compositor uses. */
 export function stackLines(text, maxLines = 3) {
@@ -247,7 +249,7 @@ function Hero({ slides, onOpen, onListen }) {
  * great however by default it should be condensed"). One tap opens it; a tool or department
  * chip opens it and scrolls to it (scrollToStudioTools). Its contents stay mounted while closed.
  */
-function ToolsPanel({ title, note, children }) {
+function ToolsPanel({ title, note, studio = null, children }) {
   return (
     <details className="ls-row ls-full-tools" id="ls-full-tools" data-testid="ls-full-tools">
       <summary className={`ls-tools-summary ${RING}`}>
@@ -258,7 +260,10 @@ function ToolsPanel({ title, note, children }) {
           Open ▾
         </span>
       </summary>
-      <div className="ls-tools-body">{children}</div>
+      {/* The classic tools wear the new look (learn-classic-skin.css) and show their pictures (StudioTools.jsx). */}
+      <div className="ls-tools-body ls-classic-skin" data-testid="ls-classic-skin">
+        <StudioToolsContext.Provider value={studio}>{children}</StudioToolsContext.Provider>
+      </div>
     </details>
   );
 }
@@ -420,6 +425,7 @@ export default function LearnStudio({
     [courses, index, places, everyPlace, progress, preview]
   );
   const findPlace = useMemo(() => placeLookup(everyPlace), [everyPlace]);
+  const studioTools = useMemo(() => studioToolsFor(index, topicCovers, shelfForDepartment), [index, topicCovers]);
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(null);
   const [shelf, setShelf] = useState(null);
@@ -601,7 +607,7 @@ export default function LearnStudio({
                 )}
               />
               {tools && (
-                <ToolsPanel title={`${pickedCourse.title}: every tool`} note="record, downloads, share, ages">
+                <ToolsPanel title={`${pickedCourse.title}: every tool`} note="record, downloads, share, ages" studio={studioTools}>
                   {tools}
                 </ToolsPanel>
               )}
@@ -682,7 +688,7 @@ export default function LearnStudio({
                 </div>
               </section>
               {tools && (
-                <ToolsPanel title="Every Learn Tool" note="Continue, Latest, Browse, Find, Record, Downloads">
+                <ToolsPanel title="Every Learn Tool" note="Continue, Latest, Browse, Find, Record, Downloads" studio={studioTools}>
                   {tools}
                 </ToolsPanel>
               )}
