@@ -131,7 +131,8 @@ import { plainWordsFor, plainWordLine } from '../lib/learn-plain-words.js';
 import { recordUse, recentUsed } from '../lib/ux-signals.js';
 import { noteUse } from '../lib/usage-events.js';
 import { getPlace, getPlaceFor, listPlaces, placeInProgress, placeWhere, recordPlace, finishPlace, clearPlace, getTimeFit, recordTimeFit, refreshPlace, placeIsFinished, placeFinishes, versionsRead, PLACE_FINISHED_EVENT, readingIsFresh } from '../lib/learn-resume.js';
-import { versionRead, deckVersion, bandVersion, readMark, readMarkLabel } from '../lib/lesson-read-mark.js';
+import { versionRead, deckVersion, bandVersion } from '../lib/lesson-read-mark.js';
+import { studioRecord, studioMarkFor, scrollToStudioTools } from '../lib/learn-studio-bridge.js';
 import { unitLabels } from '../lib/learn-units.js';
 import { ContinueOffer, ContinueChip, RowContinue, resolvePlaces } from './LessonContinue.jsx';
 import LatestLessons from './LatestLessons.jsx';
@@ -4627,14 +4628,7 @@ function ChurchLearn({
   // catalog mounts; never while signed out (the record is his account's).
   const [devicePlaces, setDevicePlaces] = useState(() => listPlaces());
   React.useEffect(() => { setDevicePlaces(listPlaces()); }, [placesTick]);
-  // The new look's numbers read the SAME places and progress as this page (DR-1662).
-  const studioCtx = React.useMemo(() => ({ places: devicePlaces, progress }), [devicePlaces, progress]);
-  const studioBegun = React.useMemo(() => devicePlaces.filter(placeInProgress), [devicePlaces]);
-  const studioDone = React.useMemo(() => {
-    const ids = new Set(devicePlaces.filter((pl) => pl && pl.done === true).map((pl) => pl.lessonId));
-    for (const k of Object.keys(progress || {})) if (progress[k]) ids.add(k);
-    return ids;
-  }, [devicePlaces, progress]);
+  const studioRec = React.useMemo(() => studioRecord(devicePlaces, progress), [devicePlaces, progress]); // the new look reads the SAME record (DR-1662)
   const recordHead = React.useMemo(() => {
     if (!signedIn) return null;
     const rows = (Array.isArray(learnerRecords) ? learnerRecords : []).filter((r) => r && (!currentUserId || r.userId === currentUserId));
@@ -4862,20 +4856,10 @@ function ChurchLearn({
   // DR-1481: the Latest list's lesson door, named once and shared with the record's course folds; the course door is DR-1233's.
   const leaveDeptFor = (k) => { if (dept && !visibleCourses.some((c) => c.key === k)) setDeptId('all'); };
   const openLessonClassic = (k, id) => { leaveDeptFor(k); setActiveKey(k); setResumeOpenGuide(false); setResumeLessonId(id); setResumeNonce((n) => n + 1); setLearnArea('lessons'); };
-  // EVERY CLASSIC FUNCTION LIVES IN THE NEW LOOK (DR-1662; Darrell 2026-11-26:
-  // "We need all these functions to be in the new view without loosing the
-  // functions"). The classic controls (departments, course quick links and
-  // picker, the progress line, closest-to-finished, sorts, Lessons / Continue /
-  // Latest / Browse / Find / Record / Downloads) render INSIDE Learn Studio.
-  // While the new look is showing, a lesson chosen from any of them opens in
-  // the new Lesson Experience (DR-1654) through the opener Learn Studio
-  // registers here; with no opener (classic view, or a lesson the Experience
-  // cannot open) the classic path runs exactly as before.
+  // EVERY CLASSIC FUNCTION LIVES IN THE NEW LOOK (DR-1662): while it shows, a lesson chosen in these tools opens in its Experience
+  // through the opener it registers; with none (classic view, or a lesson it cannot open) the classic path runs exactly as before.
   const studioOpenRef = React.useRef(null);
-  const viaStudio = (courseKey, lessonId, opts) => {
-    const open = studioOpenRef.current;
-    return !!(open && courseKey && lessonId && open(courseKey, lessonId, opts || {}));
-  };
+  const viaStudio = (courseKey, lessonId, opts) => !!(studioOpenRef.current && courseKey && lessonId && studioOpenRef.current(courseKey, lessonId, opts || {}));
   const openLessonFromList = (k, id) => { if (!viaStudio(k, id, { mode: 'read' })) openLessonClassic(k, id); };
   const openCourseFromRecord = (k) => { setResumeLessonId(null); setResumeOpenGuide(false); leaveDeptFor(k); openCourseKey(k); setLearnArea('lessons'); };
   const resumeNowRef = React.useRef(resumeNow);
@@ -4928,14 +4912,6 @@ function ChurchLearn({
   // FULL WIDTH, LIKE EVERY OTHER PAGE (Darrell 2026-09-14: "the lessons are
   // supposed to be the full width of the window... like all pages").
   const [studioFlag] = useState(() => isLearnStudioOn({ defaultOn: learnStudioDefaultOn })), [studio, setStudio] = useState(studioFlag); // owner preview: on by default for the owner's device (no URL needed in the native app), opt-in elsewhere
-  // A SHARED LESSON LINK MUST LAND IN THE NEW LOOK TOO (Darrell, 2026-11-25:
-  // "our share links do/should go to each lesson... the new look needs to do
-  // that also... currently it doesn't"). Below, deepLink.lessonId drives
-  // resumeLessonId for the classic view -- but that branch is never reached
-  // while studio is true, so the owner's device silently ignored a shared
-  // lesson link and landed on the Learn Studio home screen. Threaded through
-  // as initialLessonId -> LearnStudio's own initialLesson prop (already
-  // supported, already tested) opens the real lesson's cover directly.
   // MEASURED in a real browser at 1440px rather than guessed: window 1440,
   // <main> 1440, and the lesson card 768 -- constrained by exactly this one
   // `max-w-3xl` on the section below. It was the ONLY limiter in the whole
@@ -6046,41 +6022,14 @@ function ChurchLearn({
       )}
     </section>
   );
+  // A shared lesson link lands in the new look too (Darrell 2026-11-25): deepLink threads through as initialLessonId / initialCourseKey.
   if (studio) {
-    return (
-      <LearnStudioPreview
-        courses={courses}
-        onOpenLesson={(k, id) => { setStudio(false); openLessonClassic(k, id); }}
-        onExit={() => setStudio(false)}
-        ownerDevice={learnStudioDefaultOn}
-        initialLessonId={deepLink && deepLink.lessonId}
-        initialCourseKey={deepLink && deepLink.courseKey}
-        tools={classicLearn}
-        ctx={studioCtx}
-        places={studioBegun}
-        done={studioDone}
-        continueCount={inProgress.length}
-        recordCount={recordHead ? recordHead.lessonsRead : 0}
-        markFor={(lesson, courseKey) => {
-          // The SAME read mark the classic rows carry ("✓ READ ×3 · Adult"), from the same place + record.
-          const place = devicePlaces.find((pl) => pl && pl.lessonId === lesson.id && (!courseKey || pl.courseKey === courseKey)) || null;
-          const mark = readMark({ place, record: myRecordFor(lesson.id), versions: lessonVersions(lesson), attributed: bandVersion(lesson, ageBand) });
-          return mark.read ? readMarkLabel(mark) : '';
-        }}
-        onTool={(area) => {
-          setResumeLessonId(null); setResumeOpenGuide(false); setDeptId('all'); setLearnArea(area);
-          setTimeout(() => { const el = document.getElementById('ls-full-tools'); if (el && el.scrollIntoView) el.scrollIntoView({ block: 'start' }); }, 0);
-        }}
-        registerOpener={(fn) => { studioOpenRef.current = fn; }}
-        onCourse={(k) => { if (k) openCourseFromRecord(k); }}
-        onDepartment={(label) => {
-          const d = departments.find((x) => x.label === label);
-          if (!d) return false;
-          setResumeLessonId(null); setResumeOpenGuide(false); setDeptId(d.id); setLearnAreaState('lessons');
-          return true;
-        }}
-      />
-    );
+    const onDepartment = (label) => { const d = departments.find((x) => x.label === label); if (!d) return false; setResumeLessonId(null); setResumeOpenGuide(false); setDeptId(d.id); setLearnAreaState('lessons'); return true; };
+    const onTool = (area) => { setResumeLessonId(null); setResumeOpenGuide(false); setDeptId('all'); setLearnArea(area); scrollToStudioTools(); };
+    return <LearnStudioPreview courses={courses} onOpenLesson={(k, id) => { setStudio(false); openLessonClassic(k, id); }} onExit={() => setStudio(false)} ownerDevice={learnStudioDefaultOn}
+      initialLessonId={deepLink && deepLink.lessonId} initialCourseKey={deepLink && deepLink.courseKey} tools={classicLearn} ctx={studioRec.ctx} places={studioRec.begun} done={studioRec.done}
+      continueCount={inProgress.length} recordCount={recordHead ? recordHead.lessonsRead : 0} markFor={studioMarkFor({ places: devicePlaces, recordFor: myRecordFor, ageBand })}
+      onTool={onTool} registerOpener={(fn) => { studioOpenRef.current = fn; }} onCourse={(k) => { if (k) openCourseFromRecord(k); }} onDepartment={onDepartment} />;
   }
   return classicLearn;
 }
