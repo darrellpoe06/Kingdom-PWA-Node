@@ -55,7 +55,7 @@ export function withSectionBreaks(text) {
       from = at + h.length;
     }
     // The author's spelled numbers ("FIVE. HE CANNOT DESIRE IT."), even where the plan could not
-    // see a sentence start ("(John 8:46)FIVE."): each is a section of its own.
+    // see a sentence start (a number glued to the reference before it): each is a section of its own.
     for (const m of para.matchAll(NUMBER_AT)) {
       const at = m.index + m[1].length;
       if (cuts.some((c) => c.at <= at && at < c.at + c.h.length)) continue;
