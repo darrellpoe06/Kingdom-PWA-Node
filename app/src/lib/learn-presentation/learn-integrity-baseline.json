@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T05:04:48.870Z",
+ "measuredAt": "2026-11-26T05:08:37.810Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4338
+  "readings": 4340
  },
  "departments": [
   {
@@ -12758,11 +12758,13 @@
    "department": "The Eternal Algorithms",
    "position": 13,
    "title": "Identity Received, Not Constructed (in His image, wonderfully made)",
-   "contentSha": "53e4021b9b70e80e280ad57cf7eabb08d26510d68826ce89bf948b2453c75c6a",
+   "contentSha": "99ffdabf055ac14b1ccbb3aca70ffad49fee7b84f270b7ed8843a92799b5d404",
    "versions": {
-    "teen": "d9c5307a20e90596520c8783211e4029daef5c454ad0f58ef12c0966d4d0d536",
-    "adult": "3e9bfd187f947b874afcf1db3382b49447be5a963927dfcd6d535cd10fe9ab77",
-    "senior": "a0f896a936dccaf3c4f81453bc2785ed6937e6211a669a6af2533dbf5b37517f"
+    "child": "98b654e55e374db80c0c9f4c704159dc83ebb20b75f12017655b1957cccd0d32",
+    "youth": "d5059ce1cd7db9f5117fb838c11ee0c9ab4696e972a7e6bbe3a932d277a7f67a",
+    "teen": "d43929a488c6bb2363afbd0c7f1a0341f06150411004002f71853c35b3cbbfde",
+    "adult": "371cb54221ebf2d63d1e4a047e57febab1329811fdc5460c0cc5b77caad3194f",
+    "senior": "5b780f6452c6e2555afe82f66aefb7358d7ac6866e0539ca4c747847b9fbfc10"
    }
   },
   {
