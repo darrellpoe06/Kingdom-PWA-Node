@@ -1,5 +1,5 @@
 {
- "measuredAt": "2026-11-26T15:54:38.497Z",
+ "measuredAt": "2026-11-26T15:58:46.989Z",
  "counts": {
   "departments": 13,
   "courses": 51,
@@ -501,13 +501,13 @@
    "department": "A.I. The Way",
    "position": 6,
    "title": "Build something useful",
-   "contentSha": "c0b85426533d08af5f1908060874a5da1a5127bf0850e597dd9d9e27f82816cb",
+   "contentSha": "fe142bb39b7fa9b58b59e25b9009abdcc4d5a56eb0c6c1341b22a12baa6b6971",
    "versions": {
-    "child": "c66ef7a00743be9446749358b3f3d92cddc09db9fc8f690dd1f319d1307a2c87",
-    "youth": "33b7a9bb370cf12fe0dcab91257f8576eaa0a0356fcdf885c6ba98bc260dbb7a",
-    "teen": "db125fe39ebe45f8f907149e24b9e7382e43c50c06e0435c7f9354b54e4231d9",
-    "adult": "9d7a22f430b0f7bd0354d6394aad6f983419b69ff2a435281bab12b0f3390b7e",
-    "senior": "2bbb7d59942475f1177fdd6a8de130e6838c34b56b29acecf640ccc2a419de85"
+    "child": "360b150a40cfd6a87879bac8e654a08d8d76ec9959c6fac56e9d83b92f795bd3",
+    "youth": "2d9b6299ccbb7beb66591b16671a6bca7b9095bf2db191845003dcfaaea58bb7",
+    "teen": "a28c1c02a4a1812f82ae963464aef447e5bea23f03522965505f88c6adbffab2",
+    "adult": "4ddb4e0d93e19c52c83c232434c34e2b0c7bff753792dac06f8be0b8e0e49433",
+    "senior": "013125e59f521ec19ac1c870d91e373eb0508f0597fe7f4454d22f37da8cb689"
    }
   },
   {
