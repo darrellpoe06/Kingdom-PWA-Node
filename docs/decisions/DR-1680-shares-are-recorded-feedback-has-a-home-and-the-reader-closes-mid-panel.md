@@ -1,4 +1,4 @@
-# DR-1676: Shares from the new look are recorded, Feedback has a home on the church door, and the reader closes mid-panel
+# DR-1680: Shares from the new look are recorded, Feedback has a home on the church door, and the reader closes mid-panel
 
 **Date:** 2026-11-26
 **Status:** Accepted

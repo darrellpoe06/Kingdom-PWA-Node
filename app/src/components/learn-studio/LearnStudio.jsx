@@ -319,7 +319,7 @@ export function LessonCover({ x, next, onBack, onRead, onListen, onVersion, onOp
   // (?course=...&lesson=...), so a link shared from here opens exactly this
   // lesson for anyone, and (via ChurchLearn's deepLink -> initialLessonId)
   // lands back in this same new look for the owner's device.
-  // THE SAME SHARE AS THE CLASSIC BUTTON (DR-1676; measured 2026-11-26: lesson_shares held 0 rows,
+  // THE SAME SHARE AS THE CLASSIC BUTTON (DR-1680; measured 2026-11-26: lesson_shares held 0 rows,
   // ever, while lessons were being shared from here). A fresh token rides on the link, the share is
   // recorded (DR-0698), and the message is the lesson's own note with its title and summary; the
   // link previews as the lesson's picture and title (DR-1673).

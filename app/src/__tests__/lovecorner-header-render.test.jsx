@@ -207,7 +207,7 @@ describe('ChurchTabStrip', () => {
   });
 });
 
-// DR-1676: Darrell 2026-11-26, "No longer see a feedback option!!!!!!" -- the door's bar lost More
+// DR-1680: Darrell 2026-11-26, "No longer see a feedback option!!!!!!" -- the door's bar lost More
 // (DR-1484) and the header never handed Feedback to the sheet that replaced it.
 describe('Feedback has a home on the church door', () => {
   it('the menu sheet offers Send feedback, and it opens the feedback form', async () => {

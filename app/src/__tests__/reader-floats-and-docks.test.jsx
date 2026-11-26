@@ -144,7 +144,7 @@ describe('move, reset, dock', () => {
   });
 });
 
-// DR-1676: Darrell 2026-11-26, "put a close button in the middle of the screen so the reader can be
+// DR-1680: Darrell 2026-11-26, "put a close button in the middle of the screen so the reader can be
 // closed where the thumb already is". A second Close sits under Pop out; it closes the panel exactly as
 // the corner × does.
 describe('a Close in the middle of the reader panel', () => {

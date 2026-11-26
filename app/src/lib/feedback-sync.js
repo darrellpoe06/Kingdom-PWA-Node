@@ -212,7 +212,7 @@ export async function doorInstanceId(client = supabase, loc = null) {
  * @param item       Object from addFeedback() — see prototype line ~1039
  * @param meta       { activeTab?: string, appVersion?: string, deviceLabel?: string }
  */
-// EVERY VOICE REACHES THE OFFICE (DR-1676; Darrell 2026-11-26: "We want to understand users all of
+// EVERY VOICE REACHES THE OFFICE (DR-1680; Darrell 2026-11-26: "We want to understand users all of
 // them!!! Fix feedback!!! Use another channel if needed"). The `feedback` table admits only a signed-in
 // member of the space (RLS), so a signed-out visitor's note, or a church member's note refused by the
 // membership rule, stayed on their phone and reached no one. The second channel is the one every door
@@ -447,7 +447,7 @@ export function subscribeFeedback(onRemote) {
       return data || [];
     };
 
-    // The second channel's notes (DR-1676): what the family and church doors filed through
+    // The second channel's notes (DR-1680): what the family and church doors filed through
     // door_feedback_submit, read with the office's own rights and shown on the same board.
     const fetchDoorNotes = async () => {
       const out = [];

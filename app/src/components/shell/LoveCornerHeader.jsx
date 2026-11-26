@@ -281,7 +281,7 @@ export default function LoveCornerHeader({
           setSheet(null);
           setPersonalizeOpen(true);
         }}
-        // FEEDBACK HAS A HOME ON THE CHURCH DOOR AGAIN (DR-1676; Darrell 2026-11-26: "No longer see
+        // FEEDBACK HAS A HOME ON THE CHURCH DOOR AGAIN (DR-1680; Darrell 2026-11-26: "No longer see
         // a feedback option!!!!!!"). DR-1484 took More off the door's bar and pointed everything to
         // this sheet, but onFeedback stopped at the header and the sheet's button never drew.
         onFeedback={

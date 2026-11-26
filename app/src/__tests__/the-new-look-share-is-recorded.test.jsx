@@ -1,4 +1,4 @@
-// DR-1676: measured 2026-11-26, lesson_shares held 0 rows ever while lessons were shared from the new
+// DR-1680: measured 2026-11-26, lesson_shares held 0 rows ever while lessons were shared from the new
 // look -- its Share sent a bare link. It now shares exactly as the classic button: the lesson's own
 // note, a fresh token on the preview link (DR-1673), the share recorded, and a shared open reported.
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
