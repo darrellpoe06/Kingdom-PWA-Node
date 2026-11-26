@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T08:33:54.154Z",
+ "measuredAt": "2026-11-26T08:37:58.520Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4430
+  "readings": 4432
  },
  "departments": [
   {
@@ -13691,11 +13691,13 @@
    "department": "The Eternal Algorithms",
    "position": 18,
    "title": "The Kept Appointment (Simeon and Anna, positioned at the very hour)",
-   "contentSha": "e7b4fe4f4e5841f21cd75be328c47117e63735fcce9da279610768dd3469550c",
+   "contentSha": "6704c4482ddac79c3b13dbaa44917fbdb8e017f16cacf239f84bb917b67006be",
    "versions": {
-    "teen": "ee2d10365c49434447f7de30e139548eb517b9373367d57610cc095fae9d12cc",
-    "adult": "df1fccf9a41fd07e150b38710273a4b269ee687ef2fb963da68460a48311ced4",
-    "senior": "c0ba6e9d9cf03c3466b506f794b18172c3ee40830d2a3291ac14c1b79477f234"
+    "child": "2567243e1e9f15c743325ea5a7042d23f2ddfc4abbef20022ab95723bd37145d",
+    "youth": "0f4dd7266e7649a157e6804d29431e3239d78de39cda443b6206490b50d6df49",
+    "teen": "4f8ccc13c152281de2efa2080bbafbe810737a7367ea2bce392c5acaedfb7042",
+    "adult": "3ef97dea67067fe218cadcbaba817a51c9db750e2d118af819870220a95c06de",
+    "senior": "e7a631b579dc807d2b0c764804ac6e393f479885cb3e9c933fd5c119208919d9"
    }
   },
   {
