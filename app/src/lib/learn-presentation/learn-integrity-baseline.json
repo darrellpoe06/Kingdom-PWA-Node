@@ -1,5 +1,5 @@
 {
- "measuredAt": "2026-11-26T20:02:43.491Z",
+ "measuredAt": "2026-11-26T20:08:16.049Z",
  "counts": {
   "departments": 13,
   "courses": 51,
@@ -8382,13 +8382,13 @@
    "department": "The Word & The Way",
    "position": 9,
    "title": "He Is Risen, and He Goes Up",
-   "contentSha": "eec6e855c7a48514b1e560851c7019121e7f3b126c2521abf81f715b7535538f",
+   "contentSha": "eb2ca264f1142ec8259d60a9d045566198b4baf20d6f11a63a8ddc95a5e2853c",
    "versions": {
-    "child": "a131b1d5d549ce7814d2a9ec993040e450389fb947ca8f96a8be2c2d5b604fe6",
-    "youth": "23b41a253adfbe26894a6bd53d5de44d273d8f315699e7cfd2d083d52e6f635a",
-    "teen": "c2705ffacafaffef7bb73039f8e712a726a4889c81c4429f3748a47c35955181",
-    "adult": "7e123c27aac5e69b5ae520672ea5da7c21dc2f4ca191da5571f788a9f070b22c",
-    "senior": "a6b55af564d5bbdf5c4d60c5c54e15e6f91077882f47145f4b4a16d0a75c6494"
+    "child": "f6abd820bdc988ea1ab6857fa1cdd9937dfbaedc56a39646e5a738b1cba6d718",
+    "youth": "4e57254bdfb244c54443aa580576f9016402398c921290628f2846e6a0e158ef",
+    "teen": "b2e50835a544fef328e13612aae28b9c4c40907454d24c3010f51ed1669c091a",
+    "adult": "1af3c6890cd1732c8199f3a11db101e67107cb5f477cf2e81a7e2e92044eeb3d",
+    "senior": "8274f9ea389e51dde0d05af516f2fab69b01551218b59dc0d86e751918ebcbdf"
    }
   },
   {
