@@ -29,6 +29,7 @@ import { PV_PRICE_MESSAGES, PV_PRICE_OPENER } from './prophetic-voices/price.js'
 import { PV_DARBY_MESSAGES, PV_DARBY_OPENER } from './prophetic-voices/darby.js';
 import { PV_MUNROE_LESSONS } from './prophetic-voices/munroe.js';
 import { withTalkTogether } from './prophetic-voices/talk-together.js';
+import { PV_UNSEEN_REALM } from './prophetic-voices/unseen-realm.js';
 import {
   PV_DIOP_MESSAGES, PV_OBENGA_MESSAGES, PV_WILLIAMS_MESSAGES,
   PV_DIOP_OPENER, PV_OBENGA_OPENER, PV_WILLIAMS_OPENER,
@@ -377,7 +378,9 @@ const PV_SEQUENCES = {
   'pv-obenga': PV_OBENGA_MESSAGES,
   'pv-williams': PV_WILLIAMS_MESSAGES,
 };
-const PV_PLACED_AFTER = { 'pv-darby': PV_MUNROE_LESSONS };
+// Darrell's own teaching (2026-11-26) closes the course, after the record of
+// the voices: the frame they all stand in.
+const PV_PLACED_AFTER = { 'pv-darby': PV_MUNROE_LESSONS, 'pv-inventions': PV_UNSEEN_REALM };
 // The opening lesson, upgraded from the fetched sources by the voice's own file
 // (Darrell 2026-11-26: "All of these are too short!!!"). Fields given there
 // replace the original's; anything not given stays as first written.

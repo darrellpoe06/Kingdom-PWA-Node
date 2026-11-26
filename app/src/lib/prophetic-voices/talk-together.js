@@ -11,6 +11,10 @@
 // =============================================================================
 
 const TALK = {
+  'pv-unseen-realm-seen': [
+    'where they have seen something called justice that kept justice and righteousness apart, and how the Word shows the truth',
+    'read one verse aloud to each other that someone once tried to keep quiet',
+  ],
   'pv-munroe': ['what Dr. Munroe meant by the Kingdom, not a religion', 'name one thing in your week that belongs to the King'],
   'pv-munroe-kingdom-not-religion': [
     'what the difference is between going to church and living under the King',
