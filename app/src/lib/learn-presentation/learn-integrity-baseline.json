@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T14:19:10.588Z",
+ "measuredAt": "2026-11-26T14:25:13.622Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4542
+  "readings": 4544
  },
  "departments": [
   {
@@ -13005,11 +13005,13 @@
    "department": "The Eternal Algorithms",
    "position": 9,
    "title": "A Soft Answer Turneth Away Wrath",
-   "contentSha": "4e91a2b9637857440ef381dc20f0d198d7f9906a60b73599e24690a176a21d58",
+   "contentSha": "9d83eddfb6d75022cf9b5224c689cb6a5a78689b98d5bde67e01a42f528ba983",
    "versions": {
-    "teen": "0cf89fd8ea6cf540f9e98c0e19224cfc8358a53ae4dd2a8f924f931c94d1f340",
-    "adult": "70c52c64c43b8d297742165ddf84c5a11e9c1600faecda6b9318e15b0c483c40",
-    "senior": "bcf61c0fa357a964f1ab68b0e4f6d5d0453a952643626e0a5a3ad6e832b17346"
+    "child": "e0148b2b660244f3c2baead0bfbe9f1696a01a5f506da054c62a1bfaafdad5e7",
+    "youth": "fdb3dfec6b0c7fcf7eeead44a61b4faec4c0b198c3369a608c79b4e1b2f6a340",
+    "teen": "eff8ae54162094f8dab9209009c55a4eb10c7798a87451d5167892df8d5e0173",
+    "adult": "a92494c6e7145affa0cfdefdff03c352fca811fbd8c5069dbf94778d8925e388",
+    "senior": "5f65bfc13e83b955b2b228757fdf58227c8ba36da0223ddf3de4a7f8da662f13"
    }
   },
   {
