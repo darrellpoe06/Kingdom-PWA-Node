@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T15:12:55.087Z",
+ "measuredAt": "2026-11-26T15:16:16.206Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4564
+  "readings": 4566
  },
  "departments": [
   {
@@ -12637,11 +12637,13 @@
    "department": "The Eternal Algorithms",
    "position": 4,
    "title": "As For Me and My House",
-   "contentSha": "5409724e5c1fd04c988a4ec67965d200c4e30073de148bbf28b48e3761cfc028",
+   "contentSha": "1ca7f83a8a9a2bc2bf3b19ee3a8a27a86086ccb9f712e3cb5b190e41ca8394cd",
    "versions": {
-    "teen": "329924931cebe8b5c63dcd9d168d0bad06c4850d399f635933b0ae67831eefd0",
-    "adult": "d6bc47a5bb7c1c5ea58849cc8306a17c607b93f9fd37163931fc982c06221246",
-    "senior": "5f28b43069a85ce44c91099f8abab6f2aadd74474d2a7101be49322916624dc2"
+    "child": "43bdb239aa822d972c0e764742448699c7c87389f7126db05929fc6f2d0605bf",
+    "youth": "b628829513b684869e8a83e1e007d5acc742f69ca02cec6c5f9bfc2829576255",
+    "teen": "b6139a2803580002d85e0fb19dba7f852edb4dbc8a1fa8afc4d3a4e70b53cd50",
+    "adult": "e517b74d194e1cfde95cea913a4126f3ff29816fbd60141975f77fde20b4dab0",
+    "senior": "ea8184f1eff6b6e33a046c8189f7425567d7b96743116ded3834c2f2265374d1"
    }
   },
   {
