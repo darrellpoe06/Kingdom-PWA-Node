@@ -273,30 +273,31 @@ describe('the newsletter is the source, said out loud, and never worn as our own
     expect(L.levels.child).toMatch(/Only one of those four is stealing/);
   });
 
-  it('says in its own prose, and in every band, exactly what was NOT verified', () => {
+  it('carries what IT Brew reports about where to start, in every band, attributed and stated as the subject', () => {
     for (const k of PLACES) {
-      // These phrases occur ONLY in the disclosure passage of each place. Pinned
-      // deliberately against a phrase and not against a name: "IT Brew" appears
-      // all over every band, so pinning it would pass with the disclosure
-      // deleted — which is the trap the strip proof below exists to close.
-      expect(TEXTS[k], `${k}: says the full article was never opened`)
-        .toMatch(/did not read the full IT Brew article|never got to read the whole story/);
-      expect(TEXTS[k], `${k}: says nobody telephoned the three organisations`)
-        .toMatch(/did not telephone IT Brew, Ivanti or Saviynt|never called IT Brew, or Ivanti, or Saviynt/);
+      // Pinned against the content of the report (the custody question and the
+      // backdoor), not against a name: "IT Brew" appears all over every band,
+      // so pinning it would pass with the passage deleted — the trap the strip
+      // proof below exists to close.
+      expect(TEXTS[k], `${k}: who had it last`).toMatch(/last person|who had it last/);
+      expect(TEXTS[k], `${k}: the ghost account as a back door`).toMatch(/backdoor|back door/);
+      // And the lesson hands the reader the subject, never the research process.
+      expect(TEXTS[k], `${k}: no research-process talk`)
+        .not.toMatch(/did not read|never opened|telephone|never called|did not verify|not independently verified|refused outright/i);
     }
-    // And the positive half of the same honesty: the lesson stakes no statistic,
-    // so it says so rather than leaving a reader to wonder which number is soft.
+    // The lesson stakes no statistic, and says so rather than leaving a reader
+    // to wonder which number is soft.
     expect(L.lesson).toMatch(/This module stakes no statistic at all/);
     expect(L.levels.senior).toMatch(/stakes no statistic whatever/);
   });
 
-  it('PROVEN TO CATCH: deleting the not-verified passage from one band is seen', () => {
+  it('PROVEN TO CATCH: deleting the where-to-start passage from one band is seen', () => {
     // Pinned against the live band, not a copy, so a reworded passage cannot
     // leave this proving nothing.
-    const stripped = L.levels.youth.replace(/One honest limit, said plainly:[\s\S]*?this module states none\./, '');
+    const stripped = L.levels.youth.replace(/IT Brew's full story added two practical things\.[\s\S]*?this module states none\./, '');
     expect(stripped).not.toBe(L.levels.youth);
-    expect(/did not read the full IT Brew article/.test(L.levels.youth)).toBe(true);
-    expect(/did not read the full IT Brew article/.test(stripped)).toBe(false);
+    expect(/backdoor/.test(L.levels.youth)).toBe(true);
+    expect(/backdoor/.test(stripped)).toBe(false);
     // The trap, demonstrated rather than described: the publisher's NAME
     // survives the strip, so a check pinned on it would have read green.
     expect(/IT Brew/.test(stripped)).toBe(true);
