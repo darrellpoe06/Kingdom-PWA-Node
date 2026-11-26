@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T04:24:15.885Z",
+ "measuredAt": "2026-11-26T04:28:43.748Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4318
+  "readings": 4320
  },
  "departments": [
   {
@@ -14539,11 +14539,13 @@
    "department": "The Eternal Algorithms",
    "position": 46,
    "title": "Keeping Yourself by the Word (line upon line, and both hands on it)",
-   "contentSha": "d20cedd74573c54b4995ee7b55fa5d63bb259d945e13bb555e5b69bd7a61ef63",
+   "contentSha": "5a0a1428f130a16f260b98213ffcbf29425390d971f0c7282fb918cf3edd6b6b",
    "versions": {
-    "teen": "cf880aaca48c53b3bda6416d944fc4f23e2a84ca7433f6287d8db670076e8556",
-    "adult": "deece401d01fb37606ddf5d0990558589530467559d5dbae3faafbd0caf234cf",
-    "senior": "4e13269ca9cdb3b82dae6add9ad4de324f46dcb7dec86458bc6099b9676da434"
+    "child": "30ed0e262a044ec5fa524a6b3897d23c465edebf218b2c854d2b4ba7356288b6",
+    "youth": "7c600be446da76ed9d1c8f909d58185cb4d557d4c7d2326f5a2e150286be9d0a",
+    "teen": "f4466694a876ed06e0f1fde7d0723bd06793bcffa78ec38420aaaa4821d74d19",
+    "adult": "397672f7cb8b74f4027a41b3318643879fd0190957c599fab4a9b360b73e0779",
+    "senior": "227d09318164ec79999384d27da26bd821424dcaa6b882868e0b16a8b914a2e0"
    }
   },
   {
