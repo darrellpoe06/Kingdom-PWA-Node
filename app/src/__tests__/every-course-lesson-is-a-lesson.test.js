@@ -140,7 +140,6 @@ const SHORT_DEBT = [
   'kingdom-economics/econ3-circulation',
   'kingdom-economics/econ4-group-economics',
   'prophetic-voices/pv-price',
-  'prophetic-voices/pv-inventions',
 ];
 
 function measure() {
