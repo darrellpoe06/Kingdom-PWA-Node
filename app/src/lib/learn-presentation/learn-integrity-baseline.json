@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T07:40:52.568Z",
+ "measuredAt": "2026-11-26T07:44:26.113Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4406
+  "readings": 4408
  },
  "departments": [
   {
@@ -14332,11 +14332,13 @@
    "department": "The Eternal Algorithms",
    "position": 27,
    "title": "Appointed Once to Die (death is a doorway to the eternal, then the judgment)",
-   "contentSha": "e87d120542023ca62d83c0455dc683961ea393e97dc8337b18728321cc867c1c",
+   "contentSha": "9646c9ecaa8da0c6a147418f3e4aa0684c64444f32f213d3a696a8356867cd57",
    "versions": {
-    "teen": "ec01bf72bd938b02533891d7fbd20c3c0231cfc7e046ab677737aca835b7be31",
-    "adult": "9d4ff89be0d5e5f94cd6a70504e4a066f906e44e64bcc51ab8390763c1a1de23",
-    "senior": "0a3201e6245518779a56f422df07d928452f6a72f8215e94b6a54de41ed8178c"
+    "child": "8f62679f20473dce00e3bb52b81c09f8c24e71d69b5635518e698797cf8ab060",
+    "youth": "9dac12625e3d89b8501d50d36325aa3538f0c18070c6fc9073044372f0f1d2dc",
+    "teen": "c590654e4e1fd947a3d052dfde45c146f135d332ff2dc77beebafed82df4f943",
+    "adult": "3303cb2dc6346265c6d3683eb289e04dfe62d220697f73ce7a1465181411c3e8",
+    "senior": "02dffe2de1ae28b190cb01353e2cac350ac162b8065be9e4e94096c79dba1b67"
    }
   },
   {
