@@ -18,7 +18,18 @@ const L136 = pick('ll136-touched-with-the-feeling');
 let container, root, landed;
 beforeEach(() => {
   window.localStorage.clear();
-  window.speechSynthesis = { speaking: false, pending: false, paused: false, speak() {}, cancel() {}, pause() {}, resume() {}, getVoices: () => [], addEventListener() {}, removeEventListener() {} };
+  window.speechSynthesis = {
+    speaking: false,
+    pending: false,
+    paused: false,
+    speak() {},
+    cancel() {},
+    pause() {},
+    resume() {},
+    getVoices: () => [],
+    addEventListener() {},
+    removeEventListener() {},
+  };
   window.SpeechSynthesisUtterance = function U(t) {
     this.text = t;
   };
@@ -36,7 +47,17 @@ afterEach(() => {
   delete Element.prototype.scrollIntoView;
 });
 const openRead = ({ l, courseKey }) =>
-  act(() => root.render(<LessonExperience lesson={l} record={{ courseKey }} onExit={() => {}} initialMode="read" createNarrator={() => ({ status: 'idle', load() {}, play() {}, pause() {}, resume() {}, stop() {}, setRate() {}, onBoundary() {} })} />));
+  act(() =>
+    root.render(
+      <LessonExperience
+        lesson={l}
+        record={{ courseKey }}
+        onExit={() => {}}
+        initialMode="read"
+        createNarrator={() => ({ status: 'idle', load() {}, play() {}, pause() {}, resume() {}, stop() {}, setRate() {}, onBoundary() {} })}
+      />
+    )
+  );
 const shape = (l) => {
   const text = readingTextFor(l, 'adult');
   const paragraphs = text.split(/\n\n+/).filter(Boolean);
@@ -45,7 +66,7 @@ const shape = (l) => {
 };
 
 describe('one place for the lesson, whichever view saved it (DR-1672)', () => {
-  it('lesson 140 has the classic page\'s sections, and a place saved at section 6 opens Read on section 6', () => {
+  it("lesson 140 has the classic page's sections, and a place saved at section 6 opens Read on section 6", () => {
     const s = shape(L140.l);
     const sections = readSections(s.paragraphs);
     expect(sections.length).toBeGreaterThanOrEqual(12);
