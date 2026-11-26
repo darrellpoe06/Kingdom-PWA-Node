@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T11:46:45.311Z",
+ "measuredAt": "2026-11-26T11:51:48.417Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4478
+  "readings": 4480
  },
  "departments": [
   {
@@ -14156,11 +14156,13 @@
    "department": "The Eternal Algorithms",
    "position": 11,
    "title": "The Church Born in the Fire (priceless, because the King's Blood is)",
-   "contentSha": "ec372e37a66aff32e42a4cc857a3703d976e760392a678ee4985ecf906ce0c2d",
+   "contentSha": "d5549c5ce792835b32271e5b45d7b318fdde398c308cb0edbf27b0876829ac33",
    "versions": {
-    "teen": "f776116921073827a538ef27e5cf1b368c7c300120bd71706f8aea839f5fca22",
-    "adult": "b20d9a35f93cd294a0e0f3ffc6307bea15c6625d4e625709c6e4d15afc87157e",
-    "senior": "04dc40d6240768edf4f1d35b1b714907334d0ac27909da8d7b570f921e0ab9b6"
+    "child": "4d1350c6493860a02faa789ad216ac62818df96aee2556271bcfb7f4280f1df4",
+    "youth": "537164442315e60da36164b060c2138664530cd113f1f607aec5ee12be85e522",
+    "teen": "621fc8fbccd938a89fad3ccad876363f00c79847bb9eb831932b80a3d0f0072a",
+    "adult": "fcfdf1307c542551cf8006463ffa1ccde255b061e3f20ed8323b932d8b980ad6",
+    "senior": "3fea782cfd6761acb61671334ed6eeaa27c7139a92b1365aec3912ffb256b113"
    }
   },
   {
