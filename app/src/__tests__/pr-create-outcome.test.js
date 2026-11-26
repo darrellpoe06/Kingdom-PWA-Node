@@ -13,31 +13,25 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const SCRIPT = join(dirname(fileURLToPath(import.meta.url)), '../../..', 'scripts/pr-create-outcome.sh');
-const verdict = (output, code) =>
-  execFileSync('bash', [SCRIPT, String(code)], { input: output, encoding: 'utf8' });
+const verdict = (output, code) => execFileSync('bash', [SCRIPT, String(code)], { input: output, encoding: 'utf8' });
 
 // --- the race: both refusal shapes GitHub returns -------------------------
 const GRAPHQL_EXISTS = // run 44308027454, 2026-11-18
   'pull request create failed: GraphQL: A pull request already exists for ' +
   'darrellpoe06:fix/words-read-and-the-app-does-what-it-advertises. (createPullRequest)';
 const GH_PRECHECK_EXISTS = // run 43228136302, 2026-11-12
-  'a pull request for branch "ccr-9828ca3e-88puaw" into branch "main" already exists:\n' +
-  'https://github.com/darrellpoe06/Kingdom-PWA-Node/pull/2611';
+  'a pull request for branch "ccr-9828ca3e-88puaw" into branch "main" already exists:\n' + 'https://github.com/darrellpoe06/Kingdom-PWA-Node/pull/2611';
 
 // --- real failures that must NEVER be adopted ----------------------------
 const RESET = // run 40811913559, 2026-10-29
-  'pull request create failed: Post "https://api.github.com/graphql": read tcp ' +
-  '10.1.1.116:45996->140.82.112.6:443: read: connection reset by peer';
-const HTTP_499 = // run 34525462333, 2026-09-10
-  'pull request create failed: HTTP 499: 499  (https://api.github.com/graphql)';
+  'pull request create failed: Post "https://api.github.com/graphql": read tcp ' + '10.1.1.116:45996->140.82.112.6:443: read: connection reset by peer';
+const HTTP_499 = 'pull request create failed: HTTP 499: 499  (https://api.github.com/graphql)'; // run 34525462333, 2026-09-10
 const TITLE_TOO_LONG = 'pull request create failed: GraphQL: Title is too long';
-const NO_COMMITS =
-  'pull request create failed: GraphQL: No commits between main and claude/at-mains-tip';
+const NO_COMMITS = 'pull request create failed: GraphQL: No commits between main and claude/at-mains-tip';
 
 describe('pr-create-outcome -- the merge lane adopts a raced PR and still fails on a real fault', () => {
   it('a successful create yields its number from the PR URL', () => {
-    expect(verdict('https://github.com/darrellpoe06/Kingdom-PWA-Node/pull/2917\n', 0))
-      .toBe('created 2917');
+    expect(verdict('https://github.com/darrellpoe06/Kingdom-PWA-Node/pull/2917\n', 0)).toBe('created 2917');
   });
 
   it('a zero exit with NO number is an error -- auto-merge cannot be armed without one', () => {

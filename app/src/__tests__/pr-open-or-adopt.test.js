@@ -19,7 +19,9 @@ const REPO = 'darrellpoe06/Kingdom-PWA-Node';
 const BRANCH = 'claude/a-branch';
 
 let dir;
-beforeEach(() => { dir = mkdtempSync(join(tmpdir(), 'pr-adopt-')); });
+beforeEach(() => {
+  dir = mkdtempSync(join(tmpdir(), 'pr-adopt-'));
+});
 afterEach(() => rmSync(dir, { recursive: true, force: true }));
 
 /**
@@ -33,7 +35,9 @@ function stubGh({ pullsAnswers = [''], createOut = '', createRc = 0 }) {
   const answersFile = join(dir, 'answers');
   writeFileSync(answersFile, pullsAnswers.join('\n') + '\n');
   const gh = join(dir, 'gh');
-  writeFileSync(gh, `#!/usr/bin/env bash
+  writeFileSync(
+    gh,
+    `#!/usr/bin/env bash
 # calls are counted so a test can assert the retry actually re-read
 echo "$@" >> ${JSON.stringify(join(dir, 'calls'))}
 if [ "$1" = "api" ]; then
@@ -46,7 +50,8 @@ if [ "$1" = "pr" ] && [ "$2" = "create" ]; then
   exit ${createRc}
 fi
 exit 9
-`);
+`
+  );
   chmodSync(gh, 0o755);
   return gh;
 }
@@ -57,16 +62,13 @@ const run = (args, gh) =>
     env: { ...process.env, REPO, BRANCH, GH: gh, SLEEP: 'true', RETRIES: '3' },
   });
 
-const apiCalls = () =>
-  (existsSync(join(dir, 'calls')) ? readFileSync(join(dir, 'calls'), 'utf8') : '')
-    .split('\n').filter((l) => l.startsWith('api ')).length;
+const apiCalls = () => (existsSync(join(dir, 'calls')) ? readFileSync(join(dir, 'calls'), 'utf8') : '').split('\n').filter((l) => l.startsWith('api ')).length;
 
 const EXISTS_GRAPHQL = // run 44308027454, 2026-11-18 -- a real log line
   'pull request create failed: GraphQL: A pull request already exists for ' +
   'darrellpoe06:fix/words-read-and-the-app-does-what-it-advertises. (createPullRequest)';
 const RESET = // run 40811913559, 2026-10-29 -- a real log line
-  'pull request create failed: Post "https://api.github.com/graphql": read tcp ' +
-  '10.1.1.116:45996->140.82.112.6:443: read: connection reset by peer';
+  'pull request create failed: Post "https://api.github.com/graphql": read tcp ' + '10.1.1.116:45996->140.82.112.6:443: read: connection reset by peer';
 
 describe('pr-open-or-adopt -- the lane resolves a PR without calling a correct state a failure', () => {
   it('--probe asks the pulls API (the database), not the search index', () => {
@@ -91,7 +93,7 @@ describe('pr-open-or-adopt -- the lane resolves a PR without calling a correct s
     expect(run(['--open', 'A title', 'A body'], gh)).toBe('2919');
   });
 
-  it('RE-READS while the winner\'s PR is still being written', () => {
+  it("RE-READS while the winner's PR is still being written", () => {
     // first two reads come back empty, the third answers
     const gh = stubGh({ pullsAnswers: ['', '', '2920'], createOut: EXISTS_GRAPHQL, createRc: 1 });
     expect(run(['--open', 'A title', 'A body'], gh)).toBe('2920');
