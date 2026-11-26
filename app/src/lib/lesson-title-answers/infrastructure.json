@@ -1,0 +1,135 @@
+{
+ "inf2-the-nas": {
+  "verdict": "ANSWERS-BUT-ENDS-OPEN",
+  "reason": "Opens by naming the two jobs (barn and brain); the why sits in the hardware details mid-lesson, and the ending (Joseph's storehouse) lands only the storage half.",
+  "open": "THE QUESTION IN THE TITLE. Why does one home server both store the family's data and run its helpers? Because the Synology NAS is built as a real server for exactly those two jobs. As the barn, it keeps the data safe across several drives. As the brain, it runs the services the whole system depends on: automation, local A.I., sharing, and alerts.",
+  "close": "BACK TO THE QUESTION. Why does one box do both jobs? Because it was built for both: an Intel Xeon processor, error-correcting memory that catches its own mistakes, several drive bays, fast cache, and two 10-gigabit ports. That makes it superb at storing, serving and running small helpers. It leaves out a graphics card on purpose, so heavy A.I. goes to a different machine. One box, two jobs, sized honestly: the family's storehouse and the helpers that keep the household running, in one place you own.",
+  "teen": {
+   "open": "Why does one home server do two jobs? It's built like a barn and a brain: it stores the family's files safely and runs the helper programs everything depends on.",
+   "close": "So one box does both because it was built for both: lots of safe storage and a strong processor for small helpers. Heavy A.I. goes to a different machine."
+  },
+  "senior": {
+   "open": "One home server can carry two jobs because the Synology NAS is a genuine server: it stores the family's data safely across several drives and runs the services the whole system relies on.",
+   "close": "That answers the title. It is built for storing and serving and running small helpers, and deliberately not for heavy A.I., like Joseph's storehouse keeping what will be needed later."
+  }
+ },
+ "inf3-storage-raid": {
+  "verdict": "ANSWERS-BUT-ENDS-OPEN",
+  "reason": "States early that the plan has two halves (RAID and backup); the ending moves to the drive-replacement routine and a verse rather than landing what keeps the photos safe.",
+  "open": "THE QUESTION IN THE TITLE. If every hard drive will fail, what keeps your family's photos safe? Two different things working together. RAID keeps the box running when one drive dies. A real backup, an independent copy kept somewhere else and actually test-restored, protects against everything RAID cannot: deletion, ransomware, fire and theft.",
+  "example": "TWO BAD DAYS. Say one drive dies on a Tuesday. RAID keeps the NAS running; you confirm the backup is current, swap the dead drive, and the array rebuilds. Now say a folder of photos is deleted by mistake, or a fire takes the house. RAID cannot help with either. The independent backup can: the encrypted copy sealed on the church NAS, the one you have already proven by a test restore.",
+  "close": "BACK TO THE QUESTION. What keeps your family's photos safe when drives fail? Not one drive, and not RAID alone. RAID carries you through a dead drive; a backup carries you through everything else. Keep three copies, on two kinds of media, with one offsite, and restore from it on purpose so it is proof, not a hope. Then the failure of any single drive is routine, not loss. Knowing the state of what you hold and protecting it is wisdom, not fear (Proverbs 27:23).",
+  "teen": {
+   "open": "Every hard drive dies someday. What keeps the photos safe? RAID keeps things running when one drive breaks, and a real backup somewhere else saves you from everything else.",
+   "close": "So it's two things: RAID for a dead drive, and a tested backup for deletions, fires and theft. A backup you've never restored is only a hope."
+  },
+  "senior": {
+   "open": "Since every drive will fail, safety rests on two separate provisions: RAID, which keeps the system running through a single drive failure, and an independent, tested backup kept offsite.",
+   "close": "So the title is answered. RAID and a proven offsite backup together keep the family's photos safe, and the 3-2-1 rule with a real test restore turns a failure into a routine repair."
+  }
+ },
+ "inf1-what-is-sovereign": {
+  "verdict": "ANSWERS-LATE-OR-BURIED",
+  "reason": "Defines sovereign infrastructure and the home/church map; the answer to 'who holds the keys' (you do, when you own the iron; otherwise a distant company) is implied, never stated plainly.",
+  "open": "THE QUESTION IN THE TITLE. Who really holds the keys to your family's photos and your church's sermons? Whoever owns the machines they live on. Rent space on a giant company's computers and they hold the keys. Own and govern the machines in your own house and church, and you do.",
+  "close": "BACK TO THE QUESTION. Who really holds the keys? With sovereign infrastructure, you do. Your photos and sermons sit on iron you own and govern, so they cannot be quietly sold, mined or held hostage, and no one else can switch the service off. Holding the keys also means carrying the work a landlord would carry: backups, updates, keeping it running, shared and written down. That is stewardship (1 Corinthians 4:2): we keep the iron so it lifts the family and the church and never extracts from them.",
+  "teen": {
+   "open": "Who holds the keys to your family's photos? If they're on a big company's computers, the company does. If they're on machines your family owns, you do.",
+   "close": "So owning the machines means you hold the keys. Nobody can sell your stuff or switch it off. It also means you take care of them, faithfully."
+  },
+  "senior": {
+   "open": "The keys belong to whoever owns the machines. On rented company servers, the company holds them; on machines the family and church own and govern, the keys are ours.",
+   "close": "That is the title's answer. Owning the iron keeps our photos and sermons from being sold, mined or switched off, and it calls us to tend that iron as faithful stewards."
+  }
+ },
+ "inf5-remote-access": {
+  "verdict": "ANSWERS-CLEARLY",
+  "reason": "Second sentence answers it (a VPN, a private encrypted tunnel only trusted devices travel), and the ending lands the principle: least access, the right door for the right one."
+ },
+ "inf4-network-gateway": {
+  "verdict": "ANSWERS-LATE-OR-BURIED",
+  "reason": "Door and walls are named up front, but who gets through and who stays in their own room (VLANs per group, WireGuard for guests, RADIUS by role) is spread across the lesson; ends on documenting segments.",
+  "open": "THE QUESTION IN THE TITLE. Who gets to walk through your front door, and who stays in their own room? The gateway decides both. As the door, its firewall keeps out what should not come in. As the walls, it splits one network into separate rooms called VLANs, so the family, the church, the clinic and the rentals each stay in their own, walled off from the others.",
+  "close": "BACK TO THE QUESTION. Who walks through the door, and who stays in their own room? Only what the firewall lets in comes through the front door. Inside, each group has its own VLAN: the family, COLG, the clinic with its health-privacy rules, the rentals. A contractor or tenant comes in by the gateway's own WireGuard, not onto the family's private network, and RADIUS gives each person one set of credentials matched to their role. Walls and a watch, like Nehemiah's, and every wall documented so it can be trusted.",
+  "teen": {
+   "open": "Who gets in, and who stays in their own room? The gateway is your network's front door and its inside walls. It keeps strangers out and keeps different groups separate.",
+   "close": "So the firewall guards the door, and the VLANs give each group its own room. Guests get only what they need, and every wall is written down."
+  },
+  "senior": {
+   "open": "The gateway answers both parts. Its firewall guards the front door to the internet, and its VLANs divide one network into separate rooms so each group served stays walled off from the rest.",
+   "close": "So the title is answered. The door admits only what should enter, each group keeps its own room, and guests receive limited access matched to their role, a wall and a watch as in Nehemiah 4:9."
+  }
+ },
+ "inf7-gpu-vram-farm": {
+  "verdict": "ANSWERS-LATE-OR-BURIED",
+  "reason": "Answer (weights must fit in the GPU's own VRAM; 70B at common compression needs about 48 GB) arrives mid-lesson after the CPU/GPU primer; ends on current hardware and Bezalel. Lesson's 48 GB plan uses two cards, not one.",
+  "open": "THE QUESTION IN THE TITLE. Why does a 70B AI model need about 48 GB of GPU memory? Because the model's weights, the billions of numbers it learned, have to fit inside the graphics card's own memory, called VRAM, to run. A small model fits in a little. A 70-billion-parameter model at common compression needs roughly 48 GB to hold.",
+  "example": "SIZING THE FARM. The plan in this lesson reaches that number honestly: two used RTX 3090 cards together give 48 GB of VRAM, enough to hold a 70B-class model, in a chassis sized to add a third card for 72 GB. The cost is around $5,000, plus a separate church node. The lesson counts that cost against sovereignty, capability and data control, not against a small monthly API bill.",
+  "close": "BACK TO THE QUESTION. Why does a 70B model need about 48 GB? Because the GPU's thousands of small cores can only do their parallel work on weights that fit in its VRAM, and a 70-billion-parameter model at common compression takes roughly 48 GB of it. That one number gates everything. It is why the NAS, with no graphics card, cannot do this work, and why the farm is planned around 48 GB. Know your tools and size them honestly, counting the cost first (Luke 14:28).",
+  "teen": {
+   "open": "Why does a huge AI model need so much memory? Its learned numbers have to fit inside the graphics card's own memory, called VRAM. A 70B model needs about 48 GB.",
+   "close": "So the memory number decides everything. If the model doesn't fit in VRAM, it can't run there. That's why the plan is built around 48 GB."
+  },
+  "senior": {
+   "open": "A 70-billion-parameter model needs roughly 48 GB because its weights must fit within the GPU's own memory, VRAM, before the card's parallel cores can run it.",
+   "close": "That answers the title. VRAM is the one number that gates the work, so the planned farm is sized to 48 GB, with its cost counted soberly as Luke 14:28 instructs."
+  }
+ },
+ "inf9-keeping-it-alive": {
+  "verdict": "ANSWERS-LATE-OR-BURIED",
+  "reason": "Opens on owning the iron; who notices (the system itself, via health checks and ntfy alerts) sits mid-paragraph; the three brakes come last and it ends on a verse, not the answer.",
+  "open": "THE QUESTION IN THE TITLE. Who notices first when your system breaks? The system itself should, before any person goes looking. Every workflow carries a health check, failures are caught instead of hidden, and ntfy pushes an alert to your phone, with a failure pushed at high priority. What stops it from running away is three brakes: a budget ceiling, a single-instance lock, and a kill-switch, with the automation shipped turned off. Here is how it fits together.",
+  "example": "ONE STUCK JOB. Say a timed job hangs in the middle of the night. Its health check catches the failure, and ntfy pushes it to your phone at high priority, so you hear before anyone goes looking. When the timer fires again, the single-instance lock sees the stuck run and does not pile a second one on top. If it keeps going, the budget ceiling stops it, and the kill-switch pauses it instead of letting it charge ahead.",
+  "close": "BACK TO THE QUESTION. Who notices first when your system breaks? Not a person who happened to check. The system watches itself, catches its own failures, and tells your phone through ntfy, while the in-app inventory honestly says \"not connected\" or \"stale\" instead of a comforting number. And what stops it from running away is the three brakes: a budget ceiling, a lock that keeps a new run off a stuck one, and a kill-switch that pauses on overrun, all shipped off until someone is watching. That is the faithful manager keeping watch day and night (Luke 12:42; Nehemiah 4:9).",
+  "teen": {
+   "open": "Who finds out first when something breaks? The system should, by sending an alert straight to your phone.",
+   "close": "So the system tells you first, through health checks and alerts. And three brakes, a budget, a lock, and a kill-switch, keep any automation from running away."
+  },
+  "senior": {
+   "open": "The title asks who notices first when a system fails, and what keeps it from running away. The answer is that the system watches itself and reports, and that every self-running automation carries three brakes.",
+   "close": "So the answer is twofold. The system notices first and pushes the alert to your phone, and a budget ceiling, a single-instance lock, and a kill-switch keep any automation from running away. That is faithful watching, day and night."
+  }
+ },
+ "inf6-local-ai": {
+  "verdict": "ANSWERS-BUT-ENDS-OPEN",
+  "reason": "First sentence answers (models run on our own hardware through Ollama), but it ends on the three-brakes rule and a testing posture, not back on whether family words stay home.",
+  "close": "BACK TO THE QUESTION. Can a home A.I. run without sending your family's words to a stranger? Yes. Ollama runs open-weights models on our own NAS, so the family's and the church's words are processed at home, not in a vendor's cloud. Be honest about the ceiling: the CPU-only box handles smaller models at patient speed, and heavier work waits for the GPU box or goes to a vendor model only within a strict budget. For everyday helpers, the words stay home, and you still test what the model says (1 Thessalonians 5:21).",
+  "teen": {
+   "open": "Can an A.I. at home keep your family's words private? Yes, when it runs on your own hardware.",
+   "close": "So yes, a home A.I. like Ollama on our NAS keeps your words at home. It is smaller and slower, but your words do not go to a stranger."
+  },
+  "senior": {
+   "open": "The title asks whether a household A.I. can work without shipping the family's words to an outside company. It can, when the model runs on hardware the family owns.",
+   "close": "So the answer is yes, within honest limits. Open-weights models served by Ollama on our own NAS keep the family's and the church's words at home; only heavier work waits for stronger hardware or goes out under a strict budget."
+  }
+ },
+ "inf10-build-right-raise-builders": {
+  "verdict": "ANSWERS-LATE-OR-BURIED",
+  "reason": "Opens on stewardship and reliability; the test (you own a part when you can teach it) arrives mid-lesson; ends on founders raising founders, near the test but not stating it.",
+  "open": "THE QUESTION IN THE TITLE. Can you teach it? That is the test. You truly own a part of the stack, home or church, when you can write its simple checklist or record its sequence and explain it to one other person. A build that lives only in one person's memory is lucky, not mature. Here is why the Word ties owning to teaching.",
+  "example": "ONE PART, ONE PERSON. Say the part you understand best is the broadcast start-up sequence. You write its simple checklist, or record yourself running it, step by step. Then you walk one other person through it until they can run it without you. Now that part no longer rides on your memory, someone new can operate it, and you have passed the test this lesson sets.",
+  "close": "BACK TO THE QUESTION. Can you teach it? If you can, you own it. The lesson gave two marks of a mature build: reliability, written down in checklists and SOPs so nothing rides on one memory, and multiplication, entrusting it to faithful people who will be able to teach others also (2 Timothy 2:2). So pick your part, write it plain, and teach one person, heartily, as for the Lord (Colossians 3:23). Then the build, and the calling under it, outlasts you.",
+  "teen": {
+   "open": "How do you know you really own something you built? You can teach it to someone else.",
+   "close": "So the test is simple. If you can write down how your part works and teach one person, you truly own it."
+  },
+  "senior": {
+   "open": "The title offers a test for whether you truly own a build. The test is whether you can teach it to another person.",
+   "close": "So the test holds. When you can write the checklist for your part and pass it to someone faithful who can teach others, you own it, and the work no longer depends on you alone."
+  }
+ },
+ "inf8-church-stack": {
+  "verdict": "ANSWERS-LATE-OR-BURIED",
+  "reason": "The answer (PoeTech, because the industry left the gap) is implied mid-opening; the rest catalogs the stack; ends on Psalm 127, never plainly naming who builds.",
+  "open": "THE QUESTION IN THE TITLE. Who builds a church's tech when no one else will? We do. For years COLG, the church we serve, could not get real technology support from the broader industry, and that gap is exactly why PoeTech exists. We carry the home stack across the parking lot and build it for the church, and we build it for Him. Here is what that stack holds.",
+  "close": "BACK TO THE QUESTION. Who builds a church's tech when no one else will? PoeTech does, starting with COLG, its named first community. We carry the same sovereign stack across the parking lot: its own NAS with an encrypted offsite backup, the Sanctuary LED wall, the broadcast chain, and member and financial data kept staff-gated. Then we document all of it so any church in the same gap can receive it as a gift. And over every builder stands the Lord: unless He builds the house, the builders labor in vain (Psalm 127:1).",
+  "teen": {
+   "open": "Who helps a church with technology when nobody else will? PoeTech does, starting with our own church.",
+   "close": "So PoeTech builds the church's tech, because the gap was real. And we write it all down so other churches can have it too."
+  },
+  "senior": {
+   "open": "The title asks who will build a church's technology when the wider industry will not. PoeTech was formed to answer exactly that gap, beginning with COLG, its named first community.",
+   "close": "So the answer is PoeTech, carrying its home stack to the church and documenting it so any church in the same situation can receive it. We build, and the Lord builds the house (Psalm 127:1)."
+  }
+ }
+}

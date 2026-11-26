@@ -1,0 +1,85 @@
+{
+ "wk3-the-test": {
+  "verdict": "ANSWERS-CLEARLY",
+  "reason": "First sentence answers it (a right-looking wrong answer is more dangerous because you will believe it) and the last lands it: verify, then trust; doubting well protects your mind and name."
+ },
+ "wk2-good-questions": {
+  "verdict": "ANSWERS-BUT-ENDS-OPEN",
+  "reason": "First sentence answers it (the question decides the answer's quality); the ending drifts to the skill transferring beyond A.I. instead of landing why answers feel vague.",
+  "open": "THE QUESTION IN THE TITLE. Why do your A.I. answers feel vague? Because your question was vague. The quality of the answer is mostly decided before the model says a word. A clear question names what you want, when or where it applies, why you need it, and how you want it back.",
+  "example": "ONE TOPIC, TWO QUESTIONS. Ask \"tell me about dogs\" and you get a generic page about dogs. Now say you need help for a school report: ask what you want (how dogs were first trained to herd), why (a two-minute talk), and how you want it back (five short points a fifth-grader can follow). Same model, same topic. The second question gets an answer you can actually use, because you pulled the lever.",
+  "close": "BACK TO THE QUESTION. Why do your A.I. answers feel vague? The question is the real lever. A vague prompt gets a vague, generic reply. Name the four keys, what, when or where, why and how, and give it a role and an audience, and the answer sharpens to fit. That is good news: the fix is in your hands before the model ever answers.",
+  "teen": {
+   "open": "Why do A.I. answers feel vague? Usually because the question was vague. Your question decides most of the answer.",
+   "close": "So if the answer is fuzzy, sharpen the question. Say what you want, when, why, and how you want it back. That's the lever, and it's yours."
+  },
+  "senior": {
+   "open": "A.I. answers feel vague chiefly because the question was vague. The quality of the reply is largely settled by the question before the model writes anything.",
+   "close": "So the title's answer is in the asker's hands. State what you want, where it applies, why you need it and how it should come back, and the reply grows clear."
+  }
+ },
+ "wk4-ai-for-school": {
+  "verdict": "ANSWERS-CLEARLY",
+  "reason": "Opens on the bright line (copy and you walk away weaker; use it as a tutor and you walk away stronger) and ends on it: a shortcut that leaves you emptier is not worth it."
+ },
+ "wk5-ai-that-serves": {
+  "verdict": "ANSWERS-CLEARLY",
+  "reason": "Answers early (the best thing you can do with this skill is aim it at someone else, Mark 10:43-45) and ends on the payoff: serving is where your skill gets real."
+ },
+ "wk1-what-is-ai": {
+  "verdict": "ANSWERS-LATE-OR-BURIED",
+  "reason": "Explains what a model is (a pattern-guesser, not a knower, that can make things up); the answer to 'should you trust it' is implied, never said, and it ends on the tool metaphor.",
+  "open": "THE QUESTION IN THE TITLE. Your AI sounds certain. Should you trust it? Not because it sounds certain. It is a brilliant pattern-guesser, not a knower, and it can write a confident paragraph that is simply made up. Its confidence tells you nothing about whether it is true.",
+  "close": "BACK TO THE QUESTION. Should you trust an AI because it sounds certain? No. Its certainty is only how well it guesses the next word. It has no eyes, no memory of your life and no conscience, and it can hallucinate with a straight face. So do not meet it with awe or fear. Meet it with stewardship: a powerful tool in a trained hand, used on purpose.",
+  "teen": {
+   "open": "Your AI sounds sure of itself. Should you trust it? Not just because it sounds sure. It's guessing words, and it can make things up.",
+   "close": "So no, sounding certain doesn't make it true. Treat it like a tool, not a teacher who knows everything, and use it carefully."
+  },
+  "senior": {
+   "open": "An AI's confident tone is no ground for trust. It predicts likely words rather than knowing facts, and it can produce a sure-sounding paragraph that is invented.",
+   "close": "So the answer is plain. Its certainty earns no trust on its own; the wise posture is stewardship, using a capable tool with a trained and careful hand."
+  }
+ },
+ "wk7-guard-heart-time": {
+  "verdict": "ANSWERS-LATE-OR-BURIED",
+  "reason": "Lists four pulls of the tool; the answer (the screen can take the trust that belongs to people and Yahweh unless you guard your heart) is implied in the fourth pull and the closing verse.",
+  "open": "THE QUESTION IN THE TITLE. Who gets your heart when the screen gets your time? Whatever you let it. The quiet danger is trusting a screen more than people and more than Yahweh. So you decide ahead of time, and you guard your heart, because everything you do flows from it (Proverbs 4:23).",
+  "close": "BACK TO THE QUESTION. Who gets your heart when the screen gets your time? Without guardrails, the screen starts to: your thinking, your hours, your private things, your trust. With them, your heart stays with the people who love you and with Yahweh. Decide what you will never share and when you will stop, before you need to. Then the tool serves your life, and you are not brought under its power (1 Corinthians 6:12).",
+  "teen": {
+   "open": "When a screen gets your time, it can start getting your heart too, your trust and your secrets. That's why you guard your heart.",
+   "close": "So set your limits before you need them: what you won't share and when you'll stop. Then your heart stays with your people and with Yahweh, not the screen."
+  },
+  "senior": {
+   "open": "When a screen takes our time, it can quietly take our trust as well, the trust that belongs to people and to Yahweh. The Word tells us to guard the heart above all.",
+   "close": "So the answer is a choice made in advance. Set your guardrails early, and the tool serves your life while your heart stays with those who love you and with the Lord."
+  }
+ },
+ "wk8-teach-next": {
+  "verdict": "ANSWERS-LATE-OR-BURIED",
+  "reason": "Opens on the eight-week ladder; who to teach (someone younger, the next cohort) and what to hand first (a five-minute version of the week that helped you most) come mid-lesson; ends on the verses.",
+  "open": "THE QUESTION IN THE TITLE. Who are you ready to teach, and what would you hand them first? Someone younger, and the next group coming up. Hand them the one week that helped you most, in a five-minute version. If you can make that week clear to them, you have mastered it.",
+  "close": "BACK TO THE QUESTION. Who are you ready to teach, and what would you hand them first? You are ready to teach someone younger, because you have climbed from user to discerner to server to maker. Hand them first the one week that helped you most, made simple in five minutes. That is how your lesson seeds the next cohort, and how faithful people pass on what they heard to others who will teach again (2 Timothy 2:2). Kings raise kings.",
+  "teen": {
+   "open": "Who can you teach? Someone younger than you. What first? The one week of this class that helped you most, in five minutes.",
+   "close": "So pick that one week, make it simple, and teach it to someone younger. If you can teach it, you own it, and that's how the next group grows."
+  },
+  "senior": {
+   "open": "You are ready to teach someone younger, and the first thing to hand them is the single week that helped you most, prepared as a five-minute lesson.",
+   "close": "That answers the title. Teaching one week simply proves you have mastered it, and it continues the Kingdom pattern of 2 Timothy 2:2, faithful people teaching others also."
+  }
+ },
+ "wk6-build-something": {
+  "verdict": "ANSWERS-LATE-OR-BURIED",
+  "reason": "Opens on the user-versus-maker line; the answer (yes, no programming needed: a good prompt, a clear plan, one small useful thing) sits mid-lesson; ends on a statement about raising builders.",
+  "open": "THE QUESTION IN THE TITLE. Could you build the next helpful app yourself? Yes. You do not need to be a programmer to start. A good prompt, a clear plan, and one small useful thing, like a scripture-memory helper or a chore tracker, is real building.",
+  "close": "BACK TO THE QUESTION. Could you build the next helpful app yourself? You could, if you start small. Stop only accepting what the app hands you and ask what it could do for someone. Then pick one small useful thing, plan it clearly, and prompt it well. That crosses the line from user to maker, and skilled work has weight (Proverbs 22:29).",
+  "teen": {
+   "open": "Could you build a helpful app? Yes. You don't have to be a programmer. Start with one small useful thing.",
+   "close": "So start small: a study buddy, a chore tracker, a verse helper. A clear plan and a good prompt make you a builder, not just a user."
+  },
+  "senior": {
+   "open": "You could build a helpful app yourself, and you need not be a programmer to begin. A clear plan, a good prompt and one small useful aim are real building.",
+   "close": "So the title's answer is yes. Begin smaller than you think, with one useful thing for someone, and you cross from user to maker."
+  }
+ }
+}

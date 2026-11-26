@@ -2985,6 +2985,21 @@
       "notes": "Reproduced by sleeping 0.2 s before the gate's release: 13 checks failed on busy before, none after. Forwarder behavior unchanged. One timed check still fails under the injected sleep and was not hardened."
     },
     {
+      "id": "lessons-answer-their-titles-2026-11-26",
+      "date": "2026-11-26",
+      "task": "Audit all 976 presented lessons against their display titles; answer-first opening and closing wrap for 864; gate",
+      "drs": [
+        "DR-1687"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 2.5,
+      "estimateWithoutAiHours": 40,
+      "notes": "53 reading batches fanned to subagents; validator + gate checked every addition"
+    },
+    {
       "id": "poetech-plus-keys-daily",
       "date": "2026-11-12",
       "task": "The PoeTech+ keys workflow runs daily and heals itself: one paste of the key is the only hand step",

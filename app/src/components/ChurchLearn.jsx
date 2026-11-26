@@ -102,7 +102,7 @@ import { coursePresentable, lessonPresentable } from '../lib/presentable.js';
 const AGEBAND_TO_PRESENT_AGE = { child: 'child', youth: 'teen', teen: 'teen', adult: 'adult', senior: 'adult' };
 const AGEBAND_TO_LEVEL_KEY = { child: 'child', youth: 'teen', teen: 'teen', adult: null, senior: 'senior' };
 import SectionTabs from './SectionTabs.jsx';
-import { catalogMeta } from '../lib/learn-catalog.js';
+import { catalogMeta } from '../lib/learn-catalog.js'; import { withTitleAnswers } from '../lib/lesson-title-answers.js'; // DR-1687: every lesson answers its title, first and last
 import { courseCrossListingsFor, resolveCourseCrossListed, courseCrossListedCount } from '../lib/learn-crosslist.js';
 // THE CODE IN THE WORD (DR-0729): the verses a lesson quotes that say what a
 // command is for, shown on the lesson card (lib/word-codes.js).
@@ -1525,6 +1525,7 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
                 is a task, and a task set mid-reading takes the reader out of it. It
                 moves to the 'send' stage, after the reading is done. */}
             <LessonStories lesson={module} stories={seg.audience.stories} askForYours={false} />
+            {seg.audience.titleClosing && <p className="mt-4 text-[0.9375rem] leading-relaxed">{seg.audience.titleClosing}</p> /* the title's answer, after the stories (DR-1687) */}
             {/* The chart the reading talks about (DR-1296), AFTER the stories and
                 folded closed (DR-1372): "a drop-down... like a story we add at the end". */}
             <LessonFigures module={module} />
@@ -4521,7 +4522,7 @@ function ChurchLearn({
   // THE VERSES INSIDE THE LESSON (2026-10-21, lib/lesson-word-quotes.js): a
   // lesson that names its Scripture opens with it, quoted from the in-app KJV.
   // And the stories a lesson was missing join it (lib/lesson-side-stories.js).
-  const courses = withSideStories(withWordQuotes(withLessonDates(useCurriculumOverlay([aiCourse, ...(broadcastCourse ? [broadcastCourse] : []), ...builtExtras, ...eternalCourses]))));
+  const courses = withSideStories(withWordQuotes(withTitleAnswers(withLessonDates(useCurriculumOverlay([aiCourse, ...(broadcastCourse ? [broadcastCourse] : []), ...builtExtras, ...eternalCourses])))));
   const chosenCourse = activeKey != null ? courses.find((c) => c.key === activeKey) : null;
   const courseChosen = !!chosenCourse;
   // THE DEFAULT COURSE IS LIVING LESSONS (Darrell 2026-09-11: "let the default

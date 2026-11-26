@@ -29,6 +29,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { withWordQuotes } from '../lib/lesson-word-quotes.js';
 import { withSideStories } from '../lib/lesson-side-stories.js';
+import { withTitleAnswers } from '../lib/lesson-title-answers.js';
 import { createElement } from 'react';
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -205,8 +206,9 @@ describe('the course door shows the time, before the decision', () => {
     // The numbers are the lib's, not re-derived in the component.
     // Measured on the lessons as the reader gets them: Learn opens a lesson
     // that only cited its verses with them quoted (lib/lesson-word-quotes.js)
-    // and adds the stories it was missing (lib/lesson-side-stories.js).
-    const asRead = withSideStories(withWordQuotes([{ key: 'living-lessons', schedule: LIVING_LESSONS_MODULES }]))[0].schedule;
+    // and adds the stories it was missing (lib/lesson-side-stories.js), and
+    // every lesson answers its title (lib/lesson-title-answers.js, DR-1687).
+    const asRead = withSideStories(withWordQuotes(withTitleAnswers([{ key: 'living-lessons', schedule: LIVING_LESSONS_MODULES }])))[0].schedule;
     const expected = courseDuration(asRead, { ageBand: 'adult' });
     expect(text).toContain(formatDuration(expected.listen[0].minutes));
     expect(text).toContain(formatDuration(expected.listen[1].minutes));
@@ -240,7 +242,9 @@ describe('the course door shows the time, before the decision', () => {
 
   it('shows a per-lesson figure derived from the same total', () => {
     mount();
-    const d = courseDuration(LIVING_LESSONS_MODULES, { ageBand: 'adult' });
+    // The lessons as read, the same pipeline as above (the title answers add spoken words, DR-1687).
+    const asRead = withSideStories(withWordQuotes(withTitleAnswers([{ key: 'living-lessons', schedule: LIVING_LESSONS_MODULES }])))[0].schedule;
+    const d = courseDuration(asRead, { ageBand: 'adult' });
     expect(flat(panel('course-duration')))
       .toContain(formatDuration(d.listen[0].minutes / d.lessons));
   });

@@ -24,6 +24,7 @@ import { createRoot } from 'react-dom/client';
 import ChurchLearn from '../components/ChurchLearn.jsx';
 import { buildCatalogCourseDescriptors } from '../lib/learn-catalog.js';
 import { getReadTarget, clearReadTarget } from '../lib/read-target.js';
+import { withTitleAnswers } from '../lib/lesson-title-answers.js';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -45,6 +46,8 @@ const lessonVersionCount = (m) => Object.values((m && m.levels) || {}).filter((v
 const extraCourses = buildCatalogCourseDescriptors();
 const LL = extraCourses.find((c) => (c.key || c.meta?.key) === 'living-lessons');
 const L202 = LL.schedule.find((m) => /^ll202-/.test(m.id));
+// L202 as Learn reads it: a band opens on its own answer to the title (DR-1687).
+const L202_READ = withTitleAnswers([{ key: 'living-lessons', schedule: [L202] }])[0].schedule[0];
 // A lesson in ANOTHER course with more than one written version.
 const OTHER = extraCourses
   .filter((c) => (c.key || c.meta?.key) !== 'living-lessons')
@@ -223,7 +226,7 @@ describe('a pick changes the words, is remembered, and the reading starts in tha
     const senior = [...host.querySelectorAll('[data-testid="lesson-level-first"] [role="radio"]')].find((b) => b.textContent.startsWith('Senior'));
     act(() => { senior.click(); });
     expect(opening().getAttribute('data-band')).toBe('senior');
-    expect(L202.levels.senior.startsWith(opening().querySelector('p').textContent)).toBe(true);
+    expect(L202_READ.levels.senior.startsWith(opening().querySelector('p').textContent)).toBe(true);
     expect(opening().querySelector('p').textContent).not.toBe(words);
   });
 

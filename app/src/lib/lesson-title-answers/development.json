@@ -1,0 +1,97 @@
+{
+ "dev2-name-the-real-record-and-the-real-screen-before-you-code": {
+  "verdict": "ANSWERS-LATE-OR-BURIED",
+  "reason": "Opens on the three 2026-06-13 misses; the plain answer (no: a value that cannot be traced to a real row, run or timestamp does not ship) is in step ONE; ends on the governing principle, not the answer.",
+  "open": "THE QUESTION IN THE TITLE. Would you ship a number you could not trace back to its source? You should not. If a value on the screen cannot be traced to a real row, a real run or a real timestamp, it does not ship. A painted number, like a hardcoded sixty percent, is worse than nothing, because a plausible number looks exactly like a true one.",
+  "example": "ONE NUMBER, TRACED. Say a board shows a project at 60 percent. Ask where that number comes from. If it is counted from real records, read from the live system while signed in, and you have looked at the actual screen the person uses, it can ship. If someone typed 60 into the screen so the board would look finished, it is a painted number. It does not ship, however plausible it looks.",
+  "close": "BACK TO THE QUESTION. Would you ship a number you could not trace back to its source? Not on a surface whose whole value is trust. Run the trace first: name the real data, confirm it connects in the live system, look at the screen the person actually uses, and write the premise down. Look before you answer (Proverbs 18:13). And when a surface and its real data do not yet connect, that gap is the work, not polish for later.",
+  "teen": {
+   "open": "Would you show a number on a screen if you could not say where it came from? You should not. Every number should trace back to something real.",
+   "close": "So no: a made-up number does not ship. Find the real data first, look at the real screen, and only then build."
+  },
+  "senior": {
+   "open": "Would you publish a figure you could not trace to its source? You should not. A number that cannot be traced to real records does not belong on the screen.",
+   "close": "So the answer is no. Name the real data, confirm it connects, look at the real screen, and write your assumptions down first. That is hearing before answering."
+  }
+ },
+ "dev1-except-the-lord-build-the-house-and-counting-the-cost": {
+  "verdict": "ANSWERS-LATE-OR-BURIED",
+  "reason": "The watch half is answered in the opening (the watch depends on Yahweh, keep watching anyway); the finishing half (count the cost with three questions) arrives mid-lesson; ends on Job 38.",
+  "open": "THE QUESTION IN THE TITLE. Does Yahweh keep the watch, and would you finish what you start? Yes, the watch depends on Him: except the LORD keep the city, the watchman wakes in vain (Psalms 127:1). That is no reason to stop watching. And you finish what you start by counting the cost before the first line, so you never lay a foundation you cannot build on (Luke 14:28).",
+  "close": "BACK TO THE QUESTION. Does Yahweh keep the watch, and would you finish what you start? He keeps the city; you still watch, faithfully, knowing who the watch depends on. And you finish by counting the cost first: who maintains this when I am busy, what tells us when it breaks, and what it costs to keep running. Build by Wisdom, establish by Understanding, then fill. Build on the rock, because another builds on what you lay, and the fire will try it.",
+  "teen": {
+   "open": "Does Yahweh keep the watch, and will you finish what you start? He keeps the city, and you finish by counting the cost before you begin.",
+   "close": "So keep watching, but know Yahweh is the real Keeper. And before you start building, ask who will keep it running, how you will know it broke, and what it costs."
+  },
+  "senior": {
+   "open": "Does Yahweh keep the watch, and will you finish what you begin? The watch depends on Him, and finishing depends on counting the cost before you start.",
+   "close": "So the answer has two parts. Watch faithfully, knowing the city is kept by Yahweh. And count the cost first: who will maintain it, what will warn you, and what it costs to run."
+  }
+ },
+ "dev3-the-plumbline-no-claim-without-evidence": {
+  "verdict": "ANSWERS-LATE-OR-BURIED",
+  "reason": "Opens on the threat (work that looks right and is wrong); the plain answer (a gate cannot be talked past, a reviewer can be) is in the third section; ends on verification making review cheaper.",
+  "open": "THE QUESTION IN THE TITLE. Why does a failing check beat a confident sentence? Because a check cannot be talked past. A reviewer can be persuaded, tired, hurried or fond of you; a failing check is indifferent to all of that. A confident sentence can stand where a measurement belongs and be wrong. A check measures the real thing and reports it.",
+  "example": "ONE COMMENT, ONE MEASUREMENT. A comment on this platform said a screen met a contrast standard. The measured ratio was 2.92 to 1. Nobody lied on purpose; a confident sentence simply stood where a measurement belonged, and it was believed. A check that measures the real ratio on the real screen, and fails the build when it falls short, cannot be persuaded. It reports the wall as it is.",
+  "close": "BACK TO THE QUESTION. Why does a failing check beat a confident sentence? Because the check measures the real artifact and cannot be talked past, while the sentence can hide a wrong thing in plain sight. So: no claim without evidence, measure instead of claiming, and turn every defect that once looked fine into a new gate. Like Amos's plumbline, the check reports what is (Amos 7:8). Then a person, freed from confirming basics, decides what to do about the building.",
+  "teen": {
+   "open": "Why trust a failing check more than someone saying it works? Because a check measures the real thing, and it cannot be talked into passing.",
+   "close": "So the check wins: it measures instead of guessing. Do not say it works until you can show it, and then a person decides what to do."
+  },
+  "senior": {
+   "open": "Why is a failing check worth more than a confident statement? Because a check measures the real work and cannot be persuaded, while a statement can be sincerely wrong.",
+   "close": "So the answer is evidence. A measurement taken from the real thing, like a plumbline against a wall, settles what assurances cannot, and frees the reviewer for real judgment."
+  }
+ },
+ "dev4-a-gate-that-always-passes-is-itself-a-lie": {
+  "verdict": "ANSWERS-CLEARLY",
+  "reason": "States the method in its second paragraph (introduce the break, watch it go red, revert, keep the check) and ends on the habit that lands it: ask what would make this check fail, and do it."
+ },
+ "dev6-the-worker-that-broke-the-front-door": {
+  "verdict": "ANSWERS-LATE-OR-BURIED",
+  "reason": "Explains both observations early, but the lesson for builders (watch what the real user has, every door; the gap was in what was watched) is spread across the fix and four takeaways; ends on Psalm 127.",
+  "open": "THE QUESTION IN THE TITLE. How could every health check say green while the door was dark? Because the checks were watching the wrong thing. They used a fresh browser with no installed service worker, and they watched only one door. The bug lived only on devices that had installed the app, at a door nobody was watching. The lesson for builders: watch what the real user actually has.",
+  "close": "BACK TO THE QUESTION. What does that outage teach builders about watching the right thing? That green only means something if the probe sees what the real user sees. Ask of every probe what state the real user has that it lacks. Watch every door, not just the one you built first. Never let a fallback resolve to nothing, and never let unknown read as healthy. The gap was never in the alerting; it was in what was being watched. And no watch you build keeps the city; Yahweh does (Psalms 127:1).",
+  "teen": {
+   "open": "How could every check say the app was fine while phones showed a dead page? The checks were looking at the wrong thing, a fresh browser and only one door.",
+   "close": "So point your checks at what real users actually have, and at every door. A green light only helps if it is watching the right thing."
+  },
+  "senior": {
+   "open": "How could every health check report green while the app was dark on phones? Because the checks used a clean browser and watched only one door, and the fault lived elsewhere.",
+   "close": "So the lesson is about where we look. Watch what the real user has, watch every door, and never let unknown pass as healthy. Then remember the watch is ours; the keeping is Yahweh's."
+  }
+ },
+ "dev7-shrink-only-debt-telling-the-truth-about-what-is-not-fixed": {
+  "verdict": "ANSWERS-CLEARLY",
+  "reason": "First paragraph answers the title outright (measure the problem, commit the real number, forbid it from growing); the final paragraph lands it: the list shrinking is the point, never a comfortable place to keep a problem."
+ },
+ "dev8-write-the-vision-and-make-it-plain": {
+  "verdict": "ANSWERS-BUT-ENDS-OPEN",
+  "reason": "Opens with the answer (a decision only in your head will be reversed) and the record conventions, but ends on a whole-course recap instead of landing how the written record lets the next builder run.",
+  "example": "ONE DECISION, TWO BUILDERS. Say a builder decides something, and writes it in its own file: what was decided, the grounds, what it did not do, what was not verified, and a date to look again. A year later a new builder, with good reasons, wants to reverse it. The index shows in a minute that the question is settled. The grounds show whether anything has changed. If it has, they write a new record that says what it supersedes, and the old one stays as written.",
+  "close": "BACK TO THE QUESTION. How does a plain written record let the next builder move faster without reversing what you chose? It puts the decision where it outlives your memory: one decision per file, a new record instead of a rewrite, an index that says what is settled, and grounds and limits on every record. The next builder does not have to guess or undo; they read and run (Habakkuk 2:2). That record is the third strand, the one that holds when both people are gone.",
+  "teen": {
+   "open": "Why write your decisions down? Because a choice that lives only in your head will get undone by the next person, who has no way to know why you made it.",
+   "close": "So write it plainly, one decision at a time, with why you chose it. Then the next builder can move fast instead of undoing your work."
+  },
+  "senior": {
+   "open": "Why must a decision be written down? Because one kept only in memory will be reversed by the next capable person, who has good reasons and no way to know yours.",
+   "close": "So the answer is a plain, written record: one decision per file, never rewritten, with its grounds and its limits. It lets the next builder run with what you chose."
+  }
+ },
+ "dev5-the-battlement-and-the-open-pit-guards-on-anything-that-runs-itself": {
+  "verdict": "ANSWERS-LATE-OR-BURIED",
+  "reason": "Opens on the 2026-06-06 incident; who owns the runaway (the one who dug the pit) and what was required first (the rail before use) come late in the Word section; ends on sovereignty not bounding cost.",
+  "open": "THE QUESTION IN THE TITLE. Who owns a runaway automation, and what did the Word require before it ran? You do: the owner of the pit makes it good (Exodus 21:34). And the rail comes before anyone falls: a battlement on the roof (Deuteronomy 22:8). For anything that runs itself, the rail is three guards built in and proven to catch before it ships running: a budget, a concurrency lock, and a stop-path.",
+  "example": "ONE JOB, THREE GUARDS. Say a job fires every five minutes. Without a lock, a slow run is still going when the next one fires, and by lunchtime twelve copies are running at once. With the lock, the new firing finds the old run still going and skips. With a budget, any run that reaches its ceiling ends itself. With a stop-path, a registry entry set to disabled stops the job without anyone needing to remember to.",
+  "close": "BACK TO THE QUESTION. Who owns the runaway, and what was required before it ran? The one who built it owns it: you dug the pit, you own what falls in it. And the rail was required before the roof was used, not after the fall. So build every automation with a budget, a lock and a stop-path, prove each one catches, ship it inactive, and turn it on with someone watching. Running on your own machine does not make a runaway smaller; it makes it yours.",
+  "teen": {
+   "open": "If your automation runs wild, who is responsible? You are. The Word says the one who digs the pit pays for what falls in, and the rail goes on the roof first.",
+   "close": "So you own it. Before anything runs by itself, give it a limit, a lock so it cannot pile up, and a way to stop, and test each one."
+  },
+  "senior": {
+   "open": "Who is responsible for automation that runs away? Its builder, by the Word's own law of the open pit, and the guard rail was required before the roof was used.",
+   "close": "So the answer is plain. The builder owns the runaway, and the guards come first: a budget, a single-instance lock and a stop-path, each proven before the thing runs on its own."
+  }
+ }
+}

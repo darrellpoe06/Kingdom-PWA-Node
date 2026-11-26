@@ -1,0 +1,95 @@
+{
+ "econ1-soul-first": {
+  "verdict": "ANSWERS-CLEARLY",
+  "reason": "States the order (prosper as the soul prospers, 3 John 1:2) and truth in both directions in the opening lines, and ends landing money as servant, not master, with the truth loved."
+ },
+ "econ3-circulation": {
+  "verdict": "ANSWERS-BUT-ENDS-OPEN",
+  "reason": "Defines circulation (why a dollar stays home) in the opening, but ends on two lessons about myths and real numbers, not on why the dollar stays.",
+  "close": "BACK TO THE QUESTION. Why does a dollar stay home? Because each person who receives it spends it again with another member, so the same dollar meets need several times before it leaves, the way the early believers shared until none among them lacked (Acts 2:44-45; 4:34). The real numbers show why that matters: about $44,100 for the median Black household against about $284,310 for the median white household in 2022. Circulation is a true answer to a measured gap, and it needs no myth to prop it up.",
+  "teen": {
+   "open": "Why does a dollar stay in a community? Because the people there keep spending it with each other.",
+   "close": "So a dollar stays home when each person who gets it spends it again with another member. The real numbers on the wealth gap show why that matters, and they are true without any made-up statistic."
+  },
+  "senior": {
+   "open": "The title asks why a dollar stays home. It stays when each person who receives it spends it again within the community, so it meets need several times before it leaves.",
+   "close": "So circulation keeps a dollar home, as in Acts 2. The documented wealth gap, about six to one, shows the need plainly, and the cause is better served by real numbers than by a myth."
+  }
+ },
+ "econ2-ownership-vs-consumption": {
+  "verdict": "ANSWERS-BUT-ENDS-OPEN",
+  "reason": "Lays out consume vs own-and-produce at once, but the last sentence turns to the barriers of coming modules, so the reader does not finish on the owning answer.",
+  "close": "BACK TO THE QUESTION. Do you own the harvest or only spend it? Money spent once on something used up is gone. Money put into a business, a skill, a tool, a property or a share keeps producing. From Eden (Genesis 2:15) to the talents, the Word puts you on the producing side, and Proverbs 13:22 aims it at your children’s children. A community that only consumes hands its wealth to outside owners every day; one that owns and produces keeps it and lets it compound.",
+  "teen": {
+   "open": "Do you own things that keep producing, or just spend money on stuff that gets used up? The Word wants you to own and produce.",
+   "close": "So the answer is to own, not only spend. A business, a skill or a tool keeps producing. That is how a family and a community keep what they make."
+  },
+  "senior": {
+   "open": "The title asks whether you own the harvest or only spend it. Scripture places the human calling on the side of ownership and production, from the garden onward.",
+   "close": "So the difference is between money used up and money put to work. A community that owns and produces keeps and compounds its wealth across generations, as Proverbs 13:22 envisions."
+  }
+ },
+ "econ4-group-economics": {
+  "verdict": "ANSWERS-BUT-ENDS-OPEN",
+  "reason": "Says early that pooling builds what no member could alone, but never says yes plainly and ends pointing ahead to coming modules on barriers.",
+  "example": "HOW A SAVINGS CIRCLE TURNS SMALL INTO WHOLE. Say ten members each put in $100 a month, the way a susu works. Each month one member takes the whole pot of $1,000, and by the tenth month every member has received it once. No one put in more than $100 a month, yet each one held ten times that, in turn, without waiting for a bank to open its door. That is Ecclesiastes 4:9-12 in a household’s numbers.",
+  "close": "BACK TO THE QUESTION. Can ordinary savings build an extraordinary future? Yes, when they are pooled. The record shows it: benevolent societies that insured members when no company would, church building funds raised from ordinary earners, and savings circles where members take turns receiving the whole pot. Two are better than one, and a threefold cord is not quickly broken (Ecclesiastes 4:9-12). One body with many members turns limited individual strength into institutions that shape generations (1 Corinthians 12).",
+  "teen": {
+   "open": "Can small savings build something big? Yes, when people put them together.",
+   "close": "So ordinary savings can build an extraordinary future when they are pooled. That is how churches, insurance societies and savings circles were built by everyday people."
+  },
+  "senior": {
+   "open": "The title asks whether ordinary savings can build an extraordinary future. The documented history of the Black Church and community says yes, when the savings are pooled.",
+   "close": "So the answer is yes. Benevolent societies, church building funds and rotating savings circles show what ordinary earners can build together, especially where other doors were closed."
+  }
+ },
+ "econ5-the-real-barriers": {
+  "verdict": "ANSWERS-CLEARLY",
+  "reason": "Opens stating the barriers were engineered and written down (deeds, the 1938 FHA manual, law), documents each, and ends on the response: build access, plead the cause, war on no people."
+ },
+ "econ7-build-institutions": {
+  "verdict": "ANSWERS-LATE-OR-BURIED",
+  "reason": "Sets the horizon at institutions and inheritance, then spends most of the lesson on Greenwood and the gap; never says plainly that a business can reach a grandchild, and ends on 1 Chronicles 28:20.",
+  "open": "THE QUESTION IN THE TITLE. Could your business still bless a grandchild you never meet? It can, if you build it as an institution and an inheritance rather than a paycheck. The Word sets the aim at your children’s children (Proverbs 13:22). Greenwood shows both what such building can be and how it was destroyed, which tells us what to build now and why to hand it on.",
+  "close": "BACK TO THE QUESTION. Could your business bless a grandchild you never meet? Greenwood’s grocers, hotels, newspapers and churches show that an owned economy can serve a whole people, and its burning shows why that blessing must be built to last and passed on. So own and produce, circulate, pool the Body’s strength, open access where gates are locked, trust Yahweh to hold every injustice to account, build institutions that outlast you, and hand them on. Build that way, and your work can reach a generation you will never see.",
+  "teen": {
+   "open": "Can what you build today help a grandchild you will never meet? Yes, if you build something that lasts and pass it on.",
+   "close": "So yes. Build institutions, not just a paycheck, and hand them on. Greenwood shows what people can build together. Be strong and of good courage, and Yahweh will be with you."
+  },
+  "senior": {
+   "open": "The title asks whether a business can bless a grandchild one never meets. It can, when it is built as an institution and inheritance meant to outlast its builder.",
+   "close": "So the answer rests on how we build. Owned, cooperative institutions that are handed on can bless children’s children, as Proverbs 13:22 intends, and Greenwood shows both their promise and why they must be guarded."
+  }
+ },
+ "econ8-test-build-multiply": {
+  "verdict": "ANSWERS-BUT-ENDS-OPEN",
+  "reason": "Gives Proverbs 24:27 and the honest waiting list early, then runs through good name, intro frame, leverage ladder and James 4, ending on the app engine rather than the test-first answer.",
+  "close": "BACK TO THE QUESTION. Why does Yahweh put the income field before the house? Because the proof should come before the spend: prepare the field, then build (Proverbs 24:27), and count the cost before the tower (Luke 14:28-30). A waiting list tells the truth when it is real. If nobody signs, the market just saved your savings; if a hundred do, you build on proof. Keep the list honest and the scarcity true, and hold every plan under \"If the Lord will\" (James 4:15).",
+  "teen": {
+   "open": "Why test an idea before you build it? Because Yahweh’s order is to prove it first, then build.",
+   "close": "So test first. A real waiting list shows whether people want what you plan to make. If no one signs up, you saved your money. If many do, build."
+  },
+  "senior": {
+   "open": "The title asks why the income field comes before the house. Proverbs 24:27 sets the order: prepare the productive work and prove it before spending on the building.",
+   "close": "So a small, honest test comes first. A genuine waiting list reveals real demand before savings are spent, and it must never be inflated by false scarcity."
+  }
+ },
+ "econ9-the-engine-and-the-reserve": {
+  "verdict": "ANSWERS-LATE-OR-BURIED",
+  "reason": "Measures the engine and where its yield went, but the reserve answer (whose storehouse, and what it needs) comes two-thirds in; ends on verification notes and a talk prompt.",
+  "open": "THE QUESTION IN THE TITLE. What did the engine build, and whose storehouse should its yield fill? The labor of enslaved people built great wealth: people valued at about three billion dollars in 1860, and cotton worth more than half of the nation’s exports. The yield went to owners, merchants, bankers and mills, and the workers were sent away empty. The engine is still running. The answer this lesson gives is to let its yield fill a reserve the community itself owns and governs.",
+  "close": "BACK TO THE QUESTION. Whose storehouse should the yield fill? For generations it filled everyone’s but the workers’, and what freed people built was repeatedly taken. So the answer is a reserve of our own: laid by weekly (1 Corinthians 16:2), governed by those who contribute, with named stewards and open books, lending that never preys on the poor, a legal form the members own, more than one place to keep it, and teaching for the children. Lawful, open-handed to the city, and resting on Yahweh, it can reach the children’s children (Proverbs 13:22).",
+  "teen": {
+   "open": "Who got the wealth that enslaved people’s work created? Not the workers. This lesson asks where the yield of our work should go now.",
+   "close": "So the answer is a reserve our community owns together. Save a little every week, keep honest books, never take advantage of the poor, obey the law, and keep helping others too."
+  },
+  "senior": {
+   "open": "The title asks what the engine of enslaved labor built and whose storehouse its yield should fill. It built great wealth for others while the workers were sent away empty.",
+   "close": "So the yield of our work today can fill a reserve the community owns and governs: steady weekly saving, accountable stewards, fair lending, member ownership and lawful conduct, with an open hand still toward all."
+  }
+ },
+ "econ6-accountability-and-judgment": {
+  "verdict": "ANSWERS-CLEARLY",
+  "reason": "Answers the title in order from the start: the exposure is His doing, the account is individual, then El Roi covers the oppressed; ends landing that His children walk it seen, not forsaken."
+ }
+}

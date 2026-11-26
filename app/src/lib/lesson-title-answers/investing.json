@@ -1,0 +1,108 @@
+{
+ "inv1-what-investing-actually-is": {
+  "verdict": "ANSWERS-LATE-OR-BURIED",
+  "reason": "Defines investing in the opening, but the saving/investing/flipping distinction the title asks about comes mid-to-late; ends by turning the question back to the reader without stating the answer.",
+  "open": "THE QUESTION IN THE TITLE. Is your savings really investing? Only if the money is placed at risk in exchange for the hope of growth. If it is held intact for a near, fairly definite date, that is saving. If something is bought only to sell to someone else for more, that is a third thing, and the gain comes out of the next buyer's purse. The question that separates them: where, precisely, is this money arriving from? Here is how to tell.",
+  "example": "THREE POTS, THREE QUESTIONS. Say a family has three pots. The first is set aside for a car repair next spring and must be there, whole, on that date: that is saving. The second is set aside for twenty-five years from now and is placed where it may grow or shrink: that is investing, paid for waiting and for bearing uncertainty. The third bought something only because they expect to sell it on for more: that is flipping, and any gain is paid by the next buyer. Trouble starts when the car-repair money sits in the second pot and the market falls just before spring.",
+  "close": "BACK TO THE QUESTION. Is your savings really investing? Ask where the money is arriving from. If you are paid for waiting and for carrying real uncertainty, you are investing. If the amount is simply kept whole for a near date, you are saving, and that is not inferior; it answers a different question. If the gain can only come from the next buyer's purse, it is a third thing with a different name. Neither saving nor investing is better; mixing them up is what turns a dip into a permanent loss. Name what each pot is doing.",
+  "teen": {
+   "open": "Is putting money aside the same as investing? Not always. Saving keeps it safe, investing puts it at risk to grow, and flipping is something else.",
+   "close": "So ask where the money comes from. Saving keeps it whole for soon, investing takes risk for later, and flipping depends on the next buyer. Know which one you are doing."
+  },
+  "senior": {
+   "open": "Money set aside may be saved, invested, or used to buy something only to sell it on, and the three are not the same. One question tells them apart: where is the return coming from?",
+   "close": "So savings are investing only when the amount is placed at hazard for the prospect of increase. Saving keeps a sum whole for a nearer date; buying only to resell takes its gain from the next purchaser. Neither saving nor investing is superior, but confusing them is costly."
+  }
+ },
+ "inv4-spreading-it-out-and-what-that-cannot-do": {
+  "verdict": "ANSWERS-CLEARLY",
+  "reason": "The opening states both halves plainly (spreading limits one failure; it does nothing against a common cause), and the close lands on Ecclesiastes 11:2: spread because you cannot see, never as if you now can."
+ },
+ "inv5-cost-is-the-one-number-known-in-advance": {
+  "verdict": "ANSWERS-LATE-OR-BURIED",
+  "reason": "Names cost as the one knowable number early, but the title's figure (a 1% fee over 25 years leaves about 78%, roughly 22% gone) comes mid-lesson; ends on Proverbs 27:23-24, not the figure.",
+  "open": "THE QUESTION IN THE TITLE. What does a 1 per cent annual fee quietly take from a 25-year investment? About a fifth of the whole result. Keeping 99 per cent each year, twenty-five times over, leaves you with about 78 per cent of what you would otherwise have held, so roughly 22 per cent is gone. That figure already includes the lost growth. And the fee is the one number you can read before the market moves. Here is how it works.",
+  "example": "THE SAME FIFTH, EITHER WAY. Say a sum would have grown to $200,000 over twenty-five years with no charge. With a 1 per cent yearly fee you finish with about $155,600, so about $44,400 is gone. Say instead it did twice as well and would have reached $400,000. Now you finish with about $311,100, and about $88,900 is gone. The share taken is the same, about 22 per cent, and the better it did, the more the charge took. No invoice arrived either time.",
+  "close": "BACK TO THE QUESTION. What does a 1 per cent annual fee take from a 25-year investment? About 22 per cent of the final result, with the lost growth already counted, and the same share whether the holding did well or poorly. You cannot choose your returns or your timing, but you can find this number in an afternoon. Cheapest is not automatically best, so weigh what the charge pays for. But look at it, because Proverbs 27:23 tells you to know the state of your flocks, and what is not looked at does not stay as it was.",
+  "teen": {
+   "open": "How much can a small 1 percent yearly fee take over 25 years? About a fifth of everything you would have had.",
+   "close": "So a 1 percent fee over 25 years takes about 22 percent of your final total. You cannot control the market, but you can find and check the fee."
+  },
+  "senior": {
+   "open": "A charge of one per cent a year looks small, but over twenty-five years it leaves you with about seventy-eight per cent of what you would otherwise have held.",
+   "close": "So a one per cent annual fee removes about twenty-two per cent of a twenty-five-year result, whatever the holding earns. It is the one figure you can know in advance and act on. Cheapest is not always best, but the charge is always worth reading."
+  }
+ },
+ "inv2-risk-is-four-things-wearing-one-word": {
+  "verdict": "ANSWERS-LATE-OR-BURIED",
+  "reason": "Names the four risks up front, but which one most households actually face (the forced sale, which starts in the household) only comes two-thirds in; ends on Joseph and worry, not the answer.",
+  "open": "THE QUESTION IN THE TITLE. Which risk is your money really facing? The word risk covers four different dangers: losing the money for good, not being able to reach it, watching it buy less, and being forced to sell at the worst moment. For most ordinary households the one that does the damage is the fourth, and it starts in your own kitchen, not in the investment. Here is how to tell them apart.",
+  "example": "THE DAY THE VAN DIES. Say a family keeps everything in one long holding, and the van dies in a month when that holding happens to be down. The repair has to be paid now, so they sell low, and a temporary dip becomes a permanent loss. Nothing was wrong with what they owned. Now say the same family kept a dull, reachable sum set aside. The van is paid from that, and the long holding is left alone to be long.",
+  "close": "BACK TO THE QUESTION. Which risk is your money really facing? Name it before you do anything else. Permanent loss is real, but most households are hurt by the other three, and most of all by the forced sale that begins when the household needs money this month. The plain protection is reachable money kept somewhere dull, so the long money never has to be sold at the bottom. Like Joseph storing corn (Genesis 41:35-36), a danger named exactly can be prepared for exactly.",
+  "teen": {
+   "open": "Risk is not one thing. It is four: losing money, not being able to get to it, it buying less, and having to sell at a bad time. The last one hurts most people most.",
+   "close": "So which risk are you facing? Most likely the one where life needs cash fast. Keep some boring money you can reach, so your long money can stay put."
+  },
+  "senior": {
+   "open": "The title asks which risk your money truly faces. There are four under one word, and for most households the costliest is being forced to sell at a poor moment because the household needs money.",
+   "close": "So the answer is plain. Name which of the four you carry. For most of us it is the forced sale, and the remedy is a reachable reserve kept apart, so that what is meant to be long can stay long."
+  }
+ },
+ "inv6-what-cannot-be-known-and-who-sells-certainty": {
+  "verdict": "ANSWERS-LATE-OR-BURIED",
+  "reason": "Spends its first half on why forecasters sound certain; the four answerable questions the title promises arrive mid-lesson and the ending moves to James 4, not back to them.",
+  "open": "THE QUESTION IN THE TITLE. Nobody knows tomorrow, so what should your money ask? Stop asking the question no one can answer, which is what will happen next, and ask four that you can. What am I being charged, exactly? Which of the four risks am I carrying? How long is this money really for? Can I reach it in the month the van dies? Here is why the confident voices cannot replace them.",
+  "close": "BACK TO THE QUESTION. Nobody knows tomorrow, so what should your money ask? Not for a forecast, because no one has been shown the morrow and almost nobody scores the ones who claim to (James 4:13-14). Ask instead: what am I charged, which risk am I carrying, how long is this money for, and can I reach it when I need it. Each has a definite answer you can find in an afternoon for nothing. You may plan with care and ambition; you simply plan on what can be known.",
+  "teen": {
+   "open": "No one knows what will happen tomorrow, not even the confident people on TV. So ask four questions you can answer: what does it cost, what could go wrong, how long is it for, and can I get to it?",
+   "close": "So what should your money ask? Not what tomorrow holds. Ask the four questions you can actually answer, and plan humbly with those."
+  },
+  "senior": {
+   "open": "The title admits that nobody knows tomorrow and asks what your money should ask instead. The answer is four plain questions: the cost, which risk you carry, how long the money is for, and whether you can reach it when needed.",
+   "close": "So the answer stands. Set the unanswerable forecast aside and settle the four answerable questions. James does not forbid the plan, only the pretense of knowing the morrow, and these questions keep a plan on honest ground."
+  }
+ },
+ "inv7-the-stewards-question": {
+  "verdict": "ANSWERS-LATE-OR-BURIED",
+  "reason": "The three questions (whose, what for, by when) are spread through the body and never gathered; why money is the test arrives only in the final lines via Luke 16:10-11.",
+  "open": "THE QUESTION IN THE TITLE. What decides whether a proposal fits, before you invest a dollar? Three questions answered in your own hand: Whose money is it? What is it for? By when is it needed? Once those are settled, you only ask whether a proposal fits them. And money is the test, not the prize, because how you handle the small thing shows whether you can be trusted with the true riches. Here is each question in turn.",
+  "close": "BACK TO THE QUESTION. What decides whether a proposal fits? Your three written answers. If the money is Yahweh's, you ask what it is for, not what you want. If its purpose is specific and its date is known, most proposals sort themselves: they fit, or they do not. You never have to judge whether something is good in general. And the money is only the test (Luke 16:10-11). What matters most is what your faithful handling of it reveals, and what may be trusted to you after.",
+  "teen": {
+   "open": "Before you invest anything, answer three questions: whose money is this, what is it for, and when will you need it? Then just check whether an offer fits.",
+   "close": "So how do you know if something fits? Check it against your three answers. And remember, money is the small test. How you handle it shows whether you can be trusted with more."
+  },
+  "senior": {
+   "open": "The title promises three questions that decide whether a proposal fits. They are: whose money is it, what is it for, and by when is it needed. Answer them first, and every offer can be measured against them.",
+   "close": "So the answer is settled. A proposal fits when it matches your three answers, and you need judge nothing beyond that. And the money itself is the test, not the prize; Jesus teaches that faithfulness in the least shows what may be entrusted afterwards."
+  }
+ },
+ "inv3-time-is-the-only-free-ingredient": {
+  "verdict": "ANSWERS-LATE-OR-BURIED",
+  "reason": "Opens on time being unbuyable; the title's answer (the last decade shows the growth, but only out of what the early years supplied) is in the middle of the arithmetic; ends on Proverbs 21:5.",
+  "open": "THE QUESTION IN THE TITLE. Does the last decade do the most work? It does the most visible work, but only out of what the first decade supplied. The same rate adds about seven times as much in its thirtieth year as in its first, because it is working on a bigger pile. That is why starting early beats a bigger sum later: money can be added later, but time cannot be bought at any price. Here is the arithmetic.",
+  "example": "THE SAME SUM, TWO STARTS. Using the lesson's own illustration rate of 7 per cent, which is a chosen assumption and not a promise: 100 left alone for thirty years grows to about 761. Started twenty years later, the same 100 has only ten years and reaches about 197. To arrive at 761 in those ten years, the late starter would need to put in about 387 at the beginning, nearly four times as much. The early starter paid for that gap with time, which no one could have sold to the late one.",
+  "close": "BACK TO THE QUESTION. Why does starting at twenty-two beat starting with a bigger sum? Because the late years do their large work on material only the early years can supply. The first decade looks like nothing and makes the last decade possible. So the most valuable step is also the dullest: begin with a modest sum, then do not interfere, and expect real holdings to go backwards at times. That is the diligent mind of Proverbs 21:5, holding a direction across the long interval that haste tries to skip.",
+  "teen": {
+   "open": "Does the last stretch of years do the most work? It shows the most growth, but only because of what you started early. Time is the one thing no one can buy.",
+   "close": "So why start young? Because the big growth at the end is built from the early years. Start small, leave it alone, and let time do what money cannot buy."
+  },
+  "senior": {
+   "open": "The title asks whether the last decade does the most work. It does the most visible work, yet only from what the first decade supplied, which is why an early, modest start outweighs a larger, later one.",
+   "close": "So the answer holds. The late years show the gain, but the early years make it. Time is the one ingredient no one can purchase, and the patient, steady diligence of Proverbs 21:5 is what lets it work."
+  }
+ },
+ "inv8-enough": {
+  "verdict": "ANSWERS-LATE-OR-BURIED",
+  "reason": "Asks how much is enough early, but the actual answer (yes, you need a finish line, only you can set it, and test it by whether you would stop) is held until the last third; ends on the course, not the question.",
+  "open": "THE QUESTION IN THE TITLE. Is there a finish line for your money? There should be, and you are the one who has to set it. No course can give you the number, because it differs for each household and stage of life. What this lesson asks is that a number exist, and then one honest question: if you had it tomorrow, would you stop, or would the number move? Here is why the Word cares so much about that.",
+  "close": "BACK TO THE QUESTION. Is there a finish line for your money? Yes, if you draw one. Proverbs 30:8-9 asks for neither poverty nor riches, because each can separate a person from Yahweh, and Paul calls godliness with contentment great gain (1 Timothy 6:6-8). Your number is yours to set for your own household. Then test it: if it came tomorrow, would you stop? If yes, you have a destination. If it would move, you have a treadmill, and now you can see it.",
+  "teen": {
+   "open": "Is there a finish line for money? There should be, and only you can set it. Then ask yourself: if I reached it tomorrow, would I stop?",
+   "close": "So, is there a finish line? Yes, if you set one. If your number keeps moving every time you get close, it is not a finish line, it is a treadmill."
+  },
+  "senior": {
+   "open": "The title asks whether money has a finish line. It should, though no course can name your figure for you; it depends on your household and season of life. The test is whether you would stop on reaching it.",
+   "close": "So the answer is yes, a finish line is needed, and it is yours to set. Proverbs 30 asks for neither poverty nor riches for the sake of nearness to Yahweh. Set your number, then honestly ask whether you would stop there."
+  }
+ }
+}

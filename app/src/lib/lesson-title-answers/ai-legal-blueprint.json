@@ -1,0 +1,84 @@
+{
+ "aib1-the-one-rule": {
+  "verdict": "ANSWERS-LATE-OR-BURIED",
+  "reason": "The one rule (the billboard test) arrives only near the end after the mechanism; the ending lands on knowing where words go, close to the rule but not restating it.",
+  "open": "THE QUESTION IN THE TITLE. Would you shout your chatbot question from a billboard? If not, do not paste it into a chatbot. That is the one rule. A vendor chatbot is a stranger's computer: your words travel to a company's servers, where they can be stored, read by a reviewer, and used for training, and pressing delete does not promise they are gone. Here is why.",
+  "close": "BACK TO THE QUESTION. Would you shout it from a billboard? That is the test for every chatbot question. Since a vendor chatbot is a stranger's computer, treat it as public by default for anything sensitive. Use it freely for ordinary, non-private work; for anything you would not want seen by the highway, keep it out. What is whispered in secret can be shouted from the rooftops (Luke 12:2-3), and the prudent see danger coming and take refuge (Proverbs 22:3). Know where your words go before you send them.",
+  "teen": {
+   "open": "Would you put your chatbot question on a billboard? If not, do not type it into a chatbot.",
+   "close": "So here is the one rule. A chatbot is a stranger's computer, so if you would not want it on a billboard, keep it out."
+  },
+  "senior": {
+   "open": "The title proposes a simple test. If you would not be comfortable seeing your words on a highway billboard, they do not belong in a vendor chatbot.",
+   "close": "So the one rule stands. A chatbot runs on a stranger's computer, where words may be kept even after deleting, so treat it as public for anything sensitive and keep such things out."
+  }
+ },
+ "aib2-do-not-share-list": {
+  "verdict": "ANSWERS-BUT-ENDS-OPEN",
+  "reason": "Answers at once with the nine categories, but they are spread through one long paragraph and the end lands the trust, not the list; a compact recap closes it.",
+  "close": "BACK TO THE QUESTION. What should never go into a chatbot? Nine things: who you are (your name tied to your address or birth date), ID numbers, money details, health details, passwords and keys, work secrets, anything from a lawyer, other people's information without their permission, and children's information. Watch hardest for money and for other people's information, where good people slip most. Keeping these out is keeping a trust, your own and your neighbor's (Proverbs 11:13).",
+  "teen": {
+   "open": "What should you never type into a chatbot? There are nine kinds of things, and this lesson lists them.",
+   "close": "So keep these out: who you are, ID numbers, money info, health info, passwords, work secrets, lawyer stuff, other people's info, and kids' info. Keeping them out keeps a trust."
+  },
+  "senior": {
+   "open": "The title asks what must never go into a chatbot. The lesson answers with nine categories of information and the trust that stands behind each.",
+   "close": "So the nine stay out: identity, ID numbers, finances, health, passwords and keys, work secrets, legal material, other people's information, and children's information. Keeping the list is keeping faith with yourself and your neighbor."
+  }
+ },
+ "aib3-how-the-machine-remembers": {
+  "verdict": "ANSWERS-BUT-ENDS-OPEN",
+  "reason": "Answers all three early (retained, human review, opt-out stops only future use), but the end restates only stored, read, trained and drifts to verses; the erase answer is not landed.",
+  "close": "BACK TO THE QUESTION. What does your chatbot keep, who reads it, and does turning off training erase it? On a consumer tier it keeps your words on its servers, a sample may be read by human reviewers, and your words may train the next model. Turning off training is worth doing, but it generally stops only future use; it does not delete what was already kept, and a short abuse-monitoring window remains. So keep sensitive work for a properly contracted tier, or better, for an A.I. on your own hardware.",
+  "teen": {
+   "open": "What does a chatbot keep, and who sees it? It keeps your words, people may read some, and turning off training does not erase them.",
+   "close": "So assume a free chatbot stores your words, someone might read them, and they might train it. Turning training off helps later but does not delete the past."
+  },
+  "senior": {
+   "open": "The title asks three things: what is kept, who may read it, and whether opting out of training erases it. Consumer chatbots retain input, may have it reviewed, and opting out does not erase what was kept.",
+   "close": "So on a consumer plan, assume your words are stored, possibly read, and possibly used for training, and that switching training off guards only the future. Sensitive matters belong on a properly contracted tier or on your own hardware."
+  }
+ },
+ "aib4-the-law-plain": {
+  "verdict": "ANSWERS-LATE-OR-BURIED",
+  "reason": "Opens on the not-legal-advice caveat; the map (health, lawyer, trade secrets, privacy laws) follows, and the plain throughline only comes near the end before verses and the lawyer note.",
+  "open": "THE QUESTION IN THE TITLE. Which private details lose their protection the moment you paste them? Three stand out. Health information falls outside HIPAA, because a consumer chatbot is not a covered entity and will not sign the contract. A lawyer's material can lose its privilege once shared with a third party. A company secret can lose its trade secret status. The protections you assume do not travel with a paste. This is education, not legal advice.",
+  "close": "BACK TO THE QUESTION. Which private details lose their protection when you paste them into a consumer chatbot? Health information leaves HIPAA's safeguards, a lawyer's communication can lose its privilege, company secrets can forfeit trade secret status and breach an NDA, and identifiers, financial and health data, and student records are regulated under the privacy laws. A chatbot is not a vault. Act with knowledge (Proverbs 13:16), honor the laws that protect people, and when the stakes are real, ask a licensed attorney.",
+  "teen": {
+   "open": "Which private stuff loses its protection when you paste it into a chatbot? Health info, a lawyer's advice, and company secrets can all lose their legal shield.",
+   "close": "So a chatbot is not a safe. Paste health info, lawyer advice, or work secrets, and the protection of the law may not follow."
+  },
+  "senior": {
+   "open": "The title asks which private details lose their legal protection once pasted into a chatbot. Chiefly health information, attorney-client material, and trade secrets, while privacy laws treat many inputs as regulated data.",
+   "close": "So the protections we assume travel with our information do not survive a paste into a consumer tool. This is education rather than legal advice; when the stakes are real, consult a licensed attorney."
+  }
+ },
+ "aib5-real-world-scenarios": {
+  "verdict": "ANSWERS-LATE-OR-BURIED",
+  "reason": "Runs five scenarios first; the answer pattern (it maps to the list; redact it, use a contracted tier, or our own A.I.) only gathers near the end.",
+  "open": "THE QUESTION IN THE TITLE. Would you paste it? For anything on the DO-NOT-SHARE list, no, not as it stands. The protection is a half-second pause before the paste: is this someone's health, money, personal details, or work secrets? If it is, take one of three safer roads. Redact it, move it to a properly contracted tool, or use the A.I. on our own hardware. Here are five ordinary moments to practice on.",
+  "close": "BACK TO THE QUESTION. Would you paste it? The five cases all had the same shape: a get-well card, a friend's address, a bank statement, the church directory, a customer file. Each felt harmless, each was on the DO-NOT-SHARE list, and each had the same three escape hatches: redact it, move it to a contracted tier, or run it on our own iron. That half-second pause protects your church, your family, and your customers. And when wisdom runs short in the moment, ask Yahweh, who gives generously (James 1:5).",
+  "teen": {
+   "open": "Would you paste it? Before you paste anything into a chatbot, stop for half a second and ask if it is private.",
+   "close": "So pause first. If it is someone's health, money, address, or private info, take out the details, use a safer tool, or do not paste it."
+  },
+  "senior": {
+   "open": "The title asks whether you would paste a given thing into a chatbot. The answer the lesson trains is a brief pause that catches private information before it leaves your hands.",
+   "close": "So the habit is the half-second pause. When the content is on the do-not-share list, redact it, move it to a properly contracted tool, or keep it on our own A.I., and your church, family, and customers stay protected."
+  }
+ },
+ "aib6-safe-use-blueprint-sovereign": {
+  "verdict": "ANSWERS-BUT-ENDS-OPEN",
+  "reason": "Opens straight into the four steps, but the ending drifts through the sovereign A.I. course, teaching others, and a legal caveat; the four-step check is not landed.",
+  "open": "THE QUESTION IN THE TITLE. Would you hand a stranger your family's records? No, and a vendor chatbot is a stranger's computer. So before you paste anything, run a four-step check: redact it, never paste live secrets, match the tool to how sensitive the work is, and configure what you use. Best of all, keep sensitive work on an A.I. that never leaves your own hardware.",
+  "close": "BACK TO THE QUESTION. Would you hand a stranger your family's records? Then do not paste them raw into a chatbot. Run the card. One, redact and generalize. Two, never paste live secrets, and change any you already did. Three, match the tool to the sensitivity, with regulated work on a contracted tier or, best, on our own NAS. Four, turn off history and training, knowing off is not the same as erased. When the data never leaves home, there is no stranger to hand it to.",
+  "teen": {
+   "open": "Would you give a stranger your family's private records? No. So use four steps before you paste into a chatbot.",
+   "close": "So check four things: hide names and numbers, never paste passwords, use the right tool, and turn off history. Best of all is an A.I. that stays home."
+  },
+  "senior": {
+   "open": "The title asks whether you would hand a stranger your family's records. Since a chatbot is a stranger's computer, the lesson gives a four-step check to use first.",
+   "close": "So the four steps are redact, keep secrets out, match the tool to the sensitivity, and configure what you use. The surest answer is data that never leaves your own premises."
+  }
+ }
+}

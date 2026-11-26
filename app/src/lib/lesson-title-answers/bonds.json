@@ -1,0 +1,101 @@
+{
+ "bnd1-a-bond-is-a-loan-with-a-receipt": {
+  "verdict": "ANSWERS-LATE-OR-BURIED",
+  "reason": "Teaches the three terms and the trade, but the reason the front of the line still needs care (the fixed sum is conditional on the borrower keeping a promise) is one buried clause; ends pointing to later lessons.",
+  "open": "THE QUESTION IN THE TITLE. If a bond pays a fixed sum on a fixed day, why does the front of the line still need care? Because the sum is fixed only on paper. It is knowable in advance, conditional on the borrower performing, and that condition is not small. A bond is a loan written down: principal, coupon, maturity. You gave up the upside for priority and certainty, and the certainty rests on a promise being kept.",
+  "close": "BACK TO THE QUESTION. Why does the front of the line still need care? Because a bond is a promise, written down, with a date on it, and Psalm 37:21 puts the moral weight on the one who borrows and pays not again. Priority and a known number are real advantages, and they are why bonds sit under so many retirement plans. But every number on the receipt depends on the borrower's word. So read the three terms, know who issued them, and weigh the promise before you trust the payment.",
+  "teen": {
+   "open": "A bond pays you a set amount on a set date. So why be careful? Because it only pays if the borrower keeps their promise.",
+   "close": "A bond is a written promise. Psalm 37 says the wicked borrow and do not pay back. So the fixed number is only as good as the one who promised it."
+  },
+  "senior": {
+   "open": "A bond's appeal is its calculability: a known sum on a known day. Yet that sum is conditional on the borrower performing, and the condition deserves real attention.",
+   "close": "Scripture treats a debt as a promise first, and Psalm 37:21 places the weight on paying again. The front of the line offers priority and certainty, but both rest on a promise, so weigh the one who made it."
+  }
+ },
+ "bnd2-the-promise-is-fixed-so-the-price-moves": {
+  "verdict": "ANSWERS-BUT-ENDS-OPEN",
+  "reason": "States the answer in the opening (the promise cannot change, so the price absorbs the change) and works it with 100/105; ends on Ecclesiastes 5 and \"land somewhere else\" without naming the price or the which-safety question.",
+  "close": "BACK TO THE QUESTION. If the promise never changes, why does the price dance? Because something has to absorb what changes around it, and the price is the only part left free to move. When new lending pays more, the same fixed 105 is worth less; when new lending pays less, it is worth more. The longer the promise, the bigger the swing. So when anyone calls a bond safe, ask which safety is meant: safe from default, or steady in price. The vow stands still, and the price moves for it.",
+  "teen": {
+   "open": "If a bond always pays the same amount on the same date, why does its price go up and down? Because the promise cannot move, so the price has to.",
+   "close": "So the promise stays fixed and the price does the moving. When new loans pay more, an old bond sells for less, and long bonds swing the most. Safe from default does not mean steady in price."
+  },
+  "senior": {
+   "open": "A bond promises fixed payments on a fixed date, and yet its price moves. The reason is simple: the promise cannot adjust, so the price at which it trades must absorb every change in prevailing rates.",
+   "close": "So the price dances because the promise will not. Rates up, price down; rates down, price up; and the longer the term, the larger the move. Whenever a bond is called safe, it is worth asking whether that means safe from default or stable in price, because they are not the same."
+  }
+ },
+ "bnd4-how-a-country-borrows": {
+  "verdict": "ANSWERS-LATE-OR-BURIED",
+  "reason": "Opens on who holds government debt; the answer (it depends on whether the country issues the currency it owes in) arrives in the middle; ends on Deuteronomy 28 head and tail and a pointer to the next session.",
+  "open": "THE QUESTION IN THE TITLE. Can a country be forced into default? It depends on one thing: the currency it owes in. If a country borrowed in money it issues itself, it can always produce the units, so it cannot be forced into default by running short, though the risk moves onto what that money is worth. If it borrowed in money made elsewhere, it stands where a household stands: it must earn that money or borrow more, and if it cannot, the promise fails. Here is how that works.",
+  "example": "TWO COUNTRIES, TWO CURRENCIES. Say two countries each owe the same amount. The first owes in its own money. When the payment falls due, it can always produce the units, so the danger it carries is that the units buy less, and that loss lands on savers and people on fixed incomes. The second owes in a currency another country makes. It has to earn that money by selling abroad or borrow more of it. Printing its own money does nothing, because its own money is not what it owes. If neither road is open, it defaults.",
+  "close": "BACK TO THE QUESTION. Can a country be forced into default? A country that owes in money it cannot make, yes: like a household, it must earn or borrow that money, and if it cannot, the promise fails. A country that owes in money it issues cannot be forced by a shortage of units, but that debt is not free; the cost moves onto the value of the money, and somebody always pays. So when a country is said to be in trouble, ask first what currency the debt is owed in, then who is lending and who is deciding (Deuteronomy 28:12, 44).",
+  "teen": {
+   "open": "Can a country be forced to stop paying its debts? It depends on whose money it borrowed.",
+   "close": "So it comes down to the currency. A country that owes in its own money can always make the units, though the money may lose value. A country that owes in someone else's money must earn it, and if it cannot, it defaults."
+  },
+  "senior": {
+   "open": "Whether a country can be forced into default turns on a single question: is its debt owed in a currency it issues itself, or in one created somewhere else?",
+   "close": "The answer, then, is plain. A nation owing in its own currency cannot be forced into default by a shortage of units, though the cost shifts onto savers and fixed incomes as the money loses value. A nation owing in another country's money is in a household's position, and if it cannot earn or borrow that money, its promise fails."
+  }
+ },
+ "bnd5-when-a-country-cannot-pay": {
+  "verdict": "ANSWERS-LATE-OR-BURIED",
+  "reason": "Opens on the negotiated restructuring; who really pays (households who signed nothing) only surfaces mid-lesson through 2 Kings 4:1; ends on Elisha reading to the end, not a plain landing of the title.",
+  "open": "THE QUESTION IN THE TITLE. When a country defaults, who really pays? The people underneath who signed nothing: pensioners whose money buys less each month, hospitals that cannot buy imported medicine, schools without materials, and workers whose jobs depended on the state. The headlines report a negotiation and a recovery rate. The Word shows the same crisis from underneath, in one widow's house, and shows how Elisha answered it: pay the debt honestly, and live on the rest (2 Kings 4:1-7).",
+  "close": "BACK TO THE QUESTION. When a country defaults, who really pays? Not mainly the people in the negotiating room. The cost falls on households that never signed anything, the way the debt fell on a widow and her two sons in 2 Kings 4:1. Elisha did not denounce the creditor and did not cancel the debt. The provision made the debt payable, and then it went further: \"pay thy debt, and live thou and thy children of the rest\" (2 Kings 4:7). Paying honestly and living well come in one sentence, in that order.",
+  "teen": {
+   "open": "When a whole country cannot pay its debts, who gets hurt? Mostly ordinary families who never signed the loans.",
+   "close": "So the people who pay are families underneath: older people, patients, kids in school, workers. In Elisha's story Yahweh made the widow's debt payable and gave her enough left over to live on."
+  },
+  "senior": {
+   "open": "A sovereign default is usually reported as a negotiation and a signed agreement. The ones who truly pay, though, are households that signed nothing: pensioners, patients, schoolchildren and workers.",
+   "close": "So the burden of a default lands underneath, on people who never contracted the debt, just as it fell on the widow in 2 Kings 4. Elisha's answer held both halves together: pay the debt honestly, and live on what remains. Neither half should be carried without the other."
+  }
+ },
+ "bnd7-inflation-is-the-quiet-default": {
+  "verdict": "ANSWERS-LATE-OR-BURIED",
+  "reason": "Names inflation early, but the one revealing question (what does it pay after the money has shrunk) arrives mid-lesson; ends on Isaiah 1:22 dilution rather than the question the title promises.",
+  "open": "THE QUESTION IN THE TITLE. How can you be paid in full and still end up poorer? When prices rise while your payment stays fixed, every penny arrives on time but buys less than the sum you lent. Nobody defaults and nobody announces it. The one question that reveals the loss is this: not \"what does it pay\" on the page, but what does it pay after the money has shrunk? That second figure is the real return. Here is how it works.",
+  "example": "ONE YEAR, TWO NUMBERS. Say you lend 1,000 at five per cent, so 1,050 comes back in a year, exactly as promised. Over that same year prices rise seven per cent, so what cost 1,000 now costs 1,070. You were paid every penny, and you are 20 short of where you started. The statement shows a gain of 50. The real return is a loss. No letter, no default, no report.",
+  "close": "BACK TO THE QUESTION. How are you paid in full and still poorer? The money you are paid in has shrunk while the payment stayed fixed, so the full amount arrives and buys less. That is the quiet default: no court, no headline, and the gain runs to the borrower. The one question that reveals it is small enough to carry for life: what does it pay after the money has shrunk? Ask it of every fixed payment you rely on, and you will see what Isaiah saw: the full quantity, no longer the thing (Isaiah 1:22).",
+  "teen": {
+   "open": "How can someone pay you back every penny and you still lose? When prices go up, the same money buys less.",
+   "close": "So the hidden loss is shrinking money. Always ask one question: what does this pay after prices have risen? That is the real number."
+  },
+  "senior": {
+   "open": "A fixed payment can arrive in full and on time and still leave you poorer, because rising prices quietly shrink what that payment will buy.",
+   "close": "So the silent loss is inflation, and the question that reveals it is simple: what does this pay after the money has shrunk? For anyone living on a fixed income, that real return is the only figure that tells the truth."
+  }
+ },
+ "bnd8-usury-the-brother-and-the-stranger": {
+  "verdict": "ANSWERS-LATE-OR-BURIED",
+  "reason": "Spends most of the lesson on how each half is misquoted; what the passage settles (no interest to a brother, a line drawn by relationship, not a theory of finance) arrives near the end.",
+  "open": "THE QUESTION IN THE TITLE. What does Deuteronomy 23:19-20 really settle? Read both verses together and it is plain: you must not lend at interest to your brother, in money, food, or anything else, and a blessing is attached to keeping that rule. The line is drawn by relationship, not by the size of the loan or the rate. Lending at interest to a stranger is permitted. The passage does not set a rate or rule on every modern instrument. Here is why both halves must be read.",
+  "close": "BACK TO THE QUESTION. What does Deuteronomy 23:19-20 really settle about lending to a brother? Verse 19 alone sounds like a ban on all interest, and verse 20 alone sounds like a licence; read to the end, it settles something narrower and harder. Toward your brother, lending at interest is forbidden, whatever the sum or rate, and Yahweh fastens a blessing to keeping it. Your brother is not a customer. It does not hand you a theory of finance. It hands you a question for every loan: who is on the other side, and are they your brother?",
+  "teen": {
+   "open": "Does the Bible ban all interest, or allow any interest? Read both verses together and you get the real answer.",
+   "close": "So the rule is about people, not rates: do not charge interest to your brother. Read the whole passage, not just half of it."
+  },
+  "senior": {
+   "open": "Deuteronomy 23:19-20 is often quoted in halves, each used against the other. Read whole, it settles one clear thing: lending at interest to a brother is forbidden.",
+   "close": "So the passage settles a rule of relationship, not a theory of finance. Toward a brother, no interest of any kind, with a blessing attached to keeping it; toward a stranger, it is permitted. The question it leaves is who stands on the other side of a loan."
+  }
+ },
+ "bnd6-the-curve-is-a-sentence-about-the-future": {
+  "verdict": "ANSWERS-LATE-OR-BURIED",
+  "reason": "Builds the yield curve first; what a downward slope reveals (lenders expect lower rates ahead; it has preceded most US recessions but is no timetable) comes mid-lesson; ends on Proverbs 27:12.",
+  "open": "THE QUESTION IN THE TITLE. What does a downward bond line reveal? When lenders accept less for a ten-year promise than for a one-year one, they are telling you, with their own money committed, that they expect rates to be substantially lower in the years ahead. Nobody wrote that forecast; it is read straight off real lending. Such an inverted curve has come before most United States recessions of the last half century. It causes nothing, and it is not a timetable. Here is how to read it.",
+  "close": "BACK TO THE QUESTION. What does a downward bond line reveal? It reveals that the people lending, with their own capital on the line, expect lower rates ahead, so they would rather lock in today's rate for longer. It has come before most United States recessions of the last fifty years: that is a documented pattern, so do not wave it away. It is also not a cause and not a clock, so do not treat it as one. Hold both, then do what the prudent man does: read what is set in front of you and act on it (Proverbs 27:12).",
+  "teen": {
+   "open": "When long-term bonds pay less than short-term ones, what does that tell us? It shows lenders expect rates to fall ahead.",
+   "close": "So a downward line means lenders expect lower rates. It has often come before recessions, but it is a warning sign, not a calendar. Read it and act wisely."
+  },
+  "senior": {
+   "open": "A yield curve that slopes downward means lenders are accepting less for a long promise than a short one, which tells us they expect rates to be considerably lower in the years ahead.",
+   "close": "So the downward line is a sentence about the future spoken by people with their money committed. It has preceded most American recessions of the past half century, and that pattern deserves respect, yet it causes nothing and keeps no timetable. The prudent course is to read it and act on what it shows."
+  }
+ }
+}

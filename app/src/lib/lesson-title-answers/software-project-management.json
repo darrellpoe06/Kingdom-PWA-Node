@@ -1,0 +1,174 @@
+{
+ "spm2-the-order-is-the-work": {
+  "verdict": "ANSWERS-LATE-OR-BURIED",
+  "reason": "Opens with framework names; the plain answer (one total order with no ties, dependencies first, real-but-not-now) is spread through dense prose, and the last line lands only part of it.",
+  "open": "THE QUESTION IN THE TITLE. When does a backlog stop being a list and become real priority? When you put every item in one order, first to last, with no ties. Proverbs 24:27 sets the rule for much of that order: prepare the field before you build the house, so what other work depends on goes first. FIRST means one item, and some items are real but not now. Here is how the lesson argues it.",
+  "example": "FIVE TOP PRIORITIES. Say a team has five items and every stakeholder has been told theirs is a priority. A list with five firsts is no order at all. So the team numbers them one to five with no ties. The item the others depend on goes to the top, the way the field is prepared before the house. Item four is real, but its season is not this one, and the team says so out loud instead of calling it either urgent or rejected.",
+  "close": "BACK TO THE QUESTION. Your backlog becomes real priority the moment it is put in one order with no ties. Dependencies set much of that order, because the field comes before the house (Proverbs 24:27). FIRST is a real position with consequences for everything behind it (Matthew 6:33). And a season for every purpose (Ecclesiastes 3:1) lets you say real, but not now. The numbered list does not make the decision for you; it is the record that you made one.",
+  "teen": {
+   "open": "When is a to-do list a real plan? When you put it in order, one thing first, then the next, with no ties.",
+   "close": "So number your list. Do first what everything else depends on, and it is fine to say some things are good but not now. That is real priority."
+  },
+  "senior": {
+   "open": "The title says a backlog is only a list until it is ordered. The lesson's answer is a full ranking with no ties, built on what must come first, as Proverbs 24:27 teaches.",
+   "close": "So real priority is a decision recorded in order. Prepare the field before the house, let first mean first, and give the good-but-not-now its honest season."
+  }
+ },
+ "spm1-requirements-are-a-vow": {
+  "verdict": "ANSWERS-LATE-OR-BURIED",
+  "reason": "Opens on the vow claim; the plain test (written so an absent reader can act on it, owed in full, changed only openly) arrives in the middle and last sentences of dense prose.",
+  "open": "THE QUESTION IN THE TITLE. Did you really agree on what got built? Only if the requirement was written plainly enough that someone who missed the conversation could act on it, and only if what was stated is then delivered in full. A requirement is a vow, not a wish list: what was spoken is owed (Numbers 30:2). Changing it is a renegotiation done in the open. Here is how the lesson builds that.",
+  "close": "BACK TO THE QUESTION. Did you really agree on what got built? You did if the agreement was written plain, so that a reader who was not there could run with it (Habakkuk 2:2), and if what was stated is what got delivered. Meeting the intent while missing the stated thing is not keeping the vow. When the requirement must change, change it openly with the people it was made to. Then the thing built is the thing agreed, and the vow before Yahweh is kept.",
+  "teen": {
+   "open": "Did everyone really agree on what was being made? Only if it was written down clearly enough that someone who was not there could follow it.",
+   "close": "So write it plain, deliver what you said, and if it has to change, say so openly. A promise about the work is still a promise."
+  },
+  "senior": {
+   "open": "The title asks whether we truly agreed on what was built. The lesson's answer is that agreement is real only when the requirement is plain, testable, and kept as spoken.",
+   "close": "So agreement is proved by plain writing and faithful delivery. A requirement carries the weight of a vow, and any change is made openly rather than quietly reinterpreted."
+  }
+ },
+ "spm3-the-honest-unknown": {
+  "verdict": "ANSWERS-LATE-OR-BURIED",
+  "reason": "Opens on industry terms and James 4; the plain practice (range, assumption and dominant unknown together, never drop the range) only arrives in the final sentence.",
+  "open": "THE QUESTION IN THE TITLE. How do you give an honest estimate without faking certainty? Give a range, the assumption it rests on, and the biggest unknown, and keep all three together. If someone demands one number, give the number and the range in the same sentence. Dropping the range is what turns an estimate into a false balance (Proverbs 11:1). Here is why.",
+  "example": "SIX WEEKS, SAID HONESTLY. Say a manager asks how long a feature will take. The faked answer is six weeks, full stop. The honest answer sounds like this: our best number is six weeks, and the range is four to twelve; that assumes the outside service works as its documents say; the biggest unknown is moving the old data. If one number is demanded, say six weeks, within four to twelve, in one breath.",
+  "close": "BACK TO THE QUESTION. How do you estimate honestly? Do not speak as if the year were settled, and do not refuse to plan (James 4:13-15). Count the cost anyway, because the tower still has to be priced (Luke 14:28). Then carry the range, its assumption and the dominant unknown together, and report the same weights upward that you keep for yourself (Deuteronomy 25:13-15). The plan is real and the uncertainty is named. That is a just weight, and it is the honest estimate.",
+  "teen": {
+   "open": "How do you give an honest guess about how long something will take? Give a range, say what it depends on, and name the biggest unknown.",
+   "close": "So never just say one number and hope. Say the number, the range, and what could change it. An honest guess is a fair weight."
+  },
+  "senior": {
+   "open": "The title asks how to estimate honestly without faking certainty. The lesson answers with three things kept together: a range, its assumption, and the main unknown.",
+   "close": "So an honest estimate neither boasts of certainty nor refuses to plan. It counts the cost, names the condition, and never drops the range, because that is what keeps the weight just."
+  }
+ },
+ "spm4-incident-problem-change": {
+  "verdict": "ANSWERS-LATE-OR-BURIED",
+  "reason": "Explains ITIL's three and two pathologies; why a fast fix breaks twice (a restart is still an unheard matter; a known cause with no change recurs) lands only in the final lines.",
+  "open": "THE QUESTION IN THE TITLE. Why can fixing it fast break it twice? Because restoring service is only the first of three jobs. Restore it, then search out the cause, then change something so it cannot happen again. A restart that works still leaves the matter unheard (Proverbs 18:13), and an unheard cause comes back. Here is how the lesson shows it.",
+  "close": "BACK TO THE QUESTION. Why can fixing it fast break it twice? Because a fix with no search behind it answers the matter before hearing it (Proverbs 18:13), and a found cause with no change behind it simply waits to recur. This house learned it when a deploy gap already written down came back and cost the site nine hours. So restore in minutes, then search, since searching out a matter is the honor of kings (Proverbs 25:2), then make the change. Restore, search, change, and it breaks once.",
+  "teen": {
+   "open": "Why can a quick fix make the same problem happen again? Because getting it working again is not the same as finding out why it broke.",
+   "close": "So do all three: get it working, find the real cause, and change something so it does not come back. Skip a step, and it breaks twice."
+  },
+  "senior": {
+   "open": "The title asks why a fast fix can break things twice. The lesson's answer is that restoring, diagnosing and preventing are three distinct duties, and skipping the last two invites recurrence.",
+   "close": "So restore, search, then change. Proverbs 18:13 forbids answering before hearing, and a known cause left without a change is only a more expensive way of not knowing."
+  }
+ },
+ "spm5-no-silent-change": {
+  "verdict": "ANSWERS-LATE-OR-BURIED",
+  "reason": "The answer (everyone affected must be able to read a record; a silent change is a false balance) sits mid-lesson; it ends on this repository's append-only convention, not the title's question.",
+  "open": "THE QUESTION IN THE TITLE. Your project changed overnight, so who knows it changed? Only the people who can read a record of it. That is why every change must leave a record the affected parties can read. A silent change is a false balance (Proverbs 11:1): everyone downstream keeps weighing against the old mark and does damage at every point that trusted it. Here is why the Word treats it that seriously.",
+  "close": "BACK TO THE QUESTION. Who knows your project changed? Everyone it touches should, because it was written where they can read it. What was spoken is owed (Numbers 30:2), so changing it is a renegotiation, and the people downstream have standing in it. A silent change leaves a false mark in circulation, and that costs more than any single fix. So record each change as a new entry, never a quiet rewrite, and the scale stays just for everyone.",
+  "teen": {
+   "open": "If plans change overnight and nobody says so, who knows? Nobody. That is why every change needs a note people can read.",
+   "close": "So when something changes, say so and write it down. A secret change makes everyone else work from old information, and that is not fair to them."
+  },
+  "senior": {
+   "open": "The title asks who knows when a project changes overnight. The lesson answers that a change counts as known only when it leaves a readable record for everyone affected.",
+   "close": "So no change is silent. A commitment altered without notice keeps others weighing against a false mark, which is why changes are recorded openly as new entries rather than quiet rewrites."
+  }
+ },
+ "spm6-green-is-not-deployed": {
+  "verdict": "ANSWERS-LATE-OR-BURIED",
+  "reason": "Opens by asserting green is not live, but who checks the site (an outside probe aimed at the product, unknown never shown as fresh) comes mid-lesson in jargon; ends on the watchman.",
+  "open": "THE QUESTION IN THE TITLE. Your pipeline says done, so who checked the live site? Often nobody, and that is the danger. A green build tells you the machinery ran, not that the goods arrived. The real check is a witness pointed at the product itself: a probe from outside that loads the site and confirms it is up, intact and fresh. Here is how this house learned it.",
+  "close": "BACK TO THE QUESTION. Who checked the live site? After nine silent hours, this house's answer is a watchman facing the right way: a browser-shaped probe that visits the real product, files every failing observation on a ledger anyone can query, and never shows unknown as fresh. A dashboard that shows green for both healthy and unobserved is decoration, not a witness. The watchman who saw and stayed silent carries the blame (Ezekiel 33:6). So point your witness at the product, not the pipeline.",
+  "teen": {
+   "open": "If the computer says your update is done, who made sure the real website works? You need something that actually checks the live site.",
+   "close": "So do not trust a green checkmark alone. Have something visit the real site and tell the truth, including when it does not know."
+  },
+  "senior": {
+   "open": "The title asks who checks the live site when the pipeline reports success. The lesson's answer is that someone must, from the outside, because a green build only describes the pipeline.",
+   "close": "So the duty belongs to a witness aimed at the product. Check that the site is up, intact and current, record every failure, and never let unknown appear as healthy."
+  }
+ },
+ "spm7-a-gate-that-always-passes": {
+  "verdict": "ANSWERS-BUT-ENDS-OPEN",
+  "reason": "The opening answers (a gate means something only once shown to catch the break), but it ends on an aside about badly aimed breaks rather than landing the answer.",
+  "open": "THE QUESTION IN THE TITLE. Does your green checkmark mean anything? Only if you have watched that check fail when it should. A test that could never come out false tells you nothing, so you break the thing on purpose and see whether the gate catches it. Here is why the Word cares about the instrument itself.",
+  "example": "BREAK IT ON PURPOSE. Say a check is supposed to fail the build whenever a page is missing its title. Before trusting it, make the break yourself: remove one title and run the check against the real page. If it turns red, it has earned your trust. If it stays green, either the check is weak or the break missed its mark, and both are worth knowing. Then put the title back.",
+  "close": "BACK TO THE QUESTION. Does your green checkmark actually mean anything? It does once the check has been shown to catch a real break. A gate nobody has exercised reports unknown as green, and that is a false measure. Deuteronomy 25:13-15 asks for a perfect and just weight, which is a duty to prove the instrument, not just to own one. So test the test before you trust it. Then green means what it says.",
+  "teen": {
+   "open": "Does a green checkmark always mean things are fine? Only if you have seen that check turn red when something was really broken.",
+   "close": "So test your tests. Break something on purpose and make sure the check catches it. Then you can trust the green."
+  },
+  "senior": {
+   "open": "The title asks whether a green checkmark means anything. The lesson's answer is that it does only after the check has been shown to catch a deliberate fault.",
+   "close": "So a check earns trust by catching what it was built to catch. Proving the instrument is the positive duty of a just measure, and until then its green is only an unknown."
+  }
+ },
+ "spm8-debt-named-and-dated": {
+  "verdict": "ANSWERS-LATE-OR-BURIED",
+  "reason": "Shortcut-as-loan is implied in Proverbs 22:7; the plain practice (name it, a why, a re-review date; an unjustifiable shortcut is a defect) arrives late in dense prose.",
+  "open": "THE QUESTION IN THE TITLE. Is every shortcut a loan you forgot to record? A deliberate shortcut is a loan against your future capacity, and the borrower is servant to the lender (Proverbs 22:7). So record it: name the rough part, give the reason, and set a date to revisit it. A shortcut you cannot justify is not debt at all; it is a defect. Here is how the lesson builds it.",
+  "example": "ONE LINE IN THE REGISTER. Say a team ships with a slow search page to meet a launch. The register gets one line: what is rough (search is slow on large accounts), why it was left (the launch date, with small accounts unaffected), and a re-review date a month out, sized to the issue. If no one can state a why at all, it goes on the defect list instead.",
+  "close": "BACK TO THE QUESTION. Is every shortcut a loan you forgot to record? Only if you leave it unrecorded. Name it, state why, and give it a re-review date, and the interest becomes visible instead of silent. Be diligent to know the state of your flocks (Proverbs 27:23), which you cannot do with debt nobody wrote down. Let the direction be owing as little as you can (Romans 13:8), and refuse to file a defect as debt. Then every loan has a name and a day it will be revisited.",
+  "teen": {
+   "open": "Is a shortcut like borrowing from your future self? Yes. So write it down, say why you took it, and pick a date to fix it.",
+   "close": "So shortcuts are never secret. Name them, give a reason, and set a date. And if there is no good reason, it is not a shortcut; it is a mistake to fix."
+  },
+  "senior": {
+   "open": "The title asks whether a shortcut is an unrecorded loan. The lesson's answer is that a deliberate shortcut is debt, and it must be named, justified and dated.",
+   "close": "So every shortcut is recorded with its reason and a re-review date sized to the issue. That keeps the interest visible, and it keeps true defects from hiding as debt."
+  }
+ },
+ "spm9-the-retrospective-that-is-not-a-blame-meeting": {
+  "verdict": "ANSWERS-LATE-OR-BURIED",
+  "reason": "Godly sorrow is named early, but that it is known by its output and that blame blocks the people closest to the failure comes mid-prose; ends on Proverbs 25:2, not the answer.",
+  "open": "THE QUESTION IN THE TITLE. After a failure, which sorrow gets results? Godly sorrow, and you know it by what it produces: real changes you can list (2 Corinthians 7:10-11). Blame produces the other sorrow, because the people closest to the failure hold what you need to know, and they will not hand it to someone who punishes being wrong. Here is how the lesson shows it.",
+  "close": "BACK TO THE QUESTION. Which sorrow gets results? The godly kind, measured by the changes it produces, not by how heavy the room feels. It needs the people closest to the problem, so blame and a leader's pride are blocked inputs that weaken the diagnosis. Hear the matter fully before answering it (Proverbs 18:13), and count the search an honor, not an admission (Proverbs 25:2). A retrospective that listens and then acts is godly sorrow at work.",
+  "teen": {
+   "open": "After something goes wrong, what kind of sorry actually helps? The kind that leads to real changes, not the kind that blames.",
+   "close": "So after a failure, listen first, especially to the people closest to it, and then change something real. Blame shuts people up; listening fixes things."
+  },
+  "senior": {
+   "open": "The title asks which sorrow gets results after a failure. 2 Corinthians 7:10-11 answers: godly sorrow, recognized by the concrete changes it produces.",
+   "close": "So a good retrospective is judged by its fruit. It hears those nearest the failure without punishing honesty, answers only after hearing, and leaves behind changes that prevent recurrence."
+  }
+ },
+ "spm11-unsupported-cannot-be-patched": {
+  "verdict": "ANSWERS-LATE-OR-BURIED",
+  "reason": "Says early that the lesson is whose clock, but answers it plainly (never the person deferring) only at the end of the main section; then closes on the household exercise.",
+  "open": "THE QUESTION IN THE TITLE. Your server runs fine today, so who decides when it stops getting fixes? Not you. Once a version is out of support, someone else's clock decides, and the reckoning comes on the day a critical flaw appears and no fix will ever arrive for your version. The prudent foresee it and move before then (Proverbs 22:3). Here is the hosting team's overnight lesson.",
+  "close": "BACK TO THE QUESTION. Who decides when your server stops getting fixes? Never the person deferring. The university team had a reasonable plan for a slower removal, and a critical flaw with no patch for old versions moved their date overnight. So know what you run, bring it current before its support ends, report a mitigation as a mitigation and never as a fix, and own the currency of your own custom code. Foresee the evil and act while the day is still yours to choose.",
+  "teen": {
+   "open": "Who decides when your old software stops getting fixes? Not you. The maker does, and the bad day can come without warning.",
+   "close": "So update things before they are too old to fix. A wise person sees trouble coming and gets ready while there is still time (Proverbs 22:3)."
+  },
+  "senior": {
+   "open": "The title asks who decides when a system stops receiving fixes. The hosting team's experience answers that the calendar is never set by the one who defers.",
+   "close": "So the prudent course is to act before the deadline is chosen for you. Keep systems current, call a mitigation by its name, and own the upkeep of what you built."
+  }
+ },
+ "spm10-handover-and-the-runbook": {
+  "verdict": "ANSWERS-LATE-OR-BURIED",
+  "reason": "The answer (an observed run by someone uninvolved while the author stays silent) sits mid-lesson; it ends on the companion course and Exodus 35:34, not on the silence test.",
+  "open": "THE QUESTION IN THE TITLE. Could a stranger run your project's instructions with only the page in hand? You only know by testing it. Have someone who was not involved run the instructions while you, the author, stay silent. If they can run it, the page is real (Habakkuk 2:2). If you have to answer questions, you are finishing the document out loud. Here is why the silence matters.",
+  "close": "BACK TO THE QUESTION. Could a stranger run your instructions with only the page in hand? The silence test tells you. The bar is not that the page is complete or thorough, but that someone uninvolved can run it while you say nothing. Write it so they can teach it onward too, four links deep (2 Timothy 2:2). And be faithful in that least glamorous work, after the interesting part is done (Luke 16:10-12). Then your handover passes to a stranger, and on past him.",
+  "teen": {
+   "open": "Could someone who has never seen your project follow your instructions alone? The only way to know is to let them try while you stay quiet.",
+   "close": "So write it so a stranger can do it, then watch them try without helping. If you have to explain, fix the page."
+  },
+  "senior": {
+   "open": "The title asks whether a stranger could run your instructions from the page alone. The lesson's answer is the silence test: an observed run by someone uninvolved, with the author silent.",
+   "close": "So a handover is proved, not presumed. If the newcomer can run it without the author's voice, and can teach it onward, the work has truly been passed on."
+  }
+ },
+ "spm12-the-button-you-turn-on": {
+  "verdict": "ANSWERS-LATE-OR-BURIED",
+  "reason": "Opens with three Torah statutes and an interview before naming the answer (an obligation starts at go-live and does not stop); ends on the household exercise rather than the answer.",
+  "open": "THE QUESTION IN THE TITLE. What happens to your project the moment it goes live? A duty begins, and it does not stop. Building is brief, bounded and cheap; the obligation it creates keeps running. The battlement is owed because the house stands, not because someone fell (Deuteronomy 22:8). Going live means you now owe its care, its capacity under load, and enough hands to keep it. Here is how the law prices the whole.",
+  "close": "BACK TO THE QUESTION. What happens the moment it goes live? You flip the switch and keep the duty. Like the battlement, the open pit and the kindled fire, the live thing answers for its reach from that day on. Success may bring more load than it can bear (Genesis 13:6), and the work may outgrow the hand doing it (Exodus 18:17-18). So ask the questions before the switch, while they are free: what do we now owe, at what load does it stop serving, and when is one hand no longer enough.",
+  "teen": {
+   "open": "What happens when you launch something? It is not finished. A job begins that keeps going every day after.",
+   "close": "So before you turn something on, ask what you will owe it every day after. Launching is quick. Taking care of it does not stop."
+  },
+  "senior": {
+   "open": "The title asks what happens the moment a project goes live. The lesson's answer is that a standing obligation begins, as the law of the battlement shows.",
+   "close": "So count the tenancy, not only the construction. Before going live, ask what is owed from that day forward, what load it can bear, and when the work will need more hands."
+  }
+ }
+}
