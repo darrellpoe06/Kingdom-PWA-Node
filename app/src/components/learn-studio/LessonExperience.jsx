@@ -35,6 +35,7 @@ import LessonFigures from '../LessonFigures.jsx';
 import StudyQuiz from './StudyQuiz.jsx';
 import { ExperienceToolsContext, resumable, pacedFraction } from './LessonExperienceTools.jsx';
 import './lesson-experience.css';
+import { useLanding } from './lesson-landing.js';
 import { renderWithVerses, verseParts, VERSE_RE } from './lesson-verses.jsx';
 export { verseParts };
 
@@ -998,9 +999,9 @@ const SCALES = [0.9, 1, 1.15, 1.3];
 
 const AUTO_TURN_KEY = 'poe-lesson-experience:auto-scroll';
 
-function scrollToPara(el) {
+function scrollToPara(el, instant = false) {
   try {
-    if (el) el.scrollIntoView({ block: 'start', behavior: motionBehavior() });
+    if (el) el.scrollIntoView({ block: 'start', behavior: instant ? 'auto' : motionBehavior() });
   } catch {
     /* no scrollIntoView (tests) */
   }
@@ -1091,10 +1092,14 @@ function ReadMode({ lesson, record, title, number, paragraphs, level, setLevel, 
     [count, setPage]
   );
 
+  // The place survives the landing: page settling is not the reader moving (DR-1671).
+  const { settling, land } = useLanding();
+
   // Scrolling IS the reading position: track the paragraph at the reading line.
   useEffect(() => {
     let raf = 0;
     const onScroll = () => {
+      if (settling()) return;
       cancelAnimationFrame(raf);
       raf = requestAnimationFrame(() => {
         const els = paraRefs.current;
@@ -1119,19 +1124,26 @@ function ReadMode({ lesson, record, title, number, paragraphs, level, setLevel, 
       window.removeEventListener('scroll', onScroll);
       cancelAnimationFrame(raf);
     };
-  }, [page, setPage]);
+  }, [page, setPage, settling]);
 
   // Coming back to Read: if the voice is mid-lesson (playing OR paused in
   // Watch or Listen), open on the paragraph it is in -- that is the newest
   // place. Otherwise open on the saved reading page. Once per visit.
   const landedRef = useRef(false);
+  const [landedAt, setLandedAt] = useState(0);
   useEffect(() => {
     if (landedRef.current) return;
     landedRef.current = true;
     const to = narratedPara >= 0 ? narratedPara : page;
     if (to !== page) setPage(to);
-    if (to > 0) scrollToPara(paraRefs.current[to]);
-  }, [narratedPara, page, setPage]);
+    if (to > 0) {
+      setLandedAt(to);
+      land(
+        () => paraRefs.current[to],
+        (el) => scrollToPara(el, true)
+      );
+    }
+  }, [narratedPara, page, setPage, land]);
 
   // Map the rendered words once per text, then paint the spoken sentence.
   useEffect(() => {
@@ -1207,6 +1219,22 @@ function ReadMode({ lesson, record, title, number, paragraphs, level, setLevel, 
           <span>{isPlaying ? 'Pause Read Aloud' : n.status === 'paused' ? 'Resume Read Aloud' : 'Read Aloud'}</span>
         </button>
         {n.note || null}
+        {landedAt > 0 && !narrating && (
+          <p className="le-resume-note" data-testid="le-read-landed">
+            Picked up where you left off: paragraph {landedAt + 1} of {count}.{' '}
+            <button
+              type="button"
+              className={`le-start-over ${RING}`}
+              onClick={() => {
+                setLandedAt(0);
+                go(0);
+              }}
+              data-testid="le-read-from-top"
+            >
+              Start from the top
+            </button>
+          </p>
+        )}
         <article className="le-book-text" ref={textRef}>
           {paragraphs.map((p, i) => {
             const { lead, rest } = sectionLeadOf(p);

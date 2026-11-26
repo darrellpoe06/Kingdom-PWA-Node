@@ -1110,3 +1110,49 @@ describe('a paused lesson continues where it left off', () => {
     expect(e.loads[e.loads.length - 1].startsWith(segments[0])).toBe(true);
   });
 });
+
+describe('the Read place survives the landing (DR-1671)', () => {
+  const KEY = `poe-lesson-experience:${REAL_LESSON.id}:adult:read-page`;
+  const paras = () => [...container.querySelectorAll('.le-book-p')];
+  // Lay the paragraphs out as if paragraph k sat at the reading line, then fire a scroll.
+  const pageAt = (k) => {
+    paras().forEach((p, i) => {
+      p.getBoundingClientRect = () => ({ top: (i - k) * 300, bottom: (i - k) * 300 + 290 });
+    });
+    act(() => window.dispatchEvent(new Event('scroll')));
+  };
+  const flush = () => act(() => new Promise((r) => requestAnimationFrame(() => r())));
+  let landed;
+  beforeEach(() => {
+    window.localStorage.clear();
+    landed = [];
+    Element.prototype.scrollIntoView = function spy() {
+      landed.push(paras().indexOf(this));
+    };
+  });
+  afterEach(() => {
+    delete Element.prototype.scrollIntoView;
+  });
+  const openRead = () => render(<LessonExperience lesson={REAL_LESSON} record={null} onExit={vi.fn()} initialMode="read" />);
+
+  it('reopened after an update, a page jump to the top does not overwrite paragraph 6', async () => {
+    window.localStorage.setItem(KEY, JSON.stringify(5));
+    openRead();
+    expect(landed[0]).toBe(5);
+    expect(container.querySelector('[data-testid="le-read-landed"]').textContent).toMatch(/paragraph 6 of \d+/);
+    pageAt(0); // the app resets to the top while the picture loads
+    await flush();
+    expect(JSON.parse(window.localStorage.getItem(KEY))).toBe(5);
+  });
+
+  it('the reader moving is followed at once, and Start from the top goes to the top', async () => {
+    window.localStorage.setItem(KEY, JSON.stringify(5));
+    openRead();
+    act(() => window.dispatchEvent(new Event('wheel')));
+    pageAt(2);
+    await flush();
+    expect(JSON.parse(window.localStorage.getItem(KEY))).toBe(2);
+    click(container.querySelector('[data-testid="le-read-from-top"]'));
+    expect(container.querySelector('[data-testid="le-read-landed"]')).toBeNull();
+  });
+});
