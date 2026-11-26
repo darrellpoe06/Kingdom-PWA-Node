@@ -1,5 +1,5 @@
 {
- "measuredAt": "2026-11-26T15:50:38.647Z",
+ "measuredAt": "2026-11-26T15:54:38.497Z",
  "counts": {
   "departments": 13,
   "courses": 51,
@@ -486,13 +486,13 @@
    "department": "A.I. The Way",
    "position": 5,
    "title": "A.I. that serves people",
-   "contentSha": "db29774e014c8c63b02d685a9211105393f7fd6b8d98fc2046a93b2947ac489d",
+   "contentSha": "304cdfcf4ee7e9b3425ed3d2c1c41c9c2a289496465e79fcca64a6a7a9ca37a4",
    "versions": {
-    "child": "2497847ab58479267e3eec5d9a174cda9fd0d6cacebe0b278a3d09972598378b",
-    "youth": "234495c12eadcc73cc80497a6075a8493c8f3f7dfa762e77357478886726154f",
-    "teen": "bc0beaf7fb6c4b4267c855f1e13c9672a4c4104a5474119a00350aec5845bf78",
-    "adult": "ff13b8c8d83df3546bdd083e5cd118f7c1996bfeb4e51c8b295e46f3ba530806",
-    "senior": "407d82ac9e87070a9886859da277d02c56b19c89cf60213d80401e56d1549f53"
+    "child": "e5a0cfc811a56c6fdc28d1e7922a620eefe5df8d1fd2462047562e6d0ea37b61",
+    "youth": "909bffdf25a9f9c60d7fcb0a17bf5ce403ed0117f4cd8ffbdb8c8b884ffb6d8c",
+    "teen": "7413157dd4284d488bf82b3cc5e695b1dd0a3572e52b1b6d7832a18dedaac310",
+    "adult": "359491c20ae9d493ebd7cea1747411b2c6f1f4d0e14f689174786fa7668d730c",
+    "senior": "51bc2107ff28c78fe248a01930b43ac4c5a0d68869809f2bb0f0abcd4355a51d"
    }
   },
   {
