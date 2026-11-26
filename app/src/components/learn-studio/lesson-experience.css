@@ -1492,3 +1492,41 @@
   font-size: 0.8125rem;
   color: var(--le-dim);
 }
+/* WHERE THE WORDS LAND (Darrell 2026-11-26): top by default, middle or bottom by choice. The title
+   steps out of the words' way, and the shade follows the words so they stay readable on any
+   picture. Full screen sizes the words to the screen, so an LED wall reads them from the back. */
+.le-stage.le-cap-top .le-caption {
+  top: 12px;
+  bottom: auto;
+}
+.le-stage.le-cap-middle .le-caption {
+  top: 50%;
+  bottom: auto;
+  transform: translateY(-50%);
+}
+.le-stage.le-cap-top .le-stage-title,
+.le-stage.le-cap-middle .le-stage-title {
+  top: auto;
+  bottom: 14px;
+}
+.le-stage.le-cap-top .le-stage-scrim {
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0) 30%, rgba(0, 0, 0, 0.55) 100%), linear-gradient(0deg, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, 0.78) 100%);
+}
+.le-stage.le-cap-middle .le-stage-scrim {
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.15) 0%, rgba(0, 0, 0, 0.62) 50%, rgba(0, 0, 0, 0.15) 100%);
+}
+.le-stage--full .le-caption,
+.le-stage:fullscreen .le-caption {
+  font-size: clamp(1.375rem, 3.4vw, 4.5rem);
+}
+.le-stage--full.le-cap-top .le-caption,
+.le-stage.le-cap-top:fullscreen .le-caption {
+  top: calc(76px + env(safe-area-inset-top, 0px));
+  bottom: auto;
+}
+.le-stage--full.le-cap-top .le-stage-title,
+.le-stage--full.le-cap-middle .le-stage-title,
+.le-stage.le-cap-top:fullscreen .le-stage-title,
+.le-stage.le-cap-middle:fullscreen .le-stage-title {
+  bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+}
