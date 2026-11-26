@@ -58,8 +58,8 @@ describe('the lessons are first on the Learn home, in order (DR-1661)', () => {
     const rows = container.querySelectorAll('.ls-inorder-row');
     expect(rows.length).toBe(FIRST_ROWS);
     expect(rows[0].getAttribute('data-testid')).toBe(`inorder-${LIVING.schedule[0].id}`);
-    const banner = [...container.querySelectorAll('button')].find((b) => b.textContent.includes('Try the new lesson experience'));
-    expect(list.compareDocumentPosition(banner) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // DR-1669: the prototype banner is gone; nothing on the home calls the new look a prototype.
+    expect(container.textContent).not.toMatch(/prototype/i);
   });
 
   it('Show all lists every lesson; Newest first puts the last lesson on top', () => {

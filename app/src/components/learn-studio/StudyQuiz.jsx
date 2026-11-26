@@ -14,7 +14,7 @@
 //     gradeQuiz and pass mark), then handed to tools.onRecordQuiz;
 //   • "saved to your record" is said only when the account is signed in
 //     (tools.quizSaves); otherwise the screen says plainly it was not saved.
-// The owner preview of an unreleased lesson has no tools: it grades and says so.
+// Without a record to file to (signed out), it grades and says so.
 import React, { useRef, useState } from 'react';
 import { gradeQuiz } from '../../lib/learn-framework.js';
 
@@ -106,11 +106,7 @@ export default function StudyQuiz({ lesson, tools = null }) {
             <b>
               {result.correct} of {result.total} correct ({result.pct}%): {result.passed ? 'passed' : 'not passed yet'}.
             </b>{' '}
-            {saves
-              ? 'Saved to your record.'
-              : tools
-                ? 'Not saved: sign in to keep quiz grades on your record.'
-                : 'Not saved: this is the owner preview of a lesson that is not public yet.'}
+            {saves ? 'Saved to your record.' : 'Not saved: sign in to keep quiz grades on your record.'}
           </p>
           <button type="button" className={`le-quiz-again ${RING}`} onClick={again} data-testid="le-quiz-again">
             Take it again

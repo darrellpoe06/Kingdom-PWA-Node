@@ -62,7 +62,7 @@ describe('StudyQuiz', () => {
     expect(q('le-quiz-saved').textContent).toContain('On your record: passed (80%)');
   });
 
-  it('never claims a save when signed out or in the owner preview', () => {
+  it('never claims a save when it cannot file one (signed out, or no record to file to)', () => {
     mount({ lesson, tools: { quizSaves: false, onRecordQuiz: () => {} } });
     tap('le-quiz-0-0');
     tap('le-quiz-1-1');
@@ -70,7 +70,7 @@ describe('StudyQuiz', () => {
     mount({ lesson });
     tap('le-quiz-0-0');
     tap('le-quiz-1-1');
-    expect(q('le-quiz-result').textContent).toContain('owner preview');
+    expect(q('le-quiz-result').textContent).toContain('Not saved: sign in'); // DR-1669: no 'owner preview' wording now the new look is for everyone
   });
 
   it('Take it again clears the attempt', () => {
