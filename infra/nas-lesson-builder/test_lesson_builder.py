@@ -981,6 +981,81 @@ class Gates(unittest.TestCase):
         self.assertFalse(gates.voice_gate({"lesson": "Satan lost."})["passed"])
         self.assertFalse(gates.voice_gate({"lesson": "we follow jesus"})["passed"])
 
+    def test_the_voice_gate_says_WHICH_shape_of_God_it_refused(self):
+        """DR-1670. `generic-God-not-Yahweh` refused 25 of the 33 waiting rows and
+        could not say which use, so nothing could decide whether the writer was
+        wrong or the gate stricter than the rule. The refusal now names the shape
+        -- in this module's own constants, never a span of the draft."""
+        for text, needle in (
+            ("God's people were brought out", 'the possessive "God\'s"'),
+            ("God the Father sent His Son", 'the "God the" a title construct'),
+            ("God is love", 'the generic "God" in our own voice'),
+        ):
+            probs = gates.voice_gate({"lesson": text})["problems"]
+            self.assertFalse(gates.voice_gate({"lesson": text})["passed"], text)
+            self.assertTrue(any(needle in p for p in probs), (text, probs))
+
+    def test_the_covenant_construct_is_ALLOWED_and_the_near_misses_are_not(self):
+        """DR-1672, and the rule decided it. DR-0210's own test is "the reader must
+        never be left guessing which god is meant", it says in the same breath
+        "not a mechanical find-replace", and CLAUDE.md forbids a blind sweep
+        BECAUSE it corrupts the text. "the God of Abraham" names Him by covenant
+        -- already clear, and unconvertible ("the Yahweh of Abraham" is the
+        corruption). The near misses stay refused: a possessive carries no
+        qualifier, and "the Father" alone is already allowed and clearer."""
+        for text in ("the God of Abraham, Isaac and Jacob brought them out",
+                     "the God of Israel keeps His word",
+                     "Yahweh, the God of Jacob, is our refuge"):
+            self.assertTrue(gates.voice_gate({"lesson": text})["passed"], text)
+        for text in ("God's people were brought out", "God the Father sent His Son",
+                     "God is love", "we trust God"):
+            self.assertFalse(gates.voice_gate({"lesson": text})["passed"], text)
+
+    def test_PROVEN_TO_CATCH_an_allowed_construct_hiding_a_bare_God(self):
+        """The allowed construct is still SUBTRACTED before the standalone check, so
+        it can never smuggle a bare "God" past the gate by sitting in the same
+        text. Drop that subtraction and this is what goes wrong."""
+        both = gates.voice_gate({"lesson": "the God of Israel is one; God is love"})
+        self.assertFalse(both["passed"])
+        self.assertTrue(any(p.endswith('the generic "God" in our own voice (say Yahweh)')
+                            for p in both["problems"]), both["problems"])
+        # ...and the allowed construct is not ALSO filed as the standalone use.
+        only = gates.voice_gate({"lesson": "the God of Israel is one"})
+        self.assertEqual(only["problems"], [])
+
+    def test_PROVEN_TO_CATCH_the_verdict_moves_for_exactly_one_shape(self):
+        """DR-1670 named the shapes and moved no verdict; DR-1672 moves exactly ONE,
+        deliberately. The gate's historic bare `\\bGod\\b` search is still the
+        oracle for every other shape, so any FURTHER divergence is a bug. This
+        pins the one intended difference and refuses all others."""
+        import re as _re
+        allowed_now = {"the God of Abraham, Isaac and Jacob", "the God of Israel is one"}
+        corpus = [
+            "the God of Abraham, Isaac and Jacob", "the God of Israel is one",
+            "God's people", "God the Father", "God is love", "God of abraham",
+            "the God of Israel is one; God is love",
+            "the Godhead is three in one", "Yahweh brought them out", "godly fear",
+            "the gods of Egypt", "Jesus is the Lamb of Yahweh", "", "God",
+            "His word stands", "Gods of wood and stone", "God’s own hand",
+        ]
+        for text in corpus:
+            ours = gates.our_voice(text)
+            oracle = bool(_re.search(r"\bGod\b", ours))
+            refused = bool(gates.god_shapes(ours))
+            if text in allowed_now:
+                self.assertTrue(oracle, text)       # the old gate DID refuse it
+                self.assertFalse(refused, text)     # and now it does not
+            else:
+                self.assertEqual(oracle, refused, (text, gates.god_shapes(ours)))
+
+    def test_quoted_Scripture_is_never_touched_by_any_of_this(self):
+        """The DR-0076 bright line. our_voice() strips every quoted span first, so
+        the KJV's own "God" is never seen by the voice gate -- before or after
+        DR-1672."""
+        verse = 'Yahweh is faithful. "For God so loved the world" (John 3:16)'
+        self.assertTrue(gates.voice_gate({"lesson": verse})["passed"])
+        self.assertEqual(gates.god_shapes(gates.our_voice(verse)), [])
+
     def test_holy_names_in_step_with_typographic_theology(self):
         with open(os.path.join(REPO, "app/src/lib/typographic-theology.js"), encoding="utf-8") as f:
             js = f.read()

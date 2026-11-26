@@ -56,5 +56,5 @@ here — that question stays open and is Darrell's.
 - **The drift case earned itself on its first run**, failing on
   `the generic "God" in our own voice`: the source escapes those quotes, so it
   compares with escapes removed. The matcher was right; the test was not.
-- **Not claimed:** the seven rows are past their attempt budget, so this helps
-  the NEXT teaching and rebuilds none of them. `re-review: 2026-11-25`.
+- **Re-reviewed 2026-11-26, SATISFIED live**: `span-without-reference` rides on
+  13 of 33 rows, leaking neither the span nor the `where`. Closed.

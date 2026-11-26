@@ -230,3 +230,145 @@ against 47 before. That was not tidiness: the first attempt put the whole case
 statement inline and pushed `.github/workflows` 53 lines over its own ceiling.
 The guard refused it, and the refusal produced the better shape — a tested
 script instead of untested YAML.
+
+## 7. 2026-11-26 — four re-reviews came due, and the queue named its real wall
+
+Four dated promises fell due on 2026-11-25 (DR-1534, DR-1542, DR-1551,
+DR-1552), every one of them saying "nothing is measured live". Run 45816352285
+is that measurement. All four are **satisfied**, read off the receipt's own rows:
+
+| record | what it promised | what the receipt shows |
+|---|---|---|
+| DR-1534 | the failure SITE | 33/33 rows carry one: `gates` 22, `crashed` 5, `transient` 3, `other` 2, `rate-limited` 1 |
+| DR-1542 | the box names its own cause | `crashed: RuntimeError` on three rows; two read `cause not stored` — its stated limit, holding |
+| DR-1551 | the PROBLEM, not only the gate | `gates refused: quotation+verse+voice \| because: generic-God-not-Yahweh+not-the-verse+span-without-reference` |
+| DR-1552 | name the span, never leak it | `span-without-reference` on 13 rows, no span text, no `where` |
+
+**DR-1551's open question is answered by outcome, not by new code.** It said
+`kinds` is unioned across a row's builds so it could not say whether the same
+problem repeated on attempt 2 — "the question that decides whether a third
+attempt would help." DR-1641 raised the budget 2→4 and the measured answer is
+**no**: every row now reads `failed after 4` or `rate-limited after 6`, and the
+queue extended by one cycle without clearing. The union limit still stands; the
+decision it was blocking does not.
+
+### Two apparent self-contradictions that were not
+
+Both were checked in code before being filed, and neither is a defect:
+
+- **`crashed` with no exception named** (two rows). `stall_of` matches the
+  builder's own prose `"the build process crashed (exit"` BEFORE asking for an
+  exception class, so a crash with an exit code and no Python exception is
+  honestly `crashed` with the cause absent — `:930`'s own rule, "an absent cause
+  is unread, never 'no cause'".
+- **`transient` reading `rate-limited after 6`** (three rows).
+  `SELF_HEALING = ("rate-limited", "transient")`, and `why_of` deliberately uses
+  one counter phrase for both; the 2026-11-18 fix at `:240` was precisely to
+  stop under-reporting a `transient` row. Legibility is arguable; truth is not.
+
+### The real wall, and the one question that is Darrell's
+
+`generic-God-not-Yahweh` refuses **25 of the 33** rows and has **overtaken**
+`not-the-verse` (23; it led 18/16 two days ago). Counted, not recalled.
+
+The writer is **already told** the rule — `lesson_writer.py:109-110`, *"Say
+"Yahweh", never the generic "God", when naming the Father in our own voice."*
+Same shape as DR-1641: the instruction exists and more of it is not the fix.
+
+And the gate (`lesson_gates.py:421`) is one bare `\bGod\b` search. Measured
+against it, rather than reasoned about:
+
+| our-voice text | the gate |
+|---|---|
+| `the God of Abraham, Isaac and Jacob` | **refused** |
+| `God's people were brought out` | **refused** |
+| `God the Father sent His Son` | **refused** |
+| `God is love` | **refused** |
+| `the Godhead is three in one` | passes |
+| `the LORD is my shepherd` · `the King reigns` · `godly fear` | passes |
+
+The titles CLAUDE.md keeps available do pass. But CLAUDE.md also says the rule
+is "clarity of identity, **not a mechanical find-replace**" — and a construct
+like *the God of Abraham* is not named either way. So one blanket search was
+deciding an undecided question by default.
+
+**DR-1670 splits the report and nothing else** — the shape is named, no verdict
+moves, pinned against the bare search as its own oracle.
+
+## 8. The question I parked was already answered — DR-1672
+
+I ended §7 by handing the construct to Darrell as his call. **The stop-hook
+refused that reply, and it was right.** DR-0111's carve-out is a *new* bright
+line; this was not one. Reading DR-0210 properly rather than deferring it:
+
+- Its own stated test is *"so the reader is never left guessing which 'god' is
+  meant"* — clarity of identity.
+- Its own stated limit, in the same breath: *"the point is clarity of identity,
+  **not a mechanical find-replace**"*, with "the Father", "the LORD", "the
+  Godhead", "the King" kept available.
+- And CLAUDE.md forbids a blind God→Yahweh sweep **because it would corrupt the
+  text**.
+
+Apply that test per shape instead of to the bare word:
+
+| shape | leaves the reader guessing? | convertible? | verdict |
+|---|---|---|---|
+| `the God of Abraham / of Israel` | no — He is named by covenant | **no** — "the Yahweh of Abraham" is exactly the corruption the rule warns of | **allow** |
+| `God's people` | yes — no qualifier at all | yes: "Yahweh's people" | refuse |
+| `God the Father` | the title alone is already allowed, and clearer | yes: "the Father" | refuse |
+| bare `God` | yes | yes | refuse |
+
+So the rule had already decided it: one shape satisfies it and the gate was
+over-reaching. `the God of Abraham` is both maximally identifying *and* the one
+phrase that cannot be converted at all — which is precisely why CLAUDE.md says
+the rule is judgment rather than a sweep.
+
+**DR-1672 moves exactly one verdict, deliberately**, and the writer is told the
+same thing so the fix is not gate-only. Three things keep it honest: the allowed
+construct is still *subtracted* before the standalone check, so it can never
+smuggle a bare "God" past the gate; the historic bare search stays the oracle for
+every other shape, with one named divergence allowed and all others refused; and
+`our_voice()` strips quoted spans first, so the KJV's own "God" is never seen —
+pinned in a case.
+
+`God-of-a-name` stays in the census vocabulary. It is unreachable by policy, not
+dead: one boolean reverses the decision, and a case checks every clause the gate
+*holds* rather than only those it currently emits, so the words stay in step.
+
+The honest open item is no longer a question but a measurement: how much of the
+25 clears. The next receipt says, per shape.
+
+### How to prove the NAS actually took it — an exact value, not a promise
+
+Every record today closed with "the next receipt is the proof", which is weak:
+it does not say what the proof would LOOK like. The receipt's
+`The builder -- ... code: <16 hex>` is computable, so it can be an exact test.
+
+`infra/nas-lesson-builder/install.sh:49` writes it:
+
+```
+CODE_SHA=$(cat lesson_builder.py lesson_writer.py lesson_gates.py | sha256sum | cut -c1-16)
+```
+
+So the same three files hash the same way from any checkout:
+
+```
+git show <ref>:infra/nas-lesson-builder/lesson_builder.py \
+         <ref>:infra/nas-lesson-builder/lesson_writer.py \
+         <ref>:infra/nas-lesson-builder/lesson_gates.py | sha256sum | cut -c1-16
+```
+
+Measured 2026-11-26 13:15Z, which also **cleared a suspicion rather than
+confirming it**: the receipt had read `ec1c66316d4ad3ca` all day while the
+census code moved, which looked like a stale builder. It is not.
+`origin/main` computes to **exactly `ec1c66316d4ad3ca`** — the builder is
+current. The hash had not moved because main's three builder files had not
+moved since `028d266ab05` (DR-1646, 2026-11-24); DR-1670 and DR-1672 were still
+on the branch. A number that does not change is not evidence of a fault.
+
+**The expected value for the next re-review:** once DR-1670 + DR-1672 merge,
+recompute the hash on `origin/main` and the receipt must come to read it. On the
+branch as pushed that value is `98a82136aec37d6a`; recompute after the squash
+rather than trusting this line, since a later builder change would alter it.
+Until the receipt reads main's hash, DR-1670 and DR-1672 are shipped but NOT
+live, and anything claiming otherwise is unproven.

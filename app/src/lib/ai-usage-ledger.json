@@ -804,6 +804,21 @@
       "notes": "Measured worktree creation to the single commit on claude/the-lesson-lock-has-a-road. What is NOT on that record: the two refused label attempts that exposed the problem, the survey of nine mail workflows that found GMAIL_WATCH_APP_PASSWORD already reaching this mailbox, and the ledger-sweep measurement of 7 already-shipped threads among the 28 -- all earlier in the session. Tokens and dollars null: no meter exposed. Estimate is this session's own for a dispatch-only workflow, a pure helper, an 18-case offline suite proven to catch the BigInt rounding, a record, a session note, and two self-inflicted test defects found and fixed rather than shipped. CORRECTED by DR-1355: the clause \"found GMAIL_WATCH_APP_PASSWORD already reaching this mailbox\" above is FALSE and is left standing rather than deleted so the error is met with its correction. That survey read the workflows' CODE; the secret has never been set, and every lesson-mail-watch.yml run is a green no-op. DR-1355 corrected three prose places and two file headers and missed this one. The measurement of this task's own hours is unaffected."
     },
     {
+      "id": "which-shape-of-god-refused-the-draft",
+      "date": "2026-11-26",
+      "task": "generic-God-not-Yahweh refused 25 of the 33 waiting teachings and one word could not say whether the writer was wrong or the gate stricter than its own rule",
+      "drs": [
+        "DR-1670"
+      ],
+      "prs": [],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.9,
+      "estimateWithoutAiHours": 5,
+      "notes": "A reporting split, no verdict moved -- pinned against the gate's own bare search as the oracle. The construct 'the God of Abraham' stays Darrell's call, now with a count behind it."
+    },
+    {
       "id": "a-dormant-road-is-not-a-road",
       "date": "2026-11-06",
       "task": "A dormant road is not a road: DR-1354's claim that the IMAP credential was already in place was false, and a dormant run asked to label threads was exiting 0",
@@ -945,6 +960,21 @@
       "wallClockHours": 0.6,
       "estimateWithoutAiHours": 12,
       "notes": "Measured from worktree creation 15:10:54Z to the first commit at 15:45Z; it excludes the merge, the push and driving CI afterwards. Tokens and dollars null: no meter is exposed to this session (the standing DR-1347 gap). The estimate without AI covers reading the advisory, choosing and verifying ten KJV spans against the corpus by hand, authoring four age bands onto the ladder plus two parables, writing a 31-case gate with seven proven-to-catch cases, and the record, note and baselines. Two gate findings cost real time and are the part worth reading: a DR id is forbidden in a reader band, and the course header had named a test file that never existed."
+    },
+    {
+      "id": "the-covenant-construct-was-always-allowed",
+      "date": "2026-11-26",
+      "task": "DR-1670 parked the covenant construct as the Governor's question; the stop-hook caught it and the rule had already decided it",
+      "drs": [
+        "DR-1672"
+      ],
+      "prs": [],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.5,
+      "estimateWithoutAiHours": 3,
+      "notes": "DR-0210 carries its own test and its own limit. God of a Name is named by covenant and cannot be converted without corrupting the text, so it was always allowed; the three near misses stay refused. Exactly one verdict moves, pinned."
     },
     {
       "id": "a-present-base-can-still-be-stale",
