@@ -14,6 +14,13 @@ let container, root;
 beforeEach(() => {
   window.speechSynthesis = { speak() {}, cancel() {}, pause() {}, resume() {}, getVoices: () => [], addEventListener() {}, removeEventListener() {} };
   window.SpeechSynthesisUtterance = class {};
+  // These cases read the List look (DR-1661's numbered rows); the home now opens on Pictures
+  // (learn-functions-in-new-look.test.jsx holds that default), so they pick List as a reader would.
+  try {
+    window.localStorage.setItem('ls-view:lesson-view', 'list');
+  } catch {
+    /* no storage */
+  }
   container = document.createElement('div');
   document.body.appendChild(container);
   root = createRoot(container);

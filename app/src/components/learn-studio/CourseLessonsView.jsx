@@ -39,7 +39,8 @@ export function orderCourseItems(items, order = 'order') {
   return rows;
 }
 
-export default function CourseLessonsView({ title, items, onOpen, renderPictures }) {
+/** renderList(order), when given, draws the List look itself (DR-1662: the compact-thumbnail list). */
+export default function CourseLessonsView({ title, items, onOpen, renderPictures, renderList = null }) {
   const [view, setView] = useState(readView);
   const [order, setOrder] = useState('order');
   const rows = useMemo(() => orderCourseItems(items, order), [items, order]);
@@ -81,6 +82,8 @@ export default function CourseLessonsView({ title, items, onOpen, renderPictures
       </div>
       {view === 'pictures' ? (
         renderPictures(rows)
+      ) : renderList ? (
+        renderList(order)
       ) : (
         <section className="ls-inorder" aria-label={`${title}, as a list`}>
           <header className="ls-inorder-head">

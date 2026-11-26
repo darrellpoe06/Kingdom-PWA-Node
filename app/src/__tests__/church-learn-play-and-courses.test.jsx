@@ -261,7 +261,11 @@ describe('the redesigned Learn defaults on for the owner device, never for every
   it('the owner device (learnStudioDefaultOn) opens straight into the redesigned Learn, no URL needed', () => {
     mountRaw({ learnStudioDefaultOn: true });
     expect(container.querySelector('.ls-root')).toBeTruthy();
-    expect(playButtons().length).toBe(0); // the classic reader is not what is shown
+    // DR-1662: the classic tools live INSIDE the new look ("Every Learn Tool"), so
+    // no classic control stands outside it -- the new look is what is shown.
+    const tools = container.querySelector('[data-testid="ls-full-tools"]');
+    expect(tools).toBeTruthy();
+    expect(playButtons().every((b) => tools.contains(b))).toBe(true);
   });
 
   it('an explicit ?learnStudio=0 on the owner device still shows the classic view', () => {
