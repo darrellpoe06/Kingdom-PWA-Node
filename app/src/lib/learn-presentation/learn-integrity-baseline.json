@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T15:16:16.206Z",
+ "measuredAt": "2026-11-26T15:20:32.549Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4566
+  "readings": 4568
  },
  "departments": [
   {
@@ -12624,11 +12624,13 @@
    "department": "The Eternal Algorithms",
    "position": 3,
    "title": "The Blood on the Doorpost (when I see the blood)",
-   "contentSha": "4561ed5f714eca865b9fe7293f7b677ccaa1eafd572eb918f4dfc58730c472e6",
+   "contentSha": "44f13cf221b7454755769c3bec90934ce3a15978c26a837f086d5a1249647792",
    "versions": {
-    "teen": "c4413acbbe35a79857384c2d6b7488424dea7ad5e80d164c2f9c11335dab227b",
-    "adult": "c204cd54a4f166af24e6e4092faff63b7a6948633de551744d77411581c7c7f3",
-    "senior": "594cf6071d400eb9a0f6c964f5a02071eafdd01a050b2476cbe74005cdcdda4d"
+    "child": "52703693b52a8a503885f6b3c09a187113c91e5ac9c3a2217596182866794cf7",
+    "youth": "f65841fa9dcff355622705d3037eda1e73492d2998a9a9a72f2be9d16256b839",
+    "teen": "f3a22fcf97ba7c49d3206a0ba4421bdc18cee831792cdaf995b11158ff96a6dc",
+    "adult": "914a0c6c6f94974ca06e5c33fe0326086b034d5f4c771fcf09467189933fa13e",
+    "senior": "bb6a7c62fda761f18613d944e09476b6b0d56b51d0bd66084984d1cf5f5c0ff4"
    }
   },
   {
