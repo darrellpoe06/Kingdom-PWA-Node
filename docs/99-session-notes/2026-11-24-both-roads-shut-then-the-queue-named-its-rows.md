@@ -183,3 +183,50 @@ contradicting itself. Fixed in **DR-1651**.
 The tailnet key, which blocks the builder's own log for the three `crashed`
 rows, `nas-signin-heal`, `lessons-sync`, `camera-health` and both address
 pipelines. One expired secret, six stopped things.
+
+## 6. 2026-11-26 — the merge lane was filing a correct state as a failure
+
+With the queue steady at 33 rows for ~22 hours and nothing moving, the next
+backlog item came forward: the long-pending `auto-open-pr` race. **DR-1668.**
+
+The 30 most recent failed `auto-open-pr` runs, classified from their own job
+logs rather than from memory:
+
+| what the log actually says | count | verdict |
+|---|---|---|
+| `a pull request already exists` | **15** | the race — a correct state filed red |
+| `No commits between main and …` | 13 | all pre-2026-09-22; the `ahead=0` guard closed it |
+| `read: connection reset by peer` (40811913559) | 1 | genuine; must stay red |
+| `HTTP 499` (34525462333) | 1 | genuine; must stay red |
+
+A first pass answered **wrongly**: the grep matched the workflow's own echoed
+comments in the log (`# hard-fails ("No commits between...")`), so 14 runs read
+as "No commits between" when every one of them was the race. The same trap as
+the 402 misread two days earlier — the log carries the script's text as well as
+its output. Excluding the command-echo lines gave the table above.
+
+Both refusal shapes occur and the fix must know both: GraphQL's
+*"A pull request already exists for darrellpoe06:<branch>"* and gh's own
+pre-check *"a pull request for branch "<branch>" into branch "main" already
+exists:"*.
+
+Measured here, not assumed: the REST read
+`repos/<repo>/pulls?head=darrellpoe06:<branch>&state=open` returns **2917** for
+the real open PR on `ccr-f11dc090-4lp0l8`, and empty for a branch with none. The
+side-by-side against `gh pr list` could NOT be run from this sandbox — it blocks
+GraphQL — so the index's lag is evidenced by the 15 runs, not by a local
+comparison. Said plainly rather than implied.
+
+### Why a live read alone was not the fix
+
+Two runs can both read "none" and both create, so the refusal itself had to
+become the authority. Hence `pr-create-outcome.sh` (classify) +
+`pr-open-or-adopt.sh` (resolve), and the one real danger of the change — a
+transport fault swallowed as *"it must already exist"* — pinned four ways in the
+suites and proven to catch three ways by reverting each half.
+
+The logic moved OUT of the workflow, which left its `run` block at 46 lines
+against 47 before. That was not tidiness: the first attempt put the whole case
+statement inline and pushed `.github/workflows` 53 lines over its own ceiling.
+The guard refused it, and the refusal produced the better shape — a tested
+script instead of untested YAML.
