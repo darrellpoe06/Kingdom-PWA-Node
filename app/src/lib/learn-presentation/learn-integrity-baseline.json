@@ -1,5 +1,5 @@
 {
- "measuredAt": "2026-11-24T03:40:13.119Z",
+ "measuredAt": "2026-11-26T00:29:11.565Z",
  "counts": {
   "departments": 13,
   "courses": 51,
@@ -572,9 +572,9 @@
    "department": "Serve the House",
    "position": 3,
    "title": "Light — Isaiah and Coreyon make it seeable",
-   "contentSha": "67dec5fb66a567784abc5575fb6ee0c41913ddac6241f2a039997a221a8229e4",
+   "contentSha": "b95b21fb73024b09f2084c77d81da05c107817c56416cd599006afe8aa5b8221",
    "versions": {
-    "teen": "58792dc5a6e8c286ea890771a97137b31b8a712337b7e605c494b3ccbe76315e",
+    "teen": "c5ac1f8cb5609eb527bc3322c75bbde8bcd2b09a9aa59f83140f66c560572cce",
     "adult": "872e5dfaceaef026649be62afdea9c0b0f824c51299d325d4e4c93b151f95320",
     "senior": "d59e768940b2fb48d30f299ea75bfa4b7569d021fcd33c965776f8f7fcd1dd39"
    }
@@ -5595,9 +5595,9 @@
    "department": "Living Lessons",
    "position": 219,
    "title": "Owning the Light Instead of Renting It — Count the Cost, Carry the Risk Honestly, and Follow His Wisdom First",
-   "contentSha": "55429d8069f93d89634174539ec8d01c37aa8c2bc3a272b22f73c0778cba6df3",
+   "contentSha": "405c5a7d96df412c49080ac94443e6ef8e217b5fca4b225eaf4e07a0d9c35969",
    "versions": {
-    "child": "9d1ebd8588d9dbdf4b95dff662b34f1a466e2132b10b4365699a67d0330c9839",
+    "child": "3f1f17b442f5168ada2cd168a54aa3db84afd55ca17ab229ecfc724d9df2e1be",
     "youth": "1c0fd73c935d29e1de7edec71124a1765a4dd067b3fa4e4436aa153522206cee",
     "teen": "8771be3e8d2f0c07281f6e391173030851e5bd9ef902ea065506bdf42694a5e6",
     "adult": "8f6430ca26763de20791a27d66d9dc2c40553cc9739584edb79cad6d50db85db",
@@ -6075,9 +6075,9 @@
    "department": "Living Lessons",
    "position": 251,
    "title": "Laziness Is a Character Matter — the Four Domains and the Five Marks of the Sluggard",
-   "contentSha": "fee1c2258984ad72ce3614ec5e249e43cefae438a1dfda5af60c351d74e72259",
+   "contentSha": "c07eeb011e5764b02a49dabbad3def1b48660ee9e07e9777442bdd2caa9b5641",
    "versions": {
-    "child": "06d58987b0e2d564047ed72347496e2839a8e8bbfaae956676838ff031ed894b",
+    "child": "f56b4c73744ce9d6cecb5ff7dd9adbec63481de8cbc8d8e9bebe32a0e337fc3e",
     "youth": "f004a4f1c8f5b4406556f0b763868dc6edfff7f12c8fdadcf28de8616367d4c0",
     "teen": "55a5d6f91c68c285eaea37bf895bd02f9fb9dbd834e723764f26526b1a8cdff8",
     "adult": "c10154374bc29f8e8a0cf34171d8d22e3a987299ff6230f3f2f248a078c9a38f",
@@ -7395,12 +7395,12 @@
    "department": "The Word & The Way",
    "position": 2,
    "title": "Count the Days — Numbers 1 to 7 from Creation",
-   "contentSha": "8f865e4a17363bae61ec7338608fbf7ff15f1bac4b9205c9ec8b7150f0727276",
+   "contentSha": "a55d57ee46921486b5408c0bc441dcea52467f3d0bdb19e4c45c3768187c1268",
    "versions": {
-    "child": "6c62326826ef5357d8bc2f4bc5439ec172ed8419e00eb564130cf886266d2b4d",
-    "youth": "18882ec3fee46c619057fbd326df8b349c14f17fd7f9dfda449dc0fdec03ab55",
+    "child": "77be62285f2861c6f1f86807b26575a909214a8da2234e984cd289cd6ee69137",
+    "youth": "f1a79999abf364ea2666d5fb436c525759e05177f205e967f7d8caa5cde5064a",
     "teen": "2962e3b838ab3c0e2b7703e76bb89c1bdbfce72bff2bf07e376b0981d3237980",
-    "adult": "9ba1a44e1b5dc832d43396c2a80fde2e2e07e4fca66057fd6a037e903e2a6ea7",
+    "adult": "5eb30092c2c3fbd59dc3b182b06ade5661c846126a6222bc4c0fb8679abf6633",
     "senior": "6af59c135658b05dbab184d03d430b0d848ac5d5917cfc586b7a0afa7714c355"
    }
   },
@@ -7440,12 +7440,12 @@
    "department": "The Word & The Way",
    "position": 5,
    "title": "First Words from the Word — Light, Good, Love, Made",
-   "contentSha": "4ddc8c17cdf6bf72889cf394e4684c7396e07eeb897da2f13e59785dac3bc89f",
+   "contentSha": "a397ecf08c59870a95c68e08830900ea3560ac61ccbce1a429ed60b1ac0e486e",
    "versions": {
-    "child": "a5476ee79ec4747001259a28b31990674b1c9aab11ff5855b82c80b893267787",
-    "youth": "337a98d9f6150d07f5aadd3c32f9ae2f3ecd658ad772858305a380181988c79b",
+    "child": "84b4b342d233c6404082260c02257040a1f6b24b37b65eb201217d85e4ab98d2",
+    "youth": "159041a5496d1d9d3dd4de9b0dde38461b9e549f41f3e6a04db209d1e99f1698",
     "teen": "d159b4e3fe2a9d204c27db24e3112c9b13d6ab3a394d938e66cbd52b4209bff2",
-    "adult": "6aefa2f599e4d2a8c4c00e5a804d96726b4bd71696a1983cd0c086381b5d2db4",
+    "adult": "b06fe0242ac6728f14e1a4bf7f701ba2d0d6100ccbb6a94d5b9bd47633d8ae24",
     "senior": "869d92c35477a8a091801d2e495a6e8f5090f0d5320cfafdf7d2092dd02eb4a7"
    }
   },
@@ -8006,12 +8006,12 @@
    "department": "The Word & The Way",
    "position": 2,
    "title": "The Young He Called",
-   "contentSha": "8392f0620349a5073de2e1e9b2d94cbf23730cd49e9c632746d1ee087a269bc6",
+   "contentSha": "c46fa70ae3b0992a2761631bacf094d10f0215e8b501360f855e8d6edf52a082",
    "versions": {
-    "child": "a3dc0194c8b9f229bd8be5fc866209f3aea553c20fe72a06da480734122e50ae",
-    "teen": "003a0d0268117d695c9f561e5a4703701056c824ad058f2894c094fafc055edf",
-    "adult": "650eea80350cf2a7f36cb943264249f30b0d5aa3cb1b2b48dce3e391dab03fba",
-    "senior": "73039cbe522f2cf8ddccd4c13c1c964e521513d6f55530dce993900caca6a407"
+    "child": "764f297abf4490a30d611cdce8e95b9475f821c6bcdec3cf4842b9a5aee98264",
+    "teen": "931eeb1256b20b598f3073aa0ce3a051493021b3a5f29e196d802bb5dcbb5855",
+    "adult": "a82b2a87044010db00a1f36e38d6a3dcd8fbedfb7a05764e1dc0639f95af3ec3",
+    "senior": "7499e2cc80435e4ef4a2b0e9b0eadae2b1d6361fa7ffbbd317a6d788de28c91b"
    }
   },
   {
