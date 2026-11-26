@@ -89,6 +89,7 @@ describe('Learn content integrity baseline', () => {
   // faithful-crown, assembling, sow-bountifully, tested-soul,
   // filled-righteousness, feed-sheep, closet, sheep-voice, confess-cleanse,
   // humble-exalt, vengeance-his, seated-heavenly, good-fight-exercise, more-than-conquerors, quickened, resist-flee, church-born-fire, higher-priority, renew-mind, truth-love, confess-believe, kenosis, die-daily, stand-on-word, believe-life, abide-fruit, grain-wheat, lose-find, rock-house, measure-measured, ask-seek-knock, forgive-forgiven, seek-first, door-christ, word-void, no-weapon, return-return, tithe-windows, potter-shepherd, furnace, give-heart, secret-place, throne-established, honour-kings, break-generational, inside-love, father-fatherless, train-child, soft-answer, wait-renew, pride-fall, meek-inherit, delight-desires, shapen-iniquity, blessed-tree, trust-paths, taste-and-see, humble-heal, joy-untakeable, house-serve, passover-blood, choose-life.
+  // Course lessons brought to full (every-course-lesson-is-a-lesson): ai/wk1-what-is-ai, ai/wk2-good-questions, ai/wk3-the-test, ai/wk4-ai-for-school, ai/wk5-ai-that-serves, ai/wk6-build-something, ai/wk7-guard-heart-time, ai/wk8-teach-next.
   it('the baseline is the measured Phase 1 catalog (13 / 51 / 994 / 4,570)', () => {
     expect(base.counts).toEqual({ departments: 13, courses: 51, lessons: 994, readings: 4570 });
   });

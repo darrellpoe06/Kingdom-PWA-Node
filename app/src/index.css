@@ -1249,3 +1249,9 @@ html[data-reader-rails="sides"] header[data-read-skip] {
 .is-feats{grid-template-columns:repeat(auto-fit,minmax(min(100%,6.25em),1fr))}
 .is-rec-nums,.is-stats{grid-template-columns:repeat(auto-fit,minmax(min(100%,5.5em),1fr))}
 .is-hero,.is-feats,.is-leader-cap,.is-rec-nums,.is-stats{overflow-wrap:break-word;word-break:normal;hyphens:manual}
+/* DR-1684: a lesson's "how far" bar inside a filled button (RowContinue): drawn
+   in the button's own text color, so it is exactly as visible as its words in
+   every theme; the track is the same color, faint. No transition. */
+.lpb-oncolor{display:block;position:relative;height:3px;margin-top:4px;width:100%;overflow:hidden}
+.lpb-oncolor::before{content:"";position:absolute;inset:0;background:currentColor;opacity:.3}
+.lpb-oncolor-fill{display:block;position:relative;height:100%;min-width:2px;background:currentColor}
