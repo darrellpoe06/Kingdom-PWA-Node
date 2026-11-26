@@ -24,6 +24,7 @@ Learn assumes a person already knows which course holds their answer. Darrell as
 - Members: The Word / Learning Zone opens on the discovery page first; Browse All Lessons and the access buttons reach the existing Learn unchanged. Deep links (`?course=`, `?lesson=`) are unaffected.
 - Code: additive. Existing files touched: `ChurchLearn.jsx` (2 lines), `learn-landing.js` (one export), `surfaces.js` (one line), the regenerated `legibility-health.json`. The frozen shell, `LoveCornerHome.jsx` and Learn Studio are untouched.
 - Latency/state: the page and its index (about 0.9 MB gzipped) load lazily; no schema, no new storage except the optional opt-out key. Series progress reads the device's existing saved places; no new progress record.
+- Journeys: the `learn-by-taps` walk (scripts/e2e/app-journeys.mjs) now goes through the new front door (it taps Browse All Lessons before the lesson list) with all its original assertions kept; CI's built-app run found this, and the same path passes in a browser run.
 - Rollback: revert the `surfaces.js` line, or `?discover=0` / `localStorage['poe-learn-discover']='0'` per device.
 
 ## Decision
