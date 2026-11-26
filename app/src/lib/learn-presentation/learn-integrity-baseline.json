@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T07:48:27.643Z",
+ "measuredAt": "2026-11-26T07:52:45.166Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4410
+  "readings": 4412
  },
  "departments": [
   {
@@ -13118,11 +13118,13 @@
    "department": "The Eternal Algorithms",
    "position": 18,
    "title": "Money Cannot Ransom a Soul (only Yahweh redeems)",
-   "contentSha": "b41f7bbdf4add75704b74d0b22918c02d8c5ad3699f72f12b6d8919ee2dc40f9",
+   "contentSha": "696603e3b660950a4c560bbf8d4e4e892a3da18c6d8b7ace6b7e05154a104db0",
    "versions": {
-    "teen": "b847fe8ad8e93410478d8f2e3488375ae7bfff88513c3e83b7462c4c7c0e159b",
-    "adult": "e6b9f65b3043d15b4d45d07f1bd597764dcff69a58c4ee82b6ed4dac994d65a0",
-    "senior": "f850b0173937ff9367e1d4795644fdd4c44db3d3b0bb8e39a22ff471bff7c9d3"
+    "child": "03ab5158022642baa8accb3a805f2e7c2faf11995808db7f6ce8950557ce69fa",
+    "youth": "b49f47e2a25358457809cb29867ce48cd5f55aa5c27ce123c02d5c4852957ca9",
+    "teen": "3cdadd551bd4e804a2c00bebd814822e5f3a69e4bd334c91b62e3a0663682765",
+    "adult": "bb2387c4850da0e6ffdc587080695dc14db095d49327a0a906d34121d3a3d629",
+    "senior": "341a0d71e8577952e1c97d14d32d86d7dc79573d7124f2b178e2935b421e8e01"
    }
   },
   {
