@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T03:03:58.819Z",
+ "measuredAt": "2026-11-26T03:07:36.715Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4272
+  "readings": 4274
  },
  "departments": [
   {
@@ -13936,11 +13936,13 @@
    "department": "The Eternal Algorithms",
    "position": 3,
    "title": "Whole: Spirit AND Soul AND Body (He keeps all three)",
-   "contentSha": "4186313f1fe65e09aa398b2df3714f1a2fd3a0ba8a981f502b279ec059afb84e",
+   "contentSha": "2d24a9abe426706dcaea844c7705c561c4aa703beec8c5cff17acff24e2f8271",
    "versions": {
-    "teen": "de69ef149b78761f42e199dc39e36d4639a8de0b4bba9d1a29eaf46b22da7edf",
-    "adult": "37a992f33c216695894a6ae9bd54d6f284200e76f5264a0ebcb79436ebab2eb4",
-    "senior": "d2a1122ba83970ded4f1cdd7ae7a2614da7a65392833b8d912308519ba842d32"
+    "child": "ac418848722ea8eef7471563bfd16b3c0abe519930eff6c4943880327470df2e",
+    "youth": "b2cd16883b2d2fd0f3f8a98b64ff3a5b636619e886e8b00a128fd6ce0b313107",
+    "teen": "7d7088495836ddb388e3266ca61b57ef5f6b18c1138c3f0dc430cccdbaf07572",
+    "adult": "736a6dbfa45e163f1bc3ec74eb18ecac1666c0c3851fcb7fbb0c97d7f5e45805",
+    "senior": "c38590bc6608d7ad7905c218816549048d4f3865d04ae7f8a46e99a8b919d3c6"
    }
   },
   {
