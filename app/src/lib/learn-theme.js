@@ -75,13 +75,43 @@ const block = (sel, t) =>
 // A phone set to ask for more contrast gets its second tone at full strength.
 const MORE_CONTRAST = '@media (prefers-contrast: more){.ls-root,.le-root,.rs{--ls-dim:var(--ls-text);--le-dim:var(--le-text);--rs-dim:var(--rs-ink)}}';
 
+// THE MEMBER CHOOSES THE WORDS ON DARK (Darrell 2026-11-26: "Lighter text is good.. not just white", then "We
+// like stark white too... why limitations!?"). Soft light (a warm ivory) is the default; Bright white is one tap
+// in Personalize. Both are dark-theme only: white words on a light page would not read.
+export const DARK_INK_KEY = 'poe-dark-ink';
+export const DARK_INKS = Object.freeze([
+  { key: 'soft', label: 'Soft light' },
+  { key: 'white', label: 'Bright white' },
+]);
+export function readDarkInk(store = typeof localStorage !== 'undefined' ? localStorage : null) {
+  try {
+    return store && store.getItem(DARK_INK_KEY) === 'white' ? 'white' : 'soft';
+  } catch {
+    return 'soft';
+  }
+}
+export function applyDarkInk(ink, doc = typeof document !== 'undefined' ? document : null) {
+  if (doc && doc.documentElement) doc.documentElement.setAttribute('data-dark-ink', ink === 'white' ? 'white' : 'soft');
+}
+export function setDarkInk(ink, store = typeof localStorage !== 'undefined' ? localStorage : null) {
+  const v = ink === 'white' ? 'white' : 'soft';
+  try {
+    if (store) store.setItem(DARK_INK_KEY, v);
+  } catch {
+    /* private mode: the choice still applies to this visit */
+  }
+  applyDarkInk(v);
+  return v;
+}
+const whiteInk = (key) => `:root[data-dark-ink="white"] [data-theme="${key}"] :is(.ls-root,.le-root,.rs){--ls-text:#ffffff;--le-text:#ffffff;--rs-ink:#ffffff}`;
+
 /** The CSS: one block per theme, scoped to the theme wrapper. The night palette stays the default. */
 export function learnThemeCss(themes = THEMES) {
   return `${themes
     .map((th) => {
       const t = learnTokens(th);
       const scope = `[data-theme="${th.key}"]`;
-      return [block(`${scope} .ls-root,${scope} .le-root,${scope} .rs`, t), t.dark ? '' : `${scope} .le-root{background:var(--le-bg)}`].join('');
+      return [block(`${scope} .ls-root,${scope} .le-root,${scope} .rs`, t), t.dark ? whiteInk(th.key) : `${scope} .le-root{background:var(--le-bg)}`].join('');
     })
     .join('\n')}\n${MORE_CONTRAST}`;
 }
@@ -91,6 +121,7 @@ let injected = false;
 export function ensureLearnTheme(doc = typeof document !== 'undefined' ? document : null) {
   if (injected || !doc || !doc.head) return;
   injected = true;
+  applyDarkInk(readDarkInk());
   const el = doc.createElement('style');
   el.setAttribute('data-learn-theme', '');
   el.textContent = learnThemeCss();

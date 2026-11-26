@@ -2,7 +2,7 @@
 // colors come from each theme's own background and accent, and every pair a reader meets reads (WCAG AA).
 import { describe, it, expect } from 'vitest';
 import { THEMES } from '../lib/theme-css.js';
-import { learnTokens, learnThemeCss, contrast, luminance } from '../lib/learn-theme.js';
+import { learnTokens, learnThemeCss, contrast, luminance, readDarkInk, setDarkInk } from '../lib/learn-theme.js';
 
 describe('the new look follows every theme, readably', () => {
   for (const th of THEMES) {
@@ -30,3 +30,31 @@ describe('the new look follows every theme, readably', () => {
     expect(css).toContain('@media (prefers-contrast: more)');
   });
 });
+
+// Darrell 2026-11-26: "We like stark white too... why limitations!?" -- the member chooses the words on dark.
+describe('words on dark themes: Soft light or Bright white, the member chooses', () => {
+  it('Bright white is offered on every dark theme, reads at 7:1 there, and never on a light theme', () => {
+    const css = learnThemeCss();
+    for (const th of THEMES) {
+      const t = learnTokens(th);
+      const rule = `:root[data-dark-ink="white"] [data-theme="${th.key}"]`;
+      if (t.dark) {
+        expect(css).toContain(rule);
+        expect(contrast('#ffffff', t.bg)).toBeGreaterThanOrEqual(7);
+        expect(contrast('#ffffff', t.panel)).toBeGreaterThanOrEqual(7);
+      } else expect(css).not.toContain(rule);
+    }
+  });
+
+  it('the choice is saved on the device and applied at once; Soft light is the default', () => {
+    const store = new Map();
+    const fake = { getItem: (k) => (store.has(k) ? store.get(k) : null), setItem: (k, v) => store.set(k, v) };
+    expect(readDarkInk(fake)).toBe('soft');
+    expect(setDarkInk('white', fake)).toBe('white');
+    expect(readDarkInk(fake)).toBe('white');
+    expect(document.documentElement.getAttribute('data-dark-ink')).toBe('white');
+    setDarkInk('soft', fake);
+    expect(document.documentElement.getAttribute('data-dark-ink')).toBe('soft');
+  });
+});
+

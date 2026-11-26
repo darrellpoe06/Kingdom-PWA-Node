@@ -10,6 +10,7 @@
 // this device to the church's look and Normal text. Your choice is yours
 // alone: it never changes the church's colors for anyone else.
 import AccessibilityStatement from './AccessibilityStatement.jsx';
+import { DARK_INKS, readDarkInk, setDarkInk } from '../../lib/learn-theme.js';
 import React, { useEffect, useState } from 'react';
 import Modal from '../Modal.jsx';
 import TextSizeControl from '../TextSizeControl.jsx';
@@ -34,6 +35,7 @@ export function orderedThemes(themes = THEMES) {
 export default function PersonalizeSheet({ open, onClose, theme, setTheme, isOwner = false, door = 'church' }) {
   const poetech = door === 'poetech';
   const [rate, setRate] = useState(DEFAULT_RATE);
+  const [ink, setInk] = useState(readDarkInk); // words on dark themes (DR-1679)
   useEffect(() => {
     if (!open) return;
     try {
@@ -100,6 +102,26 @@ export default function PersonalizeSheet({ open, onClose, theme, setTheme, isOwn
             Accessibility
           </h3>
           <TextSizeControl variant="panel" />
+          <div className="lch-opt" style={{ marginTop: '.5rem' }}>
+            <span>
+              Words on dark themes<small>Soft light is easier at night; Bright white is the most contrast</small>
+            </span>
+            <span className="lch-seg" role="radiogroup" aria-label="Words on dark themes">
+              {DARK_INKS.map((o) => (
+                <button
+                  key={o.key}
+                  type="button"
+                  role="radio"
+                  aria-checked={ink === o.key}
+                  onClick={() => setInk(setDarkInk(o.key))}
+                  className={`lch-seg-btn ${ink === o.key ? 'lch-seg-on' : ''} ${FOCUS}`}
+                  data-testid={`lch-ink-${o.key}`}
+                >
+                  {o.label}
+                </button>
+              ))}
+            </span>
+          </div>
           <div className="lch-opt" style={{ marginTop: '.5rem' }}>
             <span>
               Reading voice<small>Read aloud is the Read button on every page</small>
