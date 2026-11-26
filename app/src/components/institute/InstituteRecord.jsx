@@ -56,7 +56,12 @@ export default function InstituteRecord({ record = null, signedIn = false, certi
                 <dt>Certificates</dt>
                 <dd>
                   {onOpenCertificates ? (
-                    <button type="button" className={`is-rec-cert ${FOCUS}`} onClick={onOpenCertificates} aria-label={`${plural(certificates, 'certificate', 'certificates')}: open certificates`}>
+                    <button
+                      type="button"
+                      className={`is-rec-cert ${FOCUS}`}
+                      onClick={onOpenCertificates}
+                      aria-label={`${plural(certificates, 'certificate', 'certificates')}: open certificates`}
+                    >
                       {certificates}
                     </button>
                   ) : (

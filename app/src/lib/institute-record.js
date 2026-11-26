@@ -44,7 +44,16 @@ export function lessonIndex(courses = []) {
   return out;
 }
 
-export function myAccomplishments({ records = [], quizState = {}, progress = {}, courses = [], index: given = null, userId = null, now = Date.now(), limit = 6 } = {}) {
+export function myAccomplishments({
+  records = [],
+  quizState = {},
+  progress = {},
+  courses = [],
+  index: given = null,
+  userId = null,
+  now = Date.now(),
+  limit = 6,
+} = {}) {
   const index = given || lessonIndex(courses);
   const rows = (Array.isArray(records) ? records : []).filter((r) => r && r.lessonId && (!userId || !r.userId || r.userId === userId));
 
