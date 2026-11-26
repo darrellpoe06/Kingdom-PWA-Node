@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T03:41:07.214Z",
+ "measuredAt": "2026-11-26T03:44:16.968Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4292
+  "readings": 4294
  },
  "departments": [
   {
@@ -13885,11 +13885,13 @@
    "department": "The Eternal Algorithms",
    "position": 36,
    "title": "Call His name JESUS — for He shall save",
-   "contentSha": "cd8b5f887c838e85badce61fb5a34aa996c249292cf24bac226bdbeceb46e4aa",
+   "contentSha": "d2ea87e104b1ad1161c19c08b1c25ba21c092c48dc9cca10b7f63da54b036e61",
    "versions": {
-    "teen": "98dbfc1c1cc70b834a519a685926adafebf9d4aa20f7dbbb372c92ae44475a13",
-    "adult": "d8706aaad5e5b88788eeb4a7075796309a072aa53e9dcc049120f2eb8a1c4b47",
-    "senior": "8c6f1d5f840ca11054327f9fd1ae00f36b1fffd532feb47df1c49eeb3f47e188"
+    "child": "44d1afa871ab7267bee62624c5dd1e41e0b2465a8574a653197a0e429750091c",
+    "youth": "844780aee1e6205154600e2224566fdedf9b19f09f8a1f745c198dc36641d82d",
+    "teen": "f9c50eb70f7c540a85d4809695790903da3627df7bc52c71443c45aa754f9abc",
+    "adult": "8d8131b8099a9ce0e3d190a4f87d7c94bf63c6f2e67a27522503b11a4ed02d9e",
+    "senior": "099b999de46c07c860f851981c5040e4fc1f2c46f7f81dbb95dd4b82185eada5"
    }
   },
   {

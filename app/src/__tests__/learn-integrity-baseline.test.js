@@ -62,8 +62,8 @@ describe('Learn content integrity baseline', () => {
   // whole-spirit-soul-body, el-elyon-possessor, el-shaddai-almighty,
   // i-am-that-i-am, babel-make-us-a-name, nations-divided-portion,
   // borrowed-crown, they-that-make-them, inscription-that-asked-eternity,
-  // before-abraham-i-am.
-  it('the baseline is the measured Phase 1 catalog (13 / 51 / 994 / 4,292)', () => {
-    expect(base.counts).toEqual({ departments: 13, courses: 51, lessons: 994, readings: 4292 });
+  // before-abraham-i-am, name-that-saves.
+  it('the baseline is the measured Phase 1 catalog (13 / 51 / 994 / 4,294)', () => {
+    expect(base.counts).toEqual({ departments: 13, courses: 51, lessons: 994, readings: 4294 });
   });
 });
