@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T09:36:24.840Z",
+ "measuredAt": "2026-11-26T09:40:38.907Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4442
+  "readings": 4444
  },
  "departments": [
   {
@@ -14720,11 +14720,13 @@
    "department": "The Eternal Algorithms",
    "position": 3,
    "title": "Open the Door → He Comes In to Sup",
-   "contentSha": "feb599206c3d7a1cde270ea09c506d5532dda64eba346f0cf861ebea3a317dce",
+   "contentSha": "c5aac25b88cdc0ab5c587898ba5628a570861a979c7a4bbfbbac7b17b6756196",
    "versions": {
-    "teen": "1ed3bfce38592f07ed9dfc98af0c0ac259711915cbf7b4fc1a3388da9f86a9c4",
-    "adult": "67d7ed6a33ffa7f8d8ce36d351016781edb2aaec4e6d808157bfe592421b1e40",
-    "senior": "83200729cbc7aa24bc34b3824c1cd5be96b3ad2f80446f7b7fcd8962cf735a6f"
+    "child": "70f96fd20e3527e739dced5a527813dd851fcfe8fbbf8255f3a9ef9a55093f68",
+    "youth": "cc1d1118b2f83d41fa76637ae8d76435ab37443af110f0a76a3158a3bc3c1226",
+    "teen": "67a36eb49429c4a56a38eeac2bc85d64b2e250f443cb2fa90cb7932b57e22035",
+    "adult": "45becdacb3b8303a911db9c9c0ce004070c179cb64991c2e627e41e6e37f8597",
+    "senior": "185efa68244a81972c7da4535c6c1ebe694caea7bbe1b4e49a587c0fcdb5739c"
    }
   },
   {
