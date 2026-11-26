@@ -1815,6 +1815,21 @@
       "notes": "No SQL or reader change: the allowlist already published both classes. Proven to catch 6 ways neutered, 2 on flipped precedence."
     },
     {
+      "id": "relationships-every-direction-2026-11-26",
+      "date": "2026-11-26",
+      "task": "Relationships defined (relating in every direction), L344 How Relating Works, L345 The Mirror",
+      "drs": [
+        "DR-1692"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.5,
+      "estimateWithoutAiHours": 16,
+      "notes": "six parallel readers audited the catalog for DR-1694; one fork wrote L345"
+    },
+    {
       "id": "dr-1397-title-never-crushed",
       "date": "2026-11-10",
       "task": "A lesson row's title keeps a 12rem floor in the Latest and course lists, so Continue and Play wrap below it at large text sizes instead of crushing it",
