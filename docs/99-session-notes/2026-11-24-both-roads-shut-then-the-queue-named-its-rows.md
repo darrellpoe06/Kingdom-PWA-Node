@@ -372,3 +372,52 @@ branch as pushed that value is `98a82136aec37d6a`; recompute after the squash
 rather than trusting this line, since a later builder change would alter it.
 Until the receipt reads main's hash, DR-1670 and DR-1672 are shipped but NOT
 live, and anything claiming otherwise is unproven.
+
+## 9. 2026-11-26 evening — counting rows was the wrong measure, and it misled me
+
+The day's pipeline work is recorded above as moving the queue 33 → 32, "one row
+cleared". **That was wrong**, and the way it was wrong is worth keeping.
+
+A row being *built* carries `lesson-building`, and the census excludes those by
+design (DR-0669). So a count taken mid-cycle reads a row that is in flight as a
+row that is gone. At 18:14Z the receipt read 32 with `building now: 0`, which
+looked settled — and I reported a cleared row from it.
+
+The right measure is the row ids, which the receipt already publishes (DR-1511
+put them there). Diffing 12:04Z against 19:04Z:
+
+```
+cleared since 12:04 (waiting then, gone now):   (none)
+new since 12:04:                                5e144a14-…  (created 2026-11-26)
+```
+
+**Nothing cleared.** All 33 teachings that were waiting this morning are still
+waiting. One new teaching arrived today and failed the same way. **33 → 34.**
+
+So the corrected result of the day's three pipeline changes is zero teachings
+built, and DR-1696's record and INDEX row were fixed before they merged rather
+than left carrying the wrong number.
+
+Two things follow:
+
+- **The stall is total, not nearly-total.** That strengthens DR-1696's case
+  rather than weakening it: a pipeline clearing 1 in 33 and a pipeline clearing
+  0 in 33 are different diagnoses, and the second is the true one.
+- **The queue now GROWS.** New teachings arrive and immediately hit the same
+  wall, so the backlog is not static — every day of stall adds to it. At
+  19:04Z: 5 rows from 11-12, 2 from 11-17, 1 from 11-19, 25 from 11-24, 1 from
+  today.
+
+`shouted` also appeared for the first time (a verse-gate kind), on one row.
+
+### The method, for the next session
+
+Never report queue movement from the waiting COUNT. Pull the row ids out of the
+receipt and diff them against the previous reading:
+
+```
+grep -aE '^[0-9T:.Z-]+ +[0-9a-f]{8}-' <log> | sed -E 's/^[^ ]+ +//' \
+  | awk -F'|' '{gsub(/ /,"",$1); print $1}' | sort
+```
+
+`comm -23 old new` is what actually cleared; `comm -13 old new` is what arrived.
