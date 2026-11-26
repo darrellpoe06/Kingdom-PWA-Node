@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T04:09:06.342Z",
+ "measuredAt": "2026-11-26T04:12:26.491Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4308
+  "readings": 4310
  },
  "departments": [
   {
@@ -14518,11 +14518,13 @@
    "department": "The Eternal Algorithms",
    "position": 45,
    "title": "Not the spirit of bondage AGAIN to fear",
-   "contentSha": "2f33387781dd62a05e2ead6b7cb7d2a57dbdf707b6213200e786b95fc84d0d63",
+   "contentSha": "7531120afb58ef810891d51833703cfed4ca7280d3805792dd5c3471416effaa",
    "versions": {
-    "teen": "dc7216f59f261a391e9f73beb5dd011768544bdeecd3d6457389c95e89c7bf47",
-    "adult": "d2dbea7c402027a70b3e3cc6c6bb7567ae5e8d837b58f178e45e2bef3240287b",
-    "senior": "e92cc1f9258b429f93b37acc312a6934309bcd08faa6abad1c5046ce27923d8f"
+    "child": "8f154ba2efbc9af387acd1265e084667cdd8adb14d1f1f5061b22aa5c671ec3b",
+    "youth": "dbdc954f6afd20d43f1b7681a2563e59134c84e5ec3cc30e167e8301621759bd",
+    "teen": "c196a8ac19e379020467816c12add4e3e0c027507f29a2e116d74510a8b13a14",
+    "adult": "7bb7a9dc4ecc5282face4540f75dc9d7ee5897a0d167d7bbfa1692f545bc9039",
+    "senior": "8b3e6aa7aac27f2ec5704210394297b63223523b5ba2a9354d4e153f41ceb3b1"
    }
   },
   {
