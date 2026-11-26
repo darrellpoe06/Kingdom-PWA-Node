@@ -234,6 +234,8 @@ export const RELATIONSHIP_LESSONS = Object.freeze([
   'ea-gh-vengeance-his',
   'ea-gh-soft-answer',
   'll16-rule-your-spirit-repair-the-bond',
+  // DR-1698: ruling your spirit when the Word is twisted, and at the table with someone you love who believes differently.
+  'll346-better-than-he-that-taketh-a-city-ruling-your-spirit-when',
   'll291-fruits-meet-for-repentance',
   'll151-the-tongue-death-and-life-in-a-little-member-and-the-knowledge-that-governs-it',
   'll46-ye-fathers-provoke-to-good-works',
