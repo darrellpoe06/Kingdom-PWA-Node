@@ -26,6 +26,7 @@ const versionLabel = (id) => (READING_VERSIONS.find((b) => b.id === id) || { lab
 // A keyboard user must SEE where they are (ui-standards focus-ring). Gold, never red (red is reserved, DR-0099).
 const RING = 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2';
 import LessonsInOrder from './LessonsInOrder.jsx';
+import CourseLessonsView from './CourseLessonsView.jsx';
 import './learn-studio.css';
 
 /** 2–3 balanced lines, the same rule the thumbnail compositor uses. */
@@ -449,7 +450,12 @@ export default function LearnStudio({
             <button type="button" className={`ls-back ${RING}`} onClick={() => setCourseKey(null)}>
               ‹ Back to Learn
             </button>
-            <Row title={pickedCourse.title} note={`${pickedCourse.items.length} lessons`} items={pickedCourse.items} onOpen={openLesson} grid />
+            <CourseLessonsView
+              title={pickedCourse.title}
+              items={pickedCourse.items}
+              onOpen={openLesson}
+              renderPictures={(rows) => <Row title={pickedCourse.title} note={`${rows.length} lessons`} items={rows} onOpen={openLesson} grid />}
+            />
           </>
         ) : pickedShelf ? (
           <>
