@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T03:07:36.715Z",
+ "measuredAt": "2026-11-26T03:11:01.260Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4274
+  "readings": 4276
  },
  "departments": [
   {
@@ -12769,11 +12769,13 @@
    "department": "The Eternal Algorithms",
    "position": 14,
    "title": "El Elyon — the Most High, Possessor of heaven and earth",
-   "contentSha": "643a5cef789db28a5538d22a18866c5cd5f15f2a4562de8a307b36ae2723f0ee",
+   "contentSha": "6eb0627eb5e3feae2e12c78e166b398ec0cf31d3c8babf7d4c8f16adfaca4b05",
    "versions": {
-    "teen": "123643acf00bf6050b116be724c39543c3320799bb1c83d7cdab252504e0380c",
-    "adult": "d6bc64df6f2fdf2863d63f127a7f64f1609378e780089faeac626d4be552293d",
-    "senior": "d472c8c2127e0021cba22369eb879de1659ef63fbc5d707c68e405b5ec3cbc04"
+    "child": "1b1965a2c8edb9da98297eadf34c13c0bd8bf5760c5c2d51e690ff44ae2ac2f8",
+    "youth": "dd7ba80c2814db46011005cb7c0aeb7c826f7987b6b8bc9102472f14c8268c14",
+    "teen": "9a7a896f90a5276d3d905e5364308ec975542c7f972234cf026135bbb8a5ef0d",
+    "adult": "f690574cc44cd7a6b8f568ba93e4a49e6bd549b9ded0fa3f2bd2117da7218ff0",
+    "senior": "4f682798dbb9ca92875c734ef03f09189f8155743da7d8f0e51929851f1ffd42"
    }
   },
   {
