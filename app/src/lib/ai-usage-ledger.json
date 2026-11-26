@@ -486,6 +486,23 @@
       "notes": "No token meter in this session; tokens and cost are null. arxiv.org did not resolve from this sandbox, so the paper was never read; secondary reports conflict on rates and release date, so none is printed. Whether any agent here has weakened a check is not measured; re-review 2026-12-02."
     },
     {
+      "id": "words-land-where-you-say",
+      "date": "2026-11-26",
+      "task": "Words on the lesson picture open at the top with a Top/Middle/Bottom chip (per device, ?captions= link for the LED wall), full-screen words scale to the screen, and the new lesson look gets Present back into the presenter + projector workflow",
+      "drs": [
+        "DR-1690"
+      ],
+      "prs": [
+        2941
+      ],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.4,
+      "estimateWithoutAiHours": 5,
+      "notes": ""
+    },
+    {
       "id": "lesson-ll341-whoso-removeth-stones",
       "date": "2026-11-23",
       "task": "L341 Whoso Removeth Stones: one Living Lesson from a forwarded newsletter on the air traffic outage, testing before change and business continuity",
@@ -1071,6 +1088,21 @@
       "wallClockHours": 0.15,
       "estimateWithoutAiHours": 6,
       "notes": "Measured worktree creation (15:10:47Z, stat) to the single commit (15:19:33Z, git %cI) on claude/the-in-flight-view-has-an-age: 8m46s. What is NOT on that clock: the collision triage across #2565/#2566/#2567 that exposed the fault, the gh-api comparison that proved a pushed claim was invisible locally, and the 2.4 GB worktree cleanup that freed the builder slot -- all earlier in the session. Tokens and dollars null: no meter exposed. The estimate is this session's own for a human doing the same work by hand, not a measurement."
+    },
+    {
+      "id": "l343-unbelievers-are-not-righteous",
+      "date": "2026-11-26",
+      "task": "L343 Unbelievers Are Not Righteous: Darrell's spoken teaching built as a Living Lesson (212 KJV quotations filled, four bands, two parables, quiz)",
+      "drs": [
+        "DR-1691"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1,
+      "estimateWithoutAiHours": 10,
+      "notes": ""
     },
     {
       "id": "relationships-in-one-place",
@@ -2766,6 +2798,21 @@
       "notes": "Found by the hourly voice-lane tick reading its own run log, not asked for. Six prior ticks re-measured the same tailnet-join failure and waited on a key only Darrell can mint; DR-1360 had already decided that road was to be reversed. The census writer already existed and was enabled but had never been read from outside the house. Proof ran on a throwaway PostgreSQL 16 cluster: 8 executed cases, including a seeded lesson body that must not appear and SET ROLE anon both ways. That proof caught a clamp of my own that turned a corrupt total of -5 into 0 - a manufactured empty queue, the one lie this lane exists to prevent."
     },
     {
+      "id": "learn-pictures-first",
+      "date": "2026-11-26",
+      "task": "The Learn home leads with the carousel and the lessons as pictures; pickers under the pictures; Pictures by default on every device; Relationships shelf 19 to 35",
+      "drs": [
+        "DR-1686"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.6,
+      "estimateWithoutAiHours": 4,
+      "notes": ""
+    },
+    {
       "id": "the-house-keeps-and-reads-the-church-pictures",
       "date": "2026-11-24",
       "task": "Church archive + calendar read moved onto the NAS services-sync clock; runner road retired to a witness",
@@ -2779,6 +2826,23 @@
       "wallClockHours": 0.6,
       "estimateWithoutAiHours": 6,
       "notes": "First real run read the site (4 pictures) and died at the retired tailnet join; the NAS pass is rehearsed on a mock database and pinned by 7 tests, two proven to catch."
+    },
+    {
+      "id": "my-voice-in-the-new-look",
+      "date": "2026-11-26",
+      "task": "Traced My voice end to end for Darrell (consent granted; no engine answers /voice; the new lesson look spoke only the phone voice); the new look now asks the clone sentence by sentence and says whose voice reads; one ConnectBot paste wakes the NAS clone; member door and capacity named",
+      "drs": [
+        "DR-1685"
+      ],
+      "prs": [
+        2941
+      ],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.7,
+      "estimateWithoutAiHours": 8,
+      "notes": ""
     },
     {
       "id": "poetech-plus-checkout",
@@ -4072,6 +4136,21 @@
       "wallClockHours": 2,
       "estimateWithoutAiHours": 30,
       "notes": "Reserved DR-1496 and reserve/pm19 on origin. Verses filled from app/public/bible/kjv by scripts/pm19-fill.mjs, none typed. The three pieces were read whole from the second forward; www.wgu.edu, www.weforum.org, www.linkedin.com and Craft Education's site refused by the proxy (403), so figures are taught at their tier and one unsourced figure is left out; re-review 2026-11-27. Course hands-on work unrecorded (crowns record completion), named, re-review 2026-12-13."
+    },
+    {
+      "id": "DR-1693",
+      "date": "2026-11-26",
+      "task": "The Bible keeps its place",
+      "drs": [
+        "DR-1693"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1,
+      "estimateWithoutAiHours": 4,
+      "notes": "BibleReader place: device-local restore + scroll follow + settle guard"
     },
     {
       "id": "sov81-what-hast-thou-that-thou-didst-not-receive",
