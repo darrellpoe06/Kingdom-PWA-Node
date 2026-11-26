@@ -4,7 +4,7 @@
 **Status:** Accepted
 **Tier:** B (every member's Learn home, the ride request form, the bills calendar; no schema)
 **Type:** fix
-**Area:** `app/src/components/learn-studio/LessonsInOrder.jsx`, `LearnStudio.jsx`, `learn-studio.css`; `app/src/lib/bus-ministry.js`, `app/src/components/BusMinistry.jsx`; `app/src/components/Calendar.jsx`, `app/src/lib/lifecycle-and-flow.js`, `app/src/lib/financial-engineering.js`; `app/src/poe-financial-mvp-v28.jsx` (one line); tests `learn-functions-in-new-look.test.jsx`, `bus-ministry.test.js`, `frequencyToMonthly.test.js`
+**Area:** `app/src/components/RecordStrip.jsx`, `record-strip.css` (new), `app/src/components/learn-studio/LessonsInOrder.jsx`, `LearnStudio.jsx`, `learn-studio.css`; `app/src/lib/bus-ministry.js`, `app/src/components/BusMinistry.jsx`; `app/src/components/Calendar.jsx`, `app/src/lib/lifecycle-and-flow.js`, `app/src/lib/financial-engineering.js`; `app/src/poe-financial-mvp-v28.jsx` (one line); tests `learn-functions-in-new-look.test.jsx`, `bus-ministry.test.js`, `frequencyToMonthly.test.js`
 **Sent in by:** Darrell, 2026-11-26: "The first or initial look should be better... start with the images!!!... should be maybe a drop down defaulting closed... so the images below are showing initially"; "We can use this data to enhance and better our quality and increase less stress on the people by fixing low hanging fruit continuously". The fixes are members' own notes from the feedback table (REV-0262 triage).
 **Pairs with:** DR-1676 (every voice reaches the office), REV-0262
 
@@ -24,7 +24,8 @@ The Learn home opened on the long Lessons list (course picker, order, Show, View
 1. **The Learn home leads with pictures**: the Lessons list folds under its heading ("Lessons · N lessons · K read"), closed by default; one tap opens the whole list with every control. Its body is written once (no second copy).
 2. **Ride request**: name, phone, pickup address and the van (regular or accessible, a required choice) are required, each marked with a star read aloud as "required"; the pickup area stays an optional help.
 3. **Bills**: weekly and every two weeks are offered when adding or editing; a notes field on both; the monthly figure is a year of payments over 12 months (both copies of the math).
-4. **No email in learning signals**: the row says "A learner"; the engagement summary counts by age band and never needed the name.
+4. **Your record, in the new look** ("Long skinny letters... looks weird!!!! Fix it"; "Also make it have the new look"): the words were squeezed to one per line because the text column could shrink to nothing beside the buttons. Now a dark card with gold: the read and exam numbers as tiles, a gold meter, the line and detail at a readable width, and the buttons wrapping below. Measured in Chromium at 390 px: the line is 332 px wide in 2 rows at normal text and 300 px wide in 4 rows at 2x text, no sideways scroll. Same figures, next step and test ids.
+5. **No email in learning signals**: the row says "A learner"; the engagement summary counts by age band and never needed the name.
 
 ## Impact
 
