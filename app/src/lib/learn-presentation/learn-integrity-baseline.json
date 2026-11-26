@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T12:57:28.278Z",
+ "measuredAt": "2026-11-26T13:01:55.672Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4508
+  "readings": 4510
  },
  "departments": [
   {
@@ -13513,11 +13513,13 @@
    "department": "The Eternal Algorithms",
    "position": 4,
    "title": "Forgive → Be Forgiven",
-   "contentSha": "ce67bb2bcc7a9644d9e0592aa031899d19794f9f250837ee8e14ab6c9ee43f76",
+   "contentSha": "330efd7bcaf7086ee84c42072ffd81c11841369c27a62db9009b5df21d4545ae",
    "versions": {
-    "teen": "158d5f95073983f58478e6c1822152de8a2a8fa51152d8b9e0901faedc1511ed",
-    "adult": "1c3297d70ac4c725216b50315e302f13e29175bdace3321cf890380abec2360b",
-    "senior": "522fcc649806d33b725826e060baeb0e6e3a8c674180d218417497ff2d1717b3"
+    "child": "80f1a1d4986f774d2e3168150b48703c26b9a13ede5a3d91046d57affa642323",
+    "youth": "00a5a54694b6b3b7adf2d9c6964b584aba89edd0aa210c3efd37dfb525c35bf2",
+    "teen": "0522301c22a7d49277524c3f7191e30e07e69ef75a6880fc7b7454b09a8b4ece",
+    "adult": "61fe4d4c22692f0778b9c4a248e773f1edf582696e64135082c553134354469c",
+    "senior": "99da95ea3b80358b4a3340c76c7a908afc554d317a3188185b650f4e37d9791a"
    }
   },
   {
