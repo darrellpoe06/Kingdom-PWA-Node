@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T12:46:05.848Z",
+ "measuredAt": "2026-11-26T12:50:08.345Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4502
+  "readings": 4504
  },
  "departments": [
   {
@@ -13552,11 +13552,13 @@
    "department": "The Eternal Algorithms",
    "position": 7,
    "title": "Build on the Rock (hear AND do)",
-   "contentSha": "35031c3e9b967960541885a89783926f219c56c8e41c9b042dca4ecbd705f1f3",
+   "contentSha": "bc1eea72e590f9043654ed9781b80f41e81d3c8326c908c979ea1948d9659abf",
    "versions": {
-    "teen": "48dcc43a9576331c1760fe1414264603e6a4c4b0a41ce8a32806548fe4eca489",
-    "adult": "59b68ea0084577a591f6a25f97ca0c721e1d2662fd813526ef8f91df44a297c4",
-    "senior": "e3abd0e7ee7c01eaddd2a896253b09292bec83c902eab0237b191dd99d9083c2"
+    "child": "10bf345c3f2fa893d4de0a728c6066d527325b54925af281934f4a79409a69b0",
+    "youth": "30f3ece698bd6c66b62d88db2bc8298e7ae6b7c0b4955c3a582f95c6a9da8688",
+    "teen": "6324061d9f73ea00f7e6f6f44173f331490ff5b6dbcac8852b35f77cacfe2b68",
+    "adult": "df3d90cf3e76ff58045c0a2ba52bbacc8836d927cced57c11890549398887be6",
+    "senior": "c655a1bb596f21de20a2a5d390306c4070aeb34822432b17a39426000574beaf"
    }
   },
   {
