@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T06:47:36.146Z",
+ "measuredAt": "2026-11-26T06:50:47.601Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4384
+  "readings": 4386
  },
  "departments": [
   {
@@ -13362,11 +13362,13 @@
    "department": "The Eternal Algorithms",
    "position": 13,
    "title": "The Word Is Already Written on the Heart (renew the mind to it)",
-   "contentSha": "8f7eadf328a00be2bac9b16f5e1deea409a2f80ad2657c009c56f68a40600e39",
+   "contentSha": "98838f8d81f24f14fd598bfbad79e7c77b76101fa7a3e75853e0d7581f4428d5",
    "versions": {
-    "teen": "fbdf418dc8c95cadee43aad18d1fe00dc99aeaecb6c5082fe7b4e44608ed5edf",
-    "adult": "1713fec2913d97cef69276919f82ccb3a5c616772b86b49ec89e488cae09e0be",
-    "senior": "da4d6c1a823bd75db6d977d13a390caff2db948b95dda66557c9f07f465fa621"
+    "child": "2ddf3f4b374237fedc5c3807d1ac4ff30b4622bd47de295aac59f2d41199443a",
+    "youth": "75aafe4dc521e47b55e5315b905c6c625f8d29032ff774d3e28374a5c4e92e20",
+    "teen": "888277babafc5076f2a618ba426f0ad6f32d83d73b6412f638f0dc592b293f2d",
+    "adult": "cff4de90baa80946b6e03a4beaa0944cd8af4b296da47f8a25bff772f8513d59",
+    "senior": "1bd4bfd3ab468c537ec306c554763b94cac53d7324394f35c3d3f29bb7457207"
    }
   },
   {
