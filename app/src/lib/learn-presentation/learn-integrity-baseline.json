@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T13:30:34.769Z",
+ "measuredAt": "2026-11-26T13:54:06.740Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4522
+  "readings": 4532
  },
  "departments": [
   {
@@ -13057,11 +13057,13 @@
    "department": "The Eternal Algorithms",
    "position": 13,
    "title": "Judge the Poor Faithfully → the Throne Established",
-   "contentSha": "d631abb85da1ee3dd59d5c67f8c4d780962153a60c460c387f7f649a5522a805",
+   "contentSha": "071aa8b6f80d30851e60d48c341a7c3099f97cc7b7378bd13a000969be7c7287",
    "versions": {
-    "teen": "0228d425b1de2cd930a31496975f4ef0a0aa0205ccee2fd9740f364080e2aa57",
-    "adult": "d8c275c73d7751ea6ee0dd278889e9b7d4f7aa4b691ae3d65db8aea97f791624",
-    "senior": "99897e770fe2e0edea238808b480b93acad44216eccfebd0f78775a763f8d218"
+    "child": "ce916983206ec796547d6137d3db534f1cbf5f9aea3152717e1a0bdb1ab5e87b",
+    "youth": "da5c7a526d898e28beb4c3dde269ac8affe8b869d09869a8b0b74466e3ee7d6b",
+    "teen": "5db6b2f785e063ebf3be767d456e2219bad3490f8dca035dc9dc7a21af2e44f2",
+    "adult": "5950d4e4dcf9fc34116c6a731f2b5041fe100e5b465e48e52ffcaa3883d27ee4",
+    "senior": "0f52c3d9813ec98cfaf7db953b83003d6f17b0e0c1f4dd81dacfeac787d3dfd5"
    }
   },
   {
@@ -13070,11 +13072,13 @@
    "department": "The Eternal Algorithms",
    "position": 14,
    "title": "Dwell in the Secret Place → Abide Under the Shadow",
-   "contentSha": "426fa823e6772561a056bc23bb72b586dc23ec1b7f0a07f51523caa98ce9f0b6",
+   "contentSha": "9eadc0900f4c7c11787f43556e8ab0fa6c45dec6fcef7bd8e4a66a160be6f839",
    "versions": {
-    "teen": "7b149fc8f8b9d609cd1242011d3cfa2324b6c6c71a7d8c2c4d04bc2512d84d8e",
-    "adult": "de31f78b72ee4a2210dbb5777ca9e9c726c73a8f243ea8fb63859c1e70adc41d",
-    "senior": "63cd96c8d6bce24c656be2276a2c37ecb8d74b802e9e5ffeb5b2edca103d059c"
+    "child": "0b1f59833a5356aa56d8f0df35e13baa12d9f8be81aa60e280eb38808d442bfd",
+    "youth": "b38b87f512c31daa4aa035aa2323365b9fc518a65d00975967ebc3343bb3e54e",
+    "teen": "2603c9d4a4986ac4d4bae82e0e56ec7be25665d8b9149920a02bd2fa6376b73d",
+    "adult": "96a7c944cd38d4d5283a713e8e92a59e636aedd249f0bde06cdb75c872301566",
+    "senior": "5c36c25835fdb088bff1a43d8f8f926cd2c341122996c27aaa4e7d411d54d8f8"
    }
   },
   {
@@ -13083,11 +13087,13 @@
    "department": "The Eternal Algorithms",
    "position": 15,
    "title": "Give Me Thine Heart (not just your money)",
-   "contentSha": "2a750fadd6e5fb791132d69e4759c051df57812479f87bcb2deda40b2059151a",
+   "contentSha": "b1b28008c57f08055e61f1d91523e23c853a4af73c6397ce62835a84618e38d7",
    "versions": {
-    "teen": "9c087cea24259f33b0271a4fd053b77bcb6a7b1ecbc549cfac085039f3feb1e2",
-    "adult": "e7d6aa3d128ea27e955178a31361134179c925927cfa1b1d2c40ebfb4b977856",
-    "senior": "10ffe2a4fe2abdc9c3e3115d0fc750a43e9238b53aba9e933a3934689afbc8c8"
+    "child": "8b81a94291adc059d57738fa1e62fe4dfad02f4d05739be9ba13aaa693d51eee",
+    "youth": "7884f1e8307b4d00eeca2fa423fdb4e9de3229505d93db1ece337e3e56e13d1c",
+    "teen": "6ebaa1096d76e51aaa267bcc8336e3696982fa910013a2646db8bce3012eebb3",
+    "adult": "0ed928e56e71ddc5e9c1ae1925f3d1f5e641cf36c9e2756486d9bcb68305feb7",
+    "senior": "26fb5967cd449aa34c2c7495c9aa1226139680eba8dce331c56e80b4aea31830"
    }
   },
   {
@@ -13259,11 +13265,13 @@
    "department": "The Eternal Algorithms",
    "position": 4,
    "title": "The Furnace and the Fourth Man (but if not)",
-   "contentSha": "81346e9f51d0f620b6e67dd3735ffa0ca24bdebcc1bda33bf6d077fe6797d202",
+   "contentSha": "db816ac81cd6d28e473aff391c2b2dbc4714d8803760f7d05bf95508a084cbaf",
    "versions": {
-    "teen": "89b6758460809111e9be203f62c5720ddb94907793f80c5c40c3683ef2b31f33",
-    "adult": "ae37ef801a5ed3ba3b2c575ffc3f19bf2b5b9a81c78036f163bf25d9caf3e9cb",
-    "senior": "b871795653694040dc0f852669877b2bd2ec47b8eefd5ff602d610ab66e49ef4"
+    "child": "fbb1cb5aed35c89334c72b51d771eeca16d1f86d51855bba33b7275ed2ea09af",
+    "youth": "db9af4ed722463ec6d746a1d2fa1e0d704961dd861cd3c40395a1690c6e43367",
+    "teen": "c75b4d22e06b7e847196194bbe31da4a5335142a871ed97402af66b12a8c7ca0",
+    "adult": "173866f7040177dd227c48729feb6202d04e00a0985ef2e974b864f58bd80378",
+    "senior": "90b0c54d7084f86ad5e7601212ca27194554e1f14d4b75dc7b1f6aa738a3ec1a"
    }
   },
   {
@@ -13272,11 +13280,13 @@
    "department": "The Eternal Algorithms",
    "position": 5,
    "title": "Seedlings of the Father (the Potter, the Shepherd of Souls)",
-   "contentSha": "62220562bb27a2762ce4213727e2dc3db577a59f0c536458439f2ac138d4e6b4",
+   "contentSha": "436ec9cc240aa741dffcda38e164230ecb57dc2469446cda626c622fcceda8fb",
    "versions": {
-    "teen": "f18c51995f7604966ddac90ad2bfdddcc1d28b3243d13029895169b698bb07a8",
-    "adult": "8f540fb220c6926dff64d4c83d829f5a327e42f8715bd710ea49bf92ec183a53",
-    "senior": "3354b27c210093d2acf6d9269459f087d0abd29120745158da60365e855e298e"
+    "child": "e48bc58d4a3899b05bb2aba3e98d65e36f6c9e740af5dce3e6d4d657d762378d",
+    "youth": "0a6481c2053250c2bf2c6fa1990aeb3672ec3147fd7f9d27f75d28de531fa215",
+    "teen": "bc7f8a7d11ade15a8477bd630d11644d24353a385216cf0ba071d3ed25b312ee",
+    "adult": "e6d967d0f8a404d43218ad024714fd2586fb842eea4b0ebd9cf6ebe3a5416f6b",
+    "senior": "fe0facadeef7795db108dc0bfdb10ef4c4d186754a7850763a58b7ab5ed66a09"
    }
   },
   {
