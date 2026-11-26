@@ -63,7 +63,10 @@
 .ld-h1-b { display: block; font-family: 'LD Script', 'Brush Script MT', cursive; font-weight: 400; font-size: clamp(1.55rem, 7.6vw, 3rem); color: #fff; margin-top: -2px; white-space: nowrap; text-shadow: 0 2px 3px rgba(0, 0, 0, .75); }
 .ld-tag { margin: 4px 0 0; font-weight: 600; font-size: clamp(.74rem, 3vw, 1.02rem); color: #fff; text-shadow: 0 1px 3px rgba(0, 0, 0, .8); }
 .ld-stat { margin: 3px 0 0; font-size: .7rem; color: #f1d9b0; text-shadow: 0 1px 3px rgba(0, 0, 0, .8); }
-.ld-hero-bible { display: none; }
+.ld-hero-bible { display: block; position: absolute; z-index: 2; right: 4px; bottom: 2px; width: 128px; aspect-ratio: 16 / 10; pointer-events: none; -webkit-mask-image: radial-gradient(ellipse 50% 50% at 50% 50%, #000 52%, transparent 100%); mask-image: radial-gradient(ellipse 50% 50% at 50% 50%, #000 52%, transparent 100%); }
+.ld-hero-bible .ld-ph { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+/* a phone: the open Bible takes the place of the count line under the tagline, so the title keeps its room */
+@media (max-width: 479px) { .ld-hero { min-height: 178px; } .ld-hero-copy { padding-bottom: 62px; } .ld-stat { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; } }
 
 /* ---- search: dark burgundy panel, illuminated gold border, light pill, dimensional gold button (mockup) ---- */
 .ld-find { margin: 8px 10px 0; padding: 10px 12px 8px; border-radius: 26px; border: 2px solid transparent; background: linear-gradient(180deg, #560701 0%, #3f0200 100%) padding-box, linear-gradient(135deg, #fff185 0%, #f8bb37 45%, #fff185 100%) border-box; box-shadow: 0 0 14px 1px rgba(248, 187, 55, .55), 0 0 0 1px rgba(255, 241, 133, .35), inset 0 0 22px rgba(0, 0, 0, .45); }
