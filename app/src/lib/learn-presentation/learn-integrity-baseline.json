@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T06:50:47.601Z",
+ "measuredAt": "2026-11-26T06:55:46.176Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4386
+  "readings": 4388
  },
  "departments": [
   {
@@ -13766,11 +13766,13 @@
    "department": "The Eternal Algorithms",
    "position": 25,
    "title": "Sheep and Goats (the growing-together ends in a separating)",
-   "contentSha": "d22afb8f443703aca80f30c30afcaeeea3db23b50183d7a51e6e3a540d57e70d",
+   "contentSha": "e92072989c09b3c113d40ff927417b06035503aba02c327729227afc9ecdf573",
    "versions": {
-    "teen": "3cb32bef73a559c0996ecbe2c0666eed4e3009e7a2dfdc065e603feb263a27a7",
-    "adult": "935bfa55a8fa85c69e760dd9a6322aad79a7745ec7031e373bf49765893cda88",
-    "senior": "d7ad1aef71cb75ad8a36c433c196dcbc32c5e3daf339eaf793a3c1ecdb3c7546"
+    "child": "d9819c2cf67f44700d66ad7d001b846c0d0f7f7239c81dbc8caa19b443107485",
+    "youth": "09d1f7842fe7c136d15a464b13fe50d2d4760e1b074d455924df0ab5249a785d",
+    "teen": "dfcb3dd82e22176d18d4a0ea2fa46e4c1d70c0dfa46c559cff70549eebfd444f",
+    "adult": "42d80d3f06ad3dc40b029feae644e5e52b45b8d731d6bc8089b24cc2f11b44d2",
+    "senior": "1db5e8791b62f7dd4d8589b4730f246f90dc6b391d2c58862af1bed543d8d13d"
    }
   },
   {
