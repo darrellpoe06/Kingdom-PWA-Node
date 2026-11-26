@@ -65,8 +65,11 @@ import { planAbbreviationFixes, proseName } from '../../../scripts/fix-quote-abb
 // and which throws on sight outside a worker. Only the modules on the derived
 // list are ever loaded.
 // The per-file Living Lessons (lib/living-lessons/, DR-1468) are stores too, each
-// held at the default pin of zero faults with no line here to edit.
-const LOADERS = import.meta.glob(['../lib/*.js', '../lib/living-lessons/ll*.js']);
+// held at the default pin of zero faults with no line here to edit. So are the
+// part files the Eternal Algorithms teaching map was split into on 2026-11-26
+// (file-budget-guard, DR-1339): the single file they replace sat under lib/*.js
+// at a pin of zero, and the parts keep exactly that coverage.
+const LOADERS = import.meta.glob(['../lib/*.js', '../lib/living-lessons/ll*.js', '../lib/eternal-algorithms-teaching/part-*.js']);
 const key = (rel) => `../lib/${rel.replace('app/src/lib/', '')}`;
 const load = (rel) => LOADERS[key(rel)]();
 

@@ -9,7 +9,7 @@
 // #5A5751 secondary, visible #B85838 focus outline (AA). Rem sizes; no device
 // emoji. The heavy book text lazy-loads (bible-kjv.loadBook); the picker uses the
 // tiny bundled index, so navigation is instant and only the opened book fetches.
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   OLD_TESTAMENT, NEW_TESTAMENT, chapterVerses, chapterCount, parseRef, parseLoose, searchBooks,
   EDITIONS_ON_DISK, readerEdition, rememberReaderEdition,
@@ -32,6 +32,12 @@ import { SpanChart, FigureFrame } from './LessonFigures.jsx';
 import { bookTimelineFigure } from '../lib/lesson-figures.js';
 import { chartDateOf, chartAuthorOf } from '../lib/progress-of-revelation.js';
 import { takeBibleTimelineRequest } from '../lib/bible-timeline-link.js';
+import { readBiblePlace, saveBiblePlace, clearBiblePlace, openingPlace, verseAtLine } from '../lib/bible-place.js';
+
+// How long after a landing a scroll is the page settling (fonts, the header,
+// the chapter text arriving), not the reader moving. Same guard as the lesson
+// Read place (DR-1671): the reader's own touch, pointer, wheel or key ends it.
+export const BIBLE_SETTLE_MS = 1500;
 
 // The character offsets [start,end) of the current text selection WITHIN a verse
 // container (its textContent), or null. Uses a Range measured from the container
@@ -293,8 +299,17 @@ export default function BibleReader({ email = null }) {
   // once, here, and cleared (lib/bible-timeline-link.js). A named book opens at
   // that book; any other wish opens the timeline over the usual first page.
   const [arrival] = useState(() => takeBibleTimelineRequest());
-  const [book, setBook] = useState(() => (arrival && chartDateOf(arrival) ? arrival : 'Genesis'));
-  const [chapter, setChapter] = useState(1);
+  // THE BIBLE KEEPS ITS PLACE (Darrell 2026-11-26: "It should keep its
+  // locations."). A deliberate jump (the lesson's timeline link naming a book)
+  // opens there; otherwise the place this device last read; otherwise Genesis 1
+  // (lib/bible-place.js). Whatever opens becomes the remembered place.
+  const [start] = useState(() => openingPlace({
+    jump: arrival && chartDateOf(arrival) ? { book: arrival, chapter: 1 } : null,
+    saved: readBiblePlace(),
+  }));
+  const [book, setBook] = useState(start.book);
+  const [chapter, setChapter] = useState(start.chapter);
+  const [pickedUp, setPickedUp] = useState(start.restored ? start : null);
   const [timelineOpen, setTimelineOpen] = useState(arrival !== null);
   // THE SECOND READABLE EDITION (Darrell 2026-09-06: "we want kjv and esv" —
   // the ESV cannot be carried, so the modern-English public-domain WEB already
@@ -314,7 +329,7 @@ export default function BibleReader({ email = null }) {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [jumpError, setJumpError] = useState('');
-  const [focusVerse, setFocusVerse] = useState(null);
+  const [focusVerse, setFocusVerse] = useState(start.verse);
   const [openVerse, setOpenVerse] = useState(null); // verse whose unions panel is open
   const [marks, setMarks] = useState(() => loadHighlights(email));
   // One-click "Highlighted Bible" (Darrell 2026-07-04). Two color codes the reader
@@ -373,11 +388,96 @@ export default function BibleReader({ email = null }) {
     return () => { on = false; };
   }, [book, chapter, edition]);
 
+  // ---- The place: remembered as the reader moves, landed on when it opens ----
+  const versesRoot = useRef(null);
+  const placeVerse = useRef(start.verse);   // the verse the reader is on now
+  const landTo = useRef(start.verse);       // a verse to bring into view once the chapter is on screen
+  const settleUntil = useRef(0);
+  const readerMoved = useRef(false);
+  const [landTick, setLandTick] = useState(0); // a jump inside the open chapter lands too
+  const bookRef = useRef(book);
+  const chapterRef = useRef(chapter);
+  const loadingRef = useRef(loading);
+  bookRef.current = book;
+  chapterRef.current = chapter;
+  loadingRef.current = loading;
+  // Book or chapter changed (or first open): that is the place now.
+  useEffect(() => {
+    saveBiblePlace({ book, chapter, verse: placeVerse.current });
+  }, [book, chapter]);
+  // Land on the verse once its chapter is rendered, and again as the page
+  // settles (a late font or header can push it), unless the reader has moved.
+  useEffect(() => {
+    if (loading || !landTo.current) return undefined;
+    const v = landTo.current;
+    landTo.current = null;
+    readerMoved.current = false;
+    settleUntil.current = Date.now() + BIBLE_SETTLE_MS;
+    const land = () => {
+      if (readerMoved.current) return;
+      const el = document.getElementById(`v-${v}`);
+      if (!el) return;
+      // Centre the verse on the screen by measurement: the reading line is the
+      // middle of the window, so a landing reads back as this same verse.
+      // (scrollIntoView honours the app's scroll-padding and can stop short.)
+      try {
+        const r = el.getBoundingClientRect();
+        window.scrollBy({ top: r.top + r.height / 2 - window.innerHeight / 2, behavior: 'instant' });
+      } catch (e) {
+        if (typeof el.scrollIntoView === 'function') { try { el.scrollIntoView({ block: 'center' }); } catch (e2) { /* older engines */ } }
+      }
+    };
+    land();
+    const timers = [setTimeout(land, 350), setTimeout(land, 1100)];
+    return () => timers.forEach(clearTimeout);
+  }, [loading, verses, landTick]);
+  // Follow the reader: the verse at the middle of the screen is the place. A
+  // scroll while the page is settling from a landing is not the reader moving.
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const moved = () => { readerMoved.current = true; settleUntil.current = 0; };
+    let queued = false;
+    const measure = () => {
+      queued = false;
+      if (Date.now() < settleUntil.current || loadingRef.current) return;
+      const root = versesRoot.current;
+      if (!root) return;
+      const rows = [...root.querySelectorAll('[data-verse]')].map((el) => {
+        const r = el.getBoundingClientRect();
+        return { v: Number(el.getAttribute('data-verse')), top: r.top, bottom: r.bottom };
+      });
+      const v = verseAtLine(rows, window.innerHeight / 2);
+      if (v === placeVerse.current) return;
+      placeVerse.current = v;
+      saveBiblePlace({ book: bookRef.current, chapter: chapterRef.current, verse: v });
+    };
+    const onScroll = () => {
+      if (queued) return;
+      queued = true;
+      (window.requestAnimationFrame || ((f) => setTimeout(f, 16)))(measure);
+    };
+    const opts = { passive: true };
+    ['touchstart', 'pointerdown', 'wheel', 'keydown'].forEach((t) => window.addEventListener(t, moved, opts));
+    document.addEventListener('scroll', onScroll, { passive: true, capture: true });
+    return () => {
+      ['touchstart', 'pointerdown', 'wheel', 'keydown'].forEach((t) => window.removeEventListener(t, moved, opts));
+      document.removeEventListener('scroll', onScroll, { capture: true });
+    };
+  }, []);
   const openAt = (bk, ch, v = null) => {
+    placeVerse.current = v;
+    landTo.current = v;
+    if (bk === book && ch === chapter) saveBiblePlace({ book: bk, chapter: ch, verse: v });
     setBook(bk);
     setChapter(ch);
     setFocusVerse(v);
     setPickerOpen(false);
+    setPickedUp(null);
+    if (v) setLandTick((n) => n + 1);
+  };
+  const startOver = () => {
+    clearBiblePlace();
+    openAt('Genesis', 1);
   };
 
   // Type-ahead: what's typed lists matching books (Darrell 2026-07-04: "a J
@@ -513,6 +613,19 @@ export default function BibleReader({ email = null }) {
           {pickerOpen ? 'Close books' : 'All 66 books'}
         </button>
       </div>
+
+      {/* Where it picked up — the reader can tell a landing from a fresh start. */}
+      {pickedUp && (
+        <div className="mb-3 border-l-2 border-[#5A6E3D] bg-[#FAF8F4] px-3 py-2 flex flex-wrap items-center gap-2" role="status" data-testid="bible-picked-up">
+          <p className="text-[0.8125rem] text-[#1A1815] flex-1 min-w-[12rem]" style={serif}>
+            Picked up where you left off: <strong>{pickedUp.book} {pickedUp.chapter}{pickedUp.verse ? `:${pickedUp.verse}` : ''}</strong>
+          </p>
+          <button type="button" onClick={() => { setPickedUp(null); setPickerOpen(true); }}
+            className="min-h-[44px] text-[0.625rem] uppercase tracking-wider px-2 border border-[#E8E4DC] text-[#5A5751] hover:text-[#1A1815] hover:border-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">Books</button>
+          <button type="button" onClick={startOver}
+            className="min-h-[44px] text-[0.625rem] uppercase tracking-wider px-2 border border-[#E8E4DC] text-[#5A5751] hover:text-[#1A1815] hover:border-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">Start at Genesis 1</button>
+        </div>
+      )}
 
       {/* Book picker (OT / NT), from the bundled index — instant. */}
       {pickerOpen && (
@@ -671,7 +784,7 @@ export default function BibleReader({ email = null }) {
       ) : verses.length === 0 ? (
         <p className="text-sm text-[#5A5751]" style={serif}>Could not load {book} {chapter}. Check your connection and try again.</p>
       ) : (
-        <div className="space-y-1">
+        <div className="space-y-1" ref={versesRoot}>
           {verses.map(({ v, text }) => {
             const ref = `${book} ${chapter}:${v}`;
             const mark = getMark(marks, ref);
@@ -683,7 +796,7 @@ export default function BibleReader({ email = null }) {
             const spans = autoSpans.length ? [...autoSpans, ...getSpans(marks, spanRef(ref))] : getSpans(marks, spanRef(ref));
             return (
               <React.Fragment key={v}>
-                <div id={`v-${v}`}
+                <div id={`v-${v}`} data-verse={v}
                   className={`flex items-start gap-2 py-0.5 ${focusVerse === v ? 'bg-[#F2F4EC]' : ''}`}>
                   {/* Tap the verse number for its study panel: Copy + the unions. */}
                   <button type="button" onClick={() => setOpenVerse(open ? null : v)} aria-expanded={open}

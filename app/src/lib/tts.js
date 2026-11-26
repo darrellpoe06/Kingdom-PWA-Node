@@ -1058,10 +1058,12 @@ export function useTextToSpeech() {
   const resume = useCallback(() => { engineRef.current && engineRef.current.resume(); }, []);
   const stop = useCallback(() => { engineRef.current && engineRef.current.stop(); }, []);
 
+  // Saved even with no device engine (DR-1688): a television's web view has no
+  // speechSynthesis, but the recorded voice still reads there at this speed, and
+  // returning before the save let the next render put the old speed back.
   const setRate = useCallback((r) => {
     const eng = engineRef.current;
-    if (!eng) return;
-    eng.setRate(r);
+    if (eng) eng.setRate(r);
     setPrefs((prev) => { const next = { ...prev, rate: clampRate(r) }; saveTTSPrefs(next); return next; });
   }, []);
 

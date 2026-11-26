@@ -1,0 +1,1037 @@
+# Pastor Stephen Darby — sermon transcript (machine transcription, with timestamps)
+# Title: Transference feat. Pastor Stephen Darby
+# Broadcast date: 2016-01-03
+# Internet Archive item: TransferenceMixdown
+# URL: https://archive.org/details/TransferenceMixdown
+# Uploader: nextchapterradio (Next Chapter Radio; the host's intro and outro are not Darby)
+# Audio fetched and transcribed: 2026-11-26 (file written 2026-11-26T17:42Z)
+# Model: faster-whisper "base", int8, CPU, language=en, VAD filter on, beam size 1;
+#   audio decoded with ffmpeg to 16 kHz mono before transcription.
+# A machine's hearing, not the speaker's own text: it mis-hears some words (e.g. "strength"
+#   for "strife"). Check the recording at the timestamp before quoting a person from it.
+# Kept so the Prophetic Voices Darby lessons stay traceable to his own words. Audio not committed.
+# Typography: adversary names are lowercased (the transcriber capitalized them; Layer 0).
+
+[0:00] Hello everybody, you're listening to Next Chapter Radio with Mary Calli on the Next Chapter Radio Network.
+[0:07] I hope everybody's having a blast week. Tonight we have something very interesting for you guys.
+[0:13] Yes, tonight we're gonna talk about transfer.
+[0:17] Summing in all the approval of the Next Chapter Radio Network, I call this show Transferris.
+[0:24] Featuring, Pastor Steen and Harvey.
+[0:32] Hey everybody, how you doing? I hope everybody's having a blast week. I know I am God is good all the time.
+[0:37] God is good and you're good too, right? Right? Because you've been blessed by the best.
+[0:41] Go ahead and give God some praise and give Him the saccalaise. Hey listen guys, happy new year.
+[0:46] We made it to 2016. There's so many people who did not get to see this new year come in.
+[0:51] We should be giving God all the praise and all the accolades for allowing us His grace and mercy and favor to be here for another year.
+[0:59] If you haven't done that, you need to do that and you need to do that real quick like now.
+[1:04] Anyway, I'm gonna go ahead and get right into this. I don't wanna hold you guys up.
+[1:08] Last year we ended with the Book of Revelation, Chapter 22.
+[1:13] The Book of Revelation was covered by Steven Anderson of a Tempe Arizona of the Faithful Word Baptist Church.
+[1:20] And this year we're gonna feature another Steven, but it ain't Steven Anderson.
+[1:26] There's none other than Steven Darby of Destin Ministries in Louisville, Kentucky.
+[1:31] If you guys have not heard of this guy, you will this whole year.
+[1:35] He comes to you in a very unorthodox or authentic, original, natural way that has to deal with everything that you deal with in everyday life.
+[1:45] But he uses the Bible and he uses everyday situations that you see in your own families.
+[1:51] Things that you've probably dealt with yourself that most pastors do not cover
+[1:56] because of the fact that number one, it's gonna hurt their bottom mind, their numbers and their money.
+[2:01] Or it's gonna offend somebody in their congregation.
+[2:05] This guy does not care about that. He's not a mega church preacher.
+[2:10] He is a straightforward, just, hey, listen, I'm just gonna get you guys prepared for the end times
+[2:16] because that's what we live in at. So if you wanna know what's really going on,
+[2:21] how satan really is working his agenda and how it plays a part in your life,
+[2:27] and how we have been manipulated, and how we have been used and abused, and how Jesus, and the Word of God,
+[2:34] which is still Jesus, can get you through this, get you saved, get you to where you can get salvation,
+[2:41] so you can start walking in the light.
+[2:44] You need to listen to Stephen Darby. I'm telling you, I've actually turned on a few people to him.
+[2:49] They love the way this guy preached. They're saying, where is he? I'm in Baltimore.
+[2:54] So they're saying, where is he? Is he coming here?
+[2:58] And guys, please, he's like none other.
+[3:04] Not like anybody I've ever heard.
+[3:07] It's like talking to, or it's like listening to somebody with all this wisdom knowledge,
+[3:14] understanding, discernment, but led by the Holy Spirit to give you the Word in such a fashion
+[3:21] that has to do with everyday issues. It is like none other. I just can't, I can't,
+[3:27] I know I'm putting them on a pedestal right now, and I'm not trying to do that, but come on.
+[3:34] Honestly, you got to hear it for yourself.
+[3:39] So do yourself a favor. Get ready because he's going to talk about transference tonight.
+[3:45] For those of you who don't know what transference is, let me put it to you this way.
+[3:51] I feel bad because somebody treated me wrong. Now, here you come alone, and I'm going to take it out on you,
+[3:57] because I never got that situated situation under control or confronted how you treated me bad
+[4:03] or how you made me feel or whatever the case may be, the hurt that I might have experienced
+[4:08] or the shock of all of whatever I experienced with the other person, but I'm going to take it out on you
+[4:13] because you might have did something or said something or looked at me a certain way that triggered
+[4:18] that remembrance of that event, that negative event.
+[4:22] So now I take that negativity out on you. That's what he's going to cover.
+[4:28] It's called transference, and it's actually something that is, it's like demonic oppression.
+[4:35] It truly is because demons work that way.
+[4:38] And that's another thing this guy does. He actually shows you how you're being manipulated by satan
+[4:44] according to the satanic agenda that's out here, and also how you can get salvation from all of this, how you can...
+[4:50] You don't have to go through this. You don't have to go through this, but it does require you to put on your big girl big boy draws.
+[4:56] I'm going to tell you that right now. It's going to require that.
+[4:59] So if you have thin skin and you're sensitive, you might not want to listen to this because this is for people who really do want to grow in the Lord,
+[5:09] people who are not easily offended or not offended at all, who can really start looking at themselves from the inside
+[5:16] regardless of what people see on the outside.
+[5:19] Okay, so let me give you a little bit of background on Stephen.
+[5:24] On his ministry, again, this is Stephen Darby, who's going to present the message for the whole year,
+[5:30] but the first message of the year is going to be transference.
+[5:33] He's in Louisville, Kentucky, if you want to contact him.
+[5:37] They are in 910 East, Muhammad Ali Boulevard, Louisville, Kentucky.
+[5:44] The number is 502-593-8432.
+[5:49] You can give them a call. It's a great ministry.
+[5:53] I'm telling you, it's a great ministry. They're not a big church. They're not, but they're growing.
+[5:58] And they're growing more from the outside community than they are on the inside.
+[6:03] But like the Bible says, you know, a prophet is not without on it, there's only on it, or something like that.
+[6:09] Basically, that, let me break that down, basically means that most true preachers who give you the word,
+[6:15] the people who are right there in the community don't appreciate it.
+[6:19] Because they've seen so much, they probably grew up with this guy, and they've seen so much, and they forget about,
+[6:25] okay, forget about where he's been. Look at how God has transformed this man to become a preacher, a teacher, a shepherd,
+[6:35] a deliverer of the word of God. I mean, that's what we really should be looking at here.
+[6:38] And that's about it. I'm going to go ahead and just turn this over because I can just go on and on again,
+[6:44] get your papers and pencils out because you, I'm an A, you're going to need it.
+[6:48] You're going to need this, you're going to need this bad, okay.
+[6:53] So get your paper pencil out, get your iPads out, get whatever you've got to get out,
+[6:59] so you can jot down these scriptures. Do your own research too, because he used King on doing,
+[7:04] you know, for you to do your own research, don't just go by what he says.
+[7:07] Please do your own research. I mean, I actually did my own research and was like, man, this guy's on the money.
+[7:12] I can't believe this. I got, I need nobody, preachers on the stuff he preachers about.
+[7:17] Nobody talks about it. It's just, it's like people just talk about prosperity and talk about,
+[7:22] this is your year to be blessed. You know, this, that, and the third is like,
+[7:26] but they don't get down to the root cause of the issues of how we're suffering and being oppressed
+[7:31] and how we're being manipulated and controlled and programmed to be a part of something
+[7:37] that we don't even realize that we don't need to be a part of.
+[7:41] It shouldn't be a part of, you know, we should be in the world, but not of the world,
+[7:45] but a lot of the churches in and up. So, and you know, science of being affected too.
+[7:50] But anyway, I'm going to go ahead and turn this over. Stephen Darby, Destin Ministries,
+[7:56] Transferreds. I see you guys on the backside.
+[7:59] All right. Ephesians chapter six.
+[8:05] We're going to start. This is the theme scripture for War, very man.
+[8:08] This is, this is the, this is the scripture that called as you to stop fighting the wrong fights.
+[8:14] They stop fighting the wrong fight.
+[8:16] I'm looking at seasons chapter six and twelve. That's what we wrestle not against flesh and blood,
+[8:22] but against principalities, against powers, against the rulers of darkness of this world,
+[8:27] against spiritual wickedness in high places. So, the Bible's telling us that my real fight is never with people.
+[8:34] It may be a person in front of me, it may be a person doing it, doing me wrong,
+[8:38] but they're not my real fight.
+[8:40] As a Christian, once I see the person, I've lost the fight.
+[8:44] Once I start focusing on the person, I've lost the fight.
+[8:47] The Bible tells me my fight is always spiritual.
+[8:49] When it starts talking about principalities and powers and stuff, it's all my spiritual.
+[8:53] Hey man, that means what is controlling this realm is not what you can see.
+[8:57] Say, man, if it wasn't the case, then why is he talking about fighting spiritual things?
+[9:02] Are y'all hearing what I'm saying?
+[9:04] A natural enemy, you can knock them out, but a spiritual enemy, you have to learn the weapons of war in that realm.
+[9:10] That's too much.
+[9:11] You have to learn how to fight in that realm.
+[9:14] Are you hearing what I'm saying?
+[9:15] That's why Jesus said, I came to give you the keys of the kingdom, whatever you buying on earth, it's bound in heaven.
+[9:20] Whatever you lose on earth, it's loose in heaven.
+[9:22] In other words, he says, from here on out, you're going to speak in my name, and that's going to move the kingdom of God.
+[9:28] That's going to move your enemy by speaking.
+[9:30] Not by natural war, not by swords and guns, but by words. Say word.
+[9:37] That's why I said, if you ask anything in my name, it's your being done.
+[9:40] If a man speak to this mountain and say, be thou removed, it's your el-ha'f to obey.
+[9:45] So the way we fight in the kingdom of God is we use our words in the name of Jesus, and we target the right thing.
+[9:53] Let me say that again.
+[9:54] The Bible says, life and death is in the power of the tongue.
+[9:57] That means Jesus said, you can have whatever you say.
+[9:59] So if you start speaking anything, it don't start happening.
+[10:01] If you say it, why? Because power is in your words.
+[10:04] The devil made a great lie with the jingle six and stones, hurt your bones, break your bones, words never hurt.
+[10:09] That's the greatest lie it is.
+[10:10] Words cut more than a stick or a stone.
+[10:12] You don't heal from six and stone, but then words are still in your heart.
+[10:15] What people spoke of you is still there.
+[10:17] It's because you can get, because getting cut in your spirit is worse than getting cut in your flesh.
+[10:21] I y'all understand what I'm saying.
+[10:23] So our fight is spiritual.
+[10:25] Are you hearing what I'm saying?
+[10:27] Because our fight is limiting, limiting one must, well, let me say that for that.
+[10:32] Because we have a spiritual fight, satan knows your enemy knows you cannot defeat him as long as you focus on the physical or the natural.
+[10:43] Y'all got that.
+[10:45] So his job is to get you out of the spiritual and focus on the natural.
+[10:50] Are you understanding what I'm saying?
+[10:52] When two people are arguing, they're focused on one another.
+[10:55] What they don't know in the spirit, satan is sitting there saying, yeah, fight.
+[10:58] Say that. Do that.
+[10:59] And they go back and forth.
+[11:00] If they would stop, fight, focus on these.
+[11:03] I say, wait a minute now.
+[11:04] Most people say, why are we even into it?
+[11:06] They don't know why.
+[11:07] Because there's a spirit manipulating them to fight one another.
+[11:11] Are y'all there?
+[11:12] Look at satan's Corinthians chapter 10.
+[11:14] The second Corinthians chapter 10.
+[11:16] The second Corinthians chapter 10.
+[11:21] These are foundation scriptures.
+[11:26] They say, man, say foundation scriptures.
+[11:28] Every Christian should have these scriptures in their arsenal.
+[11:32] It will keep you fighting the wrong fight.
+[11:35] You can spend a lot of years fighting the wrong fight.
+[11:37] What do you think unforgiveness is?
+[11:39] You don't even forgive people thinking you hurting them.
+[11:41] You're fighting the wrong fight.
+[11:42] You out of one bound and unforgiveness.
+[11:44] You think you holding that baby daddy.
+[11:45] You out of one bound.
+[11:46] Baby daddy went on.
+[11:47] You out of one regurgitate and heard over it.
+[11:49] You fighting the wrong fight.
+[11:51] Say, man, if you realized that whatever the person did to you,
+[11:55] they would motivate it by some spirit trying to hurt you.
+[11:58] Okay, let's show Christians what they don't know.
+[12:03] Look at, look at, look at chapter 4.
+[12:05] I mean, verse 4 of the second Corinthians team.
+[12:07] This is for the weapons of our war for our not.
+[12:09] Come on.
+[12:10] The weapons of our war for our not.
+[12:11] Who got a different translation?
+[12:13] What's it say?
+[12:15] Are not a flesh.
+[12:17] The weapons of our war for our.
+[12:18] Say it.
+[12:19] I'm not a flesh.
+[12:21] But mighty do got to put it down up strongholds.
+[12:24] Now, so the Bible's telling me I'm not fighting flesh.
+[12:27] My weapons don't work against the flesh.
+[12:31] If I want to do war against the flesh, I have to have a natural weapon.
+[12:35] If I want to fight you and the natural, I need to go on a stick.
+[12:39] Something that's going to affect your flesh.
+[12:42] But I may fight you and get to your flesh but never really deal with the real problem, the real enemy.
+[12:47] Because the real enemy is spiritual.
+[12:49] Are you hearing what I'm saying?
+[12:51] Every time people come to you, they come in a spirit.
+[12:55] It could be the good spirit.
+[12:57] It could be the good spirit.
+[12:59] They could be coming in the power of God.
+[13:01] They could be coming in with a good spirit.
+[13:03] And then there are people that could be coming with a negative spirit.
+[13:05] But everybody that comes, that's coming with some kind of spirit.
+[13:08] Your job is to discern what spirit, so you know what your fighting.
+[13:12] A y'all heard what I'm saying.
+[13:15] Now, come on.
+[13:16] I'm going to take a turn.
+[13:17] That's why I'm trying to get this foundation out of here.
+[13:19] So say I'm not fighting flesh.
+[13:21] That's an angel organ.
+[13:23] That will end your argument if you would listen to the Bible.
+[13:25] I'm not fighting you.
+[13:27] I mean, you have no real beef.
+[13:29] The real issue is what's motivating us to attack one another.
+[13:33] Something's motivating me and something's motivating you to attack each other.
+[13:38] Are you hearing what I'm saying?
+[13:40] Because we don't want to believe the Bible and believe that there's another world God that keeps trying to tell us there's another world there.
+[13:46] That science is telling us another world there.
+[13:49] The new age is telling you which craft is telling you.
+[13:52] The cults telling you all these ungodly movies are telling you.
+[13:55] But the Christians are the only ones that don't want to know there's another world heard.
+[13:59] But when they go to psychics and witches and a witch conjure up a spirit and move a chair, they did it in another world.
+[14:07] But they believe that.
+[14:08] But when the pastor tells you a priest and tell you that there's another world that you're fighting against, for some reason we can't get that concept.
+[14:15] So we, as Christians, stay focused on the natural and that's why we very seldom win a battle.
+[14:20] Oh, you all right here when I'm saying.
+[14:22] I got to help you here because this is the whole point of why the whole point of war for the whole point of why the devil fights you, why he's attacking you.
+[14:30] It's all about trying to get you to focus on the natural because he knows if you ever was to be smart enough to build up and get into spirit, you could do, could deal with him.
+[14:42] So when it comes, so this is why he fights, he fights what builds you up in the spirit.
+[14:46] He fights you from praying, he fights you from fasting, he fights you from reading the word why because he knows those things strengthen the person spirit.
+[14:53] He fights you from coming to church, he fights you from sitting under the word why because those things strengthen your spirit.
+[15:00] Everything you get you should get in church should be hitting you in your spirit. It should be filling up your spirit.
+[15:05] Now you hear what I'm saying. It's not going to profit your flesh. Your flesh ain't going to profit from what from the things of God.
+[15:12] The only thing you can do to the flesh is crucify it and the more you crucify the stronger your spirit will be.
+[15:18] The more you live out of your flesh, you give into your all your evil desires, the more the weaker your spirit will be, the less you will be able to affect satan that I'll all year.
+[15:26] The Bible says, all right, I ain't letting them get hit on myself.
+[15:30] Are y'all there? So everything that the water against your life is to make you focus on people.
+[15:38] Your mother abandoned you, but it wasn't your mother that the motivation wasn't from her.
+[15:44] There was a spirit involved. Say man, you do know that things called familiar spirits, generational curses that hang around the family.
+[15:55] That's why you see a prevenous of the same seeing and the same family. They do the same thing. She got praying 14. She got praying 14. She got praying 14.
+[16:04] No marriage. No marriage. No marriage. No marriage. No marriage. He's in prison. He's in prison. Son in prison. Granddad in prison. Generational curses. For me, his spirit is hanging around the family, motivating people to go into sin.
+[16:16] Y'all ain't going to want to hear this. Nobody wants to hear this. Why is it?
+[16:21] We'll blame everybody but the devil. The Bible tells us satan is as a royal lion seeking who he made the vow.
+[16:34] When the thief only come to steal, kill and destroy his job, his motorcycle, rendai, his career, his title is to kill, steal and destroy.
+[16:45] It's just like when you get up and go to work, he gets something goes to work. His work is kill, steal and destroy all day, always without no sleep.
+[16:53] But for some reason, we trying to preach this to Christians who's supposed to know that they're fighting this invisible enemy but they focus on each other.
+[17:03] So satan's greatest goal is to get you focused on each other because you know as long as you fight in a fledge, you will never see me.
+[17:10] You'll never do be able to deal with me. Is anybody want to talk or not talk?
+[17:15] We got so much in this type of preaching where you know people, you know, it's all about a surface preaching that people are so focused on the surface that they never know that's something behind.
+[17:29] Always ask yourself, what's behind this? Never just take stuff that makes value. Are you hearing what I'm saying?
+[17:37] Don't get on the job that they just don't like me. What's behind this person? Why don't they like me? What's something there?
+[17:43] Now see, why would God want me to know that? Because God's trying to tell me you're not fighting the person. There's a spirit behind this person that if you were just going to spirit and pray and deal with him spiritually, you will win.
+[17:54] But what do we do? We go into fighting the person. You do this to me? I'm going to do it to you. Now we both lose.
+[18:02] You know about going to win in that, but the devil. Why the Bible says don't do evil for evil.
+[18:08] When we start doing good for evil, it messes up the person and it makes the spirit powerless that they operate in the hospital.
+[18:17] So these last days, all about deception. The deception is to make you think that what was in the Bible is no longer relevant for today.
+[18:31] I got what I'm saying. So we explain a way, demonic possession by psychology terms.
+[18:40] And that's the reason why we don't even know that psychology came up was was formed by atheist.
+[18:46] The atheist came up with psychology to explain a way the behavior of demonic possession.
+[18:54] Study it out. That's why they came up with psychology. That's why the psychology, the psychology, dictionary or the psychology, the SCM, they say we have never cured anybody.
+[19:03] No matter how much drugs they prescribe, nobody ever gets cured. Why? Because you're dealing with a spiritual problem.
+[19:08] They keep treating the flesh. We rattle and not against flesh. They treat the flesh. And no matter what they give to the flesh, they won't affect the spirit.
+[19:17] The pills are sedating the flesh, but it's not affecting the spirit. The spirit is still there. Oh God.
+[19:27] So what we used to call the spirit of lust is now a sex addiction. Does anybody want to talk or not talk?
+[19:41] See, see, oh, I got a good message. I'll preach it. But anyway, but but this is how psychology has defined terms to take away the truth of the Bible.
+[19:55] You can understand why. You say, wow, well, because psychology was backed up by atheistic, it really comes from communism, atheistic fascism and communism where they had to explain God away in order to take over Christian culture.
+[20:09] So when so, so when the Bible talks about Jesus, there was this boy and he would throw himself in the fire and throw himself in the water and phone them out. Say, man, my thank the Bible called him a lunatic, which means a moon howl,
+[20:23] like a world where he's howling his movies. Crazy. That's what they call crazy back then. The Bible said when Jesus came, the disciples was trying to cast a devil out of the boy, but the devil wouldn't come out till Jesus came.
+[20:36] And Jesus came and cast a devil out. The Bible said when the devil and out the boy was fine. So that told me right there that we would have called his condition bipolar or schizophrenia.
+[20:52] He falls in the water. He falls in the fire. That's what the Bible said. It's wrong with the boy. He burned himself one minute and then go and drown himself. Well, that's two extremes.
+[21:02] Now, Paul is between two extremes. So we have medical now. So instead of us dealing, y'all want to talk about this. Instead of us dealing with the issue, we call it, we call it, we give it a category and Medicaid it.
+[21:17] What's the problem with this? The person never gets better because you never deal with the things that got a hold of them and the thing is getting stronger as they're medicated.
+[21:29] I don't know how messy y'all are because y'all got people in your family. Some of y'all messed up and y'all were, you know, you just want to, you know, it's fine. Keep taking your pills. I ain't telling you to stop. I ain't even against it. Just do what you want to do.
+[21:40] I'm just telling you that one day, you better say, wait a minute. Am I getting better or am I getting worse? Your problem is spiritual. Let me tell you how you know because that problem came along after some type of sin.
+[21:54] That means the spirit got in and through sin y'all with all. Y'all the Bible says when the evil spirit goes out of a man, it goes and looks for rest. It finds none. It says, I'm going back to the house I left.
+[22:04] When it comes back, it brings seven of the spirits stronger than itself. Y'all heard what I'm saying. So whenever a person is dealing with that, it came in as a result of some sin.
+[22:16] Messing with the devil's devices, the Bible says being an ignorant saying is devices. So you have to mess with his devices in order to get for him to inhabit your life.
+[22:25] Y'all are not there too much teaching. I'm going to make you pop. You're going to pop. You're going to pop because y'all know we are messed up with this stuff and people get people start hearing voices.
+[22:39] I never understood that. Especially if you're a Christian, I don't know if I'm hearing voices. It's something talking. What is this talking? And notice the voice ain't good voices.
+[22:51] Why ain't it good? Why ain't it good, schizophrenia? That ought to tell you there's a personality. There's a nature of something there. Why is the nature always bad? Why is whatever is inhabiting a person or making a person do word? Why isn't always evil?
+[23:08] Why isn't it good, Spirits, that make you do good? Talk to me. Because satan's goal is possession. He has a host of spirits that have nobody. They need your body. And they get in your body through sin. That's why the Bible says, live holy or you'll get a devil.
+[23:29] I won't talk about this. The priests nowadays, because you know, we explain in the way even when people leave, they explain in the way because that's even spiritual. They explain that in a way like, no, it's not what that was. That was what's at the end of it. I'm just sleepy. I'm just tired.
+[23:48] Now you open yourself up by messing with the devil's stuff. That's how you get a devil. They know they didn't go out of style. They just hidden right now because the purpose is not yet for them to manifest, but revelations talk about they going to manifest. You're going to see what you've been fighting all them years if you ain't careful.
+[24:10] Move on fast, because I'm a pop, y'all, and I'm popping your mind now. It makes you think. You know what, you know, and this stuff can happen through any kind of sin. That's the thing about seeing. I thought God doesn't want me having no fun. I'm crazy to do them.
+[24:25] I'm just going to throw the devil away. I'm just going to tell you that you'll get a devil. Call it sickness, call it affliction, call it diabetes, call it habular pressure. All that spiritual. The doctor's no aspersion. What do they ask you? What's the first thing they ask you? Who got it in the family? If it's just me, if it's just my physical body, why y'all ask about my, what, what, because it runs in the family? Why does the generational curse end the family that goes from diabetes to diabetes?
+[24:51] Habular pressure, habular pressure, habular pressure. It ain't necessarily even about food. I thought it was, but it really ain't. It's spiritual. That's curses upon the black race. I'm moving on. I'm moving on.
+[25:04] Okay, so if we were outside of this festival, let me get the goal of all the money that's attacking warfare is to divert your attention from spiritual entities onto physical ones. Y'all there? This is especially, and then I'm, here's my turn. You ready for my turn? There's my turn now. I'll set you up for this. You ready?
+[25:21] Especially when it comes to, to, to, to, to, to, to, to evidently, let me see it like this. The virtual attention from spiritual entities to physical ones, especially your past or your church.
+[25:40] This is how, this is the main goal of warfare. I've seen it all in my Christian life. Before the pastor, when I first got saved, it happened to me too. It's called transference, a transference.
+[25:55] In other words, this is where the enemy uses a pre-issue.
+[26:02] The other.
+[26:05] And get you and sit in it.
+[26:07] All of a sudden you get married into a family, or you get a job,
+[26:11] or you get into a group, or a club, or a church.
+[26:14] And all of a sudden, satan already knows you got this pre-issue there.
+[26:18] In other words, you got some traumatic experience in you already.
+[26:22] Say, man, that's not, say, not resolved.
+[26:26] In other words, mama, what, nerd, mama banding me, daddy of banding me.
+[26:29] We got these issues that we try to smooth over.
+[26:32] And if you ain't saved, you drank them over, you smoke them over, or you sex it over.
+[26:37] These are the reasons why people go into sin.
+[26:39] You go into sin trying to escape something.
+[26:42] Sin is an escape.
+[26:43] Oh, don't mind what I want to talk to me.
+[26:45] Sin is an escape.
+[26:46] Phenography is an escape.
+[26:48] You get addicted to it, but it's an escape.
+[26:50] For that brief time you doing what you're doing, you whether you getting high or not,
+[26:53] it gives you a release.
+[26:54] You don't have to think about a deal with the pain.
+[26:57] Say, man, so we saw it live in a life of escape.
+[26:59] Say, man, now that in other words, so all I've done is escape.
+[27:03] I haven't dealt with what's in me.
+[27:04] I haven't dealt with my pain.
+[27:06] I haven't dealt with my rejection, my abandonment.
+[27:08] I haven't dealt with that.
+[27:09] All I've done is escape.
+[27:10] Say, man, when I got saved, I never came and got, and deal with the Bible tells me to do,
+[27:17] which I really was supposed to purge myself.
+[27:21] And repent of all this garbage and wickedness in my heart.
+[27:24] I came and said I was sinless, prayer.
+[27:26] And never went back and got on that off thing, got my heart right with God,
+[27:29] and so I talk on the God about all the evil and issues in my heart.
+[27:32] So he can start filling those areas, say, man, that satan had ahold of.
+[27:36] Does it not want to talk about tonight?
+[27:38] Say, man, so therefore, because I didn't do that,
+[27:41] now all I'm gonna do is transfer some of your relationships
+[27:45] where the person in your life is too angry at you.
+[27:48] You know you didn't cause the anger that they're exhibiting.
+[27:52] What are they doing? They're transferring to you a pre-wound.
+[27:57] Had nothing to do with you.
+[27:59] The last man did it.
+[28:01] The last man left for in her, and she can't trust you.
+[28:06] Talk to me.
+[28:11] Arco raped her.
+[28:13] Yet Arco did it.
+[28:16] But she's taking that anger out on you.
+[28:20] Talk to me.
+[28:24] His mother didn't give him affection.
+[28:27] Didn't nurture him.
+[28:29] So he takes it out on the woman.
+[28:31] He transfers it.
+[28:33] He's not going to deal with his mother, but he transfers it to the person who's in his life now.
+[28:37] It's called trans.
+[28:40] And some of y'all disthink it like, man, you know what?
+[28:42] That's probably what I'm dealing with.
+[28:44] These type of people, the person that they angry at for real, they will hold them in the highest esteem.
+[28:49] They'll never say nothing bad about them.
+[28:51] They'll be just the mom of the sacred cow.
+[28:53] They'll never say nothing bad.
+[28:55] But that wife better look out.
+[28:57] I said that wife better look out.
+[29:01] That husband better watch out.
+[29:03] Because all of what he ain't saying to mama, that he don't even really knows in his heart, it's going to come out on that wife.
+[29:09] All what she ain't saying to her father or to the man that hurt her, it's going to come out on the man trying to love her.
+[29:15] It's called transference.
+[29:19] Remember what I said?
+[29:20] The devil got you focused on each other.
+[29:23] Not realizing it's a spiritual problem.
+[29:25] It doesn't even want to talk or not talk.
+[29:27] Y'all there.
+[29:29] This is done through trans, listen.
+[29:31] This is done through transferring the emotional damage and wounds from a pre-issue to a current neutral situation of relationship.
+[29:38] In other words, you came with that.
+[29:40] People come to this church all the time.
+[29:43] You came with that.
+[29:44] We didn't go none of you.
+[29:45] You came with that.
+[29:46] You only know me.
+[29:47] How I hurt you.
+[29:48] You came with that.
+[29:49] You can't say I was already in your heart.
+[29:51] You got in that relationship.
+[29:52] You just keep hurting me.
+[29:53] You already was hurt.
+[29:54] How does a person go from being in love with you and all of a sudden now you hurt me?
+[30:01] That was already hurt.
+[30:04] That was already hurt.
+[30:05] It's already there.
+[30:07] And you will spend a lot of time trying to...
+[30:12] Good word.
+[30:14] Copping's saying.
+[30:16] You'll spend a lot of time trying to compensate.
+[30:19] Try to make that person feel secure.
+[30:22] When that's really not going to help them because they are a vacuum because they issue and still sucking her instead of getting plugged up.
+[30:30] Oh, you didn't hear what I was saying.
+[30:33] In other words, see when a person gets...
+[30:35] When a person got a wound, a wound was sucking her.
+[30:38] When a person gets healed, what happened?
+[30:41] The wound is sealed.
+[30:43] Now they don't have to just suck the life out of people.
+[30:47] They have something to give out of the sudden.
+[30:50] So you're helping them by keeping capitulating all the time, giving them and giving them that spirit.
+[30:57] They ain't doing nothing but sucking the life out of you and making them stronger in a negative attitude.
+[31:05] Does anybody want to talk or not talk?
+[31:11] Y'all not ready for this or not.
+[31:14] And this is why you be with a person for years and you don't know what am I doing wrong.
+[31:20] People who have this transparency will tell you it's everything.
+[31:25] They'll tell you why don't you speak.
+[31:27] Why don't you compliment me. You still compliment them.
+[31:31] But you coming in my clothes. You don't come in my hair. You still coming in her.
+[31:34] But what about my shoes? You don't see my shoes? Don't you see my shoes?
+[31:36] They go from one thing to the wild because they don't want to be well.
+[31:39] The Bible says that was a man that laid at the pool of Bethesda.
+[31:45] He was sick. 38 years sick. Lannard.
+[31:48] The Bible says the angel would come down and trouble the water.
+[31:50] And anybody that stepped in the water, what did angel trouble it, they would get healed.
+[31:54] Jesus showed up and saw the man laying there and said, look man you been here 38 years and you ain't rolled your butt in the water.
+[31:59] He said, why aren't you? Jesus asked him one good question that you need to ask people because I'm telling you you'll be shocked when you hear her answer.
+[32:06] Not everybody wants to be well. Jesus said, what Jesus said, don't you want to be well?
+[32:11] The man got indignant. What did he start doing?
+[32:14] Going up his vacuum. I ain't got nobody.
+[32:18] He's been here. He's transferring the anger of his impetus on the people who won't help him because these guys got enough sense to go in the water.
+[32:29] He said, man, why don't they help me in the water? Why would you lay there? If you could roll it.
+[32:33] Not everybody wants to be well because sometimes complaining and being difficult, it becomes a lifestyle.
+[32:42] And they'll nurture that. Oh boy. Are y'all heard what I'm saying?
+[32:49] Take transparency. This is what many of us are dealing with today.
+[32:54] These are the people who are going to die. Ain't nobody done that to them before the days when they mad at somebody.
+[32:58] Nobody done that. They current something from somewhere else. These are people getting the church and they being the church.
+[33:06] Oh the word was so good. I just love the old pastor. Thank you so much. And before the month's out, somebody heard them.
+[33:10] And they were swirling down. Somebody did something to them but they got to realize they ain't even built enough relationship for you to hurt them.
+[33:20] They ain't even been around you long enough. These you know people you don't know can't hurt you.
+[33:25] People that are not close to me cannot hurt me. As Jesus. That's why he was hurt when the disciples did what they did because they was close to him.
+[33:33] The pastor wasn't close to him. The first season said everything they want to say whatever.
+[33:37] They don't care. They don't know me. But the ones that's closer to you are the ones that do the pain. They'll cause the pain.
+[33:42] Are you hearing what I'm saying? Are y'all there?
+[33:45] So this is the reason why I know that I can never hurt you if you ain't got no relations.
+[33:53] I have said here before people come up to me after serving and say I just want you to forgive me. I said for what?
+[34:00] I was up to you for what? I was offended that you are like man you couldn't be. You don't know me.
+[34:08] I don't care if you knew me you don't know me. You can't be offended with me you don't know me.
+[34:15] We had enough relationship for you to get mad at me. You had that. You came with it.
+[34:22] Sometimes you got to tell people you need these relationships. Funny old crazy rollercoaster. Let's just look. You had that.
+[34:29] Now if you want to get staying in the world you don't have to stop. You don't have to stop that because I can't keep on feeding it.
+[34:41] Say man. This is good whether you say amen or not.
+[34:46] Let me read you some here. Transference is essentially a desperate attempt usually initiated by emotions to bring temporary relief from the pain or anxiety of unsatisfied needs.
+[35:00] Unresolved conflicts and emotional trauma from the past. In other words, our emotion triggers this.
+[35:05] The goal is to try to get the person, man my sense of neutral relationship. When I meet you to relationship's neutral.
+[35:14] I don't know you don't know me. We don't know each other. There can be no way I can hurt you. I don't know you don't know me. The relationship is neutral.
+[35:20] The goal is to try to get the people coming my life that I neutral to begin to fulfill or make up for the pain and the deficits I have in my life.
+[35:31] In other words, I'm making you pay for. Say man, I'm making you pay for. This is how you know when you meet a woman she's going to talk about baby daddy.
+[35:41] Oh, I'm telling you she is still there. She ain't done. She's going to transfer her what she felt for him or onto you.
+[35:47] But y'all get babies bound so quick y'all don't even know y'all wait to see the transfer. I was there.
+[35:52] Before you know she got it she had your baby now she got a real crazy. Say man, if you start talking if you come in and man talking about his father always something bad about authority.
+[36:09] Also on the job is father a pastor that brother I'm telling you he's got that in him. He's got that transfer center and he going to take out on you.
+[36:22] These people could not be wrong no matter how much you explain it no matter how much you make it obvious they ain't wrong no matter what you say they ain't wrong.
+[36:31] You can show them a video of it they ain't do it. You can show they did it I ain't do it because a person that has this mentality is borderline narcissistic.
+[36:43] In other words they don't feel others pain the word past them they don't feel others pain they only feel what they going through they don't know and if you really look at their life and go ask people about them they you see they have a trail what they don't hurt their body but they don't they don't acknowledge it because they don't feel it.
+[37:00] But if you talk to them they'll tell you they did it to me and they did it to me and they did it to me they not tell me what they did to their own kids.
+[37:07] My dear funny the children never get a voice but if the children could speak they would say you remember you left up you remember you burly fed up you left us in the house by I said you remember that was in the hot car you remember you played you played a play a bingo without without going on the boat without school of cold money.
+[37:26] You didn't set a boost out he's ain't gonna say no they can't say you ain't gonna say can't say nothing because you're going to threaten them but you talking about what people have done to you.
+[37:40] That's a narcissist children with tears and could tell you I'm out for fall open and what they actually do know that you thought you was hiding they saw you I know that one awful lot I know he was awful.
+[37:56] I know it was an uncle mom you said he was an uncle he ain't an uncle he ain't an uncle he's a you really think of these kids they got all these all could only see them twice.
+[38:04] Well uncle's come out at night all the time with the in an uncle but you think they don't understand that.
+[38:16] Y'all there. Let's move on. Look at this so listen he says listen it is a behavior that arises from the desire to even deny.
+[38:28] Listen deny or sue past emotion of pain through present day utilization of like carriage replacement in other words it's it's basically tries to most people live in denial.
+[38:39] That's why we try to that's why a lot of the preaching their preachers do is on forgiveness because people deny that they even angry or even holding you know forgiveness.
+[38:50] And the reason why I try to preset every now and then because I know you can't be forgiven that's holding you back that's not it's you're holding yourself back with unforgiveness are you hearing what I'm saying.
+[39:01] The unsettled subconscious might frequently motivation individual who is in denial to seek consolation for a result as a department by punishing with anger or demanding unrealistic confidence to compensate or affection from people today.
+[39:16] And what does that mean? Well we know what the we know we know the first part of anger we know people operating anger that he was transparent but another thing is unrealistic demands unrealistic demands.
+[39:35] Say man I want you to be like my cook like my mama sex like the like the lavish chick I have a new talk to me.
+[39:48] You don't need to act like you're in church talk to me. I want you to look I want your body never to drop after four key years.
+[39:57] I don't want no stress for I don't want. Talk to me. I want you heard I always look like came from the beauty of the line I want you I don't want to know your fault.
+[40:11] I don't know how really stuff is. I don't want I don't want I don't want I don't want I don't want you want to know that there is a cycle you have about that unrealistic expectations.
+[40:24] When a person has those unrealistic expectations it's because it's something they're bad they not over.
+[40:29] And and then that's why this is why if ever you see me in that they have me in they have their women that they allow their women to support the show out of their body.
+[40:42] They like to tell me like they're women to do that. He don't love her. She's a car she's something to see because she's compensating for something that he feels he ain't.
+[40:54] I'll figure that out years ago. Why would a man want to woman to show her that's your that's your body's your body's your body's up. Why would you want why would you do that.
+[41:13] Because it's something in your mind. I've seen mothers do it with daughters.
+[41:23] Want the daughter to dress sexy and stuff. What's in the mama mind. Them same girls you know mama to have them little girls and dress up and be the grown looking little girl they be five and they got to make.
+[41:36] What's wrong with you know if you talk there's always something wrong with the mama's mind.
+[41:40] What's wrong with you that you don't see your daughter is too young to look sexy.
+[41:45] What are you compensating what are you what's wrong your wives just twist it somewhere.
+[41:51] Little girls need to be little girls. Not know they think they're out because they put stuff in the chicken and the water.
+[42:02] But that don't mean you got to dress it to the tight. You know it's something to chicken and a water you know the chickens are too big.
+[42:08] And no chicken supposed to be as big. It's a growth hormone. It's in his kids that's why they still be the right to be.
+[42:17] Y'all are talking about it. Y'all heard what I'm saying. No man would want another man to look at what he what what's he is.
+[42:27] No man what y'all know man what's up. He's insecure. I should be.
+[42:34] You're a school if you ain't because if a man can see it he can get it. Trust me if a man see it he can get it.
+[42:42] You think you think a man can get your what you silly. If she's on it she won't something.
+[42:48] It's a reason why we dress modest. It's not just because we're trying to be holy then doubt.
+[42:58] The reason we do it is because we're trying to curve. Trying to curve certain things.
+[43:04] Did you know you come now you ain't got to believe me and y'all think you all think it's true.
+[43:08] Let's see if right now if if I strip down you if we mess your mind up.
+[43:14] I ain't got the bus like I used to but it's still a mess your mind up flesh with mess your mind up.
+[43:21] You ain't supposed to see all that. Why isn't that we don't get that car self?
+[43:29] You don't believe me? Be with your man and watch a woman just have neck and what he he he he he.
+[43:33] He's neck with me. He's he be hurting his neck. He's like a demon got his head trying because he got a look.
+[43:42] And the more lust in him the slicker they are. They'll drive like this.
+[43:54] They looking spread a lust. It's lust. Now you as a woman should look at that woman and say is this what this do to me?
+[44:02] Why would I want it? Y'all so don't check these tickets. I'll be checking.
+[44:12] I was one of the check you know sir. What's your titties in? What you doing around my man?
+[44:16] What you don't want to see that get that out of here with that.
+[44:20] So titties you don't butt in. What's wrong with you? I want to see your body.
+[44:24] I got man. I got sons. Nobody I want to let you.
+[44:28] I don't know I got on that. All right.
+[44:33] That's part of transfer because because we compensate.
+[44:37] If you didn't get affection from a man you're going to you're going to use your body to get attention from me.
+[44:41] If you didn't get father affection then you're going to use whatever you got to try to get attention from a man.
+[44:49] Even a woman that may not be what you consider classically attractive she still know how to manipulate me.
+[44:57] She get cool with her. There's always a chicken to cry out as a friend.
+[45:03] She know her role. I'm not the attractor. I'm the friend.
+[45:07] And the friend cleans up. She's nervous when they vulnerable.
+[45:11] She's there when he dropped. She's there when he's dropping when he's vulnerable.
+[45:21] You come on over. I know what she did. You come on over. I'm a cook.
+[45:25] You can't have no one. What's she look like? You can't no one to keep doing for you.
+[45:29] You're not a being attracted to. She can be a big one. She can be enormous.
+[45:33] They don't matter.
+[45:35] And she keep doing for you. There will be an attraction.
+[45:39] And you brothers in your man. You all know it because you all know you're thinking of wanting like.
+[45:45] I never thought I would. Every man got a dog within the closet.
+[45:53] Every man that's somebody who they don't know how they did. They don't know how they got it.
+[45:59] How she get with me. They walk you down, boy. She don't have the beauty but she got gained.
+[46:07] And she walked you down. She's perfect in this. Really. She's perfect in the skills of keeper man.
+[46:13] Y'all want me to think y'all cute. That's why y'all can't keep no man. Y'all think y'all cute.
+[46:21] You don't realize you were out. You get old. I don't care how you do your hair.
+[46:27] Once stuff starts sagging and it's going to sag. You can stabilize it.
+[46:31] Whatever you want to do. But then you start looking weird. Like a transvestite.
+[46:35] So pulling up your face back and start looking like a transvestite.
+[46:39] You can't do all that. But a wise woman is already knew what to do.
+[46:45] She ain't putting all her eggs in beauty.
+[46:47] Because beauty is a gift. The Bible says beauty is a gift.
+[46:51] It's a gift some people I gift. It's a gift some people ain't.
+[46:53] It's just like if I can't, if a person gets saying, I'm not a real saying. I'm telling you how I would say y'all that.
+[46:57] But if a person can really saying they gifted the same.
+[47:03] Some people can. Some people can't. Some people try. But you know they not gifted.
+[47:11] They may make a joke for noise. They not gifted.
+[47:16] So why we all jealous of that one gift. If God didn't give it to us.
+[47:23] I mean you can look nice but everybody ain't gifted. They all know everybody gifted.
+[47:27] Children ain't gifted either. That don't mean they worth some day beautiful in your eyes but everybody ain't gifted.
+[47:36] They all know y'all see people this and they are not gifted.
+[47:40] Not just all day ain't gifted. That's alright.
+[47:44] We ain't all in this and you live long enough. You ain't gonna be gifted.
+[47:49] All of them gifts are going fade away. That's why they about to say beauty is vain.
+[47:54] Beauty is vain and a vanish on you. It's food is pride to put your worth in your looks when it's going to fade.
+[48:02] But some people I gifted. Some people get favoured because they're beauty.
+[48:07] But beauty does not keep a marriage. It does not keep maintain a relationship. I'm not getting on this.
+[48:13] If you ain't got no virtue to go alone with the looks then you would just look at these shows they coming out with.
+[48:27] Let me show y'all something. If beauty was out there, look at these shows why black woman acting undonk it.
+[48:32] Beautiful. The housewives and the hip hop six. They beautiful.
+[48:38] But what they can't even keep a dude. So looks don't keep no man.
+[48:44] And looks don't keep a man. Y'all heard what I'm saying.
+[48:54] What keep a man is a woman in this piece. Her words. Your words keep a man, honey.
+[49:00] It ain't even food. A man with four gold good cooking if a woman can talk right.
+[49:07] Because at the end of the day you want peace. You want to be on a rest in a woman.
+[49:11] You want to be able to rest with her. You don't want to always come out here fighting.
+[49:14] Go on fighting. No, it's too much. Rest. Peace. A peaceful woman. A woman with a quiet spirit.
+[49:21] Quiet words. Don't jump to conclusions. Don't go off over little small stuff.
+[49:25] See something go crazy without even thinking. Just go off and just just go crazy.
+[49:30] How about I want that? That's frustration for a man.
+[49:34] I know you can I know in a midst of a real term or pressure of what you're going to do.
+[49:39] But a man needs a woman to sue the savage beast.
+[49:42] A man has been beast in him sometimes. They need a woman to sue the beast.
+[49:48] Sealed come me. Come me down. But you can't even do it because now the women are beast.
+[49:54] And they fight no buses in there. You see that stuff? The women were fighting on bus.
+[49:58] Look at how the kicking people in the face. I said my god.
+[50:02] We can't find a woman to be a jet-toe in feminine to sue the beast in us.
+[50:09] I said it. I want a hard woman. And not no beautiful hard women.
+[50:16] Don't think you look feminine that you ain't you can still have a man spirit.
+[50:19] I'm getting on this. You can still be tough. You can still be being being being trucky lit.
+[50:26] You know if you're on back there you know the Bible says a man a man's a give a woman's a receiver.
+[50:38] The Bible says that you can win your man without saying unto him if you're a wise woman.
+[50:42] If you could have got enough virtue and skill you can win him without saying unto him.
+[50:47] If you got enough but if you always got to say stuff that's because you ain't got nothing else.
+[50:51] You have no skill. So you think you're going to whoop your man into shape.
+[50:55] Now realize the men resist all that talking. We resist that for real.
+[50:58] You think they listen they say they really hate you for it.
+[51:01] You embarrass them and for all god I ain't trying to go into that.
+[51:05] But because the man's a give a woman's a receiver.
+[51:09] If somebody in the house don't receive it's two bulls button.
+[51:15] You may know what I'm talking about. When a man speak it.
+[51:19] I'm not going to talk about this. When somebody got to give in.
+[51:23] Now men were not created to give in. That's why God told Adam you listen to your wife.
+[51:29] You cursed. He got cursed for listening to E.D. 8 of the truth.
+[51:33] He got cursed. He said you harker to the voice of your wife.
+[51:36] You were supposed to listen. You were supposed to lean.
+[51:38] So men can't give in.
+[51:40] Men get cursed for letting this woman lead them like a punk.
+[51:44] I said it.
+[51:46] So somebody got to give in.
+[51:48] So if the woman don't give in it's just like, now ask two men what happened.
+[51:52] If two men keep talking and they don't give in it's going to be something.
+[51:56] Y'all calling me in punk because they get angry at y'all and they be wanting to go out.
+[52:02] Y'all you just don't know how to talk. No.
+[52:05] Men know you can't keep doing this.
+[52:07] I don't care if you're a woman you keep talking.
+[52:09] Somebody got to stop.
+[52:11] If two men keep going back and forth they know what's going to happen.
+[52:17] Most men have real short words. We know man.
+[52:20] We, a man don't wait the whole thing man.
+[52:23] I just can't go jail man. I know he's going to get his feet.
+[52:26] I'm going to get my feet. I'm going to get out of my stomach.
+[52:28] I'm going to die.
+[52:30] Women don't have logic like that.
+[52:33] She said no, this guy is 350 pair.
+[52:35] Small. But she's talking like she's been in the man she's thinking like if he really was to grab me I would be in trouble.
+[52:43] But she said, you ain't going to shine got to show you.
+[52:47] It's not logical.
+[52:49] Now man, we look at another man like that's a man.
+[52:53] We already, we're going to sign them up.
+[52:55] That's guy, we're thinking about what it's going to take.
+[52:58] Women ain't thinking about what it's going to take.
+[53:05] Let me get me, I got caught.
+[53:08] I told you about the bus driver hit the girl with double cut.
+[53:12] I know that's the hitter. That's the everybody I've seen that.
+[53:14] Now a man would have gotten on the bus and would have known, you don't spit on the man.
+[53:22] I don't care if this don't spit, I'm not saying no spit on the other.
+[53:26] That's just total need for destruction.
+[53:30] Everybody going to be on the side of the one that received a spit.
+[53:34] No doubt about it.
+[53:36] Everybody, I don't got to see the fight.
+[53:38] Did you spit on all these but whatever you did to him was okay.
+[53:41] But the woman she didn't register because she didn't think he ain't going to do it under me.
+[53:50] It's not logical.
+[53:52] She's not understanding how mad a man going to be if you spit on him.
+[53:57] It's eating, sitting, catching a memo.
+[53:59] Even when he got up, a brother with a new arm.
+[54:04] He got a swing.
+[54:05] We wouldn't know. He's getting up. He got a swing.
+[54:07] Even when he did this.
+[54:09] If a man's stepping, you know what's coming.
+[54:11] He stepping into you.
+[54:14] He's stepping into the man.
+[54:16] Look man, we know that this is, you know, especially your soccer player expert.
+[54:19] We know this.
+[54:21] We know if you step in, if a man, if a man told you like this, you okay.
+[54:26] But if they put any foot out or pivot, it's just because they're getting about it.
+[54:31] They're going to swing on you.
+[54:33] This chick's all silly because she don't know me.
+[54:36] She ain't knowing.
+[54:38] He did it.
+[54:39] I'm saying he's great.
+[54:40] Before he hit, I said he's going to hit him.
+[54:42] But this, he was on the news.
+[54:49] He finished me.
+[54:52] What's that?
+[55:12] Well, she said that.
+[55:14] Like, Mortal Kombat is what she said.
+[55:18] That was a finishing punch.
+[55:19] She finished her.
+[55:27] Now, I don't condone it.
+[55:30] But I understand.
+[55:31] I understand.
+[55:34] You don't spit on nobody.
+[55:36] Teach your child.
+[55:37] Don't spit on people.
+[55:39] Even if it's a child.
+[55:41] Even if a child spit on you, you're going blank.
+[55:44] It's just a blank, man.
+[55:45] It's nasty.
+[55:46] It's a blank.
+[55:47] It's like the lowest form of disrespect.
+[55:50] I'd rather you hit me than spit on me.
+[55:52] It's a, it's a, it's a, it's a, it's a lowest form of disrespect.
+[55:55] That's why they spit in Christ's face.
+[55:57] It's the lowest form of disrespect you can do for a person.
+[56:00] Anyway, she didn't cast it.
+[56:03] This is a man.
+[56:05] And so when you have men in the house, see if a woman doesn't learn this tactic,
+[56:12] then you got to call them domestic violence.
+[56:15] And men, the deck has been stacked against the man in every way.
+[56:25] And so now, listen to me, now men are not as silly as they used to be.
+[56:30] Some men just, I'm going to jail.
+[56:32] He ain't correct.
+[56:33] But now men are a little more wise.
+[56:34] They say, you know what, you ain't worth all this.
+[56:37] And they leave you alone.
+[56:39] So don't play those games.
+[56:41] Somebody got a guilt.
+[56:43] Somebody got to receive.
+[56:44] I ain't talking about no man.
+[56:46] You know, I ain't with that.
+[56:47] I ain't got none.
+[56:48] Come on.
+[56:51] He's, he's, he's, he's got to go and shoot.
+[56:52] That's all I'm taking.
+[56:53] I ain't going to tell you what you got to do.
+[56:55] Protect yourself.
+[56:56] But don't be going to have a plan.
+[56:57] You know, I ain't going to, you want anything to get locked up and locked.
+[57:00] That's game plan.
+[57:03] But the point I was making was that women received and me and Gale.
+[57:08] At some point, we, in the heat of a thing, somebody got to deal.
+[57:12] If he'd give, if he'd go end up a pawn.
+[57:15] If he'd give in to you, he'd go give in to another woman.
+[57:20] Is that what you want?
+[57:23] So stop trying to break the mind.
+[57:27] You know, see how far you can push him because with brother snap,
+[57:30] what people say, I had a, that was old thinking.
+[57:32] I ain't no thinking, thinking, thinking, never did nothing nobody.
+[57:35] Thinking of, when I got an accent out of, out of, out of, out of, out of the,
+[57:38] I said, and went up and out.
+[57:39] Nobody knew, thinking to head in on his mind.
+[57:41] But he was, he was pushing, thinking every day.
+[57:44] That's when brothers just be pushing these up.
+[57:46] I'm something I'm doing.
+[57:47] You gotta leave brothers alone, man.
+[57:49] You give brother space.
+[57:50] Give time.
+[57:51] They, they beast for real.
+[57:52] Don't know the defeats.
+[57:54] Y'all done.
+[57:55] Let me get it, let me go, let me get on.
+[57:56] I'm gonna close right here.
+[57:58] Y'all done.
+[57:59] It's a help your marriage if you understand that.
+[58:01] Men are not women.
+[58:03] They're not women.
+[58:04] Don't make them your best friend and he got know all your feelings.
+[58:07] Go get a girlfriend for that.
+[58:08] The man is a man.
+[58:10] Let him be a man.
+[58:11] Let him talk like a man.
+[58:12] Walk like a man.
+[58:14] That's where you want because if he's a man, you, he'll be a man to another woman.
+[58:17] He won't, he won't cheat on you.
+[58:19] But if you knew to him, knew to the man always cheat.
+[58:23] Take away his manhood at home.
+[58:24] Another woman's gonna get him to you.
+[58:26] If you take away his manhood, he ain't got none left but lust.
+[58:29] That's the only place he can dominate.
+[58:31] That's the only internet in pornography.
+[58:34] Hear what I'm telling you.
+[58:36] God created man the rule of something.
+[58:38] Man has to rule something.
+[58:40] If he can't rule his home, then he'll find something to rule.
+[58:43] Even if it's only ruling the fantasy world of football,
+[58:47] ruling the fantasy world of pornography, ruling the video game.
+[58:49] You know what I mean?
+[58:50] I mean, pay video games, but they're trying to rule something.
+[58:53] Society is new to them.
+[58:54] What they can't be from, man, every time they be strong,
+[58:56] man, they go to jail.
+[58:57] They can't raise their voice.
+[58:59] They can't say nothing.
+[59:01] Because people have got an image of a man as he's got to be this super sensitive,
+[59:05] you know, always, okay, and now, caring person, now.
+[59:09] You're a man.
+[59:10] You're a man.
+[59:11] Let me get on.
+[59:13] I know it's tough but today, but it's real.
+[59:16] I'm raising a son.
+[59:17] I got a 19 year old son, 16 year old son,
+[59:20] and they got the seat, me and a man.
+[59:22] They all got it.
+[59:24] Sometimes you're on that clothing, it's got to be too quiet there.
+[59:31] Go over here real quick.
+[59:33] I'm going to close on this.
+[59:34] Luke chapter 14.
+[59:36] Over here.
+[59:37] We got some festivities for today.
+[59:40] That's another.
+[59:45] Over to Luke chapter 14.
+[59:54] I'm going to show you the answer.
+[59:56] There is answers to all of them, say man.
+[59:59] Remember what I said that when the person goes through their trauma,
+[60:05] they transfer.
+[60:08] They transfer.
+[60:10] When you look at, you remember John the Baptist?
+[60:13] John the Baptist was preaching that Jesus was a Christ.
+[60:17] He was all drunk hope of Jesus.
+[60:19] The minute John the Baptist got locked up and went to prison,
+[60:22] John asked Jesus, are you the one that should we look for another?
+[60:26] What happened?
+[60:28] Transparency.
+[60:30] He took out his situation on his leader,
+[60:33] because he had to blame somebody for why he was in prison.
+[60:36] He never thought it's what he said.
+[60:38] You know John said something he shouldn't have said to the key.
+[60:41] And that guy has his hair cut off.
+[60:43] But he blamed Christ.
+[60:45] Like, I'm serving you, why come?
+[60:48] And that's what we do.
+[60:49] We even blame God.
+[60:50] God, you know why?
+[60:51] Why did you let this happen?
+[60:52] You know what?
+[60:53] We make safe decisions.
+[60:57] We make decisions, amen.
+[61:00] Another instance before I read the scripture was,
+[61:03] you remember David?
+[61:04] And his men went to Ziegleg.
+[61:06] I mean, David and his men went and conquer the enemy.
+[61:10] Came back home the enemy.
+[61:11] I'm being and they camped, stole their wives, stole their children.
+[61:14] The men all got to cry and howling.
+[61:17] And then they all said, well, let's stone David.
+[61:20] That's what people would do.
+[61:24] Transfer that angle from the situation.
+[61:27] They need somebody to blame for why they feel the way they feel.
+[61:31] The Bible said David said, man, let me go over and pray.
+[61:34] Let me go pray because these cats are at stone.
+[61:36] I just let them to a great battle.
+[61:38] That's how it is.
+[61:39] People don't care about that when they have a loss or have trauma.
+[61:43] They need somebody to blame.
+[61:45] Say, man, look at this Luke chapter 14 verse 27.
+[61:48] You heard it.
+[61:49] 27.
+[61:52] 14, 27.
+[61:53] Says, who so ever do it not, Bereth, his false.
+[61:57] Who so ever do it not, Bereth, his false.
+[62:00] And come out to me, cannot be my disciple.
+[62:02] The way you deal with that, you got the Ber, your own false.
+[62:10] Nobody is responsible for your pain.
+[62:13] Even if that person hurts you.
+[62:15] If you are Christian, you cannot make them pay.
+[62:18] You are valid in Scripture.
+[62:19] The Bible says you got to forgive if you want to be forgiven.
+[62:22] Ber your own false.
+[62:25] It's your baby.
+[62:27] You deal with it.
+[62:29] Are you understanding what I'm saying?
+[62:31] If you don't bury your cross, you'll go through life looking for somebody to do it for you.
+[62:36] And you know when somebody tries to get you to the bread they crop,
+[62:39] they don't want you to be the one that they pay.
+[62:41] And they did it to me.
+[62:42] And they did it to me.
+[62:43] And so on and so on.
+[62:44] I remember the air bow always hurting me.
+[62:46] When you heard somebody say air bow was hurting me, I'm telling you.
+[62:48] Put your shoes on and run because that person is going to make you compensate.
+[62:53] They have lived the life of not burning their cross.
+[62:58] And they get offended at people that won't bury it.
+[63:01] That's why they use it fall out with you.
+[63:03] Because you decide, look, I gave you a ride 50 times.
+[63:07] I loaned you.
+[63:09] How many times I loaned you this money?
+[63:11] I loaned you.
+[63:12] I'm paying you a rent.
+[63:16] I don't buy them.
+[63:17] See people get mad when you won't burn their cross.
+[63:19] And they fall out with you over there.
+[63:21] That's why you have to let them know.
+[63:23] Look, look, I love you.
+[63:25] I love you.
+[63:26] And I help you as much as I can.
+[63:28] But you're going to have to show me.
+[63:30] That you won't this relationship enough.
+[63:33] That you will help yourself.
+[63:35] Because you killing me.
+[63:37] You got to pray for yourself.
+[63:41] You can't always come to me and want me to pray.
+[63:43] You get you out.
+[63:44] You're going to have to pray.
+[63:46] You can't expect your spouse to always be there to follow.
+[63:49] You go to God and pray.
+[63:51] You can always repent on somebody else's shrimp.
+[63:54] I don't care how close they are to God.
+[63:56] You go get close to God.
+[63:58] Somebody you can say burn my cross.
+[64:01] You burn your own rejection.
+[64:03] You're on abandonment.
+[64:04] In other words, it happened to you.
+[64:06] Now, the new person in your life has nothing to do with it.
+[64:09] And you be wise to remember.
+[64:11] How do I remember?
+[64:13] Ask yourself why am I getting mad?
+[64:15] Why am I getting mad?
+[64:16] They didn't do it.
+[64:17] Why am I getting mad?
+[64:18] You're transferring.
+[64:20] And the way you stop at it, you accept that this was dirt fault.
+[64:24] This was already dirt.
+[64:26] And all you have to do to know that is look back in your life and look at your relationships.
+[64:29] And you will see it.
+[64:30] I did that with them.
+[64:31] I did that with them.
+[64:32] I did that with them.
+[64:33] I did that with them.
+[64:34] That's your pattern.
+[64:36] When you do it, you do the same thing to people.
+[64:39] But the devil got you to keep looking for somebody that's going to take that cross for you.
+[64:44] And you keep saying somebody else out there.
+[64:46] People leave marriage just thinking it's somebody else out there.
+[64:48] Because the spouse they went to sad.
+[64:49] I incurring your cross no more.
+[64:51] You don't love me.
+[64:52] I'm going to leave you.
+[64:54] To go get somebody who ain't going to burn.
+[64:56] Nobody going to burn nothing for you.
+[64:59] Say, say, say, stand on your feet and bury your own cross.
+[65:04] I was saying let every man bury his own bird.
+[65:09] Say bury my own bird.
+[65:11] They don't mean we don't help each other.
+[65:13] I love my wife.
+[65:14] I help my wife with whatever.
+[65:15] But it's a different from me helping her and with me being her crutch.
+[65:18] So you can help people.
+[65:23] Some of y'all helping people.
+[65:24] You think you're helping them.
+[65:25] But you really they're enabling them.
+[65:27] You're helping them stay like they are.
+[65:29] That's one of the worst things about a person.
+[65:31] When a person don't drugs, a person don't drugs
+[65:33] will make everybody in an able.
+[65:35] And when you don't do it for them, what they're going to do?
+[65:37] They're going to give trip you.
+[65:39] But what they did for you.
+[65:41] And I'm your mom and I'm your friend.
+[65:43] I was there for you and you to give trip you and to keep enabling them to do bad.
+[65:47] You have to cut the course.
+[65:49] I say, no, sir.
+[65:50] I love you.
+[65:51] And if you love me, you're going to understand that I can't be enabling you.
+[65:53] You're not growing.
+[65:55] You're not growing.
+[65:57] You're not the face this.
+[65:58] You're not growing.
+[65:59] See, I didn't do it.
+[66:02] It's the end of your feet.
+[66:03] Hallelujah.
+[66:09] We have enough problems of our own than to burst somebody else's.
+[66:13] I can help you.
+[66:16] But I cannot be your crutch.
+[66:18] Y'all there.
+[66:23] Now for the most important part of the show.
+[66:26] If you do not know the Lord Jesus Christ as your Lord and personal Savior,
+[66:29] you have not accepted Him.
+[66:31] Wouldn't it be a good time to do it now?
+[66:34] After all, you don't know when your time is going to come when you're going to have to face Him.
+[66:38] When you get judged because after death, this judgment.
+[66:42] All you have to do is believe on the Lord Jesus Christ.
+[66:45] Believe that the Lord Jesus came down for you.
+[66:48] He died on the cross for you.
+[66:49] He rose for you.
+[66:51] He came into flesh.
+[66:53] He dwelt among us.
+[66:55] Believe on Him.
+[66:56] Believe that God rose Him from the dead.
+[67:00] And you will be saved.
+[67:02] It's that simple.
+[67:03] It sounds real simple to the point where people say that can't be all there is to it.
+[67:07] Yeah, just gotta believe on it.
+[67:09] And believe that God raised Him from the dead.
+[67:12] Next is it.
+[67:13] After you do that, repent your sins.
+[67:16] Just make a 180.
+[67:19] Repent your sins.
+[67:21] Ask the Holy Spirit to come into your life.
+[67:23] Get yourself a Bible, King James Version.
+[67:25] If you need one, call me.
+[67:27] You can call me at 4-4-3-9-3-9-7-9-3-9 or you can email me.
+[67:32] And next chapter radio at gmail.com.
+[67:34] Say hey Mary, I need a Bible.
+[67:37] I will send you one for free.
+[67:38] Just give me your name and address.
+[67:40] Or you can hit me up on Facebook,
+[67:42] either at next chapter radio,
+[67:44] or on our page,
+[67:45] or you can hit me up on my personal page.
+[67:48] Either way, I'll send you a Bible.
+[67:50] Doesn't matter.
+[67:52] Once you do that, try to find yourself a Bible believing church.
+[67:55] Why there's still a Bible believing church out there.
+[67:59] One way the shepherd actually feeds you.
+[68:01] Real food.
+[68:03] The real word.
+[68:05] One that is interested in your growth in Christ.
+[68:09] And they get into the word,
+[68:11] stay in it, study it.
+[68:13] Live according to it.
+[68:15] That's all you have to do.
+[68:17] And believe me.
+[68:19] It's the best thing ever.
+[68:22] All right?
+[68:26] It's been an interesting topic tonight
+[68:28] and I hope you all enjoy the broadcast.
+[68:30] If you ever miss a show,
+[68:32] would like to go back and relisten to an old one.
+[68:34] Every show is archived and high quality streamed
+[68:37] on our website,
+[68:39] www.ncrnetwork.com.
+[68:44] That's our new website, y'all.
+[68:47] www.ncrnetwork.com.
+[68:51] Now there you'll be able to select the radio show
+[68:55] of your choosing.
+[68:56] Click on it and it will take you to all of the shows.
+[68:59] Now I'm going to tell you something.
+[69:00] When you get in there,
+[69:01] don't forget to scroll down because there are older shows there.
+[69:05] That might be interesting to you or you may need to listen to at that time.
+[69:08] Now also,
+[69:10] take note.
+[69:11] You'll soon be able to find our shows broadcast by NCR Network on block talk radio.
+[69:19] That's coming in the future.
+[69:20] iTunes,
+[69:21] which is coming in the near future to be as we switch networks.
+[69:25] Or if you have an iPhone,
+[69:27] you'll be able to find that on the podcast app.
+[69:30] Okay?
+[69:31] But until then,
+[69:32] stay tuned via next chapter radio network for the latest shows.
+[69:37] Now, if next chapter radio has minister to you
+[69:40] and you would like to send a love gift
+[69:42] or tie it into the ministry
+[69:44] or just to keep us running
+[69:46] because we do have other ministries going on
+[69:49] that we are paying for.
+[69:52] One of the ones that we're paying for right now,
+[69:54] of course, is the upkeep of just being on the air.
+[69:57] But we have a Bible ministry where we give away free Bibles.
+[70:00] We also have an elder ministry where we actually go out
+[70:04] and we help the elderly,
+[70:06] whether it's financially,
+[70:08] whether it's visiting,
+[70:09] or whether it's just giving a helping hand.
+[70:12] You know, these things cost money to do.
+[70:14] But we do it out of pocket right now.
+[70:16] But if you'd like to help us out so we can continue to do that
+[70:19] and grow those ministries.
+[70:21] We gladly appreciate it.
+[70:22] All you have to do is go to our partner page
+[70:26] on next chapter radio's network,
+[70:29] which is www.ncrnetwork.com.
+[70:33] Become a partner with us.
+[70:35] We'd love to have you.
+[70:37] We have two partners right now.
+[70:38] Not bad.
+[70:39] But, you know, but we can always use more partners.
+[70:42] I mean, the more people we have helping us with this
+[70:45] and helping us minister to those who are in need
+[70:47] would gladly appreciate it and would help them a lot.
+[70:50] Click on donate.
+[70:51] It'll take you right to PayPal.
+[70:52] And you can donate whatever amount you want to donate.
+[70:55] It doesn't matter whether it's 50 cents,
+[70:57] two cents, or whether it's $2 or $20.
+[71:00] It doesn't matter.
+[71:01] And I mean, everything helps us in this ministry.
+[71:05] So for now, I bid you all a week filled with grace and peace
+[71:09] and the Lord Jesus Christ.
+[71:11] We'll see you all next week.
+[71:13] God bless and good night.

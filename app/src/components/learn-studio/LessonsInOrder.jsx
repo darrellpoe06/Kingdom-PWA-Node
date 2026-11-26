@@ -14,6 +14,7 @@
 // =============================================================================
 import React, { useMemo, useState } from 'react';
 import { presentLesson } from '../../lib/learn-presentation/presentation.js';
+import { LessonProgressFor } from '../LessonProgressBar.jsx';
 import { READING_VERSIONS } from '../../lib/learn-organize.js';
 import { wantsSections, divisionOf, LESSON_DIVISIONS } from '../../lib/lesson-sections.js';
 
@@ -166,7 +167,9 @@ export default function LessonsInOrder({
   );
   const [view, setViewState] = useState(() =>
     remembered(
-      'lesson-view',
+      // 'lesson-view-2' (DR-1686): Darrell 2026-11-26, his phone in List: "We have pictures. Why are
+      // we showing words all the time?" Every device opens in Pictures again; List stays one tap away.
+      'lesson-view-2',
       'pictures',
       VIEWS.map((o) => o.key)
     )
@@ -177,7 +180,7 @@ export default function LessonsInOrder({
   };
   const setView = (v) => {
     setViewState(v);
-    remember('lesson-view', v);
+    remember('lesson-view-2', v);
   };
   const ordered = useMemo(() => orderedLessons(course, index, { order, preview }), [course, index, order, preview]);
   const rows = useMemo(() => {
@@ -198,14 +201,11 @@ export default function LessonsInOrder({
     });
   const readHere = useMemo(() => ordered.filter((x) => done.has(x.lesson.id)).length, [ordered, done]);
   if (!course) return null;
-  return (
-    <section className="ls-inorder" aria-labelledby="ls-inorder-h" data-testid="lessons-in-order">
-      <header className="ls-inorder-head">
-        <h2 id="ls-inorder-h">{fixedCourse ? titleOf(course) : 'Lessons'}</h2>
-        <span className="ls-note">
-          {ordered.length} lessons{readHere ? ` · ${readHere} read` : ''}
-        </span>
-      </header>
+  // PICTURES FIRST (DR-1686): in Pictures the lessons sit right under the heading and the pickers
+  // follow them; in List the pickers stay above, where folding and ordering a long list starts.
+  const picturesFirst = !!renderPictures && view === 'pictures';
+  const controls = (
+    <>
       <div className="ls-inorder-picks">
         {!fixedCourse && (
           <label>
@@ -252,7 +252,7 @@ export default function LessonsInOrder({
         <Toggle label="Show" options={LESSON_SHOWS} value={show} onChange={setShow} testid="inorder-show" />
         {renderPictures && <Toggle label="View" options={VIEWS} value={view} onChange={setView} testid="inorder-view" />}
       </div>
-      {groups.length > 1 && (
+      {!picturesFirst && groups.length > 1 && (
         <button
           type="button"
           className={`ls-btn ls-btn--outline ls-fold-all ${RING}`}
@@ -262,6 +262,17 @@ export default function LessonsInOrder({
           {folded.size === groups.length ? `Unfold all ${groups.length}` : `Fold all ${groups.length}`}
         </button>
       )}
+    </>
+  );
+  return (
+    <section className="ls-inorder" aria-labelledby="ls-inorder-h" data-testid="lessons-in-order">
+      <header className="ls-inorder-head">
+        <h2 id="ls-inorder-h">{fixedCourse ? titleOf(course) : 'Lessons'}</h2>
+        <span className="ls-note">
+          {ordered.length} lessons{readHere ? ` · ${readHere} read` : ''}
+        </span>
+      </header>
+      {!picturesFirst && controls}
       {!rows.length && (
         <p className="ls-empty" role="status" data-testid="inorder-none">
           {show === 'read' ? 'No lesson of this course is on your record yet.' : 'Every lesson of this course is read.'} Choose Show: All to see every lesson.
@@ -299,6 +310,7 @@ export default function LessonsInOrder({
                         const mark = markFor ? markFor(x.lesson, courseKey) : done.has(x.lesson.id) ? '✓ READ' : '';
                         return mark ? <span className="ls-read-mark">{mark}</span> : null;
                       })()}
+                      <LessonProgressFor courseKey={x.p.courseKey || courseKey} lessonId={x.lesson.id} look="studio" className="ls-progress--inline" />
                     </span>
                     <span className="ls-inorder-go" aria-hidden="true">
                       ▶
@@ -346,6 +358,7 @@ export default function LessonsInOrder({
           </button>
         </div>
       )}
+      {picturesFirst && controls}
     </section>
   );
 }
