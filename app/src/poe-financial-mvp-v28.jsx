@@ -33,7 +33,7 @@ import { accessState, isPublicChurchRoute, wearsChurchBrand, isChurchLinkVisit, 
 import { pickInitialSeed } from './lib/demo-seed-choice.js';
 import { PROPOSED_COHORT_START, resolveCohort, CLASS_INTEREST_TAG, extractClassRoster } from './lib/church-classes.js';
 import { COLG_DEFAULT_CHURCH } from './lib/default-church.js';
-import { LOVE_CORNER_BRAND, isChurchDoorContext } from './lib/church-own-door.js';
+import { LOVE_CORNER_BRAND, isChurchDoorContext, isHomeStudioOn } from './lib/church-own-door.js';
 import { enterTlcDoorContext } from './lib/tlc-door.js';
 import TlcPublicDoor from './components/TlcPublicDoor.jsx';
 import {
@@ -1241,7 +1241,7 @@ export default function PoeFinancialSystem() {
   // ONE LIST, THREE PLACES (DR-1046): the tab strip, the sidebar and the phone's bottom bar all draw lib/nav-items.jsx.
   const navTabs = navItems({ isAssistantAcct, isFamilyMember, isGovernor: isGov, authSession, isStudyCircle, healthPrograms: data.healthPrograms, userTier: data.userTier, reviewerMode, churchDoorOnly }); const accountDoor = { navTabs, setView, setChurchView, theme, setTheme, isOwner: isFamilyMember, personName: personaName(personaOf(authSession?.user?.email)) };/* the picture's menu reads the reader's own tabs (DR-1600) */
   const { homeView } = useHomePrefs();
-  const navForDock = { groups: navGroups(navTabs), view, homeView, churchView, churchTabs: churchSubTabs({ signedIn: !!authSession, reviewerMode, officeRole: churchAccess.role, isChurchStaff }), churchHomeSection, onNavigate: (v, home, sub) => { if (home) setHomeView(home); if (sub) setChurchView(sub); setView(v); }, money: view === 'books' ? { booksView, setBooksView } : null };
+  const navForDock = { groups: navGroups(navTabs), view, homeView, churchView, churchTabs: churchSubTabs({ signedIn: !!authSession, reviewerMode, officeRole: churchAccess.role, isChurchStaff }), churchHomeSection, homeStudio: isHomeStudioOn({ ownerDevice: personaOf(authSession?.user?.email) === 'darrell' }), onNavigate: (v, home, sub) => { if (home) setHomeView(home); if (sub) setChurchView(sub); setView(v); }, money: view === 'books' ? { booksView, setBooksView } : null };
   const showSideNav = !churchDoorOnly;
   const surfaceViewer = { signedIn: !!authSession, isFamilyMember, isChurchStaff, isStudyCircle, capabilities: churchAccess.capabilities, instanceRole: instanceRoleState.role || '', reviewerMode };  // lib/surface-access.js
   useEffect(() => {
@@ -4348,7 +4348,7 @@ ${THEME_CSS}
           );
         })()}
         {view === 'markets' && <Markets watchlist={data.watchlist || []} addWatchlistSymbol={addWatchlistSymbol} removeWatchlistSymbol={removeWatchlistSymbol} userTier={data.userTier} setView={setView} maxWatchlist={tierMeets(data.userTier, 'poetech-plus') ? Infinity : FOUNDATION_CAPS.maxWatchlistTickers} />}
-        {view === 'church' && churchView === 'home' && <ChurchHome key={churchHomeSection || 'default'} initialSection={churchHomeSection} church={data.church} prayerRequests={data.prayerRequests || []} addPrayerRequest={addPrayerRequest} markPrayerRequestSent={markPrayerRequestSent} deletePrayerRequest={deletePrayerRequest} addEvent={addEvent} conference={data.conference} updateConference={updateConference} churchVoice={data.churchVoice || []} addChurchVoice={addChurchVoice} sendToPoeTech={sendNoteToPoeTech} addIncident={addIncident} addInquiry={addInquiry} setChurchView={setChurchView} email={authSession?.user?.email} canStudy={isStudyCircle} signedIn={!!authSession} addFeedback={addFeedback} feedback={data.feedback || []} />}
+        {view === 'church' && churchView === 'home' && <ChurchHome key={churchHomeSection || 'default'} initialSection={churchHomeSection} church={data.church} prayerRequests={data.prayerRequests || []} addPrayerRequest={addPrayerRequest} markPrayerRequestSent={markPrayerRequestSent} deletePrayerRequest={deletePrayerRequest} addEvent={addEvent} conference={data.conference} updateConference={updateConference} churchVoice={data.churchVoice || []} addChurchVoice={addChurchVoice} sendToPoeTech={sendNoteToPoeTech} addIncident={addIncident} addInquiry={addInquiry} setChurchView={setChurchView} email={authSession?.user?.email} canStudy={isStudyCircle} signedIn={!!authSession} addFeedback={addFeedback} feedback={data.feedback || []} homeStudio={navForDock.homeStudio} />}
         {view === 'church' && churchView === 'engagement' && <Engagement />}
         {view === 'church' && churchView === 'choir' && <Choir />}
         {/* Order of Service: ONE master program per Sunday; the component derives

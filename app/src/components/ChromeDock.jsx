@@ -47,6 +47,7 @@ import { useComfortCollapsed, useInReader } from '../lib/comfort-bar.js';
 import { useDeviceClass } from '../lib/use-device-class.js';
 import { BOTTOM_NAV, NAV_ICONS, NAV_WORDS } from '../lib/nav-items.jsx';
 import { CHURCH_BOTTOM_NAV, CHURCH_TAB_ICONS, churchTabGroups } from '../lib/church-tabs.jsx';
+import { CHURCH_STUDIO_NAV } from '../lib/home-studio.js';
 import { requestChurchHomeSection, requestChurchHomeTop, readChurchHomeSection, subscribeCurrentChurchHomeSection } from '../lib/church-home-section.js';
 import { MONEY_BOTTOM_NAV, moneyMoreSections, sectionFor } from '../lib/money-nav.js';
 import { pageBy, showsPageChips } from '../lib/tv-paging.js';
@@ -219,13 +220,15 @@ export default function ChromeDock({ onFeedback, feedbackOpen = false, church = 
   // this reader (nav.churchTabs — the SAME list the strip draws, DR-0677),
   // grouped. Inside PoeTech nothing changes: the platform tabs stay.
   const churchOnly = allowedViews.size === 1 && allowedViews.has('church') && Array.isArray(nav && nav.churchTabs);
-  const churchTabs = churchOnly ? CHURCH_BOTTOM_NAV : [];
+  // The redesigned homepage's own five-tab bar (owner preview only, lib/home-studio.js); everyone else keeps CHURCH_BOTTOM_NAV.
+  const churchBar = nav && nav.homeStudio ? CHURCH_STUDIO_NAV : CHURCH_BOTTOM_NAV;
+  const churchTabs = churchOnly ? churchBar : [];
   const churchGroups = churchOnly ? churchTabGroups(nav.churchTabs) : [];
   // The home's open section: the shell's (when it passes one) or what the home publishes (DR-1484).
   const liveSection = useSyncExternalStore(subscribeCurrentChurchHomeSection, readChurchHomeSection, () => null);
   const homeSection = (nav && nav.churchHomeSection) || liveSection;
   // Home lights only while no other bar tab claims the home's open section (Watch → worship, Events → times).
-  const claimedSection = (sec) => !!sec && CHURCH_BOTTOM_NAV.some((x) => x.section === sec);
+  const claimedSection = (sec) => !!sec && churchBar.some((x) => x.section === sec);
   const churchTabActive = (t) =>
     nav && nav.view === 'church' && nav.churchView === t.churchView && (t.section ? homeSection === t.section : !claimedSection(homeSection));
   const goChurchTab = (t) => {
@@ -233,7 +236,7 @@ export default function ChromeDock({ onFeedback, feedbackOpen = false, church = 
     if (t.section) requestChurchHomeSection(t.section);
     if (nav && nav.onNavigate) nav.onNavigate('church', null, t.churchView);
     // Home is the door's starting place: no section asked for, the top of the page (DR-1579).
-    if (t.key === 'church-home') {
+    if (t.key === 'church-home' || t.key === 'studio-home') {
       requestChurchHomeTop();
       scrollPageToTop();
     }

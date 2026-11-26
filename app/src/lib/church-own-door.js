@@ -360,3 +360,8 @@ export function validateDoorPlan({
   if (!/^\d{4}-\d{2}-\d{2}$/.test(DOOR_PLAN_RECORDED)) errors.push('DOOR_PLAN_RECORDED must be a real date (P30 freshness)');
   return { ok: errors.length === 0, errors };
 }
+
+// The redesigned homepage's private-preview flag rides this module so the shell
+// (which holds no spare lines, monolith-budget.json) imports it from the door
+// module it already imports. The rule itself lives in lib/home-studio.js.
+export { isHomeStudioOn } from './home-studio.js';

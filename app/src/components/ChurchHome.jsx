@@ -34,6 +34,8 @@ import ScriptureLibrary from './ScriptureLibrary.jsx';
 import AuthModal from './AuthModal.jsx';
 import { motionBehavior } from '../lib/gentle-motion.js';
 import LoveCornerHome from './lovecorner/LoveCornerHome.jsx';
+import HomeStudio from './lovecorner/studio/HomeStudio.jsx';
+import StudioMyCorner from './lovecorner/studio/StudioMyCorner.jsx';
 import { subscribeChurchHomeSection, takePendingChurchHomeSection, publishChurchHomeSection, subscribeChurchHomeTop } from '../lib/church-home-section.js';
 import { ChurchGivingChannels } from './ChurchGiving.jsx';
 import { markArrivalsSeen, SCREEN_KINDS } from '../lib/arrivals.js';
@@ -48,7 +50,7 @@ import { fromAnnounced, fromOfficeRows, mergeEvents, againDraft } from '../lib/c
 import { parishLifeEvents, parishLifePast } from '../lib/parish-life.js';
 import { useChurchCalendarRows, useCalendarAccess, addCalendarEvents, postCalendarEvent, removeCalendarEvent } from '../lib/church-calendar-sync.js';
 import { churchDateKey } from '../lib/home-week.js';
-import { siteIsTheChurchs } from '../lib/church-site.js';
+import { siteIsTheChurchs, digestHasNews } from '../lib/church-site.js';
 
 // serviceDate — a feed's ISO `published` as a short calendar date; '' when it
 // cannot be read, so a recording with no date still lists by its title.
@@ -65,7 +67,7 @@ export function serviceDate(published) {
 // initialSection (DR-0142): a launch target may open a SPECIFIC section — the
 // Council Chamber is the Speak section of this surface, and "Open the Council
 // Chamber" landing on the Worship video was the 2026-07-10 premise miss.
-export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPrayerRequestSent, deletePrayerRequest, addEvent, conference, updateConference, churchVoice = [], addChurchVoice, sendToPoeTech, addIncident, addInquiry, initialSection = null, setChurchView = null, email = null, canStudy = false, signedIn = false, addFeedback = null, feedback = [] }) {
+export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPrayerRequestSent, deletePrayerRequest, addEvent, conference, updateConference, churchVoice = [], addChurchVoice, sendToPoeTech, addIncident, addInquiry, initialSection = null, setChurchView = null, email = null, canStudy = false, signedIn = false, addFeedback = null, feedback = [], homeStudio = false }) {
   // Obvious, prominent LOG IN / CREATE ACCOUNT for the public Love Corner door
   // (Darrell 2026-07-14). The community is public; this is the clear way in for a
   // member/staff/admin to sign in, or anyone to make an account (e.g. to request a
@@ -336,6 +338,12 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
   // mini-player, so the reader stays where they are). Null = the newest.
   const [chosenVideoId, setChosenVideoId] = useState(null);
   const playerSrc = worshipPlayerSrc(liveChannelId, chosenVideoId || recentVids[0]?.videoId);
+  // A recording chosen on the redesigned homepage plays exactly as one chosen in Past sermons: the Live now player follows it and the shell's mini-player opens on it.
+  const playRecording = (v) => {
+    setChosenVideoId(v.videoId);
+    markArrivalsSeen(SCREEN_KINDS.church);
+    openFloating({ src: worshipPlayerSrc(liveChannelId, v.videoId), title: v.title || 'Message' });
+  };
   // `enablejsapi=1` is what lets our own skip buttons drive the embed at all
   // (lib/youtube-embed-control.js). The KEY stays the bare playerSrc so adding
   // the parameter can never look like a different video and remount the frame.
@@ -1234,11 +1242,71 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
         </>
       ),
     },
+    // THE REDESIGNED HOMEPAGE'S TWO NEW SECTIONS (private preview only). The Church Office
+    // takes the calendar, the letters and the flyers off the homepage into one place; My
+    // Corner is the fifth tab's personal door. Both open in place through the same
+    // requestChurchHomeSection road as every other section; neither exists for anyone else.
+    ...(homeStudio
+      ? [
+          {
+            id: 'office',
+            label: 'Church Office',
+            icon: 'mail',
+            render: () => (
+              <div className="space-y-6" data-testid="church-office-section">
+                <ChurchOfficeBoard digest={office} heading="Church Office" />
+                {!digestHasNews(office) && (
+                  <p className="text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }} data-testid="church-office-empty">
+                    The church website&rsquo;s calendar, letters and flyers were not read just now. They are kept on the church&rsquo;s own site
+                    {c.site ? (
+                      <>
+                        : <a href={c.site} target="_blank" rel="noopener noreferrer" className="underline">{(c.site || '').replace(/^https?:\/\//, '')}</a>
+                      </>
+                    ) : null}
+                    . Try again in a moment, or open Events for the calendar the app keeps.
+                  </p>
+                )}
+                {siteIsTheChurchs(c.site) && <ChurchArchive status={signedIn ? archiveRows.status : 'signed-out'} rows={archiveRows.rows} archivedEvents={archivedOfficeEvents} />}
+              </div>
+            ),
+          },
+          {
+            id: 'mycorner',
+            label: 'My Corner',
+            icon: 'heart',
+            render: () => (
+              <StudioMyCorner
+                signedIn={signedIn}
+                onSignIn={() => setLoginOpen(true)}
+                open={(sub, sec) => {
+                  if (sub === 'home') {
+                    if (sec) pickSection(sec);
+                    return;
+                  }
+                  if (setChurchView) setChurchView(sub);
+                }}
+              />
+            ),
+          },
+        ]
+      : []),
   ];
 
   return (
     <div className="space-y-6">
-      <LoveCornerHome church={church} setChurchView={setChurchView} signedIn={signedIn} onSignIn={() => setLoginOpen(true)} />
+      {homeStudio ? (
+        <HomeStudio
+          church={church}
+          setChurchView={setChurchView}
+          signedIn={signedIn}
+          onSignIn={() => setLoginOpen(true)}
+          office={office}
+          recentVids={recentVids}
+          onPlay={playRecording}
+        />
+      ) : (
+        <LoveCornerHome church={church} setChurchView={setChurchView} signedIn={signedIn} onSignIn={() => setLoginOpen(true)} />
+      )}
       {/* Obvious LOG IN / CREATE ACCOUNT — signed-out only. The community is
           public (no account needed to look around); this is the clear way for a
           member/staff/admin to sign in, or anyone to make an account to request a

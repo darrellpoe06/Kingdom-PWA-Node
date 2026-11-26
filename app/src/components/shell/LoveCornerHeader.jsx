@@ -113,6 +113,23 @@ export default function LoveCornerHeader({
     window.addEventListener('lovecorner:personalize', onAsk);
     return () => window.removeEventListener('lovecorner:personalize', onAsk);
   }, []);
+  // The redesigned homepage's My Corner opens the header's own sheets by the same kind of event (lib/home-studio.js MY_CORNER_DOORS).
+  useEffect(() => {
+    const onMenu = () => setSheet('all');
+    const onSearch = () => setSheet('search');
+    const onBell = () => {
+      const btn = bellRef.current && bellRef.current.querySelector('button');
+      if (btn) btn.click();
+    };
+    window.addEventListener('lovecorner:menu', onMenu);
+    window.addEventListener('lovecorner:search', onSearch);
+    window.addEventListener('lovecorner:notifications', onBell);
+    return () => {
+      window.removeEventListener('lovecorner:menu', onMenu);
+      window.removeEventListener('lovecorner:search', onSearch);
+      window.removeEventListener('lovecorner:notifications', onBell);
+    };
+  }, []);
   const signedIn = !!(session && session.user);
   useEffect(() => {
     if (!signedIn) {
