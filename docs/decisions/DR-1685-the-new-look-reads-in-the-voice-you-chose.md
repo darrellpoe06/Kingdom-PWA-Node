@@ -52,11 +52,6 @@ It may take up to 20 minutes, because PyTorch is the large download. The last li
 
 ## Better and enhanced (Step 3), next with dates
 
-| Item | State |
-|---|---|
-| The new look honors the chosen voice; the reason is said on the page | shipped here |
-| The new look's System voice asks the NAS man's voice (voice-lite) the way classic does, so one voice holds across both looks (DR-1482) | `re-review: 2026-12-01` |
-| Natural pauses: a short rest between clone pieces at paragraph ends, measured on the real clips | after the first `rtf`; `re-review: 2026-12-03` |
-| Clone pieces cached per lesson and voice on the device, so a second listen is instant and offline | `re-review: 2026-12-05` |
-| The member door and per-member capacity (Decision 4) | `re-review: 2026-12-03` |
-| The NAS reports the clone's install state itself (DR-1360), so no runner key is needed to see it | `re-review: 2026-12-01` |
+- Shipped here: the new look honors the chosen voice and says the reason on the page.
+- The new look's System voice asks the NAS man's voice (voice-lite) as classic does, one voice across both looks (DR-1482); the NAS reports the clone's install state itself (DR-1360): `re-review: 2026-12-01`.
+- Natural pauses at paragraph ends, measured on real clips after the first `rtf`; the member door and per-member capacity (Decision 4): `re-review: 2026-12-03`. Clone pieces cached per lesson and voice on the device, instant and offline on a second listen: `re-review: 2026-12-05`.
