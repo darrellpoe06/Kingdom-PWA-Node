@@ -1,5 +1,5 @@
 {
- "measuredAt": "2026-11-26T19:46:10.245Z",
+ "measuredAt": "2026-11-26T19:50:58.992Z",
  "counts": {
   "departments": 13,
   "courses": 51,
@@ -8337,13 +8337,13 @@
    "department": "The Word & The Way",
    "position": 6,
    "title": "He Comes in the Flesh",
-   "contentSha": "94dc45b2d8b30b23badf591b29743a975949aef9387afe9fe4e67708952cf8ab",
+   "contentSha": "4a50eca60a0f7e64383cff097e99c37a30b15ec29255e1b26ac78b41596188d5",
    "versions": {
-    "child": "66109a607aaa2bd2df901d420a21e7528b985a492889f0e966db20fe78562a9e",
-    "youth": "9052c0d33770c6276a54e7aa127ebb10e2d3b993d4ae7e8b4117706302d768b1",
-    "teen": "e8766a5cfb14cc47b0d368697897a1d59953869321030294652f0ca4b1282b1f",
-    "adult": "6853f28d4b7bffa2c217998f0b732be58fe89353b7b1aa809fe4b7385ba0f7a1",
-    "senior": "8fb568cdeb0d93a0e39e4034bb8ca29364080e7f41bbb95f36a0d1c2f2295a85"
+    "child": "60f272935d2686c057fcf85f8e9531bb248c41be403219dfd2616446a5481b5e",
+    "youth": "e8b9b4247b69dcaf9258c83dc3510e0e4023d66e8dd6806b6a1ad4c1b75db45d",
+    "teen": "6ab2ca613cfc25a1988b9e33683e782117e593565e060ed878a1594d4b045d18",
+    "adult": "cdc060c986b8704c776b786db11fd4a8c9ee6f0a37955ccc0600f928a001ecd0",
+    "senior": "8ea3bda50c591e729b07e75249dcd8f31d0d53c15b373fe57eb3665d7762ee45"
    }
   },
   {
