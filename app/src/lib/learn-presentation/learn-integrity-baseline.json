@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T13:01:55.672Z",
+ "measuredAt": "2026-11-26T13:08:30.421Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4510
+  "readings": 4512
  },
  "departments": [
   {
@@ -13500,11 +13500,13 @@
    "department": "The Eternal Algorithms",
    "position": 3,
    "title": "Seek First the Kingdom",
-   "contentSha": "e4b47862cd236079781ad4ff3cbca1084617712d9ef1dd496431e150e7ed4b2a",
+   "contentSha": "7cbbd7a1f88576be1f7caeba0f8c84ef59fb4c4ff5ed158f2aefa6c137f6fa6f",
    "versions": {
-    "teen": "e6e588e5dd8b33a32dad404268b4a557396951db155ffbaf73f2634e8ee1ec41",
-    "adult": "57892f4d612dcd75db1c9cd5e9cd87cdfb2d1e833cf161eb4ac4fe1405d9add0",
-    "senior": "bf2f9b1c4f86065be4ab2422eb5d117d080d2284eec45690eb192f5cdbf1e309"
+    "child": "7ed25d193645a981daa3fd3ef801fc6a5a830bc4c784a254332d533c44ee3dc9",
+    "youth": "3fa6f8520f983017ecc02a83859e79806f48d5f8797975b3a59489afe4facf0b",
+    "teen": "dda79d6f37c340cf7eb9a123dbf99a62962c5051f51cee3517d9aa193a39b835",
+    "adult": "71bd7e123e22a2bbe277d11417fc0bf3f6beafbfe4a623d37912f8ba991dd73b",
+    "senior": "bb0757404c3b49f98a914487ae2ec50a8b3af604c4b1ca6cb7699131d971c695"
    }
   },
   {
