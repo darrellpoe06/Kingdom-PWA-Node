@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T07:19:22.838Z",
+ "measuredAt": "2026-11-26T07:23:19.685Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4398
+  "readings": 4400
  },
  "departments": [
   {
@@ -14339,11 +14339,13 @@
    "department": "The Eternal Algorithms",
    "position": 28,
    "title": "The Angels That Left Their Estate (already sentenced)",
-   "contentSha": "85efaaf50ce6a4f9996ce3be84ef2f268225c9d1ca958e16369746060ffa0330",
+   "contentSha": "1134b69d8d41e4184a67e98d41b9a069d008363cdc4437912980837f65b75ec1",
    "versions": {
-    "teen": "8d65cc3ef8543296ee9bb927d5ad27cf540a9383bee1be4ba165a67e3cd976f7",
-    "adult": "f3ad26099754c8875615e97be86a4f92305fc37acd9c63f95de8212ebc6e4c11",
-    "senior": "e52ddd484e1b61787e6ecaf1952fd9d276edc8eed3d202e82f67ad3aaf16d41a"
+    "child": "18f6690d7b3e71af49f607d169201819a26fa62b2b56a7c4c278f991e0b05fbd",
+    "youth": "6668b690b6d87d67de145feab6cadc2d5053005fb101eb3e04d03ed48d5783ba",
+    "teen": "72d63e3f464cd6df9d8529f3646c447eb02e5d6bd9d237c26961355e173256c6",
+    "adult": "ea055bddafa39d47f72576d7d0b7d316d97fbe653aacb7a460369ffb48f5d107",
+    "senior": "927c027218e17c343979380ad634d25f650c4d0636f82ecb0756e10dcc3cb08f"
    }
   },
   {
