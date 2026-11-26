@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T10:22:48.888Z",
+ "measuredAt": "2026-11-26T10:42:28.666Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4456
+  "readings": 4458
  },
  "departments": [
   {
@@ -13656,11 +13656,13 @@
    "department": "The Eternal Algorithms",
    "position": 15,
    "title": "Feed My Sheep (the King's investment platform)",
-   "contentSha": "645f313f372e26065228887730c894dde79c41561b240ee1d919bb2951486158",
+   "contentSha": "36602d8d42860b3e8b03586f40a62adf186770a7f8b464586afd49adb343ac8a",
    "versions": {
-    "teen": "72b326baa4dabb17195455489ddc72558f4c3b6a37e0ed40e166df813e307c9d",
-    "adult": "41eba45092e0e0771ba7e71eee2c06f43db46c891f1452929b6af2b11c9d0325",
-    "senior": "1190ba380ddb65d4c75310dbf4641d18569b9896775dcb24ee10ba5ce0cd13a5"
+    "child": "59f5ad14cb5e505a629ea75e871f9ada4cdac7e467f07b573a82b542b732e442",
+    "youth": "bdfb87bd847ce815b55aec58fbf935fd9a28c9fe94f878d2199568bc641e19c6",
+    "teen": "ba708d33028b83a0cbe5509765eefceb808c40cd8c2fd6f28d9b880b8abbd455",
+    "adult": "eee349a569715ae3263df737f61ac73b01af77daf2537a05d51ea952d62bfdab",
+    "senior": "5053a545a5dd24ca3bcd99b301de38596f590c489e7445ce331c25e00060ddea"
    }
   },
   {
