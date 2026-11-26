@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T01:58:57.076Z",
+ "measuredAt": "2026-11-26T02:30:00.613Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4262
+  "readings": 4266
  },
  "departments": [
   {
@@ -13172,11 +13172,13 @@
    "department": "The Eternal Algorithms",
    "position": 1,
    "title": "He Forms The Spirit Within (and it returns to Him)",
-   "contentSha": "14c6f3dca535ff3cda081c9fd78ece4803de0d2a3d5274871f7656963895db11",
+   "contentSha": "d259d24f4eddf9b49d3732858fa1d56544669e5261f1d42d7862561d438450ba",
    "versions": {
-    "teen": "39ae3d9b99d47d40f58b869575ac712e5b5227a7fecbac71fe1c216e06c9388b",
-    "adult": "715d512439080ae562012608aeeaf6e7473689eba976f1b0bf106c065594e37a",
-    "senior": "efb296e0334a07a91fc3bed0aa6b2ec41d7085225da74c1858fd540728ced3d9"
+    "child": "9160d2cd13b15f369ce8ae18a160b54571a8b52d8538e68cd9cbc17927955cdf",
+    "youth": "2cbfc987bdcbafc8c8d97b14432e2b4f18d62d2cf3f4166f279f175093265d44",
+    "teen": "2a3060789db4ce22ca44fdb144cd9b03d9ca4e329c7562f5dd33649a171ffc47",
+    "adult": "0cbd87db3df3df5bbf5484e81fb0041d0e4ee2b83e4409df150c4384c0eb0f12",
+    "senior": "d3fa3d29d901fdb271611d438023725ea2e682f5a1bb7cafbc08387c978fcce6"
    }
   },
   {
@@ -13185,11 +13187,13 @@
    "department": "The Eternal Algorithms",
    "position": 2,
    "title": "Open His Eyes (the unseen is shown, never seized)",
-   "contentSha": "e2b1e21ca12c45d6882b5721ee6ef8f204bac3004c7aff0a4d489374d9edcb41",
+   "contentSha": "e8ea5dd56c14ffab43884c0caeec3721589f56d26df76e2d34fe1989e4da7d81",
    "versions": {
-    "teen": "2078a9fbbb35f59f9978fb8049b4647859d01e4a95b4408cf4235192561c2eac",
-    "adult": "600b62aa0b4abaa7ffc4e3f7fcef00d2e7dee8da95626125cf3a96a9c91107e8",
-    "senior": "6fc31dde36142fc542264964adde5858bf69f64e1d6e016165641a2c5932b4e8"
+    "child": "78266ea13182a45e3e8311c1ace9f46bb8e3917888f80bf78980eb0ee497ab40",
+    "youth": "42a4fc3a7aa46a2cc5f60160d08d6bb173b24d123961ecb5b40c5ef617d8208f",
+    "teen": "75b30d81d664b40ccdc1060d38717ca17c015fb1bb76c74c43db745e3f1ad413",
+    "adult": "8206238b5771e81fb34202ab334cab644bcbeae8d073c2ab59d9c3ccbb6c9134",
+    "senior": "b2973f6b22db449b61c6baa65e839ff518b7934de7237d972146d0d1e5fd4dba"
    }
   },
   {
