@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T06:27:48.087Z",
+ "measuredAt": "2026-11-26T06:33:33.918Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4376
+  "readings": 4378
  },
  "departments": [
   {
@@ -13388,11 +13388,13 @@
    "department": "The Eternal Algorithms",
    "position": 15,
    "title": "Peace, Peace, When There Is No Peace (minimizing a real wound is a lie)",
-   "contentSha": "97c5397962fd646005d1b01f2cce6c86ab656863b26e8e7e0c49fb87cd8afbe6",
+   "contentSha": "56343b4e4a2285270dd82f4de9054e7634a05bae321dd87713719dc5c44b4cec",
    "versions": {
-    "teen": "6f305e43c0baab432fade49ad72f7a1cd40a5f7f12b70795a0025060aa7f2d42",
-    "adult": "cb9372e2cf2fb4e14d17297c3710ec0c008fb3c45c8a30987c137ccad71aa420",
-    "senior": "ac0e046c05c695f6b9392cf58165657568e2e3734333382bba2803bd42099600"
+    "child": "7f59642a1119828dd87f1d8918e9fcaf15a9e956b8a6c1ca2d08237bd890c26e",
+    "youth": "b7522724abba0e9eae9682dda2f369cce1854f0ef326c02358e432a11ed921c0",
+    "teen": "71cedf815705b6baab842d3214911285ce79a127e4844850ab60c32652490d13",
+    "adult": "df67518a87acf751ddca76f4506a5cf464fe0481398c85f77eabcfdfc949146f",
+    "senior": "75ee8fa00900f87c0e9dbf82e36280f18db25f1282dec65cb5d53c272523aae1"
    }
   },
   {
