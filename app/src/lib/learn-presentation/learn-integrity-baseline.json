@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T06:12:26.814Z",
+ "measuredAt": "2026-11-26T06:16:18.253Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4368
+  "readings": 4370
  },
  "departments": [
   {
@@ -14392,11 +14392,13 @@
    "department": "The Eternal Algorithms",
    "position": 33,
    "title": "The Judgment Seat of Christ (every one gives account of himself)",
-   "contentSha": "d81a731bb31a600000f7eb6f7d74ce589cb9b934080dac961279c026ae1b2de2",
+   "contentSha": "715a6572e8f9b8333574a3ac5905b0ae82897e118c30c0a224715ce149eb42d5",
    "versions": {
-    "teen": "ed0ef1db9674e42149a2b1b54715a070bed986e946c457d0fe352631ee53bf6f",
-    "adult": "3bd8e0d0b99375086a6127fd602031abef120a1ee089ff63f8157bd9a9887c67",
-    "senior": "1eb02aa2168ac3b86ff7aa0536e5e11605a67d47da58a25438904afd9d7cb83d"
+    "child": "e12d7bb46224989685df4c26f171eb9b4e7fb0040f8efd3492ba60676b0bcbd6",
+    "youth": "f5a7045093183891996b0382967d82e56359c80fbe4675283e565e3c66478229",
+    "teen": "a688d2051e5c1b4e236062aacc83000794d87bd33b45b51a454544b21da54183",
+    "adult": "386e098870b26547e95cf868ae193cb9e27e73faef6ddba4da5352b28e118393",
+    "senior": "0a38cabab8d69e26b1b67459de6bda0cd9fb07471c66424bd6f6a321da438c6d"
    }
   },
   {
