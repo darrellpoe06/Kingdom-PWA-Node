@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T12:50:08.345Z",
+ "measuredAt": "2026-11-26T12:54:18.565Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4504
+  "readings": 4506
  },
  "departments": [
   {
@@ -13539,11 +13539,13 @@
    "department": "The Eternal Algorithms",
    "position": 6,
    "title": "The Measure You Use (judge not · give)",
-   "contentSha": "39243397b9eefd2d0ce687a9890c5b97d59c1302469d305c6875c3bc39d05874",
+   "contentSha": "f1fc96d65125c7847268714c6cbec5f0fd6d0809f197ab3b8692a763ed5ae50e",
    "versions": {
-    "teen": "ec8af9d2bc9446ed59176a70ce5d299b2ea558bfa96a51f19aafe5dd23a49913",
-    "adult": "19aa3834353bb9c120b5dfea5cd077321efe27f70ed3a3df724ced0916f46cfd",
-    "senior": "c0bf76bd3f6f082107fbc0c21f452ce68fe398b414d892ee8028da2a3832905a"
+    "child": "4aaccb27dc9e3374ec6d9032e47e7e63aced4c3e702ac918bec3e8776f4f14fb",
+    "youth": "02120ed43df7490d70e070ada6f86835801b800a74392882d29d27b916dd00fa",
+    "teen": "3ac6dd5001a223752e5aa5a670194e0ce95928ca3b8b74b65bbe9632ba83deb1",
+    "adult": "d9b6fed341d60dff88c8cc4d51a0e9460bd5f3614225a023b186577de6a2cc05",
+    "senior": "b015ba260f3f28d05ff9cc98f7d183e3a54c0973d3fea24327a3c51c520b22f9"
    }
   },
   {
