@@ -1,5 +1,5 @@
 {
- "measuredAt": "2026-11-26T20:44:04.585Z",
+ "measuredAt": "2026-11-26T20:50:14.993Z",
  "counts": {
   "departments": 13,
   "courses": 51,
@@ -2333,13 +2333,13 @@
    "department": "A.I. The Way",
    "position": 2,
    "title": "The DO-NOT-SHARE list — the cheat-sheet",
-   "contentSha": "c40923fe2f45d16585d4fd86610f590c841e7d1e87d84ad1862aea56eb70c142",
+   "contentSha": "4173dd13d9c3783a67bc1e7a4969d58910748ebf4212a3b0f7c0109bd5826e1a",
    "versions": {
-    "child": "ffbaf2f029d6e053f5234620f52d48b80ea181c1f681234945323454989cd34b",
-    "youth": "a9eb74b79417827060e6c0ea2f615888d9c11df358a51f4171d8ce949445a6f1",
-    "teen": "2a0a1628d3eb545bec0cf52867654c3c4ba8990494621298126d7e6cbf714974",
-    "adult": "2424959fbf1d1c925b2df17c68d648fd8c69b74959863bc556822db22b4a8b5d",
-    "senior": "7ad2b450df35944c52d279090df96f8d68b0e76b3e7381460390da49a7892096"
+    "child": "d953429fb1d8fd86348fe277a46d3d23d1db202cdfbca60f58ccdd84954e003a",
+    "youth": "622903771f21655b69fb61402c75fefef8dfcfe8aacd45f68618ef7ca9311398",
+    "teen": "4832f83426f0ed139c7e4af07b538e97fe838bf7ee4df8fcfc267df873249e9c",
+    "adult": "641cf548ea2243f02cf2e240c0358c60e8b08b3887b36543783dc6636ad1ac4a",
+    "senior": "a3cf92fdc442c51d6911a9e8517352a5b73414201bf17450c45cc8c6ab98825c"
    }
   },
   {
