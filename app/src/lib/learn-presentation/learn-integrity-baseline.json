@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T12:34:22.935Z",
+ "measuredAt": "2026-11-26T12:37:57.643Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4498
+  "readings": 4500
  },
  "departments": [
   {
@@ -13578,11 +13578,13 @@
    "department": "The Eternal Algorithms",
    "position": 9,
    "title": "The Grain of Wheat (die to multiply)",
-   "contentSha": "bf573e087afe0430dc380a52e91fa8db2649c890d29746990442ea6199bfd5cd",
+   "contentSha": "c23320f85854d289ff6f7da9f1d029a7539f261215a1c040487c167283c14359",
    "versions": {
-    "teen": "4db00ce77caa427360c9c8d02bda20ecb99e628b5cf9afa83f70b5bedd1b002c",
-    "adult": "50fd7c8e28a5d0cd77c0f09ded89400cb7b15b5dd1deabad009d9a5f76378cad",
-    "senior": "b7344ba7e392debf5e757829c08b3157ff8d3c2e144101a8aeb7ca695a0505cf"
+    "child": "2711dfa317feee6f290c16420e295b9b11cc34a05bbdf3e5b5f8097ea6e22543",
+    "youth": "bba0bbcb147c34478c684e2ea5bf36990af4ee9d3070feaa3b75dada168f84c2",
+    "teen": "232f55dc161e16a278c26407bd7ebd00f7ea2a486e70b4708830c1702714807a",
+    "adult": "90815047044a4983a6bae61ac880f1161b8cc5df6b0265031b74e10157e1399e",
+    "senior": "f101c6275be67bb5206d36c8621b4c689f478d0e3ae0e2548da5367b3c3d9ad0"
    }
   },
   {
