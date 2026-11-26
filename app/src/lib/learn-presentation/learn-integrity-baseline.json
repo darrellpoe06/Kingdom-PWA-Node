@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T03:11:01.260Z",
+ "measuredAt": "2026-11-26T03:15:04.345Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4276
+  "readings": 4278
  },
  "departments": [
   {
@@ -12784,11 +12784,13 @@
    "department": "The Eternal Algorithms",
    "position": 15,
    "title": "El Shaddai — God Almighty, before the covenant name",
-   "contentSha": "c992f9852f316f031dd7fc8dd9c1694000c51fc5d5e9ab27249ec788368222ea",
+   "contentSha": "d0a48934f34d601122f5f477ad74a6b0ca264d71b8cf16b0c56897b28244889d",
    "versions": {
-    "teen": "f9d76ba28257e6b4da568d84b8694eb2d710ae8813249f6abcb5810cfc050ea5",
-    "adult": "d1adb500ee0251be47c45bad2d3efbb7cfa1d55c5358aa22a66fff4379cc1b46",
-    "senior": "62dd72f67032d9e22d25ba638c2e9f21b0508d10c55bffc1dc5afa474d1a94e8"
+    "child": "96a5d65c05f9bd538d985fb210842bf404c248aa206517cd1688d4a7a2f57960",
+    "youth": "2bc89ccf88cddf4b2a0aa27603119fe04ec120a245734c7dcee73b4748554356",
+    "teen": "6ad02d243084fcf78972993f2ffdc8d13d8044f6185ef84b5f7f5f7f7f3db9d4",
+    "adult": "9ce6da5fa4ec47ef6e2fa410b85f6def0e65e46efba1aa4cbd1bbdcdc20ab39c",
+    "senior": "efecc456f6fbf0178fd6225fd114039bb4ad5f7be50e8cc34d4767f30ba3acc4"
    }
   },
   {
