@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T04:37:18.409Z",
+ "measuredAt": "2026-11-26T04:41:17.611Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4324
+  "readings": 4326
  },
  "departments": [
   {
@@ -13177,11 +13177,13 @@
    "department": "The Eternal Algorithms",
    "position": 23,
    "title": "Truth in the Hidden Part (He reshapes the depths, and hands you the work)",
-   "contentSha": "e052ad8e434237619ae3d5a941d9f642b63ab4b2f2baa30a86575ef6d9166010",
+   "contentSha": "7d85e05b0d48cc08e5f046a95db7373df556095fc2cfd7bbfc8f3654d69abe01",
    "versions": {
-    "teen": "328811e42e58c016ba8a1b7616329d4077428ca886019648c5085b726f90d14b",
-    "adult": "0bb41b38322455aa16cc500205de6b6b987e547357db3b6a20f8c52190bbc319",
-    "senior": "9e2eff8599064cd8ebd9ee27c6a132d180e8e56c6f898fcd41a0e3338b8fcff6"
+    "child": "3f1b61181f4ba2dfde90cd000929ddae89f01542b032ce1762749fb9169ed1df",
+    "youth": "982b3ac7c9fd97751204e322c5713ca9f390c475c18e5c1ece62d8a39b00be10",
+    "teen": "d684bf374ac5eb6d3f3dd33e611cf00e2ac754b1e7bcd2a2a9ce9eac2ef13c52",
+    "adult": "7e801500b7d47f05c48496e7f5906e58d5bb2cb6b6816269e63b10c3fe17ade9",
+    "senior": "bb92cad8f97030b9695911bee71f5db3145c133eae6f74a9d2a4fe8fc660b615"
    }
   },
   {

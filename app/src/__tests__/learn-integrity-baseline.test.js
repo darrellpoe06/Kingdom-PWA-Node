@@ -67,8 +67,8 @@ describe('Learn content integrity baseline', () => {
   // jesus-i-know-who-are-ye, presence-is-the-liberty, submit-then-resist,
   // not-bondage-again, obedience-blessing (#2905), credit-vs-worship,
   // yahweh-gets-both, glory-refused-or-taken, keep-yourself-by-the-word,
-  // knowledge-and-sin, conviction-vs-condemnation.
-  it('the baseline is the measured Phase 1 catalog (13 / 51 / 994 / 4,324)', () => {
-    expect(base.counts).toEqual({ departments: 13, courses: 51, lessons: 994, readings: 4324 });
+  // knowledge-and-sin, conviction-vs-condemnation, mind-of-christ-in-the-hidden-part.
+  it('the baseline is the measured Phase 1 catalog (13 / 51 / 994 / 4,326)', () => {
+    expect(base.counts).toEqual({ departments: 13, courses: 51, lessons: 994, readings: 4326 });
   });
 });
