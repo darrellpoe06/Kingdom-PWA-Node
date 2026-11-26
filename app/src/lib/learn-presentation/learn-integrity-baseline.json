@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T15:05:06.894Z",
+ "measuredAt": "2026-11-26T15:09:55.633Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4560
+  "readings": 4562
  },
  "departments": [
   {
@@ -12693,11 +12693,13 @@
    "department": "The Eternal Algorithms",
    "position": 8,
    "title": "If My People Humble Themselves",
-   "contentSha": "1fd93a901e8e8d924467a8fdc714369249bdffe41f9d0e00bd8c650d2f4f4415",
+   "contentSha": "d99d6e6359b657e358957217d52526ba11f2e33fdb4e4c6c83c19999354ddda4",
    "versions": {
-    "teen": "762e6c90dda14f0d2aae360703eba100524225a2fde41fcc27bda843b733c99b",
-    "adult": "5e59ce440b4b091de6d533dd2353567946e5fa89ec0e36170725bb553578dd25",
-    "senior": "8c8b854d58c3e13dddb21b5eae79077d03a7611fbdc88ba04164b326590dc272"
+    "child": "8163c20d8b14d05bec8589425e844fb33d7a03a5227bf19400d5dbc84d4e00b8",
+    "youth": "f19d107257288d3ad4e218d51869a7f2ca9557579a62a04931cd4f55c6a758ba",
+    "teen": "15348cfd76d48ff735174e90032e9e59f68d3ac99559c40f5e49d36c08522d98",
+    "adult": "140a50f3801d39925f04fbe84102aa32a8ab5648a5a264774f943e012a3f70fd",
+    "senior": "458e324a381e907c4d323a4270e9b831e892d6fd721ff42af68699c2d6dbfd4b"
    }
   },
   {
