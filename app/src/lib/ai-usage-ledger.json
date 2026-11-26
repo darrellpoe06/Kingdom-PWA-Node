@@ -456,6 +456,21 @@
       "notes": "One squash commit 17:40:55Z, merged 17:53:17Z: only the commit-to-merge span is measurable. Estimate entered by the Ways session for 10 files, +333/-47, not the authoring session's own."
     },
     {
+      "id": "l348-both-to-will-and-to-do",
+      "date": "2026-11-26",
+      "task": "L348 Both to Will and to Do: Darrell's spoken question on whether anyone can change the future, answered from the Word as a Living Lesson",
+      "drs": [
+        "DR-1701"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.5,
+      "estimateWithoutAiHours": 8,
+      "notes": "Spoken teaching, captured and shipped the same session. Tokens not metered in this session."
+    },
+    {
       "id": "learn-never-hands-back-live-player-moves",
       "date": "2026-11-26",
       "task": "The new Learn never hands the reader back to the classic page (All Courses, department chips), the tools panel drops duplicated classic controls, and the small live player drags and closes from itself",
