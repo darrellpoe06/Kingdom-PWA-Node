@@ -21,9 +21,18 @@ import './learn-discover.css';
 import INDEX from '../../lib/learn-discover-index.json';
 import DATES from '../../lib/lesson-dates.json';
 import RECORDS from '../../lib/learn-presentation/presentation-records.json';
-import { prepareIndex, discoverSearch, correctQuery } from '../../lib/learn-discover-search.js';
+import { prepareIndex, discoverSearch, correctQuery, situationsFor } from '../../lib/learn-discover-search.js';
 import { CATEGORIES, categoryMembers, MIN_SHOWN } from '../../lib/learn-discover-categories.js';
-import { HERO_LESSON, categoryPhotoRow, photoSrc } from '../../lib/learn-discover-photos.js';
+import {
+  categoryPhotoRow,
+  photoSrc,
+  newPhotoUrl,
+  BANNER_PHOTO,
+  WORD_PHOTO,
+  BIBLE_PHOTO,
+  CATEGORY_NEW_PHOTO,
+  SERIES_NEW_PHOTO,
+} from '../../lib/learn-discover-photos.js';
 import { continueRows, newestRows, featuredRows, relationshipRows } from '../../lib/learn-discover-home.js';
 import { SERIES } from '../../lib/learn-discover-series.js';
 import { todaysWord } from '../../lib/learn-discover-word.js';
@@ -92,7 +101,12 @@ function headlineOf(row) {
   return first.split(/\s+/).length <= 7 ? first : first.split(/\s+/).slice(0, 6).join(' ');
 }
 
-function Photo({ im, className = '', eager = false, label = '' }) {
+function Photo({ im, file = null, className = '', eager = false, label = '' }) {
+  // `file` is a slot of the new photography package; otherwise `im` is an existing lesson cover.
+  if (file)
+    return (
+      <img className={`ld-ph ${className}`} src={newPhotoUrl(file, BASE)} alt="" width="640" height="360" loading={eager ? 'eager' : 'lazy'} decoding="async" />
+    );
   const p = photoSrc(im, BASE);
   // A lesson still waiting for its own picture shows its course name on a panel: never a blank, never new art.
   if (!p)
@@ -141,32 +155,6 @@ const Ic = {
   ),
 };
 
-function BibleArt({ className = '' }) {
-  return (
-    <svg viewBox="0 0 120 84" className={className} aria-hidden="true" focusable="false">
-      <defs>
-        <linearGradient id="ld-pg" x1="0" x2="1">
-          <stop offset="0" stopColor="#fbefc9" />
-          <stop offset="1" stopColor="#e9c978" />
-        </linearGradient>
-        <linearGradient id="ld-cv" x1="0" x2="1">
-          <stop offset="0" stopColor="#7a4a14" />
-          <stop offset="1" stopColor="#4d2a08" />
-        </linearGradient>
-      </defs>
-      <path d="M4 20c0-2 2-4 4-3 20 6 40 4 52 12 12-8 32-6 52-12 2-1 4 1 4 3v50c0 2-2 4-4 3-20-6-40-4-52 4-12-8-32-10-52-4-2 1-4-1-4-3z" fill="url(#ld-cv)" />
-      <path d="M8 14c18-6 38-5 52 4 14-9 34-10 52-4v52c-18-6-38-5-52 4-14-9-34-10-52-4z" fill="url(#ld-pg)" stroke="#b8862b" strokeWidth="1.6" />
-      <path d="M60 18v52" stroke="#b8862b" strokeWidth="1.6" />
-      <g stroke="#a67c2e" strokeWidth="1.1" opacity=".55" strokeLinecap="round">
-        <path
-          d="M16 26c12-3 28-3 38 2M16 34c12-3 28-3 38 2M16 42c12-3 28-3 38 2M16 50c12-3 28-3 38 2M66 28c10-5 26-5 38-2M66 36c10-5 26-5 38-2M66 44c10-5 26-5 38-2M66 52c10-5 26-5 38-2"
-          fill="none"
-        />
-      </g>
-    </svg>
-  );
-}
-
 /** One lesson, as a compact card: promotional title first, the lesson's own title kept beside it. */
 function LessonCard({ row, course, onOpen, reached, note }) {
   const promo = row.p && !row.stale ? row.p : '';
@@ -212,11 +200,11 @@ export default function LearnDiscover({ onBrowseAll, onOpenLesson, onOpenArea, o
 
   const fixed = useMemo(() => (deferred.trim() ? correctQuery(P, deferred.trim()) : { text: '', changed: [] }), [P, deferred]);
   const results = useMemo(() => (deferred.trim() ? discoverSearch(P, deferred) : []), [P, deferred]);
+  const situation = useMemo(() => (deferred.trim() ? situationsFor(fixed.text || deferred)[0] || null : null), [fixed, deferred]);
   const cont = useMemo(() => continueRows(P, saved), [P, saved]);
   const newest = useMemo(() => newestRows(P, DATES), [P]);
   const featured = useMemo(() => featuredRows(P, RECORDS.records), [P]);
   const rels = useMemo(() => relationshipRows(P), [P]);
-  const hero = P.byId.get(HERO_LESSON);
   // Tile order follows the mockup (Faith, Wellness, Marriage, Parenting, Personal Growth / Money, Real Estate, Career, Bible, Leadership...).
   const shown = TILE_ORDER.map((id) => CATEGORIES.find((c) => c.id === id)).filter(
     (c) => c && (members.get(c.id) || { lessonIds: [] }).lessonIds.length >= MIN_SHOWN
@@ -282,7 +270,7 @@ export default function LearnDiscover({ onBrowseAll, onOpenLesson, onOpenArea, o
         data-testid="ld-category"
         data-cat={c.id}
       >
-        <Photo im={ph && ph.im} />
+        <Photo file={CATEGORY_NEW_PHOTO[c.id]} im={ph && ph.im} />
         <span className="ld-tile-n" aria-hidden="true">
           {m.lessonIds.length}
         </span>
@@ -296,7 +284,9 @@ export default function LearnDiscover({ onBrowseAll, onOpenLesson, onOpenArea, o
   return (
     <section className="ld-root" aria-labelledby="ld-h" data-testid="learn-discover">
       <header className="ld-hero">
-        <div className="ld-hero-photo">{hero ? <Photo im={hero.raw.im} eager /> : null}</div>
+        <div className="ld-hero-photo">
+          <Photo file={BANNER_PHOTO} eager />
+        </div>
         <div className="ld-hero-copy">
           <h1 id="ld-h" className="ld-h1">
             <span className="ld-h1-a">The Word</span> <span className="ld-h1-b">Learning Zone</span>
@@ -306,7 +296,9 @@ export default function LearnDiscover({ onBrowseAll, onOpenLesson, onOpenArea, o
             {counts.lessons} lessons · {counts.courses} courses · {counts.departments} departments
           </p>
         </div>
-        <BibleArt className="ld-hero-bible" />
+        <span className="ld-hero-bible" aria-hidden="true">
+          <Photo file={BIBLE_PHOTO} />
+        </span>
       </header>
 
       <div className="ld-find">
@@ -342,7 +334,10 @@ export default function LearnDiscover({ onBrowseAll, onOpenLesson, onOpenArea, o
             />
           </span>
           <button type="submit" className="ld-go focus-visible:outline focus-visible:outline-2">
-            Search
+            <span className="ld-go-ic" aria-hidden="true">
+              {Ic.search}
+            </span>
+            <span className="ld-go-t">Search</span>
           </button>
         </form>
         <p className="ld-help">Search a question, topic, scripture, or life situation (e.g., anxiety, marriage, money, purpose)</p>
@@ -366,7 +361,13 @@ export default function LearnDiscover({ onBrowseAll, onOpenLesson, onOpenArea, o
       {deferred.trim() ? (
         <section className="ld-sec" id="ld-results" aria-live="polite" data-testid="ld-results">
           <div className="ld-sec-h">
-            <h2 className="ld-h2">{results.length ? `${results.length} lessons for “${deferred.trim()}”` : `Nothing yet for “${deferred.trim()}”`}</h2>
+            <h2 className="ld-h2">
+              {results.length
+                ? `${results.length} ${results.length === 1 ? 'lesson' : 'lessons'} for “${deferred.trim()}”`
+                : situation && situation.flag === 'gap'
+                  ? `No lesson yet for “${deferred.trim()}”`
+                  : `Nothing yet for “${deferred.trim()}”`}
+            </h2>
             <button type="button" className="ld-link focus-visible:outline focus-visible:outline-2" onClick={() => setQuery('')}>
               Clear
             </button>
@@ -376,7 +377,15 @@ export default function LearnDiscover({ onBrowseAll, onOpenLesson, onOpenArea, o
               Showing results for “{fixed.text}”.
             </p>
           ) : null}
-          {!results.length ? <p className="ld-p">Try a feeling, a question, a verse like Matthew 6, or a single word like “debt.”</p> : null}
+          {situation ? (
+            <p className="ld-sit" data-testid="ld-situation" data-situation={situation.id} data-flag={situation.flag || 'good'}>
+              <b>Life situation: {situation.title}.</b> {situation.note || 'These lessons were read and chosen by hand from the curriculum for this situation.'}
+              {situation.flag === 'thin' ? ` The first ${situation.lessons.length} were read for this situation; any after them are broader matches.` : ''}
+            </p>
+          ) : null}
+          {!results.length && !(situation && situation.flag === 'gap') ? (
+            <p className="ld-p">Try a feeling, a question, a verse like Matthew 6, or a single word like “debt.”</p>
+          ) : null}
           <ul className="ld-results">
             {results.slice(0, more * 8).map((r) => {
               const L = P.byId.get(r.lessonId);
@@ -526,7 +535,9 @@ export default function LearnDiscover({ onBrowseAll, onOpenLesson, onOpenArea, o
                     >
                       {verseOpen ? 'Hide the verse' : 'Read the verse'}
                     </button>
-                    <BibleArt className="ld-word-bible" />
+                    <span className="ld-word-bible" aria-hidden="true">
+                      <Photo file={WORD_PHOTO} />
+                    </span>
                   </div>
                   {verseOpen ? (
                     <blockquote className="ld-verse" data-testid="ld-verse">
@@ -569,7 +580,7 @@ export default function LearnDiscover({ onBrowseAll, onOpenLesson, onOpenArea, o
                       data-testid="ld-series-tile"
                       data-series={s.id}
                     >
-                      <Photo im={ph && ph.raw.im} />
+                      <Photo file={SERIES_NEW_PHOTO[s.id]} im={ph && ph.raw.im} />
                       <span className="ld-ser-t" aria-hidden="true">
                         {s.title}
                       </span>

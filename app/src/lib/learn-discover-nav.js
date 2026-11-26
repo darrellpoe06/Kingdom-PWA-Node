@@ -16,6 +16,7 @@
 // sort order, a level or a look. The hint is session-only and taken once.
 // =============================================================================
 import { setLearnAreaHint } from './learn-landing.js';
+import { rememberCourseKey } from './learn-organize.js';
 
 /**
  * area -> what to ask of each look.
@@ -65,6 +66,52 @@ export function openLearnArea(
       }
     }
     // The classic look has no Learn Studio controls; its hint was taken when Learn mounted, so there is nothing more to do.
+    if (n < tries && !doc.querySelector('[data-testid="learn-areas"]')) timer = setTimer(step, every);
+  };
+  timer = setTimer(step, 0);
+  return () => {
+    stopped = true;
+    if (timer) clearTimer(timer);
+  };
+}
+
+/**
+ * Open Learn on ONE COURSE'S OWN PAGE (Darrell 2026-11-26: a course card opens the course, never its first lesson).
+ *   new look: presses Learn Studio's own course card (showing the full course list first when that course is not on the
+ *             first shelf), exactly what a tap on that course inside Learn does;
+ *   classic : remembers the course as the one chosen (the same record Learn's own course picker writes) and lands on Lessons.
+ * @returns a cancel function
+ */
+export function openLearnCourse(
+  courseKey,
+  { openLearn, doc = typeof document !== 'undefined' ? document : null, tries = 60, every = 100, setTimer = setTimeout, clearTimer = clearTimeout } = {}
+) {
+  if (typeof courseKey !== 'string' || !courseKey) return () => {};
+  try {
+    rememberCourseKey(courseKey);
+  } catch {
+    /* no storage: the new look does not need it */
+  }
+  setLearnAreaHint('lessons');
+  if (typeof openLearn === 'function') openLearn();
+  if (!doc) return () => {};
+  let n = 0;
+  let timer = null;
+  let stopped = false;
+  let expanded = false;
+  const step = () => {
+    if (stopped) return;
+    n += 1;
+    const card = doc.querySelector(`[data-testid="ls-course-${courseKey}"]`);
+    if (card && typeof card.click === 'function') {
+      card.click();
+      return;
+    }
+    const all = doc.querySelector('[data-testid="ls-courses-all"]');
+    if (all && !expanded && typeof all.click === 'function') {
+      expanded = true;
+      all.click();
+    }
     if (n < tries && !doc.querySelector('[data-testid="learn-areas"]')) timer = setTimer(step, every);
   };
   timer = setTimer(step, 0);

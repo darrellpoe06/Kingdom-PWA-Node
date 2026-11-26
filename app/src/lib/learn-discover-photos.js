@@ -50,3 +50,46 @@ export function photoSrc(im, base = '') {
   const small = big.replace(/w1280\.webp$/, 'w640.webp');
   return { src: small, srcSet: `${small} 640w, ${big} 1280w` };
 }
+
+// =============================================================================
+// The Learning Zone photography package (Darrell 2026-11-26)
+// =============================================================================
+// New photographs that front the discovery page only. They live in public/learn-discover/photos/, each named by the
+// slot it fills, so replacing a file with a larger version of the same picture changes nothing in code. They do NOT
+// replace or touch any lesson cover (public/learn-thumbs) or any course photograph: those keep fronting lessons, the
+// course cards and the Continue Learning card, exactly as before.
+// A category with no new photograph (Technology: the package has none) keeps its existing lesson cover.
+// =============================================================================
+export const PHOTO_DIR = 'learn-discover/photos/';
+export const BANNER_PHOTO = 'welcome-banner';
+export const WORD_PHOTO = 'todays-word';
+export const BIBLE_PHOTO = 'topic-bible-study-scripture';
+
+/** category id -> slot file (no extension). */
+export const CATEGORY_NEW_PHOTO = Object.freeze({
+  faith: 'topic-faith-spiritual-growth',
+  wellness: 'topic-mental-emotional-wellness',
+  marriage: 'topic-marriage-relationships',
+  parenting: 'topic-parenting-family',
+  purpose: 'topic-purpose-personal-growth',
+  money: 'topic-money-financial-stewardship',
+  business: 'topic-business-entrepreneurship',
+  realestate: 'topic-real-estate-homeownership',
+  leadership: 'topic-leadership-ministry',
+  bible: 'topic-bible-study-scripture',
+  history: 'topic-history-understanding-world',
+});
+
+/** series id -> slot file. The package has no marriage-series photograph, so that series shares the marriage topic photograph. */
+export const SERIES_NEW_PHOTO = Object.freeze({
+  anxiety: 'series-overcoming-anxiety',
+  marriage: 'topic-marriage-relationships',
+  money: 'series-biblical-money-management',
+  identity: 'series-identity-purpose',
+  plan: 'series-walking-in-gods-plan',
+});
+
+export function newPhotoUrl(slot, base = '') {
+  if (!slot) return null;
+  return `${String(base || '').replace(/\/?$/, '/')}${PHOTO_DIR}${slot}.webp`;
+}

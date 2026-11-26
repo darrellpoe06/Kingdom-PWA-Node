@@ -13,7 +13,7 @@ import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import ChurchLearn from '../components/ChurchLearn.jsx';
 import { DEEP_LINK_AREAS, LEARN_AREA_HINT_KEY, takeLearnAreaHint, setLearnAreaHint } from '../lib/learn-landing.js';
-import { AREA_ROUTES, openLearnArea } from '../lib/learn-discover-nav.js';
+import { AREA_ROUTES, openLearnArea, openLearnCourse } from '../lib/learn-discover-nav.js';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 let container;
@@ -145,5 +145,30 @@ describe('openLearnArea: opens Learn, sets the hint, and finds the new look when
     openLearnArea('browse', { openLearn: () => {}, doc: document, every: 20 });
     await sleep(120);
     expect(selectedArea()).toBe('browse');
+  });
+});
+
+describe('openLearnCourse: a course card opens the course page, never its first lesson', () => {
+  const KEY = 'financial-stewardship';
+  it('in the new look, presses the course card (showing every course first if needed) and lands on the course page', async () => {
+    mount({ learnStudioDefaultOn: true });
+    const keys = [...container.querySelectorAll('[data-testid^="ls-course-"]')].map((b) => b.getAttribute('data-testid').replace('ls-course-', ''));
+    const key = keys.find((k) => k && !k.includes('-all') && !k.includes('sort') && !k.includes('show') && !k.includes('view')) || KEY;
+    openLearnCourse(key, { openLearn: () => {}, doc: document, every: 20 });
+    await sleep(200);
+    expect(container.querySelector('[data-testid="course-view-head"]')).toBeTruthy();
+    expect(container.querySelector('[data-testid="lesson-experience-start"]')).toBeNull(); // not a lesson
+  });
+  it('remembers the chosen course and asks for Lessons in the classic look', () => {
+    let opened = 0;
+    openLearnCourse('living-lessons', { openLearn: () => (opened += 1), doc: null });
+    expect(opened).toBe(1);
+    expect(window.localStorage.getItem('poetech.learn.course')).toBeTruthy();
+    expect(window.sessionStorage.getItem(LEARN_AREA_HINT_KEY)).toBe('lessons');
+  });
+  it('does nothing for an empty course key', () => {
+    let opened = 0;
+    openLearnCourse('', { openLearn: () => (opened += 1), doc: null });
+    expect(opened).toBe(0);
   });
 });

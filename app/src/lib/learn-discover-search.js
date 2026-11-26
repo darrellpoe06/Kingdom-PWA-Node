@@ -25,6 +25,7 @@ import { searchLessons } from './learn-organize.js';
 import { stem, stems, queryStems, subjectWords, scriptureRefs } from './learn-discover-text.js';
 import { conceptsFor, conceptWords, isConceptWord } from './learn-discover-concepts.js';
 import { categoryMembers } from './learn-discover-categories.js';
+import { SITUATIONS } from './learn-discover-situations.js';
 
 const W_TITLE = 4;
 const W_META = 2.5;
@@ -240,6 +241,39 @@ export function correctQuery(P, q) {
   return { text: out, changed };
 }
 
+// ---- the Life Situations Guide (learn-discover-situations.js) ----
+// A situation applies when every word of one of its phrasings was typed AND that phrasing is at least half of what was
+// typed (so "how does the Holy Spirit work" is the Holy Spirit, not a career question about "work").
+// Words that carry no subject ("I feel so lonely lately"): left out of both sides before the phrasings are compared.
+const FILLER = new Set(
+  'feel felt feeling lately really always very much lot often today now right life constantly everyday help need want going way thing things someone anyone get getting got deal dealing know think so too still keep keeps'
+    .split(' ')
+    .map((w) => stem(w))
+);
+const lean = (text) => [...new Set(queryStems(text).filter((w) => !FILLER.has(w)))];
+const SITUATION_PHRASES = SITUATIONS.map((s) => ({ s, phrases: s.say.map(lean).filter((a) => a.length) }));
+const SIT_BASE = 40; // the hand-read lessons lead, in the order they were read
+const SIT_STEP = 3;
+
+/** The situations (at most two, best first) the typed text describes. Pure. */
+export function situationsFor(text) {
+  const typed = new Set(lean(String(text || '')));
+  if (!typed.size) return [];
+  const hits = [];
+  for (const { s, phrases } of SITUATION_PHRASES) {
+    let best = 0;
+    for (const ph of phrases) {
+      if (!ph.every((w) => typed.has(w))) continue;
+      if (ph.length / typed.size < 0.5) continue;
+      best = Math.max(best, ph.length * 10 + ph.length / typed.size);
+    }
+    if (best) hits.push({ s, best });
+  }
+  hits.sort((a, b) => b.best - a.best || SITUATIONS.indexOf(a.s) - SITUATIONS.indexOf(b.s));
+  if (!hits.length) return [];
+  return hits.filter((h, i) => i === 0 || (i === 1 && h.best >= hits[0].best * 0.95)).map((h) => h.s);
+}
+
 /**
  * Answer a typed question.
  * @returns {Array<{ lessonId, courseKey, score, why: 'title'|'verse'|'topic'|'content'|'related', finder: boolean }>}
@@ -264,6 +298,14 @@ export function discoverSearch(P, query, limit = RESULT_LIMIT) {
   if (!typed.length && !qRefs.length && !words.length) return [];
 
   const { words: related, cats, seeds, pure } = conceptsFor(typed);
+  // The hand-read Life Situations Guide: its lessons lead, in the order they were read, strongest first.
+  const sitBoost = new Map();
+  const sits = situationsFor(q);
+  for (const [si, sit] of sits.entries())
+    sit.lessons.forEach((id, r) => {
+      const b = (SIT_BASE + (sit.lessons.length - r) * SIT_STEP) / (si + 1);
+      if (!sitBoost.has(id) || sitBoost.get(id) < b) sitBoost.set(id, b);
+    });
   const cw = pure ? PURE_WEIGHT : CONCEPT_WEIGHT;
   const anchored = !pure && typed.some((t) => weightOf(P, t) === 1);
   const strongSets = cats.map((c) => P.catStrong.get(c)).filter(Boolean);
@@ -366,7 +408,14 @@ export function discoverSearch(P, query, limit = RESULT_LIMIT) {
     if (typed.length + qRefs.length > 1 && needIdf > 0) score *= 0.45 + 0.55 * Math.min(1, hitIdf / needIdf);
     scored.push({ L, score, why: why || 'related' });
   }
-  scored.sort((a, b) => b.score - a.score || a.L.order - b.L.order);
+  // Hand-read lessons of a matched situation that the words alone did not reach are still found.
+  const have = new Set(scored.map((x) => x.L.raw.i));
+  for (const id of sitBoost.keys()) if (!have.has(id) && P.byId.get(id)) scored.push({ L: P.byId.get(id), score: 0.01, why: 'topic' });
+  for (const x of scored) if (sitBoost.has(x.L.raw.i)) x.sit = sitBoost.get(x.L.raw.i);
+  scored.sort((a, b) => (b.sit || 0) - (a.sit || 0) || b.score - a.score || a.L.order - b.L.order);
+  // The hand-read lessons lead. A situation the curriculum only touches ("thin") says so on the page (the callout counts how
+  // many were read for it); a situation with no lesson at all ("gap") returns none rather than unrelated lessons.
+  if (sits.length && sits.every((x) => x.flag === 'gap')) return [];
 
   // Best-scored lessons lead. Then the finder's guarantee is applied: every
   // course that DECLARED the typed word keeps one seat in the window (DR-1049,
