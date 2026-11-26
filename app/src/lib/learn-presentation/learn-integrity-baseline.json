@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T02:57:57.519Z",
+ "measuredAt": "2026-11-26T03:03:58.819Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4270
+  "readings": 4272
  },
  "departments": [
   {
@@ -13921,11 +13921,13 @@
    "department": "The Eternal Algorithms",
    "position": 2,
    "title": "His Spirit Bears Witness WITH Your Spirit (two, not one)",
-   "contentSha": "07b997b587859b271068314973a75bd32e35f681bcb1022afda9822b5bac4b01",
+   "contentSha": "e08c8b52732999eb9b242afe876c8c41cc12f0d432f2fc7a82b147ec55dcb27a",
    "versions": {
-    "teen": "c34829c21d783c27e32a491526a0e60849dd72e3ea334b7599d9bf6e6c6e41b5",
-    "adult": "892f3ac7483054c24af39ed1303db2d79c164a5936d19de7fc4ac0bcee42f969",
-    "senior": "6344db75b2e485cff85527b56cab5dcb6b94657c075d601f46b5458421aca3bf"
+    "child": "a234d5bff42cb18172b3aef29d3206f4d6efdda2ab4ed53711591c9dbfea6f83",
+    "youth": "62b5638f158b23b1561baee440bffee89724ebc0865cfdf0c8957e0de5f552c7",
+    "teen": "e5f787a151362507d1bb68a8dbc1c3946b718e6d736a530c9db3f423cff04a51",
+    "adult": "433cc8f47af8e7ddd145ef4782c530d544e48387b51fff56a1d4ded56bdfeb9f",
+    "senior": "4be8bb8c2a67fdf0c2d2648fb1b690cfab739669397754dfc2a7e3e3d93263c5"
    }
   },
   {
