@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T03:22:46.194Z",
+ "measuredAt": "2026-11-26T03:25:53.239Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4282
+  "readings": 4284
  },
  "departments": [
   {
@@ -12829,11 +12829,13 @@
    "department": "The Eternal Algorithms",
    "position": 18,
    "title": "The Most High divided the nations — and kept a portion",
-   "contentSha": "bf9f79267e6e38a5c670d373e2d621e1dc90a0e5138286cd15469f99af68ade5",
+   "contentSha": "8f955501893f96779050686266a75c7730562e747221ab0e2ae2c8348931b28b",
    "versions": {
-    "teen": "67d15df88b5356cd317b10a54e7ab7e78e706e5573c6e34a6c83091b070a69a4",
-    "adult": "33cec7b13a0ee03bee27d8fb846431d93e4a71f416fbe587d8424695c1c6883b",
-    "senior": "407234f0e970b22f5bdeed56e3e8ea15d84e14a2078b30e783f46034267cccf6"
+    "child": "eb77cb8ee3307b8a69426196fc3e3d181d27a69676b4fd349df0a17a97c71ee9",
+    "youth": "d2401833ca729fe2daed1d8a27ef9a7b9763fd194361f2bec51f24f2eaf26960",
+    "teen": "bb7e7cec9c9d3b5593e61cd662b2fefa06fa0ec0469d56d10f77d50c4e08af31",
+    "adult": "61d624fe773a8b57eb1c0091c38aa38a6b0c30046a4b981dca7ec2ce0d6265ef",
+    "senior": "87dd068d0b2250d69eefb756e2f0ac8978436c34cf027aaae17a59dfae9ce102"
    }
   },
   {
