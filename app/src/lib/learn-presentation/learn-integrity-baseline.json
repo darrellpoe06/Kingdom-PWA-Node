@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T06:43:57.069Z",
+ "measuredAt": "2026-11-26T06:47:36.146Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4382
+  "readings": 4384
  },
  "departments": [
   {
@@ -14690,11 +14690,13 @@
    "department": "The Eternal Algorithms",
    "position": 5,
    "title": "The Word of Their Testimony (eat the Word and the testimony aligns)",
-   "contentSha": "c4cc1ce22ef516b803bff393e25d838e0218dbd3ec158a00e0c783527ae5c626",
+   "contentSha": "37e2599145eeea6b180b1315cfdc538a6f67ff95e5ffb2bb97d4967e8ce63e4c",
    "versions": {
-    "teen": "d46159fd391b1542c8e08e65d4a0fd8d732f96d29e7f85f3598d24110044284b",
-    "adult": "f8a0bbcf2826fb4c5a4668c5745dc101fde724e9713e3b2cf8d7671e6e299baf",
-    "senior": "2a8e51ef6341969b15d6c301aa455a27f0d7da940c6c217cdf2581019c7b175d"
+    "child": "90689cd3bd2fa2a225fe36909aec0947b4c6e39312ab2692544702e199d023c2",
+    "youth": "3f12cd2aafe8c156832da43b07ce40ac9bc0ec01b1f83913b0c1e22cc1c00590",
+    "teen": "c951e6d8b6589980fabbd2b8d21017144dd245fc3d7d19e9ded891c8c67dc158",
+    "adult": "4d80837bcbefb8f17b83488b0e639f8c8e3bde2454bdb8275854a83181634fd8",
+    "senior": "a12ba5ebe437d88d7744dab2aa584a0ebabf20969acf0fa79e32d625824c577a"
    }
   },
   {

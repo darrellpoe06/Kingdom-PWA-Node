@@ -76,8 +76,8 @@ describe('Learn content integrity baseline', () => {
   // two-courts, judgment-committed-to-son, hear-believe-no-condemnation,
   // word-judges-last-day, appointed-day-ordained-judge, judgment-seat-of-christ,
   // vacate-the-seat, saints-judge-with-him, judge-comes-with-reward,
-  // peace-peace, call-evil-good, suppress-the-truth.
-  it('the baseline is the measured Phase 1 catalog (13 / 51 / 994 / 4,382)', () => {
-    expect(base.counts).toEqual({ departments: 13, courses: 51, lessons: 994, readings: 4382 });
+  // peace-peace, call-evil-good, suppress-the-truth, word-of-testimony.
+  it('the baseline is the measured Phase 1 catalog (13 / 51 / 994 / 4,384)', () => {
+    expect(base.counts).toEqual({ departments: 13, courses: 51, lessons: 994, readings: 4384 });
   });
 });
