@@ -103,6 +103,7 @@ const AGEBAND_TO_PRESENT_AGE = { child: 'child', youth: 'teen', teen: 'teen', ad
 const AGEBAND_TO_LEVEL_KEY = { child: 'child', youth: 'teen', teen: 'teen', adult: null, senior: 'senior' };
 import SectionTabs from './SectionTabs.jsx';
 import { catalogMeta } from '../lib/learn-catalog.js';
+import { withTitleAnswers } from '../lib/lesson-title-answers.js';
 import { courseCrossListingsFor, resolveCourseCrossListed, courseCrossListedCount } from '../lib/learn-crosslist.js';
 // THE CODE IN THE WORD (DR-0729): the verses a lesson quotes that say what a
 // command is for, shown on the lesson card (lib/word-codes.js).
@@ -4521,7 +4522,9 @@ function ChurchLearn({
   // THE VERSES INSIDE THE LESSON (2026-10-21, lib/lesson-word-quotes.js): a
   // lesson that names its Scripture opens with it, quoted from the in-app KJV.
   // And the stories a lesson was missing join it (lib/lesson-side-stories.js).
-  const courses = withSideStories(withWordQuotes(withLessonDates(useCurriculumOverlay([aiCourse, ...(broadcastCourse ? [broadcastCourse] : []), ...builtExtras, ...eternalCourses]))));
+  // EVERY LESSON ANSWERS ITS TITLE (DR-1687, lib/lesson-title-answers.js): the
+  // title's question answered first and landed last, around the author's text.
+  const courses = withSideStories(withWordQuotes(withTitleAnswers(withLessonDates(useCurriculumOverlay([aiCourse, ...(broadcastCourse ? [broadcastCourse] : []), ...builtExtras, ...eternalCourses])))));
   const chosenCourse = activeKey != null ? courses.find((c) => c.key === activeKey) : null;
   const courseChosen = !!chosenCourse;
   // THE DEFAULT COURSE IS LIVING LESSONS (Darrell 2026-09-11: "let the default
