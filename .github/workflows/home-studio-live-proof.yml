@@ -1,0 +1,83 @@
+# =============================================================================
+# Home Studio live proof: the private homepage preview, built here and shown
+# with the church's REAL content, from a runner. NEVER deploys, merges or opens
+# a PR (Darrell 2026-11-26: "Do not merge into main or publicly deploy yet").
+# =============================================================================
+# The cloud sandbox has no route to the church website or YouTube, so a runner
+# is the team's eye (CLAUDE.md, "the site has its own witness"). This builds the
+# app from the branch, serves it on the runner, and drives it with its relay
+# calls (/api/church-site, /api/church-recent) answered by the real production
+# relays on poetech.us: read-only GETs, no secrets, no writes. Test fixtures are
+# never used (LIVE=1 and FIXTURES are exclusive). What it read and what it
+# photographed is committed back to THIS branch only, under docs/design/home-studio/.
+# THE THREE BRAKES (LESSONS-LEARNED P10/P11/P12), none of it timer-driven:
+#   budget  : timeout-minutes 25 per run;
+#   lock    : one run at a time, a newer push cancels the older;
+#   switch  : it runs only for pushes of THIS workflow file or the probe to the
+#             wip branch, or a manual dispatch; delete the file or the branch to stop it.
+name: Home Studio live proof (private, non-deploying)
+
+on:
+  push:
+    branches: ['wip/home-studio-private']
+    paths:
+      - '.github/workflows/home-studio-live-proof.yml'
+      - 'scripts/home-studio-probe.mjs'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: home-studio-live-proof
+  cancel-in-progress: true
+
+jobs:
+  proof:
+    if: github.ref == 'refs/heads/wip/home-studio-private'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - name: Install the app and the browser driver
+        run: |
+          cd app && npm ci
+          cd .. && npm install --no-save playwright-core@1
+      - name: "Build the app (a stub data connection, so this proof reads no family data)"
+        working-directory: app
+        env:
+          VITE_SUPABASE_URL: http://127.0.0.1:1
+          VITE_SUPABASE_ANON_KEY: stub
+        run: npx vite build
+      - name: Serve it on the runner only
+        run: |
+          ln -sfn ../dist app/dist/poetech-app
+          nohup python3 -m http.server 4173 --directory app/dist > /tmp/http.log 2>&1 &
+          sleep 2
+      - name: Photograph the homepage with the real church content
+        id: proof
+        continue-on-error: true
+        env:
+          CI: 'true'
+          LIVE: '1'
+          LIVE_ORIGIN: https://poetech.us
+        run: |
+          DIR="docs/design/home-studio/live-$(date -u +%F)"
+          mkdir -p "$DIR"
+          set -o pipefail
+          SHOTS_DIR="$DIR" node scripts/home-studio-probe.mjs 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Keep what it read and saw on this branch (never main)
+        run: |
+          git config user.name "home-studio-live-proof"
+          git config user.email "actions@users.noreply.github.com"
+          git add docs/design/home-studio
+          git diff --cached --quiet || git commit -m "Home Studio live proof: real content as read from the production relays"
+          git push origin HEAD:refs/heads/wip/home-studio-private
+      - name: Fail the run when the proof found something
+        if: steps.proof.outcome == 'failure'
+        run: exit 1

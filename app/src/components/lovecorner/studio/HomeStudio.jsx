@@ -29,7 +29,6 @@
 // reduced motion respected (the rail never auto-advances).
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import UiIcon from '../../UiIcon.jsx';
-import { InstituteArt } from '../../ChurchInstitute.jsx';
 import { FullPicture } from '../ChurchOfficeBoard.jsx';
 import { LOVE_CORNER_ASSETS, BISHOP } from '../LoveCornerHome.jsx';
 import { resolveChurch } from '../../../lib/resolve-church.js';
@@ -46,7 +45,9 @@ import './home-studio.css';
 
 const BASE = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.BASE_URL) || '/';
 const KEY_ART = `${BASE}lovecorner/kids/bible-adventures-key-art.jpg`;
-const WORD_ART = `${BASE}learn-thumbs/topics/faith/w640.webp`;
+const WORD_ART = `${BASE}learn-thumbs/topics/faith/w640.webp`; // already-shipped lesson photography (nothing generated or bought)
+const INSTITUTE_ART = `${BASE}learn-thumbs/handed-forward/succ2-read-before-you-rule/w640.webp`;
+const EVENT_ART = `${BASE}learn-thumbs/topics/faith/w1280.webp`;
 const FOCUS = 'focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]';
 
 const courseTitleOf = (key) => {
@@ -263,8 +264,8 @@ export default function HomeStudio({ church = null, setChurchView = null, now = 
             <Chevron />
           </button>
           <button type="button" onClick={() => open('institute')} className={`hs-gcard ${FOCUS}`} data-testid="hs-institute">
-            <span className="hs-gart hs-gart-art" aria-hidden="true">
-              <InstituteArt />
+            <span className="hs-gart">
+              <img src={INSTITUTE_ART} alt="" loading="lazy" />
             </span>
             <span className="hs-gbody">
               <b className="hs-h3">{INSTITUTE_META.name}</b>
@@ -289,7 +290,7 @@ export default function HomeStudio({ church = null, setChurchView = null, now = 
           <div className="hs-rail" role="region" aria-label="Events, swipe for more" data-testid="hs-events">
             {happening.map((e) => (
               <button key={e.id} type="button" className={`hs-cine hs-cine-ev ${FOCUS}`} data-testid="hs-event" onClick={() => (e.flyer ? setPicture(e.flyer) : open('home', 'times'))} aria-label={e.flyer ? `${e.name}: open the flyer` : `${e.name}: open events`}>
-                {e.src ? <img src={e.src} alt="" loading="lazy" /> : <span className="hs-cine-ic" aria-hidden="true"><UiIcon name="calendar" /></span>}
+                <img src={e.src || EVENT_ART} alt="" loading="lazy" />
                 <span className="hs-cine-t">{e.name}</span>
                 {e.when && <small className="hs-cine-d hs-cine-chip">{e.when}</small>}
               </button>

@@ -19,7 +19,12 @@
 //     it the page uses whatever the relays really return.
 // Screenshots go to SHOTS_DIR (default ./home-studio-shots) at the theme named by
 // THEME (default: the door's own). Prints FINDINGS; exits 1 when any remain.
-import { chromium } from 'playwright';
+let chromium;
+try {
+  ({ chromium } = await import('playwright'));
+} catch {
+  ({ chromium } = await import('playwright-core'));
+}
 import { mkdirSync, writeFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { execFileSync } from 'node:child_process';
@@ -30,6 +35,9 @@ const URL_ON = `${ORIGIN}${PATH}?lovecorner=1&view=church&homeStudio=1`;
 const URL_OFF = `${ORIGIN}${PATH}?lovecorner=1&view=church&homeStudio=0`;
 const SHOTS = process.env.SHOTS_DIR || './home-studio-shots';
 const FIXTURES = process.env.FIXTURES === '1';
+// LIVE=1: the relays are the REAL production ones (read-only GETs to LIVE_ORIGIN), so what the page shows is what the church actually published. Never with FIXTURES.
+const LIVE = process.env.LIVE === '1';
+const LIVE_ORIGIN = process.env.LIVE_ORIGIN || 'https://poetech.us';
 const THEMES = (process.env.THEMES || '').split(',').filter(Boolean);
 const WIDTHS = (process.env.WIDTHS || '360,390,768,1440').split(',').map(Number);
 const SIZES = (process.env.SIZES || 'normal,largest,bigprint').split(',');
@@ -80,6 +88,18 @@ async function installFixtures(ctx) {
   await ctx.route('**/i.ytimg.com/**', (r) => r.fulfill({ status: 200, contentType: 'image/png', body: bytes('thumb.png') }));
 }
 
+async function installLive(ctx) {
+  await ctx.route(/\/api\/church-(site|recent)/, async (r) => {
+    const u = new URL(r.request().url());
+    try {
+      const resp = await r.fetch({ url: `${LIVE_ORIGIN}${u.pathname}${u.search}` });
+      await r.fulfill({ response: resp });
+    } catch (e) {
+      await r.abort();
+    }
+  });
+}
+
 async function open(browser, { width, size = 'normal', theme = '', url = URL_ON, dsf = 1 }) {
   const ctx = await browser.newContext({ viewport: { width, height: 900 }, deviceScaleFactor: dsf, isMobile: width < 700, hasTouch: width < 700 });
   await ctx.addInitScript(
@@ -93,9 +113,14 @@ async function open(browser, { width, size = 'normal', theme = '', url = URL_ON,
     },
     { k: size, t: theme }
   );
-  if (FIXTURES) await installFixtures(ctx);
+  if (LIVE) await installLive(ctx);
+  else if (FIXTURES) await installFixtures(ctx);
   const page = await ctx.newPage();
   const errs = [];
+  page.relays = [];
+  page.on('response', (r) => {
+    if (/\/api\/church-(site|recent)/.test(r.url())) page.relays.push({ url: r.url().replace(/^https?:\/\/[^/]+/, ''), status: r.status() });
+  });
   page.on('pageerror', (e) => errs.push(e.message));
   await page.goto(url, { waitUntil: 'networkidle', timeout: 60000 });
   await page.waitForTimeout(1500);
@@ -121,7 +146,70 @@ const measure = (page) =>
   });
 
 (async () => {
-  const b = await chromium.launch();
+  const b = await chromium.launch(process.env.CI ? { channel: 'chrome', args: ['--no-sandbox'] } : {}).catch(() => chromium.launch({ args: ['--no-sandbox'] }));
+
+  if (LIVE) {
+    const report = { at: new Date().toISOString(), origin: LIVE_ORIGIN, relays: [], sections: {} };
+    for (const w of [390, 768, 1440]) {
+      const { ctx, page, errs } = await open(b, { width: w, theme: 'night', dsf: w < 700 ? 2 : 1 });
+      await page.waitForTimeout(4000);
+      const got = await page.evaluate(() => {
+        const loaded = (sel) => [...document.querySelectorAll(sel)].map((i) => ({ src: i.currentSrc.slice(-60), ok: i.complete && i.naturalWidth > 0 }));
+        return {
+          fixtureText: /FIXTURE|Fixture/.test(document.body.innerText),
+          messages: [...document.querySelectorAll('.hs-cine:not(.hs-cine-ev) .hs-cine-t')].map((e) => e.textContent.trim()),
+          thumbs: loaded('.hs-cine:not(.hs-cine-ev) img'),
+          events: [...document.querySelectorAll('[data-testid="hs-event"] .hs-cine-t')].map((e) => e.textContent.trim()),
+          eventImages: loaded('[data-testid="hs-event"] img'),
+          eventsLink: (document.querySelector('[data-testid="hs-view-all-events"]') || {}).textContent,
+          officeCard: (document.querySelector('[data-testid="hs-office-card"] small') || {}).textContent,
+          kidsArt: loaded('[data-testid="hs-kids"] img'),
+        };
+      });
+      report.sections[w] = got;
+      report.relays.push(...page.relays.map((r) => `${w}px ${r.status} ${r.url}`));
+      if (got.fixtureText) note(`${w}px: fixture text on the live page`);
+      if (!got.messages.length) note(`${w}px: no real sermons read (feed empty)`);
+      if (got.thumbs.some((t) => !t.ok)) note(`${w}px: a sermon thumbnail did not load`);
+      if (got.eventImages.some((t) => !t.ok)) note(`${w}px: an event image did not load`);
+      for (const r of page.relays) if (r.status !== 200) note(`${w}px: relay ${r.url} answered ${r.status}`);
+      for (const e of errs) note(`${w}px: page error ${e}`);
+      await page.screenshot({ path: join(SHOTS, `live-home-${w}.png`), fullPage: true });
+      if (w === 390) {
+        for (const y of [0, 750, 1500, 2300]) {
+          await page.evaluate((yy) => window.scrollTo(0, yy), y);
+          await page.waitForTimeout(500);
+          await page.screenshot({ path: join(SHOTS, `live-phone-scroll${y}.png`) });
+        }
+        await page.evaluate(() => window.scrollTo(0, 0));
+        await page.click('[data-testid="hs-office"]');
+        await page.waitForTimeout(3000);
+        const off = await page.evaluate(() => ({
+          calendar: [...document.querySelectorAll('[data-testid="church-office-calendar"] img')].map((i) => i.complete && i.naturalWidth > 0),
+          letter: [...document.querySelectorAll('[data-testid="church-office-letter"] img')].map((i) => i.complete && i.naturalWidth > 0),
+          flyers: [...document.querySelectorAll('[data-testid="church-office-flyer"] img')].map((i) => i.complete && i.naturalWidth > 0),
+          caption: [...document.querySelectorAll('.lc-office-cap')].map((e) => e.textContent.trim()),
+        }));
+        report.sections.office = off;
+        if (![...off.calendar, ...off.letter, ...off.flyers].length) note('church office: nothing read from the church website');
+        if ([...off.calendar, ...off.letter, ...off.flyers].some((x) => !x)) note('church office: a picture did not load');
+        await page.screenshot({ path: join(SHOTS, 'live-church-office-390.png'), fullPage: true });
+        await page.click('[data-testid="dock-tab-studio-events"]');
+        await page.waitForTimeout(3000);
+        await page.screenshot({ path: join(SHOTS, 'live-events-390.png'), fullPage: true });
+        await page.click('[data-testid="dock-tab-studio-messages"]');
+        await page.waitForTimeout(2000);
+        await page.screenshot({ path: join(SHOTS, 'live-messages-390.png'), fullPage: true });
+      }
+      await ctx.close();
+    }
+    writeFileSync(join(SHOTS, 'live-report.json'), JSON.stringify(report, null, 2));
+    writeFileSync(join(SHOTS, 'findings.txt'), findings.join('\n') + `\nFINDINGS ${findings.length}\n`);
+    await b.close();
+    console.log(JSON.stringify(report, null, 2));
+    console.log(`FINDINGS ${findings.length}`);
+    process.exit(findings.length ? 1 : 0);
+  }
 
   // 1. the flag: on with ?homeStudio=1, current homepage with ?homeStudio=0
   {
@@ -147,6 +235,27 @@ const measure = (page) =>
         for (const s of r.small) note(`${tag}: small target ${s}`);
         for (const s of r.noName) note(`${tag}: unnamed control ${s}`);
         for (const s of r.noAlt) note(`${tag}: image without alt ${s}`);
+      }
+      // the Kids artwork and the Bible Adventures logo are shown whole: the image keeps its own proportions and nothing clips it
+      const art = await page.evaluate(() => {
+        const i = document.querySelector('[data-testid="hs-kids"] img');
+        if (!i || !i.naturalWidth) return null;
+        const r = i.getBoundingClientRect();
+        const p = i.parentElement.getBoundingClientRect();
+        return { drawn: r.width / r.height, natural: i.naturalWidth / i.naturalHeight, inside: r.left >= p.left - 1 && r.right <= p.right + 1 && r.top >= p.top - 1 && r.bottom <= p.bottom + 1, fit: getComputedStyle(i).objectFit };
+      });
+      if (!art) note(`${tag}: Kids artwork not loaded`);
+      else if (Math.abs(art.drawn - art.natural) / art.natural > 0.02 || !art.inside) note(`${tag}: Kids artwork is cropped or clipped (${JSON.stringify(art)})`);
+      // the bar never covers content: the page ends above it
+      if (w < 700) {
+        await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+        await page.waitForTimeout(300);
+        const end = await page.evaluate(() => {
+          const d = document.querySelector('[data-testid="chrome-dock"]').getBoundingClientRect();
+          const sp = document.querySelector('[data-testid="chrome-dock-spacer"]');
+          return { dockTop: d.top, spacerTop: sp ? sp.getBoundingClientRect().top : null };
+        });
+        if (end.spacerTop === null || end.spacerTop > end.dockTop + 1) note(`${tag}: content runs under the bottom bar at the end of the page (${JSON.stringify(end)})`);
       }
       if (w < 700) {
         for (const y of [0, 600, 1400]) {
