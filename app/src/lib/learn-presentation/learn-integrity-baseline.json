@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T17:11:23.424Z",
+ "measuredAt": "2026-11-26T17:17:58.378Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4586
+  "readings": 4588
  },
  "departments": [
   {
@@ -666,11 +666,13 @@
    "department": "Serve the House",
    "position": 9,
    "title": "Excellence as worship — and raising the next operators",
-   "contentSha": "6667acba80bd6142b5998c857b5a8437b109ee08d3f58ae38ee4fa5fcf77ff43",
+   "contentSha": "2dd882e9e259f77f87943780a53630f11a9e4c49e0729416ac60a2177389b2c2",
    "versions": {
-    "teen": "20036336dd7d763a47f01333472b133c61ba265778d7b33d437d41be1f0666f3",
-    "adult": "fa22928795818e4f5772350faa3cfff65af7c009d03e5829a402323cafffe444",
-    "senior": "8c2798c59ea585820b2f7c4a3f7e1b227086e6b362ff56c2750e64f505de6be7"
+    "child": "4b04c0e6406ec777bd28ab702ea0caf7ea070ccf7697474034e78d0ca04933ab",
+    "youth": "2108ab745f9bb8d513492661648a892cce3edc6e1de659207016d445aa62d050",
+    "teen": "70662f46ddb6a67ff4a12064481e37959eed900777bb9d2eaa98ab35a6df39ae",
+    "adult": "22476537b062e25d579a40503abdf756409a7477b982d2a22d9dd6e2fa4baed7",
+    "senior": "3571ea7ce5c6ab2d28c099b66bfb516e3f2cefb3465401434bad313c8f549ee1"
    }
   },
   {
