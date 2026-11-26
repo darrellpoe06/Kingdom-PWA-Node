@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T16:50:38.851Z",
+ "measuredAt": "2026-11-26T16:56:58.364Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4580
+  "readings": 4582
  },
  "departments": [
   {
@@ -621,11 +621,13 @@
    "department": "Serve the House",
    "position": 6,
    "title": "The pipes — 4K bandwidth and the network",
-   "contentSha": "a1f890c0ce73ca0cc48162e23b9a454611979fedd4d8b6e7ad987a831f2b8c7a",
+   "contentSha": "e6b51e6c6dc77f87255c5185653868bc02809355423a45c1e5cb3d6f703ed961",
    "versions": {
-    "teen": "a70faf871e9d54f20ffc84c91cab5af8a4bd5eedf6f90a99cae5cae1b684994f",
-    "adult": "a4cfc1bcf2de080d7ddeedf99992591654dde0018ba9a7f1b839dd05567ac987",
-    "senior": "737e146364e191d1a8e9c35be777020567a764b47fa0f3a5ea46aef40d59452d"
+    "child": "ab000340e5868480fdcb0a8e8a0f44d36d1da9b4f6c17a7e0b6c19486b27c18e",
+    "youth": "8efb4f410bc33ca71f7e8f4ff5ff5812952183d36108edcba649d8420f7973ff",
+    "teen": "1aa02bafa76991359c8044908956ec4dcaef71927091e0ed1de3f058248cebd5",
+    "adult": "6281bdfd662b3a062faa3baf7521d7bd82bf485a389a02cab69af766ea485497",
+    "senior": "2e639ac8cdf213dbbd08d93b1a31dfb161bfbaaa94c54513778203ac548b1237"
    }
   },
   {
