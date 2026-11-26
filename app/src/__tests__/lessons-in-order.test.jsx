@@ -36,7 +36,7 @@ const pick = (sel, v) =>
     sel.dispatchEvent(new Event('change', { bubbles: true }));
   });
 
-describe('the lessons are first on the Learn home, in order (DR-1661)', () => {
+describe('the lessons on the Learn home, in order (DR-1661; pictures first since DR-1678)', () => {
   it('orderedLessons: in order by default, and every other order', () => {
     const rows = orderedLessons(LIVING, new Map());
     expect(rows.length).toBe(LIVING.schedule.length);
@@ -48,12 +48,14 @@ describe('the lessons are first on the Learn home, in order (DR-1661)', () => {
     expect(za[0]).toBe(az[az.length - 1]);
   });
 
-  it('the list comes before the hero and opens on Living Lessons, lesson 1 on top', () => {
+  // Order changed by Darrell 2026-11-26 (DR-1678 addendum): "Best start with seeing ourselves!!!" The pictures
+  // lead and the list follows, folded; it still opens on Living Lessons, lesson 1 on top.
+  it('the list follows the pictures and opens on Living Lessons, lesson 1 on top', () => {
     act(() => root.render(<LearnStudioPreview courses={COURSES} onOpenLesson={vi.fn()} onExit={vi.fn()} ownerDevice />));
     const list = container.querySelector('[data-testid="lessons-in-order"]');
     expect(list).toBeTruthy();
     const hero = container.querySelector('.ls-hero');
-    if (hero) expect(list.compareDocumentPosition(hero) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    if (hero) expect(hero.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(container.querySelector('[data-testid="inorder-course"]').value).toBe('living-lessons');
     const rows = container.querySelectorAll('.ls-inorder-row');
     expect(rows.length).toBe(FIRST_ROWS);
