@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T13:41:15.197Z",
+ "measuredAt": "2026-11-26T13:45:34.016Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4526
+  "readings": 4528
  },
  "departments": [
   {
@@ -13083,11 +13083,13 @@
    "department": "The Eternal Algorithms",
    "position": 15,
    "title": "Give Me Thine Heart (not just your money)",
-   "contentSha": "2a750fadd6e5fb791132d69e4759c051df57812479f87bcb2deda40b2059151a",
+   "contentSha": "b1b28008c57f08055e61f1d91523e23c853a4af73c6397ce62835a84618e38d7",
    "versions": {
-    "teen": "9c087cea24259f33b0271a4fd053b77bcb6a7b1ecbc549cfac085039f3feb1e2",
-    "adult": "e7d6aa3d128ea27e955178a31361134179c925927cfa1b1d2c40ebfb4b977856",
-    "senior": "10ffe2a4fe2abdc9c3e3115d0fc750a43e9238b53aba9e933a3934689afbc8c8"
+    "child": "8b81a94291adc059d57738fa1e62fe4dfad02f4d05739be9ba13aaa693d51eee",
+    "youth": "7884f1e8307b4d00eeca2fa423fdb4e9de3229505d93db1ece337e3e56e13d1c",
+    "teen": "6ebaa1096d76e51aaa267bcc8336e3696982fa910013a2646db8bce3012eebb3",
+    "adult": "0ed928e56e71ddc5e9c1ae1925f3d1f5e641cf36c9e2756486d9bcb68305feb7",
+    "senior": "26fb5967cd449aa34c2c7495c9aa1226139680eba8dce331c56e80b4aea31830"
    }
   },
   {
