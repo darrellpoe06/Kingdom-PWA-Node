@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T06:33:33.918Z",
+ "measuredAt": "2026-11-26T06:39:11.894Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4378
+  "readings": 4380
  },
  "departments": [
   {
@@ -13375,11 +13375,13 @@
    "department": "The Eternal Algorithms",
    "position": 14,
    "title": "Woe to Those Who Call Evil Good (blurring a plain line is not neutrality)",
-   "contentSha": "e00654a7bc5a997084907979d180b675693433f0258c12ff1c35a4743b128245",
+   "contentSha": "bcdec647a203120fdd2056d1a5609e13d2e96116a2e84e63a59ae8642fa4318f",
    "versions": {
-    "teen": "a19ba7f150abd044b5ce8d3787c0b7434701cc97c9f0fc074542d0e8203cefed",
-    "adult": "b55344aacc379ba6bdee27558753a512b772be134710e3573045d4b2a7f5a0e7",
-    "senior": "2904fe98bf92d86b6f980bc96241071d5aee0d4faf07da079b75cbcc84028583"
+    "child": "ca3c78d3cd8809d4fa605f3a2a7a6cb980b8aa82c83d07f33524acb9dee902bd",
+    "youth": "a46d609792b9f25c2073e31c850fc80f5e4d2e4bedfa07b143b377b2d99a9dd5",
+    "teen": "abd425f2715c4f65c31b44099c9fd5fb1ed8b9f310e10852547b0a599f687fda",
+    "adult": "68c497c62886cda5f79514415ec3be7103cffad7e5df9a2aa340ffa10a567ba4",
+    "senior": "bb60ce99ec985da9ee4cfcc48e3f1fd425dde559a2fb417292c5b9e90950355a"
    }
   },
   {
