@@ -1,5 +1,5 @@
 {
- "measuredAt": "2026-11-26T07:38:26.041Z",
+ "measuredAt": "2026-11-26T07:40:52.568Z",
  "counts": {
   "departments": 13,
   "courses": 51,
@@ -13718,12 +13718,12 @@
    "department": "The Eternal Algorithms",
    "position": 21,
    "title": "Not Every Thought Is Yours (the enemy injects; you take captive)",
-   "contentSha": "d605bac1453d27a6fbae754da72c3853532cd2a98ae3d1b53b51ee5a023a9a3e",
+   "contentSha": "844fbb48aa2b893a01ffe4ae6236b05bbf8fc0649900f78d0150e3e0f8c6b654",
    "versions": {
     "child": "cad2fa2967b30e8440001b9fd098893e0cbae9d1b93dbcaea60447fe35e9b99a",
     "youth": "67bad605133adc052f40f564d714a1d2b3b3b1a6f5c057b11414a6a68a28684e",
     "teen": "d0667568bb6bd4338bc2b9f53cf96ac8fa900e728fcfa1eb1e6c4d5da265535f",
-    "adult": "56ba28638c895f3cd2a0ffdffc7531afcfb750a36df6156a26d6f8f681f217bc",
+    "adult": "a81533938f63a78b19d28637895cc0d2f38fd7b58a25eba3947035ed61d6c648",
     "senior": "b0c21cb96e2eb826e265e478f0fab07736ea490c68ee29c3629724780e839cbc"
    }
   },
@@ -14360,12 +14360,12 @@
    "department": "The Eternal Algorithms",
    "position": 29,
    "title": "Having the Word Is Not Obeying It (they wield it to defend their ways)",
-   "contentSha": "d8345db19db1d50c44ad16d07c30dde324aaa6a113d9c5531464ef230aa723fe",
+   "contentSha": "07559a06484f7a7d725dce7cb2c253fa1988dace4f981e66e04d2acf70810814",
    "versions": {
     "child": "4f785ff1ffccb8f34ff66a5dd2d9cc2934de5427ebe49ad49f3ee7633354b888",
     "youth": "9107971397b6142394cbbde842b11267b92d7c6909501f0dc4086bdc5c52c778",
-    "teen": "85e54c1ec8d158a0f525f95f5503deea33db213aab62c5a3c5b1f02f675e4cac",
-    "adult": "dbf9677cf3cbb89a1382eeb9f81340c47697b0b79356932be2b81e86524f3027",
+    "teen": "4bb9ce652d163e682145efa31cc47a686a59fb91003a7e1baab0d272650b80a5",
+    "adult": "673b59f531556f47b4c18640b0ad351638746d501a010904c177db646306e681",
     "senior": "f30954419e6df059b3fb8b1846c466503108bc49f39e7779dad613ae89115d2d"
    }
   },
