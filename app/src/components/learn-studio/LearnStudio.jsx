@@ -318,6 +318,7 @@ export function LessonCover({ x, next, onBack, onRead, onListen, onVersion, onOp
 const NO_PLACES = Object.freeze([]);
 const NO_PROGRESS = Object.freeze({});
 const NO_COVERS = Object.freeze({});
+const NO_DONE = new Set();
 const CoversContext = React.createContext(NO_COVERS);
 
 export default function LearnStudio({
@@ -333,6 +334,14 @@ export default function LearnStudio({
   onExit,
   initialLesson = null,
   initialCourse = null,
+  // DR-1662: every classic Learn function in the new look.
+  dashboard = null, // node: Your Learning, Pick Up Next, Courses (LearnDashboard)
+  tools = null, // node: the full classic tools (Record, Downloads, Find by verse...), in this page
+  done = NO_DONE, // Set of lesson ids on the reader's record
+  onCourse = null, // (courseKey) a course page opened: the tools follow it
+  onDepartment = null, // (label) -> true when the tools took the department
+  courseRequest = null, // { key, nonce }: open this course page (from the dashboard)
+  markFor = null, // (lesson, courseKey) -> "✓ READ ×3 · Adult" or ''
 }) {
   const home = useMemo(() => studioHome(courses, index, { places, progress, preview }), [courses, index, places, progress, preview]);
   const [query, setQuery] = useState('');
@@ -351,6 +360,23 @@ export default function LearnStudio({
     courseOpened.current = true;
     setCourseKey(initialCourse);
   }, [initialCourse]);
+  useEffect(() => {
+    if (!courseRequest || !courseRequest.key) return;
+    setShelf(null);
+    setQuery('');
+    setOpen(null);
+    setCourseKey(courseRequest.key);
+    try {
+      window.scrollTo(0, 0);
+    } catch {
+      /* no window (tests) */
+    }
+  }, [courseRequest]);
+  useEffect(() => {
+    if (courseKey && onCourse) onCourse(courseKey);
+    // onCourse is a fresh closure each parent render; the course is what matters
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [courseKey]);
   const pickedCourse = useMemo(() => {
     if (!courseKey) return null;
     const c = (courses || []).find((k) => (k.key || (k.meta && k.meta.key)) === courseKey);
@@ -449,7 +475,31 @@ export default function LearnStudio({
             <button type="button" className={`ls-back ${RING}`} onClick={() => setCourseKey(null)}>
               ‹ Back to Learn
             </button>
-            <Row title={pickedCourse.title} note={`${pickedCourse.items.length} lessons`} items={pickedCourse.items} onOpen={openLesson} grid />
+            {/* THE COURSE PAGE, AS COMPACT ROWS (DR-1662; Darrell 2026-11-26: "the
+                smallest thumbnails with the titles showing so it will be very
+                inviting"): every lesson, its small cover and its whole title,
+                in order with month headings, every sort, your read marks. */}
+            <LessonsInOrder
+              courses={courses}
+              index={index}
+              preview={preview}
+              onOpen={(x) => read(x)}
+              done={done}
+              fixedCourse={courseKey}
+              markFor={markFor}
+              onVersion={version}
+            />
+            {tools && (
+              <section className="ls-row ls-full-tools" id="ls-full-tools" data-testid="ls-full-tools">
+                <header className="ls-row-head">
+                  <h2>
+                    <span className="ls-ico ls-ico--star" aria-hidden="true" />
+                    {pickedCourse.title}: every tool
+                  </h2>
+                </header>
+                {tools}
+              </section>
+            )}
           </>
         ) : pickedShelf ? (
           <>
@@ -460,7 +510,8 @@ export default function LearnStudio({
           </>
         ) : (
           <>
-            <LessonsInOrder courses={courses} index={index} preview={preview} onOpen={(x) => read(x)} />
+            <LessonsInOrder courses={courses} index={index} preview={preview} onOpen={(x) => read(x)} done={done} markFor={markFor} onVersion={version} />
+            {dashboard}
             <Hero slides={heroSlides} onOpen={openLesson} onListen={listen} />
             <Row icon="play" title="Continue Learning" items={home.continueLearning} onOpen={openLesson} />
             <Row icon="star" title="Discover Something New" note="Hand-picked lessons" items={home.discover} onOpen={openLesson} />
@@ -479,12 +530,35 @@ export default function LearnStudio({
               </header>
               <div className="ls-depts">
                 {home.topics.map((t) => (
-                  <button key={t.label} type="button" className={`ls-chip ls-chip--dept ${RING}`} onClick={onExit}>
+                  <button
+                    key={t.label}
+                    type="button"
+                    className={`ls-chip ls-chip--dept ${RING}`}
+                    onClick={() => {
+                      // The department opens in the tools on this page; only a department the tools do not know leaves for All Courses.
+                      if (onDepartment && onDepartment(t.label)) {
+                        const el = typeof document !== 'undefined' && document.getElementById('ls-full-tools');
+                        if (el && el.scrollIntoView) el.scrollIntoView({ block: 'start' });
+                      } else onExit();
+                    }}
+                  >
                     {t.label} · {t.lessons}
                   </button>
                 ))}
               </div>
             </section>
+            {tools && (
+              <section className="ls-row ls-full-tools" id="ls-full-tools" data-testid="ls-full-tools">
+                <header className="ls-row-head">
+                  <h2>
+                    <span className="ls-ico ls-ico--star" aria-hidden="true" />
+                    Every Learn Tool
+                  </h2>
+                  <span className="ls-note">departments, courses, Continue, Latest, Browse, Find, Record, Downloads</span>
+                </header>
+                {tools}
+              </section>
+            )}
           </>
         )}
       </div>

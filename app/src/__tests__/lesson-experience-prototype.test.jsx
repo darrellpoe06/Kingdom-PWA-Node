@@ -394,14 +394,16 @@ describe('four-mode reference layout -- real data only', () => {
 });
 
 // Darrell, 2026-11-25, on ?course=healthy-living: "Fix it."
-describe('a course link opens that course in the new look, every lesson as a grid', () => {
+// DR-1662 (Darrell 2026-11-26: "the smallest thumbnails with the titles showing"):
+// the course page lists every lesson as a compact thumbnail row, not a big-card grid.
+describe('a course link opens that course in the new look, every lesson listed', () => {
   const LIVING = COURSES.find((c) => c.key === 'living-lessons');
 
   it('initialCourseKey opens a course page listing EVERY lesson in the course, not the home screen', () => {
     render(<LearnStudioPreview courses={COURSES} onOpenLesson={vi.fn()} onExit={vi.fn()} ownerDevice initialCourseKey="living-lessons" />);
-    const grid = container.querySelector('.ls-grid');
-    expect(grid).toBeTruthy();
-    expect(grid.querySelectorAll('button.ls-card').length).toBe(LIVING.schedule.length);
+    const list = container.querySelector('.ls-inorder-list');
+    expect(list).toBeTruthy();
+    expect(list.querySelectorAll('button.ls-inorder-row').length).toBe(LIVING.schedule.length);
     expect(container.textContent).toContain(`${LIVING.schedule.length} lessons`);
   });
 
@@ -423,7 +425,7 @@ describe('a course link opens that course in the new look, every lesson as a gri
     );
     expect(container.querySelector('.ls-cover')).toBeTruthy();
     click(container.querySelector('.ls-cover .ls-back'));
-    expect(container.querySelector('.ls-grid')).toBeTruthy();
+    expect(container.querySelector('.ls-inorder-list')).toBeTruthy();
   });
 
   it('an unknown course in a link opens the normal home screen, never a dead page', () => {

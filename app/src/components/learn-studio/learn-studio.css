@@ -800,3 +800,288 @@
   flex-wrap: wrap;
   margin-top: 10px;
 }
+
+/* ===========================================================================
+   DR-1662 — every classic Learn function, in the new look.
+   Compact rows: the smallest thumbnail with the whole title beside it
+   (Darrell 2026-11-26: "the smallest thumbnails with the titles showing so it
+   will be very inviting"), and one Sort · Show · View bar per list. Meters are
+   gold: true red is reserved (Color Theology, DR-0099).
+   =========================================================================== */
+.ls-mini-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(340px, 100%), 1fr));
+  gap: 8px 14px;
+}
+.ls-mini-list--two {
+  margin-top: 14px;
+}
+.ls-mini {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 72px;
+  padding: 8px;
+  border-radius: 12px;
+  border: 1px solid var(--ls-line);
+  background: var(--ls-panel);
+  color: var(--ls-text);
+  text-align: left;
+}
+.ls-mini:hover {
+  border-color: #7c6431;
+}
+.ls-mini-thumb {
+  position: relative;
+  flex: none;
+  width: 96px;
+  aspect-ratio: 16 / 9;
+  border-radius: 8px;
+  overflow: hidden;
+  background: linear-gradient(135deg, #2c2326, #1a1416);
+  display: grid;
+  place-items: center;
+}
+.ls-mini-thumb img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.ls-mini-code {
+  color: var(--ls-gold);
+  font-weight: 800;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  padding: 0 4px;
+  text-align: center;
+}
+.ls-mini-body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  flex: 1;
+}
+.ls-mini-kicker {
+  color: var(--ls-gold);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.ls-mini-title {
+  font-weight: 700;
+  font-size: 0.9375rem;
+  line-height: 1.3;
+}
+.ls-mini-meta {
+  color: var(--ls-dim);
+  font-size: 0.75rem;
+}
+.ls-meter {
+  display: block;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--ls-line);
+  overflow: hidden;
+  margin-top: 2px;
+}
+.ls-meter > span {
+  display: block;
+  height: 100%;
+  background: var(--ls-gold);
+}
+.ls-meter--big {
+  height: 8px;
+  margin: 12px 0 14px;
+}
+.ls-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+.ls-stat {
+  background: var(--ls-panel);
+  border: 1px solid var(--ls-line);
+  border-radius: 12px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+}
+.ls-stat strong {
+  font-size: 1.5rem;
+  color: var(--ls-gold);
+  line-height: 1.1;
+}
+.ls-stat span {
+  color: var(--ls-dim);
+  font-size: 0.75rem;
+}
+.ls-tools-strip,
+.ls-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.ls-controls {
+  margin: 12px 0;
+  gap: 10px 16px;
+}
+.ls-chip {
+  min-height: 40px;
+}
+.ls-chip--dept.is-on {
+  background: var(--ls-gold);
+  border-color: var(--ls-gold);
+  color: #1a1012;
+}
+.ls-depts + .ls-controls {
+  margin-top: 14px;
+}
+.ls-sort {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.75rem;
+  color: var(--ls-dim);
+}
+.ls-sort select {
+  min-height: 40px;
+  border-radius: 10px;
+  border: 1px solid var(--ls-line);
+  background: var(--ls-panel);
+  color: var(--ls-text);
+  padding: 6px 10px;
+  font: inherit;
+  font-size: 0.875rem;
+}
+.ls-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.ls-toggle-label {
+  color: var(--ls-dim);
+  font-size: 0.75rem;
+  margin-right: 4px;
+}
+.ls-toggle-btn {
+  min-height: 40px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--ls-line);
+  background: var(--ls-panel);
+  color: var(--ls-text);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+.ls-toggle-btn[aria-pressed='true'] {
+  background: var(--ls-gold);
+  border-color: var(--ls-gold);
+  color: #1a1012;
+}
+.ls-more {
+  margin-top: 14px;
+  min-height: 44px;
+}
+.ls-month {
+  list-style: none;
+  color: var(--ls-gold);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 10px 2px 2px;
+}
+.ls-read-mark {
+  color: var(--ls-gold);
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.ls-inorder-row .ls-mini-thumb {
+  width: 80px;
+}
+/* Cards view: the same rows as tiles, picture on top, title under it. */
+.ls-mini-list--cards {
+  grid-template-columns: repeat(auto-fill, minmax(min(200px, 46%), 1fr));
+}
+.ls-mini-list--cards .ls-mini,
+.ls-inorder-list--cards .ls-inorder-row {
+  flex-direction: column;
+  align-items: stretch;
+}
+.ls-mini-list--cards .ls-mini-thumb,
+.ls-inorder-list--cards .ls-mini-thumb {
+  width: 100%;
+}
+.ls-inorder-list--cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(200px, 46%), 1fr));
+  gap: 10px;
+}
+.ls-inorder-list--cards .ls-month {
+  grid-column: 1 / -1;
+}
+.ls-inorder-list--cards .ls-inorder-go {
+  display: none;
+}
+/* The classic tools keep their own (theme-recolored) colors inside this page. */
+.ls-full-tools {
+  color: initial;
+}
+@media (max-width: 640px) {
+  .ls-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .ls-mini-thumb {
+    width: 84px;
+  }
+}
+.ls-read-mark {
+  display: block;
+  margin-top: 2px;
+  letter-spacing: 0.04em;
+}
+.ls-ages-mini {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 6px 0 4px 92px;
+}
+.ls-age-chip {
+  min-height: 36px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  border: 1px solid #7c6431;
+  background: none;
+  color: #e9c766;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.ls-inorder-list--cards .ls-ages-mini {
+  padding-left: 0;
+}
+/* The classic tools (Record, Downloads, Find...) wear the new look's panels. */
+.ls-full-tools details,
+.ls-full-tools nav[data-testid='course-lessons-first'] {
+  border-radius: 14px;
+  overflow: hidden;
+}
+.ls-full-tools summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+@media (max-width: 640px) {
+  .ls-ages-mini {
+    padding-left: 0;
+  }
+}
