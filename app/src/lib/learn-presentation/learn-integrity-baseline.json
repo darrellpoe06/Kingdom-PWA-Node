@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T15:20:32.549Z",
+ "measuredAt": "2026-11-26T15:23:25.586Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4568
+  "readings": 4570
  },
  "departments": [
   {
@@ -12596,11 +12596,13 @@
    "department": "The Eternal Algorithms",
    "position": 1,
    "title": "Choose This Day (life and death set before you)",
-   "contentSha": "e7e52990a2ab3437e9b028c4b2de0cc5f939946a88c3ad41f2f83abad2dd4419",
+   "contentSha": "263bda48b82d400a4b5be66735c9fb8d7d87ece57f61d7bfbdf8e324e798e5cd",
    "versions": {
-    "teen": "766938d63c6c29f3313bfc11c17d399c7830df49351a094e1c23f60253abbd7b",
-    "adult": "ff6ed6a623e348eb0d19036f951e6f99fa2dfae43e44ff74e0f5070fb4d3fb1d",
-    "senior": "802fac15a97b44bf1facebc1aa37a08de0154ba64e27a082d7c7e512ca097348"
+    "child": "d29dd71d4cb85180c6e19bfbc7d45264704228f8586d8e8f6cd50d445de4f2e6",
+    "youth": "35cede6692fc2dcce8246420f822204c152f8ab7ce56bea9594f29d311dad42c",
+    "teen": "4e39d66891c341c0151e818f5e77d0fd74676d89f55fc7390d6b2b8b4d4deaf1",
+    "adult": "c637265784fb58182e88f60047df882f3c01ac5a525e838650feb9cbcfa4c6fd",
+    "senior": "0cefd18c21cb0cec51141f52bbb9e29b72753355ff63a3e33b74726db09f4bf1"
    }
   },
   {
