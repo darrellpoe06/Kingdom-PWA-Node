@@ -32,7 +32,7 @@ A teaching spoken into the app on 2026-11-26, opened with "this is a lesson, by 
 - **"An issue He has."** Rendered as Yahweh being emotionally connected to what we do, shown from the Word on both sides: He rejoices (Zephaniah 3:17) and He grieves (Genesis 6:6; Ephesians 4:30). Nothing beyond what the Word says.
 - **Doing and grace.** Ephesians 2:8-10 is taught beside James 2 so the second movement is not heard as earning (the Word explaining the Word, DR-0098).
 - **1 John 5:7** is quoted as the KJV the app carries; no debate staged (DR-0098).
-- **The film.** Named as his illustration; the details are stated from common knowledge and carried in `UNCHECKED` with `re-review: 2026-12-10` (DR-0076).
+- **The film.** His Karate Kid line is the author's illustration: a joke and a widely known cultural reference (The Karate Kid, 1984: Miyagi trains Daniel through waxing cars), not a factual claim the lesson rests on. Darrell, 2026-11-26: it will land; everybody knows Karate Kid. First built with an UNCHECKED line and a re-review date; both dropped on his word, and the line stays exactly as his.
 - **Typography.** "the devils" appears only inside James 2:19, lowercase.
 
 ## Wiring checked

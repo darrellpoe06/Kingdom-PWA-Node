@@ -8,12 +8,10 @@
 // Scaffolded by scripts/new-lesson.mjs. Every quotation began as a kjv token that
 // scripts/fill-verses.mjs filled from app/public/bible/kjv, and the catalog-wide
 // verse gate (quoted-verse-is-the-verse.test.js) reads each one against its verse.
+// The Karate Kid line is his joke, a widely known cultural reference (Darrell,
+// 2026-11-26), not a factual claim the lesson rests on, so there is no UNCHECKED line.
 export const ORDER = 343;
 export const ADDED = '2026-11-26';
-
-// UNCHECKED: the one claim outside the Word is Darrell's film picture.
-export const UNCHECKED =
-  'The Karate Kid (1984) details (Mr. Miyagi, Daniel-san, the wax on, wax off chores that become the block) are stated from common knowledge of the film, not read back from a source in this session; re-review: 2026-12-10';
 
 export default {
   id: 'll343-unbelievers-are-not-righteous',

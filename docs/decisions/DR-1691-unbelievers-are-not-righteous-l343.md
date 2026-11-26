@@ -39,10 +39,9 @@ Two parables with invented people (Atlanta, Nairobi). Ten quiz questions. Facili
 | band shares | child 0.51, youth 0.61, teen 0.62, senior 0.61 (first build 0.39 to 0.45; each band gained taught paragraphs) |
 | reading ladder | child 1.4, youth 3.6, teen 6.3, senior 7.7 |
 | band overlap | worst pair 0.02 (ceiling 0.5) |
-| outside the Word | the film details only; `UNCHECKED` names them, `re-review: 2026-12-10` |
+| outside the Word | none relied on: the Karate Kid line is the author's illustration (a joke, a widely known cultural reference; The Karate Kid, 1984: Miyagi trains Daniel through waxing cars), not a factual claim; Darrell 2026-11-26 |
 
 ## Verification
 
 `living-lessons-ll343-unbelievers-are-not-righteous.test.js`: the shared gate with seven spine spans (Hebrews 11:6, James 2:20, Revelation 4:11, Ephesians 2:10, Isaiah 55:9, John 14:6, Isaiah 53:5) in the adult lesson and every band; every quotation verbatim; our voice names Yahweh; no capitalised adversary; three talk-together directions per place. Results of the catalog-wide suites are in the narrative file.
 
-`re-review: 2026-12-10` — read the film's details back from a source and drop or correct the UNCHECKED line.
