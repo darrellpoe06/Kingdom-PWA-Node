@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T17:03:54.908Z",
+ "measuredAt": "2026-11-26T17:11:23.424Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4584
+  "readings": 4586
  },
  "departments": [
   {
@@ -651,11 +651,13 @@
    "department": "Serve the House",
    "position": 8,
    "title": "Capturing the Work: POV SOPs",
-   "contentSha": "8aad9ab8c60110aab1cf5ed0b8871db0204e637bc8d0b0252e04d42a4aa473b8",
+   "contentSha": "649422c4da46d6fffca17e70c4cac9b8a043d7e1f8493802de67f6a1a15aa2d7",
    "versions": {
-    "teen": "a094a09388b9b82672d1801300977b33dc250535a29351bcbbd002d26a17aa31",
-    "adult": "7a3584e36728d0b9ece7010d15b7244fad1c791b2acb2fe844a176ff0038d3f3",
-    "senior": "3fa73e14c40e092adf546b68597e5b73c8fff603e982cfb0110485f80b3f00fb"
+    "child": "73d4cdc053ced1e6f0bb991ae14626972863bc45b86f54311e03e1e15ee3b76d",
+    "youth": "79016827533a9e7da61aead81797fd8f4cf045a720ffc42640320ef5825e1d35",
+    "teen": "5ca5cc1e229aa2dbb9a38e9504d9ed544503c8960ff23abcfe068a3a5542e87a",
+    "adult": "0ec21fb493661c1292b989c5c6db6d55d386b01178a69d6d8eba017c4f762380",
+    "senior": "a4ecb5e713206518c121e6d0fee31f988140512cd67d22a2dc09346d64ffe032"
    }
   },
   {
