@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T06:27:48.087Z",
+ "measuredAt": "2026-11-26T06:50:47.601Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4376
+  "readings": 4386
  },
  "departments": [
   {
@@ -13362,11 +13362,13 @@
    "department": "The Eternal Algorithms",
    "position": 13,
    "title": "The Word Is Already Written on the Heart (renew the mind to it)",
-   "contentSha": "8f7eadf328a00be2bac9b16f5e1deea409a2f80ad2657c009c56f68a40600e39",
+   "contentSha": "98838f8d81f24f14fd598bfbad79e7c77b76101fa7a3e75853e0d7581f4428d5",
    "versions": {
-    "teen": "fbdf418dc8c95cadee43aad18d1fe00dc99aeaecb6c5082fe7b4e44608ed5edf",
-    "adult": "1713fec2913d97cef69276919f82ccb3a5c616772b86b49ec89e488cae09e0be",
-    "senior": "da4d6c1a823bd75db6d977d13a390caff2db948b95dda66557c9f07f465fa621"
+    "child": "2ddf3f4b374237fedc5c3807d1ac4ff30b4622bd47de295aac59f2d41199443a",
+    "youth": "75aafe4dc521e47b55e5315b905c6c625f8d29032ff774d3e28374a5c4e92e20",
+    "teen": "888277babafc5076f2a618ba426f0ad6f32d83d73b6412f638f0dc592b293f2d",
+    "adult": "cff4de90baa80946b6e03a4beaa0944cd8af4b296da47f8a25bff772f8513d59",
+    "senior": "1bd4bfd3ab468c537ec306c554763b94cac53d7324394f35c3d3f29bb7457207"
    }
   },
   {
@@ -13375,11 +13377,13 @@
    "department": "The Eternal Algorithms",
    "position": 14,
    "title": "Woe to Those Who Call Evil Good (blurring a plain line is not neutrality)",
-   "contentSha": "e00654a7bc5a997084907979d180b675693433f0258c12ff1c35a4743b128245",
+   "contentSha": "bcdec647a203120fdd2056d1a5609e13d2e96116a2e84e63a59ae8642fa4318f",
    "versions": {
-    "teen": "a19ba7f150abd044b5ce8d3787c0b7434701cc97c9f0fc074542d0e8203cefed",
-    "adult": "b55344aacc379ba6bdee27558753a512b772be134710e3573045d4b2a7f5a0e7",
-    "senior": "2904fe98bf92d86b6f980bc96241071d5aee0d4faf07da079b75cbcc84028583"
+    "child": "ca3c78d3cd8809d4fa605f3a2a7a6cb980b8aa82c83d07f33524acb9dee902bd",
+    "youth": "a46d609792b9f25c2073e31c850fc80f5e4d2e4bedfa07b143b377b2d99a9dd5",
+    "teen": "abd425f2715c4f65c31b44099c9fd5fb1ed8b9f310e10852547b0a599f687fda",
+    "adult": "68c497c62886cda5f79514415ec3be7103cffad7e5df9a2aa340ffa10a567ba4",
+    "senior": "bb60ce99ec985da9ee4cfcc48e3f1fd425dde559a2fb417292c5b9e90950355a"
    }
   },
   {
@@ -13388,11 +13392,13 @@
    "department": "The Eternal Algorithms",
    "position": 15,
    "title": "Peace, Peace, When There Is No Peace (minimizing a real wound is a lie)",
-   "contentSha": "97c5397962fd646005d1b01f2cce6c86ab656863b26e8e7e0c49fb87cd8afbe6",
+   "contentSha": "56343b4e4a2285270dd82f4de9054e7634a05bae321dd87713719dc5c44b4cec",
    "versions": {
-    "teen": "6f305e43c0baab432fade49ad72f7a1cd40a5f7f12b70795a0025060aa7f2d42",
-    "adult": "cb9372e2cf2fb4e14d17297c3710ec0c008fb3c45c8a30987c137ccad71aa420",
-    "senior": "ac0e046c05c695f6b9392cf58165657568e2e3734333382bba2803bd42099600"
+    "child": "7f59642a1119828dd87f1d8918e9fcaf15a9e956b8a6c1ca2d08237bd890c26e",
+    "youth": "b7522724abba0e9eae9682dda2f369cce1854f0ef326c02358e432a11ed921c0",
+    "teen": "71cedf815705b6baab842d3214911285ce79a127e4844850ab60c32652490d13",
+    "adult": "df67518a87acf751ddca76f4506a5cf464fe0481398c85f77eabcfdfc949146f",
+    "senior": "75ee8fa00900f87c0e9dbf82e36280f18db25f1282dec65cb5d53c272523aae1"
    }
   },
   {
@@ -14364,11 +14370,13 @@
    "department": "The Eternal Algorithms",
    "position": 31,
    "title": "Holding Down the Truth That Is Plainly Seen (the same thing we do to Yahweh)",
-   "contentSha": "e523641a6bcff8d798c2539ed065face06757bb018e377631ba9be7dd542ead1",
+   "contentSha": "21c986fb4774e21ff27dd2b26ff2f8c87699410c651099e71cd50ed629e54872",
    "versions": {
-    "teen": "ebbcf94398de563b1c91818099c090ce5122b1eb03728fdbb754acb0a82a7cd4",
-    "adult": "51ae81068f293872bf409c30f45dd6ebf0a9f8a200ea73ebeb4196e9a1711de9",
-    "senior": "6b019c7f62cfb1124786f9448c0b27ea56d74af672060776694386b414206b12"
+    "child": "204454a8c70883c46c17ce193ecf8cccd9384bb346a44c08f725c83aad7984a2",
+    "youth": "dc47415d41446860d83e74492b469cd8c46e3992783648b7966b12def8a04708",
+    "teen": "ef98adfb911f329575e20000e386fb81a461edf85c0be347de4a5acd144eadfd",
+    "adult": "45e895e832a1d4035599e1e7eeabea90f7237b6e54db6414c8ed2d129fa5a094",
+    "senior": "53b94c94d83ee945c081ec182f9a6b0589e19f6251a2f69099c09564abe1cd12"
    }
   },
   {
@@ -14684,11 +14692,13 @@
    "department": "The Eternal Algorithms",
    "position": 5,
    "title": "The Word of Their Testimony (eat the Word and the testimony aligns)",
-   "contentSha": "c4cc1ce22ef516b803bff393e25d838e0218dbd3ec158a00e0c783527ae5c626",
+   "contentSha": "37e2599145eeea6b180b1315cfdc538a6f67ff95e5ffb2bb97d4967e8ce63e4c",
    "versions": {
-    "teen": "d46159fd391b1542c8e08e65d4a0fd8d732f96d29e7f85f3598d24110044284b",
-    "adult": "f8a0bbcf2826fb4c5a4668c5745dc101fde724e9713e3b2cf8d7671e6e299baf",
-    "senior": "2a8e51ef6341969b15d6c301aa455a27f0d7da940c6c217cdf2581019c7b175d"
+    "child": "90689cd3bd2fa2a225fe36909aec0947b4c6e39312ab2692544702e199d023c2",
+    "youth": "3f12cd2aafe8c156832da43b07ce40ac9bc0ec01b1f83913b0c1e22cc1c00590",
+    "teen": "c951e6d8b6589980fabbd2b8d21017144dd245fc3d7d19e9ded891c8c67dc158",
+    "adult": "4d80837bcbefb8f17b83488b0e639f8c8e3bde2454bdb8275854a83181634fd8",
+    "senior": "a12ba5ebe437d88d7744dab2aa584a0ebabf20969acf0fa79e32d625824c577a"
    }
   },
   {
