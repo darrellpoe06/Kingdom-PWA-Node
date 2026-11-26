@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T05:18:07.762Z",
+ "measuredAt": "2026-11-26T05:22:35.649Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4344
+  "readings": 4346
  },
  "departments": [
   {
@@ -13823,11 +13823,13 @@
    "department": "The Eternal Algorithms",
    "position": 30,
    "title": "Lead Us Not Into Temptation (a prayer for protection, kept by vigilance)",
-   "contentSha": "e79329ad00b3f2b5efc7fd9256ab497cc32eefc8b24f026ab4464307ed60b523",
+   "contentSha": "6dd2d16c42e40b9ea2829082879f91c8c6830804bd96af90d218af1a156bd8fb",
    "versions": {
-    "teen": "9272e8b268be26cadca8551384870c9e2b963ecf6d847c18c40bc397e1acc0b1",
-    "adult": "c157b338fe2428c0bbd870f02c39e5298f8e2a18f2fda06cd30b5663e7815d7a",
-    "senior": "7a59fcb3b93a4d4d5132241ae2a83187632e6e4814a5c6ecc138e5d9e33b9508"
+    "child": "f305299b24c30886724105e61f61d05d3c47d0dd27e2484935e9a5288454ab88",
+    "youth": "ae7b03a8258582bd9633eb2d541d30a07bd8962f564f3d0183af7c4aab1f7b63",
+    "teen": "14991527dfc33d85606d04f16c5aa9a9aeeb46e552d19798b8dece1c558baa8e",
+    "adult": "04e8dbe377db698b95379485dcd95de65ed1e7d336d5359b9a13d16b4c9e3c27",
+    "senior": "83d818ce8adb70069b4d7587ebae37b4d1c892e95cf009174153c35bede17b92"
    }
   },
   {
