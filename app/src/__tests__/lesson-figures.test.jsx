@@ -172,6 +172,8 @@ describe('the gate catches a broken figure (proven-to-catch)', () => {
     // DR-1287: an image silent on who it shows, or showing people drawn otherwise, is refused.
     [{ id: 'i', kind: 'image', title: 't', source: 's', src: '/lesson-figures/x.webp', alt: 'a' }, /depictsPeople/],
     [{ id: 'i', kind: 'image', title: 't', source: 's', src: '/lesson-figures/x.webp', alt: 'a', depictsPeople: true }, /African American/],
+    // A real photograph of a named person carries its license, or it is refused.
+    [{ id: 'i', kind: 'image', title: 't', source: 's', src: '/lesson-figures/x.webp', alt: 'a', depictsPeople: true, photographOf: 'Dr. X' }, /license/],
     [{ id: 'q', kind: 'quadrant', title: 't', source: 's', axes: { x: { label: 'x' }, y: { label: 'y' } }, cells: [{ x: 'low', y: 'low' }, { x: 'high', y: 'low' }, { x: 'low', y: 'high' }] }, /four distinct cells/],
   ];
   for (const [f, re] of cases) {
@@ -183,6 +185,10 @@ describe('the gate catches a broken figure (proven-to-catch)', () => {
   it('a picture of people drawn as the requirement says passes (DR-1287)', () => {
     const img = { id: 'i', kind: 'image', title: 't', source: 's', src: '/lesson-figures/x.webp', alt: 'a', depictsPeople: true, peopleShown: 'African American' };
     expect(figureProblems(img)).toEqual([]);
+  });
+  it('a real photograph of a named person passes on its license, without a drawn-people label', () => {
+    const photo = { id: 'p', kind: 'image', title: 't', source: 's', src: '/lesson-figures/x.webp', alt: 'a', depictsPeople: true, photographOf: 'Dr. Théophile Obenga', license: 'CC BY-SA 3.0' };
+    expect(figureProblems(photo)).toEqual([]);
   });
   it('a sound figure passes and is shown', () => {
     expect(figureProblems(good)).toEqual([]);

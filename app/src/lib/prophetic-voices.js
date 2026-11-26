@@ -25,6 +25,17 @@
 // gloss (SCRIPTURE-REFERENCE-STANDARD), never a quoted translation.
 // =============================================================================
 
+import { PV_PRICE_MESSAGES, PV_PRICE_OPENER } from './prophetic-voices/price.js';
+import { PV_DARBY_MESSAGES, PV_DARBY_OPENER } from './prophetic-voices/darby.js';
+import { PV_MUNROE_LESSONS } from './prophetic-voices/munroe.js';
+import { withTalkTogether } from './prophetic-voices/talk-together.js';
+import { withBenefits } from './prophetic-voices/benefits.js';
+import { PV_UNSEEN_REALM } from './prophetic-voices/unseen-realm.js';
+import {
+  PV_DIOP_MESSAGES, PV_OBENGA_MESSAGES, PV_WILLIAMS_MESSAGES,
+  PV_DIOP_OPENER, PV_OBENGA_OPENER, PV_WILLIAMS_OPENER,
+} from './prophetic-voices/scholars.js';
+
 export const PV_PROPOSED_COHORT_START = null;
 export const PV_CONFIRMED_COHORT = { startDate: null, confirmed: false };
 
@@ -60,9 +71,18 @@ export const PV_SESSION_FLOW = [
 ];
 export const PV_SESSION_MINUTES = PV_SESSION_FLOW.reduce((t, s) => t + s.minutes, 0); // 75
 
-export const PV_MODULES = [
+// The opening lesson of each voice: who he was and why he spoke. His own
+// message follows in the per-voice sequences (./prophetic-voices/*.js),
+// composed into PV_MODULES below (Darrell 2026-11-26: "let them
+// speak and cite them as they are").
+const PV_OPENERS = [
   {
     id: 'pv-price',
+    video: {
+      url: 'https://youtu.be/Nx44eoRK8z8',
+      title: 'Dr. Frederick K.C. Price, Race, Religion & Racism',
+      label: 'His own message',
+    },
     title: 'Dr. Frederick K.C. Price — "Race, Religion & Racism" (1997)',
     voice: { name: 'Dr. Frederick K.C. Price', ministry: 'Founder, Crenshaw Christian Center (Los Angeles); the FaithDome', era: '1997 series; b. 1932, d. 2021' },
     bigIdea: 'In 1997 Dr. Frederick K.C. Price — a nationally known Word-of-Faith pastor — turned his platform to name the American Church’s complicity in racism and slavery, plainly and fearlessly, in the series "Race, Religion & Racism." His thesis: "Slavery could never have existed without the consent of the Church," and God favors no race over another.',
@@ -103,20 +123,22 @@ export const PV_MODULES = [
   {
     id: 'pv-darby',
     title: 'Pastor Stephen Darby — identity, the Church’s account, and the unseen realm',
-    voice: { name: 'Pastor Stephen Darby', ministry: 'Stephen Darby Ministries / Destined Ministries (Louisville, KY; est. 2003)', era: 'b. — , d. early 2021; ~346K-subscriber teaching archive, 611+ messages' },
+    voice: { name: 'Pastor Stephen Darby', ministry: 'Stephen Darby Ministries / Destined Ministries (Louisville, KY; est. 2003)', era: 'b. 12 November 1972, d. December 2017; ~346K-subscriber teaching archive, 611+ messages' },
     bigIdea: 'Pastor Stephen Darby taught boldly across subjects most pulpits avoided: Black identity in Scripture and America’s account (Who Are We?, Negroland, They Jacked Us, The Black Gatekeepers, The False Christianity Movement), the church itself (Zion vs Rome), and the unseen / multidimensional realm (The Christ Frequency, CERN, Return of the Nephilim). He named hard things and drew backlash — the reason, Darrell notes, his voice was overlooked while the mainstream later heard others.',
     inApp: 'Hear the primary source on the Stephen Darby Ministries channel, then weigh each teaching by the Word (the Test) — this study holds the record of the voice; it does not endorse every teaching. Bring discernment, not blank acceptance or blanket dismissal.',
     anchor: { ref: 'Acts 7:51-53; Matthew 13:57; Amos 7:10-13', theme: 'Stephen named his nation’s and its leaders’ sins to their faces and was killed for it; a prophet is not without honour save in his own country; Amaziah told Amos to flee and stop prophesying against the land. The one who names a people’s sin draws backlash and is sent away — which is why the record must be kept.' },
     sources: [
-      { claim: 'Stephen Darby Ministries (Destined Ministries), founded 2003 in Louisville, KY; Pastor Stephen Darby taught racial identity in Scripture, church history/structure ("Zion vs Rome"), and the unseen realm; he passed away in early 2021.', title: 'Stephen Darby Ministries — official ministry', publisher: 'stephendarbyministries.com', url: 'https://www.stephendarbyministries.com/', asOf: '2026-07-04' },
+      { claim: 'Stephen Darby Ministries (Destined Ministries), founded 2003 in Louisville, KY; Pastor Stephen Darby taught racial identity in Scripture, church history/structure ("Zion vs Rome"), and the unseen realm. He died in December 2017; his ministry and channel continue.', title: 'Stephen Darby Ministries — official ministry', publisher: 'stephendarbyministries.com', url: 'https://www.stephendarbyministries.com/', asOf: '2026-07-04' },
       { claim: 'The Stephen Darby Ministries YouTube channel (@sldskd88) hosts ~346K subscribers and 611+ archived messages, including "Zion vs Rome," "Who Are We?," "Negroland," "They Jacked Us," "The Black Gatekeepers," "The False Christianity Movement," "The Christ Frequency," "CERN: The End," and "Return of the Nephilim."', title: 'Stephen Darby Ministries (@sldskd88) — teaching archive', publisher: 'YouTube (channel provided by Darrell; verified by channel page)', url: 'https://youtube.com/@sldskd88', asOf: '2026-07-04' },
+      { claim: 'His dates. Born 12 November 1972: his own ministry’s channel posted "Happy Heavenly 54th Birthday Pastor Steve" on 12 November 2026. Died December 2017: Derek Lawrence-Harper (2023) writes of "Stephen Darby of Louisville, KY who died in December of 2017." An earlier version of this lesson said early 2021; that was wrong.', title: 'Stephen Darby Ministries channel feed (youtube.com/feeds/videos.xml?user=sldskd88), video nRNAPstKaLw, 2026-11-12; and D. Lawrence-Harper, America Accept the Truth, Repent, and Save Our Country (2023)', publisher: 'YouTube (Stephen Darby Ministries); Google Books', url: 'https://www.youtube.com/feeds/videos.xml?user=sldskd88', asOf: '2026-11-26' },
+      { claim: 'Lawrence-Harper (2023) records Darby’s death in December 2017.', title: 'America Accept the Truth, Repent, and Save Our Country', publisher: 'Derek Lawrence-Harper (Google Books)', url: 'http://books.google.com/books?id=5by7EAAAQBAJ', asOf: '2026-11-26' },
     ],
-    honestNote: 'Verified: Darby’s ministry, its founding and location, his death (early 2021), and his teaching titles/themes (via the ministry site and the channel page). NOT independently verified and carried as Darrell’s framing: the comparison that he "said what Michael Kaiser said ~15 years before," and the characterization that the evangelical/African-American church overlooked him specifically for naming America’s sins / fear of backlash. Some of Darby’s subjects (frequencies, CERN, Nephilim) are esoteric — presented here as his topics for the learner to weigh with discernment (the Test), not endorsed.',
+    honestNote: 'Verified: Darby’s ministry, its founding and location, his teaching titles/themes (via the ministry site and the channel page). NOT independently verified and carried as Darrell’s framing: the comparison that he "said what Michael Kaiser said ~15 years before," and the characterization that the evangelical/African-American church overlooked him specifically for naming America’s sins / fear of backlash. Some of Darby’s subjects (frequencies, CERN, Nephilim) are esoteric — presented here as his topics for the learner to weigh with discernment (the Test), not endorsed.',
     levels: {
       youth: 'This lesson is about Pastor Stephen Darby: identity, the Church’s account, and the unseen realm. There is something fitting in his name. In the book of Acts, Stephen stood before his nation’s leaders, retold their own history, named their sin to their faces, and was stoned for it (Acts 7:51-53). That is the pattern this whole study follows, and Pastor Darby fits it. From Louisville, Kentucky, through Stephen Darby Ministries, founded in 2003, he built one of the larger Black teaching archives online, with around 346,000 subscribers and more than six hundred messages. He did it by teaching the subjects most pulpits avoid. His work runs in three streams. The first is identity and the nation’s story: Black identity in Scripture and how America treated a people. The second is the Church itself. He argued that much of the modern church is more like Rome, controlled and institutional, than like Zion, Hebraic and led by the Spirit. That echoes Dr. Price’s charge that the Church served the wrong master. The third stream is the unseen, many-dimensional realm, which connects to the way this platform talks about a higher dimension. We hold him with two disciplines. First, verification: his ministry, dates and teaching titles are sourced and real. The claims that others were praised for saying the same things years later, and that he was overlooked out of fear of backlash, are Darrell’s reading of the pattern, not proven fact. Second, discernment: some of his subjects are unusual and truly disputed, so we do not endorse every teaching. We keep the record and send you to the source to weigh each message by the Word. The one who names a people’s sin has always been pushed away, and that is why the record must be kept.',
       teen: 'This lesson is about Pastor Stephen Darby, and the three things he kept teaching: identity, the Church’s own account, and the unseen realm. There is a providence in his name. In Acts, Stephen stood before his nation’s leaders, recited their own history, named their sin to their faces, "ye do always resist the Holy Ghost" (Acts 7:51), and was stoned for it. That is the pattern this study traces, and Darby fits it. From Louisville, Kentucky, through Stephen Darby Ministries, also called Destined Ministries, founded in 2003, he built one of the larger Black teaching archives online: roughly 346,000 subscribers and over six hundred messages, gathered by teaching what most pulpits steer around. His work runs in three streams. First, identity and the nation’s account: messages on Black identity in Scripture and on how America treated a people. Second, the Church itself: he argued that much of the modern church is more "Roman," institutional and controlled, than "Zion," Hebraic and Spirit-led, a critique that lines up with Dr. Price’s charge that the Church served the wrong master. Third, the unseen and multidimensional realm, which Darrell calls "also Darby’s space," and which links to the dimensional framing this platform already uses. Two disciplines govern how we hold him. Verification: his ministry, his dates and his titles are documented, while the claims that others were praised for the same teaching years later, and that he was overlooked out of fear of backlash, are carried as Darrell’s framing, a reasonable reading, not a proven fact. Discernment: some of his subjects are esoteric and genuinely contested, so we do not endorse every message. We keep the record and send you to the primary source to weigh each one by the Word. The prophet has always been resisted, told to leave (Amos 7:10-13), and left "without honour" at home (Matthew 13:57). That is why the record is kept.',
       child: 'This lesson is about Pastor Stephen Darby. He taught about identity, about the church’s own story, and about the unseen spirit world. Pastor Darby was a bold teacher from Louisville, Kentucky. He started his ministry in 2003. Many, many people watched his lessons online. He talked about hard things. A lot of preachers were afraid to say them. He taught about who Yahweh’s people are in the Bible. He taught about ways America hurt Black people. He said some churches cared more about rules and control than about the Holy Spirit. He also taught about the unseen world. That is the world of spirits we cannot see. Some of those lessons are about strange things. People still argue about them. So we do not say yes to everything he taught. We keep a record of what he said, and we check each part by the Word. His name, Stephen, is the same as a man in the Bible. That Stephen told the leaders the truth about their past. They would not listen. People often push away a person who tells hard truths. That is why we keep the record. Your job: name one reason a truth-teller sometimes gets ignored.',
-      senior: 'Pastor Stephen Darby taught on identity, the Church’s account, and the unseen realm. Pastor Stephen Darby (Stephen Darby Ministries / Destined Ministries, Louisville, founded 2003; d. early 2021) built a large teaching archive — around 346,000 subscribers and more than 600 messages — precisely by going where most pulpits would not. His subjects cluster in three streams. First, IDENTITY and the nation’s account: "Who Are We?," "Negroland," "They Jacked Us," "The Black Gatekeepers" — Black identity in Scripture and how America treated a people. Second, the CHURCH itself: "Zion vs Rome" (the modern church as "Roman"/institutional versus "Zion"/Hebraic and Spirit-led) and "The False Christianity Movement" — a critique that rhymes with Price’s charge that the Church served the wrong master. Third, the UNSEEN / MULTIDIMENSIONAL realm — "The Christ Frequency," "CERN: The End," "Return of the Nephilim" — the space Darrell notes is "also Darby’s space," and which connects to the dimensional framing the platform already uses (the 3rd/4th-dimension witness). This study keeps two disciplines. Verification: his ministry, dates, and teaching titles are sourced; the comparison to other teachers heard "15 years later," and the claim that he was overlooked specifically for fear of backlash, are carried as Darrell’s framing, not asserted fact. And discernment: some subjects are esoteric and contested, so the study holds the RECORD of the voice and sends the learner to the primary source to weigh by the Word (the Test) — neither swallowing everything nor dismissing the man. The prophetic frame is Acts 7: Stephen, whose name Darby bears, recited his nation’s history and named its leaders’ sin to their faces — "ye do always resist the Holy Ghost" — and they killed him for it. The one who names the sin is resisted, sent away (Amos 7), left without honour at home (Matthew 13:57). That is why the record is kept.',
+      senior: 'Pastor Stephen Darby taught on identity, the Church’s account, and the unseen realm. Pastor Stephen Darby (Stephen Darby Ministries / Destined Ministries, Louisville, founded 2003; 1972-2017) built a large teaching archive — around 346,000 subscribers and more than 600 messages — precisely by going where most pulpits would not. His subjects cluster in three streams. First, IDENTITY and the nation’s account: "Who Are We?," "Negroland," "They Jacked Us," "The Black Gatekeepers" — Black identity in Scripture and how America treated a people. Second, the CHURCH itself: "Zion vs Rome" (the modern church as "Roman"/institutional versus "Zion"/Hebraic and Spirit-led) and "The False Christianity Movement" — a critique that rhymes with Price’s charge that the Church served the wrong master. Third, the UNSEEN / MULTIDIMENSIONAL realm — "The Christ Frequency," "CERN: The End," "Return of the Nephilim" — the space Darrell notes is "also Darby’s space," and which connects to the dimensional framing the platform already uses (the 3rd/4th-dimension witness). This study keeps two disciplines. Verification: his ministry, dates, and teaching titles are sourced; the comparison to other teachers heard "15 years later," and the claim that he was overlooked specifically for fear of backlash, are carried as Darrell’s framing, not asserted fact. And discernment: some subjects are esoteric and contested, so the study holds the RECORD of the voice and sends the learner to the primary source to weigh by the Word (the Test) — neither swallowing everything nor dismissing the man. The prophetic frame is Acts 7: Stephen, whose name Darby bears, recited his nation’s history and named its leaders’ sin to their faces — "ye do always resist the Holy Ghost" — and they killed him for it. The one who names the sin is resisted, sent away (Amos 7), left without honour at home (Matthew 13:57). That is why the record is kept.',
     },
     quiz: {
       questions: [
@@ -128,7 +150,7 @@ export const PV_MODULES = [
     lesson: 'The second voice in this record is Pastor Stephen Darby, and there is a fitting providence in the name, because Stephen in the book of Acts is the one who stood before his nation’s leaders, recited their own history, named their sin to their faces — "ye do always resist the Holy Ghost... which of the prophets have not your fathers persecuted?" — and was stoned to death for it (Acts 7:51-53). That is the pattern this whole study is about, and Pastor Darby fits it. From Louisville, Kentucky, through Stephen Darby Ministries (Destined Ministries), founded in 2003, he built one of the larger Black teaching archives online — around 346,000 subscribers and more than six hundred messages — by teaching precisely the subjects most pulpits avoid. His work runs in three streams. The first is identity and the nation’s account: messages like "Who Are We?," "Negroland," "They Jacked Us," and "The Black Gatekeepers" deal with Black identity in Scripture and how America treated a people. The second is the Church itself: "Zion vs Rome" argues that much of the modern church is more "Roman" — institutional, controlled — than "Zion," Hebraic and Spirit-led, and "The False Christianity Movement" sharpens the point — a critique that rhymes directly with Dr. Price’s charge that the Church served the wrong master. The third stream is the unseen, multidimensional realm — "The Christ Frequency," "CERN: The End," "Return of the Nephilim" — which Darrell notes is "also Darby’s space," and which connects to the dimensional framing this platform already uses in its 3rd- and 4th-dimension witness. Two disciplines govern how we hold him. The first is verification: his ministry, his dates, and his teaching titles are sourced and real, but the comparison that he said what other teachers were praised for "fifteen years later," and the claim that he was overlooked specifically out of fear of backlash, are carried honestly as Darrell’s framing — a reasonable read of the pattern, not something we assert as proven. The second is discernment: some of Darby’s subjects are esoteric and genuinely contested, so this study does NOT endorse every teaching. It keeps the record of the voice and sends you to the primary source to weigh each message by the Word — the same Test the whole platform runs — neither swallowing everything nor dismissing the man who said hard, true things at cost. Because the one who names a people’s sin has always been resisted and sent away — Stephen killed, Amos told to flee (Amos 7:10-13), the prophet left "without honour... in his own country" (Matthew 13:57) — and that is exactly why the record must be kept.',
     facilitator: {
       talkingPoints: [
-        'Stephen Darby Ministries / Destined Ministries (Louisville, est. 2003; d. early 2021) — ~346K subscribers, 611+ messages.',
+        'Stephen Darby Ministries / Destined Ministries (Louisville, est. 2003; 1972-2017) — ~346K subscribers, 611+ messages.',
         'Three streams: identity + the nation’s account (Who Are We?, Negroland, They Jacked Us, Black Gatekeepers); the Church (Zion vs Rome, The False Christianity Movement); the unseen/multidimensional realm (Christ Frequency, CERN, Nephilim — "also Darby’s space").',
         'Verified: ministry, dates, titles. Darrell’s framing (not asserted): the "15 years earlier / overlooked for backlash" comparison. Esoteric topics = presented for discernment, not endorsed.',
         'Receive by the Test: keep the record, weigh each teaching by the Word — neither blank acceptance nor blanket dismissal.',
@@ -155,6 +177,22 @@ export const PV_MODULES = [
   // ---------------------------------------------------------------------------
   {
     id: 'pv-diop',
+    figures: [
+      {
+        id: 'pv-diop-portrait',
+        kind: 'image',
+        title: 'Dr. Cheikh Anta Diop',
+        src: '/lesson-figures/prophetic-voices/cheikh-anta-diop.webp',
+        width: 241,
+        height: 383,
+        alt: 'A black-and-white portrait photograph of Dr. Cheikh Anta Diop as a young man in the late 1940s, wearing an open-collared shirt and jacket.',
+        caption: 'Dr. Cheikh Anta Diop as a young man, in the late 1940s, the years he was preparing the thesis that became Nations nègres et culture.',
+        source: 'Photograph, late 1940s, author unknown; public domain. Wikimedia Commons, File:Cheikh_Anta_Diop,_late_1940s.jpg (as of 2026-11-26).',
+        depictsPeople: true,
+        photographOf: 'Dr. Cheikh Anta Diop',
+        license: 'Public domain',
+      },
+    ],
     title: 'Dr. Cheikh Anta Diop — the scientist who put Kemet back in Africa',
     voice: { name: 'Dr. Cheikh Anta Diop', ministry: 'Senegalese physicist, historian, egyptologist; founder of the radiocarbon-dating lab at IFAN, Dakar', era: '1923-1986; the 1974 UNESCO Cairo Symposium' },
     bigIdea: 'Dr. Cheikh Anta Diop — trained in physics and chemistry in Paris — brought SCIENTIFIC methods to a question the Eurocentric mainstream had answered by assumption: was ancient Kemet (Egypt) a Black African civilization, continuous with the rest of Africa? At the 1974 UNESCO Cairo Symposium, he and Théophile Obenga stood almost alone defending the African thesis with evidence — and were largely marginalized for it.',
@@ -195,6 +233,22 @@ export const PV_MODULES = [
   },
   {
     id: 'pv-obenga',
+    figures: [
+      {
+        id: 'pv-obenga-portrait',
+        kind: 'image',
+        title: 'Dr. Théophile Obenga',
+        src: '/lesson-figures/prophetic-voices/theophile-obenga.webp',
+        width: 720,
+        height: 621,
+        alt: 'A photograph of Dr. Théophile Obenga in glasses, a dark suit and a kente stole, speaking in front of bookshelves.',
+        caption: 'Dr. Théophile Obenga, speaking among books.',
+        source: 'Photograph by Teham, licensed CC BY-SA 3.0 (creativecommons.org/licenses/by-sa/3.0). Wikimedia Commons, File:Obenga_2.JPG (as of 2026-11-26).',
+        depictsPeople: true,
+        photographOf: 'Dr. Théophile Obenga',
+        license: 'CC BY-SA 3.0, by Teham',
+      },
+    ],
     title: 'Dr. Théophile Obenga — the tongue that carried the truth',
     voice: { name: 'Dr. Théophile Obenga', ministry: 'Congolese linguist, egyptologist, historian; co-defender of the African-origin thesis', era: 'b. 1936; the 1974 UNESCO Cairo Symposium; longtime professor (incl. San Francisco State)' },
     bigIdea: 'Dr. Théophile Obenga carried Diop’s work into LANGUAGE, arguing a deep genetic kinship between ancient Egyptian and the languages of Africa — that the tongue itself preserves the continuity the record-keepers tried to sever. He was the second scholar standing with Diop at Cairo in 1974, and like Diop was largely unheard by the mainstream.',
@@ -314,6 +368,36 @@ export const PV_MODULES = [
     },
   },
 ];
+
+// Each voice's own message, lesson by lesson, after his opening lesson. A
+// voice with no opener here (Dr. Myles Munroe) carries his own and is placed
+// after the voice named in PV_PLACED_AFTER.
+const PV_SEQUENCES = {
+  'pv-price': PV_PRICE_MESSAGES,
+  'pv-darby': PV_DARBY_MESSAGES,
+  'pv-diop': PV_DIOP_MESSAGES,
+  'pv-obenga': PV_OBENGA_MESSAGES,
+  'pv-williams': PV_WILLIAMS_MESSAGES,
+};
+// Darrell's own teaching (2026-11-26) closes the course, after the record of
+// the voices: the frame they all stand in.
+const PV_PLACED_AFTER = { 'pv-darby': PV_MUNROE_LESSONS, 'pv-inventions': PV_UNSEEN_REALM };
+// The opening lesson, upgraded from the fetched sources by the voice's own file
+// (Darrell 2026-11-26: "All of these are too short!!!"). Fields given there
+// replace the original's; anything not given stays as first written.
+const PV_OPENER_UPGRADES = {
+  'pv-price': PV_PRICE_OPENER,
+  'pv-darby': PV_DARBY_OPENER,
+  'pv-diop': PV_DIOP_OPENER,
+  'pv-obenga': PV_OBENGA_OPENER,
+  'pv-williams': PV_WILLIAMS_OPENER,
+};
+
+export const PV_MODULES = PV_OPENERS.flatMap((first) => {
+  const m = { ...first, ...(PV_OPENER_UPGRADES[first.id] || {}) };
+  const own = [m, ...(PV_SEQUENCES[m.id] || [])];
+  return [...own, ...(PV_PLACED_AFTER[m.id] || [])].map(withTalkTogether).map(withBenefits);
+});
 
 // ---------------------------------------------------------------------------
 // Helpers — thin wrappers over the GENERIC, tested helpers in church-classes.js.
