@@ -207,3 +207,39 @@ describe('the classic tools render inside the new look, and their lessons open t
     expect(SRC('learn-studio/LearnStudioPreview.jsx')).toMatch(/return \(\) => registerOpener\(null\)/);
   });
 });
+
+// Darrell 2026-11-26, on his phone: "Swiping there pictures of lessons should move it".
+describe('the featured picture turns on a swipe', () => {
+  const touch = (node, type, x, y) =>
+    act(() => {
+      const e = new Event(type, { bubbles: true });
+      Object.defineProperty(e, type === 'touchend' ? 'changedTouches' : 'touches', { value: [{ clientX: x, clientY: y }] });
+      node.dispatchEvent(e);
+    });
+
+  it('swipeStep: left is forward, right is back, a short or mostly-vertical move is nothing', async () => {
+    const { swipeStep } = await import('../components/learn-studio/LearnStudio.jsx');
+    expect(swipeStep(300, 100, 200, 110)).toBe(1);
+    expect(swipeStep(200, 100, 300, 105)).toBe(-1);
+    expect(swipeStep(200, 100, 220, 100)).toBe(0); // too short
+    expect(swipeStep(200, 100, 150, 220)).toBe(0); // a scroll, not a swipe
+  });
+
+  it('a left swipe on the hero shows the next slide, a right swipe the one before', () => {
+    act(() => root.render(<LearnStudioPreview courses={COURSES} onOpenLesson={vi.fn()} onExit={vi.fn()} ownerDevice ctx={CTX} />));
+    const hero = $('ls-hero');
+    expect(hero).toBeTruthy();
+    const dots = hero.querySelectorAll('.ls-dots button').length;
+    expect(dots).toBeGreaterThan(1);
+    expect(hero.getAttribute('data-slide')).toBe('0');
+    touch(hero, 'touchstart', 300, 200);
+    touch(hero, 'touchend', 150, 210);
+    expect($('ls-hero').getAttribute('data-slide')).toBe('1');
+    touch($('ls-hero'), 'touchstart', 150, 200);
+    touch($('ls-hero'), 'touchend', 320, 205);
+    expect($('ls-hero').getAttribute('data-slide')).toBe('0');
+    touch($('ls-hero'), 'touchstart', 150, 200);
+    touch($('ls-hero'), 'touchend', 320, 205);
+    expect($('ls-hero').getAttribute('data-slide')).toBe(String(dots - 1)); // wraps to the last
+  });
+});

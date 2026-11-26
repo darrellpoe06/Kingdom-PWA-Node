@@ -158,17 +158,56 @@ function Row({ icon = 'play', title, note, items, onOpen, onSeeAll, grid = false
   );
 }
 
+/** A horizontal swipe of at least this many px, more sideways than up/down, turns the slide. */
+export const SWIPE_PX = 40;
+/** -1 (back), 1 (forward) or 0 for a touch that moved from (x0, y0) to (x1, y1). Pure. */
+export function swipeStep(x0, y0, x1, y1) {
+  const dx = x1 - x0;
+  const dy = y1 - y0;
+  if (Math.abs(dx) < SWIPE_PX || Math.abs(dx) <= Math.abs(dy)) return 0;
+  return dx < 0 ? 1 : -1;
+}
+
 function Hero({ slides, onOpen, onListen }) {
   const [i, setI] = useState(0);
+  // A swipe or a dot restarts the clock, so the slide just chosen is not turned away a moment later.
+  const [moved, setMoved] = useState(0);
+  const start = React.useRef(null);
   useEffect(() => {
     if (slides.length < 2) return undefined;
     const t = setInterval(() => setI((n) => (n + 1) % slides.length), 7000);
     return () => clearInterval(t);
-  }, [slides.length]);
+  }, [slides.length, moved]);
   if (!slides.length) return null;
   const x = slides[i % slides.length];
+  const go = (n) => {
+    setI(((n % slides.length) + slides.length) % slides.length);
+    setMoved((m) => m + 1);
+  };
+  // SWIPING THE PICTURE MOVES IT (Darrell 2026-11-26, on his phone: "Swiping there pictures of
+  // lessons should move it"). Only the dots turned it before.
+  const onTouchStart = (e) => {
+    const t = e.touches && e.touches[0];
+    start.current = t ? { x: t.clientX, y: t.clientY } : null;
+  };
+  const onTouchEnd = (e) => {
+    const t = e.changedTouches && e.changedTouches[0];
+    const s0 = start.current;
+    start.current = null;
+    if (!t || !s0 || slides.length < 2) return;
+    const step = swipeStep(s0.x, s0.y, t.clientX, t.clientY);
+    if (step) go((i % slides.length) + step);
+  };
   return (
-    <section className="ls-hero" aria-roledescription="carousel" aria-label="Featured lessons">
+    <section
+      className="ls-hero"
+      aria-roledescription="carousel"
+      aria-label="Featured lessons"
+      onTouchStart={onTouchStart}
+      onTouchEnd={onTouchEnd}
+      data-testid="ls-hero"
+      data-slide={i % slides.length}
+    >
       <Art p={x.p} eager sizes="100vw" />
       <div className="ls-hero-body">
         <Headline text={x.p.displayTitle} size="hero" align="right" />
@@ -188,7 +227,7 @@ function Hero({ slides, onOpen, onListen }) {
             type="button"
             aria-label={`Show featured lesson ${n + 1}`}
             className={`${n === i % slides.length ? 'on' : ''} ${RING}`}
-            onClick={() => setI(n)}
+            onClick={() => go(n)}
           />
         ))}
       </div>

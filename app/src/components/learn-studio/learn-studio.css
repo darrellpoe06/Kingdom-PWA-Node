@@ -1155,3 +1155,21 @@
 .ls-tools-body {
   padding-top: 10px;
 }
+
+/* The featured picture turns on a sideways swipe; up/down still scrolls the page. */
+.ls-hero {
+  touch-action: pan-y;
+}
+/* On a phone a row's note drops under its title instead of squeezing it to one word a line. */
+@media (max-width: 640px) {
+  .ls-row-head {
+    flex-wrap: wrap;
+  }
+  .ls-row-head h2 {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .ls-row-head .ls-note {
+    flex-basis: 100%;
+  }
+}
