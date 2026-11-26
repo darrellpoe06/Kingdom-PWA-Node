@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T11:42:21.945Z",
+ "measuredAt": "2026-11-26T11:46:45.311Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4476
+  "readings": 4478
  },
  "departments": [
   {
@@ -14169,11 +14169,13 @@
    "department": "The Eternal Algorithms",
    "position": 12,
    "title": "Submit · Resist → he Flees",
-   "contentSha": "d1059d6b05303cef2807eb199d09bf3daf99f3e0e3eea9121dfc38b7e6aa2242",
+   "contentSha": "e3cf57fa90c4c28a804be22d0c156332f2021eb16a9171336ef1bb6e89f9bf2f",
    "versions": {
-    "teen": "626b3b39c04543013f083e158ad131fa7bbafb5d0d45bb5a0aadd9c5e2694f0d",
-    "adult": "44006487b190e5ed4b3b9f545e4aa7066610041b96cf41fc34e0835e4cd975c8",
-    "senior": "d72b1772bf19c02096ee231fbb24e80c01e51db2240ed39364d8b321f13be9c0"
+    "child": "11e8006cab4017446a038c13a9cc07f658c9380b25de8db9edbddcdd69220c81",
+    "youth": "0d2865c690e1d9a385584bd17de3845313279c7d90a10045c5ab50c2a800a191",
+    "teen": "6162bd099873e63173341212b80a169a83615fbff8691bd5e9f348f9a60837de",
+    "adult": "dfba571aa3957189d44fc84e9bdf481ee6f3e0c63701e471d79244febb67e5de",
+    "senior": "0ce9bd6942edfd5068d67cdb14cf61d47b309643417cd2e6f9f1183f28f83fc1"
    }
   },
   {
