@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T03:50:44.170Z",
+ "measuredAt": "2026-11-26T03:53:58.280Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4298
+  "readings": 4300
  },
  "departments": [
   {
@@ -14443,11 +14443,13 @@
    "department": "The Eternal Algorithms",
    "position": 40,
    "title": "He made a shew of them openly — you enforce a verdict, not fight for one",
-   "contentSha": "b3bafb7551f7192d5838fd82566b05b7d0ee877d30ff48456c51e3ad124f38a1",
+   "contentSha": "b684659e7e81c1643c054c96c861f6db654d43ce01b29478a0689d31290c6da1",
    "versions": {
-    "teen": "d7aee12017e36bf3df54e09c6393ebb149b64f2be1c37c8bf22d689bebe8bc45",
-    "adult": "caa3a2b9baa2e4a30801fb9f37b44de8c72cc25af5f258733f2617187158694f",
-    "senior": "ded58109542a0943961c9ac3454b4152097709e4e5079efa8a3f505c97fbafea"
+    "child": "9a25d3d25a8d6e8dc6f1680841b6e2195fc0a6efe9c3e4e1237ae291995efb62",
+    "youth": "bb06428c45cd2316ba2690b13dbada4cbf1f6b63cba2ce62cc89f76f0c79a71f",
+    "teen": "eaa31b6abe7ff35a09674f8610078c0ef7ee511cbe37f4e19caea27c378eccdf",
+    "adult": "ed0c42e064314e5c3a138cac3eac5ec37e70ce0d051609beb77f7968a0a5f728",
+    "senior": "b7d622d82d150334d18185120bd78de7ceeb4c06252d081aff6d75ad86a587ca"
    }
   },
   {
