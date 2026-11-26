@@ -12609,11 +12609,13 @@
    "department": "The Eternal Algorithms",
    "position": 2,
    "title": "Hearken → Blessings Overtake You",
-   "contentSha": "23b727dd18e5a6b26b2d6ac25f52e035f6d82c8313d1355eeb939bc5f63d2196",
+   "contentSha": "8ec6ba9576d8d5e80683b9ad3c8a8a600c6fc46e0414fc4218ec5851540a4588",
    "versions": {
-    "teen": "44675fdae3bb5bac8067026fbf4c0381b1adc2f8e19add5ebe255e4e2e37a048",
-    "adult": "caa9a79a714df484820928ed7613f53f001284c254e5f930fb965e73c693d634",
-    "senior": "f86c23201db5a3183bba242fafb81e5c1f7bdcc0397aba6d2a7b0c825408f8fd"
+    "child": "a2b34303c9a5027a157391961032aabfcd86599d9d4d1ed5fdd47fc93b4207b9",
+    "youth": "6247223deac6e7e8df854cb1e5ce8f8df91bf349960fb9031483e25707f581c3",
+    "teen": "b02f77295db66bc65e7d98be5877b6300f13e889f5a1fd903abee96767bc71e3",
+    "adult": "ff5aed04621181f04e86729bd4191b8db8c255cf831e27024500b921e049f60e",
+    "senior": "85cce915cca855dfa1fd3786020a03a8a7263ecf5a73e5f1574b162a3fca8936"
    }
   },
   {

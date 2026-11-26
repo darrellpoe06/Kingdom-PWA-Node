@@ -582,7 +582,9 @@ try {
         // across the top. Every other case reads the QUIET_HOUR, with no bar.
         { width: 360, size: 'normal', at: 'service' }, { width: 360, size: 'normal', collapsed: true, at: 'service' }]
       : []);
-  const LESSON_URL = `${origin}${BASE}/?view=church&sub=learn&course=living-lessons&lesson=ll1-the-perfect-yahweh-expects`;
+  // learnStudio=0 (DR-1664): every member now opens Learn in the new look, so these probes ask for the
+  // classic reader by name -- still a live surface (the fail-safe, and the reader off the new look).
+  const LESSON_URL = `${origin}${BASE}/?view=church&sub=learn&course=living-lessons&lesson=ll1-the-perfect-yahweh-expects&learnStudio=0`;
   lessonFailuresBefore = failures;
   for (const { width, size, collapsed = false, at = 'quiet' } of LESSON_CASES) {
     const page = await browser.newPage({ viewport: { width, height: 900 }, at: at === 'service' ? SERVICE_HOUR : QUIET_HOUR });
@@ -1091,7 +1093,7 @@ try {
   // The course page, not a lesson: the whole-course overview lives with the
   // course and never above an open lesson (DR-0688, Darrell 2026-09-30: "the
   // over view should not be at the top of each lesson it is confusing").
-  const DECK_URL = `${origin}${BASE}/?view=church&sub=learn&course=living-lessons`;
+  const DECK_URL = `${origin}${BASE}/?view=church&sub=learn&course=living-lessons&learnStudio=0`;
   for (const size of ['normal', 'bigprint']) {
     const page = await browser.newPage({ viewport: { width: 360, height: 900 } });
     await page.addInitScript((sz) => {
@@ -1169,7 +1171,7 @@ try {
   //       order with a visible ring, and Enter on Follow changes its state.
   // ---------------------------------------------------------------------------
   readerFailuresBefore = failures;
-  const READER_URL = `${origin}${BASE}/?view=church&sub=learn&course=living-lessons&lesson=ll191-who-he-said-he-was-every-hearer-every-situation-and-the-keys-of-hell-and-of-death`;
+  const READER_URL = `${origin}${BASE}/?view=church&sub=learn&course=living-lessons&lesson=ll191-who-he-said-he-was-every-hearer-every-situation-and-the-keys-of-hell-and-of-death&learnStudio=0`;
   const READER_CASES = SELFTEST
     ? [{ w: 1920, h: 1080, sz: 'normal', tv: true }]
     : (SWEEP ? [{ w: 412, h: 915, sz: 'largest' }, { w: 390, h: 844, sz: 'normal' }, { w: 1920, h: 1080, sz: 'normal', tv: true }] : []);
@@ -1337,7 +1339,7 @@ try {
   // ---------------------------------------------------------------------------
   lessonChromeFailuresBefore = failures;
   const LESSON_CHROME_GROWTH = 1.3;
-  const LESSON_URL = `${origin}${BASE}/?view=church&sub=learn&course=living-lessons&lesson=ll218-do-not-switch-up-on-his-way-yahwehs-principles-documented-no-offense-taken-and-letting-him-win-so-we-win`;
+  const LESSON_URL = `${origin}${BASE}/?view=church&sub=learn&course=living-lessons&lesson=ll218-do-not-switch-up-on-his-way-yahwehs-principles-documented-no-offense-taken-and-letting-him-win-so-we-win&learnStudio=0`;
   const LESSON_CHROME_CASES = SELFTEST
     ? [{ w: 1280, h: 720 }]
     : (SWEEP ? [{ w: 1280, h: 720 }, { w: 960, h: 540 }, { w: 390, h: 844, mobile: true }] : []);

@@ -127,7 +127,8 @@ export default function LearnDashboard({ courses, index, preview = false, ctx, o
     () =>
       organizeCourses(pool, sort, ctx)
         .flatMap((g) => g.courses)
-        .filter((c) => show === 'all' || courseStanding(c, ctx).state === show),
+        .filter((c) => show === 'all' || courseStanding(c, ctx).state === show)
+        .filter((c, i, all) => all.findIndex((y) => keyOf(y) === keyOf(c)) === i), // one card per course key
     [pool, sort, ctx, show]
   );
   const shown = showAll ? ordered : ordered.slice(0, COURSE_ROWS_FIRST);

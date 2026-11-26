@@ -1235,3 +1235,17 @@ html[data-reader-rails="sides"] header[data-read-skip] {
 .is-root .lc-link{color:var(--lc-red-deep)}
 .is-root .lc-status-ok{color:var(--is-ok-ink)}
 .is-root .lc-inst-btns .lc-btn-ghost{background:var(--lc-paper);color:var(--lc-ink);border:1px solid var(--lc-muted)}
+/* ===== Institute studio at every text size (DR-1667; Darrell 2026-11-26, at a larger text size: "Don't look right!!!!" --
+   the hero kept two columns and the tiles three, so words split mid-word). The app's text size scales the root font,
+   so these breakpoints are in em: the layout follows the reader's text size, not only the screen. ===== */
+.is-hero{grid-template-columns:minmax(0,1fr);padding:1.125rem 1.125rem 0}
+.is-leader{max-width:20em;justify-self:end;width:100%}
+.is-leader-ph{aspect-ratio:4/3}
+@container inst (min-width:22em){
+  .is-hero{grid-template-columns:minmax(0,1fr) minmax(0,42%);padding:1.125rem 0 0 1.125rem}
+  .is-leader{max-width:none;justify-self:stretch}
+  .is-leader-ph{aspect-ratio:4/5}
+}
+.is-feats{grid-template-columns:repeat(auto-fit,minmax(min(100%,6.25em),1fr))}
+.is-rec-nums,.is-stats{grid-template-columns:repeat(auto-fit,minmax(min(100%,5.5em),1fr))}
+.is-hero,.is-feats,.is-leader-cap,.is-rec-nums,.is-stats{overflow-wrap:break-word;word-break:normal;hyphens:manual}
