@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T06:07:16.329Z",
+ "measuredAt": "2026-11-26T06:12:26.814Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4366
+  "readings": 4368
  },
  "departments": [
   {
@@ -14377,11 +14377,13 @@
    "department": "The Eternal Algorithms",
    "position": 32,
    "title": "A Day Appointed, a Judge Ordained (the resurrection is the assurance)",
-   "contentSha": "f0354dbfec38a93b1d9f699c39db5dd6d8c295251ad3b1b0ce2dbe63765121d8",
+   "contentSha": "a5cd59b7b49751c6c7131912ba5a927592f8512930a1fe5b1672022caee57405",
    "versions": {
-    "teen": "fb36397b462acaf87b320d577c5febdc265f01cdfbd64b4b3333070e46591c3b",
-    "adult": "e91079350950efa344d45283485b1aa5b0da9930b0793e4398ea6f7b5da52d7f",
-    "senior": "3dddc7fd9ae9144538a20f7a57f44069ae3ab0c7e910a29790be8f3ad674e76c"
+    "child": "e1960265ffdc9ab1140700223048bca5113257a3ae9c1e646f8ece4d5057e26d",
+    "youth": "7d19628e7f0afa3e04b722a6bc921c6e998eab8b0aebcc6d07d5bf80c9163333",
+    "teen": "eb4e6159b505fbf3764ee2972e3325cf7d6fa69ad6467d35f6b40ea239d4d9ea",
+    "adult": "854a33a4b3757e7f39c8c4050c6ef787d9fd88ce331ca15305fe5aaa77d044ad",
+    "senior": "ab49426fe6ea2edea8d7f34029fe85407617b935dab0e4941db3c9499e076820"
    }
   },
   {
