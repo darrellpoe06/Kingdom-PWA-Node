@@ -1,5 +1,5 @@
 {
- "measuredAt": "2026-11-26T18:18:45.590Z",
+ "measuredAt": "2026-11-26T18:24:29.140Z",
  "counts": {
   "departments": 13,
   "courses": 51,
@@ -816,13 +816,13 @@
    "department": "Serve the House",
    "position": 10,
    "title": "Build it right — and raise the next builders",
-   "contentSha": "69edf212440b434ae75213c7dadc988439d85dc7f5b71593c0b8615ca79a6621",
+   "contentSha": "bbd63671ac353cf1635cfef0946670293af50c2150c5cbc560cd8d187e4f0fc4",
    "versions": {
-    "child": "f0d4fc617d23e9e7e415faf0394cc1f2f3c1921a61b737b6b512afe2235b0860",
-    "youth": "cf445295793dc9e1713e2ddabcc12d1165d46271be294c68e59842617436d9c5",
-    "teen": "8a0637bc8f7937653f0f2a3b9bafd8bb080644b429ea174ed975f0a23bdb8693",
-    "adult": "05aa06ca144c28ceef15478ec1ca03216709f348d9d1a717e9077e286875ebe4",
-    "senior": "bb8a1bdaf7c8a5277a5168f3f1479df0239885a47e52e760daedd36f5ab28dac"
+    "child": "f505f580625aa9504022dd79957e5ba278f2af1074fc2e0635a0980d5a0eedd1",
+    "youth": "149ee84d45b21aa08ab05676a02bfe6b27c3036f7f21821a910bf76429b0cb71",
+    "teen": "2a172808621a9837fe3374d315c8bba0c11f2373d89e0019f39af014538676eb",
+    "adult": "da67eb8471f356817aeee884a8d716c62bf2cb12e8faaee20c57d426c074a11c",
+    "senior": "4eda91d152f6d9b28e876c4111b14fe7447aa920486ceb4086122b56090a8e85"
    }
   },
   {
