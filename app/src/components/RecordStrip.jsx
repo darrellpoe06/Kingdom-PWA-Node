@@ -20,6 +20,10 @@ import React from 'react';
 import { headlineLine, nextStep } from '../lib/record-headline.js';
 import { countWords } from '../lib/learn-organize.js';
 import './record-strip.css';
+import { ensureLearnTheme } from '../lib/learn-theme.js';
+
+// The new look follows the chosen theme (DR-1679).
+ensureLearnTheme();
 
 const FOCUS = 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2';
 

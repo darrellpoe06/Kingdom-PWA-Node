@@ -31,8 +31,7 @@
 import React, { useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 
-const FOCUSABLE =
-  'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+const FOCUSABLE = 'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 export default function Modal({
   open,
@@ -45,12 +44,17 @@ export default function Modal({
   maxWidthClass = 'max-w-sm',
   variant = 'card',
   theme = null,
+  // 'light' keeps the page visible behind the dialog (Personalize: a theme is seen as it is chosen,
+  // DR-1679; Darrell 2026-11-26: "Why does it kill the page... too?!"). Default: the heavy backdrop.
+  scrim = 'heavy',
 }) {
   const isSheet = variant === 'sheet';
   const panelRef = useRef(null);
   const restoreRef = useRef(null);
 
-  const close = useCallback(() => { if (onClose) onClose(); }, [onClose]);
+  const close = useCallback(() => {
+    if (onClose) onClose();
+  }, [onClose]);
 
   // Remember what had focus so we can restore it when the dialog closes.
   useEffect(() => {
@@ -59,7 +63,11 @@ export default function Modal({
     return () => {
       const el = restoreRef.current;
       if (el && typeof el.focus === 'function') {
-        try { el.focus(); } catch (_) { /* element may be gone */ }
+        try {
+          el.focus();
+        } catch (_) {
+          /* element may be gone */
+        }
       }
     };
   }, [open]);
@@ -70,7 +78,10 @@ export default function Modal({
     if (!open) return;
     const t = setTimeout(() => {
       const preferred = initialFocusRef && initialFocusRef.current;
-      if (preferred && typeof preferred.focus === 'function') { preferred.focus(); return; }
+      if (preferred && typeof preferred.focus === 'function') {
+        preferred.focus();
+        return;
+      }
       const panel = panelRef.current;
       if (!panel) return;
       const first = panel.querySelector(FOCUSABLE);
@@ -85,36 +96,53 @@ export default function Modal({
     if (!open || typeof document === 'undefined') return undefined;
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = prev; };
+    return () => {
+      document.body.style.overflow = prev;
+    };
   }, [open]);
 
   // ESC to close + Tab focus trap.
-  const onKeyDown = useCallback((e) => {
-    if (e.key === 'Escape') { e.stopPropagation(); close(); return; }
-    if (e.key !== 'Tab') return;
-    const panel = panelRef.current;
-    if (!panel) return;
-    const items = Array.from(panel.querySelectorAll(FOCUSABLE)).filter(
-      (el) => el.offsetParent !== null || el === document.activeElement,
-    );
-    if (items.length === 0) { e.preventDefault(); panel.focus(); return; }
-    const firstEl = items[0];
-    const lastEl = items[items.length - 1];
-    const active = document.activeElement;
-    if (e.shiftKey) {
-      if (active === firstEl || !panel.contains(active)) { e.preventDefault(); lastEl.focus(); }
-    } else if (active === lastEl) {
-      e.preventDefault();
-      firstEl.focus();
-    }
-  }, [close]);
+  const onKeyDown = useCallback(
+    (e) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        close();
+        return;
+      }
+      if (e.key !== 'Tab') return;
+      const panel = panelRef.current;
+      if (!panel) return;
+      const items = Array.from(panel.querySelectorAll(FOCUSABLE)).filter((el) => el.offsetParent !== null || el === document.activeElement);
+      if (items.length === 0) {
+        e.preventDefault();
+        panel.focus();
+        return;
+      }
+      const firstEl = items[0];
+      const lastEl = items[items.length - 1];
+      const active = document.activeElement;
+      if (e.shiftKey) {
+        if (active === firstEl || !panel.contains(active)) {
+          e.preventDefault();
+          lastEl.focus();
+        }
+      } else if (active === lastEl) {
+        e.preventDefault();
+        firstEl.focus();
+      }
+    },
+    [close]
+  );
 
   if (!open || typeof document === 'undefined') return null;
 
   return createPortal(
     <div
-      data-read-skip className="fixed inset-0 z-[120] bg-[#1A1815]/95 flex items-end sm:items-center justify-center p-0 sm:p-4 print:hidden"
-      onMouseDown={(e) => { if (e.target === e.currentTarget) close(); }}
+      data-read-skip
+      className={`fixed inset-0 z-[120] ${scrim === 'light' ? 'bg-[#1A1815]/25' : 'bg-[#1A1815]/95'} flex items-end sm:items-center justify-center p-0 sm:p-4 print:hidden`}
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) close();
+      }}
       onKeyDown={onKeyDown}
     >
       <div
@@ -161,6 +189,6 @@ export default function Modal({
         )}
       </div>
     </div>,
-    document.body,
+    document.body
   );
 }

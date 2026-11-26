@@ -389,6 +389,7 @@ describe('four-mode reference layout -- real data only', () => {
     click(byText('Study')[0]);
     const titles = [...container.querySelectorAll('.le-acc-title')].map((n) => n.textContent);
     expect(titles).toEqual([
+      'Ask Ari', // the church's own tutor, first in Study (DR-1674)
       'Scripture Focus',
       'Key Takeaways',
       'Reflection Questions',

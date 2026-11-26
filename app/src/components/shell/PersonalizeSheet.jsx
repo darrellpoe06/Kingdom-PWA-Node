@@ -58,7 +58,7 @@ export default function PersonalizeSheet({ open, onClose, theme, setTheme, isOwn
     pickRate(DEFAULT_RATE);
   };
   return (
-    <Modal open={open} onClose={onClose} label="Personalize My App" maxWidthClass="max-w-md" variant="sheet" theme={theme}>
+    <Modal open={open} onClose={onClose} label="Personalize My App" maxWidthClass="max-w-md" variant="sheet" theme={theme} scrim="light">
       {/* The Modal portals to <body>, outside the shell's themed wrapper, so the Modal's sheet panel and the sheet both carry the theme scope. */}
       <div className="lch-sheet" data-theme={theme || undefined} data-testid="lch-personalize-sheet">
         <h2 className="lch-sheet-h">🎨 Personalize My App</h2>

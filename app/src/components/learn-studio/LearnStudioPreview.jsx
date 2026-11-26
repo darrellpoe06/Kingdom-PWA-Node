@@ -15,6 +15,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import LearnDashboard from './LearnDashboard.jsx';
 import { recordUse } from '../../lib/ux-signals.js';
 import { useHistoryValue } from '../../lib/nav-history.js';
+import { ensureLearnTheme } from '../../lib/learn-theme.js';
 import LearnStudio from './LearnStudio.jsx';
 import { presentationIndex, isLearnStudioOn, STUDIO_FLAG_KEY, allLessons } from '../../lib/learn-presentation/presentation.js';
 
@@ -22,6 +23,9 @@ export { isLearnStudioOn };
 import RECORDS from '../../lib/learn-presentation/presentation-records.json';
 import TOPICS from '../../lib/learn-presentation/presentation-topics.json';
 import LessonExperience, { LessonExperienceBoundary, textFor } from './LessonExperience.jsx';
+
+// The new look follows the chosen theme (DR-1679).
+ensureLearnTheme();
 
 // Covers ship under public/learn-thumbs with base-relative paths; resolve them
 // against the app's base (web /poetech-app/, native /).

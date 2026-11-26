@@ -36,12 +36,14 @@ import StudyQuiz from './StudyQuiz.jsx';
 import { ExperienceToolsContext, resumable, pacedFraction } from './LessonExperienceTools.jsx';
 import './lesson-experience.css';
 import { useLanding } from './landing-guard.js';
+import { ensureLearnTheme } from '../../lib/learn-theme.js';
 import { sectionLeadOf, withSectionBreaks } from './lesson-sections.js';
 import { placeParagraph, recordReadPlace } from './lesson-place.js';
 import ReadSections, { readSections } from './ReadSections.jsx';
 import AskAri from './AskAri.jsx';
 import { ARI } from '../../lib/ari.js';
 import { renderWithVerses, verseParts, VERSE_RE } from './lesson-verses.jsx';
+ensureLearnTheme(); // the new look follows the chosen theme (DR-1679)
 export { verseParts };
 
 const RING = 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2';
