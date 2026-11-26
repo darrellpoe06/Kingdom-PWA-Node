@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T14:47:28.290Z",
+ "measuredAt": "2026-11-26T15:23:25.586Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4554
+  "readings": 4570
  },
  "departments": [
   {
@@ -12596,11 +12596,13 @@
    "department": "The Eternal Algorithms",
    "position": 1,
    "title": "Choose This Day (life and death set before you)",
-   "contentSha": "e7e52990a2ab3437e9b028c4b2de0cc5f939946a88c3ad41f2f83abad2dd4419",
+   "contentSha": "263bda48b82d400a4b5be66735c9fb8d7d87ece57f61d7bfbdf8e324e798e5cd",
    "versions": {
-    "teen": "766938d63c6c29f3313bfc11c17d399c7830df49351a094e1c23f60253abbd7b",
-    "adult": "ff6ed6a623e348eb0d19036f951e6f99fa2dfae43e44ff74e0f5070fb4d3fb1d",
-    "senior": "802fac15a97b44bf1facebc1aa37a08de0154ba64e27a082d7c7e512ca097348"
+    "child": "d29dd71d4cb85180c6e19bfbc7d45264704228f8586d8e8f6cd50d445de4f2e6",
+    "youth": "35cede6692fc2dcce8246420f822204c152f8ab7ce56bea9594f29d311dad42c",
+    "teen": "4e39d66891c341c0151e818f5e77d0fd74676d89f55fc7390d6b2b8b4d4deaf1",
+    "adult": "c637265784fb58182e88f60047df882f3c01ac5a525e838650feb9cbcfa4c6fd",
+    "senior": "0cefd18c21cb0cec51141f52bbb9e29b72753355ff63a3e33b74726db09f4bf1"
    }
   },
   {
@@ -12624,11 +12626,13 @@
    "department": "The Eternal Algorithms",
    "position": 3,
    "title": "The Blood on the Doorpost (when I see the blood)",
-   "contentSha": "4561ed5f714eca865b9fe7293f7b677ccaa1eafd572eb918f4dfc58730c472e6",
+   "contentSha": "44f13cf221b7454755769c3bec90934ce3a15978c26a837f086d5a1249647792",
    "versions": {
-    "teen": "c4413acbbe35a79857384c2d6b7488424dea7ad5e80d164c2f9c11335dab227b",
-    "adult": "c204cd54a4f166af24e6e4092faff63b7a6948633de551744d77411581c7c7f3",
-    "senior": "594cf6071d400eb9a0f6c964f5a02071eafdd01a050b2476cbe74005cdcdda4d"
+    "child": "52703693b52a8a503885f6b3c09a187113c91e5ac9c3a2217596182866794cf7",
+    "youth": "f65841fa9dcff355622705d3037eda1e73492d2998a9a9a72f2be9d16256b839",
+    "teen": "f3a22fcf97ba7c49d3206a0ba4421bdc18cee831792cdaf995b11158ff96a6dc",
+    "adult": "914a0c6c6f94974ca06e5c33fe0326086b034d5f4c771fcf09467189933fa13e",
+    "senior": "bb6a7c62fda761f18613d944e09476b6b0d56b51d0bd66084984d1cf5f5c0ff4"
    }
   },
   {
@@ -12637,11 +12641,13 @@
    "department": "The Eternal Algorithms",
    "position": 4,
    "title": "As For Me and My House",
-   "contentSha": "5409724e5c1fd04c988a4ec67965d200c4e30073de148bbf28b48e3761cfc028",
+   "contentSha": "1ca7f83a8a9a2bc2bf3b19ee3a8a27a86086ccb9f712e3cb5b190e41ca8394cd",
    "versions": {
-    "teen": "329924931cebe8b5c63dcd9d168d0bad06c4850d399f635933b0ae67831eefd0",
-    "adult": "d6bc47a5bb7c1c5ea58849cc8306a17c607b93f9fd37163931fc982c06221246",
-    "senior": "5f28b43069a85ce44c91099f8abab6f2aadd74474d2a7101be49322916624dc2"
+    "child": "43bdb239aa822d972c0e764742448699c7c87389f7126db05929fc6f2d0605bf",
+    "youth": "b628829513b684869e8a83e1e007d5acc742f69ca02cec6c5f9bfc2829576255",
+    "teen": "b6139a2803580002d85e0fb19dba7f852edb4dbc8a1fa8afc4d3a4e70b53cd50",
+    "adult": "e517b74d194e1cfde95cea913a4126f3ff29816fbd60141975f77fde20b4dab0",
+    "senior": "ea8184f1eff6b6e33a046c8189f7425567d7b96743116ded3834c2f2265374d1"
    }
   },
   {
@@ -12650,11 +12656,13 @@
    "department": "The Eternal Algorithms",
    "position": 5,
    "title": "The Joy of the LORD (your strength — and no man taketh it)",
-   "contentSha": "3ea74d25e6717ea427b965e15cea1b0085afa528e29a3f400a18ff136af08103",
+   "contentSha": "27f1998be87554e4398caeb74e866d8cf2b57e354227c2afe4eadf565e41591d",
    "versions": {
-    "teen": "73cc713eb37f9676c341f99c43f4c7690eab880754867c5c216498215394b501",
-    "adult": "69f9b6c09308a647d465b16a410bf63eadc502c1c4512b30269296ee530a9eb1",
-    "senior": "7beaf763032abee604eac49b6e9c5c98c31321c305fea805f60a2288861bb450"
+    "child": "6b747aa7c76fc344192ed629670549502b045e44b2111252c8c8fafe298bccdb",
+    "youth": "a952add707cfedbaa0f62834867ad49876003a280ca7eb7dc347d721b2fcc777",
+    "teen": "7c6a953191607119dff9b3d066baca1207ead1e98c4a8a737e0ca260ecea8e00",
+    "adult": "ddd0560adb0460f6449662156b8052564acf9dac11e9d82543b5a12fe17545bb",
+    "senior": "e1d987737f1348170a0588fa08356cf070425a2c515b9109ceed19d766ccc097"
    }
   },
   {
@@ -12693,11 +12701,13 @@
    "department": "The Eternal Algorithms",
    "position": 8,
    "title": "If My People Humble Themselves",
-   "contentSha": "1fd93a901e8e8d924467a8fdc714369249bdffe41f9d0e00bd8c650d2f4f4415",
+   "contentSha": "d99d6e6359b657e358957217d52526ba11f2e33fdb4e4c6c83c19999354ddda4",
    "versions": {
-    "teen": "762e6c90dda14f0d2aae360703eba100524225a2fde41fcc27bda843b733c99b",
-    "adult": "5e59ce440b4b091de6d533dd2353567946e5fa89ec0e36170725bb553578dd25",
-    "senior": "8c8b854d58c3e13dddb21b5eae79077d03a7611fbdc88ba04164b326590dc272"
+    "child": "8163c20d8b14d05bec8589425e844fb33d7a03a5227bf19400d5dbc84d4e00b8",
+    "youth": "f19d107257288d3ad4e218d51869a7f2ca9557579a62a04931cd4f55c6a758ba",
+    "teen": "15348cfd76d48ff735174e90032e9e59f68d3ac99559c40f5e49d36c08522d98",
+    "adult": "140a50f3801d39925f04fbe84102aa32a8ab5648a5a264774f943e012a3f70fd",
+    "senior": "458e324a381e907c4d323a4270e9b831e892d6fd721ff42af68699c2d6dbfd4b"
    }
   },
   {
@@ -12901,11 +12911,13 @@
    "department": "The Eternal Algorithms",
    "position": 1,
    "title": "Taste and See (the empirical invitation)",
-   "contentSha": "293bff24c608ed6ee06a3c769d63d0a62e5a50777eb8f657f24b489ce0b03f5a",
+   "contentSha": "30c78dd53d60e3042d302fd59d8c2ddcf32e91e004410c6646a40bd38e375d2a",
    "versions": {
-    "teen": "ff3e6a9b559510683c294c70e31548db1cb1761b65f47e54b1381ca42060ab08",
-    "adult": "a1219cf3ca7c0c2b4a0b1baae81893ee15b4a4dd194793d4ca9fc5133e567da6",
-    "senior": "bc81a080281dd65e2162b8835a37faa0116b8fb7beacf7fa983377838b3c7520"
+    "child": "bfa56a7cdaeb8ce23a7dc213cac5b5d2e68a62a2c2a3105d9d98811cfa1898a8",
+    "youth": "146ebd2be08ab728336eaf97ad594134aa08b9eb66bcf27e32ff5f0eaf9de5fe",
+    "teen": "0878ed6e386a7f335b7bfb0fd82f6ffe4b1e2d1c962d8b60354d3550fe39edf2",
+    "adult": "0da1c5a75096032b37290f8c60824af002b0756864c2d5f30819e47582f3237d",
+    "senior": "48feccf66cbd8677853c29309e45b5d4e9e115e54a275bb734c3b6a7af5217ba"
    }
   },
   {
@@ -12914,11 +12926,13 @@
    "department": "The Eternal Algorithms",
    "position": 2,
    "title": "Trust → Directed Paths",
-   "contentSha": "6bd0cec3cf7431741448c142fa64d44d0735191394c817cede4e35f8a019ef4e",
+   "contentSha": "30b47db6951e9f63e0aad07148c0ef6d235c4e71f0023ea88eff9f3b8a9fa800",
    "versions": {
-    "teen": "0ed98417043116721a16e39391b78a39d0eea7356c024ec7250f5c29b1d7e377",
-    "adult": "9482550e1866c4f443772a6f5c343783d5a8c09f303ac05105ff60643a84c06a",
-    "senior": "b3c6975662b8de6b9781c0b09ccfad6ace6d525efbeded559e50b3af424db709"
+    "child": "09a883f4101cc4242a0b19f767f13ebed6ae8320aad444bbe78a4de615a3450d",
+    "youth": "c2622452b506a4ecca21c6f07d5342639d8ee0062fcb64c5405a412d2471695d",
+    "teen": "021233a0531601ae87954071cd963fa8031bcee6e2b7e067e83965c8bc156a2e",
+    "adult": "1411501eee6b21d392513a4499ce749fca1d18d88842685febc47374050b8527",
+    "senior": "58b7978c14d3af0e7698f6c3788a9259fdea96919fe4f20c9b7b2d72e16acadc"
    }
   },
   {
@@ -12927,11 +12941,13 @@
    "department": "The Eternal Algorithms",
    "position": 3,
    "title": "The Tree by the Rivers (delight in the law)",
-   "contentSha": "0ad4d071f00b9b97face51564d537af014ed28b83dc62f39224e170d8fa03b91",
+   "contentSha": "dd1524ac9ed7382a856b74ecbd11e9548a0705d079a1f06a795c5302ee9e32f3",
    "versions": {
-    "teen": "8aed11d336090c4eb538552536728be1f576d3f43baa37a57715948799a574f6",
-    "adult": "e74b70ba8b117aece7c81e2757aa98d9fdc5294dbda3c5f0689e3bc4f9c087eb",
-    "senior": "15500b65ab91d8af971c7ebbaa021dc2ff022954bb29d673af87b4ec9b2c2344"
+    "child": "95c81e8a755ec5742d3de92771622f3912ad47fe0fb9e3a927a1e37dfcf6d0fd",
+    "youth": "257a547ff0abe765f2e4b9f696c371428e949b3c977c07b000900b2fe356a208",
+    "teen": "6980da5df9dd92fc6e0fcda93e634b3d46ae5806991190481dcf55abeb5347cd",
+    "adult": "cad135da6811a2c1f53bb00375fac7a2123c03c80e62d979c009062c8c83dc10",
+    "senior": "0cffe7c326aa1cf13d0c05528d2351a154d52c5621bcd59710ef30b97e116120"
    }
   },
   {
