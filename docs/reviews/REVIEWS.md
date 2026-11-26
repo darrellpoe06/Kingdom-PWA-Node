@@ -14,6 +14,14 @@
 
 ## Records
 
+### REV-0261 · Spec-conformance review — the Learning Zone discovery landing page (DR-1699): intent, implementation, gaps and what is closed
+- **Date:** 2026-11-26
+- **Surface:** app/src/components/learn-discover/ · app/src/lib/learn-discover-*.js · app/src/components/ChurchLearn.jsx (2 lines) · app/src/lib/learn-landing.js · docs/design/learn-discover/
+- **Type:** ui-ux · code-review (DR-0219 SHOULD/ARE/GAPS/CLOSE)
+- **Status:** logged
+- **Findings:** SHOULD: a person facing a real situation describes it and finds relevant lessons without knowing the course (DR-1699). ARE: 995 lessons / 51 courses / 13 departments preserved; 12 categories (992 of 995 lessons placed, 3 documented); search 7.5/10 manual on the nine named questions, weaker (about 4) on everyday-situation phrasings before the Life Situations Guide; 57 hand-read situations added, thin and empty ones disclosed on the page. GAPS: lessons are missing for aging parents, divorce, infidelity, teens, loneliness, sleep (the list of lessons to write); photographs are contact-sheet resolution until the originals are supplied; the shell wiring and Darrell's review are pending; `lesson-dates:check` cannot run in a shallow clone. CLOSE: gaps carry a re-review date of 2026-12-10 in DR-1699.
+- **Source:** docs/decisions/DR-1699-the-learning-zone-discovery-landing-page.md
+
 ### REV-0260 · Ways review — the IT Professionals Forum AI-development slides measured against our Ways; thirteen builds proposed in DR-1330
 - **Date:** 2026-11-05
 - **Surface:** .github/workflows/ci.yml · scripts/e2e/door-journeys.mjs · app/public/_headers · app/functions/api/push-send.js · infra/supabase/schema-v2.1-infra.sql (audit_log) · docs/decisions/INDEX.md · app/src/surfaces.js

@@ -42,7 +42,7 @@
 // the SAME 16px baseline (text-[10px] -> text-[0.625rem]): pixel-identical at Normal,
 // but scaling to ~1.5x at Largest. New reading text here uses rem, never px.
 import React, { useState, useRef, useMemo, useCallback } from 'react';
-import { LEARN_LANDING_AREA, useLearnLanding, takeLearnAreaHint } from '../lib/learn-landing.js';
+import { LEARN_LANDING_AREA, useLearnLanding, takeLearnAreaHint, DEEP_LINK_AREAS } from '../lib/learn-landing.js';
 import {
   CLASS_META, PROPOSED_COHORT_START, SESSION_FLOW,
   buildSchedule, progressSummary, exportCurriculumMarkdown, formatClassDate,
@@ -4385,7 +4385,7 @@ function ChurchLearn({
   // using subtabs not long scrolling". One area on screen at a time; Lessons is
   // the one that scrolls. Navigation only: every block keeps its place, gated
   // by its area.
-  const [learnArea, setLearnAreaState] = useState(() => takeLearnAreaHint() || LEARN_LANDING_AREA); // opens on Latest (DR-1606), or on the area a link asked for once
+  const [learnArea, setLearnAreaState] = useState(() => takeLearnAreaHint(DEEP_LINK_AREAS) || LEARN_LANDING_AREA); // opens on Latest (DR-1606), or on the area a link asked for once
   const findFocusPending = React.useRef(false);
   const setLearnArea = (id) => { setLearnAreaState(id); };
   React.useEffect(() => {
