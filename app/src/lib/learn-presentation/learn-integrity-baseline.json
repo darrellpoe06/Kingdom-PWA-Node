@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T08:21:53.487Z",
+ "measuredAt": "2026-11-26T08:27:58.978Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4426
+  "readings": 4428
  },
  "departments": [
   {
@@ -13702,11 +13702,13 @@
    "department": "The Eternal Algorithms",
    "position": 19,
    "title": "Seen Under the Fig Tree (He knew the man before the meeting)",
-   "contentSha": "681dcc8d7049420d0a06351f72be444ed148fa037b6f71c14cfc2c4f4d04a568",
+   "contentSha": "fd01039b0853d457c01c0485b8ded3b09c041350f59b993bab9ea828c11805c7",
    "versions": {
-    "teen": "d164e5d82f7c0d004975af9e56de00beb683ffffa973ded463cdd74b0abf386c",
-    "adult": "ed878d404ed4550a44adf27b73f6296d90a6ce02e37de50480b6321b1bc8f1e8",
-    "senior": "3d6af4f7668b1bfc97fbc5f75b2e5c7538bd161fb75e2312c53d71fd36cf56ee"
+    "child": "564c9c8f2201e7212bf67454d8fe5e0ee7efba2a555c232681481aa2f2c22bcf",
+    "youth": "d435e2bc21eb66df1785103dfb2d07dfe3c7b5349ec70c17e7d2e28e4bbac09c",
+    "teen": "5b858956418b669f95028ca42a86fd670bb24360281e07bbd48e7dcfcc49ece1",
+    "adult": "604c803e4dc1177ef6f44193e7527028de991685d221e84f58402eba659c2d91",
+    "senior": "b16cf0079a2e22f507d7c31de2464b3998198947dc2a9a13de8698abb0004eea"
    }
   },
   {
