@@ -6,3 +6,5 @@ Approved by Darrell: look, five series themes, temporary photos, shell wiring (s
 Waiting: Darrell's review of the one surfaces.js line; Darrell's final "release"; series lesson selections (final approval); full-resolution photos (drop-in, see app/public/learn-discover/photos/README.md).
 Before release: green CI on the final commit, `npm run verify` on a full clone, `lesson-dates:check`, live phone look under each theme.
 Deferred: unseen-question search evaluation, ~100 more situations, microphone.
+
+2026-11-26 correction: the Featured Series / category lists sat on a cream ground because they were drawn outside Learn Studio's `.ls-root` container (which supplies its tokens and dark surface). They now sit in `.ls-root`: Night and Midnight get Learn Studio's own look; light themes map the same tokens to their own colors (heritage checked: white panel). Side-by-side proof: `final/series-list-vs-existing-night.jpg`. The crowded header in the earlier screenshot is the shell's own chrome (and its first-visit tour popup), identical on the existing list; the shell is frozen and was not changed.

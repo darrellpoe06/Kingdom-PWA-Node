@@ -66,7 +66,7 @@ export default function SeriesLessons({
   const realOf = (x) => built.home.get(x.lesson.id).course.key;
   const courses = [built.course];
   return (
-    <div className="ld-lessons-list" data-testid="ld-lessons-list">
+    <div className="ld-lessons-list ls-root" data-testid="ld-lessons-list">
       <LessonsInOrder
         courses={courses}
         index={index}

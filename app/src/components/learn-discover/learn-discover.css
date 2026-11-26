@@ -174,9 +174,15 @@
 .ld-sercover-d { font-size: .8rem; color: #f1d9b0; line-height: 1.3; }
 .ld-sercover-n { font-size: .76rem; font-weight: 700; }
 .ld-sercover-body .ld-bar2 { align-self: stretch; flex: none; }
-/* Learn's own lesson list, inside the discovery page, in the page's own colors */
-.ld-lessons-list { margin-top: 4px; }
-.ld-lessons-list .ls-inorder { margin: 0; }
+/* Learn's own lesson list, inside the discovery page. Learn Studio styles its lists through the `.ls-root` container (its tokens and
+   dark surface); the first version left that container out, so the list drew on the page's own (cream, in a light theme) ground.
+   Now the list sits in `.ls-root` too. In the dark themes (Night, Midnight) it is Learn Studio's own look, token for token. In a
+   light theme the same tokens map to that theme's colors, so a person's chosen theme is never turned dark. */
+.ld-lessons-list.ls-root { min-height: 0; max-width: none; margin: 4px 0 0; padding: 0; overflow: visible; --ls-bg: transparent; --ls-panel: var(--lc-paper, #fff); --ls-line: var(--lc-line, #e6d6cf); --ls-text: var(--lc-ink, #1a1012); --ls-dim: var(--lc-muted, #6b4440); --ls-gold: var(--lc-gold-ink, #7a5c14); background: transparent; color: var(--ls-text); }
+[data-theme='night'] .ld-lessons-list.ls-root, [data-theme='midnight'] .ld-lessons-list.ls-root { --ls-bg: #0f0b0d; --ls-panel: #1a1416; --ls-line: #2c2326; --ls-text: #f6f2ee; --ls-dim: #b9b0aa; --ls-gold: #f2bf2e; background: transparent; }
+.ld-lessons-list .ls-inorder { margin: 0; padding: 10px; }
+.ld-lessons-list .ls-inorder-head h2 { display: none; } /* the series cover above already names it */
+.ld-lessons-list .ls-inorder-head { justify-content: flex-end; }
 
 /* ---- lesson cards (rails) ---- */
 .ld-rail { display: flex; gap: 10px; overflow-x: auto; padding: 2px 2px 8px; scroll-snap-type: x proximity; scrollbar-width: thin; -webkit-overflow-scrolling: touch; }
