@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T07:52:45.166Z",
+ "measuredAt": "2026-11-26T07:57:23.673Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4412
+  "readings": 4414
  },
  "departments": [
   {
@@ -14308,11 +14308,13 @@
    "department": "The Eternal Algorithms",
    "position": 25,
    "title": "The Wage and the Gift (doomed apart from Him, Life through the Son)",
-   "contentSha": "434695fce431be8969b0ae7b344b1e47d3e9c2d0bf85c589611b08560f21ab9e",
+   "contentSha": "a627840421ffcfc6881f45a3a8976ed1ee096921f10b8aa80dba34bbca91009a",
    "versions": {
-    "teen": "6ed8444a3be06c47ae3f9233f048ee1cee449d5c91f90cc03d4057de694e6657",
-    "adult": "dc7a98146a75d0a773a1090979fd948138c95eb72640dfb3f387121cb6dae136",
-    "senior": "6e2c1df2ab5c3e967686dfaf61b7a545611a3cb7acb20033ff282458f61863b6"
+    "child": "9f4a5ea456c9413454b5954590edf5433fa86fbfdf152c8b6dd2e5cf23915a12",
+    "youth": "ff2aecf4fbaf22926d642bfbf4ae1e4dca5081fc99e7c1d61dd0881a42df5a5e",
+    "teen": "2e47bb8b5b6663e39b9834090540bdf9d16f0dc16dd3ffed08d221ae4730fd60",
+    "adult": "f25efc889d6ea4ba3663e29023e01734aef267bb0f4e2e579aeeee67ff5eb17e",
+    "senior": "d1ae3fc97b1b20715f64620e2c09a7d90e3ec0f8fa72de13bed290d7499c4228"
    }
   },
   {
