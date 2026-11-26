@@ -110,7 +110,9 @@ const PINNED = {
   // a value walk reaches and a field list does not.
   'living-lessons-class.js': 8,
   'made-in-time-course.js': 120,
-  'prophetic-voices.js': 3,
+  // prophetic-voices.js LEAVES THIS LIST ENTIRELY on 2026-11-26, 3 -> 0: the Price
+  // opener upgrade removed two ellipsis quotes, and Luke 8:17 in pv-inventions now
+  // reads as the verse does ("nothing is secret", not "there is nothing secret").
   'scripture-teaching.js': 2,
   // The largest single store outside the courses, and it was never read.
   'scriptures.js': 41,

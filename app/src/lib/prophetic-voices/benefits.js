@@ -5,7 +5,14 @@
 // prophetic-voices.js; a lesson that already carries its own is left alone.
 // =============================================================================
 
+import { DARBY_1_BENEFITS } from './darby-1.js';
+import { DARBY_2_BENEFITS } from './darby-2.js';
+import { DARBY_3_BENEFITS } from './darby-3.js';
+
 const B = {
+  ...DARBY_1_BENEFITS,
+  ...DARBY_2_BENEFITS,
+  ...DARBY_3_BENEFITS,
   'pv-price': [
     'Know what Dr. Price taught in Race, Religion & Racism and why he risked his platform to teach it',
     'See from Acts 10:34-35 that Yahweh shows no partiality by race',

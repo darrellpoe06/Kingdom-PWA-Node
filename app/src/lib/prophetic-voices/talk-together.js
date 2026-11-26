@@ -10,7 +10,14 @@
 // listed here; a lesson not listed is left exactly as written.
 // =============================================================================
 
+import { DARBY_1_TALK } from './darby-1.js';
+import { DARBY_2_TALK } from './darby-2.js';
+import { DARBY_3_TALK } from './darby-3.js';
+
 const TALK = {
+  ...DARBY_1_TALK,
+  ...DARBY_2_TALK,
+  ...DARBY_3_TALK,
   'pv-unseen-realm-seen': [
     'where they have seen something called justice that kept justice and righteousness apart, and how the Word shows the truth',
     'read one verse aloud to each other that someone once tried to keep quiet',
