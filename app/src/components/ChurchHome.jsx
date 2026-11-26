@@ -1298,8 +1298,6 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
         <HomeStudio
           church={church}
           setChurchView={setChurchView}
-          signedIn={signedIn}
-          onSignIn={() => setLoginOpen(true)}
           office={office}
           recentVids={recentVids}
           onPlay={playRecording}

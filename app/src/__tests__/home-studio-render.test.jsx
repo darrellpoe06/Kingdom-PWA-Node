@@ -95,6 +95,7 @@ describe('HomeStudio', () => {
     mount({ recentVids: VIDS, onPlay, now: new Date('2026-11-25T03:00:00Z') });
     expect(q('[data-testid="hs-latest"]').textContent).toContain('Message 0');
     expect(qa('[data-testid^="hs-msg-"]').length).toBe(4);
+    expect(q('[data-testid="hs-rail"]')).toBeTruthy();
     click(q('[data-testid="hs-latest"]'));
     expect(onPlay).toHaveBeenCalledWith(VIDS[0]);
     click(q('[data-testid="hs-msg-vid2abcdef"]'));
@@ -104,11 +105,12 @@ describe('HomeStudio', () => {
     mount();
     expect(q('[data-testid="hs-latest-empty"]').textContent).toMatch(/did not come back/);
     expect(q('[data-testid="hs-rail"]')).toBeNull();
+    expect(q('[data-testid="hs-latest"]')).toBeNull();
   });
   it('Happening shows at most three real events and names the real total', () => {
     mount({ office: OFFICE });
     expect(qa('[data-testid="hs-event"]').length).toBe(3);
-    expect(q('[data-testid="hs-view-all-events-2"]').textContent).toContain('4 events');
+    expect(q('[data-testid="hs-view-all-events"]').textContent).toContain('4 Events');
     click(qa('[data-testid="hs-event"]')[0]);
     expect(q('[data-testid="church-office-full"]')).toBeTruthy(); // the flyer opens full size
   });
@@ -119,8 +121,8 @@ describe('HomeStudio', () => {
   });
   it('the Church Office door reports what the office really posted', () => {
     mount({ office: OFFICE });
-    expect(q('[data-testid="hs-office"]').textContent).toContain('November 2026 calendar');
-    expect(q('[data-testid="hs-office"]').textContent).toContain('4 current flyers');
+    expect(q('[data-testid="hs-office-card"]').textContent).toContain('November 2026 calendar');
+    expect(q('[data-testid="hs-office-card"]').textContent).toContain('4 current flyers');
   });
   it('nothing from the mockup is data', () => {
     mount();
@@ -131,6 +133,34 @@ describe('HomeStudio', () => {
     mount();
     expect(q('[data-testid="hs-kids"] img').getAttribute('src')).toMatch(/bible-adventures-key-art\.jpg$/);
     expect(q('[data-testid="hs-institute"]').textContent).toContain('TLC');
+  });
+});
+
+describe('nothing the current homepage offers is dropped', () => {
+  it('every door of the current homepage has a counterpart in the preview', () => {
+    const asked = [];
+    const setChurchView = vi.fn();
+    const un = subscribeChurchHomeSection((id) => asked.push(id));
+    mount({ setChurchView, office: OFFICE });
+    const subs = { reading: 'scripture', lessons: 'learn', trivia: 'engagement', 'sermon-study': 'pulpit', program: 'program', choir: 'choir', bus: 'bus' };
+    for (const [k, sub] of Object.entries(subs)) {
+      setChurchView.mockClear();
+      click(q(`[data-testid="hs-explore-${k}"]`));
+      expect(setChurchView, k).toHaveBeenCalledWith(sub);
+    }
+    click(q('[data-testid="hs-explore-family"]'));
+    click(q('[data-testid="hs-explore-corner"]'));
+    click(q('[data-testid="hs-office-card"]'));
+    expect(asked).toEqual(expect.arrayContaining(['about', 'mycorner', 'office']));
+    // the Customize strip opens the same Personalize sheet by the same event
+    const seen = vi.fn();
+    window.addEventListener('lovecorner:personalize', seen);
+    click(q('[data-testid="hs-customize"]'));
+    expect(seen).toHaveBeenCalled();
+    // the feature cards and the day's line are kept
+    expect(q('[data-testid="hs-feature-today"]')).toBeTruthy();
+    expect(qa('[data-testid^="hs-feature-"]').length).toBeGreaterThanOrEqual(2);
+    un();
   });
 });
 
@@ -185,7 +215,7 @@ describe('ChurchHome: the preview is additive, the current homepage is the defau
     mountHome({ homeStudio: true });
     await act(async () => { await Promise.resolve(); await Promise.resolve(); await Promise.resolve(); });
     await act(async () => { await Promise.resolve(); await Promise.resolve(); });
-    expect(q('[data-testid="hs-office"]').textContent).toContain('November 2026 calendar');
+    expect(q('[data-testid="hs-office-card"]').textContent).toContain('November 2026 calendar');
     expect(q('[data-testid="church-office-board"]')).toBeNull(); // not dumped on the homepage
     click(qa('[role="tab"]').find((t) => t.textContent.includes('Church Office')));
     expect(q('[data-testid="church-office-section"]')).toBeTruthy();
@@ -202,9 +232,10 @@ describe('the bottom bar', () => {
     window.innerWidth = 390;
     window.matchMedia = (m) => ({ matches: /max-width: (639|1023)/.test(m), media: m, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {} });
   });
-  it('the preview shows Home · Messages · Events · Learning · My Corner; everyone else keeps the seven tabs', () => {
+  it('the preview shows Home · Messages · Events · Learning · Institute · Ministries · Give; everyone else keeps the current seven tabs', () => {
     dock(nav({ homeStudio: true }));
-    expect(qa('[data-testid^="dock-tab-studio-"]').map((e) => e.textContent.trim())).toEqual(['Home', 'Messages', 'Events', 'Learning', 'My Corner']);
+    expect(qa('[data-testid^="dock-tab-studio-"]').map((e) => e.textContent.trim())).toEqual(['Home', 'Messages', 'Events', 'Learning', 'Institute', 'Ministries']);
+    expect(q('[data-testid="chrome-dock"]').getAttribute('data-home-studio')).toBe('true');
     dock(nav());
     expect(qa('[data-testid^="dock-tab-studio-"]').length).toBe(0);
     expect(q('[data-testid="dock-tab-church-watch"]')).toBeTruthy();
@@ -216,8 +247,7 @@ describe('the bottom bar', () => {
     dock(nav({ homeStudio: true, onNavigate }));
     click(q('[data-testid="dock-tab-studio-messages"]'));
     click(q('[data-testid="dock-tab-studio-events"]'));
-    click(q('[data-testid="dock-tab-studio-corner"]'));
-    expect(asked).toEqual(['worship', 'times', 'mycorner']);
+    expect(asked).toEqual(['worship', 'times']);
     click(q('[data-testid="dock-tab-studio-learning"]'));
     expect(onNavigate).toHaveBeenLastCalledWith('church', null, 'learn');
     un();

@@ -107,7 +107,22 @@ export const CHURCH_STUDIO_NAV = Object.freeze([
   { key: 'studio-messages', churchView: 'home', section: 'worship', icon: 'monitor', words: 'Messages' },
   { key: 'studio-events', churchView: 'home', section: 'times', icon: 'calendar', words: 'Events' },
   { key: 'studio-learning', churchView: 'learn', section: null, icon: 'bookOpen', words: 'Learning' },
-  { key: 'studio-corner', churchView: 'home', section: 'mycorner', icon: 'heart', words: 'My Corner' },
+  { key: 'studio-institute', churchView: 'institute', section: null, icon: 'landmark', words: 'Institute' },
+  { key: 'studio-ministries', churchView: 'ministries', section: null, icon: 'users', words: 'Ministries' },
+  { key: 'studio-give', give: true, icon: 'heart', words: 'Give' },
+]);
+
+/** Everything the current homepage offers that the mockup's rows do not carry, kept as one swipeable rail (nothing is dropped). */
+export const EXPLORE_CARDS = Object.freeze([
+  { key: 'reading', words: "Today's reading", note: 'The Scripture reader, read aloud', icon: 'book', sub: 'scripture' },
+  { key: 'lessons', words: 'Bible lessons', note: 'Courses by age and depth', icon: 'bookOpen', sub: 'learn' },
+  { key: 'trivia', words: 'Trivia & challenges', note: "This week's Bible trivia", icon: 'dice', sub: 'engagement' },
+  { key: 'sermon-study', words: 'Sermon study', note: 'The Word, from the message', icon: 'pencil', sub: 'pulpit' },
+  { key: 'program', words: 'Order of Service', note: 'Follow the service', icon: 'bookOpen', sub: 'program' },
+  { key: 'choir', words: 'Choir & Music', note: 'Choir, band, rehearsals', icon: 'volume', sub: 'choir' },
+  { key: 'bus', words: 'Bus Ministry', note: 'Request a ride', icon: 'users', sub: 'bus' },
+  { key: 'family', words: 'Family & community', note: 'Stronger together in Christ', icon: 'chat', sub: 'home', section: 'about' },
+  { key: 'corner', words: 'My Corner', note: 'Your record, prayer, settings', icon: 'heart', sub: 'home', section: 'mycorner' },
 ]);
 
 /** The seven quick doors, in the mockup's order. `sub` is a church tab or 'home' + a section of the home. */

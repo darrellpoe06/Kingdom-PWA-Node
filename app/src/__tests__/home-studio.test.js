@@ -1,6 +1,6 @@
 // The redesigned homepage's private-preview flag and its pure builders.
 import { describe, it, expect } from 'vitest';
-import { isHomeStudioOn, homeStudioAllowed, CHURCH_STUDIO_NAV, STUDIO_QUICK, MY_CORNER_DOORS, happeningItems, messageCards, continueLearning, sameEvent, HOME_STUDIO_FLAG_KEY } from '../lib/home-studio.js';
+import { isHomeStudioOn, homeStudioAllowed, CHURCH_STUDIO_NAV, STUDIO_QUICK, EXPLORE_CARDS, MY_CORNER_DOORS, happeningItems, messageCards, continueLearning, sameEvent, HOME_STUDIO_FLAG_KEY } from '../lib/home-studio.js';
 import { CHURCH_BOTTOM_NAV, CHURCH_TAB_ICONS } from '../lib/church-tabs.jsx';
 
 const store = (init = {}) => {
@@ -38,17 +38,17 @@ describe('the preview is private', () => {
 });
 
 describe('the five-tab bar and the doors name places that exist', () => {
-  it('Home · Messages · Events · Learning · My Corner, and the current seven-tab bar is untouched', () => {
-    expect(CHURCH_STUDIO_NAV.map((t) => t.words)).toEqual(['Home', 'Messages', 'Events', 'Learning', 'My Corner']);
+  it('Home · Messages · Events · Learning · Institute · Ministries · Give, and the current seven-tab bar is untouched', () => {
+    expect(CHURCH_STUDIO_NAV.map((t) => t.words)).toEqual(['Home', 'Messages', 'Events', 'Learning', 'Institute', 'Ministries', 'Give']);
     expect(CHURCH_BOTTOM_NAV.map((t) => t.words)).toEqual(['Home', 'Watch', 'Bible', 'Events', 'Give', 'Ministries', 'Institute']);
   });
   it('every church tab a door names is a real church tab', () => {
-    const subs = [...STUDIO_QUICK.map((d) => d.sub), ...CHURCH_STUDIO_NAV.map((t) => t.churchView), ...MY_CORNER_DOORS.filter((d) => d.go).map((d) => d.go.sub)].filter((s) => s !== 'home');
+    const subs = [...STUDIO_QUICK.map((d) => d.sub), ...EXPLORE_CARDS.map((d) => d.sub), ...CHURCH_STUDIO_NAV.map((t) => t.churchView).filter(Boolean), ...MY_CORNER_DOORS.filter((d) => d.go).map((d) => d.go.sub)].filter((s) => s !== 'home');
     for (const s of subs) expect(CHURCH_TAB_ICONS[s], s).toBeTruthy();
   });
   it('every home section a door names exists in the home (worship, prayer, give, times, about, office, mycorner)', () => {
     const ok = new Set(['worship', 'speak', 'prayer', 'give', 'times', 'about', 'office', 'mycorner']);
-    const secs = [...STUDIO_QUICK, ...CHURCH_STUDIO_NAV, ...MY_CORNER_DOORS.map((d) => d.go || {})].map((d) => d.section).filter(Boolean);
+    const secs = [...STUDIO_QUICK, ...CHURCH_STUDIO_NAV, ...EXPLORE_CARDS, ...MY_CORNER_DOORS.map((d) => d.go || {})].map((d) => d.section).filter(Boolean);
     for (const s of secs) expect(ok.has(s), s).toBe(true);
   });
   it('the quick doors are exactly the seven the brief names', () => {

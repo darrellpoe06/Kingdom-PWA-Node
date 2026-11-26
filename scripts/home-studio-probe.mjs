@@ -148,6 +148,17 @@ const measure = (page) =>
         for (const s of r.noName) note(`${tag}: unnamed control ${s}`);
         for (const s of r.noAlt) note(`${tag}: image without alt ${s}`);
       }
+      if (w < 700) {
+        for (const y of [0, 600, 1400]) {
+          await page.evaluate((yy) => window.scrollTo(0, yy), y);
+          await page.waitForTimeout(250);
+          const gap = await page.evaluate(() => {
+            const d = document.querySelector('[data-testid="chrome-dock"]');
+            return d ? Math.round(window.innerHeight - d.getBoundingClientRect().bottom) : null;
+          });
+          if (gap === null || Math.abs(gap) > 1) note(`${tag}: bottom bar is ${gap}px off the viewport bottom at scroll ${y}`);
+        }
+      }
       for (const e of errs) note(`${tag}: page error ${e}`);
       await ctx.close();
     }
@@ -170,6 +181,11 @@ const measure = (page) =>
     ['hs-institute', { sub: 'institute' }],
     ['hs-view-all-events', { sub: null, section: 'times' }],
     ['hs-office', { sub: null, section: 'office' }],
+    ['hs-explore-corner', { sub: null, section: 'mycorner' }],
+    ['hs-explore-reading', { sub: 'scripture' }],
+    ['hs-explore-choir', { sub: 'choir' }],
+    ['hs-explore-bus', { sub: 'bus' }],
+    ['hs-explore-program', { sub: 'program' }],
   ];
   for (const [id, want] of DOORS) {
     const { ctx, page } = await open(b, { width: 390 });
@@ -193,12 +209,13 @@ const measure = (page) =>
     ['studio-messages', { sub: null, section: 'worship' }],
     ['studio-events', { sub: null, section: 'times' }],
     ['studio-learning', { sub: 'learn' }],
-    ['studio-corner', { sub: null, section: 'mycorner' }],
+    ['studio-institute', { sub: 'institute' }],
+    ['studio-ministries', { sub: 'ministries' }],
   ];
   {
     const { ctx, page } = await open(b, { width: 390 });
     const labels = await page.$$eval('[data-testid^="dock-tab-studio-"]', (els) => els.map((e) => e.textContent.trim()));
-    if (labels.join('|') !== 'Home|Messages|Events|Learning|My Corner') note(`bottom bar is ${JSON.stringify(labels)}`);
+    if (labels.join('|') !== 'Home|Messages|Events|Learning|Institute|Ministries') note(`bottom bar is ${JSON.stringify(labels)}`);
     await ctx.close();
   }
   for (const [id, want] of TABS) {
@@ -225,12 +242,16 @@ const measure = (page) =>
       const name = `home-${theme || 'door-default'}-${w}.png`;
       await page.screenshot({ path: join(SHOTS, name), fullPage: true });
       if (!theme && w === 390) {
-        for (const [id, section] of [['studio-corner', 'my-corner'], ['studio-events', 'events'], ['studio-messages', 'messages']]) {
+        await page.screenshot({ path: join(SHOTS, `view-${theme || 'door-default'}-390-top.png`) });
+        for (const [id, section] of [['studio-events', 'events'], ['studio-messages', 'messages']]) {
           await page.click(`[data-testid="dock-tab-${id}"]`);
           await page.waitForTimeout(900);
           await page.screenshot({ path: join(SHOTS, `section-${section}-390.png`), fullPage: false });
         }
-        await page.click('[data-testid="hs-office"]').catch(() => {});
+        await page.evaluate(() => window.scrollTo(0, 0));
+        await page.click('[data-testid="hs-explore-corner"]').catch(() => {});
+        await page.waitForTimeout(900);
+        await page.screenshot({ path: join(SHOTS, 'section-my-corner-390.png') });
       }
       await ctx.close();
     }

@@ -355,6 +355,7 @@ export default function ChromeDock({ onFeedback, feedbackOpen = false, church = 
       <div
         ref={barRef}
         data-testid="chrome-dock"
+        data-home-studio={nav && nav.homeStudio ? 'true' : undefined}
         data-in-reader={inReader ? 'true' : 'false'}
         data-one-row={oneRow ? 'true' : 'false'}
         data-money-mode={moneyMode ? 'true' : 'false'}
