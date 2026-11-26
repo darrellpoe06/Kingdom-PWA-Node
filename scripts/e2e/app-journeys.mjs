@@ -139,26 +139,29 @@ export function parseArgs(argv) {
 
 // The walks. Each is (page, t) => Promise<void>; t carries the helpers.
 const JOURNEY_DEFS = {
+  // DR-1664: every member (and a signed-out visitor, as here) opens Learn in the new look, so a
+  // shared lesson link lands on THAT lesson's cover (title, Read, Listen); the classic lesson
+  // space is the fail-safe only. Either one counts as landing on the lesson.
   async 'lesson-link-lands'(page, t) {
     await t.open(page, t.link);
-    const title = await t.textOf(page, '[data-testid="lesson-space-title"]', 20000);
-    if (!title) throw new Error('no lesson opened: [data-testid="lesson-space-title"] never rendered');
+    const title = await t.textOf(page, '.ls-cover .ls-cover-title, [data-testid="lesson-space-title"]', 20000);
+    if (!title) throw new Error('no lesson opened: neither the new-look cover (.ls-cover-title) nor [data-testid="lesson-space-title"] rendered');
     const body = await t.body(page);
     if (!body.includes(LESSON_LINK_COURSE)) throw new Error(`the course heading "${LESSON_LINK_COURSE}" is not on the page`);
     if (await page.locator('iframe[src*="youtube"]').count()) throw new Error('a YouTube player is mounted — the link landed on the Worship tab');
   },
+  // DR-1664: Learn opens in the new look for everyone. A reader taps Learn, taps the first lesson
+  // picture (the Lessons list opens on Pictures), taps Read Lesson on its cover, and the lesson
+  // opens in the Lesson Experience.
   async 'learn-by-taps'(page, t) {
     await t.open(page, '?view=church');
     await t.tap(page, 'button:text-is("Learn")', 'the Learn sub-tab');
-    await t.tap(page, '[aria-label="Course quick links"] button[role="tab"]', 'a course chip');
-    // A lesson row is li[data-lesson-id]; a month heading folds its rows away,
-    // so a folded course is unfolded first, as a reader would.
-    const ROW = '[data-testid="course-lesson-list"] li[data-lesson-id] button';
-    await page.locator('[data-testid="course-lesson-list"]').first().waitFor({ timeout: 15000 });
-    if (!(await page.locator(ROW).count())) await t.tap(page, '[data-testid="month-fold"]', 'the first month heading');
-    await t.tap(page, ROW, 'the first lesson in the list');
-    const title = await t.textOf(page, '[data-testid="lesson-space-title"]', 20000);
-    if (!title) throw new Error('tapping a lesson did not open it: no [data-testid="lesson-space-title"]');
+    await page.locator('[data-testid="lessons-in-order"]').first().waitFor({ timeout: 20000 });
+    await t.tap(page, '[data-testid="lessons-in-order"] button.ls-card', 'the first lesson picture');
+    await t.tap(page, '.ls-cover button:text-is("Read Lesson")', 'Read Lesson on its cover');
+    // Read opens the lesson as a page (.le-book-title); Watch puts its title on the stage (.le-title).
+    const title = await t.textOf(page, '.le-root .le-book-title, .le-root .le-title', 20000);
+    if (!title) throw new Error('tapping a lesson did not open it: no lesson title in the Lesson Experience');
   },
   // Darrell 2026-11-25, from the live build: "Buttons don't go anywhere for anything on this
   // screen." The Institute's buttons switched a section that sat below the fold, so a tap looked

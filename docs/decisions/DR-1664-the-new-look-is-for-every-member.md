@@ -22,7 +22,9 @@ The new Learn (DR-1654, DR-1661, DR-1662, DR-1663) and the new Institute (#2897,
 
 1. **The new Learn, its Lesson Experience and the new Institute default ON for every member**: the shell passes both defaults with no persona condition.
 2. The classic pages stay as the fail-safe: the error boundary (DR-1654) still falls back to them, and `?learnStudio=0` / `?instituteStudio=0` still turns a device back.
-3. A standing test holds it: the shell must pass both defaults with no persona condition (proven to catch: with the two-persona condition restored, it fails).
+3. **The walks follow the product.** The browser journeys run as a signed-out visitor, who now gets the new look: `lesson-link-lands` accepts the new-look cover of the linked lesson (or the classic lesson space, the fail-safe); `learn-by-taps` taps Learn, the first lesson picture, Read Lesson, and requires the lesson's title in the Lesson Experience. Both planted faults are still caught by exactly their own walks.
+4. **The Lesson Experience's "Owner preview · this lesson is not public yet" badge is removed**: it is public now, and the badge would tell every member something false.
+5. A standing test holds it: the shell must pass both defaults with no persona condition (proven to catch: with the two-persona condition restored, it fails).
 
 ## Impact
 
@@ -32,6 +34,8 @@ The new Learn (DR-1654, DR-1661, DR-1662, DR-1663) and the new Institute (#2897,
 ## Verification after merge
 
 - `learn-functions-in-new-look.test.jsx` (the every-member case), `institute-studio.test.jsx`, `church-learn-play-and-courses.test.jsx`, `learn-studio-owner-default.test.js`: 69 of 69.
+- `scripts/e2e/app-journeys.mjs` on a local build (stub backend, as CI): 8 of 8 walks; `--break=link` caught by lesson-link-lands only; `--break=taps` caught by the six tapping walks only.
+- `lesson-experience-prototype.test.jsx` now proves the Experience opened by its `.le-root`, not the removed badge's text: 90 of 90 with the new-look and journey stand-in suites.
 - Not yet seen on another member's phone: someone other than Darrell or Christina opens Learn and the Institute after the deploy and sees the new look.
 
 `re-review: 2026-12-03`
