@@ -1455,6 +1455,21 @@
       "notes": "Darrell 2026-11-13 from the live door; five cases proven to catch"
     },
     {
+      "id": "new-look-for-every-member",
+      "date": "2026-11-26",
+      "task": "The new Learn, Lesson Experience and Institute default on for every member, not two personas",
+      "drs": [
+        "DR-1664"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.2,
+      "estimateWithoutAiHours": 2,
+      "notes": "69/69; the every-member guard proven to catch."
+    },
+    {
       "id": "lessons-in-order",
       "date": "2026-11-25",
       "task": "The Kids library listed Living Lessons newest first; it now opens at L1 with every order on a picker, plus measured contrast fixes",

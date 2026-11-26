@@ -4347,7 +4347,7 @@ function ChurchLearn({
   signedIn = true,            // DR-0698: the shell passes !!authSession; a signed-out visitor reads and listens, and a download asks for an account
   learnerRecords = null,      // DR-0754: every learner record this account may read (his own, or every learner's for the Governor)
   currentUserId = null,       // which of those records is mine
-  learnStudioDefaultOn = false, // redesigned Learn defaults ON here with no URL (owner-only; never isGovernor -- every facilitator has that)
+  learnStudioDefaultOn = false, // the redesigned Learn defaults ON with no URL; the shell passes it for every member (DR-1664)
 }) {
   const [interestSent, setInterestSent] = useState({}); // keyed by course key
   const [helped, setHelped] = useState({}); // keyed by course key
@@ -4911,7 +4911,7 @@ function ChurchLearn({
 
   // FULL WIDTH, LIKE EVERY OTHER PAGE (Darrell 2026-09-14: "the lessons are
   // supposed to be the full width of the window... like all pages").
-  const [studioFlag] = useState(() => isLearnStudioOn({ defaultOn: learnStudioDefaultOn })), [studio, setStudio] = useState(studioFlag); // owner preview: on by default for the owner's device (no URL needed in the native app), opt-in elsewhere
+  const [studioFlag] = useState(() => isLearnStudioOn({ defaultOn: learnStudioDefaultOn })), [studio, setStudio] = useState(studioFlag); // on by default for every member (DR-1664); ?learnStudio=0 still turns it off on a device
   // MEASURED in a real browser at 1440px rather than guessed: window 1440,
   // <main> 1440, and the lesson card 768 -- constrained by exactly this one
   // `max-w-3xl` on the section below. It was the ONLY limiter in the whole

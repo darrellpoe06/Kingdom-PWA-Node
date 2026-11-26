@@ -271,3 +271,14 @@ describe('the new look never hands the reader back to the classic page', () => {
     expect(src).toMatch(/visibleCourses\.length >= 1 && !lessonFocus && !studio && \(/);
   });
 });
+
+// Darrell 2026-11-26: "Why don't the new look show on others phones?!" -- it was gated to
+// two personas. The shell now turns the new Learn and the new Institute on for every member.
+describe('the new look is for every member, not two accounts (DR-1664)', () => {
+  it('the shell passes the new-look defaults with no persona condition', () => {
+    const shell = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'poe-financial-mvp-v28.jsx'), 'utf8');
+    expect(shell).toMatch(/<ChurchLearn[\s\S]*?learnStudioDefaultOn \/\*/);
+    expect(shell).toMatch(/<ChurchInstitute [^\n]*studioDefaultOn \/\*/);
+    expect(shell).not.toMatch(/(learnStudioDefaultOn|studioDefaultOn)=\{\['darrell', 'christina'\]/);
+  });
+});
