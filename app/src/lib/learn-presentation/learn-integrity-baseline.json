@@ -1,5 +1,5 @@
 {
- "measuredAt": "2026-11-26T15:37:26.588Z",
+ "measuredAt": "2026-11-26T15:42:25.041Z",
  "counts": {
   "departments": 13,
   "courses": 51,
@@ -441,13 +441,13 @@
    "department": "A.I. The Way",
    "position": 2,
    "title": "Asking good questions",
-   "contentSha": "7215b732c4a9fbe9a41ac54c7d507f7c251bd7c9a0eabac607920fc3fd8f3541",
+   "contentSha": "af31968e0733726cebf01530fa779b46e3dd44ffd5d7df9555a87dde446a5271",
    "versions": {
-    "child": "a1b9b362d543f3b768e3290a232ff600f5e2fcf906eb0b7ac711fa1fe770e984",
-    "youth": "d0c55d96f490ee3eb8d7b6dd0beabe90bce381d636e81dd7234895adbfde7758",
-    "teen": "bd8258701a90cbac9aa208edec6256ef20590960b3c1340709070a6fa4a0280d",
-    "adult": "e0b4ad1cd7027449d6575f5e5e581b0ca7966187cd1a89dcd90df8948672d4e1",
-    "senior": "d53be92b2aee58c4a1d1e4ad68b648bf1d0121729ea537281853280aaddfc66b"
+    "child": "710d32d2212c829bea94721824adb94a684164864d1492c3d88391e7d0d9dd55",
+    "youth": "bd689203d1bff7e0098b2eb4c8ffd317facef20f49357764f1fc4b12145ff25d",
+    "teen": "74a85f992ac9b1f054d37864c9f225e99dc94dd020122c9d009892742a6092cd",
+    "adult": "741a91304391256d3bbcece5e66afc24617cf7462db4c5620cfdd2e3856a835f",
+    "senior": "8e33b000203f89d28aad23981c93b8c14299c003b8a67291d626b4f89c233bfc"
    }
   },
   {
