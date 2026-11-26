@@ -78,8 +78,9 @@ describe('Learn content integrity baseline', () => {
   // vacate-the-seat, saints-judge-with-him, judge-comes-with-reward,
   // peace-peace, call-evil-good, suppress-the-truth, word-of-testimony,
   // word-written-on-the-heart, sheep-and-goats, wheat-and-tares,
-  // not-my-will-but-thine, friendship-world-enmity, handling-word-deceitfully.
-  it('the baseline is the measured Phase 1 catalog (13 / 51 / 994 / 4,396)', () => {
-    expect(base.counts).toEqual({ departments: 13, courses: 51, lessons: 994, readings: 4396 });
+  // not-my-will-but-thine, friendship-world-enmity, handling-word-deceitfully,
+  // spirits-seek-a-body.
+  it('the baseline is the measured Phase 1 catalog (13 / 51 / 994 / 4,398)', () => {
+    expect(base.counts).toEqual({ departments: 13, courses: 51, lessons: 994, readings: 4398 });
   });
 });

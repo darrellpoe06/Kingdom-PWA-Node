@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T07:13:01.111Z",
+ "measuredAt": "2026-11-26T07:19:22.838Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4396
+  "readings": 4398
  },
  "departments": [
   {
@@ -13727,11 +13727,13 @@
    "department": "The Eternal Algorithms",
    "position": 22,
    "title": "Spirits Seek a House (empty is not enough — be filled)",
-   "contentSha": "90cf012b0ef26535c5ca608eff67b3965a9d4ca132bccab4b3962312a39bad37",
+   "contentSha": "6809856ee56d6105c2519dc47acd02c84a059e5ea3108b65f997880d6f8c3d5a",
    "versions": {
-    "teen": "881efc63c554268789774293f62360b9d8740ac4825d2f52b40c7f21b8983315",
-    "adult": "f2ff11465ca59dfbe8cddb327ca00ea705a8189a6fdd4e64cb7ace8527c5810b",
-    "senior": "4d7457761dc341ed859ba16522d21a91c8447fbb8291d246b40e7e2e8040f77b"
+    "child": "446601e2db3dc7d309859c7e1aed556b0b901265ccc1f6de78503d9e3a4d695f",
+    "youth": "cbaad5de992bcc84223f0945c3ccf27d5e6702f5b5e7060984db721e38f6a3a5",
+    "teen": "d407cc7cfb70a6fcef4b993c75d6142ce7fcd191e13a4ed5241598c43338f559",
+    "adult": "8f22ccf03c4d7f6b679957bffeee9cb6ff39144ec42219dd7e1516feeee5e385",
+    "senior": "ecd7021ac3ba987b24ee56314363401c9da49beac800a0294161e7592e19d573"
    }
   },
   {
