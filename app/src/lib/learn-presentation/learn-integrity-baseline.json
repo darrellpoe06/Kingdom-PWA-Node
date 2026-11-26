@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T13:18:14.550Z",
+ "measuredAt": "2026-11-26T13:22:35.069Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4516
+  "readings": 4518
  },
  "departments": [
   {
@@ -13311,11 +13311,13 @@
    "department": "The Eternal Algorithms",
    "position": 8,
    "title": "No Weapon Formed Shall Prosper",
-   "contentSha": "777e91cead56b380482ac94158cdb76450b1b6b17b867f0d1295a761f92ab7d9",
+   "contentSha": "a7fbe439cb647f8aa754b15f195c6488cfb1a05d22ef588b7a0886ce6445dae7",
    "versions": {
-    "teen": "c8a1dd137c83aca817bcd3e4d4e8c852f7cb78e27853012a0661885190bce8c5",
-    "adult": "64ed266cde1c4dfb2fa1eb32c6e091880d2f40919c2a8861b7733e6d3116cc8d",
-    "senior": "0d81d2b8736ce97dc8d87277dc6961deefc3fc900020bf3eafc42661ac5504b6"
+    "child": "7715210a661b34228eca7b08223dfe93e36cc2dca2392d3bee8c97152f5cbbf2",
+    "youth": "a6451bd7d40f7c6a2cbc5f059fe4b7fff45e894b8fcd65ad85a5d66fcfe5f608",
+    "teen": "9a8f6dbf09ddfa021748f9403a20d86f2c43514afce56e49bea3d2e89c55ed57",
+    "adult": "bf714193179c9619c42f197deb4c2a4f87fcc10ad96dc0829922ca2910b0c303",
+    "senior": "d34725432cd8ea8c123ff6719fe5260b4e6abe482a51a9a629ca335593f5a426"
    }
   },
   {
