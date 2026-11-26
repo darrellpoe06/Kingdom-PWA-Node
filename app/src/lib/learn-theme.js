@@ -54,28 +54,35 @@ export const inkOn = (bg) => (contrast(bg, '#14100f') >= contrast(bg, '#ffffff')
 export function learnTokens({ color, border }) {
   const dark = luminance(color) < 0.18;
   const bg = color;
-  const text = dark ? '#f6f2ee' : '#1a1815';
+  // LOW LIGHT READS FIRST (Darrell 2026-11-26: "Make sure that accessibility and backgrounds work well with
+  // white words for low light"). Dark themes carry pure white words and a bright second tone; every word on
+  // every theme reaches 7:1 (WCAG AAA) on its background and its panels, gated in the test.
+  const text = dark ? '#ffffff' : '#1a1815';
   const panel = dark ? mix(bg, '#ffffff', 0.06) : mix(bg, border, 0.06);
   const line = dark ? mix(bg, '#ffffff', 0.16) : mix(bg, border, 0.22);
-  const dim = dark ? '#b9b0aa' : mix(text, bg, 0.32);
-  // The accent as text must read on the background; darken or lighten until it does (4.5:1).
+  const dim = dark ? '#dcd6d1' : mix(text, bg, 0.2);
+  // The accent as text must read on the background: 7:1 on dark (low light), 4.5:1 on light.
+  const want = dark ? 7 : 4.5;
   let accent = border;
-  for (let i = 0; i < 12 && contrast(accent, bg) < 4.5; i += 1) accent = mix(accent, dark ? '#ffffff' : '#000000', 0.15);
+  for (let i = 0; i < 16 && Math.min(contrast(accent, bg), contrast(accent, panel)) < want; i += 1) accent = mix(accent, dark ? '#ffffff' : '#000000', 0.15);
   return { dark, bg, panel, line, text, dim, accent, onAccent: inkOn(accent) };
 }
 
 const block = (sel, t) =>
   `${sel}{--ls-bg:${t.bg};--ls-panel:${t.panel};--ls-line:${t.line};--ls-text:${t.text};--ls-dim:${t.dim};--ls-gold:${t.accent};--ls-on-gold:${t.onAccent};--le-bg:${t.bg};--le-panel:${t.panel};--le-line:${t.line};--le-text:${t.text};--le-dim:${t.dim};--le-gold:${t.accent};--le-on-gold:${t.onAccent};--rs-bg:${t.panel};--rs-line:${t.line};--rs-ink:${t.text};--rs-dim:${t.dim};--rs-gold:${t.accent};--rs-on-gold:${t.onAccent}}`;
 
+// A phone set to ask for more contrast gets its second tone at full strength.
+const MORE_CONTRAST = '@media (prefers-contrast: more){.ls-root,.le-root,.rs{--ls-dim:var(--ls-text);--le-dim:var(--le-text);--rs-dim:var(--rs-ink)}}';
+
 /** The CSS: one block per theme, scoped to the theme wrapper. The night palette stays the default. */
 export function learnThemeCss(themes = THEMES) {
-  return themes
+  return `${themes
     .map((th) => {
       const t = learnTokens(th);
       const scope = `[data-theme="${th.key}"]`;
       return [block(`${scope} .ls-root,${scope} .le-root,${scope} .rs`, t), t.dark ? '' : `${scope} .le-root{background:var(--le-bg)}`].join('');
     })
-    .join('\n');
+    .join('\n')}\n${MORE_CONTRAST}`;
 }
 
 let injected = false;

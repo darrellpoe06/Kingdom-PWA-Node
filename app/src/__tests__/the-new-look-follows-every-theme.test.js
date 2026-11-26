@@ -9,10 +9,14 @@ describe('the new look follows every theme, readably', () => {
     it(`${th.key}: words, dim words, the accent and words on the accent all read`, () => {
       const t = learnTokens(th);
       expect(t.bg).toBe(th.color);
-      expect(contrast(t.text, t.bg)).toBeGreaterThanOrEqual(4.5);
-      expect(contrast(t.text, t.panel)).toBeGreaterThanOrEqual(4.5);
-      expect(contrast(t.dim, t.bg)).toBeGreaterThanOrEqual(4.5);
-      expect(contrast(t.accent, t.bg)).toBeGreaterThanOrEqual(4.5);
+      // Every word reaches 7:1 (WCAG AAA) on its background and on panels; low light (dark themes) reads
+      // white, with the accent at 7:1 too (Darrell: "white words for low light").
+      expect(contrast(t.text, t.bg)).toBeGreaterThanOrEqual(7);
+      expect(contrast(t.text, t.panel)).toBeGreaterThanOrEqual(7);
+      expect(contrast(t.dim, t.bg)).toBeGreaterThanOrEqual(7);
+      expect(contrast(t.dim, t.panel)).toBeGreaterThanOrEqual(7);
+      expect(contrast(t.accent, t.bg)).toBeGreaterThanOrEqual(t.dark ? 7 : 4.5);
+      if (t.dark) expect(t.text).toBe('#ffffff');
       expect(contrast(t.onAccent, t.accent)).toBeGreaterThanOrEqual(4.5);
     });
   }
@@ -22,5 +26,6 @@ describe('the new look follows every theme, readably', () => {
     for (const th of THEMES) expect(css).toContain(`[data-theme="${th.key}"] .ls-root,[data-theme="${th.key}"] .le-root,[data-theme="${th.key}"] .rs{`);
     expect(learnTokens(THEMES.find((x) => x.key === 'lovecorner')).dark).toBe(false);
     expect(learnTokens(THEMES.find((x) => x.key === 'night')).dark).toBe(true);
+    expect(css).toContain('@media (prefers-contrast: more)');
   });
 });
