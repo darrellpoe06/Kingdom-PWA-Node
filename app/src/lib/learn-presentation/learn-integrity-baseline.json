@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T06:03:35.845Z",
+ "measuredAt": "2026-11-26T06:07:16.329Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4364
+  "readings": 4366
  },
  "departments": [
   {
@@ -13803,11 +13803,13 @@
    "department": "The Eternal Algorithms",
    "position": 28,
    "title": "The Word Judges at the Last Day (the standard is already published)",
-   "contentSha": "8015e58f2126a2638047941497c0df7eb1f1af68f396ebd94997e01f3d5a3413",
+   "contentSha": "878f14b2074a42f6bd35743907b12bc0be821d90e7ef7fd638b247fbe9b33305",
    "versions": {
-    "teen": "f610849d173375df5064a30a37d31824989efd26cd125b80523386c2bda05d8b",
-    "adult": "6d1d9416badb63347662f00342fe9c55d7fa29decbb4ce72222260306ab072ee",
-    "senior": "008fdd54310766fde769bda0b9e26aefcd3e636e954866dac9c42bac31ab3dcf"
+    "child": "db63ea25631f2701d293ec9fdf2c948295e2b8021f31f32b89253d4b52685e7b",
+    "youth": "480c0b2d7081527cc5c902908438aef0ed6d65c978e27659f197d2a6a99711cd",
+    "teen": "4299c1437249a1cd5697e7732575ae669bbe5423f394dc9e2fbd77802a8b9f51",
+    "adult": "0e8ad7af6d9f9eb4f46dde48cb98c2f5299e35fb5670488216c261cb2d4aedef",
+    "senior": "acf3cb89de35d9168991b7cee6a23688d972317f2b07d84e4dac5069586e2e82"
    }
   },
   {
