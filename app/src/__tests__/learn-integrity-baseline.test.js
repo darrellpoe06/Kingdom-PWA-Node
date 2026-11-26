@@ -56,7 +56,9 @@ describe('Learn content integrity baseline', () => {
     expect(now.counts.lessons).toBeGreaterThanOrEqual(base.counts.lessons);
     expect(now.counts.readings).toBeGreaterThanOrEqual(base.counts.readings);
   });
-  it('the baseline is the measured Phase 1 catalog (13 / 51 / 994 / 4,258)', () => {
-    expect(base.counts).toEqual({ departments: 13, courses: 51, lessons: 994, readings: 4258 });
+  // 4,258 readings at Phase 1; 4,260 since 2026-11-26, when ea-gh-joy-three-days
+  // gained the child and youth versions it never had (a full lesson, Darrell).
+  it('the baseline is the measured Phase 1 catalog (13 / 51 / 994 / 4,260)', () => {
+    expect(base.counts).toEqual({ departments: 13, courses: 51, lessons: 994, readings: 4260 });
   });
 });

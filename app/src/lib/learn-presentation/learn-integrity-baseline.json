@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T01:16:50.430Z",
+ "measuredAt": "2026-11-26T01:30:53.833Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4258
+  "readings": 4260
  },
  "departments": [
   {
@@ -12661,11 +12661,13 @@
    "department": "The Eternal Algorithms",
    "position": 6,
    "title": "Three Days, One Strength (the code that does not change when the day does)",
-   "contentSha": "04dc77d3ede23ed21f1b9b2276cc4be46bf12881a22ff2456d7e701c149e5d99",
+   "contentSha": "047ff056d2ae261bb369897fe88ac769e7bb5caea298b14e8c2696d39a0002ea",
    "versions": {
-    "teen": "85357d547ef9014a1e6ec5295c2d04d62799c8eee1fb63fe3b85a68e27d76a2a",
-    "adult": "16b42c5792ae2e42b9814574c42433cd4e3a430ae48708e3d78ef6624fe6f166",
-    "senior": "ce5052394fd0a75db800b62f41f29ce8122450ddeb120d228e67b4cef5011db6"
+    "child": "d023be9590ad762f86883adfff7c986175d14e7f83181ff8dcf04dc3fae6f0f4",
+    "youth": "cec69bce562f4e097979fdcaaae8d732105df140ad5c8202833669e71827decb",
+    "teen": "8edc16dd94872c8cda3e7c603adcf34b4f01c5f814ef2a5c03f424b8fdb6739c",
+    "adult": "98a17bae8cab34f83779809bd6df1f9c6c644558de3fb8ba72930b87308eb39b",
+    "senior": "2c7823212fcc1284ff0a8c2c21a801f0999b158804d3839236d7f2760070addb"
    }
   },
   {
