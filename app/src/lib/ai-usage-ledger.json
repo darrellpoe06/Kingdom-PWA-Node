@@ -1239,6 +1239,21 @@
       "notes": "17:01:47Z -> 17:30:31Z measured from commit timestamps. The gate checked termFaults(M.lesson) alone; a reader meets bigIdea and the levels too, so the widened case checks every place text reaches a reader. Tokens and dollars null: no meter exposed. The line itself was missing until the catch-up, which is how ai-usage-ledger --check caught it rather than a person."
     },
     {
+      "id": "prophetic-voices-full-messages",
+      "date": "2026-11-26",
+      "task": "Prophetic Voices: research the leaders' own words and rewrite/expand the course (Munroe, Diop, Obenga, Williams; photos; Darby dates; inventory)",
+      "drs": [
+        "DR-1686"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 3,
+      "estimateWithoutAiHours": 60,
+      "notes": "Parallel research + writer agents; Price and Darby follow in their own PRs."
+    },
+    {
       "id": "a-closed-list-is-not-a-broken-gate",
       "date": "2026-11-06",
       "task": "A closed vocabulary list is friction, not a broken gate: measured a neighbour's gate the spm12 builder reported, and the replacement I proposed would have refused seven landed lessons",
