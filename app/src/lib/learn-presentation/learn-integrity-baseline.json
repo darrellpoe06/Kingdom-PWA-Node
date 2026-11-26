@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T07:57:23.673Z",
+ "measuredAt": "2026-11-26T08:01:25.741Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4414
+  "readings": 4416
  },
  "departments": [
   {
@@ -13105,11 +13105,13 @@
    "department": "The Eternal Algorithms",
    "position": 17,
    "title": "Your Breath Is in His Hand (we cannot keep ourselves alive)",
-   "contentSha": "cba5cadd0382e1c68393c99d5541da956319e73d6b37dac5bedaf95c0781448e",
+   "contentSha": "b0a991103ce62035f6eba129d36566b1a7ee6c7ee714c0c395045f7989a059ec",
    "versions": {
-    "teen": "7e1d54eb665fff362d1aa7eba0b500404af418d60367415a7bc64d161d0e37df",
-    "adult": "d1cd50681724fadb2798985cb20f7ec6cea78927d0718ae1e6e344d90e90ff46",
-    "senior": "cf1140a056721c5467850a43ecfd9789dd42e6036b83c0bc15eb938ad9edd161"
+    "child": "35ab002f1e3e61d8b29823228bb83b321710026dba9ff2a390eef08904c1db27",
+    "youth": "cfa780aca21fe754c2f08761eb784c82d71cbabf96baf9d09bd2cffa68eafb5c",
+    "teen": "d3e338227b19822073d8cbd1c49e514f81a115901aee4b208826d1a68ef95d3d",
+    "adult": "be82d29a7a28f516cdd89791ea7f4ed7e9d35637a0dd2eb315d1d7a88cca4c92",
+    "senior": "9ff233fe243a6cb5d0116f7470e20b6acbe4a45a2bb49bc53914cb3f27db140f"
    }
   },
   {

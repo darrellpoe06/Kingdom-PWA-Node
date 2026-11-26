@@ -81,8 +81,8 @@ describe('Learn content integrity baseline', () => {
   // not-my-will-but-thine, friendship-world-enmity, handling-word-deceitfully,
   // spirits-seek-a-body, angels-left-their-estate, sons-of-god-and-giants,
   // only-he-knows-the-heart, enemy-injects-thoughts, appointed-then-judgment,
-  // god-of-this-world, money-cannot-redeem, wages-and-gift.
-  it('the baseline is the measured Phase 1 catalog (13 / 51 / 994 / 4,414)', () => {
-    expect(base.counts).toEqual({ departments: 13, courses: 51, lessons: 994, readings: 4414 });
+  // god-of-this-world, money-cannot-redeem, wages-and-gift, breath-in-his-hand.
+  it('the baseline is the measured Phase 1 catalog (13 / 51 / 994 / 4,416)', () => {
+    expect(base.counts).toEqual({ departments: 13, courses: 51, lessons: 994, readings: 4416 });
   });
 });
