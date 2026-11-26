@@ -564,7 +564,9 @@ export default function LearnStudio({
               onOpen={openLesson}
               renderPictures={(rows) => <Row title={pickedCourse.title} note={`${rows.length} lessons`} items={rows} onOpen={openLesson} grid />}
               // DR-1662: List is the compact-thumbnail list (read marks, ages, Show), in the order chosen above.
-              renderList={(order) => (
+              course={(courses || []).find((k) => (k.key || (k.meta && k.meta.key)) === courseKey) || null}
+              onResume={(x) => read(x)}
+              renderList={(order, partIds) => (
                 <LessonsInOrder
                   courses={courses}
                   index={index}
@@ -573,6 +575,8 @@ export default function LearnStudio({
                   done={done}
                   fixedCourse={courseKey}
                   order={order}
+                  onlyIds={partIds}
+                  onListen={listen}
                   listTestId="course-list"
                   markFor={markFor}
                   onVersion={version}

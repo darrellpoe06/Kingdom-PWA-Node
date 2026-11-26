@@ -307,3 +307,54 @@ describe('Relationships, in one place', () => {
     expect(container.querySelectorAll('.ls-grid button.ls-card').length).toBe(RELATIONSHIP_LESSONS.length);
   });
 });
+
+// Darrell 2026-11-26, sending the classic Living Lessons page: "All options?!!!"
+describe('the course page has every option the classic page has (DR-1667)', () => {
+  const openLiving = () => {
+    act(() =>
+      root.render(<LearnStudioPreview courses={COURSES} onOpenLesson={vi.fn()} onExit={vi.fn()} ownerDevice initialCourseKey="living-lessons" ctx={CTX} />)
+    );
+  };
+  it("the parts of the course by the Word's divisions are one-tap chips that narrow both looks", async () => {
+    const { sectionLessons } = await import('../lib/lesson-sections.js');
+    const secs = sectionLessons(LIVING.schedule);
+    openLiving();
+    const parts = $('course-view-parts');
+    expect(parts).toBeTruthy();
+    expect(parts.querySelectorAll('button').length).toBe(secs.length + 1);
+    const law = secs[0];
+    click($(`course-part-${law.key}`));
+    expect(container.querySelectorAll('.ls-grid button.ls-card').length).toBe(law.lessons.length);
+    click($('course-view-list'));
+    expect(container.querySelectorAll('button.ls-inorder-row').length).toBe(law.lessons.length);
+  });
+  it("every order is offered, the Word's divisions included, and it groups the list under foldable headings", () => {
+    openLiving();
+    const sel = $('course-view-order');
+    expect([...sel.options].map((o) => o.value)).toEqual(['order', 'newest', 'az', 'za', 'divisions']);
+    click($('course-view-list'));
+    pick(sel, 'divisions');
+    const heads = container.querySelectorAll('[data-testid="inorder-group"]');
+    expect(heads.length).toBeGreaterThan(1);
+    const before = container.querySelectorAll('button.ls-inorder-row').length;
+    click(heads[0]);
+    expect(container.querySelectorAll('button.ls-inorder-row').length).toBeLessThan(before);
+    click($('inorder-fold-all'));
+    expect(container.querySelectorAll('button.ls-inorder-row').length).toBe(0);
+  });
+  it('every row carries ▶ Play, and a lesson opened in the new look shows under Recently opened', () => {
+    openLiving();
+    click($('course-view-list'));
+    const first = LIVING.schedule[0].id;
+    expect($(`inorder-play-${first}`)).toBeTruthy();
+    click($(`inorder-${first}`)); // opens it in the Lesson Experience, recording the use
+    act(() => root.unmount());
+    root = createRoot(container);
+    openLiving();
+    expect($('course-view-recent')).toBeTruthy();
+    const recent = $('course-view-recent').querySelectorAll('button');
+    expect(recent.length).toBe(1);
+    click(recent[0]); // one tap back into that lesson
+    expect(container.querySelector('.le-root')).toBeTruthy();
+  });
+});

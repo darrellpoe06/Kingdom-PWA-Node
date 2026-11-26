@@ -695,11 +695,7 @@ export default function LessonExperience({
     <FullPageContext.Provider value={onFullPage}>
       <LevelContext.Provider value={level}>
         <ExperienceToolsContext.Provider value={lessonTools}>
-          <div
-            ref={rootRef}
-            className={`le-root le-root--${mode}${darkPage ? ' le-root--darkpage' : ''}`}
-            aria-label="Lesson"
-          >
+          <div ref={rootRef} className={`le-root le-root--${mode}${darkPage ? ' le-root--darkpage' : ''}`} aria-label="Lesson">
             {header}
             {lessonTools && lessonTools.screenHint}
             {!started ? (
