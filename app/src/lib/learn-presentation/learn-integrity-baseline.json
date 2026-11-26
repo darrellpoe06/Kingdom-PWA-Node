@@ -1,5 +1,5 @@
 {
- "measuredAt": "2026-11-26T16:34:20.253Z",
+ "measuredAt": "2026-11-26T16:37:05.226Z",
  "counts": {
   "departments": 13,
   "courses": 51,
@@ -576,10 +576,10 @@
    "department": "Serve the House",
    "position": 3,
    "title": "Light — Isaiah and Coreyon make it seeable",
-   "contentSha": "9de906f8bcf3b0ef9476e3b232349395568ba0459a632403b513586fd12ed0fa",
+   "contentSha": "190d09ae8e8dd279963958912f9bff3cc1296c53dfe173051f1bb7edab82f761",
    "versions": {
     "child": "dcf3be7b9bf101fcaaee4e9511af2908ca03b89b129fbf33442cf9880f86d2b5",
-    "youth": "c5514489c77aaa857d8d35c67ea0463661a3615d7658df6e555c919f822d3c5b",
+    "youth": "0ebf98367fb3f0ce989f169946ace7957e3a6a5c507ffe6b310243860311a4a8",
     "teen": "64b19c99a614dbd3dea05c0d1dc0bb7400e84545e5f1a1ab4d19488ee8d8df88",
     "adult": "4e4bbfdc8d185591d24e4859106247c08b08d02b095dae7be77e94560a1f7ba6",
     "senior": "47c9630e1e0962c207a32162da9f4b4386b5dbc5b6d4f825e5f297af5d89a7da"
