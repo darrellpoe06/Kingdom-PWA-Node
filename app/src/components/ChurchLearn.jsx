@@ -1525,7 +1525,7 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
                 is a task, and a task set mid-reading takes the reader out of it. It
                 moves to the 'send' stage, after the reading is done. */}
             <LessonStories lesson={module} stories={seg.audience.stories} askForYours={false} />
-            {seg.audience.titleClosing && <p className="mt-4 text-[15px] leading-relaxed">{seg.audience.titleClosing}</p> /* the title's answer, after the stories (DR-1687) */}
+            {seg.audience.titleClosing && <p className="mt-4 text-[0.9375rem] leading-relaxed">{seg.audience.titleClosing}</p> /* the title's answer, after the stories (DR-1687) */}
             {/* The chart the reading talks about (DR-1296), AFTER the stories and
                 folded closed (DR-1372): "a drop-down... like a story we add at the end". */}
             <LessonFigures module={module} />
