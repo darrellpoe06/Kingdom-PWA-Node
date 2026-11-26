@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T13:37:09.543Z",
+ "measuredAt": "2026-11-26T13:41:15.197Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4524
+  "readings": 4526
  },
  "departments": [
   {
@@ -13259,11 +13259,13 @@
    "department": "The Eternal Algorithms",
    "position": 4,
    "title": "The Furnace and the Fourth Man (but if not)",
-   "contentSha": "81346e9f51d0f620b6e67dd3735ffa0ca24bdebcc1bda33bf6d077fe6797d202",
+   "contentSha": "db816ac81cd6d28e473aff391c2b2dbc4714d8803760f7d05bf95508a084cbaf",
    "versions": {
-    "teen": "89b6758460809111e9be203f62c5720ddb94907793f80c5c40c3683ef2b31f33",
-    "adult": "ae37ef801a5ed3ba3b2c575ffc3f19bf2b5b9a81c78036f163bf25d9caf3e9cb",
-    "senior": "b871795653694040dc0f852669877b2bd2ec47b8eefd5ff602d610ab66e49ef4"
+    "child": "fbb1cb5aed35c89334c72b51d771eeca16d1f86d51855bba33b7275ed2ea09af",
+    "youth": "db9af4ed722463ec6d746a1d2fa1e0d704961dd861cd3c40395a1690c6e43367",
+    "teen": "c75b4d22e06b7e847196194bbe31da4a5335142a871ed97402af66b12a8c7ca0",
+    "adult": "173866f7040177dd227c48729feb6202d04e00a0985ef2e974b864f58bd80378",
+    "senior": "90b0c54d7084f86ad5e7601212ca27194554e1f14d4b75dc7b1f6aa738a3ec1a"
    }
   },
   {
