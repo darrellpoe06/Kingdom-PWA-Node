@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T08:37:58.520Z",
+ "measuredAt": "2026-11-26T09:04:12.404Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4432
+  "readings": 4434
  },
  "departments": [
   {
@@ -13096,11 +13096,13 @@
    "department": "The Eternal Algorithms",
    "position": 16,
    "title": "Searched and Known (every word before it is on your tongue)",
-   "contentSha": "a65adbfdeceeb2a666ef79028cf49acce546e5941c79628c8104c8b4f42e1f1b",
+   "contentSha": "60b6d453a0f0c37c577ea6bf8bcec7952e26f6ec7d6aeab924891b112e561085",
    "versions": {
-    "teen": "31882477ea9031a561e519f6555b89acefc76508481d7e4653a5591bae07b7f4",
-    "adult": "4d617327e77a04ad0fa4ae93211b6c7654413e41c9b6cb3b70cfdd08bd5bd32e",
-    "senior": "0d33fe5fa750dc76ed315b212055de5baf108c0f3345d6db628219be75341451"
+    "child": "dcd6c3569bd5dc45dee6999623e4412d1a21caba4c6d5acc8e7beb670932d104",
+    "youth": "85d863390a889385ae1c81a50c878b5802305701890cb434a0659a960a994c92",
+    "teen": "96ee012f2a7f3fa54cc0be6bad6546d89e14313aa75615cfcd313fa3f9b373d9",
+    "adult": "3a1422f0a38e259a968e5b62ee1f5eb4e5bc8fb84da443d7d7737afbc50e2690",
+    "senior": "0df9428abff283fdcc85f80522bf942eb86b72eb70076ccd300a566ff93e4107"
    }
   },
   {
