@@ -1,5 +1,5 @@
 {
- "measuredAt": "2026-11-26T15:58:46.989Z",
+ "measuredAt": "2026-11-26T16:03:14.623Z",
  "counts": {
   "departments": 13,
   "courses": 51,
@@ -516,13 +516,13 @@
    "department": "A.I. The Way",
    "position": 7,
    "title": "Guarding your heart and your time",
-   "contentSha": "abaa66463dec937f6a7937cc0d8ecf03e36b5b8acbeeb876f7dfb2da4d8f6dda",
+   "contentSha": "86eb2678b5b707ac67d7a62260945fe41df35eb6cea52e747c892d76eb9a26a1",
    "versions": {
-    "child": "fd974923c57020d6ab76276183ed93117c9aeb5bb850b767928cca848e752fd9",
-    "youth": "cb794b5e29fa2c2a9505567a36cf7f7cc457c2a4a8085b5d054f33b5f5a42897",
-    "teen": "51b320451b77b90f5d2564bee98d10e2123bdf83f88e7d692a3b2deb9dfd411b",
-    "adult": "7814f416065d8a0a769cc2e05ca74170cd037ac327f96c7bf0b426cd3ae682f1",
-    "senior": "f7cb18a78953c156475f7d4d60f9a2efa65e2d8c494b8eb05b978c7a0a47c735"
+    "child": "5f8fd3e5dc8d33142c0e5d9d19ba66f55572ef3218742b9acd324c62c57d2576",
+    "youth": "cf63ac20fe8e8fe2d98aa7afc8d6f18de5b83920a721731a9d4de68d475d87d5",
+    "teen": "aa1a46b1792a2cffc4e1cc7a1146e59dea704da9d3e7797330898da8789c1bbb",
+    "adult": "d515679f7369070a1d8cf701c2e98a9f806e9219bf4e7edad7c76aeb2a948dba",
+    "senior": "14b5ecee8641a745a3fc3b8091f87ad2317f974cc582c5ba06ec638f49c16174"
    }
   },
   {
