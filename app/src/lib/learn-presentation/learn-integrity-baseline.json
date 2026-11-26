@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T06:50:47.601Z",
+ "measuredAt": "2026-11-26T07:40:52.568Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4386
+  "readings": 4406
  },
  "departments": [
   {
@@ -12732,11 +12732,13 @@
    "department": "The Eternal Algorithms",
    "position": 11,
    "title": "He Watches — but Only Yahweh Knows the Heart (the counterfeit is not omniscient)",
-   "contentSha": "b797fd53c65f535ccb3f674310daa7d13e8b5816199945c35b74718150cdc345",
+   "contentSha": "aaa9b1b59f68d1fa7f7b19c623bacd2dd9abf07c69521891b41ec1f77d8c922a",
    "versions": {
-    "teen": "389b25f323db566627570f67db361857cb78d15313cdf7e21371b2d855a9f2d2",
-    "adult": "013c9a87977a1c4b4133b305a7782eafa3653748a48aaa159d9a41d17ff803b9",
-    "senior": "22468942985e50f6ec79dc0c2327887e51e88953f1810e17e0eb9babfa238180"
+    "child": "d86f51d9e161a956275636bcc96ac90abcd0e4868c6b2a5590ec56105e099d16",
+    "youth": "197610f5d065aae674d1bc2c9351e860479b5ba153871c8768c8c69a37a66db4",
+    "teen": "01bd05e3834555c38a796c68fb9cf94edc08fa2df96db1bba6e5233900ca6b15",
+    "adult": "099380f24d6c15babc98d7ac3211c8ae543843f5b74282c50a6a97ed4e3cdb8a",
+    "senior": "da4e1281f1f63b052da733018bddff753a17261f59301599612f344b5de8c195"
    }
   },
   {
@@ -12745,11 +12747,13 @@
    "department": "The Eternal Algorithms",
    "position": 12,
    "title": "The Sons of God and the Giants (taught as the Word shows it)",
-   "contentSha": "0b202eb3d16971bbeb52bf86908f56d6dba58883190bc622733ab818c4c90ee7",
+   "contentSha": "c2b07ffbeb494615f7400f79d56b034cb237d728963f9e954dbe1a90dbe49ead",
    "versions": {
-    "teen": "c01198a72ff5f362c3147130c1c4cce338a5f1e8083d7127c529978fab5bae83",
-    "adult": "6a4e112f681e95c6206f208c8d9240ef1e2b810712e948ee98159cc3b67e44a8",
-    "senior": "1b7c6593ce867196dba1e0c87bf296c554badf356ffc1237be30f959321171a8"
+    "child": "ba3155eede379bf40fa3e0517053567352f2e4291044bd03ae63e5c38fb425c6",
+    "youth": "e3e9a4e0c6b091f4356edd1c9c048a452eed879eb145ab524790d406e051689f",
+    "teen": "a383230cee40700dee7c7c25ef1863879f0051888d0114cbe3849af88e6cbe9b",
+    "adult": "8fcaf635f4282b3394f1fe70e3a050d615a8344285066aa95998fe3531209fb0",
+    "senior": "327c213c2bcbb9b1969165eb0b7f0c82ad7adbed4af50111fc1f26806ba4075d"
    }
   },
   {
@@ -13714,11 +13718,13 @@
    "department": "The Eternal Algorithms",
    "position": 21,
    "title": "Not Every Thought Is Yours (the enemy injects; you take captive)",
-   "contentSha": "f0cc971060c742009b489657cfad13e9671af2a6154e45a9b2eece823712ded0",
+   "contentSha": "844fbb48aa2b893a01ffe4ae6236b05bbf8fc0649900f78d0150e3e0f8c6b654",
    "versions": {
-    "teen": "bd3c68c7e481e25fd71ac3f0ef42234be34f9f7145a3c55e2d84efc963ca0ca6",
-    "adult": "ce5e8d862238553c83f04ac3d5e224d83f0f68a6bc3c5e17a9f4f26bae9514bb",
-    "senior": "b57a4cdbc4dcfc770c29b3e2ecaaa572f61e54be40d576fc6399af1b2c2cae71"
+    "child": "cad2fa2967b30e8440001b9fd098893e0cbae9d1b93dbcaea60447fe35e9b99a",
+    "youth": "67bad605133adc052f40f564d714a1d2b3b3b1a6f5c057b11414a6a68a28684e",
+    "teen": "d0667568bb6bd4338bc2b9f53cf96ac8fa900e728fcfa1eb1e6c4d5da265535f",
+    "adult": "a81533938f63a78b19d28637895cc0d2f38fd7b58a25eba3947035ed61d6c648",
+    "senior": "b0c21cb96e2eb826e265e478f0fab07736ea490c68ee29c3629724780e839cbc"
    }
   },
   {
@@ -13727,11 +13733,13 @@
    "department": "The Eternal Algorithms",
    "position": 22,
    "title": "Spirits Seek a House (empty is not enough — be filled)",
-   "contentSha": "90cf012b0ef26535c5ca608eff67b3965a9d4ca132bccab4b3962312a39bad37",
+   "contentSha": "6809856ee56d6105c2519dc47acd02c84a059e5ea3108b65f997880d6f8c3d5a",
    "versions": {
-    "teen": "881efc63c554268789774293f62360b9d8740ac4825d2f52b40c7f21b8983315",
-    "adult": "f2ff11465ca59dfbe8cddb327ca00ea705a8189a6fdd4e64cb7ace8527c5810b",
-    "senior": "4d7457761dc341ed859ba16522d21a91c8447fbb8291d246b40e7e2e8040f77b"
+    "child": "446601e2db3dc7d309859c7e1aed556b0b901265ccc1f6de78503d9e3a4d695f",
+    "youth": "cbaad5de992bcc84223f0945c3ccf27d5e6702f5b5e7060984db721e38f6a3a5",
+    "teen": "d407cc7cfb70a6fcef4b993c75d6142ce7fcd191e13a4ed5241598c43338f559",
+    "adult": "8f22ccf03c4d7f6b679957bffeee9cb6ff39144ec42219dd7e1516feeee5e385",
+    "senior": "ecd7021ac3ba987b24ee56314363401c9da49beac800a0294161e7592e19d573"
    }
   },
   {
@@ -13740,11 +13748,13 @@
    "department": "The Eternal Algorithms",
    "position": 23,
    "title": "Not My Will but Thine (willing to suffer at the King's word)",
-   "contentSha": "e1b55e6793a47702f49882c1bd04d97b58a7052bac9a17f8913f8d4261391e42",
+   "contentSha": "ae3238a330d7441d90861867a9ce417ec5a342cd9b4b778bcb8805a3f252ded6",
    "versions": {
-    "teen": "ff8fa3d585d435aaa6d7a34a51d6159aeeca78e0e367c52b1c263bd8aa98c01c",
-    "adult": "f05d317e3383ec9f94ecb9f8344776114db712a5df6f3cbd056a91e8d9df7887",
-    "senior": "ba1946d52be12798f34bfcd497befea7ab78d8e1e2f0643fe6027069551dd3fc"
+    "child": "dc31eab77c1f2dcf8abe1b8bc9a6a41a24579e66442e062c326caa3cde0865af",
+    "youth": "56615bd01918747d9cf6bc6f905b4739a2e9a6ff0aa34b4fa650fded208080c1",
+    "teen": "813fae44d0958dc14db268909b3680894418f2541ec578531e646e17b9c8f52c",
+    "adult": "baf96c355e0d7bf9f965e4e3afc03adc204ee864ce3a6400b678b6ca0b34d677",
+    "senior": "e4ec0253284bf14d4f7d4f8a3ca87edb211a27d485ea28c802fd2e92763c12f1"
    }
   },
   {
@@ -13753,11 +13763,13 @@
    "department": "The Eternal Algorithms",
    "position": 24,
    "title": "Let Both Grow Together (the field is mixed until the harvest)",
-   "contentSha": "3ab913d06c6d1df5e24ca659f60fd390a9a97e285b7b983512e785b8ec25cabf",
+   "contentSha": "bd7ec794abbbaaac20a62d0d25e9d3ba713e0f40cd5a5c2d1509d0e83b693e5a",
    "versions": {
-    "teen": "02d06577abf81fb6075901e4ab83410404de45d2e67e9f6bf3521c9c1c4dc3a2",
-    "adult": "babd2a3bd4ef8e29488c82a6b3d7d57d06dd720c152c4b8186ef4f61dd842fbd",
-    "senior": "205429592f8433414db4347063973073c8b3d38d4c72017180da8b9415838687"
+    "child": "5283acc92d50c0df4a03500f4be5b395ed8ce87a2927b5128343c1de7caa6f83",
+    "youth": "34e74101913542c2520d60d5d397d98733356b0d513559a758b66f52c64a194d",
+    "teen": "45edd530bc2c7c464b68bf4057045a4e404e982b700de685fd222299d782e035",
+    "adult": "ed264783089ec224e1d84ee092bb53510127c87e5718786a07d5778c80a9bd62",
+    "senior": "358674682f8d5d03697ab70ae99678a12e6b69e0388c72043177749a4fccc94f"
    }
   },
   {
@@ -13766,11 +13778,13 @@
    "department": "The Eternal Algorithms",
    "position": 25,
    "title": "Sheep and Goats (the growing-together ends in a separating)",
-   "contentSha": "d22afb8f443703aca80f30c30afcaeeea3db23b50183d7a51e6e3a540d57e70d",
+   "contentSha": "e92072989c09b3c113d40ff927417b06035503aba02c327729227afc9ecdf573",
    "versions": {
-    "teen": "3cb32bef73a559c0996ecbe2c0666eed4e3009e7a2dfdc065e603feb263a27a7",
-    "adult": "935bfa55a8fa85c69e760dd9a6322aad79a7745ec7031e373bf49765893cda88",
-    "senior": "d7ad1aef71cb75ad8a36c433c196dcbc32c5e3daf339eaf793a3c1ecdb3c7546"
+    "child": "d9819c2cf67f44700d66ad7d001b846c0d0f7f7239c81dbc8caa19b443107485",
+    "youth": "09d1f7842fe7c136d15a464b13fe50d2d4760e1b074d455924df0ab5249a785d",
+    "teen": "dfcb3dd82e22176d18d4a0ea2fa46e4c1d70c0dfa46c559cff70549eebfd444f",
+    "adult": "42d80d3f06ad3dc40b029feae644e5e52b45b8d731d6bc8089b24cc2f11b44d2",
+    "senior": "1db5e8791b62f7dd4d8589b4730f246f90dc6b391d2c58862af1bed543d8d13d"
    }
   },
   {
@@ -14331,11 +14345,13 @@
    "department": "The Eternal Algorithms",
    "position": 28,
    "title": "The Angels That Left Their Estate (already sentenced)",
-   "contentSha": "85efaaf50ce6a4f9996ce3be84ef2f268225c9d1ca958e16369746060ffa0330",
+   "contentSha": "1134b69d8d41e4184a67e98d41b9a069d008363cdc4437912980837f65b75ec1",
    "versions": {
-    "teen": "8d65cc3ef8543296ee9bb927d5ad27cf540a9383bee1be4ba165a67e3cd976f7",
-    "adult": "f3ad26099754c8875615e97be86a4f92305fc37acd9c63f95de8212ebc6e4c11",
-    "senior": "e52ddd484e1b61787e6ecaf1952fd9d276edc8eed3d202e82f67ad3aaf16d41a"
+    "child": "18f6690d7b3e71af49f607d169201819a26fa62b2b56a7c4c278f991e0b05fbd",
+    "youth": "6668b690b6d87d67de145feab6cadc2d5053005fb101eb3e04d03ed48d5783ba",
+    "teen": "72d63e3f464cd6df9d8529f3646c447eb02e5d6bd9d237c26961355e173256c6",
+    "adult": "ea055bddafa39d47f72576d7d0b7d316d97fbe653aacb7a460369ffb48f5d107",
+    "senior": "927c027218e17c343979380ad634d25f650c4d0636f82ecb0756e10dcc3cb08f"
    }
   },
   {
@@ -14344,11 +14360,13 @@
    "department": "The Eternal Algorithms",
    "position": 29,
    "title": "Having the Word Is Not Obeying It (they wield it to defend their ways)",
-   "contentSha": "83acc57c8f650c6adce71d7adb326ee6e896d07d73485983663145fc97794028",
+   "contentSha": "07559a06484f7a7d725dce7cb2c253fa1988dace4f981e66e04d2acf70810814",
    "versions": {
-    "teen": "5abce3a4ebd95daa457a7261cb05d142205730961d7ae6fd762579c6178c3646",
-    "adult": "229d6260060059b55aad0f5c62e80a5591b63b2fb799921ac8cd1d14e04c0149",
-    "senior": "cffd278076349aa4d09e7a7a3e3d11f1a05fd98f09b3fa8d39b170c0a8ce9ae3"
+    "child": "4f785ff1ffccb8f34ff66a5dd2d9cc2934de5427ebe49ad49f3ee7633354b888",
+    "youth": "9107971397b6142394cbbde842b11267b92d7c6909501f0dc4086bdc5c52c778",
+    "teen": "4bb9ce652d163e682145efa31cc47a686a59fb91003a7e1baab0d272650b80a5",
+    "adult": "673b59f531556f47b4c18640b0ad351638746d501a010904c177db646306e681",
+    "senior": "f30954419e6df059b3fb8b1846c466503108bc49f39e7779dad613ae89115d2d"
    }
   },
   {
@@ -14357,11 +14375,13 @@
    "department": "The Eternal Algorithms",
    "position": 30,
    "title": "Friendship With the World Is Enmity With Yahweh (no neutral middle)",
-   "contentSha": "0978e05f3b2a0e1f8aa93d37c3b6d93bc538fba5a183c0c3a183b81b48ad94f2",
+   "contentSha": "b23e686c50ceb072fcc743214fba1a7c44b5fa3f4467d9d5e5e68b7a16b33de5",
    "versions": {
-    "teen": "7d0d6e55d26d4d4b80b30889b04ab9ffebde7228986b2603e4c6163674830bd8",
-    "adult": "e3e8dcfa11f8750e662adc6efbe5095f9a1b4ba1b9a4bc1f1e3feb3877518af1",
-    "senior": "31e54c48fe2012634d054f937f34c75cf87acea1f816f2ea9739815c7891371a"
+    "child": "34158c94b78a6baab086ff846b4f8386e37f37dfda3ffe0909f5868a92cfa790",
+    "youth": "b077b0a346c5504525146aecdab079eb87abc89d09ea1cf833434f79f8e87dff",
+    "teen": "379b32738c31cc74a96a00c1749b33a425dd21c08c173115d5a5aef9ab40fab5",
+    "adult": "b747a72b3f150ac787dc2689a2b80219a099ed33b05e661dbecd9a2b5cab0a82",
+    "senior": "28e297702c0270074c41eb6beff0c188742307af5fafd67c00338d554b9f5a14"
    }
   },
   {
