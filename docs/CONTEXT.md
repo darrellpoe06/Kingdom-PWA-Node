@@ -100,6 +100,7 @@ The following foundation documents in `docs/00-foundations/_root/` are authorita
 - `docs/00-foundations/_root/RELEASE-LANE.md`
 - `docs/00-foundations/_root/SCRIPTURE-LIBRARY.md`
 - `docs/00-foundations/_root/SERVICE-MANAGEMENT.md`
+- `docs/00-foundations/_root/RELATIONSHIPS-RELATING-IN-EVERY-DIRECTION.md` — what Relationships means here: relating up (Yahweh), in (heart, emotions, mind, body, learning, change) and out (every person), measured by the fruit of the Spirit; Word first, verified research second; the inclusion criteria the Learn Relationships shelf is sorted by (DR-1692, DR-1694)
 - `docs/00-foundations/_root/SITUATIONAL-PEACE.md`
 - `docs/00-foundations/_root/SOVEREIGN-COMMS-AND-MEETINGS.md`
 - `docs/00-foundations/_root/SYSTEM-SKILLS-INVENTORY.md`
