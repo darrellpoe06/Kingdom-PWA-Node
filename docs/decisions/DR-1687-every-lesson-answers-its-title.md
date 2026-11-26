@@ -10,15 +10,15 @@
 
 ## Context
 
-Darrell, 2026-11-26, from the new-look reader: *"This lesson is not clear... it
-has a great title... it doesn't answer really."* Then *"Fix the lessons!!!!!!!"*,
-and, correcting the brief: *"The titles pull people into the lessons!!!!!! That
-worked.... I just needed to feel full after reading the lesson"*; *"Make sure
-the lessons are still kept however make sure the also addresses the questions."*
+Darrell, 2026-11-26: *"it has a great title... it doesn't answer really"*; *"The
+titles pull people into the lessons!!!!!! That worked.... I just needed to feel
+full after reading the lesson"*; *"Make sure the lessons are still kept."*
 
-The 976 display titles (mostly questions) were written after the lessons. A
-lesson opened on its old framing and often never stated the answer the title
-promised, or stated it mid-way and ended elsewhere.
+## What was measured
+
+All 976 presented lessons read in full against their display titles: 0 opened
+on the answer; 112 already answered clearly and ended on it; 671 answered late
+or buried; 186 answered but ended elsewhere; 7 never answered (session note).
 
 ## Decision
 
