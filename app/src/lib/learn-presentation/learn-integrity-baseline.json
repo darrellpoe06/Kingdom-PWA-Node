@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T08:10:39.098Z",
+ "measuredAt": "2026-11-26T08:15:19.269Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4420
+  "readings": 4422
  },
  "departments": [
   {
@@ -13344,11 +13344,13 @@
    "department": "The Eternal Algorithms",
    "position": 11,
    "title": "He Declares the End From the Beginning (only Yahweh can)",
-   "contentSha": "dbcb4984648ea13cca43f9f0cf2545f3d47e8b75296773e97037343e59909454",
+   "contentSha": "d26b3a543158b52543fc39e7750c31507307cbfbba5c8214ca32eddf7b3a9346",
    "versions": {
-    "teen": "16b9040233a5fb832128a464898d34307fd37e0886cd6ae7df3ec61db481967a",
-    "adult": "97237899cc4f249e437ed5c77d072b8fd796d6cb70a37788756cac2339ec42bf",
-    "senior": "8c810f0ceae99d99acf6cf4abd3a57356a577250d10177c5c31667e812ed19f3"
+    "child": "682b7a8d567d216877155da1ec8d549bd7803f0644fae57ebe226c9c4b8bc3a2",
+    "youth": "1017decee74b97c79d05614461d32a26d9d53e7835521656bcf85794e9904274",
+    "teen": "05a230cbda4dd50f4d49a96e09a0908819298a3c47addeae81962147fbab78c7",
+    "adult": "d53228b76ff5676f8b00ac86390f59a8e80bc87996f34a81ddeff64e09b21af1",
+    "senior": "2b00266fa7ddde5e39db102a0588060ab1f69b8bc76488bebfc143a25ade3a6a"
    }
   },
   {
