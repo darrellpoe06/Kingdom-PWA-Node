@@ -1,109 +1,51 @@
 # Learning Zone discovery page: private prototype
 
-Status 2026-11-26: **private prototype, local only. Not wired into the app, not pushed to any
-auto-merge branch, not deployed.** Approved by Darrell the same day: entry from The Word and Learning
-Zone, Browse All Lessons into the existing Learn, Phase 1 search only, twelve categories, existing
-photographs first, black red and gold, mobile screenshots on real data before any deployment ask.
+Status 2026-11-26. **Private prototype on `preview/learn-discover`. Not wired into the app, no pull request, not merged, not deployed, not public.** Visual target: `reference/approved-mockup.png`. This is not final visual approval and not deployment authorization.
 
-## What was built (all new files; no existing file edited)
+The page is an additive entrance: The Word / Learning Zone, then **this page**, then the existing Learning Zone (courses, departments, lessons). It replaces and redesigns nothing behind it.
+
+## Read these, in this order
+
+| File | What it is |
+|---|---|
+| `COMPARISON.md` | The first comparison against the mockup (the prototype before the redesign) |
+| `revised/` | **The review screenshots of the redesigned page**: mobile 390 and 512, desktop 1280, all 12 topics, category browsing, the nine named questions, Continue Learning (with and without progress), a series, courses by department, all 12 themes, and navigation into the real Learning Zone |
+| `comparison/rev-*.jpg` | Revised page against the mockup, section by section, at the mockup's own proportions |
+| `SEARCH-EVALUATION.md` | All 60 queries, manual relevance scores before and after the fixes |
+| `CATEGORY-COUNTS.md` | The 12 category counts after the manual review, and the lessons in no category |
+| `SERIES-PROPOSAL.md` | The five Featured Series, lesson by lesson, **for approval** |
+| `INVESTIGATIONS.md` | The script font, the microphone, themes, trending data, navigation |
+| `PHOTO-NEEDS.md`, `photo-audit/` | What the existing photography is, and what is still needed |
+| `NEXT.md` | What remains, and the decisions waiting on Darrell |
+
+## What is built (new files; one existing file changed by two lines)
 
 | File | Purpose |
 |---|---|
 | `scripts/derive-learn-discover-index.mjs` | Reads the mounted catalog and writes the compact search index. `--check` fails on drift. |
-| `app/src/lib/learn-discover-index.json` | Derived index: 995 lessons, 2.4 MB (about 0.8 MB gzipped), loaded only with the page. |
-| `app/src/lib/learn-discover-text.js` | The one tokenizer and stemmer (build time and query time). |
-| `app/src/lib/learn-discover-concepts.js` | 18 everyday concepts mapped to the curriculum's own words. |
-| `app/src/lib/learn-discover-search.js` | Natural-language search. Reuses Learn's own `searchLessons` for the declared-word seat guarantee. |
-| `app/src/lib/learn-discover-categories.js` | The 12 categories as rules over the index. |
-| `app/src/lib/learn-discover-photos.js`, `-home.js`, `-word.js` | Category photo picks (existing covers), Continue / Newest / Featured / Relationships builders, Today's Word. |
-| `app/src/components/learn-discover/LearnDiscover.jsx`, `learn-discover.css` | The page. |
-| `app/learn-discover-preview.html`, `app/learn-discover-preview/main.jsx` | Dev-only review harness, not a Vite build input (same pattern as `learn-studio-preview`). |
-| `app/src/__tests__/learn-discover.test.js`, `learn-discover-render.test.jsx` | 45 tests on the real catalog. |
+| `app/src/lib/learn-discover-index.json` | Derived index: 995 lessons, 2.5 MB (about 0.85 MB gzipped), loaded only with the page. |
+| `learn-discover-text.js`, `-concepts.js`, `-search.js` | The tokenizer and stemmer, the everyday-concept bridge, and the search (reuses Learn's own finder for its seat guarantees). |
+| `learn-discover-categories.js`, `-reviewed.js` | The 12 categories as rules, plus the lessons placed by hand. |
+| `learn-discover-series.js`, `-photos.js`, `-home.js`, `-word.js`, `-nav.js` | Featured Series, existing photograph picks, Continue / Newest / Featured / Relationships builders, Today's Word, routes into Learn. |
+| `app/src/components/learn-discover/` | The page, its stylesheet, and the two open-licence fonts. |
+| `app/learn-discover-preview*` | Dev-only review harnesses (not Vite build inputs): the page under every theme, and the real Learn under each route. |
+| `app/src/lib/learn-landing.js` (+4 lines), `app/src/components/ChurchLearn.jsx` (**2 lines**) | The approved deep-link change: the one-time area hint accepts `DEEP_LINK_AREAS`. Proven to catch (reverting it fails 5 tests). |
+| `app/src/__tests__/learn-discover*.test.*`, `fixtures/learn-discover-queries.js` | 79 tests on the real catalog, plus the 60-query set. |
 
-## Measured on the real catalog
+`LoveCornerHome.jsx`, `surfaces.js` and the church homepage are untouched.
 
-- Inventory: **995 lessons, 51 courses, 13 departments.** Matches the live app. The test fails if it ever differs from `learnInventory()`.
-- Only **1 of 995 lessons carries `tags`**, so topic tags cannot drive discovery. Titles, themes, big ideas, promotional records and body text do.
-- 976 lessons carry a promotional record (display title, headline, description) and a photograph. All 976 are in `review` status, not `approved`; Learn Studio already shows them by passing `preview`, and this page does the same. 19 lessons have neither and show their course name on a panel.
-- The index holds every lesson id, original title and course exactly (test), and the finder rows rebuilt from it match `buildLessonIndex` over the real catalog (test).
-- Declared-word seats (DR-1049, DR-1129, DR-1329): every course that declared a plain word is reachable when that word is typed. **Proven to catch:** with the seat pass disabled, 60 seats break and the test fails.
-- Speed: about 10 ms per query, 115 ms to prepare the index.
+## Measured facts
 
-### The nine questions, first ten results judged against the question (a regex I wrote, so treat as a floor, not a score)
-
-| Question | Top ten that fit |
-|---|---|
-| Why am I always stressed? | 10 |
-| How can I strengthen my marriage? | 8 |
-| How do I raise godly children? | 6 |
-| How can I get out of debt? | 10 |
-| How do I buy my first home? | 9 |
-| What does the Bible say about forgiveness? | 6 |
-| How do I find my purpose? | 10 |
-| How can I become a better leader? | 10 |
-| How can I grow closer to God? | 6 |
-
-Mean 8.3 of 10. The three weakest are broad devotional questions where the curriculum answers in
-parables whose titles do not name the subject. A semantic tier would help them; Phase 1 does not
-include one.
-
-### Defects found and fixed while building (kept because they explain the code)
-
-1. `bible` and `will` are course-declared plain words but also question words or stopwords, so typing either alone returned nothing and two courses lost their seat. Found by the seat test. Fixed: a declared word is the subject when it is all the reader typed.
-2. A first index kept only each lesson's top 70 terms, which saw 16 of 78 marriage lessons. Fixed: any concept or category word a lesson uses twice is kept.
-3. "Matches more of the words" outranked "is strongly about the subject" (a rare adjective like "godly" beat "children"). Fixed with a softer coverage factor and a cap on one word's weight.
-
-### Categories: all twelve are supported
-
-| Category | Lessons | Via home course | Via words |
-|---|---|---|---|
-| Faith & Spiritual Growth | 217 | 14 | 203 |
-| Marriage & Relationships | 28 | 0 | 28 |
-| Parenting & Family | 103 | 9 | 94 |
-| Mental & Emotional Wellness | 117 | 30 | 87 |
-| Purpose & Personal Growth | 67 | 0 | 67 |
-| Money & Financial Stewardship | 169 | 82 | 87 |
-| Business & Entrepreneurship | 116 | 44 | 72 |
-| Real Estate & Homeownership | 105 | 97 | 8 |
-| Leadership & Ministry | 91 | 29 | 62 |
-| Bible Study & Scripture | 232 | 162 | 70 |
-| History & Understanding Our World | 175 | 60 | 115 |
-| Technology, AI & Innovation | 184 | 170 | 14 |
-
-(Superseded 2026-11-26: after reading the unplaced lessons by hand, 992 of 995 sit in at least one category; see NEXT.md.) 924 of 995 lessons sat in at least one category; 507 sat in two or more. Marriage is the thinnest:
-28 lessons, 16 of them dedicated to it, spread across 14 courses that touch it. That is real
-content, not a rule that is too strict, but it is the category a new lesson would help most.
+- Inventory: **995 lessons, 51 courses, 13 departments**, verified against the mounted catalog. The tests fail if any indexed lesson is lost, retitled or moved, and allow new lessons.
+- 976 lessons carry a promotional record and a photograph; all are still in `review` status, untouched. Only 1 of 995 lessons has tags.
+- **992 of 995 lessons are in at least one of the 12 categories.** Two (ll317, ll341) fit none and are documented; they remain reachable through Browse All Lessons and search.
+- **Search quality is the weak point.** Strict manual mean across all 60 queries: **5.2 of 10 before this round's fixes, 5.6 after** (see `SEARCH-EVALUATION.md`). Topical searches are good; life-situation questions are poor. The three questions Darrell singled out now reach 8.5, 8 and 9.5.
+- Themes: 12 checked, text contrast 5.3:1 or better everywhere, zero errors.
 
 ## Preserved, by test or by construction
 
-No lesson, title, course or department assignment is touched (index test). Progress is read from
-Learn's own saved places, never written. Opening a lesson hands it to Learn's opener. No
-preference key is read or written. `ChurchLearn`, `learn-studio/`, `LoveCornerHome` and
-`surfaces.js` are unmodified.
+No lesson, title, course, department, promotional record, photograph, progress record, preference or download is changed. Progress is read from Learn's own saved places and never written. A lesson opens through Learn's own opener. Mounting the page writes no theme, course, sort or level preference. Browse All Lessons is Learn opened with no hint, so it lands where Learn lands today.
 
-## To wire it in (not done; waits for your go)
+## Before it could go public (none of this is started)
 
-1. `surfaces.js`: one new `SURFACES` entry, church sub-view `discover`, lazy `load`.
-2. `lib/nav-history.js`: add `'discover'` to the church sub-view allow-list (line 62 area).
-3. `LoveCornerHome.jsx`: change two `open('learn')` calls (The Word card, "All courses") to
-   `open('discover')`. **This is the one file Darrell's homepage redesign also touches**, so it goes
-   last and as a three-line change.
-4. Callbacks: Browse All Lessons is `setChurchView('learn')`; a lesson is `requestOpenLesson` then
-   `setChurchView('learn')`; an area is `setLearnAreaHint(area)` then `setChurchView('learn')`.
-5. **One decision for you:** `ChurchLearn` reads the one-time area hint with
-   `takeLearnAreaHint()`, which today allows only `'record'`. My All Courses, All Departments,
-   Study Tools and Downloads tiles would open Learn on its usual landing until that allow-list is
-   widened by a one-line change in `ChurchLearn.jsx` (line 4390). It is the only edit I would make
-   inside the file you asked me to preserve. My Learning works today.
-
-## Before it is public
-
-A Decision Record (the house rule for a new directive), the full `npm run verify`, the photographs
-chosen from `PHOTO-NEEDS.md`, the mockup compared line by line (it did not reach this session;
-see below), and your approval of the screenshots.
-
-## Mockup
-
-The "approved visual mockup" was not attached to this session. The page follows the Learn Studio
-visual language (same dark tokens, type and lesson-card shape) and the brief. Fidelity to the
-mockup is **unverified** until it is attached.
+A Decision Record (the house rule for a new directive); the full `npm run verify` including the repo gate scripts; the real photographs; approval of the series lists; the mic decision; the three-line entry-point change in `LoveCornerHome.jsx`, coordinated with the homepage redesign; and Darrell's approval of the screenshots.

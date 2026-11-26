@@ -137,3 +137,34 @@ tests.
 3. Featured Series: I draft the five lessons lists for your approval?
 4. All Courses chips: the 13 real departments, or a grouping.
 5. Microphone: wait, or use the existing voice component after I verify how it transcribes.
+
+---
+
+# Update 2026-11-26: the redesigned page against the mockup
+
+The comparison above is of the **first** prototype. Darrell approved the compact direction the same day and the page was rebuilt. Revised screenshots: `revised/`; revised side-by-sides at the mockup's own proportions: `comparison/rev-0-first-screen.jpg`, `rev-1-second-screen.jpg`, `rev-2` to `rev-5`.
+
+## What now matches
+
+| Mockup feature | Revised page |
+|---|---|
+| Short wide banner, family left, lettering right, red gradient | Done. Live text: "The Word" in Playfair Display, "Learning Zone" in Great Vibes (both open licence, bundled), the tagline, an open Bible illustration |
+| Framed red search with gold glow, white pill, "What are you facing today?", gold Search button, helper line | Done, with the nine suggested questions as a scrolling row under it |
+| Explore by Topic: equal photo tiles, gold rounded borders, label on the photo, View All Topics | Done: two sideways-scrolling rows on phones (five across from 480 px), 6 x 2 on wide screens, all **12** categories, a live count chip on each tile, short names with the full approved name as the accessible label and on the category page |
+| Continue Learning and Today's Word side by side | Done from 480 px; stacked and compact below. Continue shows real saved progress with a play button; Today's Word has the gold header and red body |
+| Featured Series, cinematic strip with next arrow | Done: five series, each opening its ordered lesson list (marked "Proposed lists" until approved) |
+| All Courses: filter chips and compact photographic cards with lesson counts | Done with the **13 real departments** as chips and live counts |
+| Dark red-black wash, gold accents | Done in the Night theme; the other 11 themes follow their own surface |
+| Density | The first screen is now banner, search, topics, then Continue and Today's Word. The full page is 4,100 px at the mockup's width (it was 4,920 px) because the extra sections below the mockup's content remain |
+
+## Remaining differences (and why)
+
+1. **Photographs.** The mockup's tiles are purpose-made pictures; the revised page uses existing lesson covers. This is the largest remaining visual gap and waits on the six ChatGPT samples.
+2. **Banner art.** The mockup's four-person family and illustrated Bible are one composed picture; the page uses an existing three-generation cover and a drawn open Bible.
+3. **Microphone.** Not shown (decision pending; see `INVESTIGATIONS.md`).
+4. **App shell.** Header, tab strip and bottom bar are the homepage redesign's, not built here.
+5. **Ten tiles in the mockup, twelve here.** History & Understanding Our World and Technology, AI & Innovation are kept, as requested.
+6. **Today's Word.** The mockup shows a thematic title and a reference. The page shows the lesson's own headline and the reference, with the verbatim King James text one tap away.
+7. **Extras below the mockup's content:** Featured Lessons (kept separate from Featured Series), the Relationships and Newest collections, and the "Everything in the Learning Zone" row with a second Browse All Lessons button. These carry the functional requirements the mockup does not show.
+8. **Counts.** The mockup's lesson counts are illustrative; the page shows live ones (for example Torah & History is 21, not 18).
+9. **Tile count chips and the suggested-questions row** are additions; the mockup has neither.

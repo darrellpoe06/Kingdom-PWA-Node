@@ -1,27 +1,32 @@
-# Learning Zone Discovery: where the work stands (2026-11-26)
+# Learning Zone Discovery: where the work stands (2026-11-26, second revision)
 
-Private prototype on `preview/learn-discover`. Not authorized: pull request, merge, deployment,
-public access, homepage integration, `LoveCornerHome.jsx` changes, GPU tower work, purchased imagery.
-Visual reference: `reference/approved-mockup.png`. Comparison awaiting Darrell's review: `COMPARISON.md`.
+Private prototype on `preview/learn-discover`. **Not authorized:** pull request, merge, deployment, public access, homepage integration, `LoveCornerHome.jsx` changes, GPU tower work, purchased imagery, a paid or semantic search service. Visual target: `reference/approved-mockup.png`. This is not final visual approval.
 
-## Done
-- Index, search (browser only, no cost), 12 categories, Continue (real places), Today's Word (verbatim KJV), collections, preview harness. See README.md.
-- Search work since the first prototype: head-first ranking, rarity measured per field, spelling correction, 7 new concepts with a category bonus, ubiquitous-word discount, idiom neutralisation, curated Relationships shelf feeding the Marriage category, stemmer fixes (forgive / forgiven / forgiveness).
-- 60-query evaluation set (`app/src/__tests__/fixtures/learn-discover-queries.js`) written BEFORE tuning; automated mean 9.3 of 10 on 2026-11-26. Inventory tests now catch loss, retitling and moving but allow additions.
-- Side-by-side comparison with the mockup (`comparison/`).
+## Done this round (approved 2026-11-26)
 
-## Honest state of search quality
-The automated proxy overstates it. A first manual read of the nine named questions (stricter) found roughly:
-stress 9, marriage 6, godly children 9, debt 6-7, first home 9, forgiveness 8, purpose 5, leader 7-8,
-closer to God 4-6. Since then ranking was changed for purpose, marriage and closer-to-God; those were NOT
-re-reviewed by hand. "Closer to God" remains the weakest: the curriculum answers it in prayer and Spirit
-lessons whose titles do not name the subject (e.g. "Your Hidden Prayer Room Shapes Your Public Life" is not
-in its top ten).
+- Visual redesign to the mockup's compact rhythm; all 12 categories (two-row sideways scroll on phones, 6x2 on wide screens, View All Topics); Featured Series (5, proposed); Featured Lessons kept separate; All Courses with the 13 real departments and live counts; Continue and Today's Word side by side from 480 px, compact stacked below; live script font, no lettering baked into a photograph.
+- Search: the three weak questions fixed (8.5, 8, 9.5); 60-query manual evaluation; generic defects found and fixed (AI, worried, irregular verbs, contractions, rarity per field, centrality).
+- 78 unplaced lessons read: 76 now placed, 2 documented.
+- Navigation: the two-line `ChurchLearn.jsx` change, both Learn looks, proven to catch.
+- Themes: 12 checked, contrast measured; a real `<input>` theming bug found and fixed.
+- Investigations: font (done), microphone (findings, left off), trending (no data, not included).
 
-## To do (approved by Darrell; visual revision waits for his review of COMPARISON.md)
-1. Manual relevance review of queries 11 to 60 (held out from tuning) into `SEARCH-EVALUATION.md`; re-review the nine named questions after the latest ranking changes. Target: at least 8 of 10 genuinely relevant for the three weak questions.
-2. DONE 2026-11-26: the 78 lessons then in no category were read one by one (`app/src/lib/learn-discover-reviewed.js`). 75 were placed by hand (mostly Living Lessons that quote Scripture without a category's own words); 3 (ll287, ll317, ll341) fit no category and are deliberately left out. 992 of 995 now sit in at least one category.
-3. Minimal `ChurchLearn.jsx` change (line ~4390: widen `takeLearnAreaHint` allow-list) for All Courses, All Departments, Study Tools, Downloads deep links, with regression tests (existing `church-learn-*` and `learn-*` tests). Check how Learn Studio (on by default, DR-1664) handles each hint.
-4. Page changes: heading "What are you facing today?", suggested questions, Featured Series, Trending only if real activity data exists (none found; use Featured, no invented statistics), All Courses.
-5. Screenshots for review: full-page mobile, desktop, all twelve category cards, category browsing, the nine questions' results, the 60-query results, Continue with real progress logic, navigation into the existing Learn, comparison with the mockup.
-6. Themes: verify how the shell applies default / midnight / night / heritage to a surface before claiming theme support.
+## Waiting on Darrell
+
+1. **Approve or edit the five series** (`SERIES-PROPOSAL.md`). The page marks them "Proposed lists" until then.
+2. **Microphone:** the free browser engine sends the spoken question's audio to Google or Apple. Accept that, or leave the mic off.
+3. **Search quality:** word matching has reached its ceiling for everyday-situation questions (average about 4 of 10). Recommended, at no recurring cost: a hand-written "Life Situations" guide of about 40 to 60 entries (lonely, can't sleep, lost my job, kids won't listen, start a business, why does Yahweh allow suffering...), each a short list of lessons that truly answer it, reusing the mechanism that took "closer to God" from 5.5 to 9.5. Not started.
+4. **Photographs:** the six ChatGPT samples. Until then the page uses existing lesson covers (repetitive; see `PHOTO-NEEDS.md`).
+5. **A course card should open that course.** The existing link is `?course=<key>`, which changes the address bar. Today a course card opens its first lesson.
+
+## To do before any deployment ask
+
+- A Decision Record, and the full `npm run verify` including the gate scripts (module boundary, file budget, journey coverage and the rest).
+- The three-line `LoveCornerHome.jsx` entry change, coordinated with the church homepage redesign (not touched).
+- `surfaces.js` entry and the `nav-history.js` allow-list for the new sub-view; wire the callbacks (`openLearnArea`, `requestOpenLesson`).
+- Check the page inside the real shell wrapper under each theme, and on real phones (preview was Chromium only).
+- Confirm the unapproved items above.
+
+## How to reproduce the screenshots
+
+`cd app && VITE_SUPABASE_URL=http://127.0.0.1:9 VITE_SUPABASE_ANON_KEY=placeholder-not-a-real-key npx vite --port 5199`, then open `/poetech-app/learn-discover-preview.html?seed=1&theme=night` (the page) or `/poetech-app/learn-discover-nav-preview.html?look=new&area=downloads` (the real Learn under a route). The placeholder values are inert; the real Learn needs them only to import.

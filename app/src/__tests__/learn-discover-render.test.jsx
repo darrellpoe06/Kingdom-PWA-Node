@@ -48,9 +48,10 @@ async function type(value) {
 describe('the front door', () => {
   it('welcomes, offers search, and names the real inventory', async () => {
     await mount();
-    expect($('h1').textContent).toBe('Welcome to the Learning Zone');
+    expect($('h1').textContent).toBe('The Word Learning Zone');
+    expect(host.textContent).toContain('Bible Truth for Everyday Life');
     expect($('#ld-q')).toBeTruthy();
-    expect(host.textContent).toContain(`${INDEX.counts.lessons} lessons across ${INDEX.counts.courses} courses`);
+    expect(host.textContent).toContain(`${INDEX.counts.lessons} lessons · ${INDEX.counts.courses} courses · ${INDEX.counts.departments} departments`);
   });
 
   it('Browse All Lessons calls the handler that opens the existing Learn, twice on the page', async () => {
@@ -87,7 +88,7 @@ describe('Continue Learning is real saved progress', () => {
     await mount({ onOpenLesson, places: [{ courseKey: course, lessonId: L.i, stage: 1, step: 1, sentence: 3, seen: 0.5, at: 1 }] });
     const card = $('[data-testid=ld-continue] [data-testid=ld-lesson-card]');
     expect(card.getAttribute('data-lesson')).toBe(L.i);
-    expect(card.querySelector('.ld-bar i').style.width).toBe('50%');
+    expect(card.querySelector('.ld-bar2 i').style.width).toBe('50%');
     await act(async () => { card.click(); });
     expect(onOpenLesson).toHaveBeenCalledWith(course, L.i);
   });
@@ -126,18 +127,61 @@ describe("categories, Today's Word and collections", () => {
   it('shows all twelve photographic categories with their real counts', async () => {
     await mount();
     const cards = $$('[data-testid=ld-category]');
-    expect(cards.map((c) => c.querySelector('.ld-cat-t').textContent)).toEqual(CATEGORIES.map((c) => c.label));
-    for (const c of cards) expect(c.querySelector('.ld-cat-n').textContent).toMatch(/^\d+ lessons$/);
+    expect(cards.length).toBe(12);
+    // the full approved name and the live count are the accessible label; the tile itself shows a shorter name
+    // (the tiles follow the approved mockup's order, so compare as a set, then check the mockup's first row)
+    const labels = cards.map((c) => c.getAttribute('aria-label').replace(/, \d+ lessons$/, ''));
+    expect([...labels].sort()).toEqual(CATEGORIES.map((c) => c.label).sort());
+    expect(labels.slice(0, 5)).toEqual(['Faith & Spiritual Growth', 'Mental & Emotional Wellness', 'Marriage & Relationships', 'Parenting & Family', 'Purpose & Personal Growth']);
+    for (const c of cards) expect(c.querySelector('.ld-tile-n').textContent).toMatch(/^\d+$/);
   });
   it('opens a category shelf of lessons without leaving the page', async () => {
     await mount();
     await act(async () => { $('[data-testid=ld-category][data-cat=money]').click(); });
     const shelf = $('[data-testid=ld-category-shelf]');
     expect(shelf.querySelectorAll('[data-testid=ld-lesson-card]').length).toBe(12);
+    expect(shelf.querySelector('h3').textContent).toContain('Money & Financial Stewardship');
+  });
+  it('View All Topics shows every category at once', async () => {
+    await mount();
+    await act(async () => { $('[data-testid=ld-all-topics]').click(); });
+    expect($('.ld-tiles').className).toContain('ld-tiles-all');
+    expect($$('[data-testid=ld-category]').length).toBe(12);
+  });
+  it('shows five Featured Series, each opening its own ordered list of real lessons', async () => {
+    await mount();
+    expect($$('[data-testid=ld-series-tile]').length).toBe(5);
+    await act(async () => { $('[data-testid=ld-series-tile][data-series=anxiety]').click(); });
+    const cards = $$('[data-testid=ld-series-shelf] [data-testid=ld-lesson-card]');
+    expect(cards.length).toBe(12);
+    expect(cards[0].getAttribute('data-lesson')).toBe('ll2-the-energy-you-were-given');
+  });
+  it('lists courses with live counts, filtered by the real departments', async () => {
+    await mount();
+    expect($$('[data-testid=ld-dept-chips] button').length).toBe(1 + INDEX.counts.departments);
+    const first = $('[data-testid=ld-course]');
+    const c = INDEX.courses.find((x) => x.k === first.getAttribute('data-course'));
+    expect(first.textContent).toContain(`${c.n} lessons`);
+    const chip = $$('[data-testid=ld-dept-chips] button').find((b) => b.textContent === 'Real Estate');
+    await act(async () => { chip.click(); });
+    for (const el of $$('[data-testid=ld-course]')) expect(INDEX.courses.find((x) => x.k === el.getAttribute('data-course')).d).toBe('Real Estate');
+  });
+  it('keeps Featured Lessons and Featured Series as separate sections', async () => {
+    await mount();
+    expect($('[data-testid=ld-featured]')).toBeTruthy();
+    expect($('[data-testid=ld-series]')).toBeTruthy();
+    expect($('[data-testid=ld-featured]')).not.toBe($('[data-testid=ld-series]'));
+  });
+  it('asks "What are you facing today?" and offers suggested questions', async () => {
+    await mount();
+    expect($('#ld-q').getAttribute('placeholder')).toBe('What are you facing today?');
+    expect($$('[data-testid=ld-suggested] button').length).toBe(9);
   });
   it("draws Today's Word from the shipped text, labelled KJV", async () => {
     await mount();
-    expect($('[data-testid=ld-word] footer').textContent).toMatch(/KJV$/);
+    expect($('[data-testid=ld-word]').textContent).toContain('KJV');
+    await act(async () => { $('[data-testid=ld-word-toggle]').click(); });
+    expect($('[data-testid=ld-verse] p').textContent).toContain('verse');
   });
   it('shows featured lessons and both collections from the real catalog', async () => {
     await mount();

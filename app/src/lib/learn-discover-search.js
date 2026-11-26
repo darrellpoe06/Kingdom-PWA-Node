@@ -23,7 +23,7 @@
 // =============================================================================
 import { searchLessons } from './learn-organize.js';
 import { stem, stems, queryStems, subjectWords, scriptureRefs } from './learn-discover-text.js';
-import { conceptsFor, conceptWords } from './learn-discover-concepts.js';
+import { conceptsFor, conceptWords, isConceptWord } from './learn-discover-concepts.js';
 import { categoryMembers } from './learn-discover-categories.js';
 
 const W_TITLE = 4;
@@ -36,10 +36,17 @@ const W_COURSE = 1.6;
 const NO_HEAD = 0.35;
 // A reader's question that clearly belongs to a discovery category lifts the lessons strongly in it.
 const W_CATEGORY = 2.2;
+// A lesson hand-read as a true answer to an everyday concept (learn-discover-concepts.js `seeds`).
+const W_SEED = 9;
 // Words that say little about the subject ("high", "handle") count for a quarter of a subject word.
-const GENERIC = new Set(['high', 'handle', 'hard', 'day', 'make', 'makes', 'good', 'great', 'best', 'new', 'time', 'life', 'thing', 'things', 'people', 'person', 'problem', 'problems', 'advice', 'skill', 'skills', 'tips', 'lesson', 'lessons', 'work', 'raise', 'grow', 'become', 'find', 'start', 'begin', 'deal', 'keep', 'closer', 'first'].map(stem));
+const GENERIC = new Set(['high', 'handle', 'hard', 'day', 'make', 'makes', 'good', 'great', 'best', 'new', 'time', 'life', 'thing', 'things', 'people', 'person', 'problem', 'problems', 'advice', 'skill', 'skills', 'tips', 'lesson', 'lessons', 'work', 'raise', 'grow', 'become', 'find', 'start', 'begin', 'deal', 'keep', 'closer', 'first', 'choose', 'decide', 'pick', 'use', 'using', 'take', 'help', 'allow', 'lost', 'lose', 'losing', 'handle', 'every', 'month', 'hard'].map(stem));
 const W_VERSE = 6;
 const CONCEPT_WEIGHT = 0.5;
+const PURE_WEIGHT = 0.85; // when the typed words are all ones a concept answers, the concept's own words count nearly as much as the typed ones
+const RELATED_CAP = 7;
+// A typed word among a lesson's most distinctive words (first CENTRAL_N) marks a lesson ABOUT the subject.
+const CENTRAL_N = 24;
+const W_CENTRAL = 3.2;
 export const RESULT_LIMIT = 40;
 
 // Idioms whose words are not about their usual subject ("on purpose" is not about purpose).
@@ -61,6 +68,8 @@ export function prepareIndex(data) {
       // The course's own name is a head signal too ("eviction" lives in "Evictions Handled Righteously").
       courseSet: new Set(stems(c.t || '')),
       bodySet: new Set(l.w || []),
+      // Where a word sits in the lesson's own list of its most distinctive words: first means the lesson is ABOUT it.
+      bodyPos: new Map((l.w || []).slice(0, CENTRAL_N).map((w, i) => [w, i])),
       plainSet: new Set(stems(plain)),
       refSet: new Set(l.s || []),
       // The finder's own row, same formula as learn-organize.js buildLessonIndex.
@@ -103,7 +112,7 @@ export function prepareIndex(data) {
 const IDF_CAP = 3.4;
 // A word found in the heads of more than a fifth of all lessons ("God", "Yahweh") discriminates nothing.
 const UBIQUITOUS = 0.2;
-const weightOf = (P, t) => (GENERIC.has(t) || (P.dfHead.get(t) || 0) > UBIQUITOUS * P.N ? 0.25 : 1);
+const weightOf = (P, t) => (GENERIC.has(t) || ((P.dfHead.get(t) || 0) > UBIQUITOUS * P.N && !isConceptWord(t)) ? 0.25 : 1);
 // Rarity is measured where the word matched: in lesson HEADS (title, theme, idea, course name) or in BODIES.
 const idfH = (P, s) => Math.min(IDF_CAP, Math.log(1 + P.N / (P.dfHead.get(s) || 0.5)));
 const idf = (P, s) => Math.min(IDF_CAP, Math.log(1 + P.N / (P.df.get(s) || 0.5)));
@@ -170,7 +179,9 @@ export function discoverSearch(P, query, limit = RESULT_LIMIT) {
   const qRefs = scriptureRefs(q);
   if (!typed.length && !qRefs.length && !words.length) return [];
 
-  const { words: related, cats } = conceptsFor(typed);
+  const { words: related, cats, seeds, pure } = conceptsFor(typed);
+  const cw = pure ? PURE_WEIGHT : CONCEPT_WEIGHT;
+  const anchored = !pure && typed.some((t) => weightOf(P, t) === 1);
   const strongSets = cats.map((c) => P.catStrong.get(c)).filter(Boolean);
   const refIdf = Math.log(1 + P.N / 3);
   const needIdf = typed.reduce((a, t) => a + idfH(P, t) * weightOf(P, t), 0) + qRefs.length * refIdf;
@@ -193,16 +204,23 @@ export function discoverSearch(P, query, limit = RESULT_LIMIT) {
       if (L.courseSet.has(t)) { take(W_COURSE, iH, true); mark('topic'); }
       if (L.plainSet.has(t)) { take(W_PLAIN, iH, false); mark('topic'); }
       if (L.bodySet.has(t)) { take(W_BODY, iB, false); mark('content'); }
+      const pos = L.bodyPos.get(t);
+      if (pos !== undefined) { const c = W_CENTRAL * iH * (1 - pos / CENTRAL_N); got += c; head = true; mark('topic'); }
       if (got) { score += got; hitIdf += used; }
     }
+    let relScore = 0;
     for (const t of related) {
-      const iH = idfH(P, t) * CONCEPT_WEIGHT;
-      const iB = idf(P, t) * CONCEPT_WEIGHT;
+      const iH = idfH(P, t) * cw;
+      const iB = idf(P, t) * cw;
       let got = 0;
       if (L.titleSet.has(t)) { got = W_TITLE * iH; head = true; } else if (L.metaSet.has(t)) { got = W_META * iH; head = true; } else if (L.bodySet.has(t)) got = W_BODY * iB;
-      if (got) { score += got; mark('related'); }
+      if (got) { relScore += got; mark('related'); }
     }
+    // The words the curriculum uses for what was typed can support a lesson, never outweigh one that says it.
+    // A question with no distinctive word of its own ("grow closer to God") IS its related words, so it is not capped.
+    score += anchored ? Math.min(relScore, RELATED_CAP) : relScore;
     for (const r of qRefs) if (L.refSet.has(r)) { score += W_VERSE * 2; hitIdf += refIdf; mark('verse'); }
+    if (seeds.has(L.raw.i)) { score += W_SEED; head = true; if (!why || RANK.topic > RANK[why]) why = 'topic'; }
     if (strongSets.some((set) => set.has(L.raw.i))) { score += W_CATEGORY; head = true; if (!why) why = 'topic'; }
     if (!score) continue;
     if (!head && !qRefs.length) score *= NO_HEAD;

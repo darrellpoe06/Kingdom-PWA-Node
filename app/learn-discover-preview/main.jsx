@@ -6,11 +6,16 @@
 //             shows genuine saved progress. Without it, Continue is absent,
 //             exactly as it is for a learner who has begun nothing.
 //   ?q=...    types a question into the search box
+//   ?theme=night|midnight|lovecorner|heritage|cream|white|...  wraps the page in
+//             that theme exactly as the shell does (the church door's own default
+//             is night: red, black and gold). ?theme=none leaves it unthemed.
 import React from 'react';
+import '../src/index.css'; // the app's own theme tokens (--lc-*), so every theme can be reviewed
 import { createRoot } from 'react-dom/client';
 import LearnDiscover from '../src/components/learn-discover/LearnDiscover.jsx';
 import INDEX from '../src/lib/learn-discover-index.json';
 import { recordPlace, clearAllPlaces } from '../src/lib/learn-resume.js';
+import { THEME_CSS, THEMES } from '../src/lib/theme-css.js'; // the shell injects exactly this, so the page is reviewed under every real theme rule
 
 const qs = new URLSearchParams(window.location.search);
 const SEED = [
@@ -38,15 +43,18 @@ function Harness() {
     set.call(el, q);
     el.dispatchEvent(new Event('input', { bubbles: true }));
   }, []);
+  const theme = qs.get('theme') || 'night';
   return (
-    <>
+    <div data-theme={theme === 'none' ? undefined : theme} style={{ minHeight: '100vh', background: ['night', 'midnight'].includes(theme) ? 'var(--lc-paper, #fff)' : ((THEMES.find((t) => t.key === theme) || {}).color || '#fff') }}>
+      <style>{THEME_CSS}</style>
       <LearnDiscover
         onBrowseAll={() => say('Browse All Lessons → setChurchView("learn")')}
         onOpenLesson={(c, id) => say(`Open lesson ${id} in ${c}`)}
         onOpenArea={(a) => say(`Open Learn area "${a}"`)}
+        onOpenCourse={(k) => say(`Open course ${k}`)}
       />
       <div data-testid="harness-log" style={{ position: 'fixed', left: 0, right: 0, bottom: 0, padding: '6px 10px', background: '#000', color: '#9f9', font: '12px monospace', display: log ? 'block' : 'none' }}>{log}</div>
-    </>
+    </div>
   );
 }
 createRoot(document.getElementById('root')).render(<Harness />);

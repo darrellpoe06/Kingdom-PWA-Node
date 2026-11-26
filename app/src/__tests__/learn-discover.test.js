@@ -18,6 +18,7 @@ import { plainWordsFor, COURSE_PLAIN_WORDS } from '../lib/learn-plain-words.js';
 import { prepareIndex, discoverSearch, correctQuery, RESULT_LIMIT } from '../lib/learn-discover-search.js';
 import { CATEGORIES, categoryMembers, MIN_SHOWN } from '../lib/learn-discover-categories.js';
 import { REVIEWED, UNPLACED } from '../lib/learn-discover-reviewed.js';
+import { SERIES } from '../lib/learn-discover-series.js';
 import { CATEGORY_PHOTO, HERO_LESSON } from '../lib/learn-discover-photos.js';
 import { RELATIONSHIP_LESSONS } from '../lib/learn-presentation/presentation.js';
 import { parsePassage, wordCandidates, todaysWord } from '../lib/learn-discover-word.js';
@@ -205,6 +206,13 @@ describe('the discovery categories are supported by the real curriculum', () => 
     expect(none.length).toBeLessThanOrEqual(UNPLACED.length + 2);
     for (const pre of UNPLACED) expect(none.some((i) => i.startsWith(pre)), `${pre} was reviewed and has no fit`).toBe(true);
   });
+  it('keeps a lesson that is in no category reachable by search, by its own title', () => {
+    for (const pre of UNPLACED) {
+      const L = INDEX.lessons.find((l) => l.i.startsWith(pre));
+      const ids = discoverSearch(P, L.p || L.t).map((r) => r.lessonId);
+      expect(ids, `${pre} must be found by its own title`).toContain(L.i);
+    }
+  });
   it('names real courses only', () => {
     const keys = new Set(INDEX.courses.map((c) => c.k));
     for (const c of CATEGORIES) for (const k of c.courses) expect(keys.has(k), `${c.id}: ${k}`).toBe(true);
@@ -219,6 +227,25 @@ describe('the discovery categories are supported by the real curriculum', () => 
   });
   it('the Relationships shelf Learn Studio carries still resolves, lesson by lesson', () => {
     for (const id of RELATIONSHIP_LESSONS) expect(P.byId.has(id), id).toBe(true);
+  });
+});
+
+describe('the five Featured Series are ordered lists of real lessons, drawn from the curriculum as it is', () => {
+  it('are the five Darrell named, in order', () => {
+    expect(SERIES.map((s) => s.title)).toEqual(['Overcoming Anxiety', 'Building a Stronger Marriage', 'Biblical Money Management', 'Identity & Purpose', "Walking in God's Plan"]);
+  });
+  it('resolve every lesson, with none repeated inside a series and at least eight in each', () => {
+    for (const s of SERIES) {
+      expect(new Set(s.lessons).size, `${s.id} repeats a lesson`).toBe(s.lessons.length);
+      expect(s.lessons.length, s.id).toBeGreaterThanOrEqual(8);
+      for (const id of s.lessons) expect(P.byId.has(id), `${s.id}: ${id}`).toBe(true);
+    }
+  });
+  it('change no course assignment: a lesson in a series still lives in its own course', () => {
+    for (const s of SERIES) for (const id of s.lessons) {
+      const own = INV.find((c) => c.lessons.some((m) => m.id === id));
+      expect(own && own.key, id).toBe(P.byId.get(id).course.k);
+    }
   });
 });
 

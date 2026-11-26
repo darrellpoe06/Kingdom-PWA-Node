@@ -8,7 +8,8 @@ const STOP = new Set((
   'a an and are as at be been being but by can could did do does doing done for from had has have having how i if in into is it its '
   + 'me my of on or our out so than that the their them then there these they this those to up us was we were what when where which who whom '
   + 'why will with would you your yours about after again all also any because before between both each few more most other over same '
-  + 'some such only own too very just should now get got make made want need needs way ways let lets one two much many'
+  + 'some such only own too very just should now get got make made want need needs way ways let lets one two much many '
+  + 'wont dont cant isnt arent wasnt werent didnt doesnt couldnt wouldnt shouldnt havent hasnt hadnt ill ive youre theyre thats whats'
 ).split(' '));
 
 // Words that ask a question without naming a subject. "How do I buy my first
@@ -20,15 +21,27 @@ const QUESTION = new Set((
 
 const IRREGULAR = { forgiven: 'forgiv', children: 'child', women: 'woman', wives: 'wife', lives: 'life', mothers: 'mother', fathers: 'father', teens: 'teen', kids: 'kid' };
 
+// Irregular verb forms, read as their plain verb ("forgave" is "forgive", "taught" is "teach"). The curriculum is
+// full of Scripture and narrative in the past tense; without this "He forgave him the debt" never meets "forgiveness".
+const IRREGULAR_VERB = {
+  forgave: 'forgive', gave: 'give', taught: 'teach', built: 'build', brought: 'bring', thought: 'think', sold: 'sell', bought: 'buy',
+  paid: 'pay', lent: 'lend', heard: 'hear', knew: 'know', known: 'know', wrote: 'write', written: 'write', led: 'lead', fed: 'feed', ate: 'eat', eaten: 'eat',
+  spoke: 'speak', spoken: 'speak', broke: 'break', broken: 'break', chose: 'choose', chosen: 'choose', rose: 'rise', risen: 'rise', fell: 'fall', fallen: 'fall',
+  kept: 'keep', left: 'leave', met: 'meet', sent: 'send', said: 'say', told: 'tell', found: 'find', stood: 'stand', saw: 'see', seen: 'see', sat: 'sit',
+  born: 'bear', bore: 'bear', held: 'hold', began: 'begin', begun: 'begin', grew: 'grow', grown: 'grow', drew: 'draw', slept: 'sleep', wept: 'weep',
+};
+
 /** A light, deterministic stem. Deliberately simple: it must give the same answer in a browser and in a build script. */
 export function stem(word) {
   let w = String(word || '').toLowerCase();
   if (w.length <= 3) return w;
   if (IRREGULAR[w]) return IRREGULAR[w];
+  if (IRREGULAR_VERB[w]) return stem(IRREGULAR_VERB[w]);
   const dedouble = (x) => (/(.)\1$/.test(x) && !/(ss|ll|ee|oo)$/.test(x) ? x.slice(0, -1) : x);
   if (w.endsWith('ies') && w.length > 4) w = `${w.slice(0, -3)}y`;
   else if (w.endsWith('sses')) w = w.slice(0, -2);
   else if (w.endsWith('ing') && w.length > 5) w = dedouble(w.slice(0, -3));
+  else if (w.endsWith('ied') && w.length > 4) w = `${w.slice(0, -3)}y`;
   else if (w.endsWith('ed') && w.length > 4) w = dedouble(w.slice(0, -2));
   else if (w.endsWith('ness') && w.length > 7) w = w.slice(0, -4);
   else if (w.endsWith('ly') && w.length > 5) w = w.slice(0, -2);
@@ -39,12 +52,16 @@ export function stem(word) {
   return w;
 }
 
-/** Lowercase word tokens, 3+ letters, stopwords removed, stemmed. */
+// "A.I.", "A. I." and "AI" are one word, and the only two-letter word that carries a subject.
+const normAI = (text) => String(text || '').replace(/\bA\.\s?I\.?/g, 'ai');
+const keep = (t) => t.length >= 3 || t === 'ai';
+
+/** Lowercase word tokens, 3+ letters (and "ai"), stopwords removed, stemmed. */
 export function stems(text) {
   const out = [];
-  const raw = String(text || '').toLowerCase().replace(/[‘’']/g, '').split(/[^a-z]+/);
+  const raw = normAI(text).toLowerCase().replace(/[‘’']/g, '').split(/[^a-z]+/);
   for (const t of raw) {
-    if (t.length < 3 || STOP.has(t)) continue;
+    if (!keep(t) || STOP.has(t)) continue;
     out.push(stem(t));
   }
   return out;
@@ -53,9 +70,9 @@ export function stems(text) {
 /** The subject words of a typed question: question words and stopwords dropped. */
 export function queryStems(text) {
   const out = [];
-  const raw = String(text || '').toLowerCase().replace(/[‘’']/g, '').split(/[^a-z]+/);
+  const raw = normAI(text).toLowerCase().replace(/[‘’']/g, '').split(/[^a-z]+/);
   for (const t of raw) {
-    if (t.length < 3 || STOP.has(t) || QUESTION.has(t)) continue;
+    if (!keep(t) || STOP.has(t) || QUESTION.has(t)) continue;
     out.push(stem(t));
   }
   return out;
@@ -64,10 +81,10 @@ export function queryStems(text) {
 /** The subject words of a typed question, NOT stemmed, in the order typed (what the existing finder expects). */
 export function subjectWords(text) {
   const out = [];
-  const raw = String(text || '').toLowerCase().replace(/[\u2018\u2019']/g, '').split(/[^a-z0-9:]+/);
+  const raw = normAI(text).toLowerCase().replace(/[\u2018\u2019']/g, '').split(/[^a-z0-9:]+/);
   for (const t of raw) {
     if (!t || STOP.has(t) || QUESTION.has(t)) continue;
-    if (t.length < 3 && !/\d/.test(t)) continue;
+    if (!keep(t) && !/\d/.test(t)) continue;
     out.push(t);
   }
   return out;
