@@ -28,3 +28,24 @@ export function useLearnLanding(learnArea, setLearnArea, courseCount, inDepartme
   const landing = learnLandingArea(courseCount, { inDepartment });
   if (learnArea === LEARN_LANDING_AREA && landing !== LEARN_LANDING_AREA) setLearnArea(landing);
 }
+
+// A ONE-TIME ASK TO OPEN ON AN AREA. The Institute's "Open my full record" sends the reader to
+// Learn's Record area; the hint is taken once (session only), so the next ordinary visit lands
+// on Latest as before.
+export const LEARN_AREA_HINT_KEY = 'poe-learn-open-area';
+export function setLearnAreaHint(area) {
+  try {
+    window.sessionStorage.setItem(LEARN_AREA_HINT_KEY, String(area));
+  } catch {
+    /* no storage: Learn opens on its usual area */
+  }
+}
+export function takeLearnAreaHint(allowed = ['record']) {
+  try {
+    const v = window.sessionStorage.getItem(LEARN_AREA_HINT_KEY);
+    if (v) window.sessionStorage.removeItem(LEARN_AREA_HINT_KEY);
+    return v && allowed.includes(v) ? v : null;
+  } catch {
+    return null;
+  }
+}
