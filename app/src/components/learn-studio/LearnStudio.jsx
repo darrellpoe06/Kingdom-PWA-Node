@@ -528,6 +528,11 @@ export default function LearnStudio({
     <CoversContext.Provider value={topicCovers}>
       <PlaceLookupContext.Provider value={findPlace}>
         <div className="ls-root">
+          {/* PICTURES AT THE TOP (Darrell 2026-11-26, circling the search box, the course picker and
+              the list on his phone: "We have pictures. Why are we showing words all the time? More
+              images at the top of the app."). On the home the featured carousel leads, then the
+              lessons themselves as pictures (DR-1661's lessons-first, kept, in pictures). DR-1686. */}
+          {!query.trim() && !pickedCourse && !pickedShelf && <Hero slides={heroSlides} onOpen={openLesson} onListen={listen} />}
           <div className="ls-top">
             <label className="ls-search">
               <span className="ls-search-ico" aria-hidden="true" />
@@ -637,6 +642,12 @@ export default function LearnStudio({
                   </div>
                 )}
               />
+              {/* The picture shelves next, then the words (your record, the course list) below them (DR-1686). */}
+              <Row icon="play" title="Continue Learning" items={home.continueLearning} onOpen={openLesson} />
+              {/* DR-1684 (Darrell 2026-11-26): "so we can pick the ones we are closest to finishing". */}
+              <div data-testid="ls-closest">
+                <Row icon="play" title="Closest to Finished" note="Started, furthest along first" items={home.closestToFinished} onOpen={openLesson} />
+              </div>
               {/* RELATIONSHIPS, IN ONE PLACE (Darrell 2026-11-26: "my wife says ladies will want those most"). */}
               <div data-testid="ls-relationships">
                 <Row
@@ -648,15 +659,9 @@ export default function LearnStudio({
                   onSeeAll={() => setShelf('relationships')}
                 />
               </div>
-              {dashboard}
-              <Hero slides={heroSlides} onOpen={openLesson} onListen={listen} />
-              <Row icon="play" title="Continue Learning" items={home.continueLearning} onOpen={openLesson} />
-              {/* DR-1684 (Darrell 2026-11-26): "so we can pick the ones we are closest to finishing". */}
-              <div data-testid="ls-closest">
-                <Row icon="play" title="Closest to Finished" note="Started, furthest along first" items={home.closestToFinished} onOpen={openLesson} />
-              </div>
               <Row icon="star" title="Discover Something New" note="Hand-picked lessons" items={home.discover} onOpen={openLesson} />
               <Row icon="play" title="Recently Added" items={home.recentlyAdded} onOpen={openLesson} />
+              {dashboard}
               <TopicGrid topics={SHELVES} covers={topicCovers} onPick={(t) => setShelf(t.id)} />
               {home.shelves.map((s) => (
                 <Row key={s.id} title={s.label} items={s.items} onOpen={openLesson} onSeeAll={() => setShelf(s.id)} />
