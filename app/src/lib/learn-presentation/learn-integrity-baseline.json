@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T03:15:04.345Z",
+ "measuredAt": "2026-11-26T03:36:34.184Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4278
+  "readings": 4290
  },
  "departments": [
   {
@@ -12799,11 +12799,13 @@
    "department": "The Eternal Algorithms",
    "position": 16,
    "title": "I AM THAT I AM — the Name that answers to nothing",
-   "contentSha": "df98eeb591c62fdafa18cdfdd8775f491b48eef0ebf712827acd0785bc6f394c",
+   "contentSha": "adfae6f3906c9da1db56286af0fff0680f9995c9ca70d9854a8957a012b3f6c2",
    "versions": {
-    "teen": "8501dc41a684c2de17b1b43938a83ef82e039594e39d8b6707a1a8d6d5fd7c9b",
-    "adult": "b4cfbdac08ab80d22f9b8ddaf82453ba1e3644fb077ca1021cf7b5e8855eccd1",
-    "senior": "835877e6ed50488b8e67533c6cb3862e3a62efe9edd305c5d8403e75c078c5cc"
+    "child": "75c811d53da92a3257841316a19982a712ba7e6dc3aa1948734f552509bb4ff0",
+    "youth": "41264fccdd8ebfe82e0a20b4b129f9152330c7b6007840c2e5151f3305ebab57",
+    "teen": "0c22698366f7ae1e6bb53526a26ae2d0054e10482b2a44d10c8972e2ea86593a",
+    "adult": "69754cf8ec3198965da776ac262699a2fc27ae2b16e5fd27bf8e5bd9237b990c",
+    "senior": "3d4aef7f5e48a863f45d7146561464672bf52c6f22289b80b6e3f1749beb1981"
    }
   },
   {
@@ -12812,11 +12814,13 @@
    "department": "The Eternal Algorithms",
    "position": 17,
    "title": "Let us make us a name — the counterfeit ascent",
-   "contentSha": "594f7bf25ed774175abd22de268153a19f848e64de5b16fd6aeb711bf20446ea",
+   "contentSha": "6486a588640f297d30576a41175534e5d7c3752ef1023428c5272373ceea24a0",
    "versions": {
-    "teen": "41b128694f45ede0dcc5f3ed72e87a49fd527687c6c11ba24493bf715f399cef",
-    "adult": "38ca5816787d1d05675a8eb231f004b3ec5eeee30d75f9d48f2373fbc614ff7b",
-    "senior": "fe9d1f00e1fd46f971209a9df492bf5470840d186cd42e3dec80e6b72bc2121a"
+    "child": "7b14319e7f3467dba8c9e3625a8bc976667473554ecce551b3db7065654bc203",
+    "youth": "30bb1de41fb4dd4a4c8c7f111118ab10c5a4e665420dc287344253bef2ebf2ff",
+    "teen": "b3221801aba0d2a245607a707707d1e71e8196072559a85b96767cbb4234bcd4",
+    "adult": "833012f534a76fb1508df25ed1f0a9c81fcc02ee376e61ba9ebfe46570c5de0e",
+    "senior": "63cb95fb85473bd00884b1696b38939915904012733d52c83cff4af8aa23ff4f"
    }
   },
   {
@@ -12825,11 +12829,13 @@
    "department": "The Eternal Algorithms",
    "position": 18,
    "title": "The Most High divided the nations — and kept a portion",
-   "contentSha": "bf9f79267e6e38a5c670d373e2d621e1dc90a0e5138286cd15469f99af68ade5",
+   "contentSha": "8f955501893f96779050686266a75c7730562e747221ab0e2ae2c8348931b28b",
    "versions": {
-    "teen": "67d15df88b5356cd317b10a54e7ab7e78e706e5573c6e34a6c83091b070a69a4",
-    "adult": "33cec7b13a0ee03bee27d8fb846431d93e4a71f416fbe587d8424695c1c6883b",
-    "senior": "407234f0e970b22f5bdeed56e3e8ea15d84e14a2078b30e783f46034267cccf6"
+    "child": "eb77cb8ee3307b8a69426196fc3e3d181d27a69676b4fd349df0a17a97c71ee9",
+    "youth": "d2401833ca729fe2daed1d8a27ef9a7b9763fd194361f2bec51f24f2eaf26960",
+    "teen": "bb7e7cec9c9d3b5593e61cd662b2fefa06fa0ec0469d56d10f77d50c4e08af31",
+    "adult": "61d624fe773a8b57eb1c0091c38aa38a6b0c30046a4b981dca7ec2ce0d6265ef",
+    "senior": "87dd068d0b2250d69eefb756e2f0ac8978436c34cf027aaae17a59dfae9ce102"
    }
   },
   {
@@ -12838,11 +12844,13 @@
    "department": "The Eternal Algorithms",
    "position": 19,
    "title": "The borrowed crown — wearing the imagery to be counted legitimate",
-   "contentSha": "62b4d038d2a130580dd3960b5afc84e69efcefc4fe7d25553f0bbabb7f6c18db",
+   "contentSha": "46f3733f8716c8df0836a5b113c78182ec19fdc50c56e746f2b3e9438dcddd0b",
    "versions": {
-    "teen": "79722b1f9a9b82eae8a5455d4491bc17f567fa7fb965fd2f8bbbdf2cc4b312a6",
-    "adult": "2f9c0c1db5bd40aa8b85a1d6531ad12fc1a7fd2d2ace64fc9d984b1cd7978897",
-    "senior": "1024321d6828c050db73a0d7fa45ab0ee266dcf4c2935df560a661c5820ca136"
+    "child": "7d6a977c6c498f69d884ce8bacce0df77ed57c2febcd45e722613a3cff50c12b",
+    "youth": "01853cfd440cb5685d17ac9afddacb395b3a5ccef73b2b23687a66cd41df2f73",
+    "teen": "716980941f3a0efaf4c57e1e8a561aea0949188ac9c0364545d1fc459a1ea68b",
+    "adult": "30377eac8c212036ca21826ea350ad77933571c332c1e0be56e6160374d2c87e",
+    "senior": "51200dd673af7f328b26307beb00dfa4cc5e896f78153a447b224e694f3b3114"
    }
   },
   {
@@ -13150,11 +13158,13 @@
    "department": "The Eternal Algorithms",
    "position": 22,
    "title": "They that make them are like unto them",
-   "contentSha": "51d57b864d8e54def540bef1e02e9aa11bd9b3ffe5a3ead02a269e8007427fc6",
+   "contentSha": "32d2c62a48afac5d7a3eee383afb5036c85e936b7367c318ef2cedb02de1a03b",
    "versions": {
-    "teen": "1c2638ca3e257df2d41fd368a4600b01752aa661f11318b10097a2d11894053b",
-    "adult": "b6764a6daf38a31d11a4cee80e995736a38d74a9becc5eeed003c052c6401e54",
-    "senior": "4e6f77e6ef1f1fd4f42b39231536d074e5bf5e1a6ce4c6eb9e052aed616d093b"
+    "child": "5b9c1b30699b1350e5276f0835544e385ef8e30a0fac6a0a7baf2976e5fb2a90",
+    "youth": "329d27049a1fec3166f58ff97a1d059d886b963e0f7f2dd5d25e3e3a91cb8e23",
+    "teen": "0088f566208a5db9c4b7280c31d7eea34498330ac2e1430afca86f54d793eb44",
+    "adult": "0d7527e33427673637c76af6789db79834e486c32d3f9fab15d55ee10c2a9246",
+    "senior": "42e6e8bfed872ae791e29152f800c913a9509270ed5841c2fb412c19bbfd150b"
    }
   },
   {
@@ -13388,11 +13398,13 @@
    "department": "The Eternal Algorithms",
    "position": 17,
    "title": "It asked for eternity — and His Word outlived it",
-   "contentSha": "d21fbb35179dfbe0e3f89594000797a3917c254104ea8a89bf3fed3abd041fa3",
+   "contentSha": "7e8c721779fe999caaef6d2923fb762068c52a75b2ede4695120fc5cbc56be83",
    "versions": {
-    "teen": "4b85e1b553f93711e3d4bf926914faa70e579723bff0e44d8caaecabbd5a48c1",
-    "adult": "7e891406069a505ac745f9c0ef1571d0af93358505418ed24639c0f8cc93005e",
-    "senior": "b710d622370231871a2e0611a831bf8fb3326aae4dcb26047f8c1df9b4de7bd0"
+    "child": "405ca9c0ccb723c223bd10e1d4c9b1de31ce349f6cedba1cbda93b64110d460b",
+    "youth": "6476629b4470972fa239789984749a5f2c1c28bb07c39e2a9e5b8636d2b34214",
+    "teen": "520c32ee4f159f601169d8cdfb1940295a59f0935eb85c7e5b581c54a2ea9576",
+    "adult": "9e3f46faa8ba31f41908d5c5b1070231b5d0493f0f63edee33c2a6123aacf35e",
+    "senior": "a110147c24dc4f14ed5d3b4370cc9581f572cfe5a6a92041ca3096f0c8efca89"
    }
   },
   {
