@@ -28,7 +28,6 @@
     "bonds": [
     ],
     "broadcast": [
-      "bc4-obs-switching",
       "bc5-cpu-gpu-cuda",
       "bc6-bandwidth-network",
       "bc7-llms-for-broadcast",

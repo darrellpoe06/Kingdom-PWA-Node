@@ -85,7 +85,7 @@ async function scanOf(rel) {
 // sites) and every abbreviation beside a quotation was written out (26 by
 // fix-quote-abbreviation.mjs, 9 settled by reading the quotation).
 const PINNED = {
-  'broadcast-class.js': 4,
+  'broadcast-class.js': 3, // 3 on 2026-11-26: bc4 rewritten as a full lesson with every quote filled from the KJV
   'business-research-course.js': 1,
   'buying-terms-course.js': 4,
   'datasystems-course.js': 1,
