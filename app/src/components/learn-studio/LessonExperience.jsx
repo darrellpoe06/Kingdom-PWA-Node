@@ -20,7 +20,7 @@
 // hand-off are untouched. This is additive and removable with one import.
 // =============================================================================
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
-import { createBrowserTTS, segmentText, RATE_STEPS } from '../../lib/tts.js';
+import { createBrowserTTS, segmentText, RATE_STEPS, loadTTSPrefs, saveTTSRate, subscribeTTSPrefs } from '../../lib/tts.js';
 import { motionBehavior } from '../../lib/gentle-motion.js';
 import { buildFollowMap, alignSegmentSpans, rangeFor, highlightSegment, clearReadingHighlights } from '../../lib/read-follow.js';
 import LessonStories from '../LessonStories.jsx';
@@ -171,6 +171,28 @@ const MODES = [
 // The four speeds the reference shows room for -- the engine's own RATE_STEPS
 // (lib/tts.js), the first four, so a speed tap is the real setRate, not a label.
 const SPEEDS = RATE_STEPS.slice(0, 4);
+
+// THE LISTENER'S SPEED IS THE DEVICE'S SPEED (DR-1688). Darrell 2026-11-26: "When I push it to push
+// play, it will not keep the 1.5 reading level I like." This player kept its own useState(1): it
+// never read the speed saved on the device (lib/tts.js 'poe-tts-prefs', the one the READ button and
+// the Personalize sheet share), never saved a pick, and built each lesson's narrator at 1x. Now the
+// speed is read from that store, every pick is saved to it, a pick made elsewhere reaches an open
+// player, and every narrator is given the speed before play starts.
+export function nextSpeed(rate) {
+  const up = SPEEDS.find((s) => s.value > rate + 0.001);
+  return (up || SPEEDS[0]).value;
+}
+export function speedLabelFor(rate) {
+  const step = RATE_STEPS.find((s) => Math.abs(s.value - rate) < 0.001);
+  return step ? step.label : `${Number(rate.toFixed(2))}×`;
+}
+function savedSpeed() {
+  try {
+    return loadTTSPrefs().rate;
+  } catch {
+    return 1;
+  }
+}
 
 // lib/tts.js documents ~15 characters of speech per second at 1x. Times shown
 // from this are ESTIMATES and are always printed with a leading "~" -- the
@@ -414,11 +436,24 @@ export default function LessonExperience({
   const [landing, setLanding] = useState(0);
   const [boundary, setBoundary] = useState({ seg: -1, offset: 0 });
   const [resumedFrom, setResumedFrom] = useState(0);
-  const [rate, setRateState] = useState(1);
+  const [rate, setRateState] = useState(savedSpeed);
+  const rateRef = useRef(rate);
+  rateRef.current = rate;
   const [captions, setCaptions] = useState(true);
   const [watchTab, setWatchTab] = useState('transcript');
   const [showChapters, setShowChapters] = useState(false);
   const engineRef = useRef(null);
+  // A speed picked anywhere on this device (the Personalize sheet, the READ button) reaches this player.
+  useEffect(
+    () =>
+      subscribeTTSPrefs((now) => {
+        if (!now || !Number.isFinite(now.rate)) return;
+        setRateState(now.rate);
+        const engine = engineRef.current;
+        if (engine && typeof engine.setRate === 'function' && Math.abs((Number(engine.rate) || 0) - now.rate) > 0.001) engine.setRate(now.rate);
+      }),
+    []
+  );
   const offsetRef = useRef(0);
   // The Read page, per reading level, kept here (not inside Read) so it
   // survives a trip to Watch or Listen, and saved so it survives a reload.
@@ -509,6 +544,8 @@ export default function LessonExperience({
       },
     });
     engine.onBoundary = (segIdx, charOffset) => setBoundary({ seg: offsetRef.current + segIdx, offset: charOffset });
+    // Every lesson's narrator starts at the listener's speed, never the engine's 1x.
+    if (typeof engine.setRate === 'function') engine.setRate(rateRef.current);
     engine.load(text);
     engineRef.current = engine;
     const resumeAt = Number(saved.get(PROGRESS_KEY(lesson.id, level), 0));
@@ -561,6 +598,8 @@ export default function LessonExperience({
   const play = useCallback(() => {
     const engine = engineRef.current;
     if (!engine) return;
+    // Play always starts at the listener's speed, whatever the narrator was left holding.
+    if (typeof engine.setRate === 'function' && Math.abs((Number(engine.rate) || 0) - rateRef.current) > 0.001) engine.setRate(rateRef.current);
     if (status === 'paused') engine.resume();
     else if (resumedFrom > 0) {
       playFrom(engine, segments, resumedFrom, offsetRef);
@@ -594,12 +633,17 @@ export default function LessonExperience({
   const skip = useCallback((delta) => jumpTo(idx + delta), [jumpTo, idx]);
 
   const cycleSpeed = useCallback(() => {
-    const at = SPEEDS.findIndex((s) => s.value === rate);
-    const next = SPEEDS[(at + 1) % SPEEDS.length].value;
+    const next = nextSpeed(rateRef.current);
+    rateRef.current = next;
     setRateState(next);
     const engine = engineRef.current;
     if (engine && typeof engine.setRate === 'function') engine.setRate(next);
-  }, [rate]);
+    try {
+      saveTTSRate(next); // remembered on this device, and told to every reader on the page
+    } catch {
+      /* no store (private mode): the pick still holds for this visit */
+    }
+  }, []);
 
   const fullscreen = useCallback(() => {
     if (full) {
@@ -659,7 +703,7 @@ export default function LessonExperience({
   };
   const elapsed = `~${clock(starts[shownIdx] || 0)}`;
   const total = `~${clock(starts[segments.length] || 0)}`;
-  const speedLabel = (SPEEDS.find((s) => s.value === rate) || SPEEDS[1]).label;
+  const speedLabel = speedLabelFor(rate);
   // Where you left off, said plainly, with the choice to start over (also after a pause something else ended).
   const leftAt = resumedFrom > 0 ? resumedFrom : idx > 0 && idx < segments.length - 1 ? idx : 0;
   const resumeNote = leftAt > 0 && status === 'idle' && (
