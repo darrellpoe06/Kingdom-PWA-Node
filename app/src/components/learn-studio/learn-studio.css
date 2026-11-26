@@ -524,7 +524,8 @@
 }
 .ls-cover-title {
   font-family: 'Fraunces', Georgia, serif;
-  font-size: clamp(1.75rem, 4vw, 3rem);
+  /* At Big Print a title stays a little above the body, never four letters a line (DR-1681). */
+  font-size: min(clamp(1.75rem, 4vw, 3rem), max(1.15rem, 9vw));
   line-height: 1.1;
   margin: 22px 0 6px;
   max-width: 900px;
@@ -821,6 +822,8 @@
 }
 .ls-mini {
   display: flex;
+  /* With no room beside the thumbnail (big text, narrow phone) the words move below it (DR-1681). */
+  flex-wrap: wrap;
   align-items: center;
   gap: 12px;
   width: 100%;
@@ -867,7 +870,7 @@
   flex-direction: column;
   gap: 3px;
   min-width: 0;
-  flex: 1;
+  flex: 1 1 11em;
 }
 .ls-mini-kicker {
   color: var(--ls-gold);

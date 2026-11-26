@@ -4254,6 +4254,21 @@
       "notes": "Reserved L310 and DR-1480 on origin; L309 was already held by another session. GitHub returned 503 on reservation pushes for several minutes; retried with backoff. 130 quoted spans filled from app/public/bible/kjv by fill-verses.mjs, none typed. News read from the two 2026-11-13 newsletters only; NYT and Reuters reports not read; the 2026-11-10 Morning Brew forward (thread 1a1c5c35c2357a0f) was not read in this build, re-review 2026-11-27."
     },
     {
+      "id": "new-look-every-text-size",
+      "date": "2026-11-26",
+      "task": "A real-browser sweep of the new look at every text size; big-print titles capped and rows wrap",
+      "drs": [
+        "DR-1681"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.5,
+      "estimateWithoutAiHours": 5,
+      "notes": "24 surfaces measured"
+    },
+    {
       "id": "sov86-all-the-works-of-this-pattern",
       "date": "2026-11-13",
       "task": "Sovereign A.I. week 86 built from one word over a forwarded TLDR digest (2026-11-06): the maker behind the tool, disclosed; all four age bands, 38-case gate",
