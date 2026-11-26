@@ -225,6 +225,8 @@ export const RELATIONSHIP_LESSONS = Object.freeze([
   // each read for its subject, not matched on a word: love,
   'll175-true-love-starts-with-an-act-and-a-sound-mind-and-feelings-come-after-the-test',
   'll82-love-fulfils-the-law-wake-up-and-get-dressed',
+  // DR-1700: growing by doing, longsuffering with the slower grower, and the one loyalty.
+  'll347-he-is-worth-the-rigor-growing-longsuffering-and-the-one',
   'ea-gh-inside-love',
   // hard conversations and forgiveness,
   'll15-seasoned-with-salt',
