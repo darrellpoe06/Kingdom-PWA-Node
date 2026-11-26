@@ -1,5 +1,5 @@
 {
- "measuredAt": "2026-11-26T19:56:01.798Z",
+ "measuredAt": "2026-11-26T20:02:43.491Z",
  "counts": {
   "departments": 13,
   "courses": 51,
@@ -8367,13 +8367,13 @@
    "department": "The Word & The Way",
    "position": 8,
    "title": "The Cross",
-   "contentSha": "dffe06837a5f752e9f6a95747a2f8c895b246603017245086b2a177f33a70027",
+   "contentSha": "80230be95ce39089a78ec159e7134890007a93431347e6fb1aa0b52b96ae6a50",
    "versions": {
-    "child": "6f3809b1a1866c6b2d6522ec137a393798f242dd210862ac7f34b805167b9115",
-    "youth": "9933f456b5de61ea4a67139283e7a87786a615ff0d9a88c23d1cc75ddb898cf4",
-    "teen": "bc28b7b8b7c2d107de54e1f3770af23a981caf2dfcfb1e1230a37873ba589a80",
-    "adult": "3dc2116cc1e9b7c07503c8913d2b7256316577a362b888dc3483ff4f7698cce4",
-    "senior": "d3d1f2cf816f68a240b8d2f44ced42e37379016ddfc8ed05a42a071a7d8114f5"
+    "child": "f6abf5e776d2c53cb3b1f534409f0b2ef4d03ce149ad8240aa056a973d796e45",
+    "youth": "634c56647da6bec02724b165281bae669e0c75c1c8e249a17862f16de567d17e",
+    "teen": "15d4e97da2eb916eb2784578c7123b10b645e4123e5ec4070c4a76dfbd328031",
+    "adult": "b7fabec0a4669653566763ecc7f763cdb2aa858afb3c4623b41f37d806f5d3ff",
+    "senior": "b80f95e980faab30bbe425e44f9363b6adb33dc487abc87fe137951c47b23b5f"
    }
   },
   {
