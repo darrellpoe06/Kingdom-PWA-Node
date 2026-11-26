@@ -25,6 +25,11 @@
 // gloss (SCRIPTURE-REFERENCE-STANDARD), never a quoted translation.
 // =============================================================================
 
+import { PV_PRICE_MESSAGES } from './prophetic-voices/price.js';
+import { PV_DARBY_MESSAGES } from './prophetic-voices/darby.js';
+import { PV_MUNROE_LESSONS } from './prophetic-voices/munroe.js';
+import { PV_DIOP_MESSAGES, PV_OBENGA_MESSAGES, PV_WILLIAMS_MESSAGES } from './prophetic-voices/scholars.js';
+
 export const PV_PROPOSED_COHORT_START = null;
 export const PV_CONFIRMED_COHORT = { startDate: null, confirmed: false };
 
@@ -60,7 +65,11 @@ export const PV_SESSION_FLOW = [
 ];
 export const PV_SESSION_MINUTES = PV_SESSION_FLOW.reduce((t, s) => t + s.minutes, 0); // 75
 
-export const PV_MODULES = [
+// The opening lesson of each voice: who he was and why he spoke. His own
+// message follows in the per-voice sequences (./prophetic-voices/*.js),
+// composed into PV_MODULES below (Darrell 2026-11-26: "let them
+// speak and cite them as they are").
+const PV_OPENERS = [
   {
     id: 'pv-price',
     title: 'Dr. Frederick K.C. Price — "Race, Religion & Racism" (1997)',
@@ -314,6 +323,23 @@ export const PV_MODULES = [
     },
   },
 ];
+
+// Each voice's own message, lesson by lesson, after his opening lesson. A
+// voice with no opener here (Dr. Myles Munroe) carries his own and is placed
+// after the voice named in PV_PLACED_AFTER.
+const PV_SEQUENCES = {
+  'pv-price': PV_PRICE_MESSAGES,
+  'pv-darby': PV_DARBY_MESSAGES,
+  'pv-diop': PV_DIOP_MESSAGES,
+  'pv-obenga': PV_OBENGA_MESSAGES,
+  'pv-williams': PV_WILLIAMS_MESSAGES,
+};
+const PV_PLACED_AFTER = { 'pv-darby': PV_MUNROE_LESSONS };
+
+export const PV_MODULES = PV_OPENERS.flatMap((m) => {
+  const own = [m, ...(PV_SEQUENCES[m.id] || [])];
+  return [...own, ...(PV_PLACED_AFTER[m.id] || [])];
+});
 
 // ---------------------------------------------------------------------------
 // Helpers — thin wrappers over the GENERIC, tested helpers in church-classes.js.
