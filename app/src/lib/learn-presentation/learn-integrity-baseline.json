@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T13:22:35.069Z",
+ "measuredAt": "2026-11-26T13:26:04.822Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4518
+  "readings": 4520
  },
  "departments": [
   {
@@ -13298,11 +13298,13 @@
    "department": "The Eternal Algorithms",
    "position": 7,
    "title": "Return unto Me → I Will Return unto You",
-   "contentSha": "de2fb66114e21fad90578bca5283a66856a009c5aeb928b4fce923ddf950f263",
+   "contentSha": "e8804579b3b8f077fe44c142e6e952ba9224ecae292b2df8dbee162208bcbaa2",
    "versions": {
-    "teen": "d75e62da1babc47e3bd87e0a8b50e4a9008f54c872cef8b3b931032a3b00f02b",
-    "adult": "a12086aee5f7a91648946e7302cb16a3052357c93ecc9040ae63fb1e3c8d02ab",
-    "senior": "53023b134f37fe1c24cf3eb6b77fdbb4b774ddf1398ee72ac96763e9161f4203"
+    "child": "e7e7b73ea7e29f7798516755d8879e7c2a3b8c9752b24bbe700e6f1d801bf436",
+    "youth": "63627520d4fc6f3b707db74016c737061190bd8ddbc9d9c1e8f870e8477ca263",
+    "teen": "847d0c24bb3c50aa3c64d421a457d438657e7a5b23da5e097fd7a3ef3629a0f6",
+    "adult": "aca892442233a6ce53374b9a9345df4c4520abe825119b890ee4be66911a237e",
+    "senior": "a92002bd295f7aab7bc131e8c254e602dc596bcedab4e0f4b31d73a23fe75de4"
    }
   },
   {
