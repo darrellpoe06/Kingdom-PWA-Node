@@ -1,5 +1,5 @@
 {
- "measuredAt": "2026-11-26T17:26:40.171Z",
+ "measuredAt": "2026-11-26T17:34:23.432Z",
  "counts": {
   "departments": 13,
   "courses": 51,
@@ -696,13 +696,13 @@
    "department": "Serve the House",
    "position": 2,
    "title": "The brain and the barn — the Synology NAS",
-   "contentSha": "d1e9e62656597a7f4432b332a7332260b8bc59db8927390cb54bff0cb95fd678",
+   "contentSha": "54b3e37695b12c416974c828b9dcb1a7ab3d0169f821c4d53f6b6c9b5e93ccf7",
    "versions": {
-    "child": "ffcb57fb15889391a9df1ff383120cc950bbc04af13f24cf0cf8c09d41dc63cf",
-    "youth": "30887b83d47a39289237d80e30f3b3549eb80e30d8d1b877fbd23f774e0bde39",
-    "teen": "695719116a35465abae29fd3495036af3652411283c133110a46f34114bde3c1",
-    "adult": "22592bcf8e4924c67f814bd2ecbb90629182effd9d6adb13377484cb383b47dd",
-    "senior": "76158408ad42837e7fbe68042e8410934f93265ba3fce9871f0605e08a178087"
+    "child": "cd8dd57949c8de9201df492279b2cad6bad13bcda30850a28aa48c6827f9ce51",
+    "youth": "55522627ed50f50a7e7cc279d4576c3ef9487019544e167dd14c624180b59f61",
+    "teen": "662e247c3847a1cd2040bc818c102bb689728ff95966cad8a311c8de979eb5b3",
+    "adult": "945a93e5061d5e1f07fdfa93a82eda518f0b714874022154aa6e8ee25ecf44a2",
+    "senior": "8415855942ca5b997a31cad118e04e145b96a7d4f2e181995a56b5473853b058"
    }
   },
   {
