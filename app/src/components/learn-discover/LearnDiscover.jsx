@@ -37,7 +37,9 @@ import { continueRows, newestRows, featuredRows, relationshipRows } from '../../
 import { SERIES } from '../../lib/learn-discover-series.js';
 import { todaysWord } from '../../lib/learn-discover-word.js';
 import { listPlaces } from '../../lib/learn-resume.js';
+import { studioRecord } from '../../lib/learn-studio-bridge.js';
 import { motionBehavior } from '../../lib/gentle-motion.js';
+import SeriesLessons from './SeriesLessons.jsx';
 
 const BASE = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.BASE_URL) || '/';
 const WHY = { title: 'Matches the title', verse: 'Scripture match', topic: 'On this topic', content: 'In the lesson', related: 'Related idea' };
@@ -181,7 +183,17 @@ function LessonCard({ row, course, onOpen, reached, note }) {
   );
 }
 
-export default function LearnDiscover({ onBrowseAll, onOpenLesson, onOpenArea, onOpenCourse, places, getBook = defaultGetBook, now, index = INDEX }) {
+export default function LearnDiscover({
+  onBrowseAll,
+  onOpenLesson,
+  onOpenArea,
+  onOpenCourse,
+  places,
+  getBook = defaultGetBook,
+  now,
+  index = INDEX,
+  richLists = true,
+}) {
   const P = useMemo(() => prepareIndex(index), [index]);
   const members = useMemo(() => categoryMembers(P), [P]);
   const [query, setQuery] = useState('');
@@ -248,6 +260,24 @@ export default function LearnDiscover({ onBrowseAll, onOpenLesson, onOpenArea, o
   const serInfo = ser ? series.find((s) => s.id === ser) : null;
   const wordLesson = word ? P.byId.get(word.lessonId) : null;
   const counts = index.counts || {};
+  // The same read record Learn keeps (places marked done, plus the progress map): a series' progress is never a record of its own.
+  const doneSet = useMemo(() => {
+    try {
+      return studioRecord(listPlaces({}), {}).done;
+    } catch {
+      return new Set();
+    }
+  }, []);
+  const asPictures = (rows) => (
+    <div className="ld-rail">
+      {rows
+        .map((x) => P.byId.get(x.lesson.id))
+        .filter(Boolean)
+        .map((L, i) => (
+          <LessonCard key={L.raw.i} row={L.raw} course={L.course} onOpen={open} note={`${i + 1} · ${L.course.t}`} />
+        ))}
+    </div>
+  );
   const lead = cont[0];
   const asTile = (c, i) => {
     const m = members.get(c.id);
@@ -452,7 +482,18 @@ export default function LearnDiscover({ onBrowseAll, onOpenLesson, onOpenArea, o
                     {Math.min(catRows.length, catMore * 12)} of {catRows.length}
                   </span>
                 </div>
-                <div className="ld-rail">{catRows.slice(0, catMore * 12).map((L, i) => asCard({ row: L.raw, course: L.course }, i))}</div>
+                {richLists ? (
+                  <SeriesLessons
+                    listId={`cat-${cat}-${catMore}`}
+                    title={catInfo.label}
+                    lessonIds={catRows.slice(0, catMore * 12).map((L) => L.raw.i)}
+                    onOpen={open}
+                    renderPictures={asPictures}
+                    fallback={<div className="ld-rail">{catRows.slice(0, catMore * 12).map((L, i) => asCard({ row: L.raw, course: L.course }, i))}</div>}
+                  />
+                ) : (
+                  <div className="ld-rail">{catRows.slice(0, catMore * 12).map((L, i) => asCard({ row: L.raw, course: L.course }, i))}</div>
+                )}
                 {catRows.length > catMore * 12 ? (
                   <button type="button" className="ld-more focus-visible:outline focus-visible:outline-2" onClick={() => setCatMore(catMore + 1)}>
                     Show 12 more
@@ -599,23 +640,51 @@ export default function LearnDiscover({ onBrowseAll, onOpenLesson, onOpenArea, o
             </div>
             {serInfo ? (
               <div className="ld-shelf" data-testid="ld-series-shelf">
-                <div className="ld-sec-h">
-                  <h3 className="ld-h3">
-                    <b>{serInfo.title}</b> · {serInfo.blurb}
-                  </h3>
-                  <button
-                    type="button"
-                    className="ld-link focus-visible:outline focus-visible:outline-2"
-                    onClick={() => serInfo.rows[0] && open(serInfo.rows[0].course.k, serInfo.rows[0].raw.i)}
-                  >
-                    Start the series {Ic.chev}
-                  </button>
+                <div className="ld-sercover" data-testid="ld-series-cover">
+                  <span className="ld-sercover-pic">
+                    <Photo file={SERIES_NEW_PHOTO[serInfo.id]} im={serInfo.rows.find((L) => L.raw.im) && serInfo.rows.find((L) => L.raw.im).raw.im} />
+                  </span>
+                  <span className="ld-sercover-body">
+                    <b className="ld-sercover-t">{serInfo.title}</b>
+                    <span className="ld-sercover-d">{serInfo.blurb}</span>
+                    <span className="ld-sercover-n" data-testid="ld-series-progress">
+                      {serInfo.rows.length} lessons · {serInfo.rows.filter((L) => doneSet.has(L.raw.i)).length} read
+                    </span>
+                    <span className="ld-bar2" aria-hidden="true">
+                      <i
+                        style={{ width: `${Math.round((100 * serInfo.rows.filter((L) => doneSet.has(L.raw.i)).length) / Math.max(1, serInfo.rows.length))}%` }}
+                      />
+                    </span>
+                    <button
+                      type="button"
+                      className="ld-browse ld-browse-sm focus-visible:outline focus-visible:outline-2"
+                      onClick={() => serInfo.rows[0] && open(serInfo.rows[0].course.k, serInfo.rows[0].raw.i)}
+                    >
+                      Start the series
+                    </button>
+                  </span>
                 </div>
-                <div className="ld-rail">
-                  {serInfo.rows.map((L, i) => (
-                    <LessonCard key={L.raw.i} row={L.raw} course={L.course} onOpen={open} note={`${i + 1} of ${serInfo.rows.length} · ${L.course.t}`} />
-                  ))}
-                </div>
+                {(() => {
+                  const cards = (
+                    <div className="ld-rail">
+                      {serInfo.rows.map((L, i) => (
+                        <LessonCard key={L.raw.i} row={L.raw} course={L.course} onOpen={open} note={`${i + 1} of ${serInfo.rows.length} · ${L.course.t}`} />
+                      ))}
+                    </div>
+                  );
+                  return richLists ? (
+                    <SeriesLessons
+                      listId={serInfo.id}
+                      title={serInfo.title}
+                      lessonIds={serInfo.rows.map((L) => L.raw.i)}
+                      onOpen={open}
+                      renderPictures={asPictures}
+                      fallback={cards}
+                    />
+                  ) : (
+                    cards
+                  );
+                })()}
               </div>
             ) : null}
           </section>

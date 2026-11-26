@@ -169,6 +169,7 @@ import {
   Inventory, Forecast, AdminConsole, ChefCorner, RoadTo150, Games, TVTime, Messages, AdvocacyCases, DataLiberation, Cameras, Vault, ResearchSection, Storefront,
   surfaceById, canSeeCameras, churchSubTabs, ChurchInstitute, YouthZone, AccessRequests, ChurchHome, MooreDivahs, TlcAssistant, TlcOnboarding, ChurchProjects, CohortPrograms, FamilyPlan, Obligations, ChurchMembers, ChurchMemberSpace, ChurchGivingBook, Relationships,
 } from './surfaces.js';
+import { withLearnDoor } from './components/learn-discover/LearnDoor.jsx';
 import { unionPreservingLocal, getInstanceId } from './lib/table-sync.js';
 import { useInstanceRole, governsHere } from './lib/instance-role.js';
 import { TIER_ORDER, TIER_LABEL, effectiveTier, tierMeets } from './lib/tiers.js';
@@ -4379,7 +4380,7 @@ ${THEME_CSS}
         {view === 'church' && churchView === 'observe' && (isChurchStaff
           ? <ChurchObservation observation={data.churchObservation} updateChurchObservation={updateChurchObservation} />
           : <LockedSurface surface={surfaceById['observe']} viewer={surfaceViewer} instanceId={churchAccess.instanceId} />)}
-        {view === 'church' && (churchView === 'learn' || churchView === 'eternal-algorithms') && (() => {
+        {view === 'church' && (churchView === 'learn' || churchView === 'eternal-algorithms') && withLearnDoor(churchView, (() => { // The Word / Learning Zone opens the discovery page first (DR-1677); the door hands back this same Learn for a deep link, an opt-out, or a failed load
           // Resolve the cohort a learner SEES: the Governor's live in-instance
           // value when present, else the PUBLISHED confirmed date every build
           // carries (resolveCohort) — so a learner outside Darrell's instance no
@@ -4602,7 +4603,7 @@ ${THEME_CSS}
             submitHelper={submitHelper}
             initialDept={churchView === 'eternal-algorithms' ? 'the-eternal-algorithms' : null} /* the retired Church route opens Learn on its department (DR-0432) */ eternalStudyProps={{ email: authSession?.user?.email, view, churchView, setView, setChurchView }} signedIn={!!authSession} /* DR-0698: downloads ask a signed-out reader for an account */ userTier={data.userTier} /* DR-1652: downloads are PoeTech+ or the Download Pass */
           />;
-        })()}
+        })())}
         {view === 'church' && churchView === 'conference' && (
           <div className="space-y-4">
             {/* CONFERENCE / EVENT CENTER — promoted to its own Church sub-tab

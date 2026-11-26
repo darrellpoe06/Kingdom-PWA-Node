@@ -33,7 +33,7 @@ async function mount(props = {}) {
   document.body.appendChild(host);
   root = createRoot(host);
   await act(async () => {
-    root.render(createElement(LearnDiscover, { getBook, places: [], now: new Date(2026, 10, 26), ...props }));
+    root.render(createElement(LearnDiscover, { richLists: false, getBook, places: [], now: new Date(2026, 10, 26), ...props }));
   });
   await act(async () => {
     await Promise.resolve();
