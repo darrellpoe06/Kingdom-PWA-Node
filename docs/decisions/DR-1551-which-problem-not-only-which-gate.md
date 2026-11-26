@@ -54,7 +54,7 @@ fired and knowing whose decision the fix is.
   `k_faults` fails the drift case by name. 138 census cases (7 new), ruff clean.
 - 0336 generated from 0335 on disk, body verbatim, one declaration and one key
   added — diffed to prove it.
-- **Not claimed:** nothing is measured live, and `kinds` is UNIONED across a
-  row's builds, so it cannot yet say whether the same problem repeated on
-  attempt 2 — the question that decides whether a third attempt would help.
-  `re-review: 2026-11-25`.
+- **Re-reviewed 2026-11-26, SATISFIED live**: every row names its problem, not
+  only its gate. The union limit stands, but the question it blocked — would a
+  third attempt help? — is answered by OUTCOME: DR-1641 raised the budget 2→4
+  and the queue extended one cycle without clearing. No. DR-1670 follows.
