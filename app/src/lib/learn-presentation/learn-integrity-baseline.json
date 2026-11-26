@@ -1,5 +1,5 @@
 {
- "measuredAt": "2026-11-26T20:18:51.119Z",
+ "measuredAt": "2026-11-26T20:24:08.255Z",
  "counts": {
   "departments": 13,
   "courses": 51,
@@ -8427,13 +8427,13 @@
    "department": "The Word & The Way",
    "position": 12,
    "title": "The Revelation of Jesus Christ",
-   "contentSha": "bc5d2f89f5fc968e7b40b07d99477a5a3cc342e15e5ddcd12f93fb951dff7d0c",
+   "contentSha": "d62220ffffd0092cacb79828c4297421804ec7794008a45ccaf4f736cdea1de8",
    "versions": {
-    "child": "8e56ec89d2e5c360de2bf5649de221ad70e1ce374337c04c8e3629fa41243507",
-    "youth": "1d78fddd11afd1894cbcc119e01656e023b80eb4f729cb8703d787bb1ca8772d",
-    "teen": "385bfd38cb2048b5271ee0395b491db3f84b04cb66ee70057514b510ccd1815d",
-    "adult": "8b6607cbe7ef3034f0dfc589f622584cbd3e1e64f9edc5aef492dc629ee0b52d",
-    "senior": "4d8f3b654e142e4f00338b6cfb336234cf96bcdbb5aafca51b24dba1fd3f4211"
+    "child": "d5ac53d3b852279f913e9b4cdb87baafe4ef5e81e963697496d966bbbc44e153",
+    "youth": "c5b1237bbf005520e71680b6dab827f9deeeb62c14304397260241c8bef709e2",
+    "teen": "72d3bf170f0eb617aa8fcda68e90b14b3029f27d3cb5456faf2ffd9db5132a31",
+    "adult": "dd4feeca497e8c96614e8ed2510ae9b648e8e5e9fc0411ebf2e49c3aaf0304b0",
+    "senior": "0839261c7d2640fb7ab41d05b850f30d61debc84d07a0b2e672e44e12fc55217"
    }
   },
   {
