@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T10:14:12.475Z",
+ "measuredAt": "2026-11-26T10:18:34.688Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4452
+  "readings": 4454
  },
  "departments": [
   {
@@ -14265,11 +14265,13 @@
    "department": "The Eternal Algorithms",
    "position": 20,
    "title": "Every Soul Gets Its Turn (the testing)",
-   "contentSha": "98cda529d58abf67b5b06703a7d3632d0d2773dbe399da68d0512fba6db4649b",
+   "contentSha": "a431ceab1020b4597153b3f1aea60cdc7120b60dfeee5ca35d315d4008d340c5",
    "versions": {
-    "teen": "2dc897bc5fec9356a55430ed09f9b7c7554f3e072319e88c18db647c444b9408",
-    "adult": "85d5e641b4e98a39d99459825914ae0dee559dacc0407554bf56068401ab776c",
-    "senior": "27e47bdf762707d2e1381f21cdd79bde2b0d9d11e46d8ff69c900be58fd9fc9c"
+    "child": "f44390abcc91a7c68e44bd92fd487f8848b1ce6b22660c33eef8245501f21156",
+    "youth": "6f4cde77b4d14abbb2df7fb771daf6eb1fea06725334bea81eb3cfdda4e39897",
+    "teen": "9e50a1c3e0a3c4a1b4f1334a339e4d1e212d105873f4508d682929cfefae2305",
+    "adult": "870004b367371638ff70b0f125dcdfdeebaaffd71f57bf730d7b5804a247326c",
+    "senior": "cd153d000cd31217e77abdb80b357492292473d828e0aaf81a801b25956bfe59"
    }
   },
   {
