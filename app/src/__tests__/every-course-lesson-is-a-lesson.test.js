@@ -140,9 +140,6 @@ const SHORT_DEBT = [
   'kingdom-economics/econ3-circulation',
   'kingdom-economics/econ4-group-economics',
   'prophetic-voices/pv-price',
-  'prophetic-voices/pv-diop',
-  'prophetic-voices/pv-obenga',
-  'prophetic-voices/pv-williams',
   'prophetic-voices/pv-inventions',
 ];
 
