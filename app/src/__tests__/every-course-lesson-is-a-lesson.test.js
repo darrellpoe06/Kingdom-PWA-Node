@@ -42,7 +42,6 @@ const words = (t) =>
 
 // The recorded debt (2026-11-26). Shrink-only.
 const SHORT_DEBT = [
-  'ai-legal-blueprint/aib2-do-not-share-list',
   'ai-legal-blueprint/aib3-how-the-machine-remembers',
   'ai-legal-blueprint/aib4-the-law-plain',
   'ai-legal-blueprint/aib5-real-world-scenarios',
