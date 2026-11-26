@@ -21,6 +21,9 @@
     },
     "unrecorded": {
       "note": "A Claude Code session whose standing instructions keep model identifiers out of pushed files; the session's model is in its own transcript, not on this record. Per-task tokens are not exposed by the harness."
+    },
+    "claude-sonnet-5-5": {
+      "note": "A Claude Code session model (Anthropic). Per-task tokens are not exposed by the harness; the session's budget counter is recorded per session instead."
     }
   },
   "sessions": [
@@ -2562,6 +2565,21 @@
       "notes": "Reads the feed the Past sermons tab already plays. Closed-phone push not built, re-review 2026-12-03."
     },
     {
+      "id": "learning-zone-discovery-landing-page",
+      "date": "2026-11-26",
+      "task": "The Learning Zone discovery landing page: search, 12 categories, Life Situations Guide, Featured Series on Learn's own list, shell door via surfaces.js",
+      "drs": [
+        "DR-1699"
+      ],
+      "prs": [],
+      "model": "claude-sonnet-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 9,
+      "estimateWithoutAiHours": 120,
+      "notes": "Wall-clock is approximate (one long session with waits on CI); no token meter was exposed to the session."
+    },
+    {
       "id": "the-rule-was-already-his",
       "date": "2026-11-24",
       "task": "The builder kept quoting speakers where only Scripture may be quoted; now a span the KJV corpus does not hold loses its quotes deterministically, and a teaching gets four attempts instead of two",
@@ -2638,7 +2656,7 @@
       "costUsd": null,
       "wallClockHours": 0.8,
       "estimateWithoutAiHours": 7,
-      "notes": "from the REV-0262 triage of 151 notes"
+      "notes": "from the REV-0263 triage of 151 notes"
     },
     {
       "id": "dr-1424-learn-quick-link-soul",
@@ -4586,6 +4604,21 @@
       "wallClockHours": 1.5,
       "estimateWithoutAiHours": 12,
       "notes": "Traced to the sentence cut and the chip stops making a wordless NAS piece that handed the rest to the phone; tests proven against origin/main; books fold summary skipped in the mixed case (L140)."
+    },
+    {
+      "id": "lessons-process-language-b1",
+      "date": "2026-11-26",
+      "task": "Lessons state what the record shows, not our research errand: triage of 151, gate + shrink-only debt list, batch 1 (13 lessons researched and rewritten)",
+      "drs": [
+        "DR-1689"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 3,
+      "estimateWithoutAiHours": 16,
+      "notes": ""
     },
     {
       "id": "auto-open-pr-adopts-a-raced-pr",

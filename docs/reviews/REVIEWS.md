@@ -14,7 +14,7 @@
 
 ## Records
 
-### REV-0262 · Ways review — what members say and share never reached the office: 0 share rows ever, feedback last arrived 2026-08-19, no Feedback button on the church door
+### REV-0263 · Ways review — what members say and share never reached the office: 0 share rows ever, feedback last arrived 2026-08-19, no Feedback button on the church door
 - **Date:** 2026-11-26
 - **Surface:** live database (public.feedback, public.door_feedback, public.lesson_shares, public.lesson_share_opens, RLS on feedback) · app/src/lib/feedback-sync.js · app/src/components/shell/LoveCornerHeader.jsx · LoveCornerMenus.jsx · app/src/components/learn-studio/LearnStudio.jsx (LessonCover share)
 - **Type:** orchestration (DR-0108 Ways review) · code-review (DR-0219 SHOULD/ARE/GAPS/CLOSE)
@@ -24,7 +24,7 @@
 - **Carried:** confirm on the live site that a share writes a lesson_shares row and its open an `ok` row `re-review: 2026-12-03`.
 - **Source:** docs/decisions/DR-1680-shares-are-recorded-feedback-has-a-home-and-the-reader-closes-mid-panel.md
 
-### REV-0261 · Spec-conformance review — the new Learn look against the classic Learn page, feature by feature
+### REV-0262 · Spec-conformance review — the new Learn look against the classic Learn page, feature by feature
 - **Date:** 2026-11-26
 - **Surface:** app/src/components/ChurchLearn.jsx (classic lesson space, TutorPanel, CourseView) · app/src/components/learn-studio/* (new look) · app/src/lib/learn-studio-bridge.js · app/src/lib/learn-resume.js · app/src/lib/lesson-format.js
 - **Type:** code-review (DR-0219 SHOULD/ARE/GAPS/CLOSE) · ui-ux
@@ -32,6 +32,13 @@
 - **Findings:** DARRELL 2026-11-26: "All features should still be here... we need to check of a list of features"; "where's the Ai's... Ari"; "Back button should go to the last page"; "Not showing what I was just reading"; "Where are the chapters?". SHOULD: every classic lesson feature is reachable in the new look (DR-1662, DR-1664). ARE (read line by line): the new look's lesson screen got only its quiz hooks (no reading credit, place, downloads, age-first, screen hint); no Ari; no history steps (Back left the app); its own chapter finder and paragraph place beside the section plan (DR-0520) and the shared place (DR-0631), which none of DR-1662..1671 cited; placeInProgress ignored seen/heard. CLOSE: the classic tools handed over (experienceTools + studioSavePlace), Ari in Study, useHistoryValue steps, the section plan and shared place, seen/heard past 2% is begun, Relationships 19 to 44 with a review gate. GATES: lesson-place-is-shared.test.jsx, lesson-sections.test.js, the-new-look-keeps-what-you-read.test.jsx, the Back and Ari cases in lesson-experience-prototype.test.jsx, every-collection-is-reviewed.test.js (each proven to catch).
 - **Carried (still only through the classic tools panel, not on the new lesson screen):** step-by-step paced reading; Show the Word (tap a verse); the lesson's real video; print, present and the facilitator guide; the keep-screen-on hint `re-review: 2026-12-03`. The Institute portrait fix is unmeasured in a browser at every text size `re-review: 2026-12-03`.
 - **Source:** docs/decisions/DR-1674-every-lesson-feature-in-the-new-look-back-goes-back-and-ari-is-here.md
+### REV-0261 · Spec-conformance review — the Learning Zone discovery landing page (DR-1699): intent, implementation, gaps and what is closed
+- **Date:** 2026-11-26
+- **Surface:** app/src/components/learn-discover/ · app/src/lib/learn-discover-*.js · app/src/components/ChurchLearn.jsx (2 lines) · app/src/lib/learn-landing.js · docs/design/learn-discover/
+- **Type:** ui-ux · code-review (DR-0219 SHOULD/ARE/GAPS/CLOSE)
+- **Status:** logged
+- **Findings:** SHOULD: a person facing a real situation describes it and finds relevant lessons without knowing the course (DR-1699). ARE: 995 lessons / 51 courses / 13 departments preserved; 12 categories (992 of 995 lessons placed, 3 documented); search 7.5/10 manual on the nine named questions, weaker (about 4) on everyday-situation phrasings before the Life Situations Guide; 57 hand-read situations added, thin and empty ones disclosed on the page. GAPS: lessons are missing for aging parents, divorce, infidelity, teens, loneliness, sleep (the list of lessons to write); photographs are contact-sheet resolution until the originals are supplied; the shell wiring and Darrell's review are pending; `lesson-dates:check` cannot run in a shallow clone. CLOSE: gaps carry a re-review date of 2026-12-10 in DR-1699.
+- **Source:** docs/decisions/DR-1699-the-learning-zone-discovery-landing-page.md
 
 ### REV-0260 · Ways review — the IT Professionals Forum AI-development slides measured against our Ways; thirteen builds proposed in DR-1330
 - **Date:** 2026-11-05

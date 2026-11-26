@@ -5,12 +5,12 @@
 **Tier:** B (every member's Learn home, the ride request form, the bills calendar; no schema)
 **Type:** fix
 **Area:** `app/src/components/RecordStrip.jsx`, `record-strip.css` (new), `app/src/components/learn-studio/LessonsInOrder.jsx`, `LearnStudio.jsx`, `learn-studio.css`; `app/src/lib/bus-ministry.js`, `app/src/components/BusMinistry.jsx`; `app/src/components/Calendar.jsx`, `app/src/lib/lifecycle-and-flow.js`, `app/src/lib/financial-engineering.js`; `app/src/poe-financial-mvp-v28.jsx` (one line); tests `learn-functions-in-new-look.test.jsx`, `bus-ministry.test.js`, `frequencyToMonthly.test.js`
-**Sent in by:** Darrell, 2026-11-26: "The first or initial look should be better... start with the images!!!... should be maybe a drop down defaulting closed... so the images below are showing initially"; "We can use this data to enhance and better our quality and increase less stress on the people by fixing low hanging fruit continuously". The fixes are members' own notes from the feedback table (REV-0262 triage).
-**Pairs with:** DR-1680 (every voice reaches the office), REV-0262
+**Sent in by:** Darrell, 2026-11-26: "The first or initial look should be better... start with the images!!!... should be maybe a drop down defaulting closed... so the images below are showing initially"; "We can use this data to enhance and better our quality and increase less stress on the people by fixing low hanging fruit continuously". The fixes are members' own notes from the feedback table (REV-0263 triage).
+**Pairs with:** DR-1680 (every voice reaches the office), REV-0263
 
 ## Context
 
-The Learn home opened on the long Lessons list (course picker, order, Show, View, Fold, month groups) above every picture. The member feedback table held 45 members' own notes and 99 automatic learning signals; 151 rows, none triaged since June. A triage of all of them against the current code (REV-0262) named the quick fixes still open.
+The Learn home opened on the long Lessons list (course picker, order, Show, View, Fold, month groups) above every picture. The member feedback table held 45 members' own notes and 99 automatic learning signals; 151 rows, none triaged since June. A triage of all of them against the current code (REV-0263) named the quick fixes still open.
 
 ## What was measured
 

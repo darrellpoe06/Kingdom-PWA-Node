@@ -58,6 +58,7 @@ import { elidedQuotations, recitedRecords } from '../../../scripts/quotation-int
 import { unnamedBands } from '../../../scripts/title-in-narrative.mjs';
 import { anchorRefs } from '../lib/search-it-out.js';
 import sources from '../lib/lesson-sources.json';
+import { processLanguage } from '../lib/process-language.js';
 
 const ID = 'wm10-the-name-and-the-proof';
 const BANDS = ['child', 'youth', 'teen', 'senior'];
@@ -156,11 +157,21 @@ const SPINE = [
 // was pinned and each occurs EXACTLY ONCE, in the disclosure itself, which is
 // what makes the strip proofs below mean anything. A figure would NOT do: every
 // figure in this lesson occurs twice per adult band.
+//
+// 2026-11-26, DR-1689: Darrell "I'm annoyed by lessons saying they didn't
+// research". Three of the five signals used to pin OUR errand ("we did not test
+// the works", "the 80 minutes did not read back", "the report was never read").
+// The research is now done, so they pin what the record shows instead: a
+// name's own word is not a test of the works; the 80 minutes is the report's
+// own forecast for 2036; and the firm that published the study paid for the
+// advertisement. ("sold rather than given" is gone: the report is published.)
+// Each was re-counted EXACTLY ONCE in all five places before it was pinned.
+const NOT_A_TEST = /not a test of the works|not to test the works|does not test the works/i;
 const LIMIT = [
-  ['the works were not tested', /we did not test the works/i],
-  ['the read-back proves attribution only', /proves ATTRIBUTION|establishes ATTRIBUTION|only proves the firm SAID it/i],
-  ['the 80 minutes did not read back', /absent from the page|not on the page at all/i],
-  ['the report itself was never read', /sold rather than given|is not free/i],
+  ['a name asked whether it said it is not a test of the works', NOT_A_TEST],
+  ['a firm’s own page proves attribution only', /proves ATTRIBUTION|establishes ATTRIBUTION|only proves the firm SAID it/i],
+  ['the 80 minutes is the report’s own forecast', /80 (?:extra|additional|more) minutes a day/i],
+  ['the publisher of the study paid for the advertisement', /paid for the (?:ad|advertisement)\b/i],
   ['the source is wholly an advertisement', /(?:entire|whole) email (?:is|was) an ad(?:vertisement)?\b/i],
 ];
 
@@ -369,7 +380,7 @@ describe('the honest limit is on every surface a reader can open', () => {
     // were counted absent across all five places before being trusted.
     for (const p of PLACES) {
       expect(TEXTS[p], `${p} claims more than attribution`).not.toMatch(/we (?:have )?(?:independently )?verified|we tested the works|we confirmed (?:the|that)|the figures are verified/i);
-      expect(TEXTS[p], `${p} drops the seller-is-the-witness half`).toMatch(/we did not test the works/i);
+      expect(TEXTS[p], `${p} drops the seller-is-the-witness half`).toMatch(NOT_A_TEST); // 2026-11-26, DR-1689
     }
   });
 
@@ -381,6 +392,31 @@ describe('the honest limit is on every surface a reader can open', () => {
     expect(missing).toEqual(['teen']);
     // and the unbroken article still reads green, so the check is not always-red
     expect(PLACES.filter((p) => !re.test(TEXTS[p]))).toEqual([]);
+  });
+
+  // 2026-11-26, DR-1689: Darrell "I'm annoyed by lessons saying they didn't
+  // research". Stripping the whole SOURCING paragraph -- what the firm itself
+  // publishes -- from one band is named, and the 80-minute forecast pin goes
+  // with it.
+  it('PROVEN-TO-CATCH: deleting the sourcing paragraph from ONE band names that band', () => {
+    const cut = TEXTS.teen.replace(/WHAT THE FIRM ITSELF PUBLISHES\.[^]*?PROVES NOTHING ELSE\./, '')
+      .replace(/ASKING THE NAME WHETHER THE NAME SAID IT DOES NOT TEST THE WORKS\.[^]*?paid for the advertisement\./, '');
+    expect(cut, 'the strip did not change the band').not.toBe(TEXTS.teen);
+    const stripped = { ...TEXTS, teen: cut };
+    for (const [label, re] of LIMIT.slice(0, 4)) {
+      expect(PLACES.filter((p) => !re.test(stripped[p])), `${label} did not notice the strip`).toEqual(['teen']);
+    }
+  });
+
+  // 2026-11-26, DR-1689: Darrell "I'm annoyed by lessons saying they didn't
+  // research". No reader-facing place hands the reader our research errand.
+  it('no reader-facing place carries process language (process-language.js)', () => {
+    expect(processLanguage(L), 'the lesson as a whole').toEqual([]);
+    for (const p of PLACES) {
+      expect(processLanguage({ id: ID, levels: { [p]: TEXTS[p] } }), `${p} carries process language`).toEqual([]);
+    }
+    // PROVEN-TO-CATCH: the sentence this lesson used to carry is caught.
+    expect(processLanguage({ id: ID, levels: { child: 'We did not read the big report at all.' } })).toHaveLength(1);
   });
 });
 

@@ -120,7 +120,7 @@ describe('row -> shape mappers', () => {
 
 describe('ride requests — a rider asks for a pickup', () => {
   it('validate requires a name, a phone, the pickup address and which van', () => {
-    // A member's note (REV-0262, DR-1678): name, phone, pickup address and the van are required.
+    // A member's note (REV-0263, DR-1678): name, phone, pickup address and the van are required.
     const full = { riderName: 'Kay', riderPhone: '217-555-0100', pickupAddress: '12 Main St', vanChoice: 'regular' };
     expect(validateRideRequest(full).ok).toBe(true);
     expect(validateRideRequest({ ...full, vanChoice: 'accessible' }).ok).toBe(true);

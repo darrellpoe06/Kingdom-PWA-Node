@@ -396,7 +396,7 @@ export function toRideRequestShape(row, myUserId) {
   };
 }
 
-// Validate a rider's ride-request form. Required (a member's note, 2026-07, triaged in REV-0262 and
+// Validate a rider's ride-request form. Required (a member's note, 2026-07, triaged in REV-0263 and
 // shipped DR-1678: "make phone and pickup address required with a red star, and make choosing a regular
 // or accessible van required"): a name (who to pick up), a phone (so the driver can reach them), the
 // pickup address (where to come), and which van. The pickup area stays an optional help.
