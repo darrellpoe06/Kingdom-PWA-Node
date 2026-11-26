@@ -320,6 +320,17 @@ PROBLEM_KINDS = (
     ("curly double quotation marks", "curly-quotes"),
     ("recites a record id", "record-id"),
     ("states a percentage", "percentage"),
+    # WHICH SHAPE of the generic "God" (2026-11-26, DR-1670). MEASURED on the
+    # live queue: `generic-God-not-Yahweh` refused 25 of the 33 waiting rows --
+    # the dominant cause of the stall -- and one word could not say whether the
+    # writer was plainly wrong ("God is love") or the gate stricter than the rule
+    # it enforces ("the God of Abraham", which CLAUDE.md's "judgment, never a
+    # mechanical find-replace" arguably keeps available). lesson_gates.py now
+    # names the shape; these are the words for it. The openings are DISJOINT
+    # from the generic one, so order here is for the reader, not the matcher.
+    ('"god of" a name construct', "God-of-a-name"),
+    ('the possessive "god\'s"', "God-possessive"),
+    ('"god the" a title construct', "God-the-a-title"),
     ('the generic "god" in our own voice', "generic-God-not-Yahweh"),
     # Tight on purpose: lesson_gates.py:279 and :282 interpolate a NAME into
     # these two, and a loose `capitalises ` or `writes ` would match prose all

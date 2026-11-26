@@ -1742,6 +1742,62 @@ class WhichProblemNotOnlyWhichGate(unittest.TestCase):
                 self.kinds({"voice": {"passed": False, "problems": [problem]}}),
                 [want], problem)
 
+    def test_each_shape_of_God_rides_as_its_own_word(self):
+        """DR-1670. One word for 25 of 33 rows could not say whether the writer was
+        plainly wrong or the gate stricter than its rule. Each shape now has its
+        own word, and the standalone one keeps the meaning it always had."""
+        for problem, want in (
+            ('adult: the "God of" a name construct in our own voice (say Yahweh)',
+             "God-of-a-name"),
+            ('child: the possessive "God\'s" in our own voice (say Yahweh)',
+             "God-possessive"),
+            ('teen: the "God the" a title construct in our own voice (say Yahweh)',
+             "God-the-a-title"),
+            ('adult: the generic "God" in our own voice (say Yahweh)',
+             "generic-God-not-Yahweh"),
+        ):
+            self.assertEqual(
+                self.kinds({"voice": {"passed": False, "problems": [problem]}}),
+                [want], problem)
+
+    def test_PROVEN_TO_CATCH_the_shape_words_drifting_from_the_gate(self):
+        """Two files, one vocabulary: if lesson_gates.py reworded a shape clause and
+        this file did not follow, the receipt would silently fall back to the
+        generic word and the measurement would quietly stop working. So the real
+        gate is run and every clause it produces must map to a word here."""
+        import importlib.util
+        p = os.path.join(_ROOT, "infra", "nas-lesson-builder", "lesson_gates.py")
+        spec = importlib.util.spec_from_file_location("lesson_gates_for_drift", p)
+        lg = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(lg)
+        wanted = {
+            "the God of Abraham brought them out": "God-of-a-name",
+            "God's people were brought out": "God-possessive",
+            "God the Father sent His Son": "God-the-a-title",
+            "God is love": "generic-God-not-Yahweh",
+        }
+        for text, want in wanted.items():
+            clauses = lg.god_shapes(lg.our_voice(text))
+            self.assertTrue(clauses, text)
+            got = [qc._kind_of_problem("adult: " + c) for c in clauses]
+            self.assertIn(want, got, (text, clauses, got))
+            self.assertNotIn(None, got, (text, clauses, got))
+
+    def test_a_shape_word_leaks_no_draft_prose(self):
+        """The receipt rides the PUBLIC road, so only this file's constants travel
+        (DR-1552). A name inside a construct must never reach it."""
+        d = self.store({"voice": {"passed": False, "problems": [
+            'adult: the "God of" a name construct in our own voice (say Yahweh)']}})
+        c = qc.census_of([{"id": "r1", "source": "research-inbox",
+                           "created_at": "2026-11-12T12:17:12Z",
+                           "tags": ["lesson", "build-failed",
+                                    "build-reason:the gates refused the draft"]}],
+                         gates=qc.stored_gates(d))
+        blob = json.dumps(c)
+        self.assertIn("God-of-a-name", blob)
+        self.assertNotIn("Abraham", blob)
+        self.assertNotIn("construct in our own voice", blob)
+
     def test_the_verse_gates_own_vocabulary_rides_by_identity(self):
         for kind in qc.VERSE_FAULT_KINDS:
             self.assertEqual(

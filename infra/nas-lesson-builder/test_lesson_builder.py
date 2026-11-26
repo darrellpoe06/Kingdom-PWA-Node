@@ -981,6 +981,54 @@ class Gates(unittest.TestCase):
         self.assertFalse(gates.voice_gate({"lesson": "Satan lost."})["passed"])
         self.assertFalse(gates.voice_gate({"lesson": "we follow jesus"})["passed"])
 
+    def test_the_voice_gate_says_WHICH_shape_of_God_it_refused(self):
+        """DR-1670. `generic-God-not-Yahweh` refused 25 of the 33 waiting rows and
+        could not say which use, so nothing could decide whether the writer was
+        wrong or the gate stricter than the rule. The refusal now names the shape
+        -- in this module's own constants, never a span of the draft."""
+        for text, needle in (
+            ("the God of Abraham, Isaac and Jacob brought them out",
+             'the "God of" a name construct'),
+            ("God's people were brought out", 'the possessive "God\'s"'),
+            ("God the Father sent His Son", 'the "God the" a title construct'),
+            ("God is love", 'the generic "God" in our own voice'),
+        ):
+            probs = gates.voice_gate({"lesson": text})["problems"]
+            self.assertFalse(gates.voice_gate({"lesson": text})["passed"], text)
+            self.assertTrue(any(needle in p for p in probs), (text, probs))
+
+    def test_a_construct_is_never_reported_as_the_standalone_use(self):
+        """First-match-wins, longest construct first: "the God of Abraham" must not
+        also be filed as the bare generic use, or the split measures nothing."""
+        probs = gates.voice_gate({"lesson": "the God of Israel keeps His word"})["problems"]
+        self.assertTrue(any('"God of" a name' in p for p in probs), probs)
+        self.assertFalse(any(p.endswith('the generic "God" in our own voice (say Yahweh)')
+                             for p in probs), probs)
+        # A text holding BOTH a construct and a bare use reports both.
+        both = gates.voice_gate({"lesson": "the God of Israel is one; God is love"})["problems"]
+        self.assertTrue(any('"God of" a name' in p for p in both), both)
+        self.assertTrue(any(p.endswith('the generic "God" in our own voice (say Yahweh)')
+                            for p in both), both)
+
+    def test_PROVEN_TO_CATCH_naming_the_shape_changes_no_verdict(self):
+        """The whole safety of DR-1670 is that it is a REPORTING change: every draft
+        that failed still fails and every one that passed still passes. The gate's
+        own historic test is one bare `\\bGod\\b` search over our-voice text, so that
+        search IS the oracle -- this asserts the two agree on every shape."""
+        import re as _re
+        corpus = [
+            "the God of Abraham, Isaac and Jacob", "God's people", "God the Father",
+            "God is love", "the God of Israel is one; God is love", "God of abraham",
+            "the Godhead is three in one", "Yahweh brought them out", "godly fear",
+            "the gods of Egypt", "Jesus is the Lamb of Yahweh", "", "God",
+            "His word stands", "Gods of wood and stone", "God’s own hand",
+        ]
+        for text in corpus:
+            ours = gates.our_voice(text)
+            oracle = bool(_re.search(r"\bGod\b", ours))
+            named = bool(gates.god_shapes(ours))
+            self.assertEqual(oracle, named, (text, gates.god_shapes(ours)))
+
     def test_holy_names_in_step_with_typographic_theology(self):
         with open(os.path.join(REPO, "app/src/lib/typographic-theology.js"), encoding="utf-8") as f:
             js = f.read()

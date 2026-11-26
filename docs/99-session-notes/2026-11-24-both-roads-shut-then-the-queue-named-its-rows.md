@@ -230,3 +230,72 @@ against 47 before. That was not tidiness: the first attempt put the whole case
 statement inline and pushed `.github/workflows` 53 lines over its own ceiling.
 The guard refused it, and the refusal produced the better shape — a tested
 script instead of untested YAML.
+
+## 7. 2026-11-26 — four re-reviews came due, and the queue named its real wall
+
+Four dated promises fell due on 2026-11-25 (DR-1534, DR-1542, DR-1551,
+DR-1552), every one of them saying "nothing is measured live". Run 45816352285
+is that measurement. All four are **satisfied**, read off the receipt's own rows:
+
+| record | what it promised | what the receipt shows |
+|---|---|---|
+| DR-1534 | the failure SITE | 33/33 rows carry one: `gates` 22, `crashed` 5, `transient` 3, `other` 2, `rate-limited` 1 |
+| DR-1542 | the box names its own cause | `crashed: RuntimeError` on three rows; two read `cause not stored` — its stated limit, holding |
+| DR-1551 | the PROBLEM, not only the gate | `gates refused: quotation+verse+voice \| because: generic-God-not-Yahweh+not-the-verse+span-without-reference` |
+| DR-1552 | name the span, never leak it | `span-without-reference` on 13 rows, no span text, no `where` |
+
+**DR-1551's open question is answered by outcome, not by new code.** It said
+`kinds` is unioned across a row's builds so it could not say whether the same
+problem repeated on attempt 2 — "the question that decides whether a third
+attempt would help." DR-1641 raised the budget 2→4 and the measured answer is
+**no**: every row now reads `failed after 4` or `rate-limited after 6`, and the
+queue extended by one cycle without clearing. The union limit still stands; the
+decision it was blocking does not.
+
+### Two apparent self-contradictions that were not
+
+Both were checked in code before being filed, and neither is a defect:
+
+- **`crashed` with no exception named** (two rows). `stall_of` matches the
+  builder's own prose `"the build process crashed (exit"` BEFORE asking for an
+  exception class, so a crash with an exit code and no Python exception is
+  honestly `crashed` with the cause absent — `:930`'s own rule, "an absent cause
+  is unread, never 'no cause'".
+- **`transient` reading `rate-limited after 6`** (three rows).
+  `SELF_HEALING = ("rate-limited", "transient")`, and `why_of` deliberately uses
+  one counter phrase for both; the 2026-11-18 fix at `:240` was precisely to
+  stop under-reporting a `transient` row. Legibility is arguable; truth is not.
+
+### The real wall, and the one question that is Darrell's
+
+`generic-God-not-Yahweh` refuses **25 of the 33** rows and has **overtaken**
+`not-the-verse` (23; it led 18/16 two days ago). Counted, not recalled.
+
+The writer is **already told** the rule — `lesson_writer.py:109-110`, *"Say
+"Yahweh", never the generic "God", when naming the Father in our own voice."*
+Same shape as DR-1641: the instruction exists and more of it is not the fix.
+
+And the gate (`lesson_gates.py:421`) is one bare `\bGod\b` search. Measured
+against it, rather than reasoned about:
+
+| our-voice text | the gate |
+|---|---|
+| `the God of Abraham, Isaac and Jacob` | **refused** |
+| `God's people were brought out` | **refused** |
+| `God the Father sent His Son` | **refused** |
+| `God is love` | **refused** |
+| `the Godhead is three in one` | passes |
+| `the LORD is my shepherd` · `the King reigns` · `godly fear` | passes |
+
+The titles CLAUDE.md keeps available do pass. But CLAUDE.md also says the rule
+is "clarity of identity, **not a mechanical find-replace**" — and a construct
+like *the God of Abraham* is not named either way. So one blanket search was
+deciding an undecided question by default.
+
+**DR-1670 splits the report and nothing else** — the shape is named, no verdict
+moves, pinned against the bare search as its own oracle. What it cannot do is
+rule on the construct. That is Darrell's call on how a lesson is written, and it
+now comes with a count instead of a guess: if *the God of Abraham* may stand in
+our voice, some share of 25 rows clears by relaxing the gate; if it may not, the
+same share is the writer being plainly wrong and wants the prompt. The next
+receipt says which, per shape.
