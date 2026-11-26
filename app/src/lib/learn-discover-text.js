@@ -18,7 +18,7 @@ const QUESTION = new Set((
   + 'tell show teach learn lesson lessons bible say says said mean means find finding help helps better become becoming always'
 ).split(' '));
 
-const IRREGULAR = { children: 'child', women: 'woman', wives: 'wife', lives: 'life', mothers: 'mother', fathers: 'father', teens: 'teen', kids: 'kid' };
+const IRREGULAR = { forgiven: 'forgiv', children: 'child', women: 'woman', wives: 'wife', lives: 'life', mothers: 'mother', fathers: 'father', teens: 'teen', kids: 'kid' };
 
 /** A light, deterministic stem. Deliberately simple: it must give the same answer in a browser and in a build script. */
 export function stem(word) {
@@ -30,6 +30,7 @@ export function stem(word) {
   else if (w.endsWith('sses')) w = w.slice(0, -2);
   else if (w.endsWith('ing') && w.length > 5) w = dedouble(w.slice(0, -3));
   else if (w.endsWith('ed') && w.length > 4) w = dedouble(w.slice(0, -2));
+  else if (w.endsWith('ness') && w.length > 7) w = w.slice(0, -4);
   else if (w.endsWith('ly') && w.length > 5) w = w.slice(0, -2);
   else if (w.endsWith('es') && w.length > 4 && /(ch|sh|x|z|ss)es$/.test(w)) w = w.slice(0, -2);
   else if (w.endsWith('s') && !w.endsWith('ss') && !w.endsWith('us') && w.length > 3) w = w.slice(0, -1);
