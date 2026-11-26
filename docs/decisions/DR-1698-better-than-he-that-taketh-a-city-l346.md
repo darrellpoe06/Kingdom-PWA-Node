@@ -12,9 +12,7 @@
 
 His question, rendered: people claim the Word says what it does not, bending it to fit a story so they sound wise in their own eyes; he can show the page (his example: the disciples were called Christians first in Antioch, Acts 11:26), and they move the goalposts or change the subject, so none of the points Yahweh is making is heard. Why does it still annoy him, how did Jesus and His people keep their mouths shut and their spirits ruled, and how does he stay word first, not riled up, with his energy where Yahweh wants it?
 
-One teaching, one lesson (DR-0610). The catalog already holds `ll16-rule-your-spirit-repair-the-bond` (ruling the spirit to repair a bond after offense) and a misrepresentation lesson whose senior band teaches the adversary's edit of Genesis and Matthew 4 (the text of the twisting itself). Neither answers his question, which is the listener's own frustration and the discipline of the answer. This lesson takes that: the sting is not the sin, convincing is the Holy Spirit's work, discern the question, slow and keep it till afterwards, how Jesus did it, and the glory of passing over.
-
-**Privacy (DR-0076 / his word):** the family-table section names no person, no faith and no occasion from his own home. It speaks only of "someone you love who believes differently".
+One teaching, one lesson (DR-0610). The catalog already holds `ll16-rule-your-spirit-repair-the-bond` (ruling the spirit to repair a bond after offense) and a misrepresentation lesson whose senior band teaches the adversary's edit of Genesis and Matthew 4 (the text of the twisting itself). Neither answers his question, which is the listener's own frustration and the discipline of the answer. This lesson takes that: the sting is not the sin, convincing is the Holy Spirit's work, discern the question, slow and keep it till afterwards, how Jesus did it, and the glory of passing over. **Privacy (DR-0076 / his word):** the family-table section names no person, no faith and no occasion from his own home. It speaks only of "someone you love who believes differently".
 
 ## What was measured
 
@@ -27,6 +25,10 @@ One teaching, one lesson (DR-0610). The catalog already holds `ll16-rule-your-sp
 | reading ladder | child 0.6, youth 3.2, teen 5.1, senior 8.0 |
 | band overlap | worst pair 0.03 (ceiling 0.5) |
 | UNCHECKED | the lesson makes no claim about church history after the apostles; his question about believers over the ages is answered from the Word alone (`re-review: 2026-12-10`) |
+
+## Impact
+
+A reader stung when the Word is twisted is given the Word's own answer and a practice: care rightly, not less; leave the convincing to the Holy Spirit; answer once, plainly; keep the peace and the door open; let the fruit grow; and look to the beam first. One lesson file, its test, one shelf id; no shared behavior changed.
 
 ## Decision
 
@@ -49,12 +51,9 @@ One teaching, one lesson (DR-0610). The catalog already holds `ll16-rule-your-sp
 
 All five bands (child, youth, teen, senior, and the adult lesson) close with TALK ABOUT IT TOGETHER (parents, children, friends), THIS WEEK and a prayer. Two parables with invented people (a library book circle; a grandmother in Ghana). Ten quiz questions.
 
-**Relationships collection:** judged a relationships lesson (how we handle people in hard conversations), and added to `RELATIONSHIP_LESSONS` under hard conversations and forgiveness, beside `ll16-rule-your-spirit-repair-the-bond`.
-
-**Cover:** no new picture was bought for this lesson in this session. It wears its department's approved interim cover (the reuse DR-1666 names for a lesson still waiting for its own picture), with the headline `interimHeadline()` derives from its title. His line, passionate disagreement proves love, is the suggested thumbnail headline for that cover's review record; no presentation record is written by hand here (the pipeline writes records, a person approves them). It is an unfinished library lesson, so the next approved library batch of `learn-presentation-prepare.yml` (`only: all`, under the owner's caps) prepares its own cover for review.
+**Relationships collection:** judged a relationships lesson (how we handle people in hard conversations), and added to `RELATIONSHIP_LESSONS` under hard conversations and forgiveness, beside `ll16-rule-your-spirit-repair-the-bond`. **Cover:** no new picture was bought for this lesson in this session. It wears its department's approved interim cover (the reuse DR-1666 names for a lesson still waiting for its own picture), with the headline `interimHeadline()` derives from its title. His line, passionate disagreement proves love, is the suggested thumbnail headline for that cover's review record; no presentation record is written by hand here (the pipeline writes records, a person approves them). It is an unfinished library lesson, so the next approved library batch of `learn-presentation-prepare.yml` (`only: all`, under the owner's caps) prepares its own cover for review.
 
 ## Verification
 
 `living-lessons-ll346-better-than-he-that-taketh-a-city-ruling-your-spirit-when.test.js` (9 cases): the shared gate with seven spine spans (Proverbs 16:32, James 1:19, 1 Peter 2:23, Proverbs 19:11, John 16:13, Acts 11:26, Romans 12:18) in the adult lesson and every band; every quotation verbatim; our voice naming Yahweh, no generic God or LORD outside a quote; no bare double quotes; three talk-together directions in every place; band shares, ladder and overlap; two parables and ten questions. First run caught a heading in our voice that printed LORD, a teen band missing its parents direction, and three short bands; each fixed. The full suite result is in the PR.
-
 `re-review: 2026-12-10`
