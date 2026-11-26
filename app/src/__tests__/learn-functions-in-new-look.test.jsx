@@ -358,3 +358,24 @@ describe('the course page has every option the classic page has (DR-1667)', () =
     expect(container.querySelector('.le-root')).toBeTruthy();
   });
 });
+
+// Darrell 2026-11-26, on "Scattered, Never Lost" (ll140): "Big pictures are not coming through."
+// 826 of 976 records list w320 and w1920, which are not shipped; a big cover picked w1920 and broke.
+describe('every picture offers only the sizes that ship', () => {
+  it('the lesson cover lists w640 and w1280 only, and both exist on disk', async () => {
+    const { existsSync } = await import('node:fs');
+    const id = 'll140-the-people-of-judah-and-the-people-of-the-way-who-they-are-where-they-are-and-whom-to-listen-to';
+    act(() => root.render(<LearnStudioPreview courses={COURSES} onOpenLesson={vi.fn()} onExit={vi.fn()} ownerDevice initialLessonId={id} ctx={CTX} />));
+    const src = container.querySelector('.ls-cover source[type="image/webp"]');
+    expect(src).toBeTruthy();
+    const files = src
+      .getAttribute('srcset')
+      .split(',')
+      .map((x) => x.trim().split(' ')[0]);
+    expect(files.length).toBe(2);
+    for (const f of files) {
+      expect(f).toMatch(/\/w(640|1280)\.webp$/);
+      expect(existsSync(join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'public', f.replace(/^.*?learn-thumbs\//, 'learn-thumbs/'))), f).toBe(true);
+    }
+  });
+});
