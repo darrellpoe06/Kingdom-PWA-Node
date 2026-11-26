@@ -1,5 +1,5 @@
 {
- "measuredAt": "2026-11-26T17:41:50.694Z",
+ "measuredAt": "2026-11-26T17:47:34.564Z",
  "counts": {
   "departments": 13,
   "courses": 51,
@@ -726,13 +726,13 @@
    "department": "Serve the House",
    "position": 4,
    "title": "Walls and gates — the UniFi gateway",
-   "contentSha": "14e3422aadb785a215c0ec510ba8af1119cf9161a8249aeb195c11097bbd858f",
+   "contentSha": "e2457dff35004fc8d135de9051e11a7fb175f711e2ff5fdbc93983719d94b28d",
    "versions": {
-    "child": "8cfdc20c45caaee448141ac206b9d12a607bf18eae11689be162f77f8475a993",
-    "youth": "f00df92d93ca20c5312963e283ecb9cbe1e6618340ac4fe0ee79581fba7e20a0",
-    "teen": "bbdc899aeb7b75d9a10f73da1e0824d164a58d98d2821ff15f95a999b77a02a1",
-    "adult": "cc84807e19bbe45e17ef3c0b05bf286acceb08a450a0848ea2259acb8a9e16b7",
-    "senior": "efb1a16ce272f6af14178c58d215c3a86e875bdce81878881d40157a40a00a92"
+    "child": "19393bc985f1f5cee77825c86b3d5c7a8c4883d9190cd59180db70ad074e75ad",
+    "youth": "66571bcec789410b0e4cc2063693460f85e0e0891238f023ba677af77f97c97b",
+    "teen": "ec350551b67507f67cdfad47569154279bceab123e283a8bbe863b9aab69b2fc",
+    "adult": "59ac81e31cbfacb50224a5289f35e16034b10ccdd1c5401c19cd89cdb11c6932",
+    "senior": "4b4a3b6a25df1666d28ec0df37a6415174fec3fc6038eed09ad6f15666d0e341"
    }
   },
   {
