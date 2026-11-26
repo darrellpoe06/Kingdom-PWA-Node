@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T14:09:55.078Z",
+ "measuredAt": "2026-11-26T14:14:51.808Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4538
+  "readings": 4540
  },
  "departments": [
   {
@@ -13031,11 +13031,13 @@
    "department": "The Eternal Algorithms",
    "position": 11,
    "title": "A Father of the Fatherless (He sets the solitary in families)",
-   "contentSha": "aafe7e6530817597769fb5e1451fbcc89a383838d09cd0a9767f3bf291159fb3",
+   "contentSha": "30c379c74ac2d29e657cd1105744b39273b8f93e80c1d0028e00241547eda023",
    "versions": {
-    "teen": "66cb7f1594bf4588ed1232bb736a7c63982ff25635ebf1c91f03e25e00f1a71d",
-    "adult": "2203f00f9277ee599a2e56fb66a1d3601f710af4d648a8cd52794e01ab48452f",
-    "senior": "2a923503eedbb7ed69c545cc2512f53535713ad0317580350a6ff656b40ddbc2"
+    "child": "ac5bcb65b3179a46991f64f7ded08e5679ad33ed52d0addb55291c087faa2037",
+    "youth": "09df7dd0560d080ed768144e17039cfa2f172e54f9bfcba79dce045d1a7a6130",
+    "teen": "4850d8d3b99dd37c74c42d1b6fa3820363a6c143b9b271192db35f5a0c678932",
+    "adult": "5f606aaacfc8c580c7b86499807af428440ab2544b02110dfc6e73a9c0f1ad4d",
+    "senior": "7e72d75cd6751a36c0597021492dc1e82823862c1167992571770f4674c8289f"
    }
   },
   {
