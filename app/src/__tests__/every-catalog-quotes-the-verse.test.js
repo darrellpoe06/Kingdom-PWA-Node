@@ -164,8 +164,11 @@ const MODULES_BY_FILE = {
 // LOWERED 2026-10-15 by DR-1031: 186 capitals the writers had lowered are
 // restored, closing 145 gated faults. succession-class.js reaches ZERO and
 // leaves this list entirely; every other number is the pin it measured after.
+// infrastructure-class.js reached ZERO on 2026-11-26 (inf6, inf9, inf10 rewritten as
+// full lessons with every quote filled from the KJV) and leaves this list.
+// broadcast-class.js reached ZERO on 2026-11-26 (bc4, bc8, bc9 rewritten as full
+// lessons with every quote filled from the KJV) and leaves this list.
 const PINNED = {
-  'broadcast-class.js': 4,
   'business-research-course.js': 1,
   'buying-terms-course.js': 4,
   'datasystems-course.js': 1,
@@ -175,7 +178,6 @@ const PINNED = {
   // ("Searched the scriptures daily" for Acts 17:11's "and searched the
   // scriptures daily"), which DR-1031 declines to decide. See its record.
   'historical-research-course.js': 36,
-  'infrastructure-class.js': 3,
   'legacy-provisions-course.js': 1,
   // 152 -> 110 on 2026-10-20 (DR-1122): 42 of this catalog's 57 shouted words
   // were restored to the verse's own casing by fix-quote-shout.mjs. The 15 left
