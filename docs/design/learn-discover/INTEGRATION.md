@@ -2,13 +2,15 @@
 
 **Applied on the private branch only (not merged, not deployed). Needs Darrell's review before release.**
 
-The shell change is 3 lines in `app/src/poe-financial-mvp-v28.jsx`: one import, and the Learn block's `(() => {...})()` is passed through `withLearnDoor(churchView, ...)`. The Learn element and its props are untouched, and `return <ChurchLearn` still stands (existing tests match it).
-`LearnDoor` (app/src/components/learn-discover/LearnDoor.jsx) hands back that same Learn element unchanged when:
+**The shell is not edited.** `poe-financial-mvp-v28.jsx` is frozen (DR-0078; the monolith guard failed on even one added line), so the door mounts through the surface registry: `app/src/surfaces.js` line 128, the `learn` surface, now loads `components/learn-discover/ChurchLearnWithDoor.jsx` instead of `ChurchLearn.jsx`. That wrapper renders the existing `ChurchLearn` with every prop passed through, behind `LearnDoor`. This is a **one-line change in surfaces.js** (the "three lines in the shell" became zero).
+
+`LearnDoor` hands back that same Learn element unchanged when:
 - the link names a course or lesson (`?course=` / `?lesson=`), as links always did;
-- a device or person turns it off: `?discover=0`, or `localStorage['poe-learn-discover'] = '0'` (the instant rollback);
-- the discovery chunk fails to load or crashes (an error boundary; Learn shows).
-Otherwise the Learning Zone opens on the discovery page, loaded lazily (the app's first paint does not carry its index). "Browse All Lessons" and the five access buttons open the existing Learn (Learn Studio or classic) exactly as before. `LoveCornerHome.jsx` is not touched: its Learning Zone button already calls `open('learn')`.
+- the retired Eternal Algorithms route is used (it arrives with `initialDept`);
+- a device turns discovery off: `?discover=0` or `localStorage['poe-learn-discover'] = '0'` (the instant rollback);
+- the discovery chunk fails to load or crashes (error boundary; Learn shows).
+Otherwise The Word / Learning Zone opens the discovery page first, loaded lazily. "Browse All Lessons" and the five access buttons open the existing Learn exactly as before. `LoveCornerHome.jsx` is not touched (its Learning Zone button already calls `open('learn')`).
 
-Checked before editing: `poe-financial-mvp-v28.jsx` and `LoveCornerHome.jsx` have no difference from `main` (2026-11-26), so no concurrent edit was overwritten. Re-check against `main` immediately before the PR; the shell edit is a 3-line, easily re-applied patch.
-
-Before release: `npm run verify` on a full clone, `lesson-dates:check`, a look inside the real shell under each theme on a phone, and the live production review (DR-0104).
+To roll back: revert `surfaces.js` line 128 (one line), or set the opt-out on a device.
+Checked 2026-11-26: `main` had no differences to `surfaces.js`, the shell or `LoveCornerHome.jsx` beyond this branch. Re-check against `main` right before the PR.
+Verified: `npm run verify:gates` (monolith budget, DR ledger and the rest), lint, `lesson-dates:check` (995 of 995), tests for the door, the wrapper and the frozen shell.

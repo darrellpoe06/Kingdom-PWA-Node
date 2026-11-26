@@ -19,7 +19,7 @@ Learn assumes a person already knows which course holds their answer. Darrell as
 3. Visual: the approved mockup, colors sampled from it. Near-black page in the two dark themes (Night, Midnight); the light themes keep their own surface. No theme is overridden.
 4. Photography: the supplied package fills banner, 11 categories, 4 series and Today's Word; lesson, course and Continue covers are untouched. Technology keeps its existing cover.
 5. Microphone stays off. Trending is excluded until real activity data exists. Series lists stay "proposed" until approved.
-6. ChurchLearn.jsx changes by exactly two lines (the area-hint allow-list). Wiring the page into the shell is a separate, reviewed step: `docs/design/learn-discover/INTEGRATION.md`.
+6. ChurchLearn.jsx changes by exactly two lines (the area-hint allow-list). The page is mounted through `surfaces.js` (one line; the frozen shell is untouched) behind `LearnDoor`: deep links, an opt-out and a failed load all show the existing Learn. See `docs/design/learn-discover/INTEGRATION.md`.
 
 ## Verification
 

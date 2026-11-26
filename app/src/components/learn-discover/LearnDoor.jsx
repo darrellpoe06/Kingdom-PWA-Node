@@ -1,7 +1,7 @@
 // =============================================================================
 // LearnDoor — the shell's single, safe entry to the discovery page
 // =============================================================================
-// The shell renders its existing Learn element and hands it here. This returns that SAME element untouched whenever the
+// ChurchLearnWithDoor (the Learn surface in surfaces.js) hands its existing Learn element here. This returns that SAME element untouched whenever the
 // discovery page should not (or cannot) show: a link that names a course or lesson, a device that turned it off
 // (localStorage poe-learn-discover = '0', or ?discover=0), or if the discovery chunk fails to load or crashes. Learn
 // is therefore always one render away; the discovery page can never take it down. The page loads lazily, so the app's
@@ -61,9 +61,4 @@ export default function LearnDoor({ learn, search, store = null }) {
       </Suspense>
     </Guard>
   );
-}
-
-/** For the shell: the discovery door for the Learn view, any other view untouched. */
-export function withLearnDoor(churchView, learnElement) {
-  return churchView === 'learn' ? <LearnDoor learn={learnElement} /> : learnElement;
 }

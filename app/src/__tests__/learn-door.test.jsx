@@ -3,7 +3,7 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { createElement, act } from 'react';
 import { createRoot } from 'react-dom/client';
-import LearnDoor, { discoveryWanted, withLearnDoor, DISCOVER_OFF_KEY } from '../components/learn-discover/LearnDoor.jsx';
+import LearnDoor, { discoveryWanted, DISCOVER_OFF_KEY } from '../components/learn-discover/LearnDoor.jsx';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 let root = null;
@@ -38,8 +38,7 @@ describe('when the discovery page shows', () => {
 });
 
 describe('the door', () => {
-  it('hands back the very same Learn element when discovery is not wanted, and for any view but learn', () => {
-    expect(withLearnDoor('eternal-algorithms', learn)).toBe(learn);
+  it('hands back the very same Learn element when discovery is not wanted', () => {
     const off = { getItem: () => '0' };
     expect(LearnDoor({ learn, search: '', store: off })).toBe(learn);
   });
