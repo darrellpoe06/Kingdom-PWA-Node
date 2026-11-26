@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T01:15:41.839Z",
+ "measuredAt": "2026-11-26T01:16:50.430Z",
  "counts": {
   "departments": 13,
   "courses": 51,
-  "lessons": 995,
-  "readings": 4263
+  "lessons": 994,
+  "readings": 4258
  },
  "departments": [
   {
@@ -100,7 +100,7 @@
    "key": "living-lessons",
    "title": "Living Lessons from the Word",
    "department": "Living Lessons",
-   "lessons": 338,
+   "lessons": 337,
    "source": "registry"
   },
   {
@@ -7372,21 +7372,6 @@
     "teen": "7424b983ab37d501c204a75f2289139feddc21197bb6ea3d5d0338510c1035aa",
     "adult": "5766f90c968ebb30c622a9aa7b68eef8c07c3249af8587bd627fbe9926fa1455",
     "senior": "f849bf51bd0164a085412a3bba858cf2c3800a7818f62a9a04a3efc622f95deb"
-   }
-  },
-  {
-   "id": "ll342-let-there-be-light-the-light-before-time",
-   "course": "living-lessons",
-   "department": "Living Lessons",
-   "position": 338,
-   "title": "Let There Be Light — The Light Before Time — He Let His Light Shine, and Sent His Son",
-   "contentSha": "e4357b7d1729575a290f67bbcf3a4e8678348ec81a693b8888b341b173bed305",
-   "versions": {
-    "child": "1b498c12f8cb8fbaf93970df8988101f7dd5e9047e6ea935d5bdf596d322dea0",
-    "youth": "6116821c7f9189990be3cb31fd4ff001489da6dacf8bf677667926821bb38443",
-    "teen": "00d3a846cef327dd94745e7bb2cb9d40b04696ab44384e42f3564f0edb812d68",
-    "adult": "d4b62421d0ca3f0c5bf2bc9d0c5a18d695d0e03d93e07e68bdd40c0690a5ae20",
-    "senior": "aed5be96a800170c4c8fa7749295942edd0cfb2d6d35611996b2889127da9634"
    }
   },
   {
