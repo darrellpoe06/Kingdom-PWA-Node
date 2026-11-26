@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T13:30:34.769Z",
+ "measuredAt": "2026-11-26T13:37:09.543Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4522
+  "readings": 4524
  },
  "departments": [
   {
@@ -13272,11 +13272,13 @@
    "department": "The Eternal Algorithms",
    "position": 5,
    "title": "Seedlings of the Father (the Potter, the Shepherd of Souls)",
-   "contentSha": "62220562bb27a2762ce4213727e2dc3db577a59f0c536458439f2ac138d4e6b4",
+   "contentSha": "436ec9cc240aa741dffcda38e164230ecb57dc2469446cda626c622fcceda8fb",
    "versions": {
-    "teen": "f18c51995f7604966ddac90ad2bfdddcc1d28b3243d13029895169b698bb07a8",
-    "adult": "8f540fb220c6926dff64d4c83d829f5a327e42f8715bd710ea49bf92ec183a53",
-    "senior": "3354b27c210093d2acf6d9269459f087d0abd29120745158da60365e855e298e"
+    "child": "e48bc58d4a3899b05bb2aba3e98d65e36f6c9e740af5dce3e6d4d657d762378d",
+    "youth": "0a6481c2053250c2bf2c6fa1990aeb3672ec3147fd7f9d27f75d28de531fa215",
+    "teen": "bc7f8a7d11ade15a8477bd630d11644d24353a385216cf0ba071d3ed25b312ee",
+    "adult": "e6d967d0f8a404d43218ad024714fd2586fb842eea4b0ebd9cf6ebe3a5416f6b",
+    "senior": "fe0facadeef7795db108dc0bfdb10ef4c4d186754a7850763a58b7ab5ed66a09"
    }
   },
   {
