@@ -166,7 +166,7 @@ describe('the four elements, the order of work, and the honest reading — each 
       'WHAT ALREADY HOLDS IT.',
       'WHERE IT FITS.',
       'WITHOUT UNDERMINING THE WORK.',
-      'WHAT WE DID NOT CHECK.',
+      'WHAT THE PUBLIC SUMMARY SAYS.',
     ]) {
       expect(L.lesson, h).toContain(h);
     }

@@ -44,6 +44,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { WORLD_MARKET_MODULES, WORLD_MARKET_META, WORLD_MARKET_TUTOR_META } from '../lib/world-market-course.js';
+import { processLanguage } from '../lib/process-language.js';
 import { hasAllThree, placesMissingDirections } from '../lib/talk-together.js';
 import { anchorRefs } from '../lib/search-it-out.js';
 import { lessonSectionPlan } from '../lib/lesson-format.js';
@@ -87,12 +88,14 @@ const PINNED = [
 const BANDS = ['child', 'youth', 'teen', 'senior'];
 const PLACES = () => BANDS.map((k) => ({ place: k, text: L().levels[k] }));
 
-/**
- * The disclosure, however a band words it for its own reader. One pattern, used
- * by the standing check AND by the proven-to-catch case below, so the two can
- * never drift apart and let a removed disclosure read as present.
- */
-const SAYS_UNVERIFIED = /(?:verified|checked) against an original|We did not check those numbers/i;
+// 2026-11-26, DR-1689: Darrell "I'm annoyed by lessons saying they didn't
+// research". The old pin REQUIRED a "nobody here checked it" disclosure in every
+// band; the research is now done, and every band states what the originals
+// show. So the pin is the SOURCING itself, however a band words it for its own
+// reader. One pattern, used by the standing check AND by the proven-to-catch
+// case below, so the two can never drift apart and let a removed sourcing
+// paragraph read as present.
+const SAYS_THE_ORIGINAL = /Energy Information Administration published that projection|office that counts fuel for the land says/;
 
 const EVERY_TEXT = () => {
   const m = L();
@@ -298,14 +301,33 @@ describe('wm9 — the source is reported at its real standing, and the honesty c
     }
   });
 
-  it('the adult text AND every band say plainly that nobody here verified the numbers', () => {
+  // 2026-11-26, DR-1689: Darrell "I'm annoyed by lessons saying they didn't
+  // research". Each place sets the newsletter's figures beside the originals:
+  // EIA's Winter Fuels Outlook, Food & Water Watch's decade (2015 to 2025, not
+  // "on last year"), DOE's $372 weatherization average, and NEADA's projection.
+  // And no place hands the reader our research errand (process-language.js).
+  it('the adult text AND every band set the figures beside the originals they came from', () => {
     for (const [where, text] of [['lesson', L().lesson], ...BANDS.map((b) => [b, L().levels[b]])]) {
-      expect(SAYS_UNVERIFIED.test(text), `${where} never discloses what was not verified`).toBe(true);
-      expect(
-        /as reported|only know what the letter said/i.test(text),
-        `${where} never says the figures are carried as reported`,
-      ).toBe(true);
+      expect(SAYS_THE_ORIGINAL.test(text), `${where} never says what the original source shows`).toBe(true);
+      expect((text.match(new RegExp(SAYS_THE_ORIGINAL.source, 'g')) || []).length, `${where} carries the sourcing pin more than once`).toBe(1);
     }
+    for (const [where, text] of [['lesson', L().lesson], ...['youth', 'teen', 'senior'].map((b) => [b, L().levels[b]])]) {
+      expect(text, `${where} drops the Winter Fuels Outlook date`).toMatch(/6 October 2026/);
+      expect(text, `${where} still reads the water figure as one year`).toMatch(/2015 to 2025/);
+      expect(text, `${where} drops DOE's weatherization average`).toMatch(/\$372/);
+      expect(text, `${where} drops NEADA`).toMatch(/National Energy Assistance Directors Association/);
+      expect(text, `${where} reads 62 per cent as one year`).not.toMatch(/62 per cent on (?:last|the previous) year/);
+    }
+    expect(L().levels.child, 'the child band drops the decade').toMatch(/over ten years/);
+  });
+
+  it('no reader-facing place hands the reader our research process', () => {
+    expect(processLanguage(L()), 'the lesson as a whole').toEqual([]);
+    for (const [where, text] of [['lesson', L().lesson], ...BANDS.map((b) => [b, L().levels[b]])]) {
+      expect(processLanguage({ id: WM9_ID, levels: { [where]: text } }), `${where} carries process language`).toEqual([]);
+    }
+    // PROVEN-TO-CATCH: the sentence this lesson used to carry is caught.
+    expect(processLanguage({ id: WM9_ID, levels: { youth: 'Nobody here opened the Energy Information Administration’s projection.' } })).toHaveLength(1);
   });
 
   it('no figure is presented as this course\'s own measurement', () => {
@@ -342,7 +364,10 @@ describe('wm9 — the source is reported at its real standing, and the honesty c
     expect(p).toMatch(/never quote a live figure/i);
     expect(p).toMatch(/DATED, ATTRIBUTED READING/);
     expect(p).toMatch(/who said it, and on what day/i);
-    expect(WORLD_MARKET_TUTOR_META.blurb).toMatch(/nobody here checked them against an original/i);
+    // 2026-11-26, DR-1689: Darrell "I'm annoyed by lessons saying they didn't
+    // research". The blurb now says what lesson nine does with its figures.
+    expect(WORLD_MARKET_TUTOR_META.blurb).toMatch(/sets each beside the original it came from/i);
+    expect(WORLD_MARKET_TUTOR_META.blurb).not.toMatch(/nobody here checked/i);
   });
 
   it('the three tiers are all three, so a truth is not shrunk and a claim is not inflated (DR-0100)', () => {
@@ -360,15 +385,18 @@ describe('wm9 — the source is reported at its real standing, and the honesty c
     expect(/nobody really knows/i.test(L().lesson), 'the blanket hedge is never named and refused').toBe(true);
   });
 
-  it('PROVEN-TO-CATCH: deleting the disclosure from one band is reported', () => {
+  // 2026-11-26, DR-1689: Darrell "I'm annoyed by lessons saying they didn't
+  // research". The strip now removes the SOURCING paragraph, not a disclosure.
+  it('PROVEN-TO-CATCH: deleting the sourcing paragraph from one band is reported', () => {
     const m = L();
     const stripped = {
       ...m,
-      levels: { ...m.levels, youth: m.levels.youth.replace(/AND HERE IS WHAT NOBODY HERE DID\.[^]*?and that is all they are\./, '') },
+      levels: { ...m.levels, youth: m.levels.youth.replace(/WHAT THE ORIGINALS SAY\.[^]*?with oil homes hit hardest\./, '') },
     };
     expect(stripped.levels.youth, 'the strip did not change the band').not.toBe(m.levels.youth);
-    expect(SAYS_UNVERIFIED.test(stripped.levels.youth), 'the disclosure check did not notice it was gone').toBe(false);
-    expect(SAYS_UNVERIFIED.test(m.levels.youth), 'the real band is missing its disclosure').toBe(true);
+    const missing = BANDS.filter((b) => !SAYS_THE_ORIGINAL.test(stripped.levels[b]));
+    expect(missing, 'the sourcing check did not name the stripped band').toEqual(['youth']);
+    expect(SAYS_THE_ORIGINAL.test(m.levels.youth), 'the real band is missing its sourcing').toBe(true);
   });
 });
 

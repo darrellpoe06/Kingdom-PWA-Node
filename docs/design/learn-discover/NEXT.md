@@ -1,0 +1,13 @@
+# Handoff (2026-11-26) - Learning Zone discovery, private branch `preview/learn-discover`
+
+State: built; surfaces.js door applied on the branch only; NOT merged, deployed or public.
+Done: banner (photo + open Bible, mobile too), mockup-sampled dark styling, 12 categories, search + 57 hand-read Life Situations, Featured Series cover (photo, title, description, count, progress) + Learn's own LessonsInOrder list (Pictures/List, Show All/Not read/Read, numbered rows, ages, Play, read marks; real lessons, curated order, no new progress records), category shelves use the same list, course cards open the course page, ChurchLearnWithDoor + LearnDoor (mounted by ONE line in surfaces.js; shell untouched; lazy, deep-link/opt-out/crash-safe), DR-1699, REV-0261, INTEGRATION.md, photo replacement README, SERIES-FOR-APPROVAL.md.
+Approved by Darrell: look, five series themes, temporary photos, shell wiring (subject to Darrell's review). Mic off. Trending excluded.
+Waiting: Darrell's review of the one surfaces.js line; Darrell's final "release"; series lesson selections (final approval); full-resolution photos (drop-in, see app/public/learn-discover/photos/README.md).
+Before release: green CI on the final commit, `npm run verify` on a full clone, `lesson-dates:check`, live phone look under each theme.
+Deferred: unseen-question search evaluation, ~100 more situations, microphone.
+
+2026-11-26 correction: the Featured Series / category lists sat on a cream ground because they were drawn outside Learn Studio's `.ls-root` container (which supplies its tokens and dark surface). They now sit in `.ls-root`: Night and Midnight get Learn Studio's own look; light themes map the same tokens to their own colors (heritage checked: white panel). Side-by-side proof: `final/series-list-vs-existing-night.jpg`. The crowded header in the earlier screenshot is the shell's own chrome (and its first-visit tour popup), identical on the existing list; the shell is frozen and was not changed.
+
+2026-11-26 final: series approved (label removed, SERIES_STATUS approved); visual design frozen. Browser-verified in the real shell (Night, tour dismissed): series and category lists use Learn Studio's list (panel rgb(26,20,22)); Pictures/List, Show All/Not read/Read (1 read / 11 not read after seeding one done lesson), 54 age chips, 12 Play chips, read mark and series progress "1 read", an age chip opens the real Learn with a way back; search, 3rd suggested chip (8 results), Life Situation callout (lost-job, thin); 0 page errors.
+Remaining: green CI on the final commit; Darrell's review of the one surfaces.js line; Darrell's "release". Rollback: revert surfaces.js line 128, or ?discover=0 / localStorage poe-learn-discover=0 per device.

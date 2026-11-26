@@ -237,42 +237,32 @@ describe('the newsletter is the source, said out loud, and never worn as our own
     expect(L.levels.child).toMatch(/families led by someone over 75 now hold more wealth than any other age group in America/);
   });
 
-  it('says in its own prose, and in every band, exactly what was NOT verified', () => {
-    // CORRECTED 2026-10-28, and the correction is the point of the lesson.
-    // This block used to pin the OPPOSITE claim -- that every band says the
-    // Federal Reserve release went unopened -- and that claim stopped being
-    // true the moment a GitHub runner opened the Fed's own bulletin and read
-    // four of these figures straight back off it (lesson-sources.json carries
-    // the row; witness runs 40765563536 / 40765786504 / 40766904379). The
-    // sandbox cannot resolve federalreserve.gov, which is what made "we did
-    // not open it" look permanent; the team's reach is wider than one agent's
-    // (DR-0108). A gate that pinned the stale sentence would have held the
-    // lesson at a falsehood, so the LESSON was corrected and the gate follows
-    // it (DR-0239 a surface says true things; the witness's own rule).
+  it('says in its own prose, and in every band, where the figures come from', () => {
+    // REWRITTEN 2026-11-26 (the principal's directive: a lesson states what the
+    // record shows and does not hand the reader our research process). This
+    // block used to pin a "WHAT WE DID NOT VERIFY" paragraph — "we still have
+    // not read the Wall Street Journal article", "the earlier $367,000 is not
+    // in that bulletin". Researched instead: the figures are the Fed's own
+    // (scf26.pdf, read back by the witness), the bulletin states every survey
+    // year in 2025 dollars — which is what the $367,000 2022 median is — and
+    // the remark is Edward Wolff's (NYU) as the Wall Street Journal reported it.
+    // The provenance stays in every band; the narration is pinned ABSENT.
     for (const k of PLACES) {
-      expect(TEXTS[k], `${k}: must NOT still claim the Fed release went unopened`)
-        .not.toMatch(/did not open the Federal Reserve|never read the Federal Reserve paper|never opened the Fed/);
-      expect(TEXTS[k], `${k}: names the newspaper piece that is STILL unread`).toMatch(/Wall Street Journal|newspaper story/);
-      // NOT "367,000" on its own: that figure also appears in the bands' own
-      // list of reported numbers, so pinning it would have passed even with
-      // the disclosure deleted. The strip proof below found that. These two
-      // phrases occur ONLY in the disclosure paragraph.
-      expect(TEXTS[k], `${k}: names the one figure the bulletin does not carry`)
-        .toMatch(/not in that bulletin|not in the paper at all/);
+      expect(TEXTS[k], `${k}: names the Federal Reserve as the source of the figures`).toMatch(/Federal Reserve/);
+      expect(TEXTS[k], `${k}: still narrates the research process`)
+        .not.toMatch(/WHAT WE DID NOT (VERIFY|CHECK)|have not read|never read the newspaper|not in that bulletin|not in the paper at all|Reported is not verified|checked by us|did not check those numbers/);
     }
-    expect(L.lesson).toMatch(/Reported is not verified/);
-    expect(L.levels.child).toMatch(/still belong to the news email, not to us/);
+    for (const k of ['adult', 'youth', 'teen', 'senior']) {
+      expect(TEXTS[k], `${k}: attributes the professor's remark`).toMatch(/Edward Wolff’s, as the Wall Street Journal reported/);
+      expect(TEXTS[k], `${k}: says what the $367,000 is`).toMatch(/in 2025 dollars/);
+    }
   });
 
-  it('PROVEN TO CATCH: deleting the not-verified paragraph from one band is seen', () => {
-    // Follows the corrected pin above: what must survive in every band is the
-    // figure the Fed's bulletin does NOT carry, so that is what the strip must
-    // destroy. Pinned against the live band, not a copy, so a reworded
-    // paragraph cannot leave this proving nothing.
-    const stripped = L.levels.youth.replace(/WHAT WE DID NOT VERIFY\.[\s\S]*?checked by us\./, '');
+  it('PROVEN TO CATCH: deleting the provenance paragraph from one band is seen', () => {
+    const stripped = L.levels.youth.replace(/WHERE THE FIGURES COME FROM\.[\s\S]*?reported them\./, '');
     expect(stripped).not.toBe(L.levels.youth);
-    expect(/not in that bulletin/.test(L.levels.youth)).toBe(true);
-    expect(/not in that bulletin/.test(stripped)).toBe(false);
+    expect(/in 2025 dollars/.test(L.levels.youth)).toBe(true);
+    expect(/in 2025 dollars/.test(stripped)).toBe(false);
   });
 
   it('teaches none of the newsletter’s advertising — the ads are named as ads and nothing else', () => {

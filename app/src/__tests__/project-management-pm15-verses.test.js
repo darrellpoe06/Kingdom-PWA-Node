@@ -82,6 +82,7 @@ import { join } from 'node:path';
 import { PROJECT_MANAGEMENT_MODULES, PROJECT_MANAGEMENT_META } from '../lib/project-management-course.js';
 import { hasAllThree, placesMissingDirections } from '../lib/talk-together.js';
 import { anchorRefs } from '../lib/search-it-out.js';
+import { processLanguage } from '../lib/process-language.js';
 import { censusLesson } from '../lib/library-census.js';
 import { unnamedBands } from '../../../scripts/title-in-narrative.mjs';
 import { scanQuotedVerses, describeFault, loweredHolyNames, ourVoice } from '../../../scripts/quoted-verse-is-the-verse.mjs';
@@ -306,7 +307,7 @@ describe('pm15 — the verses are the corpus, verbatim', () => {
   });
 });
 
-describe('pm15 — the source is a PROMOTION FOR A VIDEO WE NEVER SAW, and the honesty cannot be edited out', () => {
+describe('pm15 — the source is a PROMOTION FOR A VIDEO, and the video and the record are taught', () => {
   it('his words are carried: Lesson, and research', () => {
     const all = EVERY_TEXT().join('\n');
     expect(
@@ -318,39 +319,35 @@ describe('pm15 — the source is a PROMOTION FOR A VIDEO WE NEVER SAW, and the h
     }
   });
 
-  it('EVERY reader place says it was a promotion for a video and that WE NEVER SAW IT', () => {
-    for (const [where, text] of [
-      ['bigIdea', L().bigIdea],
-      ['lesson', L().lesson],
-      ['child', L().levels.child],
-      ['youth', L().levels.youth],
-      ['teen', L().levels.teen],
-      ['senior', L().levels.senior],
-    ]) {
-      expect(/never saw the video|video we never saw/i.test(text), `${where} never says we did not see the video`).toBe(true);
-    }
+  // 2026-11-26, DR-1689: Darrell 'I'm annoyed by lessons saying they didn't research' — the research was done; the pin is now the sourcing.
+  it('EVERY reader place says what the video is, and the adult places say it reached him as a promotion', () => {
     for (const [where, text] of [
       ['bigIdea', L().bigIdea],
       ['lesson', L().lesson],
       ['teen', L().levels.teen],
       ['senior', L().levels.senior],
     ]) {
+      expect(/McKinsey Explainer/.test(text), `${where} never says what the video is`).toBe(true);
       expect(/promotion for a video|advertisement for a video/i.test(text), `${where} never calls it a promotion for a video`).toBe(true);
       expect(/no article/i.test(text), `${where} never says there was no article`).toBe(true);
       expect(/no byline/i.test(text), `${where} never says there was no byline`).toBe(true);
     }
+    expect(/three McKinsey leaders explain the job/.test(L().levels.youth), 'youth never says what the video is').toBe(true);
+    expect(/a video where three grown-ups talk about it/.test(L().levels.child), 'child never says what the video is').toBe(true);
   });
 
-  it('NOTHING IS PUT IN THE THREE SPEAKERS’ MOUTHS: they are named as the SOURCE names them, never as teachers', () => {
+  // 2026-11-26, DR-1689: Darrell 'I'm annoyed by lessons saying they didn't research' — the research was done; the pin is now the sourcing.
+  it('EACH SPEAKER’S VIEW IS CARRIED AS HIS, and none of them is made a teacher of this lesson', () => {
     const all = EVERY_TEXT().join('\n');
     expect(/Hürtgen/.test(all), 'the speakers are never named at all').toBe(true);
     expect(/named in the SOURCE/i.test(all), 'the speakers are not placed in the source rather than in the teaching').toBe(true);
     expect(/not teachers of this lesson|they are not teachers/i.test(all), 'the speakers are not excluded as teachers').toBe(true);
-    // And the limit on what may be attributed to them is stated out loud.
-    expect(
-      /beyond the two sentences the email (?:itself )?(?:literally )?(?:contains|prints)/i.test(all),
-      'the page never states the limit on what may be attributed to them'
-    ).toBe(true);
+    expect(/each view below is attributed to the one who gave it/.test(all), 'the attribution rule is not stated').toBe(true);
+    for (const [where, text] of [['bigIdea', L().bigIdea], ['senior', L().levels.senior]]) {
+      expect(/Robson says the two roles are merging, in his words: I think a really good consultant makes a really good forward-deployed engineer\./.test(text), `${where} drops Robson’s own words`).toBe(true);
+      expect(/Hürtgen separates the engineer from the consultant by what is left behind/.test(text), `${where} drops Hürtgen’s view`).toBe(true);
+      expect(/Harrysson describes the first week as sitting next to the people/.test(text), `${where} drops Harrysson’s view`).toBe(true);
+    }
   });
 
   it('WHO TAUGHT: nobody — never the bare phrase "the teacher", and never Bishop Gwin (DR-0719)', () => {
@@ -379,7 +376,8 @@ describe('pm15 — the source is a PROMOTION FOR A VIDEO WE NEVER SAW, and the h
     expect(/computer helper wrote it/i.test(L().levels.child)).toBe(true);
   });
 
-  it('THE THREE TIERS are all three, so a truth is not shrunk and a claim is not inflated (DR-0100)', () => {
+  // 2026-11-26, DR-1689: Darrell 'I'm annoyed by lessons saying they didn't research' — the research was done; the pin is now the sourcing.
+  it('THE TIERS stand, and the dispute over the title is named with who holds each side (DR-0100 / DR-0098)', () => {
     for (const [where, text] of [
       ['bigIdea', L().bigIdea],
       ['teen', L().levels.teen],
@@ -387,7 +385,9 @@ describe('pm15 — the source is a PROMOTION FOR A VIDEO WE NEVER SAW, and the h
     ]) {
       expect(/ESTABLISHED/.test(text), `${where} has no established tier`).toBe(true);
       expect(/ATTRIBUTED/.test(text), `${where} has no attributed tier`).toBe(true);
-      expect(/UNVERIFIED/.test(text), `${where} has no unverified tier`).toBe(true);
+      expect(/DISPUTED/.test(text), `${where} has no disputed tier`).toBe(true);
+      expect(/Andreessen Horowitz calls the title title arbitrage/.test(text), `${where} never names a16z’s side`).toBe(true);
+      expect(/Flybridge (?:holds|says)/.test(text), `${where} never names Flybridge’s side`).toBe(true);
     }
     for (const [where, text] of [
       ['bigIdea', L().bigIdea],
@@ -435,39 +435,40 @@ describe('pm15 — the source is a PROMOTION FOR A VIDEO WE NEVER SAW, and the h
     expect(/do not agree/i.test(L().bigIdea + L().levels.senior + L().lesson), 'the send’s own signal that the three disagree is dropped').toBe(true);
   });
 
-  it('TRUST BUT VERIFY: what was checked, the primary source, what the checking CHANGED, and the honest limit (DR-0190 §5)', () => {
+  // 2026-11-26, DR-1689: Darrell 'I'm annoyed by lessons saying they didn't research' — the research was done; the pin is now the sourcing.
+  it('TRUST BUT VERIFY: the old-service claim is set beside the record, and what the record CHANGES is stated (DR-0190 §5)', () => {
     for (const [where, text] of [
       ['bigIdea', L().bigIdea],
       ['senior', L().levels.senior],
     ]) {
-      expect(/TRUST BUT VERIFY|What we checked|WHAT WE CHECKED/i.test(text), `${where} has no audit`).toBe(true);
-      expect(/primary source/i.test(text), `${where} never names the primary source`).toBe(true);
-      expect(/WHAT THE CHECKING CHANGED/i.test(text), `${where} never says what checking changed`).toBe(true);
-      expect(/honest limit/i.test(text), `${where} never states the honest limit`).toBe(true);
-      expect(/NO PRIMARY SOURCE WAS READ/i.test(text), `${where} does not state the limit plainly`).toBe(true);
+      expect(/TRUST BUT VERIFY — WHAT THE RECORD SHOWS, AND WHAT IT CHANGES/.test(text), `${where} has no audit`).toBe(true);
+      expect(/What that changes:/.test(text), `${where} never says what the record changes`).toBe(true);
+      expect(/an old practice under a newer name, sold in 2026 at a new scale/i.test(text), `${where} never draws the dated answer`).toBe(true);
     }
-    // The change itself, named: a date was going to be claimed and is not.
-    expect(/it dates nothing/i.test(L().bigIdea + L().levels.senior), 'the actual change the checking produced is not stated').toBe(true);
   });
 
-  it('A BLOCKED ROAD NEVER READS AS A VERIFIED CLAIM: every refused host is NAMED, with the refusal quoted (DR-0076 §8)', () => {
+  // 2026-11-26, DR-1689: Darrell 'I'm annoyed by lessons saying they didn't research' — the research was done; the pin is now the sourcing.
+  it('THE ROLE IS DATED FROM THE RECORD: Palantir by 2009, in the adult text, the lesson, the teen and senior bands', () => {
     for (const [where, text] of [
       ['bigIdea', L().bigIdea],
       ['lesson', L().lesson],
+      ['teen', L().levels.teen],
       ['senior', L().levels.senior],
     ]) {
-      expect(/www\.palantir\.com/.test(text), `${where} does not name the originating company's host`).toBe(true);
-      expect(/www\.sec\.gov/.test(text), `${where} does not name the filings host`).toBe(true);
-      expect(/www\.mckinsey\.com/.test(text), `${where} does not name the publisher's own host`).toBe(true);
-      expect(/getaddrinfo ENOTFOUND/.test(text), `${where} does not quote the refusal`).toBe(true);
+      expect(/Palantir Technologies popularised the role/.test(text) || /popularised by Palantir Technologies/.test(text), `${where} never names Palantir`).toBe(true);
+      expect(/by 2009/.test(text), `${where} never dates the title`).toBe(true);
+      expect(/military/.test(text), `${where} drops the military origin of the phrase`).toBe(true);
     }
-    // And the one road that DID answer is named for what it is, so a search
-    // index is never mistaken for a primary document.
-    expect(/search index/i.test(L().bigIdea + L().levels.senior), 'the only working road is not named').toBe(true);
-    expect(
-      /disagreed with itself|two different years/i.test(L().bigIdea + L().levels.senior),
-      'the disagreement in the secondary sources is not reported'
-    ).toBe(true);
+    expect(/Palantir made the job famous and was already using the name by 2009/.test(L().levels.youth), 'youth drops the date').toBe(true);
+  });
+
+  it('no research-process language anywhere a reader meets (DR-1689)', () => {
+    const m = L();
+    expect(processLanguage({ id: m.id, bigIdea: m.bigIdea, lesson: m.lesson })).toEqual([]);
+    for (const [band, text] of Object.entries(m.levels)) {
+      expect(processLanguage({ id: m.id, levels: { [band]: text } }), band).toEqual([]);
+    }
+    expect(processLanguage(m)).toEqual([]);
   });
 
   it('THE ADVERTISING FURNITURE was ignored and said so, and the one measured fact from it is reported without complaint', () => {
@@ -588,7 +589,7 @@ describe('pm15 — the Word is the authority, and it is taught rather than debat
     }
   });
 
-  it('THE BUZZWORD QUESTION is answered from the Word, and no date is claimed', () => {
+  it('THE BUZZWORD QUESTION is answered from the Word, beside the dated record', () => {
     const adult = [L().lesson, L().levels.teen, L().levels.senior, L().bigIdea].join('\n');
     expect(adult).toContain('and there is no new thing under the sun');
     expect(adult).toContain('Is there any thing whereof it may be said, See, this is new? it hath been already of old time, which was before us');
@@ -712,12 +713,14 @@ describe('pm15 — every reader place sends the reader in all three directions',
     expect(placesMissingDirections(m)).toEqual([]);
   });
 
-  it('PROVEN-TO-CATCH: removing the never-saw-the-video line from one band is caught', () => {
+  // 2026-11-26, DR-1689: Darrell 'I'm annoyed by lessons saying they didn't research' — the research was done; the pin is now the sourcing.
+  it('PROVEN-TO-CATCH: stripping the Palantir sourcing from one band is caught', () => {
     const m = L();
-    const quiet = { ...m, levels: { ...m.levels, child: m.levels.child.replace(/a video we never saw/g, 'a video') } };
-    expect(quiet.levels.child).not.toBe(m.levels.child);
-    expect(/never saw the video|video we never saw/i.test(quiet.levels.child)).toBe(false);
-    expect(/never saw the video|video we never saw/i.test(m.levels.child)).toBe(true);
+    const quiet = { ...m, levels: { ...m.levels, teen: m.levels.teen.replace(/ESTABLISHED FROM THE RECORD:[^;]*;/, '') } };
+    expect(quiet.levels.teen).not.toBe(m.levels.teen);
+    expect(/by 2009/.test(quiet.levels.teen)).toBe(false);
+    expect(/by 2009/.test(m.levels.teen)).toBe(true);
+    expect(processLanguage({ id: 'probe', levels: { teen: 'We could not read the company papers ourselves.' } }).length).toBeGreaterThan(0);
   });
 });
 

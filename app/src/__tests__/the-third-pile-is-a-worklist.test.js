@@ -864,8 +864,13 @@ const REPO = join(HERE, '..', '..', '..');
 // clauses and lower this pin.
 // Re-measured on the merged tree, 2026-11-18: main held 38 after pm19 and sov86;
 // sov87 raises it to 39, never taken from either side of the conflict.
-const GAP = 39;
-const CHECKED_LESSONS = 6;
+// 39 -> 34 and 6 -> 7 on 2026-11-26 (DR-1689, Darrell: "I'm annoyed by
+// lessons saying they didn't research!!!!"). The research was done and the
+// lessons now state what the record shows: dsi15, mgmt9, wm9, wm10 and pm-series
+// stopped admitting unchecked material (-5); wm9 gained publisher rows (EIA,
+// Food & Water Watch via Stateline, DOE, NEADA, Roll Call), so checked is 7.
+const GAP = 34;
+const CHECKED_LESSONS = 7;
 
 describe('both sides of the honesty gap are counted', () => {
   it(`exactly ${GAP} lesson(s) admit unchecked material with no source row`, () => {

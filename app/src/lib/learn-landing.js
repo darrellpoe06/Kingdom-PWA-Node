@@ -40,6 +40,10 @@ export function setLearnAreaHint(area) {
     /* no storage: Learn opens on its usual area */
   }
 }
+// THE AREAS A DEEP LINK MAY ASK FOR (the Learning Zone discovery page's All Courses, All Departments,
+// Study Tools and Downloads). 'record' keeps working exactly as before; the rest are the other areas
+// of the same strip. Learn passes this to takeLearnAreaHint; a value not listed is still discarded.
+export const DEEP_LINK_AREAS = Object.freeze(['record', 'lessons', 'browse', 'find', 'continue', 'latest', 'downloads']);
 export function takeLearnAreaHint(allowed = ['record']) {
   try {
     const v = window.sessionStorage.getItem(LEARN_AREA_HINT_KEY);
