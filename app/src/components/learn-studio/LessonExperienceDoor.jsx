@@ -20,6 +20,7 @@
 import { neighborLessons } from './LessonNav.jsx';
 import React, { useMemo } from 'react';
 import LessonExperience, { LessonExperienceBoundary } from './LessonExperience.jsx';
+import { chosenVoiceNarrator } from '../../lib/chosen-voice-narrator.js';
 import RECORDS from '../../lib/learn-presentation/presentation-records.json';
 import APPROVED from '../../lib/learn-presentation/experience-approved.json';
 import { presentationIndex, presentLesson, VISIBLE_STATUSES } from '../../lib/learn-presentation/presentation.js';
@@ -91,6 +92,9 @@ export default function LessonExperienceDoor({
 }) {
   const record = useMemo(() => experienceRecord(lesson, course), [lesson, course]);
   const more = useMemo(() => moreExperienceLessons(lesson, course), [lesson, course]);
+  // The voice the listener chose reads here too: their own, cloned, when they
+  // picked it (DR-1685); the device voice exactly as before otherwise.
+  const narrator = useMemo(() => chosenVoiceNarrator(), []);
   const near = useMemo(() => neighborLessons(lesson, course, record && record.courseKey), [lesson, course, record]);
   if (!record) return null;
   return (
@@ -108,6 +112,7 @@ export default function LessonExperienceDoor({
         onOpenOther={(courseKey, lessonId) => onOpen && onOpen(courseKey, lessonId)}
         onFullPage={onFullPage}
         lessonTools={lessonTools}
+        createNarrator={narrator}
       />
     </LessonExperienceBoundary>
   );

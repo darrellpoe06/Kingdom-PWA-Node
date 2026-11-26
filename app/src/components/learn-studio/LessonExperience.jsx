@@ -415,6 +415,8 @@ export default function LessonExperience({
   const [boundary, setBoundary] = useState({ seg: -1, offset: 0 });
   const [resumedFrom, setResumedFrom] = useState(0);
   const [rate, setRateState] = useState(1);
+  // Whose voice reads, said in one line when it is the listener's own (DR-1685).
+  const [voiceNote, setVoiceNote] = useState('');
   const [captions, setCaptions] = useState(true);
   const [watchTab, setWatchTab] = useState('transcript');
   const [showChapters, setShowChapters] = useState(false);
@@ -502,6 +504,7 @@ export default function LessonExperience({
     const engine = createNarrator({
       synth,
       Utterance,
+      onNote: (line) => setVoiceNote(String(line || '')),
       onState: (s) => {
         setStatus(s.status);
         // An idle report (stop, or the end) says segment 0; keep the place.
@@ -671,6 +674,12 @@ export default function LessonExperience({
     </p>
   );
 
+  const voiceLine = voiceNote ? (
+    <p className="le-resume-note" role="status" data-testid="le-voice-note">
+      {voiceNote}
+    </p>
+  ) : null;
+
   const playBtn = (cls) => (
     <button type="button" className={`le-ctl ${cls} ${RING}`} onClick={isPlaying ? pause : play} aria-label={isPlaying ? 'Pause' : 'Play'}>
       {isPlaying ? '❚❚' : '▶'}
@@ -783,6 +792,7 @@ export default function LessonExperience({
                     </div>
                     <p className="le-original">{lesson.title}</p>
                     <ModePills mode={mode} setMode={setMode} />
+                    {voiceLine}
                     {resumeNote}
                     <div className="le-subtabs" role="tablist" aria-label="Lesson details">
                       {[
@@ -864,7 +874,12 @@ export default function LessonExperience({
                       jumpTo,
                       skip,
                       cycleSpeed,
-                      note: resumeNote,
+                      note: (
+                        <>
+                          {voiceLine}
+                          {resumeNote}
+                        </>
+                      ),
                     }}
                   />
                 )}
@@ -905,6 +920,7 @@ export default function LessonExperience({
                         ⏭
                       </button>
                     </div>
+                    {voiceLine}
                     {resumeNote}
                     <div className="le-listen-tools">
                       <button type="button" className={`le-tool ${RING}`} onClick={cycleSpeed}>
