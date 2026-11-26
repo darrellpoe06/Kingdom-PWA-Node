@@ -4299,6 +4299,21 @@
       "notes": "Traced to the sentence cut and the chip stops making a wordless NAS piece that handed the rest to the phone; tests proven against origin/main; books fold summary skipped in the mixed case (L140)."
     },
     {
+      "id": "auto-open-pr-adopts-a-raced-pr",
+      "date": "2026-11-26",
+      "task": "The merge lane filed its own correct state as a failure: auto-open-pr read the lagging search index, then GitHub refused the create because the PR already existed",
+      "drs": [
+        "DR-1668"
+      ],
+      "prs": [],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.6,
+      "estimateWithoutAiHours": 4,
+      "notes": "15 of the 30 most recent failed runs are this race, classified from their own logs. The refusal is now the authority; a transport fault is still red, pinned four ways."
+    },
+    {
       "id": "a-door-lands-on-what-it-names",
       "date": "2026-11-13",
       "task": "The Love Corner hero's Watch button changed the section correctly and never moved the reader to it, so the player stayed below the fold and the button read as dead; a requested section now arrives, on all three roads",
