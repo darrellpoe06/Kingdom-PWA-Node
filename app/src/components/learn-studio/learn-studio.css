@@ -613,6 +613,11 @@
   .ls-hero {
     aspect-ratio: 1 / 1;
     min-height: 0;
+    /* A tablet or an opened fold is up to 760px wide: square there was a whole screen of one picture
+       (Darrell 2026-11-26: "just a huge big picture... see more than just that one thing"). Capped, the
+       lesson pictures under it show on the first screen too. */
+    width: 100%;
+    max-height: min(58vh, 480px);
     border-radius: 16px;
   }
   .ls-hero-body {
@@ -643,7 +648,8 @@
     grid-template-columns: repeat(2, 1fr);
   }
   .ls-scroller {
-    grid-auto-columns: 82%;
+    /* A phone shows one card and the edge of the next; a tablet two and more, not one giant card (2026-11-26). */
+    grid-auto-columns: min(82%, 340px);
   }
   .ls-headline--card {
     font-size: clamp(1.1875rem, 5.8vw, 1.75rem);
