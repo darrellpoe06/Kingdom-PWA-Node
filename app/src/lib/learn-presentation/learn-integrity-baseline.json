@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T11:21:39.438Z",
+ "measuredAt": "2026-11-26T11:26:13.190Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4466
+  "readings": 4468
  },
  "departments": [
   {
@@ -14234,11 +14234,13 @@
    "department": "The Eternal Algorithms",
    "position": 17,
    "title": "Vengeance Is His (we're eternal anyway — forgive)",
-   "contentSha": "70ed882197b12a8ddc73638c365b357c29c509aca334f1338d02a5687e8113f8",
+   "contentSha": "d1122dacabcf3fb4690bc708dd0b2b0e669bf1b6a0a7f37ba6ef3465668c34f6",
    "versions": {
-    "teen": "7e516e3eda2ec05c68eaabb2e411a9b82e0bbb91da4f36bcfd3fdc650a959ce1",
-    "adult": "bfdc0b8b4281b8b5732ce687149f02aa756acdb4193a4d120360349b13e97ece",
-    "senior": "23c3bcde1099bdd00977ab6efae2ac81cccc6f5f2496bf7d7ea3e47034cb1006"
+    "child": "8ac4b3ef6441aed7f2def677e3c7da2e6ebcd9eb9909dd9d3febf25ec2e1013f",
+    "youth": "f2e8dbde2a5d2d13d14e617f0c0be93b0f39b2bd805321d8010a0155731835e1",
+    "teen": "f9456fe90f067c14a0b7d4e53b1ca19270f170dca684cdd0ada20046228e4c63",
+    "adult": "43465d203f2f7e5a5adc48982ab5c67edbb19b46c131c35062ece8591b045762",
+    "senior": "702fcbe9d70fa934293035cf1018388c0e94bbb3995cd4a456aab5e11d9a25bf"
    }
   },
   {
