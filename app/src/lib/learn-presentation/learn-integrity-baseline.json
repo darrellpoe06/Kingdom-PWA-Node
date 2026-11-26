@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T02:23:33.323Z",
+ "measuredAt": "2026-11-26T02:30:00.613Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4264
+  "readings": 4266
  },
  "departments": [
   {
@@ -13187,11 +13187,13 @@
    "department": "The Eternal Algorithms",
    "position": 2,
    "title": "Open His Eyes (the unseen is shown, never seized)",
-   "contentSha": "e2b1e21ca12c45d6882b5721ee6ef8f204bac3004c7aff0a4d489374d9edcb41",
+   "contentSha": "e8ea5dd56c14ffab43884c0caeec3721589f56d26df76e2d34fe1989e4da7d81",
    "versions": {
-    "teen": "2078a9fbbb35f59f9978fb8049b4647859d01e4a95b4408cf4235192561c2eac",
-    "adult": "600b62aa0b4abaa7ffc4e3f7fcef00d2e7dee8da95626125cf3a96a9c91107e8",
-    "senior": "6fc31dde36142fc542264964adde5858bf69f64e1d6e016165641a2c5932b4e8"
+    "child": "78266ea13182a45e3e8311c1ace9f46bb8e3917888f80bf78980eb0ee497ab40",
+    "youth": "42a4fc3a7aa46a2cc5f60160d08d6bb173b24d123961ecb5b40c5ef617d8208f",
+    "teen": "75b30d81d664b40ccdc1060d38717ca17c015fb1bb76c74c43db745e3f1ad413",
+    "adult": "8206238b5771e81fb34202ab334cab644bcbeae8d073c2ab59d9c3ccbb6c9134",
+    "senior": "b2973f6b22db449b61c6baa65e839ff518b7934de7237d972146d0d1e5fd4dba"
    }
   },
   {
