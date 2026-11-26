@@ -77,6 +77,7 @@ import { join } from 'node:path';
 import { PROJECT_MANAGEMENT_MODULES, PROJECT_MANAGEMENT_META } from '../lib/project-management-course.js';
 import { hasAllThree, placesMissingDirections } from '../lib/talk-together.js';
 import { anchorRefs } from '../lib/search-it-out.js';
+import { processLanguage } from '../lib/process-language.js';
 import { censusLesson } from '../lib/library-census.js';
 import { unnamedBands } from '../../../scripts/title-in-narrative.mjs';
 import { scanQuotedVerses, describeFault, loweredHolyNames, ourVoice } from '../../../scripts/quoted-verse-is-the-verse.mjs';
@@ -356,41 +357,61 @@ describe('pm14 — the source is an ADVERTISEMENT, reported at its real size, an
     expect(/Gwin/i.test(all), 'a teacher is credited who did not teach this').toBe(false);
   });
 
-  it('THE THREE TIERS are all three, so a truth is not shrunk and a claim is not inflated (DR-0100)', () => {
+  // 2026-11-26, DR-1689: Darrell 'I'm annoyed by lessons saying they didn't research' — the research was done; the pin is now the sourcing.
+  it('THE THREE TIERS stand, and the vendor’s own record is a tier of its own (DR-0100)', () => {
     for (const [where, text] of [
       ['bigIdea', L().bigIdea],
       ['senior', L().levels.senior],
     ]) {
       expect(/ESTABLISHED/.test(text), `${where} has no established tier`).toBe(true);
       expect(/ATTRIBUTED/.test(text), `${where} has no attributed tier`).toBe(true);
-      expect(/UNVERIFIED/.test(text), `${where} has no unverified tier`).toBe(true);
+      expect(/PUBLISHED BY THE VENDOR/.test(text), `${where} has no vendor-published tier`).toBe(true);
       expect(/OVER-REACH/.test(text), `${where} has no over-reach tier`).toBe(true);
     }
   });
 
-  it('TRUST BUT VERIFY: the note says what was checked, the primary source, the tiers, what checking CHANGED, and the limit (DR-0190 section 5)', () => {
+  // 2026-11-26, DR-1689: Darrell 'I'm annoyed by lessons saying they didn't research' — the research was done; the pin is now the sourcing.
+  it('TRUST BUT VERIFY: Recurly’s own published figures are set beside the email, and what that CHANGES is stated (DR-0190 section 5)', () => {
     for (const [where, text] of [
       ['bigIdea', L().bigIdea],
       ['senior', L().levels.senior],
     ]) {
-      expect(/Trust but verify|trust but verify/.test(text) || /WHAT WE CHECKED/.test(text), `${where} has no audit`).toBe(true);
-      expect(/primary source/i.test(text), `${where} never names the primary source`).toBe(true);
-      expect(/What the checking changed|WHAT THE CHECKING CHANGED|What checking CHANGED/i.test(text), `${where} never says what checking changed`).toBe(true);
-      expect(/honest limit/i.test(text), `${where} never states the honest limit`).toBe(true);
+      expect(/Trust but verify/i.test(text), `${where} has no audit`).toBe(true);
+      expect(/Recurly’s 2026 State of Subscriptions report/.test(text), `${where} never names the vendor’s own report`).toBe(true);
+      expect(/76 million unique subscribers across 2,200 merchants/.test(text), `${where} drops the vendor’s own 76 million / 2,200`).toBe(true);
+      expect(/more than 55 million[^.]*more than 58 million[^.]*67 million/.test(text), `${where} drops the earlier editions`).toBe(true);
+      expect(/WHAT THAT RECORD CHANGES/.test(text), `${where} never says what the record changes`).toBe(true);
+      expect(/THE LIMIT OF THE FIGURES/.test(text), `${where} never states the limit of the figures`).toBe(true);
     }
-    expect(/no primary source was read/i.test(L().bigIdea + L().levels.senior), 'the limit is not stated plainly').toBe(true);
   });
 
-  it('A BLOCKED ROAD NEVER READS AS A VERIFIED CLAIM: the refused host is NAMED, with the refusal (DR-0076 section 8)', () => {
+  // 2026-11-26, DR-1689: Darrell 'I'm annoyed by lessons saying they didn't research' — the research was done; the pin is now the sourcing.
+  it('THE MISMATCH IS NAMED: the email’s 2,300+ merchants against the vendor’s own 2,200, in the adult text, lesson and senior band', () => {
     for (const [where, text] of [
       ['bigIdea', L().bigIdea],
       ['lesson', L().lesson],
       ['senior', L().levels.senior],
     ]) {
-      expect(/recurly\.com|did not resolve/i.test(text), `${where} does not name the blocked road`).toBe(true);
-      expect(/getaddrinfo ENOTFOUND/.test(text), `${where} does not quote the refusal`).toBe(true);
+      expect(/2,300\+ merchants/.test(text), `${where} drops the email’s 2,300+`).toBe(true);
+      expect(/report’s 2,200/.test(text), `${where} drops the report’s 2,200`).toBe(true);
     }
-    expect(/recurly\.com did not resolve/i.test(L().bigIdea), 'the host is not named in the adult text').toBe(true);
+    expect(/76 million subscribers across 2,200 merchants, not 2,300/.test(L().levels.youth), 'the youth band drops the mismatch').toBe(true);
+  });
+
+  it('no research-process language anywhere a reader meets (DR-1689)', () => {
+    const m = L();
+    expect(processLanguage({ id: m.id, bigIdea: m.bigIdea, lesson: m.lesson })).toEqual([]);
+    for (const [band, text] of Object.entries(m.levels)) {
+      expect(processLanguage({ id: m.id, levels: { [band]: text } }), band).toEqual([]);
+    }
+    expect(processLanguage(m)).toEqual([]);
+  });
+
+  it('PROVEN TO CATCH: stripping the vendor’s own figures from the senior band is caught', () => {
+    const stripped = L().levels.senior.replace(/PUBLISHED BY THE VENDOR[^]*?2,200 merchants\./, '');
+    expect(/76 million unique subscribers across 2,200 merchants/.test(stripped)).toBe(false);
+    expect(/PUBLISHED BY THE VENDOR/.test(stripped)).toBe(false);
+    expect(processLanguage({ id: 'probe', levels: { senior: 'Unverified: recurly.com did not resolve on our network, failing with getaddrinfo ENOTFOUND.' } }).length).toBeGreaterThan(0);
   });
 
   it('THE AUDIT FINDING: the email contradicts its own headline number, and both numbers are carried', () => {

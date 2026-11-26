@@ -59,6 +59,7 @@ import { formatLessonText } from '../lib/lesson-format.js';
 import { elidedQuotations, recitedRecords } from '../../../scripts/quotation-integrity.mjs';
 import { unnamedBands } from '../../../scripts/title-in-narrative.mjs';
 import { anchorRefs } from '../lib/search-it-out.js';
+import { processLanguage } from '../lib/process-language.js';
 
 const ID = 'bank9-the-moat-that-moves';
 const BANDS = ['child', 'youth', 'teen', 'senior'];
@@ -271,12 +272,16 @@ describe('the newsletter is the source, said out loud, and never worn as our own
   const MONEY = /\$[\d.,]+\s(?:billion|trillion)/g;
   const PCT = /\b(?:nearly\s)?\d+(?:\.\d+)?\spercent\b/g;
   const figureTokens = (t) => [...new Set([...(String(t).match(MONEY) || []), ...(String(t).match(PCT) || [])])].sort();
+  // 2026-11-26 (DR-1689): '39 percent' (the index-weight trackers' October
+  // 2026 reading) and '41 percent' (the top of the year's range) joined the
+  // set when the sourcing paragraph replaced the not-checked one; the child
+  // band gained the firm's own $81 billion.
   const TOKENS = {
-    adult: ['$10.5 trillion', '$232 billion', '$5.8 billion', '$8.2 billion', '$81 billion', '$9.1 billion', '41 percent', 'nearly 40 percent'],
-    child: ['$10.5 trillion', '$232 billion', 'nearly 40 percent'],
-    youth: ['$10.5 trillion', '$232 billion', '$81 billion', 'nearly 40 percent'],
-    teen: ['$10.5 trillion', '$232 billion', '$5.8 billion', '$8.2 billion', '$81 billion', '$9.1 billion', '41 percent', 'nearly 40 percent'],
-    senior: ['$10.5 trillion', '$232 billion', '$5.8 billion', '$8.2 billion', '$81 billion', '$9.1 billion', '41 percent', 'nearly 40 percent'],
+    adult: ['$10.5 trillion', '$232 billion', '$5.8 billion', '$8.2 billion', '$81 billion', '$9.1 billion', '39 percent', '41 percent', 'nearly 40 percent'],
+    child: ['$10.5 trillion', '$232 billion', '$81 billion', 'nearly 40 percent'],
+    youth: ['$10.5 trillion', '$232 billion', '$81 billion', '39 percent', '41 percent', 'nearly 40 percent'],
+    teen: ['$10.5 trillion', '$232 billion', '$5.8 billion', '$8.2 billion', '$81 billion', '$9.1 billion', '39 percent', '41 percent', 'nearly 40 percent'],
+    senior: ['$10.5 trillion', '$232 billion', '$5.8 billion', '$8.2 billion', '$81 billion', '$9.1 billion', '39 percent', '41 percent', 'nearly 40 percent'],
   };
 
   it('speaks NO figure that is not the newsletter’s — the exact token set, place by place', () => {
@@ -313,25 +318,30 @@ describe('the newsletter is the source, said out loud, and never worn as our own
     }
   });
 
-  it('says in its own prose, and in every band, exactly what was NOT checked', () => {
+  // REWRITTEN 2026-11-26 (DR-1689). This block used to pin a "WHAT WE DID NOT
+  // CHECK" paragraph in every band. Darrell, 2026-11-26: "I'm annoyed by
+  // lessons saying they didn't research!!!!" The research was done instead:
+  // the $81 billion is the firm's own Q3 2025 figure (its finance chief, on
+  // that quarter's call), the concentration is the index-weight trackers'
+  // (about 39 percent, October 2026), and the $5.8 billion stays attributed to
+  // The Daily Upside. So the pin is now the SOURCING paragraph, and the gate
+  // is that no band carries research-process language at all.
+  it('says in every band where each number comes from, with no research-process language', () => {
     for (const k of PLACES) {
-      expect(TEXTS[k], `${k}: carries no disclosure heading`).toMatch(/WHAT WE DID NOT CHECK/);
-      // NOT "nearly 40 percent" on its own: that figure is also in the teaching,
-      // so pinning it would pass with the disclosure deleted — the exact trap
-      // legacy8's first pin fell into. This phrase occurs only in the disclosure.
-      expect(TEXTS[k], `${k}: does not name what nobody opened`).toMatch(/nobody here opened/);
-      expect(TEXTS[k], `${k}: does not close the disclosure`).toMatch(/And that is where the checking stops\./);
-      expect(TEXTS[k], `${k}: does not separate reported from checked`).toMatch(/Reported is not verified|Reported is not the same as checked/);
+      expect(TEXTS[k], `${k}: carries no sourcing heading`).toMatch(/WHERE THE NUMBERS COME FROM/);
+      expect(TEXTS[k], `${k}: does not name the firm's own release`).toMatch(/own report|own third-quarter release/);
+      expect(TEXTS[k], `${k}: does not source the year-earlier figure`).toMatch(/earnings call|said that number out loud/);
+      expect(processLanguage({ id: ID, levels: { [k]: TEXTS[k] } }), `${k}: hands the reader our research errand`).toEqual([]);
     }
   });
 
-  it('PROVEN TO CATCH: deleting the not-checked paragraph from one band is seen', () => {
-    const strip = (t) => t.replace(/WHAT WE DID NOT CHECK[\s\S]*?And that is where the checking stops\./, '');
+  it('PROVEN TO CATCH: deleting the sourcing paragraph from one band is seen', () => {
+    const strip = (t) => t.replace(/WHERE THE NUMBERS COME FROM[\s\S]*?(?=TALK ABOUT IT TOGETHER|WORK IT)/, '');
     const stripped = strip(L.levels.youth);
     expect(stripped).not.toBe(L.levels.youth);
-    expect(/nobody here opened/.test(L.levels.youth)).toBe(true);
-    expect(/nobody here opened/.test(stripped)).toBe(false);
-    // And the trap pin would NOT have caught it, which is why it is not used.
+    expect(/earnings call/.test(L.levels.youth)).toBe(true);
+    expect(/earnings call/.test(stripped)).toBe(false);
+    // And the figure alone would NOT have caught it, which is why it is not used.
     expect(/nearly 40 percent/.test(stripped)).toBe(true);
   });
 
@@ -348,7 +358,7 @@ describe('the newsletter is the source, said out loud, and never worn as our own
     expect(rows.every((r) => /^https:\/\/www\.morganstanley\.com\//.test(r.url))).toBe(true);
     // And the lesson says which three are NOT the firm's own, in every band.
     for (const k of PLACES) {
-      expect(TEXTS[k], `${k}: does not keep the newsletter’s own figures labelled`).toMatch(/belongs to the news email|The Daily Upside’s|newsletter’s/);
+      expect(TEXTS[k], `${k}: does not keep the newsletter’s own figures labelled`).toMatch(/news email had it right|The Daily Upside’s|newsletter’s|The Daily Upside said/);
     }
   });
 

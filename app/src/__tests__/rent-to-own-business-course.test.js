@@ -30,10 +30,9 @@
 //   3. BOTH TIERS OF HONESTY ON THE PRICE (DR-0100 / DR-0076). The FTC's
 //      finding that rent-to-own total cost can run two to three times retail is
 //      stated PLAINLY — under-claiming a verified truth is as much a failure as
-//      over-claiming — and it is NOT inside quotation marks, because ftc.gov was
-//      unreachable from this session and the exact wording was never held. The
-//      substance is vouched for; the wording is not. The gate holds both halves:
-//      the claim present, the quotation marks absent.
+//      over-claiming — and (updated 2026-11-26) it is quoted only from the FTC's
+//      own 2001 prepared statement as printed in the GPO hearing record, with
+//      the advocates' attribution the Commission gave it kept intact.
 //
 //   4. DARRELL'S SPINE IS THE COURSE'S SPINE. Honor as the operating mechanism,
 //      covenant over contract, Uncle Russell's three takings, and "be the best
@@ -95,6 +94,10 @@ const OUR_OWN_QUOTED = [
   'be good anyway',         // the weaker alternative Ephesians 6:6-7 replaces
   'it is not my department', // the excuse Proverbs 3:27 removes
   'not my department',      // the same, shortened
+  // ADDED 2026-11-26: the FTC's own words, verbatim from its July 12, 2001
+  // prepared statement (GPO hearing record, Serial No. 107-33) — a quotation
+  // of the Commission, attributed in the prose, never of Scripture.
+  'the prices charged by the industry (which can be two to three times retail prices, and sometimes more)',
 ];
 
 describe('the course exists with its full shape and is registered', () => {
@@ -266,14 +269,19 @@ describe('BOTH tiers of honesty on the price (DR-0100 and DR-0076 together)', ()
     expect(ALL_TEXT).toMatch(/states it plainly rather than softening it/);
   });
 
-  it('and it is NOT inside quotation marks, because the FTC document was never held', () => {
-    // ftc.gov was unreachable from this session (egress-blocked), so the claim
-    // is carried from reports of the Commission's testimony and staff work. The
-    // substance is vouched for; the exact wording is not. Quoting it would be
-    // the twelfth false attribution of this pass, authored by us.
+  it('and it is quoted only from the FTC text actually held, with its source named', () => {
+    // UPDATED 2026-11-26: the Commission's own words are now held — the FTC's
+    // prepared statement in the GPO record of the July 12, 2001 House hearing
+    // (Serial No. 107-33), read from archive.org. The lesson now quotes that
+    // statement verbatim, attributed to its date, and the "we did not fetch"
+    // process narration is gone (lessons state the record, not our research).
+    // The guard keeps the old risk closed: no quote of the bare fragment that
+    // drops the advocates' attribution the FTC itself gave it.
     expect(ALL_TEXT).not.toContain('"can be two to three times retail prices');
-    expect(ALL_TEXT).toMatch(/PARAPHRASED AND ATTRIBUTED rather than inside quotation marks/);
-    expect(ALL_TEXT).toMatch(/did not fetch the Commission/);
+    expect(ALL_TEXT).toContain('"the prices charged by the industry (which can be two to three times retail prices, and sometimes more)"');
+    expect(ALL_TEXT).toMatch(/July 12, 2001/);
+    expect(ALL_TEXT).toMatch(/Survey of Rent-to-Own Customers/);
+    expect(ALL_TEXT).not.toMatch(/did not fetch the Commission/);
   });
 
   it('the just weight is laid beside it, in full', () => {

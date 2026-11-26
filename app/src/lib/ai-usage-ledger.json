@@ -4501,6 +4501,21 @@
       "notes": "Traced to the sentence cut and the chip stops making a wordless NAS piece that handed the rest to the phone; tests proven against origin/main; books fold summary skipped in the mixed case (L140)."
     },
     {
+      "id": "lessons-process-language-b1",
+      "date": "2026-11-26",
+      "task": "Lessons state what the record shows, not our research errand: triage of 151, gate + shrink-only debt list, batch 1 (13 lessons researched and rewritten)",
+      "drs": [
+        "DR-1689"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 3,
+      "estimateWithoutAiHours": 16,
+      "notes": ""
+    },
+    {
       "id": "auto-open-pr-adopts-a-raced-pr",
       "date": "2026-11-26",
       "task": "The merge lane filed its own correct state as a failure: auto-open-pr read the lagging search index, then GitHub refused the create because the PR already existed",
