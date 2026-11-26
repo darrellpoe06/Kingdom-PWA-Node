@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T04:05:31.527Z",
+ "measuredAt": "2026-11-26T04:09:06.342Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4306
+  "readings": 4308
  },
  "departments": [
   {
@@ -14503,11 +14503,13 @@
    "department": "The Eternal Algorithms",
    "position": 44,
    "title": "Submit, THEN resist — the order is the instruction",
-   "contentSha": "1ed3072f909954ae898937cd715d8a6dc5679d180022954dcedcf31c02d55117",
+   "contentSha": "f328e6b50c0750281482bb848a603cdcca1d7a07146640f932206eb9d690437a",
    "versions": {
-    "teen": "3db272825f936978e8dfa112de75433005cadabc81d37dfdeee3726548be6d1c",
-    "adult": "ac222d573faac0639c03ff2d0fa198b57aa8a8c39d95c9cf85f72bbf53669f77",
-    "senior": "a9b8b02a9c726912735568dc8b80f2b2933e07d52a3aef4f97ed60f9d7704190"
+    "child": "409a52cd44640f2c362e7316f29f0cb211e8f10b024c4fe054b23b187c8f49f6",
+    "youth": "5a12c52aec4773566dd9c16267f8a6041113d302797c7b1b46b1a5f6718b3da8",
+    "teen": "c4d56014624a7db44d001e56ae6167faf65330653711c381142a59efc8a6e35b",
+    "adult": "0355ad828050da7b8e02d3e5cf1071831d4c747392b66e70259c12ca8b662c47",
+    "senior": "526c996ccc523919d514d37bb013b4dbc47c22fb1fbc5e35c974ba7ae0b89874"
    }
   },
   {
