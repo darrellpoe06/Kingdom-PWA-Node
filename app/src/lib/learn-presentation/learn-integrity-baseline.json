@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T03:29:23.496Z",
+ "measuredAt": "2026-11-26T03:32:42.541Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4286
+  "readings": 4288
  },
  "departments": [
   {
@@ -13158,11 +13158,13 @@
    "department": "The Eternal Algorithms",
    "position": 22,
    "title": "They that make them are like unto them",
-   "contentSha": "51d57b864d8e54def540bef1e02e9aa11bd9b3ffe5a3ead02a269e8007427fc6",
+   "contentSha": "32d2c62a48afac5d7a3eee383afb5036c85e936b7367c318ef2cedb02de1a03b",
    "versions": {
-    "teen": "1c2638ca3e257df2d41fd368a4600b01752aa661f11318b10097a2d11894053b",
-    "adult": "b6764a6daf38a31d11a4cee80e995736a38d74a9becc5eeed003c052c6401e54",
-    "senior": "4e6f77e6ef1f1fd4f42b39231536d074e5bf5e1a6ce4c6eb9e052aed616d093b"
+    "child": "5b9c1b30699b1350e5276f0835544e385ef8e30a0fac6a0a7baf2976e5fb2a90",
+    "youth": "329d27049a1fec3166f58ff97a1d059d886b963e0f7f2dd5d25e3e3a91cb8e23",
+    "teen": "0088f566208a5db9c4b7280c31d7eea34498330ac2e1430afca86f54d793eb44",
+    "adult": "0d7527e33427673637c76af6789db79834e486c32d3f9fab15d55ee10c2a9246",
+    "senior": "42e6e8bfed872ae791e29152f800c913a9509270ed5841c2fb412c19bbfd150b"
    }
   },
   {
