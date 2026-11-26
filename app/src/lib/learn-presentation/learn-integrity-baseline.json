@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T04:28:43.748Z",
+ "measuredAt": "2026-11-26T04:33:20.206Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4320
+  "readings": 4322
  },
  "departments": [
   {
@@ -12861,11 +12861,13 @@
    "department": "The Eternal Algorithms",
    "position": 20,
    "title": "What Knowing Changes (ignorance lowers the stripes, never the guilt)",
-   "contentSha": "2e59e27ce1482b822a5ab808f72a9fba9373b7056afd02a9248f92b04106668e",
+   "contentSha": "af891c4142cdc70eeb6ad209849927fb2e6156068931bb66803c571c1d9aa41f",
    "versions": {
-    "teen": "3f24ef791127ffa7be2fff9ae6529054f08bf9685c85e8f089026c0886d4846b",
-    "adult": "3713950755f01c83a58510f835ded42e5570d5dec593c29f654523427c4b12e5",
-    "senior": "6cd672714822fc5f4b400c70eb32a1042df72225d49adac2f8a4611ce493b4cc"
+    "child": "488e60a2909cf0b52e91edfc54e75aeb7f66befa8ca7ae713d79d4a98ccb3e4e",
+    "youth": "c6be145d03fbcf9d27a6a50ae2baf90dc73e69c3ce3204519dc5f2557c1ebdaf",
+    "teen": "cd039a75f42cbe4b6b9cce9adde5d602bb54a9f1ee57fedc391960d0ebb35c0d",
+    "adult": "169eaece89d17d5a885581cf76fb7b782a136758568cc5e744faa97759312ef6",
+    "senior": "4e4ee005674aa0de7feafa2b4c11666f987d1cfb93b69914782603e3bb7ef464"
    }
   },
   {
