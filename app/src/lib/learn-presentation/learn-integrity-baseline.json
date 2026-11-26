@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T13:08:30.421Z",
+ "measuredAt": "2026-11-26T13:12:30.384Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4512
+  "readings": 4514
  },
  "departments": [
   {
@@ -13487,11 +13487,13 @@
    "department": "The Eternal Algorithms",
    "position": 2,
    "title": "The Door (no way to eternity but through Christ)",
-   "contentSha": "8f16aa5bed45b362ca2ce435d239d5b82d93b65af80707f988a0efcfdc404fe4",
+   "contentSha": "6a6334490d9f27a6b690c2a092fe3df8dc0d7e1f0c520dd4dba443f86b5d5fcc",
    "versions": {
-    "teen": "5b8c08ddf21dffd6e4af172cc1d751f01e9a5743be9750e63d8be9cd4eaeff9a",
-    "adult": "dfe954430f842f7271967c21db921eddf7a316f92b6b7e85e35d5fc289ca12a1",
-    "senior": "03189fc9d4578b0de8fac97a1f1331e323352e086fcc95c54269cef2406a144d"
+    "child": "d9c573110f8da9df760288b7a341d12f09a40138f83ae7e54883ebc7c56845cb",
+    "youth": "a8b15a48c6f61f2234d0bd6ff1901de8d86c3fe67aa603cb1e8d49dd966e7663",
+    "teen": "86ba1f44d96a6376a72b2a7a888a7ce4f78e31e60b25ae499c7a0f84de668ad7",
+    "adult": "2861de5f8a432a39e77ebd8df93ee4166c1d4a0f71e88ad99ea5f958e29b388d",
+    "senior": "9d49d4e83083e3a0e942ab80e3d6ae81fef5e3392595f1d3f5ea4e952d28940d"
    }
   },
   {

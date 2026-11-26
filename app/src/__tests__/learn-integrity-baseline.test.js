@@ -88,8 +88,8 @@ describe('Learn content integrity baseline', () => {
   // word-framed-worlds, nothing-unclean, door-sup, overcome-throne,
   // faithful-crown, assembling, sow-bountifully, tested-soul,
   // filled-righteousness, feed-sheep, closet, sheep-voice, confess-cleanse,
-  // humble-exalt, vengeance-his, seated-heavenly, good-fight-exercise, more-than-conquerors, quickened, resist-flee, church-born-fire, higher-priority, renew-mind, truth-love, confess-believe, kenosis, die-daily, stand-on-word, believe-life, abide-fruit, grain-wheat, lose-find, rock-house, measure-measured, ask-seek-knock, forgive-forgiven, seek-first.
-  it('the baseline is the measured Phase 1 catalog (13 / 51 / 994 / 4,512)', () => {
-    expect(base.counts).toEqual({ departments: 13, courses: 51, lessons: 994, readings: 4512 });
+  // humble-exalt, vengeance-his, seated-heavenly, good-fight-exercise, more-than-conquerors, quickened, resist-flee, church-born-fire, higher-priority, renew-mind, truth-love, confess-believe, kenosis, die-daily, stand-on-word, believe-life, abide-fruit, grain-wheat, lose-find, rock-house, measure-measured, ask-seek-knock, forgive-forgiven, seek-first, door-christ.
+  it('the baseline is the measured Phase 1 catalog (13 / 51 / 994 / 4,514)', () => {
+    expect(base.counts).toEqual({ departments: 13, courses: 51, lessons: 994, readings: 4514 });
   });
 });
