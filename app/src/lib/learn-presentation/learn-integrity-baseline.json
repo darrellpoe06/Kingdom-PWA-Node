@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T08:01:25.741Z",
+ "measuredAt": "2026-11-26T08:37:58.520Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4416
+  "readings": 4432
  },
  "departments": [
   {
@@ -12706,11 +12706,13 @@
    "department": "The Eternal Algorithms",
    "position": 9,
    "title": "Told a Day Before He Came (Behold the man)",
-   "contentSha": "58ee8a777cde53fc9c76640213f78370670611a1c617c79b108adcd8b5a29527",
+   "contentSha": "9da7be6770bcf6be648cf49c162918af710df8a1374463d2dd1806d260dcda9d",
    "versions": {
-    "teen": "5c529917f829d4a8210cd997049e44c2580abc114239f71e78d2dbc614db278d",
-    "adult": "20933c542e218929e27ec1223c0f15f0f709bdbb19c97c361a51ba418dacc48d",
-    "senior": "61f4076b152f9b6c39c5a366088ae4d62d1fdbaf1cfa7851b36259e3bba8befe"
+    "child": "1bcdf18a227b8c84660f579e744ba1ecd8683da6788c2b19c68e23c3665d376d",
+    "youth": "7ca8c7413f457de3cc2b1ff6dd17a7530bcfc58e70e24a8ed245b88f50812443",
+    "teen": "05f05155a613942b14b4ef2f39bc10b915e1ae40a4ddb346956a91a9378fac1c",
+    "adult": "629acb566f071899092f430fd9b81b4510e01de69105a3a43786fcfb77120d72",
+    "senior": "c87cb9ad9a6ee562fe259dfbc63e215aefb21b1fb56391269c761235da32b2ef"
    }
   },
   {
@@ -12719,11 +12721,13 @@
    "department": "The Eternal Algorithms",
    "position": 10,
    "title": "The Provider Commanded Ahead (I have commanded a widow there)",
-   "contentSha": "c50a64b8a09412504b62c9bee6867d6ff0cd73c2eb2f007c8127bd982f65144a",
+   "contentSha": "0abbd8e1097269df62b1a2231aa39b038cd5ebc1e03609b8ddd3d3413075b6fa",
    "versions": {
-    "teen": "497c2060ccfd8e434491066fec237cff7e2ae83fc4a60e351722e611c1fb250a",
-    "adult": "4d8126cef1a9c93bc7d64ce79372cb8edd3a91d1fe0976bb8a523f232ad67cac",
-    "senior": "05b8625f51983c1f4bf8d65ce8ec2c3e1ddb5e9ac52a4d81591ad9763fc978fc"
+    "child": "e19fa0dff49e5ca72f54936ba1c71b54dd10d99fe2bb4d6733b53cbd9fc2aac1",
+    "youth": "2d75be556f4e2bea08c63f51bbb817e786ddbdc4608ac1544f8c3aaff361b4fd",
+    "teen": "77f887500e529221b3396c223648b35c62bfdf8ed038f615cc8096ab1ad19714",
+    "adult": "370dea8abfcc565184785514e2386ad6eb0646c8a1fe3f959689aa834ff7046a",
+    "senior": "79438bd14d727cf5f6f63680595e4fd7e308e28168beae617da1cab64c5d4a69"
    }
   },
   {
@@ -13344,11 +13348,13 @@
    "department": "The Eternal Algorithms",
    "position": 11,
    "title": "He Declares the End From the Beginning (only Yahweh can)",
-   "contentSha": "dbcb4984648ea13cca43f9f0cf2545f3d47e8b75296773e97037343e59909454",
+   "contentSha": "d26b3a543158b52543fc39e7750c31507307cbfbba5c8214ca32eddf7b3a9346",
    "versions": {
-    "teen": "16b9040233a5fb832128a464898d34307fd37e0886cd6ae7df3ec61db481967a",
-    "adult": "97237899cc4f249e437ed5c77d072b8fd796d6cb70a37788756cac2339ec42bf",
-    "senior": "8c810f0ceae99d99acf6cf4abd3a57356a577250d10177c5c31667e812ed19f3"
+    "child": "682b7a8d567d216877155da1ec8d549bd7803f0644fae57ebe226c9c4b8bc3a2",
+    "youth": "1017decee74b97c79d05614461d32a26d9d53e7835521656bcf85794e9904274",
+    "teen": "05a230cbda4dd50f4d49a96e09a0908819298a3c47addeae81962147fbab78c7",
+    "adult": "d53228b76ff5676f8b00ac86390f59a8e80bc87996f34a81ddeff64e09b21af1",
+    "senior": "2b00266fa7ddde5e39db102a0588060ab1f69b8bc76488bebfc143a25ade3a6a"
    }
   },
   {
@@ -13357,11 +13363,13 @@
    "department": "The Eternal Algorithms",
    "position": 12,
    "title": "The First and the Last (past, present, and future at once)",
-   "contentSha": "0ba9f0b020eb0999a46ca334a9cc320a0ba7adb704d40449cca56866cb105127",
+   "contentSha": "85b6a2482a58595f90d9710cf15c14a3944cfa908427780cf8d2c7686cdda255",
    "versions": {
-    "teen": "7e21fa0dcaab0954a36bc0c0840938995063e8438ed5fbef4ac22e6493a18927",
-    "adult": "12cd8e7aed2ff4d13966baefb2f6907f8616c1680f3e11e93536ad9c527bdbee",
-    "senior": "4984c348916bd25930ec193ab732ccdadd6968672a4661bd1702a2040156bf61"
+    "child": "6f1ac6861ce6ddca8428487074551088f7f1518ba31153cf726dc4c05ad5a7b7",
+    "youth": "4be6cd7edfcee2afa64b60c9ecbcd5e350464324a47b929321449df070b8b33a",
+    "teen": "baef91b498de01403ea87129b964c8a3cac740bfc94b00bf7b09e9d284b91809",
+    "adult": "a4a299b253f65d82a5b89b6967be8483059367a9059bc34701fd783a020c4776",
+    "senior": "a8c55a64f9c2449728e0fc6d0ee9758c3ed414d182f24464596c3c31d9fa65b0"
    }
   },
   {
@@ -13683,11 +13691,13 @@
    "department": "The Eternal Algorithms",
    "position": 18,
    "title": "The Kept Appointment (Simeon and Anna, positioned at the very hour)",
-   "contentSha": "e7b4fe4f4e5841f21cd75be328c47117e63735fcce9da279610768dd3469550c",
+   "contentSha": "6704c4482ddac79c3b13dbaa44917fbdb8e017f16cacf239f84bb917b67006be",
    "versions": {
-    "teen": "ee2d10365c49434447f7de30e139548eb517b9373367d57610cc095fae9d12cc",
-    "adult": "df1fccf9a41fd07e150b38710273a4b269ee687ef2fb963da68460a48311ced4",
-    "senior": "c0ba6e9d9cf03c3466b506f794b18172c3ee40830d2a3291ac14c1b79477f234"
+    "child": "2567243e1e9f15c743325ea5a7042d23f2ddfc4abbef20022ab95723bd37145d",
+    "youth": "0f4dd7266e7649a157e6804d29431e3239d78de39cda443b6206490b50d6df49",
+    "teen": "4f8ccc13c152281de2efa2080bbafbe810737a7367ea2bce392c5acaedfb7042",
+    "adult": "3ef97dea67067fe218cadcbaba817a51c9db750e2d118af819870220a95c06de",
+    "senior": "e7a631b579dc807d2b0c764804ac6e393f479885cb3e9c933fd5c119208919d9"
    }
   },
   {
@@ -13696,11 +13706,13 @@
    "department": "The Eternal Algorithms",
    "position": 19,
    "title": "Seen Under the Fig Tree (He knew the man before the meeting)",
-   "contentSha": "681dcc8d7049420d0a06351f72be444ed148fa037b6f71c14cfc2c4f4d04a568",
+   "contentSha": "fd01039b0853d457c01c0485b8ded3b09c041350f59b993bab9ea828c11805c7",
    "versions": {
-    "teen": "d164e5d82f7c0d004975af9e56de00beb683ffffa973ded463cdd74b0abf386c",
-    "adult": "ed878d404ed4550a44adf27b73f6296d90a6ce02e37de50480b6321b1bc8f1e8",
-    "senior": "3d6af4f7668b1bfc97fbc5f75b2e5c7538bd161fb75e2312c53d71fd36cf56ee"
+    "child": "564c9c8f2201e7212bf67454d8fe5e0ee7efba2a555c232681481aa2f2c22bcf",
+    "youth": "d435e2bc21eb66df1785103dfb2d07dfe3c7b5349ec70c17e7d2e28e4bbac09c",
+    "teen": "5b858956418b669f95028ca42a86fd670bb24360281e07bbd48e7dcfcc49ece1",
+    "adult": "604c803e4dc1177ef6f44193e7527028de991685d221e84f58402eba659c2d91",
+    "senior": "b16cf0079a2e22f507d7c31de2464b3998198947dc2a9a13de8698abb0004eea"
    }
   },
   {
@@ -13709,11 +13721,13 @@
    "department": "The Eternal Algorithms",
    "position": 20,
    "title": "He Knew the Betrayer (foreknown is not the same as faithful)",
-   "contentSha": "83150f2a3563a5e514584a2dcca01ed5332f5916158ee9b386119c37f1fc62a1",
+   "contentSha": "181645e689908fe68292bf0bcd46da55e0655c659a6742bf756a05f59fc66106",
    "versions": {
-    "teen": "7564f9fdfad91d29309e493349f3ee2e437ed8982d2ad1164a242e3e5d3e323e",
-    "adult": "df32db6b889c6d4675b9cbf1a28d62bdf92afc3f5f66ae007492495fcc4538f3",
-    "senior": "d7f6eba6c819c240009b91c7cbc0bd34fc8cc1779d5fc7274a50ae2fa1ede49b"
+    "child": "a7a24bd33a9c22c74aeef304fec883d397276b1e5b2f1cef3a143811905f43ee",
+    "youth": "36034047a24bed42711302b8c001bec771900b3a5b6f2a022685c548b669b031",
+    "teen": "f717c9076940536e00784d037d99a21b1e83de5c87e5c3b4aa5d6da4f3d36dbd",
+    "adult": "2e926360195cb3e5809106b77b44e630696a062edcbc532ae746a34d78fc0401",
+    "senior": "43bbbab24634390d595aabbd49bf24d402f14787e77ba7ff443f72581725687f"
    }
   },
   {
@@ -14297,11 +14311,13 @@
    "department": "The Eternal Algorithms",
    "position": 24,
    "title": "His Ways Past Finding Out (our minds cannot comprehend Him)",
-   "contentSha": "e4ff6d3e6c5bd61a90aed49e9fb368867f81c284919cb8e667064af4bda64aa4",
+   "contentSha": "f4bc9486ebae67ccd1ce68651856a9b00354e42bfc840e44fd089be59ea78300",
    "versions": {
-    "teen": "2e896eb157bb01aa5f8d7a891e88ad146a3b38d8a063e753b7ab33b7d9804125",
-    "adult": "d1b7d749951e201c972ca0a4a04f9d525f055ab3f53a4e1620ef66472f04da3c",
-    "senior": "9bd19778ce9c615078b7e0243caf6d36fcf1f02432e25f63d61f8ab084b36235"
+    "child": "fc25c9aec517f9396604c99b65f84f63e4c20156a7e1f51ce7600cdd21cdd3e3",
+    "youth": "efe56183cc4211eba10c5f6f0879098b3dbe8d70e529ddea1ac87d996886b28b",
+    "teen": "39ff7888db9acf3961186950e58d1eeee9a8f2981aadfc3179c70ad08c4ad4f0",
+    "adult": "04370e8bb5eb79173409a91510a6edb48f407ddb005332b0b9a3d8af74b89aec",
+    "senior": "ea1280e327c8bf071e8c7b437c474b7561a380df569190b20706a9fdcf761fb6"
    }
   },
   {
