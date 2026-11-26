@@ -1,6 +1,6 @@
 # Portrait permission requests: Dr. Frederick K.C. Price, Pastor Stephen Darby and Dr. Myles Munroe
 
-Drafted 2026-11-26 for Darrell to send himself, by email or through each ministry's contact form. Both are honest about what we are and how the photo would be used. Edit freely before sending.
+Drafted 2026-11-26 for Darrell to send himself, by email or through each ministry's contact form. Each is honest about what we are and how the photo would be used. Edit freely before sending.
 
 ---
 
