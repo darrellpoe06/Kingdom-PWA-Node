@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T03:19:04.844Z",
+ "measuredAt": "2026-11-26T03:22:46.194Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4280
+  "readings": 4282
  },
  "departments": [
   {
@@ -12814,11 +12814,13 @@
    "department": "The Eternal Algorithms",
    "position": 17,
    "title": "Let us make us a name — the counterfeit ascent",
-   "contentSha": "594f7bf25ed774175abd22de268153a19f848e64de5b16fd6aeb711bf20446ea",
+   "contentSha": "6486a588640f297d30576a41175534e5d7c3752ef1023428c5272373ceea24a0",
    "versions": {
-    "teen": "41b128694f45ede0dcc5f3ed72e87a49fd527687c6c11ba24493bf715f399cef",
-    "adult": "38ca5816787d1d05675a8eb231f004b3ec5eeee30d75f9d48f2373fbc614ff7b",
-    "senior": "fe9d1f00e1fd46f971209a9df492bf5470840d186cd42e3dec80e6b72bc2121a"
+    "child": "7b14319e7f3467dba8c9e3625a8bc976667473554ecce551b3db7065654bc203",
+    "youth": "30bb1de41fb4dd4a4c8c7f111118ab10c5a4e665420dc287344253bef2ebf2ff",
+    "teen": "b3221801aba0d2a245607a707707d1e71e8196072559a85b96767cbb4234bcd4",
+    "adult": "833012f534a76fb1508df25ed1f0a9c81fcc02ee376e61ba9ebfe46570c5de0e",
+    "senior": "63cb95fb85473bd00884b1696b38939915904012733d52c83cff4af8aa23ff4f"
    }
   },
   {
