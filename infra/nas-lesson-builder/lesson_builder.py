@@ -836,8 +836,8 @@ def failure_lines(gate_results, limit=30):
     return out[:limit]
 
 
-def previous_failures(group, data_dir, current_build):
-    """The failure lines of this teaching's earlier builds on this NAS."""
+def _earlier_records(group, data_dir, current_build):
+    """Every stored version record of this teaching's EARLIER builds on this NAS."""
     out = []
     for r in group:
         for t in r.get("tags") or []:
@@ -845,16 +845,68 @@ def previous_failures(group, data_dir, current_build):
                 continue
             try:
                 with open(os.path.join(data_dir, "versions", t[12:] + ".json"), encoding="utf-8") as f:
-                    for rec in json.load(f):
-                        out.extend(failure_lines(rec.get("gate_results")))
+                    recs = json.load(f)
             except (OSError, ValueError):
                 continue
+            if isinstance(recs, list):
+                out.extend(x for x in recs if isinstance(x, dict))
+    return out
+
+
+def previous_failures(group, data_dir, current_build):
+    """The failure lines of this teaching's earlier builds on this NAS."""
+    out = []
+    for rec in _earlier_records(group, data_dir, current_build):
+        out.extend(failure_lines(rec.get("gate_results")))
     seen, uniq = set(), []
     for x in out:
         if x not in seen:
             seen.add(x)
             uniq.append(x)
     return uniq[:30]
+
+
+def best_previous_draft(group, data_dir, current_build):
+    """The CLOSEST earlier draft of this teaching, for repair instead of a fresh
+    write -- or None when there is none to repair.
+
+    WHY (2026-11-26, DR-1696, measured). Five informed attempts per teaching
+    produced the SAME fault classes every time: across the 32 rows still waiting,
+    `not-the-verse` on 27 and the bare generic "God" on 26. Reading the prompt
+    rather than guessing at it, `build_prompt()` carries the standard, the
+    verbatim KJV verses, the fault list and the teaching -- and NOT the draft that
+    failed. So every attempt wrote a fresh 2000+ word lesson carrying 100+
+    quotations, told only "a previous draft failed these checks".
+
+    That cannot converge, and the arithmetic says why: a clean draft needs EVERY
+    quotation right at once, so per-draft success is roughly the per-quotation
+    accuracy raised to the hundredth power. At 99% per quotation that is about
+    37% per draft; at 97% it is about 5%. Fixing the named verse while the other
+    hundred are rewritten from scratch re-rolls the dice rather than narrowing.
+    Five independent rolls is exactly what was observed, and the queue went 33 to
+    32 across a full rebuild of 29 teachings.
+
+    So the retry REPAIRS. Chooses the earlier draft with the fewest problems --
+    fewest first, then the most recent of those -- because repairing the closest
+    draft is the shortest path to a clean one. Only a draft that is a dict with
+    the lesson verdict can be repaired; anything else answers None and the build
+    writes fresh exactly as before.
+    """
+    best, best_score = None, None
+    for rec in _earlier_records(group, data_dir, current_build):
+        body = rec.get("body")
+        if not isinstance(body, dict) or body.get("verdict") != "lesson":
+            continue
+        g = rec.get("gate_results") or {}
+        if not isinstance(g, dict) or g.get("passed"):
+            # A draft that PASSED was published; it is not a repair candidate.
+            continue
+        score = len(failure_lines(g, limit=10 ** 6))
+        # Fewest problems wins; a later record of the same score replaces an
+        # earlier one, so the most recent of the closest drafts is chosen.
+        if best_score is None or score <= best_score:
+            best, best_score = body, score
+    return best
 
 
 def provenance_text(group, owners=OWNER_IDS):
@@ -1069,7 +1121,14 @@ class Build:
         verses = gates.cited_references(teaching, self.corpus)
         self.stage("verses-fetched")
         feedback = previous_failures(self.group, self.data_dir, self.build_id)
-        prompt = writer.build_prompt(teaching, self.group, self.owners, verses, feedback=feedback)
+        # REPAIR the closest earlier draft rather than writing a fresh one
+        # (DR-1696). None on a first attempt, or when no earlier draft is
+        # repairable -- then this is the fresh write it always was.
+        prior = best_previous_draft(self.group, self.data_dir, self.build_id)
+        if prior is not None:
+            self.report["repairing"] = True
+        prompt = writer.build_prompt(teaching, self.group, self.owners, verses,
+                                     feedback=feedback, previous_draft=prior)
         sha = writer.sha256_text(prompt)
         run_writers, mode_note = writer.select_writers(self.writers, self.mode, self.selected)
         self.report["mode"] = mode_note

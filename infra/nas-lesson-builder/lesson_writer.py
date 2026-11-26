@@ -361,16 +361,38 @@ def row_rules(rows, owner_ids):
     return "\n".join(sorted(set(lines)))
 
 
-def build_prompt(teaching, rows, owner_ids, verses, title_hint="", feedback=()):
+def build_prompt(teaching, rows, owner_ids, verses, title_hint="", feedback=(),
+                 previous_draft=None):
     """The whole prompt. `verses` is [(ref, text)] fetched verbatim from the
-    repo's KJV before the call (the deterministic 'verses-fetched' stage)."""
+    repo's KJV before the call (the deterministic 'verses-fetched' stage).
+
+    With `previous_draft` the task becomes REPAIR, not a fresh write (DR-1696):
+    a lesson carries 100+ quotations, so rewriting it to fix one named fault
+    re-rolls every other quotation. Measured: five independent attempts per
+    teaching produced the same fault classes every time.
+    """
     parts = [STANDARD, "ROW RULES", row_rules(rows, owner_ids) or "- (none)"]
     if verses:
         parts.append("VERSES (KJV, verbatim from this repository's corpus; quote from these exactly)")
         parts.extend('{} -- {}'.format(ref, text) for ref, text in verses)
     if title_hint:
         parts.append("TITLE HINT: " + title_hint)
-    if feedback:
+    if feedback and previous_draft is not None:
+        # REPAIR. The faults come first so they are read as the task, then the
+        # draft to repair. Everything that is not a listed fault must survive
+        # byte for byte: that is the whole point -- the parts that already pass
+        # must stop being re-rolled.
+        parts.append("THIS IS A REPAIR, NOT A NEW LESSON. The draft below is this teaching's "
+                     "closest previous version. It failed ONLY these deterministic checks:")
+        parts.extend("- " + f for f in feedback)
+        parts.append("Return the SAME lesson with exactly those faults fixed. Keep every other "
+                     "word, quotation, reference, movement, band and field unchanged -- do not "
+                     "rewrite, re-order, shorten, improve or re-title anything that is not named "
+                     "above. Quote each verse exactly as the VERSES block reads. The checks are "
+                     "deterministic, so an unrelated change can only add new failures.")
+        parts.append("THE DRAFT TO REPAIR (JSON):")
+        parts.append("<<<\n" + json.dumps(previous_draft, ensure_ascii=False, indent=1) + "\n>>>")
+    elif feedback:
         parts.append("A PREVIOUS DRAFT OF THIS TEACHING FAILED THESE DETERMINISTIC CHECKS. "
                      "Do not repeat them; quote each verse exactly as the corpus reads:")
         parts.extend("- " + f for f in feedback)

@@ -1659,7 +1659,8 @@ class Road(unittest.TestCase):
 # =============================================================================
 
 class Retry(unittest.TestCase):
-    def test_a_second_attempt_is_told_exactly_what_the_first_got_wrong(self):
+    def _two_attempts(self):
+        """A failing first attempt, then a second, sharing one versions store."""
         db = FakeDb([row("r1", TEACHING, ["lesson", "lesson-building"])])
         data = tempfile.mkdtemp()
         w1 = ScriptedWriter("claude", make_lesson(drift=True), primary=True)
@@ -1668,10 +1669,75 @@ class Retry(unittest.TestCase):
         db.rows["r1"]["tags"].append("lesson-building")
         w2 = ScriptedWriter("claude", make_lesson(), primary=True)
         b2 = lb.Build(list(db.rows.values()), db, FakeGit(), [w2], CORPUS, data_dir=data, today="2026-09-29", mode="primary")
-        self.assertEqual(b2.run()["outcome"], "published")
-        self.assertIn("A PREVIOUS DRAFT OF THIS TEACHING FAILED", w2.received[0])
+        rep2 = b2.run()
+        return w1, w2, rep2, data, db
+
+    def test_a_second_attempt_is_told_exactly_what_the_first_got_wrong(self):
+        w1, w2, rep2, _, _ = self._two_attempts()
+        self.assertEqual(rep2["outcome"], "published")
         self.assertIn("(Psalms 121:4) was quoted as", w2.received[0])
+        # The FIRST attempt has nothing to repair and nothing to avoid.
         self.assertNotIn("A PREVIOUS DRAFT", w1.received[0])
+        self.assertNotIn("THIS IS A REPAIR", w1.received[0])
+
+    def test_the_second_attempt_REPAIRS_the_draft_it_does_not_rewrite_it(self):
+        """DR-1696, measured: five independent attempts per teaching produced the
+        same fault classes every time, because the prompt carried the fault list
+        and NOT the draft -- so each attempt wrote a fresh lesson with 100+
+        quotations and re-rolled every one of them. The retry now repairs."""
+        _, w2, rep2, _, _ = self._two_attempts()
+        prompt = w2.received[0]
+        self.assertIn("THIS IS A REPAIR, NOT A NEW LESSON", prompt)
+        self.assertIn("THE DRAFT TO REPAIR (JSON):", prompt)
+        # The draft itself is in the prompt, not merely described.
+        self.assertIn("The Keeper Never Sleeps", prompt)
+        self.assertIn('"verdict": "lesson"', prompt)
+        # And the instruction that makes it converge: change nothing else.
+        self.assertIn("Keep every other", prompt)
+        self.assertTrue(rep2.get("repairing"))
+
+    def test_PROVEN_TO_CATCH_a_first_attempt_must_never_be_a_repair(self):
+        """There is nothing to repair on attempt one, and a prompt that claimed
+        otherwise would hand the writer a draft that does not exist."""
+        db = FakeDb([row("r1", TEACHING, ["lesson", "lesson-building"])])
+        data = tempfile.mkdtemp()
+        w = ScriptedWriter("claude", make_lesson(), primary=True)
+        b = lb.Build(list(db.rows.values()), db, FakeGit(), [w], CORPUS, data_dir=data, today="2026-09-29", mode="primary")
+        rep = b.run()
+        self.assertEqual(rep["outcome"], "published")
+        self.assertNotIn("THIS IS A REPAIR", w.received[0])
+        self.assertNotIn("THE DRAFT TO REPAIR", w.received[0])
+        self.assertFalse(rep.get("repairing"))
+        self.assertIsNone(lb.best_previous_draft(list(db.rows.values()), data, "any-build"))
+
+    def test_best_previous_draft_picks_the_CLOSEST_failing_draft(self):
+        """Fewest problems first -- repairing the nearest draft is the shortest
+        path to a clean one. A PASSED draft was published and is not a candidate;
+        anything that is not a lesson object cannot be repaired."""
+        d = tempfile.mkdtemp()
+        os.makedirs(os.path.join(d, "versions"), exist_ok=True)
+        far = {"verdict": "lesson", "title": "Far"}
+        near = {"verdict": "lesson", "title": "Near"}
+        def rec(body, problems):
+            return {"body": body,
+                    "gate_results": {"passed": False,
+                                     "voice": {"problems": [f"p{i}" for i in range(problems)]}}}
+            # voice problems are what failure_lines() counts for this gate
+        with open(os.path.join(d, "versions", "b1.json"), "w", encoding="utf-8") as f:
+            json.dump([rec(far, 5), rec(near, 1)], f)
+        rows = [{"id": "r1", "tags": ["lesson", "build-group:b1"]}]
+        self.assertEqual(lb.best_previous_draft(rows, d, "b2"), near)
+        # a draft that PASSED is not offered for repair
+        with open(os.path.join(d, "versions", "b1.json"), "w", encoding="utf-8") as f:
+            json.dump([{"body": far, "gate_results": {"passed": True}}], f)
+        self.assertIsNone(lb.best_previous_draft(rows, d, "b2"))
+        # neither is a reply that never became a lesson object
+        with open(os.path.join(d, "versions", "b1.json"), "w", encoding="utf-8") as f:
+            json.dump([{"body": None, "gate_results": {"passed": False}},
+                       {"body": {"verdict": "not-a-lesson"}, "gate_results": {"passed": False}}], f)
+        self.assertIsNone(lb.best_previous_draft(rows, d, "b2"))
+        # an unreadable store is not a crash
+        self.assertIsNone(lb.best_previous_draft(rows, "/nonexistent-dir", "b2"))
 
 
 class Brakes(unittest.TestCase):
