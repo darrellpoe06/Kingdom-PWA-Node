@@ -1044,6 +1044,20 @@ describe('quoted verses keep their joining punctuation', () => {
     expect(parts.filter((x) => !x.verse).map((x) => x.text)).toEqual(['Before: ', 'The gathering is promised.']);
     expect(parts.filter((x) => x.verse).length).toBe(2);
   });
+
+  it('no lesson leaves a lone mark (";", "—") standing between verses, and every character is kept', async () => {
+    const { verseParts, readingTextFor } = await import('../components/learn-studio/LessonExperience.jsx');
+    expect(verseParts('"a" (John 1:1) — "b" (John 1:2)').map((x) => x.verse)).toEqual([true, true]);
+    const lone = [];
+    for (const l of learnInventory().flatMap((c) => c.lessons || [])) {
+      for (const para of readingTextFor(l, 'adult').split(/\n\n+/)) {
+        const parts = verseParts(para);
+        expect(parts.map((x) => x.text).join('')).toBe(para);
+        for (const x of parts) if (!x.verse && /^[\s;:,.!?—–-]+$/.test(x.text)) lone.push(`${l.id}: ${JSON.stringify(x.text)}`);
+      }
+    }
+    expect(lone).toEqual([]);
+  });
 });
 
 // Darrell 2026-11-26: "I just paused the lesson and it stopped and didn't start or ask if I wanted to

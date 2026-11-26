@@ -17,6 +17,7 @@ export const VERSE_RE = /"[^"]+"\s*\([^)]+\)/g;
 // a sentence starting with ". ". The leading punctuation of the text after a verse is kept INSIDE
 // that verse's span (same characters, same order), so nothing stands alone. Exported for its test.
 const LEAD_PUNCT = /^[\s;:,.!?]+/;
+const LONE_MARKS = /^[\s;:,.!?—–-]+$/;
 export function verseParts(text) {
   const parts = [];
   let last = 0;
@@ -30,7 +31,8 @@ export function verseParts(text) {
   if (last < text.length) parts.push({ verse: false, text: text.slice(last) });
   for (let i = 1; i < parts.length; i++) {
     if (parts[i].verse || !parts[i - 1].verse) continue;
-    const lead = (parts[i].text.match(LEAD_PUNCT) || [''])[0];
+    // A fragment that is only joining marks (a lone "—" between two verses) joins the verse whole.
+    const lead = LONE_MARKS.test(parts[i].text) ? parts[i].text : (parts[i].text.match(LEAD_PUNCT) || [''])[0];
     if (!lead) continue;
     parts[i - 1].text += lead;
     parts[i].text = parts[i].text.slice(lead.length);
