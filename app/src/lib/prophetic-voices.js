@@ -29,6 +29,7 @@ import { PV_PRICE_MESSAGES, PV_PRICE_OPENER } from './prophetic-voices/price.js'
 import { PV_DARBY_MESSAGES, PV_DARBY_OPENER } from './prophetic-voices/darby.js';
 import { PV_MUNROE_LESSONS } from './prophetic-voices/munroe.js';
 import { withTalkTogether } from './prophetic-voices/talk-together.js';
+import { withBenefits } from './prophetic-voices/benefits.js';
 import { PV_UNSEEN_REALM } from './prophetic-voices/unseen-realm.js';
 import {
   PV_DIOP_MESSAGES, PV_OBENGA_MESSAGES, PV_WILLIAMS_MESSAGES,
@@ -395,7 +396,7 @@ const PV_OPENER_UPGRADES = {
 export const PV_MODULES = PV_OPENERS.flatMap((first) => {
   const m = { ...first, ...(PV_OPENER_UPGRADES[first.id] || {}) };
   const own = [m, ...(PV_SEQUENCES[m.id] || [])];
-  return [...own, ...(PV_PLACED_AFTER[m.id] || [])].map(withTalkTogether);
+  return [...own, ...(PV_PLACED_AFTER[m.id] || [])].map(withTalkTogether).map(withBenefits);
 });
 
 // ---------------------------------------------------------------------------
