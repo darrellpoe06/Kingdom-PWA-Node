@@ -35,6 +35,7 @@ import { join } from 'node:path';
 import { PROJECT_MANAGEMENT_MODULES, PROJECT_MANAGEMENT_META } from '../lib/project-management-course.js';
 import { hasAllThree, placesMissingDirections } from '../lib/talk-together.js';
 import { anchorRefs } from '../lib/search-it-out.js';
+import { processLanguage } from '../lib/process-language.js';
 import { scanQuotedVerses, describeFault, loweredHolyNames, ourVoice } from '../../../scripts/quoted-verse-is-the-verse.mjs';
 import { quotedTexts } from '../../../scripts/quotation-integrity.mjs';
 
@@ -227,25 +228,39 @@ describe('pm13 — the verses are the corpus, verbatim', () => {
 });
 
 describe('pm13 — the source is reported at its real size, and the honesty cannot be edited out', () => {
-  it('the adult text AND the senior band both say it was a one-sentence teaser', () => {
+  // 2026-11-26, DR-1689: Darrell 'I'm annoyed by lessons saying they didn't research' — the research was done; the pin is now the sourcing.
+  it('the adult text AND the senior band teach what the McKinsey article says, attributed to McKinsey', () => {
     for (const [where, text] of [['bigIdea', L().bigIdea], ['senior', L().levels.senior]]) {
-      expect(/one-sentence teaser/i.test(text) || /link-out teaser/i.test(text), `${where} never calls it a teaser`).toBe(true);
-      expect(/one-sentence teaser/i.test(text), `${where} never says it was ONE sentence`).toBe(true);
+      expect(/McKinsey projects global construction spending/.test(text), `${where} never attributes the forecast to McKinsey`).toBe(true);
+      expect(/\$13 trillion in 2023 to \$22 trillion by 2040/.test(text), `${where} drops the $22 trillion by 2040 forecast`).toBe(true);
+      expect(/engineering design and planning/i.test(text), `${where} drops the first domain`).toBe(true);
+      expect(/governed, staffed and learned from/.test(text), `${where} drops the article's close on people`).toBe(true);
     }
   });
 
-  it('the adult text AND the senior band both say the full article was NOT read', () => {
+  it('the forecast is named as a forecast, not a measurement, in the OPEN tier', () => {
     for (const [where, text] of [['bigIdea', L().bigIdea], ['senior', L().levels.senior]]) {
-      expect(/we did not read the full article/i.test(text), `${where} does not say the article was unread`).toBe(true);
+      expect(/OPEN,[^.]*\$22 trillion is McKinsey’s projection[^.]*forecast and not a measurement/.test(text), `${where} inflates the forecast`).toBe(true);
     }
   });
 
-  it('no finding, figure or case is claimed from the article anywhere on the page', () => {
+  it('no research-process language anywhere a reader meets (DR-1689)', () => {
+    const m = L();
+    expect(processLanguage({ id: m.id, bigIdea: m.bigIdea })).toEqual([]);
+    for (const [band, text] of Object.entries(m.levels)) {
+      expect(processLanguage({ id: m.id, levels: { [band]: text } }), band).toEqual([]);
+    }
+    expect(processLanguage(m)).toEqual([]);
+  });
+
+  it('PROVEN TO CATCH: stripping the McKinsey sourcing from the senior band is caught', () => {
+    const stripped = L().levels.senior.replace(/McKinsey projects global construction spending[^.]*\./, '');
+    expect(/McKinsey projects global construction spending/.test(stripped)).toBe(false);
+    expect(processLanguage({ id: 'probe', levels: { senior: 'We did not read the full article, because it sat behind a link.' } }).length).toBeGreaterThan(0);
+  });
+
+  it('no invented percentage appears; the only figures are McKinsey’s trillions', () => {
     const all = EVERY_TEXT().join('\n');
-    // The lesson says so out loud...
-    expect(/teaches no finding|no finding, figure or case|reported as a finding of that article/i.test(all)).toBe(true);
-    // ...and carries no percentage or survey-sized number, which is what an
-    // invented finding would look like.
     expect(all.match(/\d+(?:\.\d+)?\s?(?:%|per cent|percent)/g), 'a percentage appears, and the source carried none').toBeNull();
   });
 
@@ -277,7 +292,8 @@ describe('pm13 — the source is reported at its real size, and the honesty cann
     // The child band carries the provenance at a child's level: naming a
     // consulting firm's mailing list to a small child is noise, not honesty.
     expect(/Darrell got a letter/.test(L().levels.child), 'the child band does not say who brought it').toBe(true);
-    expect(/could not read the long story behind it/.test(L().levels.child), 'the child band hides the limit').toBe(true);
+    // 2026-11-26, DR-1689: Darrell 'I'm annoyed by lessons saying they didn't research' — the research was done; the pin is now the sourcing.
+    expect(/The story behind it says the world will build much more/.test(L().levels.child), 'the child band drops what the story says').toBe(true);
   });
 
   it('the one real claim is carried as the letter wrote it, as the occasion for the lesson', () => {

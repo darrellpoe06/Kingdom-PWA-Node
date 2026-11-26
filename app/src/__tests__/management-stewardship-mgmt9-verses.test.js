@@ -431,13 +431,18 @@ describe('the source is said out loud, and said where the reader is', () => {
     }
   });
 
-  it('WHAT WAS NOT VERIFIED is on the lesson AND on all four bands, each pin unique to its place', () => {
+  // REPLACED 2026-11-26 (the principal's directive on research narration):
+  // these two tests used to PIN "we did not open the full column" and "nobody
+  // telephoned" into every band. A lesson states what the record shows; it does
+  // not hand the reader our research process. The honesty survives as
+  // ATTRIBUTION — every band says the column is Ms Woody's report — and the old
+  // narration is now pinned ABSENT so it cannot creep back.
+  it('every place attributes the column to Ms Woody as her report, uniquely worded', () => {
     const pins = {
-      adult: 'We did not open the full column behind its link',
-      child: 'We did not read the whole story it came from',
-      youth: 'We never opened the full column behind its link',
-      teen: 'Nobody here opened the full column sitting behind its link',
-      senior: 'The full column behind its link was never opened',
+      adult: 'Every word above about the column is Ms Woody’s, as the SmartBrief edition carried it',
+      youth: 'Everything said here about the column is Ms Woody’s report, as the SmartBrief digest carried it',
+      teen: 'Everything said above about the column is Ms Woody’s account, as the digest carried it',
+      senior: 'Every claim about the column is Ms Woody’s, as the digest carried it',
     };
     for (const [place, pin] of Object.entries(pins)) {
       const carriers = PLACES.filter((p) => TEXTS[p].includes(pin));
@@ -445,17 +450,13 @@ describe('the source is said out loud, and said where the reader is', () => {
     }
   });
 
-  it('and every place says nobody telephoned the publisher or the column’s author', () => {
-    const pins = {
-      adult: 'We did not telephone SmartBrief, Riipen, Ms Woody, the historian she names',
-      child: 'We did not call the lady, or her school, or the news people to ask them',
-      youth: 'We never rang SmartBrief, Riipen or Ms Woody to check a word of it',
-      teen: 'Nobody here telephoned SmartBrief, Riipen or Ms Woody to confirm a single line of it',
-      senior: 'Nobody telephoned SmartBrief, Riipen, Ms Woody, the historian she cites',
-    };
-    for (const [place, pin] of Object.entries(pins)) {
-      const carriers = PLACES.filter((p) => TEXTS[p].includes(pin));
-      expect(carriers, `"${pin}" should witness for ${place} alone`).toEqual([place]);
+  it('and no place narrates the research process to the reader', () => {
+    const narration = [
+      /did not open the full column/i, /never opened/i, /did not read the whole story/i,
+      /telephoned/i, /did not call the lady/i, /never rang/i, /WHAT WE DID NOT CHECK/,
+    ];
+    for (const place of PLACES) {
+      for (const re of narration) expect(re.test(TEXTS[place]), `${place} still narrates: ${re}`).toBe(false);
     }
   });
 
@@ -607,13 +608,15 @@ describe('PROVEN-TO-CATCH: each check was watched to fail on the live text', () 
     for (const [ref, span] of SPINE) expect(/['’]/.test(span), ref).toBe(false);
   });
 
-  it('deleting the disclosure from ONE band is caught, and by that band’s name', () => {
-    const pin = 'Nobody here opened the full column sitting behind its link.';
+  it('deleting the attribution from ONE band is caught, and by that band’s name', () => {
+    // UPDATED 2026-11-26: the pin is now the band's attribution of the column,
+    // which replaced the research-process narration.
+    const pin = 'Everything said above about the column is Ms Woody’s account, as the digest carried it';
     expect(L.levels.teen).toContain(pin);
     const stripped = { ...L, levels: { ...L.levels, teen: L.levels.teen.replace(pin, '') } };
     const texts = { adult: stripped.lesson, ...Object.fromEntries(BANDS.map((b) => [b, stripped.levels[b]])) };
-    const carriers = Object.keys(texts).filter((p) => texts[p].includes('Nobody here opened the full column sitting behind its link'));
-    expect(carriers, 'the teen disclosure was deleted and nothing noticed').toEqual([]);
+    const carriers = Object.keys(texts).filter((p) => texts[p].includes(pin));
+    expect(carriers, 'the teen attribution was deleted and nothing noticed').toEqual([]);
     // The pin is unique, so no other band can cover for the deletion.
     expect(PLACES.filter((p) => TEXTS[p].includes(pin))).toEqual(['teen']);
   });
