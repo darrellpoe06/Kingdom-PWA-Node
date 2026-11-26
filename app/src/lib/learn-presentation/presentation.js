@@ -235,6 +235,8 @@ export const RELATIONSHIP_GROUPS = Object.freeze([
       'll118-ninety-seven-percent-testing-a-viral-number-against-the-word-and-the-real-research',
       'ea-gh-truth-love',
       'ea-gh-inside-love',
+      'll175-true-love-starts-with-an-act-and-a-sound-mind-and-feelings-come-after-the-test',
+      'll82-love-fulfils-the-law-wake-up-and-get-dressed',
     ]),
   }),
   Object.freeze({
@@ -256,6 +258,9 @@ export const RELATIONSHIP_GROUPS = Object.freeze([
       'legacy6-hand-it-forward',
       'ea-gh-train-child',
       'ea-gh-humble-heal',
+      'ea-gh-house-serve',
+      'ea-gh-break-generational',
+      'ea-gh-father-fatherless',
     ]),
   }),
   Object.freeze({
@@ -278,6 +283,7 @@ export const RELATIONSHIP_GROUPS = Object.freeze([
     ids: Object.freeze([
       'll16-rule-your-spirit-repair-the-bond',
       'ea-gh-forgive-forgiven',
+      'ea-gh-soft-answer',
       'll291-fruits-meet-for-repentance',
       'll151-the-tongue-death-and-life-in-a-little-member-and-the-knowledge-that-governs-it',
       'll141-separate-and-connect-working-through-issues-studying-to-be-approved-tempted-versus-tried-and-how-we-handle-each-other-and-enemies',

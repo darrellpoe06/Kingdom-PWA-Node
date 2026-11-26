@@ -17,7 +17,7 @@ beforeEach(() => {
   // These cases read the List look (DR-1661's numbered rows); the home now opens on Pictures
   // (learn-functions-in-new-look.test.jsx holds that default), so they pick List as a reader would.
   try {
-    window.localStorage.setItem('ls-view:lesson-view', 'list');
+    window.localStorage.setItem('ls-view:lesson-view-2', 'list');
   } catch {
     /* no storage */
   }
@@ -36,7 +36,7 @@ const pick = (sel, v) =>
     sel.dispatchEvent(new Event('change', { bubbles: true }));
   });
 
-describe('the lessons on the Learn home, in order (DR-1661; pictures first since DR-1678)', () => {
+describe('the lessons are first on the Learn home, in order (DR-1661, pictures first DR-1686)', () => {
   it('orderedLessons: in order by default, and every other order', () => {
     const rows = orderedLessons(LIVING, new Map());
     expect(rows.length).toBe(LIVING.schedule.length);
@@ -48,14 +48,16 @@ describe('the lessons on the Learn home, in order (DR-1661; pictures first since
     expect(za[0]).toBe(az[az.length - 1]);
   });
 
-  // Order changed by Darrell 2026-11-26 (DR-1678 addendum): "Best start with seeing ourselves!!!" The pictures
-  // lead and the list follows, folded; it still opens on Living Lessons, lesson 1 on top.
-  it('the list follows the pictures and opens on Living Lessons, lesson 1 on top', () => {
+  it('the pictures lead (DR-1686): the carousel, then the lessons, Living Lessons lesson 1 on top', () => {
     act(() => root.render(<LearnStudioPreview courses={COURSES} onOpenLesson={vi.fn()} onExit={vi.fn()} ownerDevice />));
     const list = container.querySelector('[data-testid="lessons-in-order"]');
     expect(list).toBeTruthy();
+    // Darrell 2026-11-26: "More images at the top of the app." The carousel is first, the lessons right after it.
     const hero = container.querySelector('.ls-hero');
-    if (hero) expect(hero.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(hero).toBeTruthy();
+    expect(hero.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const search = container.querySelector('.ls-top');
+    expect(hero.compareDocumentPosition(search) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(container.querySelector('[data-testid="inorder-course"]').value).toBe('living-lessons');
     const rows = container.querySelectorAll('.ls-inorder-row');
     expect(rows.length).toBe(FIRST_ROWS);

@@ -727,9 +727,10 @@ export default function LearnStudio({
                   </div>
                 )}
               />
-              {dashboard}
               <Row icon="star" title="Discover Something New" note="Hand-picked lessons" items={home.discover} onOpen={openLesson} />
               <Row icon="play" title="Recently Added" items={home.recentlyAdded} onOpen={openLesson} />
+              {/* The picture shelves first, then the words (your record, the course list) below them (DR-1686). */}
+              {dashboard}
               {/* Relationships is a topic of its own, first in the grid (DR-1675; Darrell 2026-11-26: "Should
                 say relationships as an option"), wearing one of its own lessons' approved covers. */}
               <TopicGrid

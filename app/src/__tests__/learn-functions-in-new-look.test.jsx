@@ -304,6 +304,9 @@ describe('Relationships, in one place', () => {
     const hero = $('ls-hero');
     expect(hero.compareDocumentPosition(shelf) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(shelf.compareDocumentPosition(container.querySelector('.ls-top')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // DR-1686: the Relationships shelf stays above the dashboard's words.
+    const dash = $('learn-dashboard');
+    if (dash) expect(shelf.compareDocumentPosition(dash) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     click([...shelf.querySelectorAll('button')].find((b) => b.textContent.includes('See All')));
     expect(container.querySelectorAll('.ls-grid button.ls-card').length).toBe(RELATIONSHIP_LESSONS.length);
     // A section of its own, in four parts (DR-1675), with every way to view a list: Pictures | List.

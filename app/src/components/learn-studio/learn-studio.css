@@ -609,8 +609,9 @@
   .ls-root {
     padding: 10px 12px 40px;
   }
+  /* Square on a phone (DR-1686): the carousel leads, and the first lesson pictures still show on the first screen. */
   .ls-hero {
-    aspect-ratio: 4 / 5;
+    aspect-ratio: 1 / 1;
     min-height: 0;
     border-radius: 16px;
   }

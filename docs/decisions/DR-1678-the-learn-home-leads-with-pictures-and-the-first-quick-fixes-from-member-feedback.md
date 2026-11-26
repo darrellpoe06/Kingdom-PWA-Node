@@ -47,3 +47,5 @@ Open from the triage, next in the loop: confirm on a device that Choir's Add kee
 ## Addendum 2026-11-26: we see ourselves first
 
 Darrell, from his phone, with the Learn home open on the Lessons box: "Best start with seeing ourselves!!!!!!!!!!!!!!!!!! Obviously!!!!!!" On the Learn home the pictures now lead: the featured lessons (the people in our lessons, DR-1287), then the Relationships shelf, then Continue Learning; search, All Courses and the folded Lessons list follow. A search, a course page or a shelf page shows no lead. Pinned by `learn-functions-in-new-look` ("the home opens on the pictures"); it fails with `LearnStudio.jsx` at the previous order.
+
+**Reconciled 2026-11-26 with DR-1686 (#2948, a parallel session on the same ask):** both stand together. The carousel leads; then Relationships, Continue Learning and Closest to Finished; then search and the Lessons drop-down, closed. Opened, the list is in Pictures by default (DR-1686's `lesson-view-2`) with its pickers under the pictures. Then Discover, Recently Added, and the dashboard's words last. Relationships carries the union of both picks: DR-1686's six additions joined their sections.
