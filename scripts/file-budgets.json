@@ -504,12 +504,26 @@
       "to": 6037,
       "date": "2026-11-26",
       "why": "DR-1662: every classic Learn function inside the new look. The wiring was cut first (62 added lines became 11): the record, read mark and scroll helpers moved to lib/learn-studio-bridge.js, the props packed, a stale deep-link comment condensed. What stays is the four lesson-open intercepts and the one hand-off. Raised to the measured size, not above it."
+    },
+    {
+      "file": "app/src/lib/world-issues-class.js",
+      "from": 6789,
+      "to": 6825,
+      "date": "2026-11-26",
+      "why": "DR-1689: wi-the-way-was-45-minutes-long researched instead of left 'Unverified': the 2026-09-01 Tarrant County vote reversed the lesson's verdict, so its checks, sources (nine 2026 publishers) and bands were rewritten. Raised to the measured size, not above it."
+    },
+    {
+      "file": "app/src/lib/project-management-course.js",
+      "from": 1921,
+      "to": 1940,
+      "date": "2026-11-26",
+      "why": "DR-1689: pm13, pm14, pm15, pm17 researched instead of saying what we did not read; each lesson now carries its sources array (McKinsey, Recurly, the forward-deployed-engineer record, Supply Chain Connect). Raised to the measured size, not above it."
     }
   ],
   "budgets": {
     "app/src/lib/living-lessons-class.js": 33072,
     "app/src/lib/sovereign-ai-class.js": 16677,
-    "app/src/lib/world-issues-class.js": 6789,
+    "app/src/lib/world-issues-class.js": 6825,
     "app/src/components/ChurchLearn.jsx": 6037,
     "app/src/modules/properties/DoorTabs.jsx": 3352,
     "app/src/components/Rentals.jsx": 3220,
@@ -523,7 +537,7 @@
     "app/src/components/Projects.jsx": 1939,
     "app/src/components/PracticeLearn.jsx": 1804,
     "app/src/lib/presentable.js": 1527,
-    "app/src/lib/project-management-course.js": 1921
+    "app/src/lib/project-management-course.js": 1940
   },
   "dirBudgets": {
     "app/src/lib/living-lessons/": 600
