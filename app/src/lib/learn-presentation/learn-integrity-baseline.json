@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T12:13:31.849Z",
+ "measuredAt": "2026-11-26T12:18:12.320Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4490
+  "readings": 4492
  },
  "departments": [
   {
@@ -14078,11 +14078,13 @@
    "department": "The Eternal Algorithms",
    "position": 5,
    "title": "Die Daily (ready to go Home at any time)",
-   "contentSha": "f0a45fb1098c18c52c987dfb6e98270ef36aa0c30ed0d000ad1110998c8f168e",
+   "contentSha": "0e206c08a576ba9db50e0ace2d22a1e8abc3a95b004e21038819a9cbf6faf003",
    "versions": {
-    "teen": "93cb1166016a9815ebc726ee6aafd871468c72a101f5efd09127c813ad2b3f0d",
-    "adult": "14da7a6e2331fa56b8fb6133d421bc73638fd6e234036d7374da2fd14f6eccfe",
-    "senior": "a2e64b421afc35b76feb13aea7aa8b5687306a6d74095e64485458a4a53dc964"
+    "child": "624e7ac116f2a8882d537280ca5acd77916328007179c612565f162122e43633",
+    "youth": "0814310a9738940ffe957d3405549eef9ec48880dd0e7c06ccc4e9b16da948ec",
+    "teen": "e42c263280a7644339cdbe9f6575cfeb6d4c727dab3287f7987a37f2921dffc4",
+    "adult": "16f96c99c4acbdbb7d70661d2ab91ea2272404c5c3b110d340f0a4d7cf11c356",
+    "senior": "f46e371ba43c0abd252460ab108250b258e33856d567941f49f677521b7108c9"
    }
   },
   {
