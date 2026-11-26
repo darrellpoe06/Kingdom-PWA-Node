@@ -136,7 +136,7 @@ import { studioRecord, studioMarkFor, scrollToStudioTools, studioSavePlace } fro
 import { fileQuizAttempt } from '../lib/quiz-attempt.js';
 import { unitLabels } from '../lib/learn-units.js';
 import { ContinueOffer, ContinueChip, RowContinue, resolvePlaces } from './LessonContinue.jsx';
-import LatestLessons from './LatestLessons.jsx';
+import LatestLessons from './LatestLessons.jsx'; import LessonProgressBar from './LessonProgressBar.jsx'; // DR-1684: how far, on every lesson
 import LibraryCensus from './LibraryCensus.jsx';
 // THE ONE LIST YOU CHOOSE FROM (DR-1183) — shown instead of a course while no
 // course has been chosen, so Learn never opens as a title page for a course
@@ -3181,7 +3181,7 @@ function CourseView({
                   title={!tutorOpen && placeInProgress(placeByLesson[m.id]) ? `Continue where you left off — ${placeWhere(placeByLesson[m.id])}` : undefined}
                   className={`text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] ${tutorOpen ? 'border border-[#B85838] text-[#B85838]' : (placeInProgress(placeByLesson[m.id]) ? 'border-2 border-[#5A6E3D] bg-[#5A6E3D] text-white font-semibold hover:bg-[#4a5a31]' : 'border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white')}`}
                 >
-                  {tutorOpen ? 'Close the guide' : (placeInProgress(placeByLesson[m.id]) ? `Continue this ${U.noun} →` : `Start this ${U.noun} →`)}
+                  {tutorOpen ? 'Close the guide' : (placeInProgress(placeByLesson[m.id]) ? `Continue this ${U.noun} →` : `Start this ${U.noun} →`)}{!tutorOpen && <LessonProgressBar place={placeByLesson[m.id]} look="oncolor" />}
                 </button>
                 )}
                 {/* ▶ PLAY THIS ONE — opens the big full-screen reader on this

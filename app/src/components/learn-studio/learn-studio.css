@@ -409,6 +409,36 @@
   position: absolute;
   inset: 0;
 }
+/* HOW FAR (DR-1684): a strip along the bottom edge of a lesson's cover. The
+   fill is gold on a near-opaque dark track, so its contrast never depends on
+   the photograph under it (measured in lesson-progress-bar.test.jsx). Gold,
+   never red: true red is reserved for the Blood (DR-0099). No transition. */
+.ls-progress {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  height: 5px;
+  background: rgba(0, 0, 0, 0.82);
+  overflow: hidden;
+  pointer-events: none;
+}
+.ls-progress-fill {
+  display: block;
+  height: 100%;
+  min-width: 3px;
+  background: var(--ls-gold);
+}
+/* In a list row it sits under the title, full width of the title column. */
+.ls-progress.ls-progress--inline {
+  position: relative;
+  display: block;
+  height: 4px;
+  margin-top: 6px;
+  border-radius: 2px;
+  background: var(--ls-line);
+}
 .ls-badge {
   position: absolute;
   right: 8px;

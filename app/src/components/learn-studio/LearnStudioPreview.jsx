@@ -16,6 +16,8 @@ import LearnDashboard from './LearnDashboard.jsx';
 import { recordUse } from '../../lib/ux-signals.js';
 import { useHistoryValue } from '../../lib/nav-history.js';
 import { ensureLearnTheme } from '../../lib/learn-theme.js';
+import { listPlaces, placeInProgress } from '../../lib/learn-resume.js';
+import { studioWitness } from '../../lib/lesson-progress.js';
 import LearnStudio from './LearnStudio.jsx';
 import { presentationIndex, isLearnStudioOn, STUDIO_FLAG_KEY, allLessons } from '../../lib/learn-presentation/presentation.js';
 
@@ -97,7 +99,10 @@ export default function LearnStudioPreview({
   const [active, setActive] = useState(null); // { lesson, course } open in the Experience, or null
   // Back closes the open lesson and lands where the reader was (DR-1674), never out of the app.
   const closeActive = React.useCallback((v) => {
-    if (v == null) setActive(null);
+    if (v == null) {
+      setActive(null);
+      setClosed((n) => n + 1); // Back re-reads the places too (DR-1684)
+    }
   }, []);
   useHistoryValue(active ? active.lesson.id : null, closeActive, { base: null, key: 'ls-lesson' });
   const [experienceMode, setExperienceMode] = useState('watch');
@@ -105,6 +110,20 @@ export default function LearnStudioPreview({
   const catalog = useMemo(() => allLessons(courses), [courses]);
   const activeRecord = active ? index.get(active.lesson.id) || null : null;
   const activeCourseKey = active ? courseKeyOf(active.course) : null;
+  // THE PLACES, FRESH WHEN A LESSON CLOSES (DR-1684). The parent's places are
+  // read once and refreshed only on a finish, so a lesson read halfway in the
+  // Experience came back to a grid that did not know it. Each close re-reads
+  // the device's places: the bars, Continue and Closest to Finished say now.
+  const [closed, setClosed] = useState(0);
+  const livePlaces = useMemo(() => (closed ? listPlaces() : ctx.places || NO_PLACES), [closed, ctx.places]);
+  const liveBegun = useMemo(() => (closed ? livePlaces.filter(placeInProgress) : places), [closed, livePlaces, places]);
+  const closeLesson = () => {
+    setActive(null);
+    setClosed((n) => n + 1);
+  };
+  // The Experience's witnesses write the lesson's own place (DR-1684; before,
+  // onSeen/onHeard were no-ops here and a reading in the new look recorded nothing).
+  const witness = useMemo(() => (active ? studioWitness(activeCourseKey, active.lesson.id) : null), [active, activeCourseKey]);
   // Darrell, 2026-11-25: "the all listed should populate like YouTube... so
   // all available can be seen in a list of options." Other real lessons of the
   // SAME course, each with its real approved cover; no new art.
@@ -147,7 +166,7 @@ export default function LearnStudioPreview({
   const openOther = (courseKey, lessonId) => {
     const hit = catalog.find((x) => x.lesson.id === lessonId && courseKeyOf(x.course) === courseKey);
     if (hit && opens(hit.lesson)) return open(hit.lesson, hit.course, 'watch', 'adult');
-    setActive(null);
+    closeLesson();
     return onOpenLesson(courseKey, lessonId);
   };
   // A lesson chosen in the classic tools on this page (Continue, Latest, Find,
@@ -170,27 +189,30 @@ export default function LearnStudioPreview({
   }, []);
   if (active && ownerDevice) {
     return (
-      <LessonExperienceBoundary onExit={() => setActive(null)}>
+      <LessonExperienceBoundary onExit={closeLesson}>
         <LessonExperience
           key={active.lesson.id}
           lesson={active.lesson}
           record={activeRecord}
-          onExit={() => setActive(null)}
+          onExit={closeLesson}
           lessonTools={
             // The classic space's full tools when the Learn page hands them over (DR-1674): reading
-            // credit, place, downloads, age first; else only the quiz, as before.
+            // credit, place, downloads, age first. Else the lesson's own place witness (DR-1684) and the quiz.
             lessonToolsFor
               ? lessonToolsFor(active.lesson, active.course)
-              : quiz
-                ? {
-                    onLevel() {},
-                    onHeard() {},
-                    onSeen() {},
-                    quizSaves: !!quiz.saves,
-                    quizSaved: quiz.saved(active.lesson.id),
-                    onRecordQuiz: (id, r) => quiz.record(activeCourseKey, id, r),
-                  }
-                : null
+              : {
+                  place: witness.place,
+                  onLevel: witness.onLevel,
+                  onHeard: witness.onHeard,
+                  onSeen: witness.onSeen,
+                  ...(quiz
+                    ? {
+                        quizSaves: !!quiz.saves,
+                        quizSaved: quiz.saved(active.lesson.id),
+                        onRecordQuiz: (id, r) => quiz.record(activeCourseKey, id, r),
+                      }
+                    : {}),
+                }
           }
           initialMode={experienceMode}
           initialLevel={experienceLevel}
@@ -199,7 +221,7 @@ export default function LearnStudioPreview({
           nextLesson={neighborLessons(active.lesson, active.course, activeCourseKey).next}
           onOpenOther={openOther}
           onFullPage={() => {
-            setActive(null);
+            closeLesson();
             toClassic(active.lesson, active.course);
           }}
         />
@@ -221,7 +243,8 @@ export default function LearnStudioPreview({
           onExit={onExit}
           initialLesson={initialLessonId}
           initialCourse={initialCourseKey}
-          places={places}
+          places={liveBegun}
+          allPlaces={livePlaces}
           progress={ctx.progress || {}}
           done={done}
           markFor={markFor}

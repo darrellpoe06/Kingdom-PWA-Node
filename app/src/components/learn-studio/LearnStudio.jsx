@@ -32,6 +32,8 @@ import LessonsInOrder, { MiniThumb, Toggle, VIEWS, remembered, remember } from '
 import { shippedSrcSet } from '../../lib/institute-studio.js';
 import { scrollToStudioTools } from '../../lib/learn-studio-bridge.js';
 import CourseLessonsView from './CourseLessonsView.jsx';
+import { PlaceLookupContext, LessonProgressFor } from '../LessonProgressBar.jsx';
+import { placeLookup } from '../../lib/lesson-progress.js';
 import './learn-studio.css';
 
 /** 2–3 balanced lines, the same rule the thumbnail compositor uses. */
@@ -130,6 +132,8 @@ function Card({ x, onOpen }) {
           <Headline text={p.image ? p.thumbHeadline : interimHeadline(p)} />
         </Art>
         {p.duration && <span className="ls-badge">{p.duration}</span>}
+        {/* HOW FAR, ON EVERY CARD (DR-1684): read or heard, from this device's own place; nothing measured, no bar. */}
+        <LessonProgressFor courseKey={p.courseKey} lessonId={p.lessonId} look="studio" />
       </div>
       <div className="ls-card-title">{p.displayTitle}</div>
       <div className="ls-card-meta">
@@ -354,6 +358,7 @@ export function LessonCover({ x, next, onBack, onRead, onListen, onVersion, onOp
         <Art p={p} eager sizes="100vw">
           <Headline text={p.image ? p.thumbHeadline : interimHeadline(p)} size="cover" />
         </Art>
+        <LessonProgressFor courseKey={p.courseKey} lessonId={p.lessonId} look="studio" />
       </div>
       <h1 className="ls-cover-title">{p.displayTitle}</h1>
       {/* The author's complete original title, directly under the new title. */}
@@ -430,6 +435,7 @@ export default function LearnStudio({
   preview = false,
   topicCovers = NO_COVERS,
   places = NO_PLACES,
+  allPlaces = null, // DR-1684: every saved place on the device (begun, finished, measured) -- the bars and Closest to Finished
   progress = NO_PROGRESS,
   onRead,
   onListen,
@@ -446,7 +452,12 @@ export default function LearnStudio({
   courseRequest = null, // { key, nonce }: open this course page (from the dashboard)
   markFor = null, // (lesson, courseKey) -> "✓ READ ×3 · Adult" or ''
 }) {
-  const home = useMemo(() => studioHome(courses, index, { places, progress, preview }), [courses, index, places, progress, preview]);
+  const everyPlace = allPlaces || places;
+  const home = useMemo(
+    () => studioHome(courses, index, { places, allPlaces: everyPlace, progress, preview }),
+    [courses, index, places, everyPlace, progress, preview]
+  );
+  const findPlace = useMemo(() => placeLookup(everyPlace), [everyPlace]);
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(null);
   const [shelf, setShelf] = useState(null);
@@ -555,9 +566,11 @@ export default function LearnStudio({
     const next = list.length > 1 ? list[(at + 1) % list.length] : null;
     return (
       <CoversContext.Provider value={topicCovers}>
-        <div className="ls-root">
-          <LessonCover x={open} next={next} onBack={() => setOpen(null)} onRead={read} onListen={listen} onVersion={version} onOpen={openLesson} />
-        </div>
+        <PlaceLookupContext.Provider value={findPlace}>
+          <div className="ls-root">
+            <LessonCover x={open} next={next} onBack={() => setOpen(null)} onRead={read} onListen={listen} onVersion={version} onOpen={openLesson} />
+          </div>
+        </PlaceLookupContext.Provider>
       </CoversContext.Provider>
     );
   }
@@ -567,199 +580,205 @@ export default function LearnStudio({
     shelf === 'relationships' ? { id: 'relationships', label: 'Relationships', items: home.relationships } : shelf && home.shelves.find((s) => s.id === shelf);
   return (
     <CoversContext.Provider value={topicCovers}>
-      <div className="ls-root">
-        {/* WE SEE OURSELVES FIRST (Darrell 2026-11-26: "Best start with seeing ourselves!!!"): on the
+      <PlaceLookupContext.Provider value={findPlace}>
+        <div className="ls-root">
+          {/* WE SEE OURSELVES FIRST (Darrell 2026-11-26: "Best start with seeing ourselves!!!"): on the
             Learn home the pictures lead, then Relationships and what you were reading; search and the Lessons
             list follow. */}
-        {!query.trim() && !pickedCourse && !pickedShelf && (
-          <div data-testid="ls-home-lead">
-            <Hero slides={heroSlides} onOpen={openLesson} onListen={listen} />
-            {/* RELATIONSHIPS, IN ONE PLACE (Darrell 2026-11-26: "my wife says ladies will want those most"). */}
-            <div data-testid="ls-relationships">
-              <Row
-                icon="star"
-                title="Relationships"
-                note="Marriage, love, family and friendship"
-                items={home.relationships}
-                onOpen={openLesson}
-                onSeeAll={() => setShelf('relationships')}
-              />
+          {!query.trim() && !pickedCourse && !pickedShelf && (
+            <div data-testid="ls-home-lead">
+              <Hero slides={heroSlides} onOpen={openLesson} onListen={listen} />
+              {/* RELATIONSHIPS, IN ONE PLACE (Darrell 2026-11-26: "my wife says ladies will want those most"). */}
+              <div data-testid="ls-relationships">
+                <Row
+                  icon="star"
+                  title="Relationships"
+                  note="Marriage, love, family and friendship"
+                  items={home.relationships}
+                  onOpen={openLesson}
+                  onSeeAll={() => setShelf('relationships')}
+                />
+              </div>
+              <Row icon="play" title="Continue Learning" items={home.continueLearning} onOpen={openLesson} />
+              {/* DR-1684 (Darrell 2026-11-26): "so we can pick the ones we are closest to finishing". */}
+              <div data-testid="ls-closest">
+                <Row icon="play" title="Closest to Finished" note="Started, furthest along first" items={home.closestToFinished} onOpen={openLesson} />
+              </div>
             </div>
-            <Row icon="play" title="Continue Learning" items={home.continueLearning} onOpen={openLesson} />
-          </div>
-        )}
-        <div className="ls-top">
-          <label className="ls-search">
-            <span className="ls-search-ico" aria-hidden="true" />
-            <input
-              type="search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search lessons, titles or courses..."
-              aria-label="Search lessons, titles or courses"
-            />
-          </label>
-          {/* ALL COURSES STAYS IN THE NEW LOOK (Darrell 2026-11-26, sent the classic page:
+          )}
+          <div className="ls-top">
+            <label className="ls-search">
+              <span className="ls-search-ico" aria-hidden="true" />
+              <input
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search lessons, titles or courses..."
+                aria-label="Search lessons, titles or courses"
+              />
+            </label>
+            {/* ALL COURSES STAYS IN THE NEW LOOK (Darrell 2026-11-26, sent the classic page:
               "How is this still a view?"). It opened the classic page; with the courses here it
               goes to them. Only a page without the dashboard still leaves. */}
-          <button
-            type="button"
-            className={`ls-btn ls-btn--outline ls-all ${RING}`}
-            data-testid="ls-all-courses"
-            onClick={() => {
-              if (!dashboard) return onExit && onExit();
-              setQuery('');
-              setShelf(null);
-              setCourseKey(null);
-              setAllCoursesTick((n) => n + 1);
-            }}
-          >
-            All Courses
-          </button>
-        </div>
-        {home.totals.presented === 0 && (
-          <p className="ls-empty" role="status">
-            No lesson has an approved cover yet, so this view has nothing to show. Every lesson is still in All Courses; covers appear here once they are
-            approved in the review.
-          </p>
-        )}
-        {query.trim() ? (
-          results.length ? (
-            <Row
-              title={`Results for “${query.trim()}”`}
-              note={`${results.length} lessons`}
-              items={results.map((r) => ({ ...r, p: r.p || presentLesson(r.lesson, r.course, index, { preview }) }))}
-              onOpen={openLesson}
-            />
-          ) : (
+            <button
+              type="button"
+              className={`ls-btn ls-btn--outline ls-all ${RING}`}
+              data-testid="ls-all-courses"
+              onClick={() => {
+                if (!dashboard) return onExit && onExit();
+                setQuery('');
+                setShelf(null);
+                setCourseKey(null);
+                setAllCoursesTick((n) => n + 1);
+              }}
+            >
+              All Courses
+            </button>
+          </div>
+          {home.totals.presented === 0 && (
             <p className="ls-empty" role="status">
-              No lesson matches “{query.trim()}”. Search reads new titles, original titles, courses and lesson numbers; try a word from the original title.
+              No lesson has an approved cover yet, so this view has nothing to show. Every lesson is still in All Courses; covers appear here once they are
+              approved in the review.
             </p>
-          )
-        ) : pickedCourse ? (
-          <>
-            <button type="button" className={`ls-back ${RING}`} onClick={() => setCourseKey(null)}>
-              ‹ Back to Learn
-            </button>
-            <CourseLessonsView
-              title={pickedCourse.title}
-              items={pickedCourse.items}
-              onOpen={openLesson}
-              renderPictures={(rows) => <Row title={pickedCourse.title} note={`${rows.length} lessons`} items={rows} onOpen={openLesson} grid />}
-              // DR-1662: List is the compact-thumbnail list (read marks, ages, Show), in the order chosen above.
-              course={(courses || []).find((k) => (k.key || (k.meta && k.meta.key)) === courseKey) || null}
-              onResume={(x) => read(x)}
-              renderList={(order, partIds) => (
-                <LessonsInOrder
-                  courses={courses}
-                  index={index}
-                  preview={preview}
-                  onOpen={(x) => read(x)}
-                  done={done}
-                  fixedCourse={courseKey}
-                  order={order}
-                  onlyIds={partIds}
-                  onListen={listen}
-                  listTestId="course-list"
-                  markFor={markFor}
-                  onVersion={version}
-                />
-              )}
-            />
-            {tools && (
-              <ToolsPanel title={`${pickedCourse.title}: every tool`} note="record, downloads, share, ages">
-                {tools}
-              </ToolsPanel>
-            )}
-          </>
-        ) : pickedShelf ? (
-          <>
-            <button type="button" className={`ls-back ${RING}`} onClick={() => setShelf(null)}>
-              ‹ Back to Learn
-            </button>
-            {pickedShelf.id === 'relationships' && home.relationshipGroups && home.relationshipGroups.length ? (
-              // Relationships is a section of its own, in four parts (DR-1675).
-              <div data-testid="ls-relationship-sections">
-                <h2 className="ls-section-title">Relationships · {pickedShelf.items.length} lessons</h2>
-                <Toggle label="View" options={VIEWS} value={relView} onChange={setRelView} testid="ls-relationship-view" />
-                {home.relationshipGroups.map((g) => (
-                  <Row key={g.id} title={`${g.label} · ${g.items.length}`} items={g.items} onOpen={openLesson} grid view={relView} />
-                ))}
-              </div>
+          )}
+          {query.trim() ? (
+            results.length ? (
+              <Row
+                title={`Results for “${query.trim()}”`}
+                note={`${results.length} lessons`}
+                items={results.map((r) => ({ ...r, p: r.p || presentLesson(r.lesson, r.course, index, { preview }) }))}
+                onOpen={openLesson}
+              />
             ) : (
-              <Row title={pickedShelf.label} items={pickedShelf.items} onOpen={openLesson} grid />
-            )}
-          </>
-        ) : (
-          <>
-            <LessonsInOrder
-              foldable
-              courses={courses}
-              index={index}
-              preview={preview}
-              onOpen={(x) => read(x)}
-              done={done}
-              markFor={markFor}
-              onVersion={version}
-              renderPictures={(rows, { grid }) => (
-                <div className={grid ? 'ls-grid ts-grid-collapse' : 'ls-scroller'}>
-                  {rows.map((x) => (
-                    <Card key={`${x.p.courseKey}::${x.p.lessonId}`} x={x} onOpen={openLesson} />
+              <p className="ls-empty" role="status">
+                No lesson matches “{query.trim()}”. Search reads new titles, original titles, courses and lesson numbers; try a word from the original title.
+              </p>
+            )
+          ) : pickedCourse ? (
+            <>
+              <button type="button" className={`ls-back ${RING}`} onClick={() => setCourseKey(null)}>
+                ‹ Back to Learn
+              </button>
+              <CourseLessonsView
+                title={pickedCourse.title}
+                items={pickedCourse.items}
+                onOpen={openLesson}
+                renderPictures={(rows) => <Row title={pickedCourse.title} note={`${rows.length} lessons`} items={rows} onOpen={openLesson} grid />}
+                // DR-1662: List is the compact-thumbnail list (read marks, ages, Show), in the order chosen above.
+                course={(courses || []).find((k) => (k.key || (k.meta && k.meta.key)) === courseKey) || null}
+                onResume={(x) => read(x)}
+                renderList={(order, partIds) => (
+                  <LessonsInOrder
+                    courses={courses}
+                    index={index}
+                    preview={preview}
+                    onOpen={(x) => read(x)}
+                    done={done}
+                    fixedCourse={courseKey}
+                    order={order}
+                    onlyIds={partIds}
+                    onListen={listen}
+                    listTestId="course-list"
+                    markFor={markFor}
+                    onVersion={version}
+                  />
+                )}
+              />
+              {tools && (
+                <ToolsPanel title={`${pickedCourse.title}: every tool`} note="record, downloads, share, ages">
+                  {tools}
+                </ToolsPanel>
+              )}
+            </>
+          ) : pickedShelf ? (
+            <>
+              <button type="button" className={`ls-back ${RING}`} onClick={() => setShelf(null)}>
+                ‹ Back to Learn
+              </button>
+              {pickedShelf.id === 'relationships' && home.relationshipGroups && home.relationshipGroups.length ? (
+                // Relationships is a section of its own, in four parts (DR-1675).
+                <div data-testid="ls-relationship-sections">
+                  <h2 className="ls-section-title">Relationships · {pickedShelf.items.length} lessons</h2>
+                  <Toggle label="View" options={VIEWS} value={relView} onChange={setRelView} testid="ls-relationship-view" />
+                  {home.relationshipGroups.map((g) => (
+                    <Row key={g.id} title={`${g.label} · ${g.items.length}`} items={g.items} onOpen={openLesson} grid view={relView} />
                   ))}
                 </div>
+              ) : (
+                <Row title={pickedShelf.label} items={pickedShelf.items} onOpen={openLesson} grid />
               )}
-            />
-            {dashboard}
-            <Row icon="star" title="Discover Something New" note="Hand-picked lessons" items={home.discover} onOpen={openLesson} />
-            <Row icon="play" title="Recently Added" items={home.recentlyAdded} onOpen={openLesson} />
-            {/* Relationships is a topic of its own, first in the grid (DR-1675; Darrell 2026-11-26: "Should
+            </>
+          ) : (
+            <>
+              <LessonsInOrder
+                foldable
+                courses={courses}
+                index={index}
+                preview={preview}
+                onOpen={(x) => read(x)}
+                done={done}
+                markFor={markFor}
+                onVersion={version}
+                renderPictures={(rows, { grid }) => (
+                  <div className={grid ? 'ls-grid ts-grid-collapse' : 'ls-scroller'}>
+                    {rows.map((x) => (
+                      <Card key={`${x.p.courseKey}::${x.p.lessonId}`} x={x} onOpen={openLesson} />
+                    ))}
+                  </div>
+                )}
+              />
+              {dashboard}
+              <Row icon="star" title="Discover Something New" note="Hand-picked lessons" items={home.discover} onOpen={openLesson} />
+              <Row icon="play" title="Recently Added" items={home.recentlyAdded} onOpen={openLesson} />
+              {/* Relationships is a topic of its own, first in the grid (DR-1675; Darrell 2026-11-26: "Should
                 say relationships as an option"), wearing one of its own lessons' approved covers. */}
-            <TopicGrid
-              topics={home.relationships && home.relationships.length ? [RELATIONSHIPS_TOPIC, ...SHELVES] : SHELVES}
-              covers={
-                home.relationships && home.relationships[0] && home.relationships[0].p.image
-                  ? { ...topicCovers, relationships: { image: home.relationships[0].p.image, alt: home.relationships[0].p.displayTitle } }
-                  : topicCovers
-              }
-              onPick={(t) => setShelf(t.id)}
-            />
-            {home.shelves.map((s) => (
-              <Row key={s.id} title={s.label} items={s.items} onOpen={openLesson} onSeeAll={() => setShelf(s.id)} />
-            ))}
-            <section className="ls-row">
-              <header className="ls-row-head">
-                <h2>
-                  <span className="ls-ico ls-ico--star" aria-hidden="true" />
-                  All {home.topics.length} Departments
-                </h2>
-                <span className="ls-note">{home.totals.lessons} lessons</span>
-              </header>
-              <div className="ls-depts">
-                {home.topics.map((t) => (
-                  <button
-                    key={t.label}
-                    type="button"
-                    className={`ls-chip ls-chip--dept ${RING}`}
-                    onClick={() => {
-                      // The department opens in the tools on this page; only a department the tools do not know leaves for All Courses.
-                      // Never back to the classic page: the department opens in the tools on this page.
-                      if (onDepartment) onDepartment(t.label);
-                      scrollToStudioTools();
-                    }}
-                  >
-                    {t.label} · {t.lessons}
-                  </button>
-                ))}
-              </div>
-            </section>
-            {tools && (
-              <ToolsPanel title="Every Learn Tool" note="Continue, Latest, Browse, Find, Record, Downloads">
-                {tools}
-              </ToolsPanel>
-            )}
-          </>
-        )}
-      </div>
+              <TopicGrid
+                topics={home.relationships && home.relationships.length ? [RELATIONSHIPS_TOPIC, ...SHELVES] : SHELVES}
+                covers={
+                  home.relationships && home.relationships[0] && home.relationships[0].p.image
+                    ? { ...topicCovers, relationships: { image: home.relationships[0].p.image, alt: home.relationships[0].p.displayTitle } }
+                    : topicCovers
+                }
+                onPick={(t) => setShelf(t.id)}
+              />
+              {home.shelves.map((s) => (
+                <Row key={s.id} title={s.label} items={s.items} onOpen={openLesson} onSeeAll={() => setShelf(s.id)} />
+              ))}
+              <section className="ls-row">
+                <header className="ls-row-head">
+                  <h2>
+                    <span className="ls-ico ls-ico--star" aria-hidden="true" />
+                    All {home.topics.length} Departments
+                  </h2>
+                  <span className="ls-note">{home.totals.lessons} lessons</span>
+                </header>
+                <div className="ls-depts">
+                  {home.topics.map((t) => (
+                    <button
+                      key={t.label}
+                      type="button"
+                      className={`ls-chip ls-chip--dept ${RING}`}
+                      onClick={() => {
+                        // The department opens in the tools on this page; only a department the tools do not know leaves for All Courses.
+                        // Never back to the classic page: the department opens in the tools on this page.
+                        if (onDepartment) onDepartment(t.label);
+                        scrollToStudioTools();
+                      }}
+                    >
+                      {t.label} · {t.lessons}
+                    </button>
+                  ))}
+                </div>
+              </section>
+              {tools && (
+                <ToolsPanel title="Every Learn Tool" note="Continue, Latest, Browse, Find, Record, Downloads">
+                  {tools}
+                </ToolsPanel>
+              )}
+            </>
+          )}
+        </div>
+      </PlaceLookupContext.Provider>
     </CoversContext.Provider>
   );
 }

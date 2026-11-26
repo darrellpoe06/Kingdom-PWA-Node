@@ -2025,6 +2025,21 @@
       "notes": "Reserved L333 and DR-1573 on origin with new-lesson.mjs. Verses filled from app/public/bible/kjv by fill-verses.mjs, none typed. The name and two lines are Darrell's; video not watched; re-review 2026-12-18."
     },
     {
+      "id": "lesson-progress-bars",
+      "date": "2026-11-26",
+      "task": "A how-far bar on every lesson card and row in Learn (new look and classic), from each lesson's own measured place; Closest to Finished by lesson across the catalog; the new-look Experience's no-op witnesses now write the place and credit the read on evidence",
+      "drs": [
+        "DR-1684"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.5,
+      "estimateWithoutAiHours": 12,
+      "notes": "Proven to catch: painted-value source gate on a 60% fixture and a literal-width drawer; a step-only-as-50% mutation failed 4 cases."
+    },
+    {
       "id": "a-misquote-is-in-no-corpus",
       "date": "2026-11-24",
       "task": "The pass meant to protect Scripture was demoting it: a misquoted verse matches no corpus, so the exact test took its quotes off; the test is now a four-word run of the KJV",
