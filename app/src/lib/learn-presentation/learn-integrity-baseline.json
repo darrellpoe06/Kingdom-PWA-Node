@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T05:32:43.858Z",
+ "measuredAt": "2026-11-26T05:37:21.906Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4350
+  "readings": 4352
  },
  "departments": [
   {
@@ -13868,11 +13868,13 @@
    "department": "The Eternal Algorithms",
    "position": 33,
    "title": "When Thou Art Converted, Strengthen Thy Brethren (the growth is spent outward)",
-   "contentSha": "2427754210272e333e7ff22de8508925df667781e2d2b6be5f1f9994069f2e3e",
+   "contentSha": "f6c166ca2bd125085778b2fb64ef14873a42e0287554a2ff11f59b1584c6ff20",
    "versions": {
-    "teen": "60c85d0a97e8ad8b3ef5cf990195cac3548079adc6964209a4b19667eb82b8b8",
-    "adult": "0ef9c2598f24a37839ae6bc7a03eb99d1ebaf0cdf075d00b145e493318e4d56d",
-    "senior": "95941c06832d81f555d738ae96e4745a3679f629d547380ce3c7f06f18c722d8"
+    "child": "a177f831b51fd817489a8b877b1112ba14c541efe09c5d48d05ae68ead1fd05b",
+    "youth": "7b1618227e22e70a0e7f46aa5eb464b246d97c1c1bc040e01e3590c93e007705",
+    "teen": "9a685fdac1b41f99020e9428deb96f9cff6791d25dde8e6f9d4bc4ad3dc58bd2",
+    "adult": "5ff7a878c81ffcf90e73b7187752f6df340377f46b48146c87b19b80334c943e",
+    "senior": "3824b2c8afd9c7b7694c0bcfe3f3350a9573dd6a7a8f77096e738790ff11fa73"
    }
   },
   {
