@@ -47,7 +47,6 @@ const SHORT_DEBT = [
   'ai-legal-blueprint/aib3-how-the-machine-remembers',
   'ai-legal-blueprint/aib4-the-law-plain',
   'ai-legal-blueprint/aib5-real-world-scenarios',
-  'who-he-is/whohe4-the-kings-and-the-psalms',
   'who-he-is/whohe6-he-comes-in-the-flesh',
   'who-he-is/whohe7-his-ministry-every-scene',
   'who-he-is/whohe8-the-cross',
