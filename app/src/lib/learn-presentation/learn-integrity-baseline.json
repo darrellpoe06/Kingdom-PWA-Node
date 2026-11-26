@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T13:54:06.740Z",
+ "measuredAt": "2026-11-26T14:19:10.588Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4532
+  "readings": 4542
  },
  "departments": [
   {
@@ -13018,11 +13018,13 @@
    "department": "The Eternal Algorithms",
    "position": 10,
    "title": "Train Up a Child (the 6am inheritance)",
-   "contentSha": "c4fd31992efc587e4a74ffcaf452438730141d00cbc851de1d5522d0c3c998d3",
+   "contentSha": "e8d296d13dfee5dc2376897d7a2b5a5d9744be6c60edaccda387ef009e24798a",
    "versions": {
-    "teen": "6aa12906903b0e874b7abd15e534c9b35f073df7340c5e08c42d31412333e6cb",
-    "adult": "1def4c49ad988cab511f2937441721709f6de3680605c069abc7f695eaa07d45",
-    "senior": "31b66bce6aab3ff530b0cd6116921a58511e475ff405465ec082d4f5e2a5f481"
+    "child": "5e475ce2909ac938fd9fb44e4239a0c81c877b2fb20845e3718d07a625d7fd51",
+    "youth": "41dfea57f3e8c1d0f95214cf8a9cf064bae9a193df00dbcbd38f04134de57d91",
+    "teen": "de921ad12bb09412443ca7445d5a7b8966cbc0ca1517365453823f2540f52173",
+    "adult": "46f6c904e73184d9444897b221b86633d664f175f3a112736dcbf9d54711b304",
+    "senior": "7538f114ebf9cad4d037a2a9fcf2e55eafa862c5c4da104c808285ea06f81107"
    }
   },
   {
@@ -13031,11 +13033,13 @@
    "department": "The Eternal Algorithms",
    "position": 11,
    "title": "A Father of the Fatherless (He sets the solitary in families)",
-   "contentSha": "aafe7e6530817597769fb5e1451fbcc89a383838d09cd0a9767f3bf291159fb3",
+   "contentSha": "30c379c74ac2d29e657cd1105744b39273b8f93e80c1d0028e00241547eda023",
    "versions": {
-    "teen": "66cb7f1594bf4588ed1232bb736a7c63982ff25635ebf1c91f03e25e00f1a71d",
-    "adult": "2203f00f9277ee599a2e56fb66a1d3601f710af4d648a8cd52794e01ab48452f",
-    "senior": "2a923503eedbb7ed69c545cc2512f53535713ad0317580350a6ff656b40ddbc2"
+    "child": "ac5bcb65b3179a46991f64f7ded08e5679ad33ed52d0addb55291c087faa2037",
+    "youth": "09df7dd0560d080ed768144e17039cfa2f172e54f9bfcba79dce045d1a7a6130",
+    "teen": "4850d8d3b99dd37c74c42d1b6fa3820363a6c143b9b271192db35f5a0c678932",
+    "adult": "5f606aaacfc8c580c7b86499807af428440ab2544b02110dfc6e73a9c0f1ad4d",
+    "senior": "7e72d75cd6751a36c0597021492dc1e82823862c1167992571770f4674c8289f"
    }
   },
   {
@@ -13044,11 +13048,13 @@
    "department": "The Eternal Algorithms",
    "position": 12,
    "title": "The Honour of Kings (search out the matter)",
-   "contentSha": "13345797977935d47b945f2c1c6e77d8789846deb47ec1ce401832505830b9de",
+   "contentSha": "038670cdcf3c2d38c5ebca6c16ec9122e799d1d1486f268a9a4ec9d99d157260",
    "versions": {
-    "teen": "f3fdfbd989413ff45c2db1b2e208071bdf77e9c35f7f3e820ffba5f43e16b4bf",
-    "adult": "1bf6d9124c0de53d094a5c799e7a0dc404a18de575e03a7e13f5e90976396212",
-    "senior": "a20b1a20efe47e40b2c60b414879f75cb0b84c2b31988ea39556107b885e5514"
+    "child": "84854dc3a3c37acb610170f8ee16467ee875826bab6b7493e9c18ff86ce3b55a",
+    "youth": "96dbd7af932551e0e4298a49cca01ac8a7bbe58902a5c93711447c641d74bb3d",
+    "teen": "827c88692e4e2360c30ac36c87c94fa645b1c16e4adc6a1b309fde1b3f537508",
+    "adult": "c612789610fb6d4cbaf1be9cba6d2970fb12074d408c31071e374ab647a551ab",
+    "senior": "40b7ce2e599f5236a512883c543f6b19d76aa78c9ca805d075935d37a712c5fb"
    }
   },
   {
@@ -13252,11 +13258,13 @@
    "department": "The Eternal Algorithms",
    "position": 3,
    "title": "The Son Who Sees and Turns (generational curses break)",
-   "contentSha": "3fd62f247087b64990895d0037160dda849664085cd31b82e72f815d43b8286d",
+   "contentSha": "f1f7c247129a1b154c2970c7ce57294e6874a7175f85fd43acc6cfe3d051423c",
    "versions": {
-    "teen": "1e51dbc121e351c73947e0ae752abd44aa4fe61142cc2561495ac8a4b105fad9",
-    "adult": "d99211b9e85bcee7036afb5031b15872ff22734564a7d91a1257b4e65a4441be",
-    "senior": "28ac357b45d9e1e75ab0896c37fb4a4f02fb4bda82f61757948dc68f4c7f8c0e"
+    "child": "e31b24da34f7daa4e02206796baaf4401c9f77785bf0d1e263d7a3f515856f9f",
+    "youth": "13693df931bfbac886255f863fec61849606a17680e6a3ab94e7289350ca40f8",
+    "teen": "22f097fbfd54cd38877242cce2259dc9ea43806a57f2b13cfa5033fa9614b9e9",
+    "adult": "c644eb78a8be038bdccca16f0eb108875dd5098d8198641e2d5be122d4b34e2c",
+    "senior": "bd0fef800970bc3058ddd5313b6dd8ce1923ddf7da76e6e4817f3107d89ece00"
    }
   },
   {
@@ -14105,11 +14113,13 @@
    "department": "The Eternal Algorithms",
    "position": 4,
    "title": "Dwell in Love → Dwell in God (literally inside LOVE)",
-   "contentSha": "34b09b4e814ee6939ede30674cc34b3211d5d3d1c7828fd657e906df0cda1e3f",
+   "contentSha": "86ce0ca81cba6f5e3079b3dd193bc69937c0613eee996ed0d0702441c3c1d787",
    "versions": {
-    "teen": "e7072ba527864c2e79998b9b8bc2623a2536570b694b4edc37f1f8d305a88b34",
-    "adult": "d110cd76cff679c0859f9c047114f3224dde17aaf2e38c195daa2a67edfd4c4e",
-    "senior": "56f78a53a43f904ae4d211661cf4d04614e8b453d46623699d9927ecc752cad1"
+    "child": "e93758e91a4869a8aeee047488edf097f31b5a560691e0679c19d4d28c391950",
+    "youth": "818581ff5256dc084b3167915fcdd980844df0daa661556e3eed9675d17266d6",
+    "teen": "021de845a55cac12810066fffb04f5d78176d8dbffc97fcbde55f1859714997c",
+    "adult": "c6646faaaf08a2114aab7b862a509cfa72570d1b8caa89c9e450b325eb7b4595",
+    "senior": "2e356f6b98ee924f60ea67f99886192444c3badf5f364d4d114ec9504aeef596"
    }
   },
   {

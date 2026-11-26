@@ -3188,6 +3188,21 @@
       "notes": ""
     },
     {
+      "id": "the-gate-changed-so-offer-the-rows-once-more",
+      "date": "2026-11-26",
+      "task": "DR-1670/1672 went live on the NAS, proven by exact builder hash, and the queue could not move because all 33 rows sit exactly at their ceilings",
+      "drs": [
+        "DR-1676"
+      ],
+      "prs": [],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.4,
+      "estimateWithoutAiHours": 2,
+      "notes": "One attempt, not because more tries help -- that was measured and refuted today. The gate those rows failed against no longer exists, so the premise is gone. The precise code-on-failure mechanism is named and dated, not half-built."
+    },
+    {
       "id": "ledger-adds-off-the-tail",
       "date": "2026-11-18",
       "task": "The ledger adds off the tail: --add places an entry at a slot read from its id, never in the last 40, so waiting lesson PRs stop conflicting with every landing",
