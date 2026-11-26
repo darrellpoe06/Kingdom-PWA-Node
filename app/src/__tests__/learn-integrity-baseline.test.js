@@ -83,8 +83,8 @@ describe('Learn content integrity baseline', () => {
   // only-he-knows-the-heart, enemy-injects-thoughts, appointed-then-judgment,
   // god-of-this-world, money-cannot-redeem, wages-and-gift, breath-in-his-hand,
   // past-finding-out, first-and-last, end-from-beginning, foreknew-betrayer,
-  // provider-prepared, no-guile-figtree.
-  it('the baseline is the measured Phase 1 catalog (13 / 51 / 994 / 4,428)', () => {
-    expect(base.counts).toEqual({ departments: 13, courses: 51, lessons: 994, readings: 4428 });
+  // provider-prepared, no-guile-figtree, told-before-he-came.
+  it('the baseline is the measured Phase 1 catalog (13 / 51 / 994 / 4,430)', () => {
+    expect(base.counts).toEqual({ departments: 13, courses: 51, lessons: 994, readings: 4430 });
   });
 });

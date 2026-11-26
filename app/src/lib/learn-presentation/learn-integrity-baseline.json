@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T08:27:58.978Z",
+ "measuredAt": "2026-11-26T08:33:54.154Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4428
+  "readings": 4430
  },
  "departments": [
   {
@@ -12706,11 +12706,13 @@
    "department": "The Eternal Algorithms",
    "position": 9,
    "title": "Told a Day Before He Came (Behold the man)",
-   "contentSha": "58ee8a777cde53fc9c76640213f78370670611a1c617c79b108adcd8b5a29527",
+   "contentSha": "9da7be6770bcf6be648cf49c162918af710df8a1374463d2dd1806d260dcda9d",
    "versions": {
-    "teen": "5c529917f829d4a8210cd997049e44c2580abc114239f71e78d2dbc614db278d",
-    "adult": "20933c542e218929e27ec1223c0f15f0f709bdbb19c97c361a51ba418dacc48d",
-    "senior": "61f4076b152f9b6c39c5a366088ae4d62d1fdbaf1cfa7851b36259e3bba8befe"
+    "child": "1bcdf18a227b8c84660f579e744ba1ecd8683da6788c2b19c68e23c3665d376d",
+    "youth": "7ca8c7413f457de3cc2b1ff6dd17a7530bcfc58e70e24a8ed245b88f50812443",
+    "teen": "05f05155a613942b14b4ef2f39bc10b915e1ae40a4ddb346956a91a9378fac1c",
+    "adult": "629acb566f071899092f430fd9b81b4510e01de69105a3a43786fcfb77120d72",
+    "senior": "c87cb9ad9a6ee562fe259dfbc63e215aefb21b1fb56391269c761235da32b2ef"
    }
   },
   {
