@@ -233,6 +233,7 @@ export const RELATIONSHIP_GROUPS = Object.freeze([
       'll228-can-a-man-be-taught-by-a-woman-knowing-him-is-most-important-he-can-use-anyone-and-the-word-answers-first',
       'll118-ninety-seven-percent-testing-a-viral-number-against-the-word-and-the-real-research',
       'ea-gh-truth-love',
+      'ea-gh-inside-love',
     ]),
   }),
   Object.freeze({
@@ -252,6 +253,8 @@ export const RELATIONSHIP_GROUPS = Object.freeze([
       'll273-they-called-long-life-a-problem',
       'll301-old-men-dream-young-men-see',
       'legacy6-hand-it-forward',
+      'ea-gh-train-child',
+      'ea-gh-humble-heal',
     ]),
   }),
   Object.freeze({
@@ -273,6 +276,7 @@ export const RELATIONSHIP_GROUPS = Object.freeze([
     label: 'Hard Conversations, Offense & Forgiveness',
     ids: Object.freeze([
       'll16-rule-your-spirit-repair-the-bond',
+      'ea-gh-forgive-forgiven',
       'll291-fruits-meet-for-repentance',
       'll151-the-tongue-death-and-life-in-a-little-member-and-the-knowledge-that-governs-it',
       'll141-separate-and-connect-working-through-issues-studying-to-be-approved-tempted-versus-tried-and-how-we-handle-each-other-and-enemies',

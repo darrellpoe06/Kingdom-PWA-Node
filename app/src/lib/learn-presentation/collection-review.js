@@ -32,6 +32,8 @@ export const RELATIONSHIP_FLAG = 6;
  * IN by moving its id into RELATIONSHIP_GROUPS and out of here; the gate keeps the two apart.
  */
 export const RELATIONSHIP_REVIEWED_OUT = Object.freeze({
+  'ea-gh-rock-house': 'building on the words of Jesus (Matthew 7:24-27), a foundation lesson, not a relationship between people',
+  'ea-gh-abide-fruit': 'abiding in Jesus (John 15:5, 7), the vine and the branches, not a relationship between people',
   'ea-gh-confess-cleanse': 'forgiveness from Yahweh (1 John 1:9), not between people',
   'ea-gh-friendship-world-enmity': 'friendship with the world system, not with people',
   'rto7-covenant-over-contract': 'a business course: covenant with customers and documents',
