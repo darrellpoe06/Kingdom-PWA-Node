@@ -95,7 +95,24 @@ WRITER_MAX_SECONDS = int(os.environ.get("LESSON_WRITER_MAX_SECONDS", "1500"))
 # whole, by the same reasoning DR-1202 recorded for RATE_LIMIT_RETRIES: the
 # per-build budget (BUILD_MAX_SECONDS), the per-row lock (the lesson-captured
 # tag) and the stop-paths are all unchanged.
-MAX_ATTEMPTS = int(os.environ.get("LESSON_BUILD_MAX_ATTEMPTS", "4"))
+#
+# 5, not 4 (DR-1676, measured 2026-11-26) -- and NOT because more tries help.
+# That was measured and the answer was no: DR-1641's raise extended the queue by
+# one cycle without clearing it. This is one attempt because THE GATE CHANGED
+# UNDER THE ROWS. DR-1670/DR-1672 relaxed the cause that refused 25 of the 33
+# waiting teachings, and the receipt proves the NAS took it (code
+# 98a82136aec37d6a, 14:04Z). Every one of those 33 reads "failed after 4" or
+# "rate-limited after 6", so not one would ever be offered to the new gate: the
+# premise of the earlier measurement is gone, and it has to be re-taken.
+#
+# ONE attempt, not several, and the precise mechanism is deliberately NOT built
+# here: a row's failure tags are `build:failed@<ts>` and `build-reason:<text>`
+# and carry NO builder code, so "the gate changed, so try once more" cannot
+# reach a row that failed under the old code. Recording the code on each failure
+# would make that bounded retry possible for the NEXT gate change instead of a
+# blanket raise -- the recurring friction this is the second instance of
+# (DR-0075). `re-review: 2026-12-03`.
+MAX_ATTEMPTS = int(os.environ.get("LESSON_BUILD_MAX_ATTEMPTS", "5"))
 PARALLEL = int(os.environ.get("LESSON_BUILD_PARALLEL", "3"))
 SIMILAR = float(os.environ.get("LESSON_SIMILAR", "0.5"))
 

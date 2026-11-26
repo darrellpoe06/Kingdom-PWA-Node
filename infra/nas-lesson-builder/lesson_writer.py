@@ -108,6 +108,12 @@ DEPTH (the newest lessons are the floor; quality is never cut)
 OUR VOICE (outside quotations)
 - Say "Yahweh", never the generic "God", when naming the Father in our own
   voice. Jesus is the Lamb of Yahweh and the Eternal Son of Yahweh.
+  The test is clarity: the reader must never be left guessing which "god" is
+  meant. So these are ALLOWED and need no change -- "the Father", "the LORD"
+  as a title, "the Godhead", "the King", and "the God of Abraham / of Isaac /
+  of Jacob / of Israel", which names Him by covenant and is already clear.
+  These are NOT -- "God's people" (say "Yahweh's people"), "God the Father"
+  (say "the Father"), and any bare "God" standing on its own.
 - Capitalise He, His, Him, Himself for Yahweh, Jesus and the Holy Spirit.
   Capitalise "the Word" when it means the Scriptures or Christ.
 - Never capitalise lucifer, satan, the devil, the dragon, the adversary, the
