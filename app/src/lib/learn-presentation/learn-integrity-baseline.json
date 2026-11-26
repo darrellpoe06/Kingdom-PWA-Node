@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T11:57:46.030Z",
+ "measuredAt": "2026-11-26T12:01:26.964Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4482
+  "readings": 4484
  },
  "departments": [
   {
@@ -14130,11 +14130,13 @@
    "department": "The Eternal Algorithms",
    "position": 9,
    "title": "Renew the Mind → Prove the Will",
-   "contentSha": "8160272134d0537b5bf105e85fea606340ae31b4d69010fdc02cb699314316e2",
+   "contentSha": "2f2f17f62896859166ebf5a8fbe2eb824d467706050fa9899e3d5b53e89818de",
    "versions": {
-    "teen": "f82b6533271d1d010604cb12338bc8fdc69b173968277467f5492c06f17ba461",
-    "adult": "be8d963051a4881c92062486df3e283ac9ef05cfe9987ebf3b45bd5057e48548",
-    "senior": "5bfd569dc2aeaad33c28fcea1f9b2ddab52c69e610f03beb272bc3e9ff9a573f"
+    "child": "452aa087a7ea003cca8e49827ab62591fdd0e56c0efffa40125f8c738117f111",
+    "youth": "a9c7adc30e2d78747cc6ae2eb8054a75fafc8957421a6a674c8facb2b0833c96",
+    "teen": "fb1afbe0116d676b4697915ea60942062777d85c888ff31db4fddcf8efca4e96",
+    "adult": "00af6bacf7cf6cf08ed82e2243f28207b00c3ab8b62fa5f44f8d86df428d87cc",
+    "senior": "9398fdb6517c433e550a8eda9bfcb01b2efa4e531fd967b64d61a22160debbac"
    }
   },
   {
