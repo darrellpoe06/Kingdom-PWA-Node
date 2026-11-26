@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T09:08:24.280Z",
+ "measuredAt": "2026-11-26T09:12:09.238Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4436
+  "readings": 4438
  },
  "departments": [
   {
@@ -14302,11 +14302,13 @@
    "department": "The Eternal Algorithms",
    "position": 23,
    "title": "Clearly Seen, Without Excuse (they knew God and glorified Him not)",
-   "contentSha": "8217a7142e50c67d97de9b47e981a675b8e06c5ebbd1490b8240196a16a47bd0",
+   "contentSha": "4398c08b93daeb66a41d313554340cb1659a1d20e0a03d2f069724c7d88dee6a",
    "versions": {
-    "teen": "761f6cd010866dcb89411ac3d343ba250491d6fa0e099ff9e7babad9c45c22da",
-    "adult": "5a34196b8949db015dbbb60dd688fbeb24f73a74c22e7a6e381cd711443d62b4",
-    "senior": "93d96852415f687462ab9811ebef41b29633bb260cff2b68d3d57be9407d1bd1"
+    "child": "be1b3472b05a43bc207acde7a137b68d46ce679899a2b24c619ea03ae7737b95",
+    "youth": "8107c8d523f927c72e4d1f61c2df02adee10957c0804f94ab3796738d5d0cd4b",
+    "teen": "2d025649b712d861702e0826cd5a65c1ab5a84324f2e09702a1103ee19a4f6e7",
+    "adult": "134aba894e5333ca7b7bc657665e3b27713d45724d3b048739a83489ace6daa7",
+    "senior": "7fee94b3c47494a8001a122d138bb28f05c2097428fd57e7299e676371b11a2c"
    }
   },
   {
