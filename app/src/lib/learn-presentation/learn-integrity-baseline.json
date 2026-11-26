@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T06:23:48.573Z",
+ "measuredAt": "2026-11-26T06:27:48.087Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4374
+  "readings": 4376
  },
  "departments": [
   {
@@ -14697,11 +14697,13 @@
    "department": "The Eternal Algorithms",
    "position": 6,
    "title": "The Judge Comes With the Reward in His Hand (love His appearing)",
-   "contentSha": "330f8b76553757451e762e3c35bbdd7430482884899efb29a49f6f81b1700376",
+   "contentSha": "852b4293ccd9a0661108d20ea5b9214336f8076e9522a52cc01647d4621ac555",
    "versions": {
-    "teen": "1dc80789b7f2e53e659c6bf44af6eb93debf61c2ad5f6341e556f06785ef229c",
-    "adult": "67ff9a426d66b9343e56a0a0aa5009786edcb5326690c43732670d86db7f31bb",
-    "senior": "70dc54d4b3f0a6ec24a996fbf5cf36165e574f6219102eb6badfa02fb9973e65"
+    "child": "fcf7776a4b40371f233d412a460e718e89339656311b4beaa7da32ab3e344d66",
+    "youth": "57a3192870252a5b01c7df34b195b0e6cd651f2b487970411665b2394377c87f",
+    "teen": "f572276f1ad92876771d4d8ec916391c0fbcde7e31dd405b6f07283d05811ac6",
+    "adult": "21b6a1cd0e945c8f866232abd0e35d27b6415e91e101449b5db9f244cb24faec",
+    "senior": "b96569288b8c8d994041a8cafbc60aca9f8bdfc821ad250b37f7045abf1515e3"
    }
   },
   {
