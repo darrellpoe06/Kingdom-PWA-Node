@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T09:12:09.238Z",
+ "measuredAt": "2026-11-26T09:17:20.693Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4438
+  "readings": 4440
  },
  "departments": [
   {
@@ -13682,11 +13682,13 @@
    "department": "The Eternal Algorithms",
    "position": 17,
    "title": "The Word Framed the Worlds (the Outside Agent before time)",
-   "contentSha": "eb8594f1e20db16477bc59dd4abb60a06fe5861a9a2eebffe7878040c4d550e4",
+   "contentSha": "782563538344575f18b04adf3c245031e1f5d97cc492b0170a120ca83e0cef7f",
    "versions": {
-    "teen": "7b64eabee25be3439c874b7b5b5f40112c0edeb737d4446d6d55d1bdf07dd4e6",
-    "adult": "3def014d92c2efb165b97b80d5acd56eac3e6dcee89805d2753bcdca8a1b4b31",
-    "senior": "76d8be706bb014af0f2408fc35c5c4778c806262b173c990439efaa0b2bc9b7e"
+    "child": "90329a80f6999ee1370a79838cea7f2c0563667e7f69baebf98398f0da53e8ba",
+    "youth": "9b04fa1a0385c6769f94c9221bf575a47c8bf369d01e90c20a22d543d01723df",
+    "teen": "3924680d55926ff4604825cc003402fb32ab68638ff72d869fd14e0b4c40e862",
+    "adult": "d331a4bf796ea199c3a920c6fcc7865d09c9604c8ac045876bb9f9c21b2dbc63",
+    "senior": "ae47ed9c4c56a48f5e85f1b99c58b682eabc5778803a3edb33cb2d81fbf12381"
    }
   },
   {
