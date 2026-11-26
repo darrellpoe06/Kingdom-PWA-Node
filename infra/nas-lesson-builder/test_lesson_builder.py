@@ -1118,11 +1118,16 @@ class Stages(unittest.TestCase):
                  (["lesson", "awaiting-review"], OWNER, False),
                  (["lesson", "withdrawn"], OWNER, False),
                  (["lesson", "voice", "voice-transcript", "withdrawn"], OWNER, False),
-                 # MAX_ATTEMPTS is 4 (DR-1641): two spent attempts still have
-                 # informed retries left, four are spent.
+                 # MAX_ATTEMPTS is 5 (DR-1676, raised from DR-1641's 4 because the
+                 # gate changed under the rows): two and four spent attempts still
+                 # have an informed retry left, five are spent. The literals are
+                 # kept -- a case reading the constant could not catch a loop.
                  (["lesson", "build:failed@2026-09-29T00:00:00Z", "build:failed@2026-09-29T01:00:00Z"], OWNER, True),
                  (["lesson", "build:failed@2026-09-29T00:00:00Z", "build:failed@2026-09-29T01:00:00Z",
-                   "build:failed@2026-09-29T02:00:00Z", "build:failed@2026-09-29T03:00:00Z"], OWNER, False)]
+                   "build:failed@2026-09-29T02:00:00Z", "build:failed@2026-09-29T03:00:00Z"], OWNER, True),
+                 (["lesson", "build:failed@2026-09-29T00:00:00Z", "build:failed@2026-09-29T01:00:00Z",
+                   "build:failed@2026-09-29T02:00:00Z", "build:failed@2026-09-29T03:00:00Z",
+                   "build:failed@2026-09-29T04:00:00Z"], OWNER, False)]
         for tags, who, ok in cases:
             self.assertEqual(lb.eligibility(row("r", TEACHING, tags, who))[0], ok, tags)
 
@@ -1141,14 +1146,14 @@ class Stages(unittest.TestCase):
         self.assertIn("waiting out the model's limit", why)
         self.assertEqual(lb.eligibility(row("r", TEACHING, two, OWNER), now=at("02:00")), (True, "eligible"),
                          "after the cooldown it is offered again, though two attempts are spent")
-        # The bound is MAX_ATTEMPTS + RATE_LIMIT_RETRIES, so 6 since DR-1641
-        # raised MAX_ATTEMPTS to 4. The literal is kept deliberately: a case
+        # The bound is MAX_ATTEMPTS + RATE_LIMIT_RETRIES, so 7 since DR-1676
+        # raised MAX_ATTEMPTS to 5. The literal is kept deliberately: a case
         # that read the constants could not catch them being raised to a loop.
-        spent = two + [f"build:failed@2026-10-22T0{h}:00:00Z" for h in (2, 3, 4, 5)]
+        spent = two + [f"build:failed@2026-10-22T0{h}:00:00Z" for h in (2, 3, 4, 5, 6)]
         ok, why = lb.eligibility(row("r", TEACHING, spent, OWNER), now=at("09:00"))
         self.assertFalse(ok, "PROVEN TO CATCH: the retries are bounded, never a loop")
-        self.assertIn("rate-limited 6 times", why)
-        self.assertEqual(lb.MAX_ATTEMPTS + lb.RATE_LIMIT_RETRIES, 6)
+        self.assertIn("rate-limited 7 times", why)
+        self.assertEqual(lb.MAX_ATTEMPTS + lb.RATE_LIMIT_RETRIES, 7)
 
     def test_the_rate_limit_signal_survives_the_200_character_cut(self):
         """DR-1232, measured 2026-10-27 on fifteen rows (lesson_versions.error, read
@@ -1373,20 +1378,27 @@ class Stages(unittest.TestCase):
             pass  # a second take after release does not block
 
     def test_PROVEN_TO_CATCH_a_real_failure_still_stops_at_the_budget(self):
-        """The budget is 4 since DR-1641 (was 2). The literal is kept on purpose:
-        a case that read MAX_ATTEMPTS could not catch it being raised to a loop."""
+        """The budget is 5 since DR-1676 (DR-1641's 4, DR-0697's 2 before that).
+        The literal is kept on purpose: a case that read MAX_ATTEMPTS could not
+        catch it being raised to a loop. Raising it is a DECISION each time, with
+        a measured reason -- never a default, and never unbounded."""
         reason = ("build-reason:no version passed every gate (1 written): "
                   "verse gate: Numbers 35:11 not verbatim")
+        five = ["lesson"] + [f"build:failed@2026-10-22T0{h}:00:00Z"
+                             for h in (1, 2, 3, 4, 5)] + [reason]
+        self.assertFalse(lb.rate_limited(five))
+        self.assertEqual(lb.eligibility(row("r", TEACHING, five, OWNER), now=10 ** 10),
+                         (False, "failed 5 times: left for the hourly Routine"))
+        self.assertEqual(lb.MAX_ATTEMPTS, 5)
+        # and the attempt before the last one is still offered
         four = ["lesson"] + [f"build:failed@2026-10-22T0{h}:00:00Z"
                              for h in (1, 2, 3, 4)] + [reason]
-        self.assertFalse(lb.rate_limited(four))
-        self.assertEqual(lb.eligibility(row("r", TEACHING, four, OWNER), now=10 ** 10),
-                         (False, "failed 4 times: left for the hourly Routine"))
-        self.assertEqual(lb.MAX_ATTEMPTS, 4)
-        # and the attempt before the last one is still offered
-        three = ["lesson"] + [f"build:failed@2026-10-22T0{h}:00:00Z"
-                              for h in (1, 2, 3)] + [reason]
-        self.assertTrue(lb.eligibility(row("r", TEACHING, three, OWNER), now=10 ** 10)[0])
+        self.assertTrue(lb.eligibility(row("r", TEACHING, four, OWNER), now=10 ** 10)[0])
+        # THE POINT OF THIS RAISE, pinned: the 33 rows stalled at "failed after
+        # 4" are offered to the changed gate exactly once more (DR-1670/1672),
+        # and then stop. One attempt, not a loop.
+        self.assertTrue(lb.eligibility(row("r", TEACHING, four, OWNER), now=10 ** 10)[0])
+        self.assertFalse(lb.eligibility(row("r", TEACHING, five, OWNER), now=10 ** 10)[0])
 
     def test_a_withdrawn_row_is_nobody_s_to_build_and_never_waits(self):
         """DR-1142: its person took it back from the lesson door. The reason is
