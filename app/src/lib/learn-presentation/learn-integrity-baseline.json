@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T14:05:10.652Z",
+ "measuredAt": "2026-11-26T14:09:55.078Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4536
+  "readings": 4538
  },
  "departments": [
   {
@@ -14109,11 +14109,13 @@
    "department": "The Eternal Algorithms",
    "position": 4,
    "title": "Dwell in Love → Dwell in God (literally inside LOVE)",
-   "contentSha": "34b09b4e814ee6939ede30674cc34b3211d5d3d1c7828fd657e906df0cda1e3f",
+   "contentSha": "86ce0ca81cba6f5e3079b3dd193bc69937c0613eee996ed0d0702441c3c1d787",
    "versions": {
-    "teen": "e7072ba527864c2e79998b9b8bc2623a2536570b694b4edc37f1f8d305a88b34",
-    "adult": "d110cd76cff679c0859f9c047114f3224dde17aaf2e38c195daa2a67edfd4c4e",
-    "senior": "56f78a53a43f904ae4d211661cf4d04614e8b453d46623699d9927ecc752cad1"
+    "child": "e93758e91a4869a8aeee047488edf097f31b5a560691e0679c19d4d28c391950",
+    "youth": "818581ff5256dc084b3167915fcdd980844df0daa661556e3eed9675d17266d6",
+    "teen": "021de845a55cac12810066fffb04f5d78176d8dbffc97fcbde55f1859714997c",
+    "adult": "c6646faaaf08a2114aab7b862a509cfa72570d1b8caa89c9e450b325eb7b4595",
+    "senior": "2e356f6b98ee924f60ea67f99886192444c3badf5f364d4d114ec9504aeef596"
    }
   },
   {
