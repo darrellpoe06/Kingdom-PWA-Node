@@ -1,5 +1,5 @@
 {
- "measuredAt": "2026-11-26T15:23:25.586Z",
+ "measuredAt": "2026-11-26T16:13:35.866Z",
  "counts": {
   "departments": 13,
   "courses": 51,
@@ -426,13 +426,13 @@
    "department": "A.I. The Way",
    "position": 1,
    "title": "What is A.I., really?",
-   "contentSha": "ea02013ff65cfb33b0c6c5dee4d8f590c99afb41b8fde76b1460e184e7af7a18",
+   "contentSha": "98c59b163bc0ee28e1d74adaf4ead7db82ac6c385f575e930d3302697df74f29",
    "versions": {
-    "child": "8ee02f807b1b855b74a9eae6f379409fcb2997f5da83af8e4cab6d4c7589049b",
-    "youth": "ee1a65174567f20d6d399016e22b98d68b070c7789afd5f0ff95b33979af94b0",
-    "teen": "e9844d66e95c4be85889c914c0205f5417c9651e29ee657126de1ac823fc1922",
-    "adult": "1a55bad2db8521470528088c54a034ee5526981ffa6c29908535f5245b8ed591",
-    "senior": "f3abdc6b283d9e8be5d752ec49418aea394e822b43068090b1ee378d6ebd0a68"
+    "child": "62cf01db8f0f6522162bfaf99e854b6cde2c0fc2ebbbd59aa3eec05c1e652882",
+    "youth": "a4ede1b5b2f1eaaafbda31e2735da257e46b28a067889e17ada7f5810c86ed58",
+    "teen": "c2ca80d01bfaaac9bbd6f8b0535f7b86ffea9390fda0cdc23c1d6399abd60143",
+    "adult": "f40a568123de2ca6d06d7eb9f0b702b32cf8fe66033b6f44adcf6a87bd364139",
+    "senior": "e5c67fc1fb6fda3f1d923e9cd8cc2bd6837f843617f8724b034fa0fc7bd34b97"
    }
   },
   {
@@ -441,13 +441,13 @@
    "department": "A.I. The Way",
    "position": 2,
    "title": "Asking good questions",
-   "contentSha": "7215b732c4a9fbe9a41ac54c7d507f7c251bd7c9a0eabac607920fc3fd8f3541",
+   "contentSha": "af31968e0733726cebf01530fa779b46e3dd44ffd5d7df9555a87dde446a5271",
    "versions": {
-    "child": "a1b9b362d543f3b768e3290a232ff600f5e2fcf906eb0b7ac711fa1fe770e984",
-    "youth": "d0c55d96f490ee3eb8d7b6dd0beabe90bce381d636e81dd7234895adbfde7758",
-    "teen": "bd8258701a90cbac9aa208edec6256ef20590960b3c1340709070a6fa4a0280d",
-    "adult": "e0b4ad1cd7027449d6575f5e5e581b0ca7966187cd1a89dcd90df8948672d4e1",
-    "senior": "d53be92b2aee58c4a1d1e4ad68b648bf1d0121729ea537281853280aaddfc66b"
+    "child": "710d32d2212c829bea94721824adb94a684164864d1492c3d88391e7d0d9dd55",
+    "youth": "bd689203d1bff7e0098b2eb4c8ffd317facef20f49357764f1fc4b12145ff25d",
+    "teen": "74a85f992ac9b1f054d37864c9f225e99dc94dd020122c9d009892742a6092cd",
+    "adult": "741a91304391256d3bbcece5e66afc24617cf7462db4c5620cfdd2e3856a835f",
+    "senior": "8e33b000203f89d28aad23981c93b8c14299c003b8a67291d626b4f89c233bfc"
    }
   },
   {
@@ -456,13 +456,13 @@
    "department": "A.I. The Way",
    "position": 3,
    "title": "The Test — judging what A.I. tells you",
-   "contentSha": "9bd267f44121c998293df33590a957ef3ea49dd9275968a7242327ee1c14848d",
+   "contentSha": "54e46f5840b73b128785609c48750bf3b848242f46817e3208b628bfedc937b7",
    "versions": {
-    "child": "e8c6c6b2955f3072e93f5cc8757c5889c41fa12e4ae2d1d61f8fe5c87965bd4a",
-    "youth": "20ae7eed1f863c416e1409c8fafbe401b12ac327b97b489d14210ec6de3e73da",
-    "teen": "e8407d54a81c2d487c9528905a69a676cc608e69a2c9137fab56fda636fbcd10",
-    "adult": "bd13869bd62d4284aaba903f8714723977f3067f144c2c78771ed8ad43cf1ab2",
-    "senior": "6635b83f0a79dadeb3bbe2d81fe0696851a1d765baed21fe1d7ab7ccd71f7e93"
+    "child": "f5d46e18dd22a5fbefdd3f3b5868a03f8b520799fafca6e04039a0074e3a74b0",
+    "youth": "c501a4f2f3551e844a2821d4b9076de77789b7bffe1acb829b8611b22876f90c",
+    "teen": "7c8a08843b0dfcb97cb459efefd2087ede363be288fb88618b4666762fdb6ca1",
+    "adult": "87133a66622ed7a4af5194fc02e2e0d581b9d86ac7df2675ebbe89a65b102c0e",
+    "senior": "372573b317205707bc71d41a98b718670c93b2bb5d6208dcef84c97f835b5d4e"
    }
   },
   {
@@ -471,13 +471,13 @@
    "department": "A.I. The Way",
    "position": 4,
    "title": "A.I. for school — honestly",
-   "contentSha": "b35205850c944daa14366ae9a81bc96a0dcbc7c61973554980943a8c92b9ecb4",
+   "contentSha": "f0c6061ad2b2dab57ed7c41bab049ccddecd339500ededd03c7c0da675ace21b",
    "versions": {
-    "child": "735136fcaf68416891779b29de8136df93587f179a0945b2e99b8c8df81ffe1f",
-    "youth": "a961e3734065c0cf9b75f267ef538663ee7bc1f26a002eaf5d7da055fa3c3cb4",
-    "teen": "a55b55c02134184200dc3b922fcba7272906a1aad947e00cfaaa35dcafae8f01",
-    "adult": "4b8e9f40eed64293aa3e587ae190d7ae9fed8d7927dd3986f31ccaf6a040e1bc",
-    "senior": "c6d155f9a79d6c8ac54c06db1b08cef3bbfdafbba2a4e19e28667fa6a5300425"
+    "child": "716a746f13834a57e747c1d6caa9a4394832e81b7191af7dfeb56ece8c748602",
+    "youth": "bae9571231ea48b1d5c4db56d261e0958fd7e0eccec23a4550b94cbd751c1516",
+    "teen": "8172f9eccf19a685f5080d74b9dd844355105c219719853c5ed75986326cef74",
+    "adult": "31eb695ae608d5db802eddd67abd6cac979b72fa26f32dc9d5f465e119c1e380",
+    "senior": "35fed258d9a77a30311e3c14ea827ecca674fe64eb6fc0a0e6548d4c12576cc3"
    }
   },
   {
@@ -486,13 +486,13 @@
    "department": "A.I. The Way",
    "position": 5,
    "title": "A.I. that serves people",
-   "contentSha": "db29774e014c8c63b02d685a9211105393f7fd6b8d98fc2046a93b2947ac489d",
+   "contentSha": "304cdfcf4ee7e9b3425ed3d2c1c41c9c2a289496465e79fcca64a6a7a9ca37a4",
    "versions": {
-    "child": "2497847ab58479267e3eec5d9a174cda9fd0d6cacebe0b278a3d09972598378b",
-    "youth": "234495c12eadcc73cc80497a6075a8493c8f3f7dfa762e77357478886726154f",
-    "teen": "bc0beaf7fb6c4b4267c855f1e13c9672a4c4104a5474119a00350aec5845bf78",
-    "adult": "ff13b8c8d83df3546bdd083e5cd118f7c1996bfeb4e51c8b295e46f3ba530806",
-    "senior": "407d82ac9e87070a9886859da277d02c56b19c89cf60213d80401e56d1549f53"
+    "child": "e5a0cfc811a56c6fdc28d1e7922a620eefe5df8d1fd2462047562e6d0ea37b61",
+    "youth": "909bffdf25a9f9c60d7fcb0a17bf5ce403ed0117f4cd8ffbdb8c8b884ffb6d8c",
+    "teen": "7413157dd4284d488bf82b3cc5e695b1dd0a3572e52b1b6d7832a18dedaac310",
+    "adult": "359491c20ae9d493ebd7cea1747411b2c6f1f4d0e14f689174786fa7668d730c",
+    "senior": "51bc2107ff28c78fe248a01930b43ac4c5a0d68869809f2bb0f0abcd4355a51d"
    }
   },
   {
@@ -501,13 +501,13 @@
    "department": "A.I. The Way",
    "position": 6,
    "title": "Build something useful",
-   "contentSha": "c0b85426533d08af5f1908060874a5da1a5127bf0850e597dd9d9e27f82816cb",
+   "contentSha": "fe142bb39b7fa9b58b59e25b9009abdcc4d5a56eb0c6c1341b22a12baa6b6971",
    "versions": {
-    "child": "c66ef7a00743be9446749358b3f3d92cddc09db9fc8f690dd1f319d1307a2c87",
-    "youth": "33b7a9bb370cf12fe0dcab91257f8576eaa0a0356fcdf885c6ba98bc260dbb7a",
-    "teen": "db125fe39ebe45f8f907149e24b9e7382e43c50c06e0435c7f9354b54e4231d9",
-    "adult": "9d7a22f430b0f7bd0354d6394aad6f983419b69ff2a435281bab12b0f3390b7e",
-    "senior": "2bbb7d59942475f1177fdd6a8de130e6838c34b56b29acecf640ccc2a419de85"
+    "child": "360b150a40cfd6a87879bac8e654a08d8d76ec9959c6fac56e9d83b92f795bd3",
+    "youth": "2d9b6299ccbb7beb66591b16671a6bca7b9095bf2db191845003dcfaaea58bb7",
+    "teen": "a28c1c02a4a1812f82ae963464aef447e5bea23f03522965505f88c6adbffab2",
+    "adult": "4ddb4e0d93e19c52c83c232434c34e2b0c7bff753792dac06f8be0b8e0e49433",
+    "senior": "013125e59f521ec19ac1c870d91e373eb0508f0597fe7f4454d22f37da8cb689"
    }
   },
   {
@@ -516,13 +516,13 @@
    "department": "A.I. The Way",
    "position": 7,
    "title": "Guarding your heart and your time",
-   "contentSha": "abaa66463dec937f6a7937cc0d8ecf03e36b5b8acbeeb876f7dfb2da4d8f6dda",
+   "contentSha": "86eb2678b5b707ac67d7a62260945fe41df35eb6cea52e747c892d76eb9a26a1",
    "versions": {
-    "child": "fd974923c57020d6ab76276183ed93117c9aeb5bb850b767928cca848e752fd9",
-    "youth": "cb794b5e29fa2c2a9505567a36cf7f7cc457c2a4a8085b5d054f33b5f5a42897",
-    "teen": "51b320451b77b90f5d2564bee98d10e2123bdf83f88e7d692a3b2deb9dfd411b",
-    "adult": "7814f416065d8a0a769cc2e05ca74170cd037ac327f96c7bf0b426cd3ae682f1",
-    "senior": "f7cb18a78953c156475f7d4d60f9a2efa65e2d8c494b8eb05b978c7a0a47c735"
+    "child": "5f8fd3e5dc8d33142c0e5d9d19ba66f55572ef3218742b9acd324c62c57d2576",
+    "youth": "cf63ac20fe8e8fe2d98aa7afc8d6f18de5b83920a721731a9d4de68d475d87d5",
+    "teen": "aa1a46b1792a2cffc4e1cc7a1146e59dea704da9d3e7797330898da8789c1bbb",
+    "adult": "d515679f7369070a1d8cf701c2e98a9f806e9219bf4e7edad7c76aeb2a948dba",
+    "senior": "14b5ecee8641a745a3fc3b8091f87ad2317f974cc582c5ba06ec638f49c16174"
    }
   },
   {
@@ -531,13 +531,13 @@
    "department": "A.I. The Way",
    "position": 8,
    "title": "Teach the next group",
-   "contentSha": "fc90dc0e025b2d2972f8abbd6ac8dc59cb0bb859237f0d832f7508f15540fdd6",
+   "contentSha": "540a317c7024cb3acad696d8066e5d87e24e51cb04f8e718adc4b37728aa438e",
    "versions": {
-    "child": "d837e4c07ceaa01127b01151d66c61d46c5db734d321572ad2da7d5a6e972183",
-    "youth": "be91a489ffe9cee14b01fb703de64d2655f7804f2e2d902e7abab74e1c9f38f2",
-    "teen": "a1c10c5a4f5935ee446ee4aab18a4fff8bf926fa647708aa3ecafe8578cab94a",
-    "adult": "920d7be0e3578798b27eb508f1fecda4060ed509bf685cf579e981bd9d4495a7",
-    "senior": "d8b4eb68ca90e9c2237504432bb55718af6a50460ca9511bfa0e89c1af5206fe"
+    "child": "3c58865d81139ad8f06fe9ea2f4116866dc70ed484f54d141349880029c5600d",
+    "youth": "db4d7fb28f094e08e26fa85567e858c2e339e6d8314cb368ebe851b6c59b2220",
+    "teen": "4cd4d0b71d8d520f2fe3f1efed094bced586f9d530d9d5fb97b0ebb8513571c1",
+    "adult": "54048028ebaf881e948a1884a4b91a71706cf0c0c91c6cf8249e14d99bc3f6e7",
+    "senior": "a058b138b6068d5f41a7ed605ce11262af3b1faac5b55b14743eadb189f08262"
    }
   },
   {
