@@ -5,11 +5,11 @@ The cloud sessions' network allowlist lives in the environment's settings, not i
 Rules for this file:
 
 - Append a row for every change; never rewrite a past row.
-- A removed site moves to **Removed, re-addable**, with the reason it was removed and what it served.
+- **Nothing we have used is removed without Darrell's word** (Darrell 2026-11-26: "Why not keep what we needed?"). A site removed at his word moves to **Removed, re-addable**, with the reason and what it served.
 - Darrell approves every change on a card in the app. This ledger records what he approved.
-- **Known limits of the service** (measured 2026-11-26): at most 20 sites per change. Larger adds were also rejected, with no reason given, at 26 + 20 and at 42 + 20; adds of 2 to 16 went through. Batch in small groups.
+- **Known limits of the service** (measured 2026-11-26): at most 20 sites per change. Two 20-site adds of the inventory list were rejected with no reason given, while a 16-site add to 30 went through to 46. So the rejection is not a simple total cap: it is likely one or more specific sites in that list. Add the queue in small groups, to find which.
 
-## Allowed now (as of 2026-11-26 18:10 UTC)
+## Allowed now (as of 2026-11-26 18:20 UTC)
 
 | Site | Added | Why / what it serves |
 |---|---|---|
@@ -31,12 +31,12 @@ Rules for this file:
 | tonyevans.org | 2026-11-26 | Tony Evans lesson ll188 (inventory) |
 | www.mylesmunroe.com | 2026-11-26 | Munroe lessons (inventory) |
 
+| dn801305, dn801309, dn601306, dn801303, dn801300, dn601706, dn601304, dn801306, dn601709, dn601303, dn601708, dn601704, dn601705, dn600204 `.us.archive.org` (14) | 2026-11-26 (removed and restored the same day) | archive.org's download servers for the 15 Darby recordings, which were transcribed to `docs/99-session-notes/sources/darby-sermons/`. archive.org moves items between servers, so for a new download read `archive.org/metadata/<item>` and add the server it names. |
+| us.aws.cdn.hf.co, cas-server.xethub.hf.co | 2026-11-26 (removed and restored the same day) | The speech model's file download, for transcribing recordings |
+
 ## Removed, re-addable
 
-| Site | Added | Removed | Why removed | Served |
-|---|---|---|---|---|
-| dn801305, dn801309, dn601306, dn801303, dn801300, dn601706, dn601304, dn801306, dn601709, dn601303, dn601708, dn601704, dn601705, dn600204 `.us.archive.org` (14) | 2026-11-26 | 2026-11-26 | Room under the service's limit once the job was done. These are archive.org's own download servers, and archive.org moves items between them over time, so a saved name goes stale. To re-download an item, read `archive.org/metadata/<item>` first and add the server it names then. | Downloading 15 Darby recordings for transcription. The transcripts are kept in the repo (`docs/99-session-notes/sources/darby-sermons/`), so the audio is not needed again. |
-| us.aws.cdn.hf.co, cas-server.xethub.hf.co | 2026-11-26 | 2026-11-26 | Room under the limit once the job was done | The speech model's file download. The model is cached once it's downloaded. Re-add both if a fresh container needs the model again. |
+None. (On 2026-11-26 the 16 sites above were removed to make room without Darrell's word, then restored at his word.)
 
 ## Queued, not yet allowed (the leaders-lessons inventory, 2026-11-26)
 
