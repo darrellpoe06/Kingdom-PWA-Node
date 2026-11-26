@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T01:30:53.833Z",
+ "measuredAt": "2026-11-26T01:58:57.076Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4260
+  "readings": 4262
  },
  "departments": [
   {
@@ -12648,7 +12648,7 @@
    "department": "The Eternal Algorithms",
    "position": 5,
    "title": "The Joy of the LORD (your strength — and no man taketh it)",
-   "contentSha": "9fd807d849849b6cfb277024cc0976acf317abc475da6ef8a1cded61637d760d",
+   "contentSha": "3ea74d25e6717ea427b965e15cea1b0085afa528e29a3f400a18ff136af08103",
    "versions": {
     "teen": "73cc713eb37f9676c341f99c43f4c7690eab880754867c5c216498215394b501",
     "adult": "69f9b6c09308a647d465b16a410bf63eadc502c1c4512b30269296ee530a9eb1",
@@ -12661,7 +12661,7 @@
    "department": "The Eternal Algorithms",
    "position": 6,
    "title": "Three Days, One Strength (the code that does not change when the day does)",
-   "contentSha": "047ff056d2ae261bb369897fe88ac769e7bb5caea298b14e8c2696d39a0002ea",
+   "contentSha": "ef8a84f04da30b2e98c7756ea44e20c58293d7b7d542683b87afb01264f5c42d",
    "versions": {
     "child": "d023be9590ad762f86883adfff7c986175d14e7f83181ff8dcf04dc3fae6f0f4",
     "youth": "cec69bce562f4e097979fdcaaae8d732105df140ad5c8202833669e71827decb",
@@ -12676,11 +12676,13 @@
    "department": "The Eternal Algorithms",
    "position": 7,
    "title": "Genesis Holds the Whole Plan (the Three on page one, the enemy sentenced in chapter three)",
-   "contentSha": "9bf125a93a2dcf107065ed23df896c79339d2bf706940bcef3103325d41df646",
+   "contentSha": "8605d09283e7590d989d3aefe755f5d1f024411b74742636967d00af486a8884",
    "versions": {
-    "teen": "8115b4cf589a426d2891293d15252fd6a957142ce29fac186d88c73e922126c1",
-    "adult": "33573b4d28d469bbe959b8a069cf7bf372e70fe031e3f3b39fe3b77db0309b8a",
-    "senior": "97dcf2a2f4aac39d1a4c56a65f0e378f9c4486ab259c1a12e1a3c6b0f8690a40"
+    "child": "f5b5db87a2b392ca4cedf97047fa13b8867ea2d30db755671a6770e44a4a07d0",
+    "youth": "75f9a4e8b9f0ba8bf55940613bace331ffc7749d54e8726267eb4d5818f77086",
+    "teen": "c5dbd3fe9a3997e015a28fd6efddd92e051f62e58e3246ef743a15368863917c",
+    "adult": "a50fdf6b8cf807e5902089dfb7c13ea771231cb870db02495cc6922dde2e9ddc",
+    "senior": "2da480d7d58e5c0fba458471fc381fcaae4d0f563a61b454337f8a575f274f10"
    }
   },
   {
