@@ -1,6 +1,6 @@
 // =============================================================================
 // process-language — a lesson tells the reader the subject, not our research
-// process (DR-1428 placeholder replaced at claim time)
+// process (DR-1689)
 // =============================================================================
 // Darrell, 2026-11-26: "I'm annoyed by lessons saying they didn't research!!!!"
 // A reader-facing sentence like "we did not read the full article", "the video

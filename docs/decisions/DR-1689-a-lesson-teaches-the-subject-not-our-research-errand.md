@@ -23,9 +23,9 @@ The principal's regex over the mounted catalog (catalog descriptors + Eternal Al
 4. **The ratchet.** `process-language-debt.json` lists the lessons carrying it on 2026-11-26, with a ceiling. Shrink-only: a cleaned lesson must come off the list, and the list never grows.
 5. **Batches**, thinnest and most visible first, one PR each; each reports what was researched and what each lesson now says.
 
-## Batch 1 (this PR)
+## Batch 1 (this PR) — 13 lessons closed
 
-bank9 (Morgan Stanley's own release + its 2025 call for the $81 billion; the index-weight trackers for ~39%), plus the small-course lessons the research agents closed (listed in the PR). Old test pins that REQUIRED the not-checked paragraph (banking-bank9) now pin the sourcing paragraph and run `processLanguage()` on every band.
+bank9, dsi15, dsi17, wm9, wm10, pm13, pm14, pm15, pm17, rto2, wi-the-way-was-45, mgmt9, legacy8 — each researched and rewritten; what each now says is in the triage note. wi-45's premise was reversed by the record (the 2026-09-01 Tarrant vote cut UTA's early-voting site) and it was rewritten whole. Test pins that REQUIRED the old not-checked wording now pin the sourcing and run `processLanguage()` on every band. Re-measured: debt list 118 lessons (sovereign-ai 62, living-lessons 51, pm 2, 1619 1, kingdom-economics 1, prophetic-voices 1 — includes lessons main landed today); third-pile GAP 39 → 34, CHECKED 6 → 7; Learn integrity baseline spliced for exactly the 13 lessons.
 
 ## Limits
 

@@ -1,7 +1,7 @@
 // @vitest-environment node
 // =============================================================================
 // lessons-carry-no-process-language — a lesson teaches the subject; it does not
-// hand the reader our research errand (DR-NNNN)
+// hand the reader our research errand (DR-1689)
 // =============================================================================
 // Darrell, 2026-11-26: "I'm annoyed by lessons saying they didn't research!!!!"
 // then "How about old ones?!!!" and "Not necessarily... just still gets it

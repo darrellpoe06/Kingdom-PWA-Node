@@ -7650,13 +7650,13 @@
    "department": "Business",
    "position": 2,
    "title": "What Rent to Own Actually Is — The Model, and the Just Weight Laid Beside It",
-   "contentSha": "2a79dce97e78a9f066e7c888b4e44f9d2422f435d6ca8fd0ea56f1e4bfa21b13",
+   "contentSha": "918ade00cda782c18a0426ea9d2dff806013fbbe57094fd2dd22f02d32b0a459",
    "versions": {
     "child": "c33df6f3c4c8c8c08df1cdf81fc52f3ff92f319067796926f2a5250ee6074d97",
-    "youth": "041d8a9070703db26ad4dfcaca54beae93549258836c32ccef83c7e61ac16eea",
-    "teen": "cbcbb240da74de4d428f03349abc8f18d54168eb8523c7fdf60285b79ad8fc3c",
-    "adult": "c7fcc9947c372a28b9811c4c8aa0c23aca1d4346950484110b98e72f0d2db806",
-    "senior": "6da09b5713c082842c3a27b20333d7df525490ef4e194c8181956568e8952185"
+    "youth": "1271826eb2e80f543c4aca6adc625e579e32bc2979976f45b6a9e951cfd9c514",
+    "teen": "fba762363e9a3272b2c8d76d6fabf68a066fcbc4bf7447ee46031ea6496bdf17",
+    "adult": "60217ac0b6ac441e02f73bb2384e63f0085eb60c4ecf139dedf4e5f44f448ca6",
+    "senior": "95dc4f6c23d61ed57fe4d83098a8cd4830ded99a579009bbebadce05cd277532"
    }
   },
   {
@@ -9050,12 +9050,12 @@
    "department": "Project Management",
    "position": 13,
    "title": "Selected, designed, procured, built and steered — digital and A.I. change the how, not Who establishes the house",
-   "contentSha": "67d15559058961cdcf3aeb249d5fde2100b7807a97a79466714010ed767cc003",
+   "contentSha": "2015affcdf27f99e506eab0d3f9f1b4a5f6211393156403c95fc31d8d43435e4",
    "versions": {
-    "child": "a8db8eab0f58acd0c96e41d0fd541fa25e148f8483d6a73d0d6811e6c4b66739",
-    "youth": "62b15a61da1331d0bb0df94d89e172d6880e4c2a8c213ab70bc40c2629add2a8",
-    "teen": "389b48c13826fce64fdc4dd2d63479dd991fa238d2d8599fe3dc941ba20da846",
-    "senior": "4360550fdebfaaf57cdfc06076f0235e3c8338b0101b145b733b7170716570bb"
+    "child": "a31d289513a98e607c263d1c27a87f6f7ea6b76850349247f068761aeb52b9d6",
+    "youth": "69a5d2b1bc981d37d9bf5707728596f03f8e9134aa15cb7c1fcf77a5b16dd92b",
+    "teen": "fa0e51a1ceaaec22eb66dd558501470b3cdbe315da440ae876567567718e1918",
+    "senior": "547bf4fd49caa7ed95490236b06f09752710d29c5366367818c257da73dfe194"
    }
   },
   {
@@ -9064,13 +9064,13 @@
    "department": "Project Management",
    "position": 14,
    "title": "Whose measure — the benchmark, the census, and the KPIs the Word already gave us",
-   "contentSha": "fbc4850c86502d450a89b6893829edf8b3a68457e2b0a3159d1d4b7c3bf8634e",
+   "contentSha": "3ef45445f68d963ea88f3442291dc60e977004b7127a906cbc69d620c5bb2682",
    "versions": {
     "child": "5b7e122e4221805d5cfeb937c393e9ceec11017dce41a7aca7acd76c41bb01a3",
-    "youth": "8a387033a4bf4bbe4daf4bd9cbad85907ab7de2f9e1b26adce54d7101c984a19",
-    "teen": "f0eedae39f3a9f26a6f372fac0d502b5bb3cc5773d433f5230c1f7b76ae41735",
-    "adult": "090941204c12ab12e361bf3bc847fdd8b40c46a468e58b578388408687b63b9a",
-    "senior": "63ab4f8a8c51e2f18f64631dbc06726974ebe6dbe370bbca9a6b23af2528475a"
+    "youth": "1ad541ae507949dc84bead2940d9deffbb2a49c4e0696d51a0ed1a1f91d60a7a",
+    "teen": "93b9ee251d40e3c378f126d66b6b65296f51ae179db6c78ffc4818ffc153d1d0",
+    "adult": "3574c2af76154a63f9b0889d0c3ba1905dada0180a34ae15ef3b53150b461558",
+    "senior": "bf8fb1e6f11a86bb3bdc4df8d01902ed1069c54abbb98e339943292b02e547a7"
    }
   },
   {
@@ -9078,14 +9078,14 @@
    "course": "project-management",
    "department": "Project Management",
    "position": 15,
-   "title": "Sat where they sat — the oldest forward-deployed pattern, and the video we never saw",
-   "contentSha": "d4abcd9f76fa1dbdd0eff3a9b292ca7b22948898f2d5c0a785c702765ec4a9aa",
+   "title": "Sat where they sat — the oldest forward-deployed pattern, and the new name for it",
+   "contentSha": "a788646094464d0a7f7a0ef0e90cbba73dc366dca617b173a5cb99c9a4d1591f",
    "versions": {
-    "child": "2e6cb47293294c830b6ce55b4e82edc68547fcacf33c781ad52810aabed50f94",
-    "youth": "f2d06e6d4f5fece23b6abb43268dc2ee7c8a70e0ff8febbbaab9f4820f16eb5b",
-    "teen": "d48059b674b5cf7915788ba22ae1c5fb1b5f2f52e40711e0269f352c5a68ba51",
-    "adult": "19c769cfaec5c4f46e11e453906b1df30539241ffb8331ce403a4e123a239081",
-    "senior": "ddea260a2c790441b64ba412f0e96851ee78399334d85f3ad23f074ca7ad291e"
+    "child": "92c6c9a35165917ff4130cd98c541638f9fd7a5ad4b0dd652417443177e43b91",
+    "youth": "9f53877af9f0460ab160d6b79bfe35ca62a1a0a8afa1fec86bd6ee3b9391600a",
+    "teen": "5c7a3c5ed5c5dd5f86f5e299ec9be44bb136206a4e97990e1084737d5df2a2f0",
+    "adult": "6affce107ea6eb31a125e40c1cc801e371ddeb3793b8d0872f54aa944141c877",
+    "senior": "4dd9ac14752ef77c90d123c2418546f6da7e2277ff909513c114f5bcdb0ae159"
    }
   },
   {
@@ -9109,13 +9109,13 @@
    "department": "Project Management",
    "position": 17,
    "title": "Can two walk together - the buyer, the counter, and the agreement that comes first",
-   "contentSha": "34c0f3b4caa7cda5586997372401dbed1625be3147cd372fee072643697a8e34",
+   "contentSha": "01ecaa1b2a23a0767d54d76b21be4dc3c38035ec7e4044e28e6787edf76ab625",
    "versions": {
-    "child": "a30829ecc75c6881330a4ad19a220f12903fe1e1f1049e348365df1c2fe2a257",
-    "youth": "16863914c9ce75ea06fc9f4ff07f03e5d94cb7ecb13b243a665f076c8d5dd18c",
-    "teen": "cf60a8282f6fb67e8ae00063c6b7dfb8c86ca5ddfdc993e7106fb5df8d4239c3",
-    "adult": "4605aaa45c62a792edece63d2118ac9f441d52654608d09ac5e48888788b4769",
-    "senior": "0f1d565fd13559a2ae4cfffef892293562ddf265c1989909faf030b71f7a0f72"
+    "child": "8972c0daf35c4bad087b6c669eb2218587f47aa7ea6ad4c148b660b8912a8b0d",
+    "youth": "81085ef455271eb761661d587b1de7d643e0a6d7e7d0bd4f0074f4a972f3cfae",
+    "teen": "8d1c490b6134f1061782a2f86e2daf915a19f33f1dc2a6582453465a418e866a",
+    "adult": "631406378aeec6a127c7f87de9cd5da873434f3e33ab2fb0eb8129942afd1463",
+    "senior": "0438e52e4fda6c2b052b10433e75a3f3b6b02b41f04291b5240cc5f5aea00a9f"
    }
   },
   {
@@ -9602,13 +9602,13 @@
    "department": "The Word & The Way",
    "position": 21,
    "title": "The way was 45 minutes long — on-campus polling sites, the distance to the ballot, and the roads Yahweh measured so a right could be reached",
-   "contentSha": "2289ffb75c764f77c048580db6cdf73b98d15cc58c0b2b2f0e1917e77be4dcf5",
+   "contentSha": "a309ff66c83316457c17f069310e9c1980b80866b402f73f6b841f3ba894b171",
    "versions": {
-    "child": "de5890117df2e1b0ed400ac584fa9ac3934320e11924b8671fbfb8e023769d6d",
-    "youth": "0598252f3644d7abdacd32468468511f0f5baff641452221678d9ee479bee4dc",
-    "teen": "52cf2934192d66e24c3f6ed5e06e38dc7a78e243a74bf1e9643ef8c1c86f7d68",
-    "adult": "8c995691f9d5b27ccabca8b4efcbea68b0877775def1286434baaa13d5a123b4",
-    "senior": "416d4517c85e38b12c864fd566aa98d9d31d157146893b270207cb77dc2d7b32"
+    "child": "b1c7d4c82a488e5632989d9740b8ea7a29a91ae4f696f9241b9f4a1354c9f05e",
+    "youth": "3687167325adb9190096a8f2bb3dd04fbc02e2ed453ddc182bb829a1babd7ed5",
+    "teen": "22d525ab34d78b63a6e797b675e2f8e1960d5bb5832ea17398d668db54d969c4",
+    "adult": "de1ed9013be8aa741c57c3c7b3e682430f01171a927150ab43a399a557d7b5c8",
+    "senior": "0cfc029b5a6f63513479c0bb6e854c6e517024007c190e8903c0a0bc84ce144a"
    }
   },
   {
@@ -9814,13 +9814,13 @@
    "department": "Serve the House",
    "position": 15,
    "title": "Weighed into named hands — knowing what the house actually owns",
-   "contentSha": "d8f11e1cd95c847b87dd1c708f01b8b72dbc813800476e5c363286deecd9661b",
+   "contentSha": "b22bed3d4bc10eda41255f1ba6dfaf3a393df20efaecbf7bf7909760297479a4",
    "versions": {
-    "child": "bc78f119ca07feea72d4cfcfd0691258ad81ce5c628e512922c15bb659c9ba03",
-    "youth": "009da68807ce5588d17752b1589445015954c1f94a5fe832315307de74ccb5dc",
-    "teen": "bda087c365c14569fb0832729c70867aa384452e1565bc8a0a24ef61bc6b5bc7",
-    "adult": "628f702de2303f14a3e76264407ed0c1b70b5d03bcc7da21f8e234f69a348120",
-    "senior": "5dad920a741e3c6408aa2d4c9ec51a35ac08e5f909e0130ff0fd050c29c9b58f"
+    "child": "4e4600707328e2d72601997d027e699a8acd5f3eeb66dc10a2f2c81066fe90d3",
+    "youth": "09a1436a08259a76e5346cb9444b24ceca1ba88e9da1661a941d96656a93690a",
+    "teen": "d782f7fbbdf2154be52d4a7745a2f3902900ba8137efd3839755fc0ee2a318ee",
+    "adult": "0c739f30cba2827013442ec700376fb14dd48cb2c5a0f5ca0225a59f859999f8",
+    "senior": "e620adfbafe332d0650980e68c412fbda2b81fe3e5de17e563c4e6046e4cfc7a"
    }
   },
   {
@@ -9844,12 +9844,12 @@
    "department": "Serve the House",
    "position": 17,
    "title": "What an attacker would use — the four elements, reported before any fix",
-   "contentSha": "120d7e872452bd8d25723fdb3a3873bd7c3e38893db4c4caaa2d6b19b8df602e",
+   "contentSha": "26ff9a5a7d05d9d55bf7c94e786fa47e8fea87a0277336e0597baa62c87002b4",
    "versions": {
     "child": "aa42b78babb0aa3c046bc038a1768b3d25d4ff4ea9d1f9602ab3c8fec90babec",
-    "youth": "05acaaa9242d115b8be4e22c10c5c9b2f18afc1d2f623cacc3002019c14f7924",
+    "youth": "500e24c5bf61073fc634fa5ac68babad3c6f516c82697554e580561d46698b86",
     "teen": "22a0b01a56fd87c7bbf2baecd992a712704de795e2e5448208f6cc447c3b3c89",
-    "adult": "4a8e04d82c5fdedd2f47215c275e4968213834d38d16de380acd49d6b35018e3",
+    "adult": "86be7eaa4fb5b8f301c9a4e8837495ec1fc95535776be2bb337fbd753988120c",
     "senior": "10d6afdca0119051c2888ac2e0bd42c894d11f0dcc8577ebe2b9013519de277b"
    }
   },
@@ -10726,13 +10726,13 @@
    "department": "Kingdom Life & Stewardship",
    "position": 9,
    "title": "The moat that moves — the bank changed its ground",
-   "contentSha": "29581558498a4aa4698dc7bdb43f8bab8c5675145d74d72d600a3821493f56bf",
+   "contentSha": "ec566fc0cf084755ec168bb3a1f6c7bc45e44a1966bc2593bc2438270cf6afb2",
    "versions": {
-    "child": "aadca3b72376f5a8585e682c5ec1c0f3e9b110ef02bd20acf39b702423e11551",
-    "youth": "22993a5ef1a85057e6e88cf7d8d83f3091e6e92349a864785abebab9c8116a88",
-    "teen": "c7deab165c8314e3cd694daf26cb7f96471f431b13ee3c933d6c6b0c2d0b6133",
-    "adult": "455109509359884df4f19cbc5084f7cd1d6cef7f3db77065dd80dd9a65520773",
-    "senior": "ef809d8333634472225c58fe8cc2cfea4f30dab41616372112ab5f74f3c0712e"
+    "child": "e9e56f40f3b6d2d3e4e62a92e206f44bd307a92788c8c275cd05206c326728df",
+    "youth": "2ab34991573695133ae2e7fe7a3ceb16575058c90197580a5c949e7f53f2e000",
+    "teen": "137e9a19c315e002ae9498ea0ffc4a2555ebbfdc24d4cbee0ebc5b6ddfdd2568",
+    "adult": "64103d68e5a8d780b6cc9fef04621dec5411d9ca7f3aff3162985635c93b2431",
+    "senior": "29562791912710d2642fe6eb3572b21152a7e43dc1e32a30a823407e563f7ae8"
    }
   },
   {
@@ -11116,13 +11116,13 @@
    "department": "Stock Market",
    "position": 9,
    "title": "The cost of staying warm — the winter bill a household never chose",
-   "contentSha": "a26d9e15f0aefc47812b7650935a9970adb072bfcf5df32c1917d652f07c7890",
+   "contentSha": "6ea67f00a5182a0bd2e8ab85632fa62790b40f7f82f2747c1ba9183a01398f55",
    "versions": {
-    "child": "60278ddab22c9b307a82e1d03de76bc44b190a13e4431adb867d868ea8e60b8d",
-    "youth": "d391e2179192f7b465f6beb28612ddce76afde61f81ad29ff7d60bc0ea3a74e9",
-    "teen": "2131ea2dd8f8c46756902abe4dfe40fa750ab74ac34062cfa91dd876eb900a96",
-    "adult": "5b3254fece73806e6a8344ebf1215412aa92035800e5c014e9e33a9941fa8ce1",
-    "senior": "dbc45b824e9a92169b4bc1eb1dc6e29675ef52cc9c7b088630a15b8105a8f7c6"
+    "child": "9b48fee0a1413e84a5e162929901ee5c2384bc24829a68045cf77a07f2b6ccaa",
+    "youth": "6fcd697e09da90bc5cfc239728de103f7045d5b511f556e4eb41da0c0272d617",
+    "teen": "8ab6fc9f2ecfbcb9b4efd71a930c7993c7ffb5aec757b44ec773cb48b09b1edd",
+    "adult": "bbb21225c758152057d8c7f81f63eb9b4199b920783c4990a908607724488417",
+    "senior": "c4fe34d042915f8e62d369db77f8cd205b532855374547be0ef0e9d335b1607f"
    }
   },
   {
@@ -11131,13 +11131,13 @@
    "department": "Stock Market",
    "position": 10,
    "title": "The name and the proof — what a seller’s reputation is worth when the works are checked",
-   "contentSha": "49ce4ca98e90742f7b0420e9f88869e552efabd0508b0038dc94b1940f773f38",
+   "contentSha": "3c6615036b8fe79ec8e5682d6f1011c7e2cded589e54db5f9247bbb0700744e9",
    "versions": {
-    "child": "118af014b572533a7f757d6e0a5305e9ef298f1825dd40747a8f8b8f0f5522a8",
-    "youth": "7c0aba8f67b24637bd39aa7d8f6564231b0620da25f382cfb2cf0bf1d6050360",
-    "teen": "70160a7fd00d5571c89c14b112a00a48337eecb7d913a5e014b272ff83df6839",
-    "adult": "90e25428cfa98b672071b73333c9f1ebb833bfdb855f719386ece32a31525f62",
-    "senior": "3b56e281700287fac755d27796890ec7858df0ad20c967dbc1c777b45d608238"
+    "child": "12dc5a6857c466c49169ee0687da5bf6061be00714f9b413df6811a081ebcf9e",
+    "youth": "44da0242819843ca340f7b73ea0fc6252ef374a874b32dbe788e974f948c6254",
+    "teen": "63e9407a327ba743a2196271ce9e2a8286f80bc20b37c2c52c603a1c2d443e34",
+    "adult": "bf07ad4c805d0cc94a562fe987690f2594c1ecfaea57e079e9d868857d439418",
+    "senior": "a76d7ec866670276bc17c8255d8b3f091a937c09fad05b36635feb895b1d9f79"
    }
   },
   {
@@ -11802,13 +11802,13 @@
    "department": "Real Estate",
    "position": 9,
    "title": "Nobody is coming to define your work",
-   "contentSha": "f44cd45006d38d6b5d1c336010daa813ee25a5589bba6b6a76d1dbd7651d6ab9",
+   "contentSha": "ea3562367fc92619aa352dfbd5bd3d60ecca408b6da8c5a75d276f3f2ded9f20",
    "versions": {
-    "child": "5ff57a8e7ad695ca6031acf5a550ec51fdac5f5a44e05989e84a5e5677a13052",
-    "youth": "8decdad3cbdb53220fa63fa85ec465a83ec4bef739bba275c13dc101f89dcffb",
-    "teen": "ef2eac9ccedf8df7bb21e5c3b6376e978f2f25caf28cbe452cb10085183b6ea8",
-    "adult": "e22ab738273515eeb92f6d41dc6ed8ac95f1bd9b28987515f32391f134b84607",
-    "senior": "6ed57018b3992fd09c44c2f2970c9f4fa6c95e316ceb0abb8485340760467ad4"
+    "child": "8644461a39025d83c08417e6e0af71342b3ba4e136b5397b9f91bf5155b429d7",
+    "youth": "5446a32c53ced6cdf8a59d2eaa25b2c65534e5678fd9003d902bb94fe646f8dc",
+    "teen": "dbbdfc645681ee6d27f8147b42d1419c725f12da23bf5e83d4137609563092b0",
+    "adult": "dbde9b70d25d5c0c38d85250fc071bec7ad9faa34a0f77e6e057dc8d57a69680",
+    "senior": "d0a1817a4ca4e3b2fb4cc7ab7076726bb83b66fe7746668b5da5a619570019c3"
    }
   },
   {
@@ -12357,13 +12357,13 @@
    "department": "Kingdom Life & Stewardship",
    "position": 7,
    "title": "The hoary head holds the harvest — the provision sits in the oldest hand",
-   "contentSha": "97d83f50da32072dab13da5265817bc760294cfc496f873d744ddbbccf0735a5",
+   "contentSha": "95a58e3d49b004290ca10b557dd23c00f0983d962d5cf037901c7e1435c80097",
    "versions": {
-    "child": "8169959a914d2852c9f1b11b5850cda83f983c68284177483c8d6f57063c7588",
-    "youth": "5f89a394e8b61c6af2e5b7821ce0a17a1247e6899be07ce4f2153f24343649b8",
-    "teen": "47d005eab5403c2b104c331e1403e002b6836c6b24fab1041f24145d6fc1d743",
-    "adult": "b00124794702a66e8987ed35b02da086d2dd1fbeb83028b9808a26930021e6ee",
-    "senior": "e631819fd4245f9617f25c1826c34f3b49de67944049928dfce268126fec2a26"
+    "child": "bc74a3a2287862527b6ade44ba22f06a5960ade14946fbe8d73847c4249e86cd",
+    "youth": "4ff5d451f95a908beab4b9cd601e6b87bc783dcbf832de47d0a7a080a02ce465",
+    "teen": "941aef17184b396c8c36cc271617fe44a5bd20e5717dd4a4e883637616fa5ca2",
+    "adult": "ed2156afc85cb4bcc7df5149c0de8a8aab0767be470e21a205cb45618950694e",
+    "senior": "45e3c8597bd191f7a409fb8275ecc453d770dbf98b32e527ad5b33a21d408b9e"
    }
   },
   {

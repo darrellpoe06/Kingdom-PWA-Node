@@ -3,7 +3,7 @@
 // The INDEX pointer is derived, never typed — two record branches merge (DR-1477)
 // =============================================================================
 // Every branch that added a decision record used to rewrite one line of
-// docs/decisions/INDEX.md, `**Next ID:** DR-NNNN. (...)`, so two lesson branches
+// docs/decisions/INDEX.md, `**Next ID:** DR-1689. (...)`, so two lesson branches
 // built side by side (L307 and L308, 2026-11-13) always conflicted there, even
 // when their rows sat far apart. The line is now one fixed sentence naming
 // `claim-decision-number --reserve`; no branch edits it, and every reader

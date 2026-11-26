@@ -272,7 +272,7 @@ describe('the newsletter is the source, said out loud, and never worn as our own
   const MONEY = /\$[\d.,]+\s(?:billion|trillion)/g;
   const PCT = /\b(?:nearly\s)?\d+(?:\.\d+)?\spercent\b/g;
   const figureTokens = (t) => [...new Set([...(String(t).match(MONEY) || []), ...(String(t).match(PCT) || [])])].sort();
-  // 2026-11-26 (DR-NNNN): '39 percent' (the index-weight trackers' October
+  // 2026-11-26 (DR-1689): '39 percent' (the index-weight trackers' October
   // 2026 reading) and '41 percent' (the top of the year's range) joined the
   // set when the sourcing paragraph replaced the not-checked one; the child
   // band gained the firm's own $81 billion.
@@ -318,7 +318,7 @@ describe('the newsletter is the source, said out loud, and never worn as our own
     }
   });
 
-  // REWRITTEN 2026-11-26 (DR-NNNN). This block used to pin a "WHAT WE DID NOT
+  // REWRITTEN 2026-11-26 (DR-1689). This block used to pin a "WHAT WE DID NOT
   // CHECK" paragraph in every band. Darrell, 2026-11-26: "I'm annoyed by
   // lessons saying they didn't research!!!!" The research was done instead:
   // the $81 billion is the firm's own Q3 2025 figure (its finance chief, on

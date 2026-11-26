@@ -70,7 +70,7 @@ const DONE_MARKER_RE = /^[\s—–:;.,()[\]`*_"'>-]*?(?:✓\s*)?(DONE|RESOLVED|C
 const OWNER_LINK_RE = /\[(DR-\d{4})\]/g;
 
 // The record a position in a multi-record document belongs to: the nearest
-// `[DR-NNNN]` link BEFORE it. In the ledger INDEX that is the row's own record,
+// `[DR-1689]` link BEFORE it. In the ledger INDEX that is the row's own record,
 // because a row opens with its link.
 function ownerLinkBefore(text, offset) {
   OWNER_LINK_RE.lastIndex = 0;
@@ -131,7 +131,7 @@ function fromText(text, meta, nowMs, out) {
     // WHICH RECORD THIS CLAUSE BELONGS TO. For a decision record it is the
     // record itself. For the ledger INDEX — whose every row summarises one
     // record and reproduces its `re-review:` dates — it is the DR that row
-    // links to, read as the nearest preceding `[DR-NNNN]` link. Carried on the
+    // links to, read as the nearest preceding `[DR-1689]` link. Carried on the
     // item so an ECHO of a commitment can be told from the commitment, which is
     // what dropIndexEchoes() needs and no text fingerprint can supply: the row's
     // prose and the record's prose differ, so they never collapse by `clue`.
