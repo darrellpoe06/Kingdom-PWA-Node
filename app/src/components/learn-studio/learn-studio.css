@@ -1173,3 +1173,51 @@
     flex-basis: 100%;
   }
 }
+
+/* Every option of the classic course page (DR-1667): the course's head, its parts, Recently opened, folds. */
+.ls-course-head {
+  margin: 4px 0 12px;
+}
+.ls-course-tagline {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  margin: 0 0 4px;
+}
+.ls-course-complete {
+  color: var(--ls-gold);
+  font-size: 0.8125rem;
+  margin: 4px 0 0;
+}
+.ls-course-parts {
+  margin: 8px 0 12px;
+}
+.ls-recent {
+  margin: 8px 0 14px;
+  display: grid;
+  gap: 6px;
+}
+.ls-month-btn {
+  background: none;
+  border: 0;
+  color: var(--ls-gold);
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 8px 2px;
+  min-height: 40px;
+  cursor: pointer;
+}
+.ls-fold-all {
+  min-height: 40px;
+  margin: 0 0 10px;
+}
+.ls-play-chip {
+  margin: 4px 0 4px 92px;
+}
+@media (max-width: 640px) {
+  .ls-play-chip {
+    margin-left: 0;
+  }
+}

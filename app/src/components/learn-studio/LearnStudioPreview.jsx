@@ -13,6 +13,7 @@
 import { neighborLessons } from './LessonNav.jsx';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import LearnDashboard from './LearnDashboard.jsx';
+import { recordUse } from '../../lib/ux-signals.js';
 import LearnStudio from './LearnStudio.jsx';
 import { presentationIndex, isLearnStudioOn, STUDIO_FLAG_KEY, allLessons } from '../../lib/learn-presentation/presentation.js';
 
@@ -115,6 +116,12 @@ export default function LearnStudioPreview({
   };
   const opens = (lesson) => ownerDevice && hasOwnText(lesson);
   const open = (lesson, course, mode, level) => {
+    // Recently opened is shared with the classic page (lib/ux-signals.js): a lesson opened here counts there too.
+    try {
+      recordUse(lesson && lesson.id);
+    } catch {
+      /* no storage */
+    }
     setExperienceLevel(level);
     setExperienceMode(mode);
     setActive({ lesson, course });

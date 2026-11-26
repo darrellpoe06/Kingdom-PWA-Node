@@ -243,3 +243,118 @@ describe('the featured picture turns on a swipe', () => {
     expect($('ls-hero').getAttribute('data-slide')).toBe(String(dots - 1)); // wraps to the last
   });
 });
+
+// Darrell 2026-11-26, sent the classic page from his phone: "How is this still a view?... we
+// should be able to keep the functions and make it look better" (DR-1663).
+describe('the new look never hands the reader back to the classic page', () => {
+  it('All Courses and a department chip stay in the new look (onExit is never called)', async () => {
+    const onExit = vi.fn();
+    const tools = <div data-testid="learn-areas">classic tools</div>;
+    act(() =>
+      root.render(<LearnStudioPreview courses={COURSES} onOpenLesson={vi.fn()} onExit={onExit} ownerDevice tools={tools} ctx={CTX} onDepartment={() => true} />)
+    );
+    click($('ls-all-courses'));
+    expect(onExit).not.toHaveBeenCalled();
+    expect($('ls-courses')).toBeTruthy();
+    const dept = container.querySelector('.ls-depts .ls-chip--dept:not([data-testid])');
+    click(dept);
+    expect(onExit).not.toHaveBeenCalled();
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 5)); // the tools open after React paints
+    });
+    expect($('ls-full-tools').open).toBe(true); // the department opened the tools on this page
+  });
+
+  it('inside the new look the tools leave out the classic controls the new look already gives', () => {
+    const src = SRC('ChurchLearn.jsx');
+    expect(src).toMatch(/courses\.length > 1 && !lessonFocus && !studio[^\n]*\n\s*<div className="mt-1 mb-4" data-testid="learn-departments">/);
+    expect(src).toMatch(/visibleCourses\.length >= 1 && !lessonFocus && !studio && \(/);
+  });
+});
+
+// Darrell 2026-11-26: "Why don't the new look show on others phones?!" -- it was gated to
+// two personas. The shell now turns the new Learn and the new Institute on for every member.
+describe('the new look is for every member, not two accounts (DR-1664)', () => {
+  it('the shell passes the new-look defaults with no persona condition', () => {
+    const shell = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'poe-financial-mvp-v28.jsx'), 'utf8');
+    expect(shell).toMatch(/<ChurchLearn[\s\S]*?learnStudioDefaultOn \/\*/);
+    expect(shell).toMatch(/<ChurchInstitute [^\n]*studioDefaultOn \/\*/);
+    expect(shell).not.toMatch(/(learnStudioDefaultOn|studioDefaultOn)=\{\['darrell', 'christina'\]/);
+  });
+});
+
+// Darrell 2026-11-26: "We need the relationships lessons in one place... my wife says ladies will
+// want those most."
+describe('Relationships, in one place', () => {
+  it('every listed lesson is a real mounted lesson (a removed or renamed one fails the build)', async () => {
+    const { RELATIONSHIP_LESSONS, relationshipShelf } = await import('../lib/learn-presentation/presentation.js');
+    const ids = new Set(COURSES.flatMap((c) => c.schedule.map((l) => l.id)));
+    const missing = RELATIONSHIP_LESSONS.filter((id) => !ids.has(id));
+    expect(missing).toEqual([]);
+    expect(new Set(RELATIONSHIP_LESSONS).size).toBe(RELATIONSHIP_LESSONS.length);
+    expect(relationshipShelf(COURSES, new Map()).map((x) => x.lesson.id)).toEqual([...RELATIONSHIP_LESSONS]);
+  });
+
+  it('the shelf sits high on the Learn home, before the hero, and See All opens every lesson on it', async () => {
+    const { RELATIONSHIP_LESSONS } = await import('../lib/learn-presentation/presentation.js');
+    act(() => root.render(<LearnStudioPreview courses={COURSES} onOpenLesson={vi.fn()} onExit={vi.fn()} ownerDevice ctx={CTX} />));
+    const shelf = $('ls-relationships');
+    expect(shelf).toBeTruthy();
+    expect(shelf.textContent).toContain('Relationships');
+    const hero = $('ls-hero');
+    expect(shelf.compareDocumentPosition(hero) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    click([...shelf.querySelectorAll('button')].find((b) => b.textContent.includes('See All')));
+    expect(container.querySelectorAll('.ls-grid button.ls-card').length).toBe(RELATIONSHIP_LESSONS.length);
+  });
+});
+
+// Darrell 2026-11-26, sending the classic Living Lessons page: "All options?!!!"
+describe('the course page has every option the classic page has (DR-1667)', () => {
+  const openLiving = () => {
+    act(() =>
+      root.render(<LearnStudioPreview courses={COURSES} onOpenLesson={vi.fn()} onExit={vi.fn()} ownerDevice initialCourseKey="living-lessons" ctx={CTX} />)
+    );
+  };
+  it("the parts of the course by the Word's divisions are one-tap chips that narrow both looks", async () => {
+    const { sectionLessons } = await import('../lib/lesson-sections.js');
+    const secs = sectionLessons(LIVING.schedule);
+    openLiving();
+    const parts = $('course-view-parts');
+    expect(parts).toBeTruthy();
+    expect(parts.querySelectorAll('button').length).toBe(secs.length + 1);
+    const law = secs[0];
+    click($(`course-part-${law.key}`));
+    expect(container.querySelectorAll('.ls-grid button.ls-card').length).toBe(law.lessons.length);
+    click($('course-view-list'));
+    expect(container.querySelectorAll('button.ls-inorder-row').length).toBe(law.lessons.length);
+  });
+  it("every order is offered, the Word's divisions included, and it groups the list under foldable headings", () => {
+    openLiving();
+    const sel = $('course-view-order');
+    expect([...sel.options].map((o) => o.value)).toEqual(['order', 'newest', 'az', 'za', 'divisions']);
+    click($('course-view-list'));
+    pick(sel, 'divisions');
+    const heads = container.querySelectorAll('[data-testid="inorder-group"]');
+    expect(heads.length).toBeGreaterThan(1);
+    const before = container.querySelectorAll('button.ls-inorder-row').length;
+    click(heads[0]);
+    expect(container.querySelectorAll('button.ls-inorder-row').length).toBeLessThan(before);
+    click($('inorder-fold-all'));
+    expect(container.querySelectorAll('button.ls-inorder-row').length).toBe(0);
+  });
+  it('every row carries ▶ Play, and a lesson opened in the new look shows under Recently opened', () => {
+    openLiving();
+    click($('course-view-list'));
+    const first = LIVING.schedule[0].id;
+    expect($(`inorder-play-${first}`)).toBeTruthy();
+    click($(`inorder-${first}`)); // opens it in the Lesson Experience, recording the use
+    act(() => root.unmount());
+    root = createRoot(container);
+    openLiving();
+    expect($('course-view-recent')).toBeTruthy();
+    const recent = $('course-view-recent').querySelectorAll('button');
+    expect(recent.length).toBe(1);
+    click(recent[0]); // one tap back into that lesson
+    expect(container.querySelector('.le-root')).toBeTruthy();
+  });
+});
