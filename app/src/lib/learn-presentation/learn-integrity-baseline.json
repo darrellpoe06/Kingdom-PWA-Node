@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T03:15:04.345Z",
+ "measuredAt": "2026-11-26T03:19:04.844Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4278
+  "readings": 4280
  },
  "departments": [
   {
@@ -12799,11 +12799,13 @@
    "department": "The Eternal Algorithms",
    "position": 16,
    "title": "I AM THAT I AM — the Name that answers to nothing",
-   "contentSha": "df98eeb591c62fdafa18cdfdd8775f491b48eef0ebf712827acd0785bc6f394c",
+   "contentSha": "adfae6f3906c9da1db56286af0fff0680f9995c9ca70d9854a8957a012b3f6c2",
    "versions": {
-    "teen": "8501dc41a684c2de17b1b43938a83ef82e039594e39d8b6707a1a8d6d5fd7c9b",
-    "adult": "b4cfbdac08ab80d22f9b8ddaf82453ba1e3644fb077ca1021cf7b5e8855eccd1",
-    "senior": "835877e6ed50488b8e67533c6cb3862e3a62efe9edd305c5d8403e75c078c5cc"
+    "child": "75c811d53da92a3257841316a19982a712ba7e6dc3aa1948734f552509bb4ff0",
+    "youth": "41264fccdd8ebfe82e0a20b4b129f9152330c7b6007840c2e5151f3305ebab57",
+    "teen": "0c22698366f7ae1e6bb53526a26ae2d0054e10482b2a44d10c8972e2ea86593a",
+    "adult": "69754cf8ec3198965da776ac262699a2fc27ae2b16e5fd27bf8e5bd9237b990c",
+    "senior": "3d4aef7f5e48a863f45d7146561464672bf52c6f22289b80b6e3f1749beb1981"
    }
   },
   {
