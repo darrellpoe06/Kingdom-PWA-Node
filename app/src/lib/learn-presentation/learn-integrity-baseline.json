@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T04:49:24.876Z",
+ "measuredAt": "2026-11-26T04:53:18.410Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4330
+  "readings": 4332
  },
  "departments": [
   {
@@ -12876,11 +12876,13 @@
    "department": "The Eternal Algorithms",
    "position": 21,
    "title": "The Remedy Arrives on a Calendar (His justice is not adversarial or purchased)",
-   "contentSha": "55c94fe1de7cb6d4575eb41567787beec2e5e1e0d60fc899896ca27a8783d482",
+   "contentSha": "fd6617061b1c0d0c7f82c43d1cabe877454efeb1435ac224d73cf72f0a58772b",
    "versions": {
-    "teen": "2763bc8a18ce38dab047a83cd1a196d86dec3783042d66080cf0f797442eb09b",
-    "adult": "8ffa59e3e0539a1baf0877e97e1bb42ca6cbabeba3c71415e2827c6eddd4ecf5",
-    "senior": "565972e457d862783cc4ad11ae6dbd29049259337f4432524e294ee72f4edb42"
+    "child": "85552ee391115fdc13a9928c0aa275bce887167f48e8ee69177f40a1cfa30b2b",
+    "youth": "79d6b291bb31852e862da79c7258ba8f3a0ed0121e12ea84bfc1da6f0f3e0a58",
+    "teen": "48db51fb32c05a4b425f4863bc69c3263a1e15163797270d0bdf399ea0d3858f",
+    "adult": "02aa9ccc99cd16f23debc74fe45231aa684d5b505f215fa8e12ee8beac05f0bc",
+    "senior": "2da277663a2d3a223c3123e479b7717f2db33450ea24847ec243adbd4a78fd20"
    }
   },
   {
