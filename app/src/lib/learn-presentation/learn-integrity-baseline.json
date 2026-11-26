@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T07:40:52.568Z",
+ "measuredAt": "2026-11-26T08:01:25.741Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4406
+  "readings": 4416
  },
  "departments": [
   {
@@ -13105,11 +13105,13 @@
    "department": "The Eternal Algorithms",
    "position": 17,
    "title": "Your Breath Is in His Hand (we cannot keep ourselves alive)",
-   "contentSha": "cba5cadd0382e1c68393c99d5541da956319e73d6b37dac5bedaf95c0781448e",
+   "contentSha": "b0a991103ce62035f6eba129d36566b1a7ee6c7ee714c0c395045f7989a059ec",
    "versions": {
-    "teen": "7e1d54eb665fff362d1aa7eba0b500404af418d60367415a7bc64d161d0e37df",
-    "adult": "d1cd50681724fadb2798985cb20f7ec6cea78927d0718ae1e6e344d90e90ff46",
-    "senior": "cf1140a056721c5467850a43ecfd9789dd42e6036b83c0bc15eb938ad9edd161"
+    "child": "35ab002f1e3e61d8b29823228bb83b321710026dba9ff2a390eef08904c1db27",
+    "youth": "cfa780aca21fe754c2f08761eb784c82d71cbabf96baf9d09bd2cffa68eafb5c",
+    "teen": "d3e338227b19822073d8cbd1c49e514f81a115901aee4b208826d1a68ef95d3d",
+    "adult": "be82d29a7a28f516cdd89791ea7f4ed7e9d35637a0dd2eb315d1d7a88cca4c92",
+    "senior": "9ff233fe243a6cb5d0116f7470e20b6acbe4a45a2bb49bc53914cb3f27db140f"
    }
   },
   {
@@ -13118,11 +13120,13 @@
    "department": "The Eternal Algorithms",
    "position": 18,
    "title": "Money Cannot Ransom a Soul (only Yahweh redeems)",
-   "contentSha": "b41f7bbdf4add75704b74d0b22918c02d8c5ad3699f72f12b6d8919ee2dc40f9",
+   "contentSha": "696603e3b660950a4c560bbf8d4e4e892a3da18c6d8b7ace6b7e05154a104db0",
    "versions": {
-    "teen": "b847fe8ad8e93410478d8f2e3488375ae7bfff88513c3e83b7462c4c7c0e159b",
-    "adult": "e6b9f65b3043d15b4d45d07f1bd597764dcff69a58c4ee82b6ed4dac994d65a0",
-    "senior": "f850b0173937ff9367e1d4795644fdd4c44db3d3b0bb8e39a22ff471bff7c9d3"
+    "child": "03ab5158022642baa8accb3a805f2e7c2faf11995808db7f6ce8950557ce69fa",
+    "youth": "b49f47e2a25358457809cb29867ce48cd5f55aa5c27ce123c02d5c4852957ca9",
+    "teen": "3cdadd551bd4e804a2c00bebd814822e5f3a69e4bd334c91b62e3a0663682765",
+    "adult": "bb2387c4850da0e6ffdc587080695dc14db095d49327a0a906d34121d3a3d629",
+    "senior": "341a0d71e8577952e1c97d14d32d86d7dc79573d7124f2b178e2935b421e8e01"
    }
   },
   {
@@ -14306,11 +14310,13 @@
    "department": "The Eternal Algorithms",
    "position": 25,
    "title": "The Wage and the Gift (doomed apart from Him, Life through the Son)",
-   "contentSha": "434695fce431be8969b0ae7b344b1e47d3e9c2d0bf85c589611b08560f21ab9e",
+   "contentSha": "a627840421ffcfc6881f45a3a8976ed1ee096921f10b8aa80dba34bbca91009a",
    "versions": {
-    "teen": "6ed8444a3be06c47ae3f9233f048ee1cee449d5c91f90cc03d4057de694e6657",
-    "adult": "dc7a98146a75d0a773a1090979fd948138c95eb72640dfb3f387121cb6dae136",
-    "senior": "6e2c1df2ab5c3e967686dfaf61b7a545611a3cb7acb20033ff282458f61863b6"
+    "child": "9f4a5ea456c9413454b5954590edf5433fa86fbfdf152c8b6dd2e5cf23915a12",
+    "youth": "ff2aecf4fbaf22926d642bfbf4ae1e4dca5081fc99e7c1d61dd0881a42df5a5e",
+    "teen": "2e47bb8b5b6663e39b9834090540bdf9d16f0dc16dd3ffed08d221ae4730fd60",
+    "adult": "f25efc889d6ea4ba3663e29023e01734aef267bb0f4e2e579aeeee67ff5eb17e",
+    "senior": "d1ae3fc97b1b20715f64620e2c09a7d90e3ec0f8fa72de13bed290d7499c4228"
    }
   },
   {
@@ -14319,11 +14325,13 @@
    "department": "The Eternal Algorithms",
    "position": 26,
    "title": "The God of This World (we left Him; the world is occupied, not neutral)",
-   "contentSha": "19640bbd6485a834991a04b92e2dd1a179c4444911d6d26ddcda75dad0a39e2d",
+   "contentSha": "3d9588b07b5fbe904f34569593c7b80f096315bdd2e12677a24f8159e6710d60",
    "versions": {
-    "teen": "91f7a9602fd89de8d66b94c76022e65fe9bc5eeaf293bf541f1c3bffca3d0503",
-    "adult": "9cbbf1fd63263023c5ffaa1334a42899fa8dbf25b33a5d649c618372e519835a",
-    "senior": "0b56a088870aa6015fc54c875a32e97f73584ea962b39d83229ffe150272eb77"
+    "child": "4828e7e355d490b2af4e01916229d99b00b77ac1257e5db32d59116823554b89",
+    "youth": "89955a9dec2800ae6c84894e40396326d0e0f6584b15a0b3bfb841c7ee37cd37",
+    "teen": "7cde451bfbf5655ee6c0f155ada3a4f55763846186c1ac6b5591ac77f24a4cb1",
+    "adult": "940fe9840e03865851d454ce0fae8d541831411900cb7f3ea4eb9d42640602b3",
+    "senior": "2e74c231bd5f4c565fb542bc2aa33679deeb4bc68302db3597be3d6ae14748f4"
    }
   },
   {
@@ -14332,11 +14340,13 @@
    "department": "The Eternal Algorithms",
    "position": 27,
    "title": "Appointed Once to Die (death is a doorway to the eternal, then the judgment)",
-   "contentSha": "e87d120542023ca62d83c0455dc683961ea393e97dc8337b18728321cc867c1c",
+   "contentSha": "9646c9ecaa8da0c6a147418f3e4aa0684c64444f32f213d3a696a8356867cd57",
    "versions": {
-    "teen": "ec01bf72bd938b02533891d7fbd20c3c0231cfc7e046ab677737aca835b7be31",
-    "adult": "9d4ff89be0d5e5f94cd6a70504e4a066f906e44e64bcc51ab8390763c1a1de23",
-    "senior": "0a3201e6245518779a56f422df07d928452f6a72f8215e94b6a54de41ed8178c"
+    "child": "8f62679f20473dce00e3bb52b81c09f8c24e71d69b5635518e698797cf8ab060",
+    "youth": "9dac12625e3d89b8501d50d36325aa3538f0c18070c6fc9073044372f0f1d2dc",
+    "teen": "c590654e4e1fd947a3d052dfde45c146f135d332ff2dc77beebafed82df4f943",
+    "adult": "3303cb2dc6346265c6d3683eb289e04dfe62d220697f73ce7a1465181411c3e8",
+    "senior": "02dffe2de1ae28b190cb01353e2cac350ac162b8065be9e4e94096c79dba1b67"
    }
   },
   {
