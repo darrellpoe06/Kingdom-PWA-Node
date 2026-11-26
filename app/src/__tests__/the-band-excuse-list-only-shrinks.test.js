@@ -36,7 +36,9 @@ import { loadFourBandAllowlist, shrinkFourBandAllowlist } from '../../../scripts
 // 174 lessons pinned across 43 course blocks, 16 of which still owe a band.
 // 346 was this list's size on the 2026-09-30 branch; 378 was that branch's
 // ceiling. Both are history, and neither may come back.
-const CEILING = 174;
+// LOWERED 2026-11-26 to 165, measured: the nine Broadcast lessons (bc1-bc9) gained
+// child and youth readings and left the list (174 - 9 = 165).
+const CEILING = 165;
 
 const allowlist = loadFourBandAllowlist();
 const pinnedCount = (a) => Object.values((a && a.courses) || {})

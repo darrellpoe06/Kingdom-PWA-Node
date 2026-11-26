@@ -51,6 +51,8 @@ afterEach(() => {
   if (container) container.remove();
   container = null; root = null;
   try { window.sessionStorage.clear(); } catch { /* noop */ }
+  // The Bible keeps its place (DR: bible-place); each case here starts at the start.
+  try { window.localStorage.removeItem('poetech.bible.place'); } catch { /* noop */ }
 });
 const settle = async (n = 6) => { for (let i = 0; i < n; i += 1) await act(async () => { await Promise.resolve(); }); };
 async function mount(el) {
