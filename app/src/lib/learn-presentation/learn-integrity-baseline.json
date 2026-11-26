@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T16:22:36.632Z",
+ "measuredAt": "2026-11-26T16:28:39.065Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4572
+  "readings": 4574
  },
  "departments": [
   {
@@ -561,11 +561,13 @@
    "department": "Serve the House",
    "position": 2,
    "title": "The camera and the image — Chris’s 4K eye",
-   "contentSha": "7c18e752732580ff0ca105deaff65cf77c88018288c6546df7b57171e7552101",
+   "contentSha": "8312094a1681abf1c0f38152efdfd723d47aa5596322cb264a0849485480d6e4",
    "versions": {
-    "teen": "77e56a5ad42d2c001fbada5399f26923a7ababb89ea3547edb741dd2fb21efb8",
-    "adult": "9e84ff23668e9caeabd737bdd2d353479f840327b11c634da4a7fe7cabe55f4a",
-    "senior": "4def71e9a1515333a570ed1ab378151e39413c9471b3086930abfd6238059241"
+    "child": "b116e6d2d092822a729c7cf9e52177249cb54653f04741dcb3475104dcfb8bc6",
+    "youth": "b227b616435a6f4b550eb2cebd3b68953f7e2c90be6c9346a09b118d76634a52",
+    "teen": "ededb28f4d2fdb5a76c11bf641b4f8d44e0024bfaae61d6851a840549b3cb911",
+    "adult": "8e0271c5a7e3a72061b60f804d5956bb89426100683575198770f1d3e9a83cda",
+    "senior": "d050d033c133fc5caf412dd0a8f787cf33061671cc72a21356926a41a570a57b"
    }
   },
   {
