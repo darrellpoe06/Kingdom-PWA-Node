@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T10:42:28.666Z",
+ "measuredAt": "2026-11-26T10:46:08.271Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4458
+  "readings": 4460
  },
  "departments": [
   {
@@ -13643,11 +13643,13 @@
    "department": "The Eternal Algorithms",
    "position": 14,
    "title": "The Closet (in secret, He teaches — and rewards openly)",
-   "contentSha": "7194328127f47e887d94aa345cb901e1d042f412f500b3bcbb2b36903bfc63a5",
+   "contentSha": "af3775d1dcfd3482961ec4a2d6740c373c941c6be6a544315520785d57cbc651",
    "versions": {
-    "teen": "99671334fff5e332f86dfbc4803dacddd1599c27e9dc8416ebfddc3e64760276",
-    "adult": "439a833da4dabcdeb3b7112b7445c509abe2f8caadfe1061291321665d4af65d",
-    "senior": "d9af75c78dcd4256c0659be27859eeed0ae81cbba65bfe0ba4e409b06ccce2cf"
+    "child": "db0c8736b73a21fa5844fe9356bc2772b0d6ce631e9390b43d26bc7394ae7c86",
+    "youth": "d781ac172c25aa742b213e5d17014fbac2595f1ceb2188dffeed481d5e214ade",
+    "teen": "5b25c23ef3dda495a10a135bf81c21ff355ad69d7a66ea38d8d5b38bfa5513a0",
+    "adult": "d9fea82d9a9f2e6233ab329d380199bb1eb88fa6246ef16d2dc21096fb5b4126",
+    "senior": "340bbec89209248e324ad2369e9e2b3d21cb597e5e5e908b6bc1165d0caf87f1"
    }
   },
   {

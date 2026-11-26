@@ -87,8 +87,8 @@ describe('Learn content integrity baseline', () => {
   // searched-and-known, known-before-formed, clearly-seen-without-excuse,
   // word-framed-worlds, nothing-unclean, door-sup, overcome-throne,
   // faithful-crown, assembling, sow-bountifully, tested-soul,
-  // filled-righteousness, feed-sheep.
-  it('the baseline is the measured Phase 1 catalog (13 / 51 / 994 / 4,458)', () => {
-    expect(base.counts).toEqual({ departments: 13, courses: 51, lessons: 994, readings: 4458 });
+  // filled-righteousness, feed-sheep, closet.
+  it('the baseline is the measured Phase 1 catalog (13 / 51 / 994 / 4,460)', () => {
+    expect(base.counts).toEqual({ departments: 13, courses: 51, lessons: 994, readings: 4460 });
   });
 });
