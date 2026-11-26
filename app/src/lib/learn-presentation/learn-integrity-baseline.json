@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T13:01:55.672Z",
+ "measuredAt": "2026-11-26T13:30:34.769Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4510
+  "readings": 4522
  },
  "departments": [
   {
@@ -13285,11 +13285,13 @@
    "department": "The Eternal Algorithms",
    "position": 6,
    "title": "Prove Me in the Tithe (windows of Heaven)",
-   "contentSha": "19c6078a9011c7aa708227a8378ebdf08d131a2bc590f7047bdc2ae4af7d1e56",
+   "contentSha": "d4536c6bb4286d3c801f24aa8685e1b0e6fbdd7b4bd7be033267aebfc2222ccb",
    "versions": {
-    "teen": "ba188556c39ce5ee1c9768c30ce11969d46e0ea75a9091a5f9800409d4d7d942",
-    "adult": "0f6ae33b0f3fffa8c6a0b1586d68928cde44c897f210034652087aad3cdc4505",
-    "senior": "672b116530c77c67f6ab0718349f1346fc8d2d945c38b68ee92bd42c4eea38eb"
+    "child": "439659aa24f9260b0dcb551286c8b4242b4bd371be9a60f96ab8ec8234b723aa",
+    "youth": "3739b4a53a23ffd5a56fddd23860dc483c1b24656d45f8787fdcd0f8741087de",
+    "teen": "de38e7f79f6ad57e454a538f982eb560ca74ce280664654db30f339f0765f6e5",
+    "adult": "27595b3c0696fa871f2372d75230cfef096a81b39343cf8a09c42bee2a2ee05e",
+    "senior": "4061e14aa5e01d0324479a92831d5ef4f60bf19ea639e8958eb9bf8b0026f944"
    }
   },
   {
@@ -13298,11 +13300,13 @@
    "department": "The Eternal Algorithms",
    "position": 7,
    "title": "Return unto Me → I Will Return unto You",
-   "contentSha": "de2fb66114e21fad90578bca5283a66856a009c5aeb928b4fce923ddf950f263",
+   "contentSha": "e8804579b3b8f077fe44c142e6e952ba9224ecae292b2df8dbee162208bcbaa2",
    "versions": {
-    "teen": "d75e62da1babc47e3bd87e0a8b50e4a9008f54c872cef8b3b931032a3b00f02b",
-    "adult": "a12086aee5f7a91648946e7302cb16a3052357c93ecc9040ae63fb1e3c8d02ab",
-    "senior": "53023b134f37fe1c24cf3eb6b77fdbb4b774ddf1398ee72ac96763e9161f4203"
+    "child": "e7e7b73ea7e29f7798516755d8879e7c2a3b8c9752b24bbe700e6f1d801bf436",
+    "youth": "63627520d4fc6f3b707db74016c737061190bd8ddbc9d9c1e8f870e8477ca263",
+    "teen": "847d0c24bb3c50aa3c64d421a457d438657e7a5b23da5e097fd7a3ef3629a0f6",
+    "adult": "aca892442233a6ce53374b9a9345df4c4520abe825119b890ee4be66911a237e",
+    "senior": "a92002bd295f7aab7bc131e8c254e602dc596bcedab4e0f4b31d73a23fe75de4"
    }
   },
   {
@@ -13311,11 +13315,13 @@
    "department": "The Eternal Algorithms",
    "position": 8,
    "title": "No Weapon Formed Shall Prosper",
-   "contentSha": "777e91cead56b380482ac94158cdb76450b1b6b17b867f0d1295a761f92ab7d9",
+   "contentSha": "a7fbe439cb647f8aa754b15f195c6488cfb1a05d22ef588b7a0886ce6445dae7",
    "versions": {
-    "teen": "c8a1dd137c83aca817bcd3e4d4e8c852f7cb78e27853012a0661885190bce8c5",
-    "adult": "64ed266cde1c4dfb2fa1eb32c6e091880d2f40919c2a8861b7733e6d3116cc8d",
-    "senior": "0d81d2b8736ce97dc8d87277dc6961deefc3fc900020bf3eafc42661ac5504b6"
+    "child": "7715210a661b34228eca7b08223dfe93e36cc2dca2392d3bee8c97152f5cbbf2",
+    "youth": "a6451bd7d40f7c6a2cbc5f059fe4b7fff45e894b8fcd65ad85a5d66fcfe5f608",
+    "teen": "9a8f6dbf09ddfa021748f9403a20d86f2c43514afce56e49bea3d2e89c55ed57",
+    "adult": "bf714193179c9619c42f197deb4c2a4f87fcc10ad96dc0829922ca2910b0c303",
+    "senior": "d34725432cd8ea8c123ff6719fe5260b4e6abe482a51a9a629ca335593f5a426"
    }
   },
   {
@@ -13324,11 +13330,13 @@
    "department": "The Eternal Algorithms",
    "position": 9,
    "title": "My Word Shall Not Return Void",
-   "contentSha": "9336f9f6491fe55feae112ab422b917967cc59df2cb6e64232b4e01908245c0d",
+   "contentSha": "d71d57d4d46b94c7aab43eeb858d57f658c1896826dcc8684680098e0298e8b8",
    "versions": {
-    "teen": "5bcfe7c94fa8d05836133ccb2836ec2da8fab2bad3fe10a2024224aa79cfb58b",
-    "adult": "47f32fd8914c533da205e57166245648273d39b3f8d0320328a2c86977a751a3",
-    "senior": "73857aadf2dfe80f3f57897d49ea92bebb2e1c3e6f30654fbac54b0e9c774774"
+    "child": "a3991ebbba2bf167f9490e5f56a971535e8559e1aac3c6f678963b65191d2d4c",
+    "youth": "0ad08e479f19da7427cbc5ae638783ea973bcc6c64ae5e76c0524e9bb05063a5",
+    "teen": "9cdf915d500d643859b3e0aa1e561fc5ee5f661231040c32639169b91d738dd9",
+    "adult": "c5a6b899e11e2cac3290d1ca5c6b0c3c000fe58f4e24f6b667bf5029795c10b1",
+    "senior": "40b816fc5db656f29e912ca1020a299ce88aabceaaa6d7fe31021a3353deb988"
    }
   },
   {
@@ -13487,11 +13495,13 @@
    "department": "The Eternal Algorithms",
    "position": 2,
    "title": "The Door (no way to eternity but through Christ)",
-   "contentSha": "8f16aa5bed45b362ca2ce435d239d5b82d93b65af80707f988a0efcfdc404fe4",
+   "contentSha": "6a6334490d9f27a6b690c2a092fe3df8dc0d7e1f0c520dd4dba443f86b5d5fcc",
    "versions": {
-    "teen": "5b8c08ddf21dffd6e4af172cc1d751f01e9a5743be9750e63d8be9cd4eaeff9a",
-    "adult": "dfe954430f842f7271967c21db921eddf7a316f92b6b7e85e35d5fc289ca12a1",
-    "senior": "03189fc9d4578b0de8fac97a1f1331e323352e086fcc95c54269cef2406a144d"
+    "child": "d9c573110f8da9df760288b7a341d12f09a40138f83ae7e54883ebc7c56845cb",
+    "youth": "a8b15a48c6f61f2234d0bd6ff1901de8d86c3fe67aa603cb1e8d49dd966e7663",
+    "teen": "86ba1f44d96a6376a72b2a7a888a7ce4f78e31e60b25ae499c7a0f84de668ad7",
+    "adult": "2861de5f8a432a39e77ebd8df93ee4166c1d4a0f71e88ad99ea5f958e29b388d",
+    "senior": "9d49d4e83083e3a0e942ab80e3d6ae81fef5e3392595f1d3f5ea4e952d28940d"
    }
   },
   {
@@ -13500,11 +13510,13 @@
    "department": "The Eternal Algorithms",
    "position": 3,
    "title": "Seek First the Kingdom",
-   "contentSha": "e4b47862cd236079781ad4ff3cbca1084617712d9ef1dd496431e150e7ed4b2a",
+   "contentSha": "7cbbd7a1f88576be1f7caeba0f8c84ef59fb4c4ff5ed158f2aefa6c137f6fa6f",
    "versions": {
-    "teen": "e6e588e5dd8b33a32dad404268b4a557396951db155ffbaf73f2634e8ee1ec41",
-    "adult": "57892f4d612dcd75db1c9cd5e9cd87cdfb2d1e833cf161eb4ac4fe1405d9add0",
-    "senior": "bf2f9b1c4f86065be4ab2422eb5d117d080d2284eec45690eb192f5cdbf1e309"
+    "child": "7ed25d193645a981daa3fd3ef801fc6a5a830bc4c784a254332d533c44ee3dc9",
+    "youth": "3fa6f8520f983017ecc02a83859e79806f48d5f8797975b3a59489afe4facf0b",
+    "teen": "dda79d6f37c340cf7eb9a123dbf99a62962c5051f51cee3517d9aa193a39b835",
+    "adult": "71bd7e123e22a2bbe277d11417fc0bf3f6beafbfe4a623d37912f8ba991dd73b",
+    "senior": "bb0757404c3b49f98a914487ae2ec50a8b3af604c4b1ca6cb7699131d971c695"
    }
   },
   {
