@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T16:37:05.226Z",
+ "measuredAt": "2026-11-26T16:44:30.912Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4576
+  "readings": 4578
  },
  "departments": [
   {
@@ -591,11 +591,13 @@
    "department": "Serve the House",
    "position": 4,
    "title": "OBS and the switch — Bradley runs the look",
-   "contentSha": "33dfc890bdb117d0cdea70066e68a7f0ef55db5dbf78ab1c5a0c27d835dfbfc9",
+   "contentSha": "c779ccf8e48904fd1705ddeb83370c45870ac69770c7f7eae574579d5a970b8c",
    "versions": {
-    "teen": "ffb76e1e48d52b2d9f4111254da4010078fac53d1920cdb81f866eb3d7cd15a6",
-    "adult": "87d18acb4df0e0411e99a9c95e5c8ec846597fb657a9cb92a42b476bd7772421",
-    "senior": "ffc4cefb777eeb044b64b84acaf2894b336d00025a4c9fec721c6d90ee357a68"
+    "child": "9b4c4eefeb046e516aaaef0a7ed132f685e6a46cca402cfc0658e6b50288caa3",
+    "youth": "87bbfc6c7fef4e2c79df155ec164530ec93606a586dae18cb805bae1bed7c631",
+    "teen": "a3c89a67b4d7371f53cd0dd26c2eacb8da15897d38266477f504006659526b9a",
+    "adult": "718627a3d952422ca2fcd53f6ee7fad73f51f057c6b40f53851872d7c52021d4",
+    "senior": "27ff404b3658cb8ec6ea9c140dae213db3c680f3350fdd7731f7477f3fec2632"
    }
   },
   {
