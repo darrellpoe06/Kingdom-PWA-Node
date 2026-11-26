@@ -38,3 +38,7 @@ A teaching spoken into the app on 2026-11-26, opened with "this is a lesson, by 
 ## Wiring checked
 
 Every file naming `ll342` was grepped: only the lesson and its test. The per-file lessons are read into the catalog by `lessonFileNames` (no list to edit). `learn-catalog-snapshot` and `learn-studio` hold 994 as a floor, so a new lesson passes. `learn-integrity-baseline` lists lessons outside the Phase 1 baseline as new, so no re-measure is owed (L342's PR re-measured only to keep L342 out of the baseline).
+
+## Catalog-wide results
+
+Every test file that reads the lesson catalog (381 files) ran locally: 14,176 passed, 26 failed. All 26 were one shared check, `spoken-lessons-name-darrell` (DR-0719, no bare "the teacher" in a spoken lesson), repeated across the lesson test files that import it; the hit was the film character in the Karate Kid line. Fixed by naming Miyagi (commit 211f43b), then that check, the L343 gate and reader length passed 18/18. CI on the PR found the same one failure.
