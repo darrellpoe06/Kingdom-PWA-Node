@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T08:18:31.827Z",
+ "measuredAt": "2026-11-26T08:21:53.487Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4424
+  "readings": 4426
  },
  "departments": [
   {
@@ -12719,11 +12719,13 @@
    "department": "The Eternal Algorithms",
    "position": 10,
    "title": "The Provider Commanded Ahead (I have commanded a widow there)",
-   "contentSha": "c50a64b8a09412504b62c9bee6867d6ff0cd73c2eb2f007c8127bd982f65144a",
+   "contentSha": "0abbd8e1097269df62b1a2231aa39b038cd5ebc1e03609b8ddd3d3413075b6fa",
    "versions": {
-    "teen": "497c2060ccfd8e434491066fec237cff7e2ae83fc4a60e351722e611c1fb250a",
-    "adult": "4d8126cef1a9c93bc7d64ce79372cb8edd3a91d1fe0976bb8a523f232ad67cac",
-    "senior": "05b8625f51983c1f4bf8d65ce8ec2c3e1ddb5e9ac52a4d81591ad9763fc978fc"
+    "child": "e19fa0dff49e5ca72f54936ba1c71b54dd10d99fe2bb4d6733b53cbd9fc2aac1",
+    "youth": "2d75be556f4e2bea08c63f51bbb817e786ddbdc4608ac1544f8c3aaff361b4fd",
+    "teen": "77f887500e529221b3396c223648b35c62bfdf8ed038f615cc8096ab1ad19714",
+    "adult": "370dea8abfcc565184785514e2386ad6eb0646c8a1fe3f959689aa834ff7046a",
+    "senior": "79438bd14d727cf5f6f63680595e4fd7e308e28168beae617da1cab64c5d4a69"
    }
   },
   {
