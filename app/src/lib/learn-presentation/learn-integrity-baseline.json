@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T03:36:34.184Z",
+ "measuredAt": "2026-11-26T04:13:42.214Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4290
+  "readings": 4312
  },
  "departments": [
   {
@@ -13872,11 +13872,13 @@
    "department": "The Eternal Algorithms",
    "position": 35,
    "title": "Before Abraham was, I am — the Name on Jesus' own lips",
-   "contentSha": "a97273be0f102ef497e46d4454aef66eb08c0778f7f2e0c1f66466d76cfbc346",
+   "contentSha": "9170ef51707df9034fd19dbf89f98603f6b467614876822c5b793d6ee8d8030a",
    "versions": {
-    "teen": "13f5fe08c7bc423e206a8cbe543893251e4074e1301052157523e8ab24b767ec",
-    "adult": "a61c560be5578cae136d4e808d44bafdb33808c11968a7fd8e9d673a83e7f6f9",
-    "senior": "4c22fb46a226dc34908e0b5f23e29ade5b514e76329d2f5ece40580beff5c70a"
+    "child": "0ea99ad238d0bd2f2cda78e9df0b4be8d73553d21b44e55a36326a32804e7cdb",
+    "youth": "22282de5361abeac9524f9f48731be91d5d9877cafc08d91b3f14fa199ce41db",
+    "teen": "aec9cb081e72ad5eebf7943c190b036ca3dd765596993d425dea13020ab13825",
+    "adult": "b86376f5c167f013c03061fbe8cb1d50ab7e6fac426c20b4d53dadcf49069883",
+    "senior": "19a5ef46de44b016cf6eec052da62890e0e6927c80be56b72963f027edba9407"
    }
   },
   {
@@ -13885,11 +13887,13 @@
    "department": "The Eternal Algorithms",
    "position": 36,
    "title": "Call His name JESUS — for He shall save",
-   "contentSha": "cd8b5f887c838e85badce61fb5a34aa996c249292cf24bac226bdbeceb46e4aa",
+   "contentSha": "d2ea87e104b1ad1161c19c08b1c25ba21c092c48dc9cca10b7f63da54b036e61",
    "versions": {
-    "teen": "98dbfc1c1cc70b834a519a685926adafebf9d4aa20f7dbbb372c92ae44475a13",
-    "adult": "d8706aaad5e5b88788eeb4a7075796309a072aa53e9dcc049120f2eb8a1c4b47",
-    "senior": "8c6f1d5f840ca11054327f9fd1ae00f36b1fffd532feb47df1c49eeb3f47e188"
+    "child": "44d1afa871ab7267bee62624c5dd1e41e0b2465a8574a653197a0e429750091c",
+    "youth": "844780aee1e6205154600e2224566fdedf9b19f09f8a1f745c198dc36641d82d",
+    "teen": "f9c50eb70f7c540a85d4809695790903da3627df7bc52c71443c45aa754f9abc",
+    "adult": "8d8131b8099a9ce0e3d190a4f87d7c94bf63c6f2e67a27522503b11a4ed02d9e",
+    "senior": "099b999de46c07c860f851981c5040e4fc1f2c46f7f81dbb95dd4b82185eada5"
    }
   },
   {
@@ -13898,11 +13902,13 @@
    "department": "The Eternal Algorithms",
    "position": 37,
    "title": "All power is given unto Me — so what you carry is delegated",
-   "contentSha": "9de4690f08c25b4c20c81077a831c8a8d2b26084c12ffefe8988588a5f2197d4",
+   "contentSha": "1ffed9c02c5c811e51f08e5589e07e5042ddcea4315cab07e728058efaf0d8b4",
    "versions": {
-    "teen": "8994e634bff37301b0ab270423944b1c323d96832cdf0111512cfbf072658e31",
-    "adult": "0641deda0e34187c2b20f27348261927c8e7afb8d283ab6b70a867df9eefbd4d",
-    "senior": "408f0fddb8c6460982b1f18f904bbc4849d44d569ac93f8493afc8c2c39b1925"
+    "child": "6e10bcc3995c58c98bddebe6b012639de9995bbeb13f2be2d11050c7dd2bd1ad",
+    "youth": "4f31af329da27dcc6028b402715ab83ff52a39a8f75a8b64d93356a1f2d81407",
+    "teen": "0e4897cc895ffb30dadb1c5fd43c9680f69f62ca0250fe1ac4753749b29bed73",
+    "adult": "8bef7c38e2d044e92e71c452fb93482827173f64dc0b9e9e0ceb79eab04e99df",
+    "senior": "3d2d1cafd2d62d06fb1c232534d58c2b71a1090519d952fd0d678df98c6c78e3"
    }
   },
   {
@@ -13911,11 +13917,13 @@
    "department": "The Eternal Algorithms",
    "position": 38,
    "title": "Without Me ye can do nothing — the conduit is not the source",
-   "contentSha": "f0daa5ef2f65e5b423dea8c0088e6793c9f812e4bcd3f8445084970199f6d001",
+   "contentSha": "7ab9d73f944acafb2df14aeb421854995a8bceb2b5ed2a40f438c6548fcd910f",
    "versions": {
-    "teen": "5ec1d39f1d34fb73951a9a91a08fa8f54f55ab4129e831a0c6902a767d7f5056",
-    "adult": "8e0ef9c3adafcda34526e29076b1e9fbdc56b3b04d169289fb2444b7b9f775a7",
-    "senior": "fb46b057c3cad0f7d4d760b30584170406b797589cc27b302b745cf3e425d522"
+    "child": "c9b7e385e4328b5d7117e655dfc6a30678ee3b79012d6aba80382f57525816ae",
+    "youth": "0fc9b53996d633ac9379e5f9208c36fdd7a756584458e72ab20c256eb481f538",
+    "teen": "1eb1fb92fa931745e3f5f90316389c0e86c62fcf21960e9ed5aac7e07fea1b10",
+    "adult": "69462067934f6ecf7763727d0d21b2c49e31a906ef39c5c9608d8a60137081ec",
+    "senior": "d55eeee4ce0185e246c84d914016bcc3fdebaba907ec81ed609dc2baa3b2c644"
    }
   },
   {
@@ -14437,11 +14445,13 @@
    "department": "The Eternal Algorithms",
    "position": 40,
    "title": "He made a shew of them openly — you enforce a verdict, not fight for one",
-   "contentSha": "b3bafb7551f7192d5838fd82566b05b7d0ee877d30ff48456c51e3ad124f38a1",
+   "contentSha": "b684659e7e81c1643c054c96c861f6db654d43ce01b29478a0689d31290c6da1",
    "versions": {
-    "teen": "d7aee12017e36bf3df54e09c6393ebb149b64f2be1c37c8bf22d689bebe8bc45",
-    "adult": "caa3a2b9baa2e4a30801fb9f37b44de8c72cc25af5f258733f2617187158694f",
-    "senior": "ded58109542a0943961c9ac3454b4152097709e4e5079efa8a3f505c97fbafea"
+    "child": "9a25d3d25a8d6e8dc6f1680841b6e2195fc0a6efe9c3e4e1237ae291995efb62",
+    "youth": "bb06428c45cd2316ba2690b13dbada4cbf1f6b63cba2ce62cc89f76f0c79a71f",
+    "teen": "eaa31b6abe7ff35a09674f8610078c0ef7ee511cbe37f4e19caea27c378eccdf",
+    "adult": "ed0c42e064314e5c3a138cac3eac5ec37e70ce0d051609beb77f7968a0a5f728",
+    "senior": "b7d622d82d150334d18185120bd78de7ceeb4c06252d081aff6d75ad86a587ca"
    }
   },
   {
@@ -14450,11 +14460,13 @@
    "department": "The Eternal Algorithms",
    "position": 41,
    "title": "A shew of wisdom — why rules cannot deliver anybody",
-   "contentSha": "04d0431b681e1a4b35f97231ef599d1e8e8adf245d4b426a0e50769b591368f3",
+   "contentSha": "3c03d45f2cd0f3950e92f77482497f4d99dfd4d84267d467f59be3f40568421f",
    "versions": {
-    "teen": "e20968eb4725f3df47813536706cf212fbb7b2dd1bbeafa59da0e549b9fdd386",
-    "adult": "91ef5cdd3500f37434effae43b12189e081a762cd4b24698cbc33825a08300ae",
-    "senior": "3c079f6a32277243ba984f968bda6b73423ba3777d0c356ad9f041cf4dd3914a"
+    "child": "b72219ea95b850aa05c09e85985926adb97cae7a4cc1da467192e261ec087bb2",
+    "youth": "a0c548221be86b313acee31b0e0a84616f9441e109f8f396b806780d32245f7b",
+    "teen": "df9b4f862642726a3ddbe963ba3665b040b3b1e95dc533cf54cddceeeb886a02",
+    "adult": "297cb16bc3a22736cbdfe3759c6c8da2e7c2931497a6e189ed52851d45abaec1",
+    "senior": "6816d398f11beb8ff8e38e47c5dc5d129686d516e2f6cfd533d66b3f79ed955c"
    }
   },
   {
@@ -14463,11 +14475,13 @@
    "department": "The Eternal Algorithms",
    "position": 42,
    "title": "Jesus I know, and Paul I know; but who are ye?",
-   "contentSha": "4277d971a0e6b683a3541072bc111cf59e459a0a7bc0b65ec3f060003fd5f076",
+   "contentSha": "9494b8788ac16e0ae97ca34fa8c9e3f3dc8c21467c8a991b2c7b81b2813bbd4b",
    "versions": {
-    "teen": "e55eb2669208285f6c870d785d11a21c5ab9654630de10af58db0787acfcbc7f",
-    "adult": "ee0554bc7b34b86d74dea6999f181dfbee3d4d677ffc6354c7cf969d3591e807",
-    "senior": "219c5d7e45af6f37936a80f274e6a5b13ab626cc5bddb039885fa09087dbe526"
+    "child": "e3218806655cbf9718876c4d9c177e2db939723a91341a2d67d96866dbef65ad",
+    "youth": "90911e8a705386a348809b75507190eac2c5116496e6b045c552228369e8e9e1",
+    "teen": "c927b1313a6d3e93f10182bf7ac145fa4214f4a11a3cf51ac118358517af15fb",
+    "adult": "c92fbcf7641c4b370e9c6faa2c17f97255ac447acc11bb8e0212a280949a8c39",
+    "senior": "9f067e34640453622964b4f2030926eb50886993a284fff058541c735934935b"
    }
   },
   {
@@ -14476,11 +14490,13 @@
    "department": "The Eternal Algorithms",
    "position": 43,
    "title": "Where the Spirit of the Lord is, there is liberty",
-   "contentSha": "f806837266a27215c455040ae9b30d6900766ad2e6551311c93a2061d382c247",
+   "contentSha": "3c393d3365f1dde8cc879337e7dd672a5ce4b0ecab90522071a536342e9ca0db",
    "versions": {
-    "teen": "86ca8178bd7c812b19b7ec1e384f164b3090463204b835ccb5ab54c00843887f",
-    "adult": "c01fdb21eebbd4b285c0c199af17127e2724393abcefcfabf86848fe7fdb0759",
-    "senior": "2de72a0708020aebf6ea8b7bf04dba845b7cef395e96984033f923105582be84"
+    "child": "00301cc3bf0c5356e2dd11a6618d71bd193c2d89fe72cf44bf2ab72a30c144f1",
+    "youth": "37dfb62cd5bad1466b7eaa3baa9f5886a589fb0155f39ed94bbd21350410447a",
+    "teen": "ccdce3b3c738085b2cbc309f19f64f6b463dc4aacdbbf78413ef584ce49ef171",
+    "adult": "644601ef64a761d9267eb5f53cc4a4a84dc141bfdcce21f0a45e0c5289296fcb",
+    "senior": "aa5f4638ab293408bc17c1791bf383f1bf9c78667e67e447a2106ccbb4cd58e5"
    }
   },
   {
@@ -14489,11 +14505,13 @@
    "department": "The Eternal Algorithms",
    "position": 44,
    "title": "Submit, THEN resist — the order is the instruction",
-   "contentSha": "1ed3072f909954ae898937cd715d8a6dc5679d180022954dcedcf31c02d55117",
+   "contentSha": "f328e6b50c0750281482bb848a603cdcca1d7a07146640f932206eb9d690437a",
    "versions": {
-    "teen": "3db272825f936978e8dfa112de75433005cadabc81d37dfdeee3726548be6d1c",
-    "adult": "ac222d573faac0639c03ff2d0fa198b57aa8a8c39d95c9cf85f72bbf53669f77",
-    "senior": "a9b8b02a9c726912735568dc8b80f2b2933e07d52a3aef4f97ed60f9d7704190"
+    "child": "409a52cd44640f2c362e7316f29f0cb211e8f10b024c4fe054b23b187c8f49f6",
+    "youth": "5a12c52aec4773566dd9c16267f8a6041113d302797c7b1b46b1a5f6718b3da8",
+    "teen": "c4d56014624a7db44d001e56ae6167faf65330653711c381142a59efc8a6e35b",
+    "adult": "0355ad828050da7b8e02d3e5cf1071831d4c747392b66e70259c12ca8b662c47",
+    "senior": "526c996ccc523919d514d37bb013b4dbc47c22fb1fbc5e35c974ba7ae0b89874"
    }
   },
   {
@@ -14502,11 +14520,13 @@
    "department": "The Eternal Algorithms",
    "position": 45,
    "title": "Not the spirit of bondage AGAIN to fear",
-   "contentSha": "2f33387781dd62a05e2ead6b7cb7d2a57dbdf707b6213200e786b95fc84d0d63",
+   "contentSha": "7531120afb58ef810891d51833703cfed4ca7280d3805792dd5c3471416effaa",
    "versions": {
-    "teen": "dc7216f59f261a391e9f73beb5dd011768544bdeecd3d6457389c95e89c7bf47",
-    "adult": "d2dbea7c402027a70b3e3cc6c6bb7567ae5e8d837b58f178e45e2bef3240287b",
-    "senior": "e92cc1f9258b429f93b37acc312a6934309bcd08faa6abad1c5046ce27923d8f"
+    "child": "8f154ba2efbc9af387acd1265e084667cdd8adb14d1f1f5061b22aa5c671ec3b",
+    "youth": "dbdc954f6afd20d43f1b7681a2563e59134c84e5ec3cc30e167e8301621759bd",
+    "teen": "c196a8ac19e379020467816c12add4e3e0c027507f29a2e116d74510a8b13a14",
+    "adult": "7bb7a9dc4ecc5282face4540f75dc9d7ee5897a0d167d7bbfa1692f545bc9039",
+    "senior": "8b3e6aa7aac27f2ec5704210394297b63223523b5ba2a9354d4e153f41ceb3b1"
    }
   },
   {

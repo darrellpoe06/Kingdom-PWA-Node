@@ -61,8 +61,12 @@ describe('Learn content integrity baseline', () => {
   // genesis-holds-the-whole-plan, spirit-formed-and-returns, eyes-opened-by-prayer, the-door, one-mediator, spirit-bears-witness-with,
   // whole-spirit-soul-body, el-elyon-possessor, el-shaddai-almighty,
   // i-am-that-i-am, babel-make-us-a-name, nations-divided-portion,
-  // borrowed-crown, they-that-make-them, inscription-that-asked-eternity.
-  it('the baseline is the measured Phase 1 catalog (13 / 51 / 994 / 4,290)', () => {
-    expect(base.counts).toEqual({ departments: 13, courses: 51, lessons: 994, readings: 4290 });
+  // borrowed-crown, they-that-make-them, inscription-that-asked-eternity,
+  // before-abraham-i-am, name-that-saves, all-power-is-his,
+  // without-me-nothing, triumph-already-public, will-worship-frees-no-one,
+  // jesus-i-know-who-are-ye, presence-is-the-liberty, submit-then-resist,
+  // not-bondage-again, obedience-blessing (#2905).
+  it('the baseline is the measured Phase 1 catalog (13 / 51 / 994 / 4,312)', () => {
+    expect(base.counts).toEqual({ departments: 13, courses: 51, lessons: 994, readings: 4312 });
   });
 });
