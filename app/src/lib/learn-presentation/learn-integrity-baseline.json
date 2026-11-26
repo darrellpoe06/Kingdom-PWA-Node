@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T05:41:46.632Z",
+ "measuredAt": "2026-11-26T05:45:28.824Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4354
+  "readings": 4356
  },
  "departments": [
   {
@@ -13155,11 +13155,13 @@
    "department": "The Eternal Algorithms",
    "position": 21,
    "title": "Confess and Forsake (admitting you are wrong opens the correction)",
-   "contentSha": "be65257b7353652dbbcca1fbc32dacb2765dfb1bcadcf78d15e8ff42828679ce",
+   "contentSha": "65f2454ecc1ce6555742d3a9a5f29e7e56525413975dced222ca2d5c7b4a1d95",
    "versions": {
-    "teen": "c6f9e1d29270d190f400c3e4bc577e6d850402f340e390f769e1734503c42474",
-    "adult": "c18f369b414ffa7d939efd695d266bfb4e810c1521d6249c648410c385c9c281",
-    "senior": "91152741a6a8224642383391e2665c7bd284826bb49a92226607aae50b8b6919"
+    "child": "86cab40995dee721d0c1e1e7665265292d195494c5fca01196282a1ba7d42ca3",
+    "youth": "2c5b32e4b2f3f07aa41cd38dedc1cee22001ee1f2f216f033822da4cb9ef3feb",
+    "teen": "dc2566ba777bd68b4708fbdaaaf5238ea63cc9ce403de5181d7051ac3e5355c2",
+    "adult": "0e89d27abe3b60a7a032c86c8c4349b3e8f39bc73a3ad3b6e240c7f710a44145",
+    "senior": "c848443a925aba2f29f382d46e4980420bf46173a668d45975ff2d053acdce64"
    }
   },
   {
