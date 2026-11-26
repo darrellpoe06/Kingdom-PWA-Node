@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T12:54:18.565Z",
+ "measuredAt": "2026-11-26T12:57:28.278Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4506
+  "readings": 4508
  },
  "departments": [
   {
@@ -13526,11 +13526,13 @@
    "department": "The Eternal Algorithms",
    "position": 5,
    "title": "Ask · Seek · Knock",
-   "contentSha": "9a95231e29b9796eb57877f14799877cc328191fd0e787a3b4cfb99bd38271df",
+   "contentSha": "b66ea2bd75217e136f7169b685e08c04a43edb6ffb108caa62e02ab8000cd129",
    "versions": {
-    "teen": "d719d906181dd0d979be29867f93e74e09178f21c6713c192cce372f88677a0d",
-    "adult": "916b250080ef7124f84dd8e26cdd756acc555f0968544ab8b0188e566281abbe",
-    "senior": "18df20b081da27fdff0934b56972f1cbcc3e758600ee681ac55f25c636a84fe1"
+    "child": "fcf1862d13ffd97945247d38376ede18426f4a3c84b469ed832fc43317d485cd",
+    "youth": "23f636971057e8038fc2afb29ea8b060c5c8dea7e6212f37e94f84dce07c8f7f",
+    "teen": "3f14ac1d15c7f06ad056f5bc76ed59c40465730ce55f59f91cc0301e7bb9243a",
+    "adult": "730d760a65ecf644c142f9036b3045f638d25b914abc033cfeaca6cae5315910",
+    "senior": "674998d7427f850d3741df99be09b9cdf06f0b84e948ae0bd63c3e3ba8b68c0c"
    }
   },
   {
