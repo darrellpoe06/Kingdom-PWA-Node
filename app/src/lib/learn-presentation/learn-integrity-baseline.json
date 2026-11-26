@@ -1,5 +1,5 @@
 {
- "measuredAt": "2026-11-26T19:32:18.734Z",
+ "measuredAt": "2026-11-26T19:38:20.965Z",
  "counts": {
   "departments": 13,
   "courses": 51,
@@ -936,13 +936,13 @@
    "department": "A.I. The Way",
    "position": 8,
    "title": "Build it sovereign — and hand it on",
-   "contentSha": "d557900329e9d1a9b555cdfa2db4e072bd175dbcd969e44f36116251a21531d4",
+   "contentSha": "051e8bf9548a74e5b941da08738d76e3a295a1e87df65f096c87e5eb5e2dd9ae",
    "versions": {
-    "child": "b1357611bbab38a44c80260baec530d924d9b2c89be672da810d0733d8665d5b",
-    "youth": "4b55fe3af32ec7cefce683e391ef9f72685f17ceee841cebebbee70e3f50d0ac",
-    "teen": "3a615c5030e88a8e45953f683fd4803e591f057a21ca644103d7a2e849e2b2c8",
-    "adult": "42f1d71613c58dd3e96b559870b379ce289cdf865c3294869b7eddf9f3cb3bea",
-    "senior": "53bfa5b4b514ab5ded9c936820fb6d6ff710ca0be782e3dd8e3420f89078a5b0"
+    "child": "37e11039b1b4e799c8787916b92a65b552c0ade6173f41e369e4ec4597e9d910",
+    "youth": "9b3874fb8bca67af806c803b80986ee32a78c78f1f38430f474f0e60e81dd1d6",
+    "teen": "32776ad267d26a94f0cf24c56314c09fccd677fa8be6b0eae6097690865672cd",
+    "adult": "6045455a8da9a51d85dc5e275c3f3f4ad6b8e8c1a0493c5ddf8c1e697876e74f",
+    "senior": "66f4f1192a9ea986577f9dec091e251e7989298f98fdec5d5c564b785cbc6b65"
    }
   },
   {
