@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T03:25:53.239Z",
+ "measuredAt": "2026-11-26T03:29:23.496Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4284
+  "readings": 4286
  },
  "departments": [
   {
@@ -12844,11 +12844,13 @@
    "department": "The Eternal Algorithms",
    "position": 19,
    "title": "The borrowed crown — wearing the imagery to be counted legitimate",
-   "contentSha": "62b4d038d2a130580dd3960b5afc84e69efcefc4fe7d25553f0bbabb7f6c18db",
+   "contentSha": "46f3733f8716c8df0836a5b113c78182ec19fdc50c56e746f2b3e9438dcddd0b",
    "versions": {
-    "teen": "79722b1f9a9b82eae8a5455d4491bc17f567fa7fb965fd2f8bbbdf2cc4b312a6",
-    "adult": "2f9c0c1db5bd40aa8b85a1d6531ad12fc1a7fd2d2ace64fc9d984b1cd7978897",
-    "senior": "1024321d6828c050db73a0d7fa45ab0ee266dcf4c2935df560a661c5820ca136"
+    "child": "7d6a977c6c498f69d884ce8bacce0df77ed57c2febcd45e722613a3cff50c12b",
+    "youth": "01853cfd440cb5685d17ac9afddacb395b3a5ccef73b2b23687a66cd41df2f73",
+    "teen": "716980941f3a0efaf4c57e1e8a561aea0949188ac9c0364545d1fc459a1ea68b",
+    "adult": "30377eac8c212036ca21826ea350ad77933571c332c1e0be56e6160374d2c87e",
+    "senior": "51200dd673af7f328b26307beb00dfa4cc5e896f78153a447b224e694f3b3114"
    }
   },
   {

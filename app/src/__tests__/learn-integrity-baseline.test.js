@@ -60,8 +60,9 @@ describe('Learn content integrity baseline', () => {
   // with child and youth versions it never had (Darrell 2026-11-26): joy-three-days,
   // genesis-holds-the-whole-plan, spirit-formed-and-returns, eyes-opened-by-prayer, the-door, one-mediator, spirit-bears-witness-with,
   // whole-spirit-soul-body, el-elyon-possessor, el-shaddai-almighty,
-  // i-am-that-i-am, babel-make-us-a-name, nations-divided-portion.
-  it('the baseline is the measured Phase 1 catalog (13 / 51 / 994 / 4,284)', () => {
-    expect(base.counts).toEqual({ departments: 13, courses: 51, lessons: 994, readings: 4284 });
+  // i-am-that-i-am, babel-make-us-a-name, nations-divided-portion,
+  // borrowed-crown.
+  it('the baseline is the measured Phase 1 catalog (13 / 51 / 994 / 4,286)', () => {
+    expect(base.counts).toEqual({ departments: 13, courses: 51, lessons: 994, readings: 4286 });
   });
 });
