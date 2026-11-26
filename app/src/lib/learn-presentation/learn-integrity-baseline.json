@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T12:06:08.449Z",
+ "measuredAt": "2026-11-26T12:10:17.667Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4486
+  "readings": 4488
  },
  "departments": [
   {
@@ -14104,11 +14104,13 @@
    "department": "The Eternal Algorithms",
    "position": 7,
    "title": "Confess + Believe → Saved",
-   "contentSha": "25a599eec74bee2698821a6550f3808720120c173918b9a52b7cef77a0714665",
+   "contentSha": "f160d32de6fb1734212481f13a6275be6f504b1808864870d06f234cf4d690c6",
    "versions": {
-    "teen": "efc3eddbf5494c73ed09652846a9f3edb8e1cffbd88d1e7d4ac3977407691aaa",
-    "adult": "ecf234f03baf58ec71a7c5d6ca8869cebd671850440d2ae9fe6102b510ae3f0c",
-    "senior": "23f78b6780ca8855faa8c1ce4d98f5eb1e50d8d256b70249073cda48f7c06116"
+    "child": "1d238ee4f5d8eae7f55b5f75341eb44e861a9f5d0071562c2d6f3037367dc790",
+    "youth": "7a5eedcf4611677704dd8f9c9b199fc43effebd27adc6f47c00968f3266c86d3",
+    "teen": "c82d590bad0c9efd0839761b8bfbe57fd264f2cc0924bb26b6bc0a2f831cf052",
+    "adult": "8a9caabe98a7a053db2426295c1e7bdf5c1fe3fb9d9e4af2531345cb6d7694c5",
+    "senior": "0bfe4797aa248d5b6e93ad0d02a945d24e78d208a9a66707d362de3b90bf8dbe"
    }
   },
   {
