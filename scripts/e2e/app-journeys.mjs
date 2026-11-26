@@ -160,6 +160,34 @@ const JOURNEY_DEFS = {
     const title = await t.textOf(page, '[data-testid="lesson-space-title"]', 20000);
     if (!title) throw new Error('tapping a lesson did not open it: no [data-testid="lesson-space-title"]');
   },
+  // Darrell 2026-11-25, from the live build: "Buttons don't go anywhere for anything on this
+  // screen." The Institute's buttons switched a section that sat below the fold, so a tap looked
+  // dead, and nothing in CI tapped them. This walk taps every tile and counter of the redesigned
+  // Institute and requires what a person requires: the section it names is ON SCREEN afterwards.
+  async 'institute-buttons-by-taps'(page, t) {
+    await t.open(page, '?view=church&sub=institute&instituteStudio=1');
+    await page.locator('[data-testid="institute-studio"]').first().waitFor({ timeout: 20000 });
+    const ids = await page
+      .locator('[data-testid^="institute-studio-tile-"], [data-testid^="institute-studio-stat-"]')
+      .evaluateAll((els) => els.map((e) => e.getAttribute('data-testid')));
+    if (ids.length < 6) throw new Error(`the Institute shows ${ids.length} tiles and counters; a person expects at least six`);
+    const opened = new Set();
+    for (const id of ids) {
+      await page.evaluate(() => window.scrollTo(0, 0));
+      await t.tap(page, `[data-testid="${id}"]`, id);
+      await page.waitForTimeout(700); // the scroll to the section is animated
+      const at = await page.evaluate(() => {
+        const el = document.querySelector('[data-testid="institute-sections"]');
+        const tab = [...document.querySelectorAll('[role="tab"]')].find((x) => x.getAttribute('aria-selected') === 'true');
+        return el ? { top: Math.round(el.getBoundingClientRect().top), h: window.innerHeight, tab: tab ? tab.textContent.trim() : '' } : null;
+      });
+      if (!at) throw new Error(`after tapping ${id} there is no section area on the page`);
+      if (at.top < 0 || at.top > at.h * 0.6) throw new Error(`tapping ${id} left its section off screen (top ${at.top}px of a ${at.h}px screen)`);
+      if (!at.tab) throw new Error(`after tapping ${id} no section is marked open`);
+      opened.add(at.tab);
+    }
+    if (opened.size < 4) throw new Error(`the buttons opened only ${opened.size} different sections: ${[...opened].join(', ')}`);
+  },
   async 'top-tabs-by-taps'(page, t) {
     await t.open(page, '?view=about');
     const tabs = await page.locator('[data-testid^="dock-tab-"]').all();
@@ -271,7 +299,7 @@ const JOURNEY_DEFS = {
   },
 };
 export const JOURNEY_IDS = Object.freeze(Object.keys(JOURNEY_DEFS));
-export const TAP_JOURNEYS = Object.freeze(['learn-by-taps', 'top-tabs-by-taps', 'money-tabs-by-taps', 'feedback-sheet-opens', 'office-assistant-answers']);
+export const TAP_JOURNEYS = Object.freeze(['learn-by-taps', 'institute-buttons-by-taps', 'top-tabs-by-taps', 'money-tabs-by-taps', 'feedback-sheet-opens', 'office-assistant-answers']);
 export const SIGNED_IN_JOURNEYS = Object.freeze(['office-assistant-answers']);
 /** Which journeys a planted fault must fail. Pure. */
 export function expectedToFail(breakKind) {
