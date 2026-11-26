@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T05:45:28.824Z",
+ "measuredAt": "2026-11-26T05:50:33.023Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4356
+  "readings": 4358
  },
  "departments": [
   {
@@ -14451,11 +14451,13 @@
    "department": "The Eternal Algorithms",
    "position": 38,
    "title": "Beyond Our Dimension (by Him all things consist)",
-   "contentSha": "959be0047be0229160137603df5a7df63220bcfe6d34f22d495fb8f1b6e3bafa",
+   "contentSha": "264576d17155bd63be2281ed8d3f65914017d660b6d52c5fbea51777fba33d1f",
    "versions": {
-    "teen": "356b394dd373772342bfff45e7bbcc4e92366ef869a8627c60421a9b4e288988",
-    "adult": "77fa3fba9ec7a933b2d266c92f6d51b33453675b3be40de9d124fa7d31fa923a",
-    "senior": "7dc0949202309d3872e60c2cd7b872ce9fb511b359cd9726560958dc947998f9"
+    "child": "c2e2753deb90da3e25fed359777810d13e1a818b4b8cc2daba22ec0e1bb18509",
+    "youth": "525ddc6e88a36af28bbe061dbce1cfb32059dfadc65fda4f13029123a3af9ef5",
+    "teen": "a5bb63c534c4d1ee414c6684712fe50734a8990c6b62f6deb8bd4887d6c4195d",
+    "adult": "2d48c67672c35353fa15ffaa37a9277f3edfabfe5396d24453081d373cc3cb68",
+    "senior": "1428e5bbbce588c0e423c1b299a85cf1f3cbc778a5db7ac6057196033866e30b"
    }
   },
   {
