@@ -57,4 +57,4 @@ seven rows waiting now are re-classed by the NAS's next 15-minute census.
   variable. Also proven on a re-worded builder message, and on a leak.
 - 113 census cases (13 new) + 12 keyless-road cases green; ruff clean. 0334 is
   generated from 0333 on disk, body verbatim, two lines changed, and diffed.
-- **Not claimed:** nothing is measured LIVE yet. `re-review: 2026-11-25`.
+- **Re-reviewed 2026-11-26, SATISFIED live** (run 45816352285, 33/33 rows carry a site). Closed.

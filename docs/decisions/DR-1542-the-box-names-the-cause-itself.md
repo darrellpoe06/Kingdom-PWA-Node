@@ -57,4 +57,4 @@ a receipt needing no key and nobody's hand. DR-1537 stays as the deeper read.
   stored records at all — then the answer is `cause not stored`, and DR-1537's.
   **The JS vocabulary gate cannot check `EXCEPTION_NAMES`** — it is computed
   from the interpreter — so the Python case is that gate, and it runs in CI.
-  `re-review: 2026-11-25`.
+  **Re-reviewed 2026-11-26, SATISFIED live**: the box named `RuntimeError` itself, and the stated limit held -- two rows read `cause not stored`. Closed.

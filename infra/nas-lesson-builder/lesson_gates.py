@@ -414,12 +414,82 @@ def our_voice(text):
     return QUOTED.sub(" ", str(text))
 
 
+# WHICH SHAPE OF "God", not only that the word appeared (2026-11-26, DR-1670).
+# MEASURED on the live queue: `generic-God-not-Yahweh` refused 25 of the 33
+# waiting teachings -- the single dominant cause of the stall -- and the receipt
+# could not say WHICH use, because this gate is one bare `\bGod\b` search.
+# Measured against that search: it refuses `the God of Abraham, Isaac and Jacob`
+# and `God's people` as well as `God is love`, while `the Godhead`, `the LORD`,
+# `the King` and `godly` all pass. CLAUDE.md's own rule says the point is
+# "clarity of identity, not a mechanical find-replace" and keeps those titles
+# available -- so whether a construct like "the God of Abraham" may stand in our
+# own voice is UNDECIDED, and one blanket search decides it by default.
+#
+# Naming the shape did NOT change a verdict. DECIDING one did, 2026-11-26
+# (DR-1672), and the rule decided it -- not a new ruling. DR-0210's own stated
+# test is "so the reader is never left guessing which 'god' is meant", it says
+# in the same breath "the point is clarity of identity, NOT a mechanical
+# find-replace", and CLAUDE.md forbids a blind God->Yahweh sweep BECAUSE it
+# would corrupt the text. `the God of Abraham, Isaac and Jacob` is maximally
+# identifying -- it names Him by covenant -- and cannot be converted
+# mechanically at all: "the Yahweh of Abraham" is the corruption the rule warns
+# about. So that construct SATISFIES the rule and the gate was over-reaching.
+# The other three do not: `God's people` leaves the reader guessing exactly as
+# `God is love` does, and `God the Father` adds the generic head to a title
+# ("the Father") the rule already keeps available on its own.
+#
+# Vocabulary only: the shape words are this file's own constants and no draft
+# prose rides with them (DR-1552). Quoted Scripture is untouched -- our_voice()
+# strips every quoted span before any of this runs, so the KJV's own "God" is
+# never seen here (the DR-0076 bright line).
+#
+# Order is first-match-wins, longest construct first, so a construct is never
+# reported as the standalone use. `refuse=False` means RECOGNISED AND ALLOWED:
+# the span is still subtracted before the standalone check, so an allowed
+# construct cannot leave a bare "God" behind that nothing accounts for.
+GOD_SHAPES = (
+    # "the God of Abraham" / "the God of Israel" -- names Him by covenant.
+    # ALLOWED (DR-1672): identifying on its own, and unconvertible.
+    (re.compile(r"\bGod\s+of\s+[A-Z]"),
+     'the "God of" a name construct in our own voice (say Yahweh)', False),
+    # "God's people", "God's word" -- no identifying qualifier: say Yahweh's.
+    (re.compile(r"\bGod['’]s\b"),
+     'the possessive "God\'s" in our own voice (say Yahweh)', True),
+    # "God the Father", "God the Son" -- "the Father" alone is already allowed
+    # and clearer, so the generic head adds nothing but the ambiguity.
+    (re.compile(r"\bGod\s+the\s+[A-Z]"),
+     'the "God the" a title construct in our own voice (say Yahweh)', True),
+)
+
+
+def god_shapes(ours):
+    """Every REFUSABLE shape of the generic "God" in our-voice text, in order.
+
+    Returns this module's own constant clauses, never a span of the draft. A use
+    that matches no construct is the standalone one and is reported with the
+    original wording, so nothing downstream has to learn a new word for it. A
+    construct marked allowed is recognised and NOT returned -- see GOD_SHAPES.
+    """
+    found = [clause for pattern, clause, refuse in GOD_SHAPES
+             if refuse and pattern.search(ours)]
+    # A bare "God" that is none of the constructs above: strip EVERY construct,
+    # allowed ones included, and see whether the word survives. Never a guess --
+    # the same regexes. Subtracting the allowed one is what keeps "the God of
+    # Abraham" from coming back as the standalone use by the other door.
+    rest = ours
+    for pattern, _, _refuse in GOD_SHAPES:
+        rest = pattern.sub(" ", rest)
+    if re.search(r"\bGod\b", rest):
+        found.append('the generic "God" in our own voice (say Yahweh)')
+    return found
+
+
 def voice_gate(module):
     problems = []
     for where, text in quoted_texts(module):
         ours = our_voice(text)
-        if re.search(r"\bGod\b", ours):
-            problems.append("{}: the generic \"God\" in our own voice (say Yahweh)".format(where))
+        for clause in god_shapes(ours):
+            problems.append("{}: {}".format(where, clause))
         m = ADVERSARY_CAPITALISED.search(ours)
         if m:
             problems.append("{}: capitalises {}".format(where, m.group(1)))
