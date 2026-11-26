@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T05:45:28.824Z",
+ "measuredAt": "2026-11-26T06:07:16.329Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4356
+  "readings": 4366
  },
  "departments": [
   {
@@ -13127,11 +13127,13 @@
    "department": "The Eternal Algorithms",
    "position": 19,
    "title": "The Two Courts (man’s court is not the court of record)",
-   "contentSha": "c280805e1f6eb9bdf2b4226faa8d3fc560da36e72639010db13682456d5c4c81",
+   "contentSha": "24afae14f7d4aab354a0b690c023ec6855ae187079a3edd8325c824657b2c52e",
    "versions": {
-    "teen": "d131c73a01c352a0e105bba69c7e5f5983c7fb4e083b144bc51b14ca42d02176",
-    "adult": "d2e09a2cd291f00ae6bf8eb0f76875e3cac0f7486b19294cfcf8e03efc1b9d49",
-    "senior": "5af2b4fdd51563772d192c7295f49b44ad992dedcb29e3fb110375c4f6ce0537"
+    "child": "e6b9a6d600b751d15c35c670a0c7c5cb4a51725372d02ec8ef3985b89e42693d",
+    "youth": "e33dfe56943f84f778d36261ffb383d46ab24681116e081d52464cdfc5c6594a",
+    "teen": "1fb204f391253ac68832f73e92542dda7774bc7a5f11c8041027d48a2914b7d4",
+    "adult": "890d7df96868c15b52a5cf44259de272cb10400288c71e1290ae6fd557426666",
+    "senior": "8e646e3f6a91579a189c7ca38ab9b6682c08591e6a4d92bc07fbd21390a37d91"
    }
   },
   {
@@ -13771,11 +13773,13 @@
    "department": "The Eternal Algorithms",
    "position": 26,
    "title": "All Judgment Committed unto the Son (the eternal covenant of the court)",
-   "contentSha": "c1d78fe74dcd077c7ba1bbf46550218f255bc13729afe37e1048b5ad190d6870",
+   "contentSha": "8fded6d6ab8a806055a1fbfe155b27db2863c3546134befaec1c85e8992e05f8",
    "versions": {
-    "teen": "69a343f4c95a209f0b29873be6e87e651f1092e78f5da3c8e2142aa3b505d3ae",
-    "adult": "46e537e08aec4cac3aa06978e7b675240f0af11814d8c841d5ce3fb38bf5c44a",
-    "senior": "7f3cd82e37dcf4a675a4d098b6b6bc15a034cdf0f2de8518fa28cd1c2ed186a3"
+    "child": "eb71d829f0bd85f9788c4c6b77d5ff36d93c165c375fd9c401d074b8634decc2",
+    "youth": "392a8ec1bb8a1d38689c84fd0f3685b5869d6d7159984d05469a33b03b510df2",
+    "teen": "453de5a996f5fc8b7087d72de6ee5ed36eeb90ae9890791c8f46bb781974f0b7",
+    "adult": "72c57fa06ead5476f44c117ea42aa03d6aa3189c1e8a48f6bb1a2587157ad3a8",
+    "senior": "fa52e2f82bf733c8e716b927fc01631568adedccf727749ecfe2f08ca9969772"
    }
   },
   {
@@ -13784,11 +13788,13 @@
    "department": "The Eternal Algorithms",
    "position": 27,
    "title": "Hear and Believe → No Condemnation (the Judge published the exemption)",
-   "contentSha": "8d777e4de3e1b07acd26a3ee5cd63fa2afcc28ae7850dfd385a8c45698860305",
+   "contentSha": "a5882541d8a586ef0a98d0250d0d92f89ae531329741343a7806dc3f8168b221",
    "versions": {
-    "teen": "98181f3f4994936ca86f1d7c6c443f134cc2f5f2d9d08e6e9722a932cd6135b3",
-    "adult": "21d0ee04b687ceb39d0a83b66c38469a071d21d59a2c65cf369a657b1fefddff",
-    "senior": "67c8b601e9a1fe263a178199bafa5ef63e64109fbe2ba3a250946f500c05cab4"
+    "child": "fa621c403f1409836eca7e0bdb4ec1184b189daf903f9afbc523f275ba20b986",
+    "youth": "67294b748772a712cfab3d1980bfceedea20082fb53342956f0b807ed72d7f32",
+    "teen": "8bc3a68719f4c8adc942e93c1163033b29bf43b4095733c49570e66ff6d6cb8f",
+    "adult": "851638e6ce2ce4a231a827dd0af7a8107a321b2509b938952cef36e7879835f5",
+    "senior": "a3d8572e5ad93215176f8037a2ee201125ec5a8b166ffc7fd38d6d6baa8d6bee"
    }
   },
   {
@@ -13797,11 +13803,13 @@
    "department": "The Eternal Algorithms",
    "position": 28,
    "title": "The Word Judges at the Last Day (the standard is already published)",
-   "contentSha": "8015e58f2126a2638047941497c0df7eb1f1af68f396ebd94997e01f3d5a3413",
+   "contentSha": "878f14b2074a42f6bd35743907b12bc0be821d90e7ef7fd638b247fbe9b33305",
    "versions": {
-    "teen": "f610849d173375df5064a30a37d31824989efd26cd125b80523386c2bda05d8b",
-    "adult": "6d1d9416badb63347662f00342fe9c55d7fa29decbb4ce72222260306ab072ee",
-    "senior": "008fdd54310766fde769bda0b9e26aefcd3e636e954866dac9c42bac31ab3dcf"
+    "child": "db63ea25631f2701d293ec9fdf2c948295e2b8021f31f32b89253d4b52685e7b",
+    "youth": "480c0b2d7081527cc5c902908438aef0ed6d65c978e27659f197d2a6a99711cd",
+    "teen": "4299c1437249a1cd5697e7732575ae669bbe5423f394dc9e2fbd77802a8b9f51",
+    "adult": "0e8ad7af6d9f9eb4f46dde48cb98c2f5299e35fb5670488216c261cb2d4aedef",
+    "senior": "acf3cb89de35d9168991b7cee6a23688d972317f2b07d84e4dac5069586e2e82"
    }
   },
   {
@@ -14451,11 +14459,13 @@
    "department": "The Eternal Algorithms",
    "position": 38,
    "title": "Beyond Our Dimension (by Him all things consist)",
-   "contentSha": "959be0047be0229160137603df5a7df63220bcfe6d34f22d495fb8f1b6e3bafa",
+   "contentSha": "264576d17155bd63be2281ed8d3f65914017d660b6d52c5fbea51777fba33d1f",
    "versions": {
-    "teen": "356b394dd373772342bfff45e7bbcc4e92366ef869a8627c60421a9b4e288988",
-    "adult": "77fa3fba9ec7a933b2d266c92f6d51b33453675b3be40de9d124fa7d31fa923a",
-    "senior": "7dc0949202309d3872e60c2cd7b872ce9fb511b359cd9726560958dc947998f9"
+    "child": "c2e2753deb90da3e25fed359777810d13e1a818b4b8cc2daba22ec0e1bb18509",
+    "youth": "525ddc6e88a36af28bbe061dbce1cfb32059dfadc65fda4f13029123a3af9ef5",
+    "teen": "a5bb63c534c4d1ee414c6684712fe50734a8990c6b62f6deb8bd4887d6c4195d",
+    "adult": "2d48c67672c35353fa15ffaa37a9277f3edfabfe5396d24453081d373cc3cb68",
+    "senior": "1428e5bbbce588c0e423c1b299a85cf1f3cbc778a5db7ac6057196033866e30b"
    }
   },
   {
