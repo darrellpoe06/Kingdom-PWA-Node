@@ -1,7 +1,7 @@
 /* LearnDiscover — compact, photographic, red / black / white / gold (reference:
    docs/design/learn-discover/reference/approved-mockup.png).
 
-   THEMES. Page colours come from the shell's own tokens (--lc-paper, --lc-ink,
+   THEMES. Page colors come from the shell's own tokens (--lc-paper, --lc-ink,
    --lc-muted, --lc-line, defined in index.css and overridden per theme by
    [data-theme]), so the page follows each person's chosen theme and never
    overrides it. The church door's default theme, Night, is the mockup's red,

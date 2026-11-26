@@ -12,7 +12,7 @@
 // opener, Continue reads Learn's own saved places, and every course and
 // department assignment is untouched. Photographs are the existing approved
 // lesson covers; promotional titles ride beside — never instead of — the
-// lesson's own title. Colours come from the shell's theme tokens (--lc-*), so the
+// lesson's own title. Colors come from the shell's theme tokens (--lc-*), so the
 // page follows each person's chosen theme (the church door's own default, Night,
 // is the mockup's red, black and gold).
 // =============================================================================
@@ -28,6 +28,7 @@ import { continueRows, newestRows, featuredRows, relationshipRows } from '../../
 import { SERIES } from '../../lib/learn-discover-series.js';
 import { todaysWord } from '../../lib/learn-discover-word.js';
 import { listPlaces } from '../../lib/learn-resume.js';
+import { motionBehavior } from '../../lib/gentle-motion.js';
 
 const BASE = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.BASE_URL) || '/';
 const WHY = { title: 'Matches the title', verse: 'Scripture match', topic: 'On this topic', content: 'In the lesson', related: 'Related idea' };
@@ -580,7 +581,7 @@ export default function LearnDiscover({ onBrowseAll, onOpenLesson, onOpenArea, o
                 type="button"
                 className="ld-next focus-visible:outline focus-visible:outline-2"
                 aria-label="Show more series"
-                onClick={() => seriesRail.current && seriesRail.current.scrollBy({ left: 220, behavior: 'smooth' })}
+                onClick={() => seriesRail.current && seriesRail.current.scrollBy({ left: 220, behavior: motionBehavior() })}
               >
                 {Ic.chev}
               </button>
