@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T07:09:13.517Z",
+ "measuredAt": "2026-11-26T07:13:01.111Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4394
+  "readings": 4396
  },
  "departments": [
   {
@@ -14350,11 +14350,13 @@
    "department": "The Eternal Algorithms",
    "position": 29,
    "title": "Having the Word Is Not Obeying It (they wield it to defend their ways)",
-   "contentSha": "83acc57c8f650c6adce71d7adb326ee6e896d07d73485983663145fc97794028",
+   "contentSha": "d8345db19db1d50c44ad16d07c30dde324aaa6a113d9c5531464ef230aa723fe",
    "versions": {
-    "teen": "5abce3a4ebd95daa457a7261cb05d142205730961d7ae6fd762579c6178c3646",
-    "adult": "229d6260060059b55aad0f5c62e80a5591b63b2fb799921ac8cd1d14e04c0149",
-    "senior": "cffd278076349aa4d09e7a7a3e3d11f1a05fd98f09b3fa8d39b170c0a8ce9ae3"
+    "child": "4f785ff1ffccb8f34ff66a5dd2d9cc2934de5427ebe49ad49f3ee7633354b888",
+    "youth": "9107971397b6142394cbbde842b11267b92d7c6909501f0dc4086bdc5c52c778",
+    "teen": "85e54c1ec8d158a0f525f95f5503deea33db213aab62c5a3c5b1f02f675e4cac",
+    "adult": "dbf9677cf3cbb89a1382eeb9f81340c47697b0b79356932be2b81e86524f3027",
+    "senior": "f30954419e6df059b3fb8b1846c466503108bc49f39e7779dad613ae89115d2d"
    }
   },
   {
