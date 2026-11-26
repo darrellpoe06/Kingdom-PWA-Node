@@ -1,5 +1,5 @@
 {
- "measuredAt": "2026-11-26T17:59:41.118Z",
+ "measuredAt": "2026-11-26T18:05:12.117Z",
  "counts": {
   "departments": 13,
   "courses": 51,
@@ -771,13 +771,13 @@
    "department": "Serve the House",
    "position": 7,
    "title": "Why we’re building a GPU farm — CPU vs GPU and VRAM",
-   "contentSha": "0f65cfd08f8b12130a52fb180f59d2b95c784f5c0d94b3b06676cca7675e21a8",
+   "contentSha": "1f03c6b213be851b3232566244657c4fa8ce04fb2cc58aa6a5402a3deeffde9a",
    "versions": {
-    "child": "f9f17605d95fc85177e197d74d9c294c6177487c7bac81d9b7ea9e2a5311bcdb",
-    "youth": "2ef93aee8ec1ee8bb38c3f55dccf08a0046945870a1df63ab7067d5af4e0d03e",
-    "teen": "05cbeb32e766f813520215923d4f0963ee026b89787284819f089d6555f626fc",
-    "adult": "ff1a6e093351ff23bfeceef785a5b79139372bcee66a89fb91a698292e85ebfc",
-    "senior": "4f41f5396d9bc820530f651913213788f05d33a59cf26979b158a5ab22712b58"
+    "child": "0a7dab33a6542a711be080ccea745e1ef40bf1bd9082cf2e03c8bc6397f55c98",
+    "youth": "0f98d0c83cc43b2fb6b420136db903bee68c0cec80a5d28fc24c9f14f536e1e8",
+    "teen": "b78d520017fdaae9c1b210ad003615b153aa29c438c149039ca224e82a2b9984",
+    "adult": "3cccd763596d0961d36690e1cc738182953745dc0826a6d3a2e35ade22abc7e8",
+    "senior": "8357077af88f0a32cb7d63b4d96bdf327fd161c655f7994aa55fa43488904930"
    }
   },
   {
