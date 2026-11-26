@@ -10,26 +10,26 @@
 
 ## Context
 
-The root cause of a two-week stall, found by reading the prompt rather than
-guessing. Three changes shipped today, and a full rebuild of 29 teachings moved
-the queue **33 → 32. One row.**
+The root cause of a two-week stall, found by reading the prompt. Three changes
+shipped today and a rebuild of 29 teachings cleared **nothing**: by row-id diff
+every row waiting at 12:04Z still waits at 19:04Z, and one new teaching arrived
+and failed too. 33 → 34.
 
 ## What was measured
 
-Across the five receipts from 14:04Z to 18:14Z every returned row read `failed
-after 5` or `rate-limited after 7`, and the fault classes never changed: at
-18:14Z `not-the-verse` on **27** of 32, the bare "God" on **26**, and
-`span-without-reference` on 18.
+Every returned row read `failed after 5` or `rate-limited after 7`, and the fault
+classes never changed: at 19:04Z `not-the-verse` on **29** of 34, the bare "God"
+on **28**, `span-without-reference` on 20. The row-id diff is the measure, not the
+count: a mid-cycle count reads a row inside `lesson-building` as gone, which is
+why 18:14Z briefly looked like a row had cleared.
 
 Then the prompt (`lesson_writer.py:364`, before this change): it carried the
-standard, the verbatim KJV verses, the fault list and the teaching — and **not
-the draft that failed.** Each attempt wrote a *fresh* 2000+ word lesson carrying
-100+ quotations, told only "a previous draft failed these checks".
+standard, the verses, the fault list and the teaching -- and **not the draft that
+failed.** Each attempt wrote a *fresh* 2000+ word lesson with 100+ quotations.
 
 That cannot converge. A clean draft needs every quotation right **at once**, so
-per-draft success is roughly per-quotation accuracy to the hundredth power: ~37%
-at 99%, ~5% at 97%. Fixing the one named verse while the other hundred are
-rewritten re-rolls the dice — five independent rolls, which is what is seen.
+per-draft success is per-quotation accuracy to the hundredth power: ~37% at 99%,
+~5% at 97%. Five independent rolls is what the receipts show.
 
 ## Impact
 
