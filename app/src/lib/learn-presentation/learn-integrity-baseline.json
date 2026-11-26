@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T12:10:17.667Z",
+ "measuredAt": "2026-11-26T12:13:31.849Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4488
+  "readings": 4490
  },
  "departments": [
   {
@@ -14091,11 +14091,13 @@
    "department": "The Eternal Algorithms",
    "position": 6,
    "title": "The Son Came Off the Throne (down is the way up)",
-   "contentSha": "40d3c468d6c8aa75ffa7c48c874a5ce3fb810eb08464cc167f54158a8c947ae1",
+   "contentSha": "89f30f3c328ce0efc31c9b2ddaa26eaa0ccc8b227745b84b0db1930f42d2a146",
    "versions": {
-    "teen": "673680101bfb6165d311065ea5f86499a5ff0e45530538fdeb9df25d3c9becef",
-    "adult": "4fe424fa01bd451ee0c4472447c9d43578e1b1bbddd42c609438e2479ada918d",
-    "senior": "8912a31fcefc64214ceff62cd5490a3663db22ae9673afac80af1052ff4904e1"
+    "child": "64780b61a15a25142710c57c5d5fe09441be2095d331e3ea87965245980e4c00",
+    "youth": "7c31729942d4a6a77b5dff5e0a92ce00847b312317d1c4b3d91f6136ea2849c7",
+    "teen": "4343f192aba5f940efc3d2478134000039c30accee32f0c6b49dcb95674add89",
+    "adult": "39cf620444810dfd069af08f51fa6585a1e3a77aae4831f3479a9f0c215f8dc4",
+    "senior": "69247d5abb21e95a6a254a9ee64d20ec705de93865deb2c1806c09168b4b97ef"
    }
   },
   {
