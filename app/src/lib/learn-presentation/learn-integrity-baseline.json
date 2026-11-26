@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T15:09:55.633Z",
+ "measuredAt": "2026-11-26T15:12:55.087Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4562
+  "readings": 4564
  },
  "departments": [
   {
@@ -12650,11 +12650,13 @@
    "department": "The Eternal Algorithms",
    "position": 5,
    "title": "The Joy of the LORD (your strength — and no man taketh it)",
-   "contentSha": "3ea74d25e6717ea427b965e15cea1b0085afa528e29a3f400a18ff136af08103",
+   "contentSha": "27f1998be87554e4398caeb74e866d8cf2b57e354227c2afe4eadf565e41591d",
    "versions": {
-    "teen": "73cc713eb37f9676c341f99c43f4c7690eab880754867c5c216498215394b501",
-    "adult": "69f9b6c09308a647d465b16a410bf63eadc502c1c4512b30269296ee530a9eb1",
-    "senior": "7beaf763032abee604eac49b6e9c5c98c31321c305fea805f60a2288861bb450"
+    "child": "6b747aa7c76fc344192ed629670549502b045e44b2111252c8c8fafe298bccdb",
+    "youth": "a952add707cfedbaa0f62834867ad49876003a280ca7eb7dc347d721b2fcc777",
+    "teen": "7c6a953191607119dff9b3d066baca1207ead1e98c4a8a737e0ca260ecea8e00",
+    "adult": "ddd0560adb0460f6449662156b8052564acf9dac11e9d82543b5a12fe17545bb",
+    "senior": "e1d987737f1348170a0588fa08356cf070425a2c515b9109ceed19d766ccc097"
    }
   },
   {
