@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T11:38:55.120Z",
+ "measuredAt": "2026-11-26T11:42:21.945Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4474
+  "readings": 4476
  },
  "departments": [
   {
@@ -14182,11 +14182,13 @@
    "department": "The Eternal Algorithms",
    "position": 13,
    "title": "Dead in Sin → Quickened (the Blood restarts the system)",
-   "contentSha": "5144c96c84ccc08541694e92c5163b93de1682684e90834d119d11c43931f748",
+   "contentSha": "4dcb28458fff697549f95936c9517ce5c9282fed97af7efe09e28e3656b597f6",
    "versions": {
-    "teen": "0463f4add20c271035de21ce4b92cd861a7b257ee268a63922b2f4dba88e040a",
-    "adult": "e7f691a725e832e5371b46f200eae201e5a7fcada1c3949c6e6697a7c8342010",
-    "senior": "6853daac3de8f9adf37288d64943c234a9d7e3a175ff7875cacd090455f21f9f"
+    "child": "aa4dcaa68c12dd452a1894a1c4e5db9556bf061c2db0bc04c4f7c5800f1d5747",
+    "youth": "114d2dabc4487c14ec9f1cb82b4b7690288a6bf0de2aa726a20ad2db9f602285",
+    "teen": "1aac3055f9e142d15b51a25ad74405799aee3155f309a2ae876ff6d3f94e9175",
+    "adult": "1bacd1f2e714d67795d9e6099cb7e746b3685f170694b2c855c8e161c7a32007",
+    "senior": "fcd0bbfd9579169bc09d3cf15d80428e04a54bd133f72be9acf04ed0e4230ba7"
    }
   },
   {
