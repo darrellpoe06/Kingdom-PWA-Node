@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T10:08:19.288Z",
+ "measuredAt": "2026-11-26T10:14:12.475Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4450
+  "readings": 4452
  },
  "departments": [
   {
@@ -14278,11 +14278,13 @@
    "department": "The Eternal Algorithms",
    "position": 21,
    "title": "The Sower Sets the Harvest (sparingly or bountifully)",
-   "contentSha": "2a69da5e81e837c7b9075c0550b93b98a6f124b7c9c5c13ba05010050cc834cd",
+   "contentSha": "2a00f99c131c27639d723ac7008bfe4e139a7f651326e879ce10f1c0525ac68a",
    "versions": {
-    "teen": "f7c6aa4dc136593df2a7e110316cf3e8cf2e880042178f8bd99f69fbc252bcb6",
-    "adult": "df27f039154be8237f8188b0252c5828b7895fca77692425d429c923717b9531",
-    "senior": "d7290457d8ba72a551e4fafc2339179d380ba25e30183d3c26491c9d87dda3cb"
+    "child": "9fbb8c807efb4819f82a1446e0d065975fe3f2eb5afbe358bfab6b5f2878661b",
+    "youth": "e39aec86cc9dbdb50fcf36c1ad37b7b68a550e83ca0f4b05a8e3ba98b8c9a49f",
+    "teen": "15502955b0178c3f8c900904a41cd6e9dffa992243a94fe0393a62151dd09d22",
+    "adult": "cd537b15c20c3b1fad1efa7eb4b3acd95bb5e5b814213a3b4d3d4b61becc993a",
+    "senior": "4ec61956e11a66d11c52bdf75c228f3d30d925e18a0770acf407aa98b005e435"
    }
   },
   {
