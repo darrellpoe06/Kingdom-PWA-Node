@@ -1,4 +1,4 @@
-# DR-1686: The words land where you say, and Present is back in the new lesson look
+# DR-1690: The words land where you say, and Present is back in the new lesson look
 
 **Date:** 2026-11-26
 **Status:** Accepted

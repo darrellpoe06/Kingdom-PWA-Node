@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 // =============================================================================
-// Where the words land, and the door back to the projector (DR-1686).
+// Where the words land, and the door back to the projector (DR-1690).
 //
 // Darrell, 2026-11-26, from the full-screen Watch view: "We need the words to
 // be at the top of the screen... not the bottom unless we say so... give the
