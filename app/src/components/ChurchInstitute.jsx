@@ -47,6 +47,9 @@ import InstituteCourseCards from './institute/InstituteCourseCards.jsx';
 import { listPlaces } from '../lib/learn-resume.js';
 import { motionBehavior } from '../lib/gentle-motion.js';
 import { isInstituteStudioOn, courseCovers } from '../lib/institute-studio.js';
+import { myAccomplishments, lessonIndex } from '../lib/institute-record.js';
+import { setLearnAreaHint } from '../lib/learn-landing.js';
+import { LEARN_CATALOG } from '../lib/learn-catalog.js';
 
 const FOCUS = 'focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]';
 const STATUS_WORD = Object.freeze({ applied: 'Applied', accepted: 'Accepted', withdrawn: 'Withdrawn', completed: 'Completed' });
@@ -461,6 +464,9 @@ export default function ChurchInstitute({
   sync = defaultSync,
   studioDefaultOn = false, // the approved redesign: owner-device preview (lib/institute-studio.js)
   studentName = null,
+  learnerRecords = null, // the student's own class record rows, the shell's quiz and progress maps:
+  quizState = null, //   what the studio's Your Record acknowledges (lib/institute-record.js)
+  progress = null,
 }) {
   const c = resolveChurch(church);
   const [studio] = useState(() => isInstituteStudioOn({ defaultOn: studioDefaultOn }));
@@ -506,6 +512,11 @@ export default function ChurchInstitute({
   const goLearn = () => {
     if (setChurchView) setChurchView('learn');
   };
+  const lessonTitles = useMemo(() => (studio && myUserId ? lessonIndex(LEARN_CATALOG) : null), [studio, myUserId]);
+  const myRecord = useMemo(
+    () => (lessonTitles ? myAccomplishments({ records: learnerRecords || [], quizState: quizState || {}, progress: progress || {}, index: lessonTitles, userId: myUserId }) : null),
+    [lessonTitles, myUserId, learnerRecords, quizState, progress]
+  );
   const catalog = useMemo(() => new Map(programs.flatMap((p) => p.list.map(({ course }) => [course.key, course]))), [programs]);
   // A studio button OPENS a section AND TAKES THE READER TO IT (Darrell 2026-11-25, from the
   // live preview: "Buttons don't go anywhere for anything on this screen"). The sections sit
@@ -884,6 +895,11 @@ export default function ChurchInstitute({
           studentName={studentName}
           onOpen={openSection}
           onExplore={goLearn}
+          record={myRecord}
+          onOpenRecord={() => {
+            setLearnAreaHint('record');
+            goLearn();
+          }}
         />
       ) : (
         <section className="lc-band lc-band-institute" aria-labelledby="inst-h">

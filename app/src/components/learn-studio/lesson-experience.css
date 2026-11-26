@@ -1037,8 +1037,34 @@
 .le-root .le-quiz-opt {
   color: var(--le-ink);
 }
-.le-quiz-opt:disabled {
-  opacity: 1;
+.le-quiz-opt[aria-disabled='true'] {
+  cursor: default;
+}
+.le-quiz-mark {
+  font-weight: 700;
+  text-decoration: none;
+  display: inline-block;
+}
+.le-quiz-record,
+.le-quiz-result {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #cdb78e;
+  background: rgba(255, 255, 255, 0.55);
+  color: var(--le-ink);
+}
+.le-quiz-result p {
+  margin: 0 0 8px;
+}
+.le-quiz-again {
+  min-height: 44px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid currentColor;
+  font-weight: 700;
+  color: var(--le-ink);
+  background: transparent;
 }
 .le-quiz-opt.correct {
   border-color: #2f7d4f;
@@ -1283,8 +1309,14 @@
 .le-root--darkpage .le-bb--aloud {
   color: #f0a79c;
 }
-.le-root--darkpage .le-quiz-opt {
+.le-root--darkpage .le-quiz-opt,
+.le-root--darkpage .le-quiz-record,
+.le-root--darkpage .le-quiz-result {
   background: rgba(255, 255, 255, 0.06);
+}
+.le-root--darkpage .le-quiz-opt.correct {
+  border-color: #7fd0a0;
+  background: rgba(127, 208, 160, 0.16);
 }
 
 /* The highlighter pen: soft tints that keep the page's own ink readable on the bright page and

@@ -421,3 +421,36 @@ describe('programs open with their course cards showing', () => {
     expect(q('institute-program-more-biblical-studies').open).toBe(false);
   });
 });
+
+// ── Your Record: the student's own accomplishments (Darrell 2026-11-26) ─────────────────────
+import { myAccomplishments as _acc, lessonIndex as _idx } from '../lib/institute-record.js';
+describe('institute-record: every line from a real row', () => {
+  const courses = [{ key: 'c1', meta: { title: 'Course One' }, schedule: [{ id: 'a', title: 'Alpha' }, { id: 'b', title: 'Beta' }, { id: 'c', title: 'Gamma' }, { id: 'd', title: 'Delta' }] }];
+  const now = new Date('2026-11-26T00:00:00Z').getTime();
+  it('indexes lessons by id with their course', () => {
+    expect(_idx(courses).get('b')).toMatchObject({ title: 'Beta', courseKey: 'c1', course: 'Course One' });
+  });
+  it('counts only this student, one score per lesson, and names what was earned newest first', () => {
+    const records = [
+      { userId: 'me', lessonId: 'a', completedAt: '2026-11-20T00:00:00Z', quizPct: 60, quizPassed: false, quizAt: '2026-09-01T00:00:00Z' },
+      { userId: 'me', lessonId: 'b', completedAt: '2026-11-21T00:00:00Z', quizPct: 80, quizPassed: true, quizAt: '2026-10-01T00:00:00Z' },
+      { userId: 'other', lessonId: 'c', quizPct: 100, quizPassed: true, quizAt: '2026-11-01T00:00:00Z' },
+    ];
+    const quizState = { b: { pct: 10, passed: false, at: '2026-01-01T00:00:00Z' }, c: { pct: 90, passed: true, at: '2026-11-10T00:00:00Z' }, d: { pct: 100, passed: true, at: '2026-11-25T00:00:00Z' } };
+    const r = _acc({ records, quizState, progress: { d: '2026-11-25T00:00:00Z' }, courses, userId: 'me', now });
+    expect(r.lessonsFinished).toBe(3);
+    expect(r.examsTaken).toBe(4);
+    expect(r.examsPassed).toBe(3);
+    expect(r.average).toBe(83); // 60, 80 (the row wins over the map's 10), 90, 100
+    expect(r.band.label).toBe('Strong');
+    expect(r.earned.map((e) => e.title)).toEqual(['Delta', 'Gamma', 'Beta']);
+    expect(r.growth).toEqual({ earlier: 70, recent: 95, change: 25, exams: 4 });
+    expect(r.last30).toEqual({ passed: 2, finished: 3 });
+  });
+  it('draws no trend under four dated exams, and no standing before a first exam', () => {
+    const r = _acc({ records: [], quizState: {}, progress: {}, courses, userId: 'me', now });
+    expect(r.growth).toBeNull();
+    expect(r.band.label).toBe('Not yet tested');
+    expect(r.earned).toEqual([]);
+  });
+});

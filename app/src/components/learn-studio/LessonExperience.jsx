@@ -32,6 +32,7 @@ import { storiesTextFor, HIGHLIGHT_KEY, HIGHLIGHT_PENS, nextPen, readHighlights,
 
 export { storiesTextFor, HIGHLIGHT_KEY, HIGHLIGHT_PENS, nextPen, readHighlights };
 import LessonFigures from '../LessonFigures.jsx';
+import StudyQuiz from './StudyQuiz.jsx';
 import { ExperienceToolsContext, resumable, pacedFraction } from './LessonExperienceTools.jsx';
 import './lesson-experience.css';
 
@@ -1365,7 +1366,6 @@ function StudySection({ icon, title, open = false, children }) {
 // in-app practice and the REAL quiz with its real explanations.
 function StudyMode({ lesson, record, number, verses }) {
   const tools = React.useContext(ExperienceToolsContext);
-  const [picked, setPicked] = useState({});
   const [notes, setNotes] = useState(() => saved.get(NOTES_KEY(lesson.id), ''));
   const prompts = lesson.facilitator?.discussionPrompts || [];
   const questions = lesson.quiz?.questions || [];
@@ -1416,31 +1416,7 @@ function StudyMode({ lesson, record, number, verses }) {
 
         {questions.length > 0 && (
           <StudySection icon="check" title="Check Your Understanding">
-            <ol className="le-quiz">
-              {questions.map((q, qi) => (
-                <li key={qi} className="le-quiz-q">
-                  <p className="le-quiz-prompt">{q.q}</p>
-                  <div className="le-quiz-opts">
-                    {q.options.map((opt, oi) => {
-                      const show = picked[qi] != null;
-                      const correct = oi === q.answer;
-                      return (
-                        <button
-                          key={oi}
-                          type="button"
-                          className={`le-quiz-opt ${show && correct ? 'correct' : ''} ${show && picked[qi] === oi && !correct ? 'wrong' : ''} ${RING}`}
-                          onClick={() => setPicked((p) => ({ ...p, [qi]: oi }))}
-                          disabled={show}
-                        >
-                          {opt}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  {picked[qi] != null && <p className="le-quiz-explain">{q.explain}</p>}
-                </li>
-              ))}
-            </ol>
+            <StudyQuiz lesson={lesson} tools={tools} />
           </StudySection>
         )}
 
