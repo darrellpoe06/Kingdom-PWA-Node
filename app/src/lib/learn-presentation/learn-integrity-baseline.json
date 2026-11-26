@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T14:14:51.808Z",
+ "measuredAt": "2026-11-26T14:19:10.588Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4540
+  "readings": 4542
  },
  "departments": [
   {
@@ -13018,11 +13018,13 @@
    "department": "The Eternal Algorithms",
    "position": 10,
    "title": "Train Up a Child (the 6am inheritance)",
-   "contentSha": "c4fd31992efc587e4a74ffcaf452438730141d00cbc851de1d5522d0c3c998d3",
+   "contentSha": "e8d296d13dfee5dc2376897d7a2b5a5d9744be6c60edaccda387ef009e24798a",
    "versions": {
-    "teen": "6aa12906903b0e874b7abd15e534c9b35f073df7340c5e08c42d31412333e6cb",
-    "adult": "1def4c49ad988cab511f2937441721709f6de3680605c069abc7f695eaa07d45",
-    "senior": "31b66bce6aab3ff530b0cd6116921a58511e475ff405465ec082d4f5e2a5f481"
+    "child": "5e475ce2909ac938fd9fb44e4239a0c81c877b2fb20845e3718d07a625d7fd51",
+    "youth": "41dfea57f3e8c1d0f95214cf8a9cf064bae9a193df00dbcbd38f04134de57d91",
+    "teen": "de921ad12bb09412443ca7445d5a7b8966cbc0ca1517365453823f2540f52173",
+    "adult": "46f6c904e73184d9444897b221b86633d664f175f3a112736dcbf9d54711b304",
+    "senior": "7538f114ebf9cad4d037a2a9fcf2e55eafa862c5c4da104c808285ea06f81107"
    }
   },
   {
