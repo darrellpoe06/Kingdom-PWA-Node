@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T08:01:25.741Z",
+ "measuredAt": "2026-11-26T08:07:10.393Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4416
+  "readings": 4418
  },
  "departments": [
   {
@@ -14297,11 +14297,13 @@
    "department": "The Eternal Algorithms",
    "position": 24,
    "title": "His Ways Past Finding Out (our minds cannot comprehend Him)",
-   "contentSha": "e4ff6d3e6c5bd61a90aed49e9fb368867f81c284919cb8e667064af4bda64aa4",
+   "contentSha": "f4bc9486ebae67ccd1ce68651856a9b00354e42bfc840e44fd089be59ea78300",
    "versions": {
-    "teen": "2e896eb157bb01aa5f8d7a891e88ad146a3b38d8a063e753b7ab33b7d9804125",
-    "adult": "d1b7d749951e201c972ca0a4a04f9d525f055ab3f53a4e1620ef66472f04da3c",
-    "senior": "9bd19778ce9c615078b7e0243caf6d36fcf1f02432e25f63d61f8ab084b36235"
+    "child": "fc25c9aec517f9396604c99b65f84f63e4c20156a7e1f51ce7600cdd21cdd3e3",
+    "youth": "efe56183cc4211eba10c5f6f0879098b3dbe8d70e529ddea1ac87d996886b28b",
+    "teen": "39ff7888db9acf3961186950e58d1eeee9a8f2981aadfc3179c70ad08c4ad4f0",
+    "adult": "04370e8bb5eb79173409a91510a6edb48f407ddb005332b0b9a3d8af74b89aec",
+    "senior": "ea1280e327c8bf071e8c7b437c474b7561a380df569190b20706a9fdcf761fb6"
    }
   },
   {
