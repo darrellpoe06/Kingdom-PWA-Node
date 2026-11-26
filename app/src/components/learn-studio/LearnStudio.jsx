@@ -26,6 +26,7 @@ const versionLabel = (id) => (READING_VERSIONS.find((b) => b.id === id) || { lab
 // A keyboard user must SEE where they are (ui-standards focus-ring). Gold, never red (red is reserved, DR-0099).
 const RING = 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2';
 import LessonsInOrder from './LessonsInOrder.jsx';
+import CourseLessonsView from './CourseLessonsView.jsx';
 import './learn-studio.css';
 
 /** 2–3 balanced lines, the same rule the thumbnail compositor uses. */
@@ -475,19 +476,26 @@ export default function LearnStudio({
             <button type="button" className={`ls-back ${RING}`} onClick={() => setCourseKey(null)}>
               ‹ Back to Learn
             </button>
-            {/* THE COURSE PAGE, AS COMPACT ROWS (DR-1662; Darrell 2026-11-26: "the
-                smallest thumbnails with the titles showing so it will be very
-                inviting"): every lesson, its small cover and its whole title,
-                in order with month headings, every sort, your read marks. */}
-            <LessonsInOrder
-              courses={courses}
-              index={index}
-              preview={preview}
-              onOpen={(x) => read(x)}
-              done={done}
-              fixedCourse={courseKey}
-              markFor={markFor}
-              onVersion={version}
+            <CourseLessonsView
+              title={pickedCourse.title}
+              items={pickedCourse.items}
+              onOpen={openLesson}
+              renderPictures={(rows) => <Row title={pickedCourse.title} note={`${rows.length} lessons`} items={rows} onOpen={openLesson} grid />}
+              // DR-1662: List is the compact-thumbnail list (read marks, ages, Show), in the order chosen above.
+              renderList={(order) => (
+                <LessonsInOrder
+                  courses={courses}
+                  index={index}
+                  preview={preview}
+                  onOpen={(x) => read(x)}
+                  done={done}
+                  fixedCourse={courseKey}
+                  order={order}
+                  listTestId="course-list"
+                  markFor={markFor}
+                  onVersion={version}
+                />
+              )}
             />
             {tools && (
               <section className="ls-row ls-full-tools" id="ls-full-tools" data-testid="ls-full-tools">

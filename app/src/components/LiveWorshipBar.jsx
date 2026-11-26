@@ -34,7 +34,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { liveStatus, worshipPlayerSrc } from '../lib/church-live.js';
 import { resolveChurch } from '../lib/resolve-church.js';
-import { useLivePlayerPrefs, setLiveBarCollapsed, barFrameStyle } from '../lib/live-player-prefs.js';
+import { useLivePlayerPrefs, setLiveBarCollapsed, setLiveBarMini, barFrameStyle, MINI_FRAME_STYLE } from '../lib/live-player-prefs.js';
 
 const DISMISS_KEY = 'poe.liveWorshipBar.dismissedSession';
 
@@ -101,7 +101,7 @@ export function LiveWorshipBar({ church, view, churchView, onOpenChurch, now }) 
   // chose on the Church home player is honoured HERE, on the automatic first
   // open, before any tap (Darrell 2026-09-09); show/hide video holds for the
   // session so a remount never flips it back.
-  const { scale, barCollapsed: collapsed } = useLivePlayerPrefs();
+  const { scale, barCollapsed: collapsed, barMini: mini } = useLivePlayerPrefs();
   // `collapsed` is the viewer's choice (null = none yet); `hideVideo` is what
   // the bar does: the choice when there is one, else folded while reading on a phone.
   const readingOnPhone = useReadingOnPhone();
@@ -142,7 +142,17 @@ export function LiveWorshipBar({ church, view, churchView, onOpenChurch, now }) 
   // and pads content beneath the fixed bar. Reset to 0 whenever it is not shown.
   const publishHeight = useCallback(() => {
     if (typeof document === 'undefined') return;
-    const h = visible && barRef.current ? barRef.current.offsetHeight : 0;
+    // THE HEIGHT THE EYE SEES, NOT THE LAYOUT HEIGHT (Darrell 2026-11-26, a line of lesson text
+    // showing between this bar and the header). The bar is a chrome region, so at a larger text
+    // size it is drawn at --ts-chrome-scale (zoom). MEASURED in Chromium 158 at zoom 0.8333:
+    // offsetHeight 60, drawn height 49.98. Publishing 60 pinned the header 10px below the bar's
+    // real bottom edge, and the page scrolled through that strip. Floor, so the header tucks
+    // under the bar by a fraction of a pixel instead of leaving a hairline.
+    let h = 0;
+    if (visible && barRef.current) {
+      const drawn = barRef.current.getBoundingClientRect ? barRef.current.getBoundingClientRect().height : 0;
+      h = drawn > 0 ? Math.floor(drawn) : barRef.current.offsetHeight;
+    }
     document.documentElement.style.setProperty('--lwb-h', `${h}px`);
     // The bar names the church at the top while it is open; index.css folds the
     // public welcome line away beneath it on a phone.
@@ -209,6 +219,19 @@ export function LiveWorshipBar({ church, view, churchView, onOpenChurch, now }) 
               Open Church
             </button>
           )}
+          {!hideVideo && (
+            <button
+              type="button"
+              onClick={() => setLiveBarMini(!mini)}
+              aria-pressed={mini}
+              aria-label={mini ? 'Show the live service across the top' : 'Shrink the live service to a small floating player'}
+              title={mini ? 'Wide video' : 'Small floating video'}
+              data-testid="live-bar-mini"
+              className="text-[0.625rem] sm:text-xs uppercase tracking-wider px-2.5 py-1.5 border border-white/40 text-white hover:bg-white hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-white min-h-[36px]"
+            >
+              {mini ? 'Wide' : 'Small'}
+            </button>
+          )}
           <button
             type="button"
             onClick={() => setCollapsed((v) => !v)}
@@ -234,8 +257,11 @@ export function LiveWorshipBar({ church, view, churchView, onOpenChurch, now }) 
       {/* The live broadcast — centered 16:9, height-capped so it pins to the top
           without eating the screen. Kept mounted while collapsed (display:none)
           so collapsing never interrupts playback. */}
-      <div className={`bg-black flex justify-center ${hideVideo ? 'hidden' : ''}`}>
-        <div className="relative" data-live-scale={scale} style={barFrameStyle(scale)}>
+      {/* SMALL BY DEFAULT (Darrell 2026-11-25): the same frame floats in the bottom corner so the
+          app stays usable under it; "Wide" puts it back across the top. Only the wrapper's style
+          changes, so the iframe is never remounted and the broadcast never restarts. */}
+      <div className={`${mini ? '' : 'bg-black flex justify-center'} ${hideVideo ? 'hidden' : ''}`} data-live-mini={mini ? '1' : '0'}>
+        <div className={mini ? 'lwb-frame' : 'relative lwb-frame'} data-live-scale={scale} style={mini ? MINI_FRAME_STYLE : barFrameStyle(scale)}>
           <iframe
             src={src}
             title={`${name} — live worship service`}
@@ -247,7 +273,7 @@ export function LiveWorshipBar({ church, view, churchView, onOpenChurch, now }) 
       </div>
 
       {/* Watch-out link — an escape hatch to the church's own channel. */}
-      {channelUrl && !hideVideo && (
+      {channelUrl && !hideVideo && !mini && (
         <div className="px-3 sm:px-4 py-1.5 text-right">
           <a
             href={channelUrl}

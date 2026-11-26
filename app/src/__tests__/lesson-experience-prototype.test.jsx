@@ -82,7 +82,7 @@ describe('the prototype entry is private to the owner device', () => {
   it('opens the prototype overlay on tap, with all four modes', () => {
     render(<LearnStudioPreview courses={COURSES} onOpenLesson={vi.fn()} onExit={vi.fn()} ownerDevice />);
     click(byText('Try the new lesson experience')[0]);
-    expect(container.textContent).toContain('PROTOTYPE');
+    expect(container.textContent).toContain('Owner preview');
     for (const label of ['Watch', 'Read', 'Listen', 'Study']) {
       expect(byText(label).length).toBeGreaterThan(0);
     }
@@ -173,7 +173,7 @@ describe("the lesson's own Read/Listen/age-chip buttons stay in the new look (no
     expect(readBtn).toBeTruthy();
     click(readBtn);
     expect(onOpenLesson).not.toHaveBeenCalled();
-    expect(container.textContent).toContain('PROTOTYPE');
+    expect(container.textContent).toContain('Owner preview');
     expect(byText('Read').some((b) => b.getAttribute('aria-selected') === 'true')).toBe(true);
   });
 
@@ -219,7 +219,7 @@ describe("the lesson's own Read/Listen/age-chip buttons stay in the new look (no
     expect(card).toBeTruthy();
     click([...container.querySelectorAll('button')].find((b) => b.textContent.trim() === 'Read Lesson'));
     expect(onOpenLesson).toHaveBeenCalledTimes(1);
-    expect(container.textContent).not.toContain('PROTOTYPE');
+    expect(container.textContent).not.toContain('Owner preview');
   });
 });
 
@@ -246,7 +246,7 @@ describe('More Lessons — a YouTube-style queue of all available lessons (same 
     const picked = row.textContent;
     click(row);
     expect(onOpenLesson).not.toHaveBeenCalled();
-    expect(container.textContent).toContain('PROTOTYPE');
+    expect(container.textContent).toContain('Owner preview');
     expect(container.textContent).not.toContain('Not with Eyeservice');
     expect(picked.length).toBeGreaterThan(0);
   });
@@ -394,16 +394,14 @@ describe('four-mode reference layout -- real data only', () => {
 });
 
 // Darrell, 2026-11-25, on ?course=healthy-living: "Fix it."
-// DR-1662 (Darrell 2026-11-26: "the smallest thumbnails with the titles showing"):
-// the course page lists every lesson as a compact thumbnail row, not a big-card grid.
-describe('a course link opens that course in the new look, every lesson listed', () => {
+describe('a course link opens that course in the new look, every lesson as a grid', () => {
   const LIVING = COURSES.find((c) => c.key === 'living-lessons');
 
   it('initialCourseKey opens a course page listing EVERY lesson in the course, not the home screen', () => {
     render(<LearnStudioPreview courses={COURSES} onOpenLesson={vi.fn()} onExit={vi.fn()} ownerDevice initialCourseKey="living-lessons" />);
-    const list = container.querySelector('.ls-inorder-list');
-    expect(list).toBeTruthy();
-    expect(list.querySelectorAll('button.ls-inorder-row').length).toBe(LIVING.schedule.length);
+    const grid = container.querySelector('.ls-grid');
+    expect(grid).toBeTruthy();
+    expect(grid.querySelectorAll('button.ls-card').length).toBe(LIVING.schedule.length);
     expect(container.textContent).toContain(`${LIVING.schedule.length} lessons`);
   });
 
@@ -425,7 +423,7 @@ describe('a course link opens that course in the new look, every lesson listed',
     );
     expect(container.querySelector('.ls-cover')).toBeTruthy();
     click(container.querySelector('.ls-cover .ls-back'));
-    expect(container.querySelector('.ls-inorder-list')).toBeTruthy();
+    expect(container.querySelector('.ls-grid')).toBeTruthy();
   });
 
   it('an unknown course in a link opens the normal home screen, never a dead page', () => {

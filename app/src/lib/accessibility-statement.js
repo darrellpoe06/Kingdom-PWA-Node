@@ -34,10 +34,11 @@ export const STATEMENT = Object.freeze({
     'The theme colors are checked for 4.5:1 text contrast on every build.',
     `Each page’s text colors are checked against its backgrounds on every build: ${PAGES.passing} of ${PAGES.total} pages pass, and no page may get worse.`,
     'Learn, the four lesson views (Watch, Read, Listen, Study) and the download door were scanned at phone size with axe-core against the WCAG 2.0 and 2.1 A and AA rules: no violations found.',
+    'The new Institute view (its home and six sections) was scanned the same way in three color themes: after fixing the low-contrast red text it found, no violations remain.',
   ]),
   notYet: Object.freeze([
     ...(BELOW > 0 ? [`${BELOW} pages still have text colors below 4.5:1 against their background; they are listed and being worked down.`] : []),
-    'Words over photographs (Learn covers and headlines) are improved but not yet measured to pass contrast on every picture.',
+    'Words over photographs (Learn covers and headlines, and the Institute banner and course cards) are improved but not yet measured to pass contrast on every picture.',
     'Many screens have not had an automated WCAG scan yet; the scan does not run on every build yet.',
   ]),
   report: 'Something hard to see, hear or reach? Tell us here. It goes to the stewards with the page you were on.',

@@ -42,7 +42,7 @@
 // the SAME 16px baseline (text-[10px] -> text-[0.625rem]): pixel-identical at Normal,
 // but scaling to ~1.5x at Largest. New reading text here uses rem, never px.
 import React, { useState, useRef, useMemo, useCallback } from 'react';
-import { LEARN_LANDING_AREA, useLearnLanding } from '../lib/learn-landing.js';
+import { LEARN_LANDING_AREA, useLearnLanding, takeLearnAreaHint } from '../lib/learn-landing.js';
 import {
   CLASS_META, PROPOSED_COHORT_START, SESSION_FLOW,
   buildSchedule, progressSummary, exportCurriculumMarkdown, formatClassDate,
@@ -2560,7 +2560,14 @@ function CourseView({
       />
     );
   }
-  if (focusModule && experienceId === focusModule.id && isExperienceLesson(focusModule, course)) return <LessonExperienceDoor key={`${focusModule.id}:${ageBand}:${levelOverride || ''}`} lesson={focusModule} course={course} onExit={() => setExperienceId(null)} onOpen={(k, id) => { openLesson(id); setExperienceId(id); }} onFullPage={() => setExperienceId(null)} initialLevel={versionRead(focusModule, ageBand, levelOverride) || 'adult'} lessonTools={experienceTools({ module: focusModule, course, signedIn, ageBand, levelOverride, learnLevel, setAgeBand, setLearnLevel, LevelControl: LessonLevelControl, versionCount: lessonVersionCount(focusModule), savePlace, awake, touchDevice })} />;
+  const recordQuizWithIntegrity = (id, r) => { // ONE quiz record, two screens: the lesson page and the lesson screen file the same attempt the same way.
+    // DR-1386: every attempt carries how it was taken; a pass credits READ only with evidence of reading.
+    const paced = r ? recordPacedAttempt({ lessonId: id, at: r.at, pct: r.pct, passed: r.passed }) : null;
+    const integrity = { ...attemptIntegrity({ reached: readingReached(getPlaceFor(course.key, id)), ms: r && r.ms, questions: r && r.questions }), ...(paced ? { eyesWpm: paced.eyesWpm, earsWpm: paced.earsWpm, firstTry: paced.firstTry } : {}) };
+    if (recordQuiz) recordQuiz(id, { ...r, integrity });
+    if (r && r.passed) finishRead(id);
+    return integrity; };
+  if (focusModule && experienceId === focusModule.id && isExperienceLesson(focusModule, course)) return <LessonExperienceDoor key={`${focusModule.id}:${ageBand}:${levelOverride || ''}`} lesson={focusModule} course={course} onExit={() => setExperienceId(null)} onOpen={(k, id) => { openLesson(id); setExperienceId(id); }} onFullPage={() => setExperienceId(null)} initialLevel={versionRead(focusModule, ageBand, levelOverride) || 'adult'} lessonTools={experienceTools({ module: focusModule, course, signedIn, ageBand, levelOverride, learnLevel, setAgeBand, setLearnLevel, LevelControl: LessonLevelControl, versionCount: lessonVersionCount(focusModule), savePlace, awake, touchDevice, quizSaved: quizState[focusModule.id] || null, quizSaves: !!recordQuiz, onRecordQuiz: (id, r) => { const back = recordQuizWithIntegrity(id, r); if (onEngagement) onEngagement(r.passed ? 'quiz-passed' : 'quiz-failed', id); return back; } })} />;
   if (teaching) {
     return <Presenter presentable={coursePresentable(course)} initialAge={AGEBAND_TO_PRESENT_AGE[ageBand] || 'teen'} onClose={() => setTeaching(false)} />;
   }
@@ -3840,14 +3847,7 @@ function CourseView({
                     onEngagement={onEngagement}
                     venueAware={venueAware}
                     quizSaved={quizState[m.id] || null}
-                    onRecordQuiz={(id, r) => {
-                      // DR-1386: every attempt carries how it was taken; a pass credits READ only with evidence of reading.
-                      const paced = r ? recordPacedAttempt({ lessonId: id, at: r.at, pct: r.pct, passed: r.passed }) : null;
-                      const integrity = { ...attemptIntegrity({ reached: readingReached(getPlaceFor(course.key, id)), ms: r && r.ms, questions: r && r.questions }), ...(paced ? { eyesWpm: paced.eyesWpm, earsWpm: paced.earsWpm, firstTry: paced.firstTry } : {}) };
-                      if (recordQuiz) recordQuiz(id, { ...r, integrity });
-                      if (r && r.passed) finishRead(id);
-                      return integrity;
-                    }}
+                    onRecordQuiz={recordQuizWithIntegrity}
                     unitNoun={U.noun}
                     sessionFlow={sessionFlow}
                     onPlace={savePlace}
@@ -4386,7 +4386,7 @@ function ChurchLearn({
   // using subtabs not long scrolling". One area on screen at a time; Lessons is
   // the one that scrolls. Navigation only: every block keeps its place, gated
   // by its area.
-  const [learnArea, setLearnAreaState] = useState(LEARN_LANDING_AREA); // opens on Latest (DR-1606)
+  const [learnArea, setLearnAreaState] = useState(() => takeLearnAreaHint() || LEARN_LANDING_AREA); // opens on Latest (DR-1606), or on the area a link asked for once
   const findFocusPending = React.useRef(false);
   const setLearnArea = (id) => { setLearnAreaState(id); };
   React.useEffect(() => {

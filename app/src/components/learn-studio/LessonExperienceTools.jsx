@@ -48,12 +48,18 @@ export function experienceTools({
   savePlace,
   awake = null,
   touchDevice = false,
+  quizSaved = null,
+  quizSaves = false,
+  onRecordQuiz = null,
 }) {
   const courseKey = course.key || (course.meta && course.meta.key);
   const band = AGE_BANDS.find((b) => b.id === ageBand) || AGE_BANDS.find((b) => b.id === DEFAULT_AGE_BAND) || AGE_BANDS[0];
   const resolved = resolveForAge(m, ageBand, levelOverride);
   const url = () => lessonUrl({ courseKey, lessonId: m.id, course });
   return {
+    quizSaved,
+    quizSaves,
+    onRecordQuiz,
     levelFirst:
       versionCount > 1 && typeof setAgeBand === 'function' && LevelControl ? (
         <div data-testid="lesson-level-first">

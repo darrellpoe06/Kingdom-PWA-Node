@@ -1,5 +1,5 @@
 {
- "measuredAt": "2026-11-24T03:40:13.119Z",
+ "measuredAt": "2026-11-26T00:28:35.348Z",
  "counts": {
   "departments": 13,
   "courses": 51,
@@ -768,13 +768,13 @@
    "department": "Serve the House",
    "position": 8,
    "title": "The house of God — COLG’s sovereign stack",
-   "contentSha": "5b635d050a7c3d283b83ca89e798d800c567b3324980012d5e7779d889f116fe",
+   "contentSha": "44b86944a15e638ed6d7ec25e370ca904170ce3badb889fec9ca592937067bda",
    "versions": {
-    "child": "4c1a690ec6ce4bc2b419068ef5c700ec409e1d25fdcb605682931c35c78cb211",
-    "youth": "f7c92d0ba1c96702d2f29354119fc70503d6ba1db0679eda10c59a07de70b671",
-    "teen": "0c41421f46b8184caf3ae6d905ed1dd8ccec7b16a5980675fd027d76231a0d66",
-    "adult": "8dfa7ae2c980600f7532625e0bfb5120d40bce3c84f89d0d7429ef06f28de244",
-    "senior": "18b630e7e8de84578c4242b00ed54d8e1bcce70951e7d87aedc8b1f39a474c6b"
+    "child": "5846a045986f1797e6161b777fcf9ea7a3346a6f51a994e895883df44682a997",
+    "youth": "151bfda91f11f47cd2d40f421966fb3f876ee5c9d723e4f3d129604baef03c38",
+    "teen": "089103bfe9156dcee19a2179591a2dcac372b078e7b3c0c0c919b7e5059f33de",
+    "adult": "11101c2ab818600e663cd3b9c4cccf1085b0ac26a59fd7b78f8c5c1198bf1055",
+    "senior": "5d7626a5fedc059d2bcad53ac40d06a655a33c8861c020767e9202277edb1a64"
    }
   },
   {
@@ -6075,9 +6075,9 @@
    "department": "Living Lessons",
    "position": 251,
    "title": "Laziness Is a Character Matter — the Four Domains and the Five Marks of the Sluggard",
-   "contentSha": "fee1c2258984ad72ce3614ec5e249e43cefae438a1dfda5af60c351d74e72259",
+   "contentSha": "455ba6ead0da5874a036dda79c66334fcfb8d495837e9bdba6d58b39103da960",
    "versions": {
-    "child": "06d58987b0e2d564047ed72347496e2839a8e8bbfaae956676838ff031ed894b",
+    "child": "e589f5a7c3146aa000fd6aaa36eb6f9558d57a5e99599c1270f8613bc5614b94",
     "youth": "f004a4f1c8f5b4406556f0b763868dc6edfff7f12c8fdadcf28de8616367d4c0",
     "teen": "55a5d6f91c68c285eaea37bf895bd02f9fb9dbd834e723764f26526b1a8cdff8",
     "adult": "c10154374bc29f8e8a0cf34171d8d22e3a987299ff6230f3f2f248a078c9a38f",
@@ -7395,12 +7395,12 @@
    "department": "The Word & The Way",
    "position": 2,
    "title": "Count the Days — Numbers 1 to 7 from Creation",
-   "contentSha": "8f865e4a17363bae61ec7338608fbf7ff15f1bac4b9205c9ec8b7150f0727276",
+   "contentSha": "a777aa9b603042840d7712c818fcd72eb79f6b74f22d01af9f5e69be8e0bab57",
    "versions": {
-    "child": "6c62326826ef5357d8bc2f4bc5439ec172ed8419e00eb564130cf886266d2b4d",
-    "youth": "18882ec3fee46c619057fbd326df8b349c14f17fd7f9dfda449dc0fdec03ab55",
+    "child": "8e1f10f2a425d184117662f3e9119238f5e922f4572adf15fe8e7e18efff6be1",
+    "youth": "e22f1285678879462ac68d7dd421e4448420251fd6ada7da88ba194e2e349321",
     "teen": "2962e3b838ab3c0e2b7703e76bb89c1bdbfce72bff2bf07e376b0981d3237980",
-    "adult": "9ba1a44e1b5dc832d43396c2a80fde2e2e07e4fca66057fd6a037e903e2a6ea7",
+    "adult": "4823b14a5b860a93f1b5bdf191a30f2dbaa9dfa3e66acf8d34d2f3b8c30bf4f6",
     "senior": "6af59c135658b05dbab184d03d430b0d848ac5d5917cfc586b7a0afa7714c355"
    }
   },
@@ -7440,12 +7440,12 @@
    "department": "The Word & The Way",
    "position": 5,
    "title": "First Words from the Word — Light, Good, Love, Made",
-   "contentSha": "4ddc8c17cdf6bf72889cf394e4684c7396e07eeb897da2f13e59785dac3bc89f",
+   "contentSha": "910bae488127cdf7f0e6cd0eb3c53c326c25022d4c6abc4166d5009642160f91",
    "versions": {
-    "child": "a5476ee79ec4747001259a28b31990674b1c9aab11ff5855b82c80b893267787",
-    "youth": "337a98d9f6150d07f5aadd3c32f9ae2f3ecd658ad772858305a380181988c79b",
+    "child": "947e88eb7c517013536c515e8ba67a498fd961511effd39470bb803a61a31929",
+    "youth": "2049d034b67152dbc5cdb3e116d63aa81046098cd90c5d6aa0cf637e2cd4b8a7",
     "teen": "d159b4e3fe2a9d204c27db24e3112c9b13d6ab3a394d938e66cbd52b4209bff2",
-    "adult": "6aefa2f599e4d2a8c4c00e5a804d96726b4bd71696a1983cd0c086381b5d2db4",
+    "adult": "eac1533a6392ad1cf79c1e525e6e64554e964d164773d51e37f4746ec17c3cb5",
     "senior": "869d92c35477a8a091801d2e495a6e8f5090f0d5320cfafdf7d2092dd02eb4a7"
    }
   },
@@ -8006,10 +8006,10 @@
    "department": "The Word & The Way",
    "position": 2,
    "title": "The Young He Called",
-   "contentSha": "8392f0620349a5073de2e1e9b2d94cbf23730cd49e9c632746d1ee087a269bc6",
+   "contentSha": "8d17863b9cf3cdaf3fab95b1ebf711c65743101e7305d09c36121379a3819b1b",
    "versions": {
-    "child": "a3dc0194c8b9f229bd8be5fc866209f3aea553c20fe72a06da480734122e50ae",
-    "teen": "003a0d0268117d695c9f561e5a4703701056c824ad058f2894c094fafc055edf",
+    "child": "764f297abf4490a30d611cdce8e95b9475f821c6bcdec3cf4842b9a5aee98264",
+    "teen": "5f90d00b1b45556795840d1b255d9f71743b113594621f336fc5c5b685009b0e",
     "adult": "650eea80350cf2a7f36cb943264249f30b0d5aa3cb1b2b48dce3e391dab03fba",
     "senior": "73039cbe522f2cf8ddccd4c13c1c964e521513d6f55530dce993900caca6a407"
    }
@@ -12426,7 +12426,7 @@
    "department": "Kingdom Life & Stewardship",
    "position": 4,
    "title": "Group economics — the Body pools its strength",
-   "contentSha": "ea48d39a4757245e61abc91ff119c44cffa5b8ef90b4058c55213efcc5c777be",
+   "contentSha": "93453a9cbda15418a1a2b1a8ad9b14aaa30ec7ce2dfc25c55fffeb3b8e44b3f7",
    "versions": {
     "child": "e5c760de57d370f87baf674a774ca879b96d3f02a0be9c810bc2d0e64a0975e7",
     "adult": "60031e9cd023bba1c907296b4b9c26d0e154f89f823d489ec92c8f5b7a2ea32e",

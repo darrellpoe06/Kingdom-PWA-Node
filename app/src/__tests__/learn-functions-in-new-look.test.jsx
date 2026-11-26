@@ -132,6 +132,8 @@ describe('Lessons: thumbnails, read marks, ages, Show and View', () => {
         />
       )
     );
+    // The course page opens on Pictures (CourseLessonsView); List is the compact-thumbnail list.
+    click($('course-view-list'));
     const first = $(`inorder-${LIVING.schedule[0].id}`);
     expect(first.textContent).toContain('✓ READ ×3 · Adult');
     expect(first.querySelector('.ls-mini-thumb')).toBeTruthy();

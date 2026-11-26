@@ -801,8 +801,7 @@
   margin-top: 10px;
 }
 
-/* ===========================================================================
-   DR-1662 — every classic Learn function, in the new look.
+/* ====================================================================   DR-1662 — every classic Learn function, in the new look.
    Compact rows: the smallest thumbnail with the whole title beside it
    (Darrell 2026-11-26: "the smallest thumbnails with the titles showing so it
    will be very inviting"), and one Sort · Show · View bar per list. Meters are
@@ -1084,4 +1083,30 @@
   .ls-ages-mini {
     padding-left: 0;
   }
+}
+/* Course page: Pictures | List switch beside the order picker (CourseLessonsView.jsx). */
+.ls-courseview-picks {
+  align-items: center;
+  margin: 10px 0 12px;
+}
+.ls-courseview-switch {
+  display: inline-flex;
+  border: 1px solid #5a4c4f;
+  border-radius: 10px;
+  overflow: hidden;
+  flex: 0 0 auto;
+}
+.ls-courseview-btn {
+  min-height: 44px;
+  padding: 0 16px;
+  border: 0;
+  background: var(--ls-bg);
+  color: var(--ls-text);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.ls-courseview-btn[aria-pressed='true'] {
+  background: var(--ls-text);
+  color: var(--ls-bg);
 }

@@ -106,14 +106,27 @@ export function monthOf(lesson) {
  * props: courses, index, preview, onOpen(x), done (Set of read lesson ids),
  * fixedCourse (a course key: the course page -- no course picker, every row shown).
  */
-export default function LessonsInOrder({ courses, index, preview = false, onOpen, done = NO_DONE, fixedCourse = null, markFor = null, onVersion = null }) {
+export default function LessonsInOrder({
+  courses,
+  index,
+  preview = false,
+  onOpen,
+  done = NO_DONE,
+  fixedCourse = null,
+  markFor = null,
+  onVersion = null,
+  order: orderProp = null,
+  listTestId = null,
+}) {
   const list = useMemo(() => (Array.isArray(courses) ? courses : []).filter((c) => keyOf(c) && (c.schedule || []).length), [courses]);
   const first = useMemo(
     () => (list.find((c) => keyOf(c) === 'living-lessons') || list[0] ? keyOf(list.find((c) => keyOf(c) === 'living-lessons') || list[0]) : ''),
     [list]
   );
   const [picked, setPicked] = useState('');
-  const [order, setOrder] = useState('order');
+  const [orderPick, setOrder] = useState('order');
+  // A parent that owns the order (the course page's own picker) hides this one: one control, never two.
+  const order = orderProp || orderPick;
   const [shown, setShown] = useState(fixedCourse ? Infinity : FIRST_ROWS);
   const courseKey = fixedCourse || picked || first;
   const course = list.find((c) => keyOf(c) === courseKey) || null;
@@ -175,24 +188,26 @@ export default function LessonsInOrder({ courses, index, preview = false, onOpen
             </select>
           </label>
         )}
-        <label>
-          <span className="sr-only">Order</span>
-          <select
-            className={RING}
-            value={order}
-            onChange={(e) => {
-              setOrder(e.target.value);
-              setShown(FIRST_ROWS);
-            }}
-            data-testid="inorder-order"
-          >
-            {ORDERS.map((o) => (
-              <option key={o.key} value={o.key}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-        </label>
+        {!orderProp && (
+          <label>
+            <span className="sr-only">Order</span>
+            <select
+              className={RING}
+              value={order}
+              onChange={(e) => {
+                setOrder(e.target.value);
+                setShown(FIRST_ROWS);
+              }}
+              data-testid="inorder-order"
+            >
+              {ORDERS.map((o) => (
+                <option key={o.key} value={o.key}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
       </div>
       <div className="ls-controls">
         <Toggle label="Show" options={LESSON_SHOWS} value={show} onChange={setShow} testid="inorder-show" />
@@ -203,7 +218,7 @@ export default function LessonsInOrder({ courses, index, preview = false, onOpen
           {show === 'read' ? 'No lesson of this course is on your record yet.' : 'Every lesson of this course is read.'} Choose Show: All to see every lesson.
         </p>
       )}
-      <ol className={`ls-inorder-list ls-inorder-list--${view}`}>
+      <ol className={`ls-inorder-list ls-inorder-list--${view}`} data-testid={listTestId || undefined}>
         {rows.slice(0, shown).map((x, i, arr) => (
           <React.Fragment key={x.lesson.id}>
             {(order === 'order' || order === 'newest') && monthOf(x.lesson) && monthOf(x.lesson) !== monthOf(arr[i - 1] && arr[i - 1].lesson) && (

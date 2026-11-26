@@ -26,6 +26,7 @@ import { useSyncExternalStore } from 'react';
 
 export const LIVE_PLAYER_SCALE_KEY = 'poetech-live-player-scale';
 export const LIVE_BAR_COLLAPSED_KEY = 'poe.liveWorshipBar.collapsedSession';
+export const LIVE_BAR_MINI_KEY = 'poe.liveWorshipBar.miniSession';
 export const SCALES = ['s', 'm', 'l'];
 
 function readScale() {
@@ -43,7 +44,16 @@ function readCollapsed() {
   } catch { return null; }
 }
 
-let state = { scale: readScale(), barCollapsed: readCollapsed() };
+// barMini (2026-11-25, Darrell: "Watching the latest message shouldn't interfere with using the
+// app... we should be able to do both"): true = the video floats small in a corner over the app
+// while the bar keeps only its one-line strip; false = the full-width video across the top. It
+// is the DEFAULT, because the wide video took the top half of the screen on every page. The
+// viewer's choice holds for the session.
+function readMini() {
+  try { return sessionStorage.getItem(LIVE_BAR_MINI_KEY) !== '0'; } catch { return true; }
+}
+
+let state = { scale: readScale(), barCollapsed: readCollapsed(), barMini: readMini() };
 const listeners = new Set();
 const emit = () => { for (const l of listeners) l(); };
 const subscribe = (l) => { listeners.add(l); return () => listeners.delete(l); };
@@ -66,9 +76,18 @@ export function setLiveBarCollapsed(collapsed) {
   emit();
 }
 
+export function setLiveBarMini(mini) {
+  const v = Boolean(mini);
+  if (v === state.barMini) return;
+  state = { ...state, barMini: v };
+  try { sessionStorage.setItem(LIVE_BAR_MINI_KEY, v ? '1' : '0'); } catch { /* ignore */ }
+  emit();
+}
+
 /** For tests: forget everything and start from the defaults. */
 export function __resetLivePlayerPrefs() {
-  state = { scale: 'm', barCollapsed: null };
+  state = { scale: 'm', barCollapsed: null, barMini: true };
+  try { sessionStorage.removeItem(LIVE_BAR_MINI_KEY); } catch { /* ignore */ }
   try { localStorage.removeItem(LIVE_PLAYER_SCALE_KEY); } catch { /* ignore */ }
   try { sessionStorage.removeItem(LIVE_BAR_COLLAPSED_KEY); } catch { /* ignore */ }
   emit();
@@ -87,3 +106,19 @@ export function barFrameStyle(scale) {
   if (scale === 's') return { width: '100%', maxWidth: '28rem', maxHeight: '30vh', aspectRatio: '16 / 9' };
   return { width: '100%', maxWidth: '56rem', maxHeight: '45vh', aspectRatio: '16 / 9' };
 }
+
+// The small floating player: bottom corner, above the app's bottom bar, 16:9. The same frame
+// element as the wide player (only its style changes), so switching never restarts the video.
+export const MINI_FRAME_STYLE = Object.freeze({
+  position: 'fixed',
+  right: '0.5rem',
+  bottom: 'calc(5.5rem + env(safe-area-inset-bottom, 0px))',
+  width: 'min(46vw, 20rem)',
+  aspectRatio: '16 / 9',
+  zIndex: 45,
+  borderRadius: '0.75rem',
+  overflow: 'hidden',
+  boxShadow: '0 10px 30px rgba(0,0,0,.55)',
+  border: '2px solid rgba(255,255,255,.35)',
+  background: '#000',
+});
