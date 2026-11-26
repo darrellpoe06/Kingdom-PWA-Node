@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T16:44:30.912Z",
+ "measuredAt": "2026-11-26T16:50:38.851Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4578
+  "readings": 4580
  },
  "departments": [
   {
@@ -606,11 +606,13 @@
    "department": "Serve the House",
    "position": 5,
    "title": "The machines — CPU, GPU, CUDA, and the two 4070s",
-   "contentSha": "a2c81ab9408f565f69ef6996a06ffdb4d1f3edaa265f08db68ec89dede5db84f",
+   "contentSha": "22bb54d68cb61f8dee3594fe783b7495cb048ce3c322b78c5b7cf80cdb2a9b3d",
    "versions": {
-    "teen": "92ed0207923f2b571373c502687e28a41673a5736bc17ee5c83351fd8f2a8c5d",
-    "adult": "d660ee11d1d00afb39cb83ca8784b2128e3d5d68675f7f81b708d251bd9061cc",
-    "senior": "87d481d75847c5d410ee51cc11768263743d23b416cfc4b971994555ebcf83f0"
+    "child": "6ead3befe3867073d53aec1e41ec1b18ac8ebbdc203a19f16c449741550e7649",
+    "youth": "217f76c2d99a8f9ffe993534690d1deac9532c2d6db368949c34f28b1f3a2e35",
+    "teen": "1ca78ace4ad009e8d70acf659028d1a301f2f1a11ad5d713d6ab163132ad19c7",
+    "adult": "89573f582b1e770498dfe17f8409efbf3846b15ff57e8d7b040d57e6e91a45f1",
+    "senior": "1a661fca3b260f5e48d634a3e8121f77b19933f220b8153328d97c799e4dacd9"
    }
   },
   {
