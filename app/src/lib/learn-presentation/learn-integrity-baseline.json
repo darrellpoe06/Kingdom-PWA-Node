@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T07:23:19.685Z",
+ "measuredAt": "2026-11-26T07:28:14.226Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4400
+  "readings": 4402
  },
  "departments": [
   {
@@ -12745,11 +12745,13 @@
    "department": "The Eternal Algorithms",
    "position": 12,
    "title": "The Sons of God and the Giants (taught as the Word shows it)",
-   "contentSha": "0b202eb3d16971bbeb52bf86908f56d6dba58883190bc622733ab818c4c90ee7",
+   "contentSha": "c2b07ffbeb494615f7400f79d56b034cb237d728963f9e954dbe1a90dbe49ead",
    "versions": {
-    "teen": "c01198a72ff5f362c3147130c1c4cce338a5f1e8083d7127c529978fab5bae83",
-    "adult": "6a4e112f681e95c6206f208c8d9240ef1e2b810712e948ee98159cc3b67e44a8",
-    "senior": "1b7c6593ce867196dba1e0c87bf296c554badf356ffc1237be30f959321171a8"
+    "child": "ba3155eede379bf40fa3e0517053567352f2e4291044bd03ae63e5c38fb425c6",
+    "youth": "e3e9a4e0c6b091f4356edd1c9c048a452eed879eb145ab524790d406e051689f",
+    "teen": "a383230cee40700dee7c7c25ef1863879f0051888d0114cbe3849af88e6cbe9b",
+    "adult": "8fcaf635f4282b3394f1fe70e3a050d615a8344285066aa95998fe3531209fb0",
+    "senior": "327c213c2bcbb9b1969165eb0b7f0c82ad7adbed4af50111fc1f26806ba4075d"
    }
   },
   {
