@@ -12,6 +12,20 @@
 
 Learn assumes a person already knows which course holds their answer. Darrell asked for an entrance between The Word / Learning Zone and Learn: describe what you are facing, find biblically grounded lessons, return through the week. Church Homepage -> The Word / Learning Zone -> **discovery page** -> the existing Learn (courses, departments, lessons), which is replaced by nothing.
 
+## What was measured
+
+- The curriculum: 995 lessons, 51 courses, 13 departments (derived index, `lesson-dates:check` 995 of 995). 992 of 995 lessons sit in at least one of the 12 categories; 3 are documented as unplaced.
+- Search, by a manual review separate from the automated floor: the nine named questions averaged 7.5 of 10; everyday-situation phrasings were weaker (about 4) before the Life Situations Guide. Several situations have little or no lesson behind them (aging parents, divorce, infidelity, teenagers, loneliness, sleep); the page says so.
+- The real app shell (browser run, Night, tour dismissed): the page opens, search and a Life Situation callout work, series and category lists render in Learn Studio's own list, an age button opens the real Learn, 0 page errors.
+- Contrast across the themes tried: lowest text 5.5:1; no horizontal overflow at 390 px.
+
+## Impact
+
+- Members: The Word / Learning Zone opens on the discovery page first; Browse All Lessons and the access buttons reach the existing Learn unchanged. Deep links (`?course=`, `?lesson=`) are unaffected.
+- Code: additive. Existing files touched: `ChurchLearn.jsx` (2 lines), `learn-landing.js` (one export), `surfaces.js` (one line), the regenerated `legibility-health.json`. The frozen shell, `LoveCornerHome.jsx` and Learn Studio are untouched.
+- Latency/state: the page and its index (about 0.9 MB gzipped) load lazily; no schema, no new storage except the optional opt-out key. Series progress reads the device's existing saved places; no new progress record.
+- Rollback: revert the `surfaces.js` line, or `?discover=0` / `localStorage['poe-learn-discover']='0'` per device.
+
 ## Decision
 
 1. A private, additive discovery page (search, 12 topic categories, Continue Learning from real saved progress, Today's Word, Featured Series, All Courses by the 13 departments, access buttons) that opens the existing Learn through its own doors: the one-time area hint, Learn Studio's own controls, `requestOpenLesson`, and the course card.
