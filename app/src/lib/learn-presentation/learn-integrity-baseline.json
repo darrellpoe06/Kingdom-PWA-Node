@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T09:17:20.693Z",
+ "measuredAt": "2026-11-26T09:49:24.666Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4440
+  "readings": 4448
  },
  "departments": [
   {
@@ -14694,11 +14694,13 @@
    "department": "The Eternal Algorithms",
    "position": 1,
    "title": "Faithful unto Death → the Crown of Life",
-   "contentSha": "230192942df296142cc4855da999e3cbd396f4a86dc36a16a5e93f7f5d0a8ed7",
+   "contentSha": "2a766bf14d8447b5400e90c644253dac0c9754d9eb60f6936be0e9458e2a05f7",
    "versions": {
-    "teen": "91df9f528877ad48a607430ffc19209a35971cb904f1dbaa8fac341ee0dd0ad2",
-    "adult": "9cca264b7e0f1201c4bba67d8e374344c97c9dd4320720de36270641e9ded0e6",
-    "senior": "6e384730d9ae1551372663bf09bc1aa20a2b649fb72e20d82bdd048f1974cc71"
+    "child": "3c0f0bf9b67f64323b5cd9a7f098f76a5081c0aae29958813be5c3732288c9ab",
+    "youth": "f1b89fc88b938de61cdface74b414726ce255129da0e70f116707e1011684fd0",
+    "teen": "465f7ee5d062c1ce027e6a1bc17c7fc51250d464991fd91ebc508887339f4e22",
+    "adult": "18e0da4bef34761993fb8ffbdb0f3eaed9c405afdd7f631c3f3443876cf7bb9d",
+    "senior": "176b4ed762b2c5c7575e8b2ecf164f09534d128538247942ba9d87fa17e5f612"
    }
   },
   {
@@ -14707,11 +14709,13 @@
    "department": "The Eternal Algorithms",
    "position": 2,
    "title": "Overcome → Sit With Me in My Throne",
-   "contentSha": "cc17380ea70743a7edb82a50bf99d6605c8fe6aa8f78aa773b898a4f552fe956",
+   "contentSha": "8ca76bd209705bc69791d08be5cc2f67ade9eb82354dec39a76920a6bd5efe3f",
    "versions": {
-    "teen": "ad8dae26963e20cb032ec37f5ee9a161bb8e303a83f6a073c94e099e15231c65",
-    "adult": "81d907577fe434e2a3eff52018f9aece0a2010eedf0e7e39c44e61f917cae7a6",
-    "senior": "c6fecdd7ff37e0a928b17ed9270517648af9825aa69a1ed84b05769f7b1c3ec5"
+    "child": "9649d77e405be5d342821319a4e833b2fef295effb068aad17f9a9632533d64d",
+    "youth": "d3b6d41bd8780a19cab3073f05ab0cf985bd204bcdee2467768bc87efde928e5",
+    "teen": "e6b27ed1687dbd31b3f3e59d16f414d623757d58b123265a3c3107723bbc611c",
+    "adult": "1e4b7d1a7c6496a717a33128352d9906cbde4c0ec677d52e7645758fcded9805",
+    "senior": "9b0ad8fadf742bc5a1534a72baaabdbd6a613c26b7d7c77fd012d7df39aa138d"
    }
   },
   {
@@ -14720,11 +14724,13 @@
    "department": "The Eternal Algorithms",
    "position": 3,
    "title": "Open the Door → He Comes In to Sup",
-   "contentSha": "feb599206c3d7a1cde270ea09c506d5532dda64eba346f0cf861ebea3a317dce",
+   "contentSha": "c5aac25b88cdc0ab5c587898ba5628a570861a979c7a4bbfbbac7b17b6756196",
    "versions": {
-    "teen": "1ed3bfce38592f07ed9dfc98af0c0ac259711915cbf7b4fc1a3388da9f86a9c4",
-    "adult": "67d7ed6a33ffa7f8d8ce36d351016781edb2aaec4e6d808157bfe592421b1e40",
-    "senior": "83200729cbc7aa24bc34b3824c1cd5be96b3ad2f80446f7b7fcd8962cf735a6f"
+    "child": "70f96fd20e3527e739dced5a527813dd851fcfe8fbbf8255f3a9ef9a55093f68",
+    "youth": "cc1d1118b2f83d41fa76637ae8d76435ab37443af110f0a76a3158a3bc3c1226",
+    "teen": "67a36eb49429c4a56a38eeac2bc85d64b2e250f443cb2fa90cb7932b57e22035",
+    "adult": "45becdacb3b8303a911db9c9c0ce004070c179cb64991c2e627e41e6e37f8597",
+    "senior": "185efa68244a81972c7da4535c6c1ebe694caea7bbe1b4e49a587c0fcdb5739c"
    }
   },
   {
@@ -14733,11 +14739,13 @@
    "department": "The Eternal Algorithms",
    "position": 4,
    "title": "Nothing That Defileth Enters (no more lucifers in the Kingdom)",
-   "contentSha": "404cdb9f91bb40950cce61f23eac0d77b0f805f5646904b360c0575914e736d5",
+   "contentSha": "301591453df023b2a6d74cb34dbbbaa991e0bae47a5f0053686e3f60cdff4ff1",
    "versions": {
-    "teen": "0e4f7b54290fe176ad77c692bda223ae5e1e200e885abb1d7924bde7842da2b8",
-    "adult": "c7d4b2238355a0ee2414adfaf4720b0fac2467e793d3d757990cb2d79d0e15e7",
-    "senior": "d853db23f7aae67ddbd8efb55ccc803359c4193a4397721075e588d097e1f6bc"
+    "child": "b1c4eb144ad6dc691779161395611fd1228644f6a06c9cb8f55a36150d993681",
+    "youth": "dfd6674f0c6c45d071658ad13869e6c44c7c206f8293b030770126c1afdbc7e9",
+    "teen": "4b4aa8fed803139de395a259cbd34f7c1179ffbed53c5c3c6da87f917b7e0fec",
+    "adult": "f45042f3b6a3f2859d9d5c9e9f60bf1f13fbc46e894986a322bf593e308b8f0c",
+    "senior": "f23a422bf6dd4dd3d8529f1ea763b8cc1db57aa3e698450f8bc53dc11254d738"
    }
   },
   {
