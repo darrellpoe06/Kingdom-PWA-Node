@@ -10,7 +10,14 @@
 
 ## Context
 
-DR-1654 put every LESSON in the new look and promised no feature is lost. The Learn HOME in the new look did not keep that promise. Measured against his screenshot of the classic page, the new home had none of: the department tabs (its department chips only left for the classic page), course quick links and the 51-course picker, the progress line (30 not started · 15 begun · 6 finished · 153 of 993 read), Closest to finished / Not started and short, Sort courses, and the area strip (Lessons, Continue · 19, Latest, Browse, Find, Record · 153, Downloads). Its course page was a grid of large cards with no order, no month headings, no read marks and no age buttons. Its Continue Learning row was always empty: the preview never passed the reader's places to it.
+DR-1654 put every LESSON in the new look and promised no feature is lost. The Learn HOME in the new look did not keep that promise, and Darrell sent the classic page beside it to show what was missing.
+
+## What was measured
+
+- Against his screenshot of the classic page (2026-11-26 06:50), the new home had none of: the department tabs (its department chips only left for the classic page), course quick links and the 51-course picker, the progress line (30 not started · 15 begun · 6 finished · 153 of 993 read), Closest to finished / Not started and short, Sort courses, and the area strip (Lessons, Continue · 19, Latest, Browse, Find, Record · 153, Downloads).
+- Its course page was a grid of large cards with no order, no month headings, no read marks and no age buttons.
+- Its Continue Learning row was always empty: `LearnStudioPreview` never passed the reader's places to `LearnStudio` (it rendered with the `NO_PLACES` default).
+- His later screenshot (07:32) of the live home: numbered text rows with no pictures under the search box; the hero turned only by its dots (07:42).
 
 ## Decision
 
