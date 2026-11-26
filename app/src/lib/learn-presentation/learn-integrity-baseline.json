@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T04:28:43.748Z",
+ "measuredAt": "2026-11-26T04:49:24.876Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4320
+  "readings": 4330
  },
  "departments": [
   {
@@ -12861,11 +12861,13 @@
    "department": "The Eternal Algorithms",
    "position": 20,
    "title": "What Knowing Changes (ignorance lowers the stripes, never the guilt)",
-   "contentSha": "2e59e27ce1482b822a5ab808f72a9fba9373b7056afd02a9248f92b04106668e",
+   "contentSha": "af891c4142cdc70eeb6ad209849927fb2e6156068931bb66803c571c1d9aa41f",
    "versions": {
-    "teen": "3f24ef791127ffa7be2fff9ae6529054f08bf9685c85e8f089026c0886d4846b",
-    "adult": "3713950755f01c83a58510f835ded42e5570d5dec593c29f654523427c4b12e5",
-    "senior": "6cd672714822fc5f4b400c70eb32a1042df72225d49adac2f8a4611ce493b4cc"
+    "child": "488e60a2909cf0b52e91edfc54e75aeb7f66befa8ca7ae713d79d4a98ccb3e4e",
+    "youth": "c6be145d03fbcf9d27a6a50ae2baf90dc73e69c3ce3204519dc5f2557c1ebdaf",
+    "teen": "cd039a75f42cbe4b6b9cce9adde5d602bb54a9f1ee57fedc391960d0ebb35c0d",
+    "adult": "169eaece89d17d5a885581cf76fb7b782a136758568cc5e744faa97759312ef6",
+    "senior": "4e4ee005674aa0de7feafa2b4c11666f987d1cfb93b69914782603e3bb7ef464"
    }
   },
   {
@@ -13175,11 +13177,13 @@
    "department": "The Eternal Algorithms",
    "position": 23,
    "title": "Truth in the Hidden Part (He reshapes the depths, and hands you the work)",
-   "contentSha": "e052ad8e434237619ae3d5a941d9f642b63ab4b2f2baa30a86575ef6d9166010",
+   "contentSha": "7d85e05b0d48cc08e5f046a95db7373df556095fc2cfd7bbfc8f3654d69abe01",
    "versions": {
-    "teen": "328811e42e58c016ba8a1b7616329d4077428ca886019648c5085b726f90d14b",
-    "adult": "0bb41b38322455aa16cc500205de6b6b987e547357db3b6a20f8c52190bbc319",
-    "senior": "9e2eff8599064cd8ebd9ee27c6a132d180e8e56c6f898fcd41a0e3338b8fcff6"
+    "child": "3f1b61181f4ba2dfde90cd000929ddae89f01542b032ce1762749fb9169ed1df",
+    "youth": "982b3ac7c9fd97751204e322c5713ca9f390c475c18e5c1ece62d8a39b00be10",
+    "teen": "d684bf374ac5eb6d3f3dd33e611cf00e2ac754b1e7bcd2a2a9ce9eac2ef13c52",
+    "adult": "7e801500b7d47f05c48496e7f5906e58d5bb2cb6b6816269e63b10c3fe17ade9",
+    "senior": "bb92cad8f97030b9695911bee71f5db3145c133eae6f74a9d2a4fe8fc660b615"
    }
   },
   {
@@ -13417,11 +13421,13 @@
    "department": "The Eternal Algorithms",
    "position": 18,
    "title": "Turned Aside at the Gate (when justice must be bought, only the rich get it)",
-   "contentSha": "a672fe457494e3a2154870019df4ca845becfbb4dc75dab9a0376805298e6449",
+   "contentSha": "6cc33dd57ca0b6fcc96169e719e176601010257cc22390224a246d49bff3b13c",
    "versions": {
-    "teen": "58af42bcf35b27f2c336c1c14b121fb15d207752c7fdd4c2ff11385d427757a9",
-    "adult": "b82a5e69ba575f9ad4a5e96b70fe527365bd4807ee79459b6e7405a11e79a6f6",
-    "senior": "e370feab914f51e559b7f424e6df75dc1c4b68d45cdd1846076215a852d1d486"
+    "child": "1edbadeb61e2b1b44cbb91c29f70067e3cb98a07cc3b21fb2d3ac5202749d5aa",
+    "youth": "33d29a0c535159c78c531f8a87f9fad280508a29116d7ab52b77a792b6f7398b",
+    "teen": "c8de8fb76f12cf55798a8a8b402c073bae13929a32d27ef8850f1e40afba55f8",
+    "adult": "a6bc97606121d74297412343e1c0697bc57440e6fb4677370bfba2f08ab49851",
+    "senior": "d815441d7bfa89a888cb981a735550ab05e1d1a5826a87dda55fe72eb79d943c"
    }
   },
   {
@@ -14554,11 +14560,13 @@
    "department": "The Eternal Algorithms",
    "position": 47,
    "title": "Where Guilt Comes From (conviction walks you home; accusation walks you off)",
-   "contentSha": "9d1ae73c5c8fccef3cd798a4b2b7d749bf30436bdc4ee911891b827d22b7c3a4",
+   "contentSha": "8d75fbd4ccabb5e25fb37630fcdd6589aa7c025909a3fa98cb621352cfe08128",
    "versions": {
-    "teen": "714caf67f82da4599e14eb75b37202ed1c520e81fa85141a93fcf8885cac3653",
-    "adult": "a56cb409668d44236c1dfe284378b8d0079751b664697a53e278b78896a8837b",
-    "senior": "bcd594db2249032097eba2c71a9991801b89fe09fb0dca73a62ca5f04bf6f3ee"
+    "child": "3616ac262b51416bf29292fd281e3e0c58716e9d8a93d6297d77b1e2b8e560f4",
+    "youth": "b737e68eb40b15c96b381092f9f697468a961a8e1ce9e90b054657dfe6d5a625",
+    "teen": "04e589e5ad6e964bed6fe7069ca1be21d2c54bbf20247c0b67c568997e7bf3ec",
+    "adult": "a04b47b2d8658a179f3c86b202772c32e8adc6d80ae4ae6b1d8be844d6cc721a",
+    "senior": "7cadadcacb1df39c2bcd6df26ea35c9fc5b61b337244deb54ce986a7968e9058"
    }
   },
   {
@@ -14567,11 +14575,13 @@
    "department": "The Eternal Algorithms",
    "position": 48,
    "title": "The Word Is 4th-Dimensional Fact (it outranks 3rd-dimensional fact)",
-   "contentSha": "eaee4d67919d031f96e61e008dab1d61f53507755476943ae7ed1ae6fef14d3d",
+   "contentSha": "0ee24460924737b6ef7f6f68b2366715b602e872d14233b3035f4e7e55e8337b",
    "versions": {
-    "teen": "c1076fd3e424be8a2d2aecea7bb4a5ac1e3d5f7ee67d4366bfd7783838a26c04",
-    "adult": "220a065e167be2053a9b0d0a497cd0592d4bac30cf941f7026f49419b289c7ab",
-    "senior": "9402e9c74aadd26bfbab74e257cd5509aa6263d3eef56682121d4ffde029ac77"
+    "child": "dc562e1ef9bb9e3ef362c03b92099c8ba5d36e63eb3cdfaf7bae6a08acc7e012",
+    "youth": "d794ee2c32439a7b0de0036d8384ec35d7489d8cdd11e0bd04d7df7c1e6dfc96",
+    "teen": "fe433e0a62024e6cc1071d82b67dffc77be8597622459760576012d0ac81e8d2",
+    "adult": "a487a497e3da82f84cf9a508d8678210e1be718f8c758eff87211e281e4e8af2",
+    "senior": "65396a4034c462b151372df364ef5f162e2faedbc3dcc9b7121855f1576f3d93"
    }
   },
   {

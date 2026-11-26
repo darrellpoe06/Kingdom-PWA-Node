@@ -66,8 +66,10 @@ describe('Learn content integrity baseline', () => {
   // without-me-nothing, triumph-already-public, will-worship-frees-no-one,
   // jesus-i-know-who-are-ye, presence-is-the-liberty, submit-then-resist,
   // not-bondage-again, obedience-blessing (#2905), credit-vs-worship,
-  // yahweh-gets-both, glory-refused-or-taken, keep-yourself-by-the-word.
-  it('the baseline is the measured Phase 1 catalog (13 / 51 / 994 / 4,320)', () => {
-    expect(base.counts).toEqual({ departments: 13, courses: 51, lessons: 994, readings: 4320 });
+  // yahweh-gets-both, glory-refused-or-taken, keep-yourself-by-the-word,
+  // knowledge-and-sin, conviction-vs-condemnation, mind-of-christ-in-the-hidden-part,
+  // word-is-4d-fact, justice-rationed-at-the-gate.
+  it('the baseline is the measured Phase 1 catalog (13 / 51 / 994 / 4,330)', () => {
+    expect(base.counts).toEqual({ departments: 13, courses: 51, lessons: 994, readings: 4330 });
   });
 });
