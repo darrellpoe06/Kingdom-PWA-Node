@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T03:32:42.541Z",
+ "measuredAt": "2026-11-26T03:36:34.184Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4288
+  "readings": 4290
  },
  "departments": [
   {
@@ -13398,11 +13398,13 @@
    "department": "The Eternal Algorithms",
    "position": 17,
    "title": "It asked for eternity — and His Word outlived it",
-   "contentSha": "d21fbb35179dfbe0e3f89594000797a3917c254104ea8a89bf3fed3abd041fa3",
+   "contentSha": "7e8c721779fe999caaef6d2923fb762068c52a75b2ede4695120fc5cbc56be83",
    "versions": {
-    "teen": "4b85e1b553f93711e3d4bf926914faa70e579723bff0e44d8caaecabbd5a48c1",
-    "adult": "7e891406069a505ac745f9c0ef1571d0af93358505418ed24639c0f8cc93005e",
-    "senior": "b710d622370231871a2e0611a831bf8fb3326aae4dcb26047f8c1df9b4de7bd0"
+    "child": "405ca9c0ccb723c223bd10e1d4c9b1de31ce349f6cedba1cbda93b64110d460b",
+    "youth": "6476629b4470972fa239789984749a5f2c1c28bb07c39e2a9e5b8636d2b34214",
+    "teen": "520c32ee4f159f601169d8cdfb1940295a59f0935eb85c7e5b581c54a2ea9576",
+    "adult": "9e3f46faa8ba31f41908d5c5b1070231b5d0493f0f63edee33c2a6123aacf35e",
+    "senior": "a110147c24dc4f14ed5d3b4370cc9581f572cfe5a6a92041ca3096f0c8efca89"
    }
   },
   {
