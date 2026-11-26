@@ -66,13 +66,15 @@ describe('lessons carry no research-process language in reader-facing fields', (
       'cisa.gov was not fetched, so it is carried as search-verified, not as read.',
       'WHAT WE DID NOT CHECK. Nobody here opened the index documents.',
       'We could not read the company papers ourselves.',
-    ]) expect(processLanguage(lesson(t)).length, t).toBeGreaterThan(0);
+    ])
+      expect(processLanguage(lesson(t)).length, t).toBeGreaterThan(0);
     for (const t of [
       'Under-claiming a verified truth is as much a failure of truth as over-claiming an unverified one.',
       'Against an elder receive not an accusation; Paul guards him from unverified accusation.',
       'Write what remains unverified, put a date beside each item, and set that against the closing date.',
       'Those who searched his writings report the sentence is not there, so treat the attribution as unverified.',
-    ]) expect(processLanguage(lesson(t)), t).toEqual([]);
+    ])
+      expect(processLanguage(lesson(t)), t).toEqual([]);
     expect(PROCESS_RE.test('we did not read the full article')).toBe(true);
     expect(TEACHING_RE.test('we did not read the full article')).toBe(false);
   });

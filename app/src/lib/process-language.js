@@ -54,7 +54,7 @@ export const TEACHING_RE = new RegExp(
     String.raw`could not confirm Khafre`,
     String.raw`did not confirm that the live site still updated|did not check that the website still updated`,
   ].join('|'),
-  'i',
+  'i'
 );
 
 const split = (t) => String(t).split(/(?<=[.!?])\s+/);
@@ -65,9 +65,13 @@ export function readerFields(lesson) {
   if (!lesson) return out;
   for (const k of ['honestNote', 'lesson', 'bigIdea', 'inApp']) if (typeof lesson[k] === 'string') out[k] = lesson[k];
   for (const [k, v] of Object.entries(lesson.levels || {})) if (typeof v === 'string') out[`levels.${k}`] = v;
-  (lesson.benefits || []).forEach((b, i) => { if (typeof b === 'string') out[`benefits.${i}`] = b; });
+  (lesson.benefits || []).forEach((b, i) => {
+    if (typeof b === 'string') out[`benefits.${i}`] = b;
+  });
   const qs = (lesson.quiz && lesson.quiz.questions) || [];
-  qs.forEach((q, i) => { if (q && typeof q.explain === 'string') out[`quiz.${i}.explain`] = q.explain; });
+  qs.forEach((q, i) => {
+    if (q && typeof q.explain === 'string') out[`quiz.${i}.explain`] = q.explain;
+  });
   return out;
 }
 
