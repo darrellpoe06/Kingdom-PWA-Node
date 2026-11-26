@@ -1,5 +1,5 @@
 {
- "measuredAt": "2026-11-26T05:26:55.418Z",
+ "measuredAt": "2026-11-26T05:28:29.754Z",
  "counts": {
   "departments": 13,
   "courses": 51,
@@ -14684,12 +14684,12 @@
    "department": "The Eternal Algorithms",
    "position": 7,
    "title": "God Is Not Colorblind (every kindred, tongue, people, and nation)",
-   "contentSha": "567ee7fc2b362027d9f3b23ebe468ce3210112abaa81316655a81dd47b5d1947",
+   "contentSha": "a994c5a7cdd05fb595c9a4e98f340c74610565b5f98757faca9714d3739dc0ab",
    "versions": {
     "child": "ac3b4ff24bea2826ea03a0f36e2a816393e5002cf1f578bcc4ce987af793192d",
     "youth": "5fc782a3d0f555f5d75cb6112241e5ae6889fdd36768ec5590536cb122959075",
     "teen": "00f2aa19e674ffd2732722605d419103a83852f673e0d3fbabacf0367b4fa46f",
-    "adult": "c6df4ed70b138c704c8200f813d5ba801aa122aee46a739f18b1546c7159a411",
+    "adult": "48983f5e7d0e22e17ebaf3954357a456eecee5ad8df00d9b64498a6b1ab0697c",
     "senior": "60e2b8541c18c04fb0b07b5694a9d2ae647c3b7ab6d2dd2cde415cdd085ee169"
    }
   },
