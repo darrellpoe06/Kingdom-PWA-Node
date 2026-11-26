@@ -95,6 +95,15 @@
 .ts-chrome-region {
   zoom: var(--ts-chrome-scale, 1);
 }
+/* A VIDEO TAKEN FULL SCREEN FROM INSIDE A CHROME REGION FILLS THE SCREEN (Darrell 2026-11-25:
+   the live service "does not open to full screen centered"). The region's zoom is inherited by
+   the fullscreen frame, so at a larger text size the video drew at --ts-chrome-scale of the
+   screen, stuck to the top-left (measured from his screenshot: 1503px of an 1802px screen =
+   1/1.2). Undo the inherited zoom on the frame itself while it is full screen. */
+.ts-chrome-region iframe:fullscreen,
+.ts-chrome-region video:fullscreen {
+  zoom: calc(1 / var(--ts-chrome-scale, 1));
+}
 
 /* THE FRAME HOLDS WHILE THE WORDS GROW (DR-1011). Darrell, 2026-10-14, at
    A44 on the Poe Properties door: "The words/text need to be the only thing
