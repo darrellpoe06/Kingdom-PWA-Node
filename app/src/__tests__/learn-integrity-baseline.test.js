@@ -73,8 +73,8 @@ describe('Learn content integrity baseline', () => {
   // thief-targets-identity, testing-not-temptation, pray-for-protection,
   // see-father-in-son, he-already-knew, strengthen-your-brethren,
   // all-things-work-together, admit-wrong-to-grow, god-beyond-dimension,
-  // two-courts.
-  it('the baseline is the measured Phase 1 catalog (13 / 51 / 994 / 4,360)', () => {
-    expect(base.counts).toEqual({ departments: 13, courses: 51, lessons: 994, readings: 4360 });
+  // two-courts, judgment-committed-to-son.
+  it('the baseline is the measured Phase 1 catalog (13 / 51 / 994 / 4,362)', () => {
+    expect(base.counts).toEqual({ departments: 13, courses: 51, lessons: 994, readings: 4362 });
   });
 });

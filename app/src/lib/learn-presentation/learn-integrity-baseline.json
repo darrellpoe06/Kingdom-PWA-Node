@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T05:54:55.126Z",
+ "measuredAt": "2026-11-26T05:58:27.363Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4360
+  "readings": 4362
  },
  "departments": [
   {
@@ -13773,11 +13773,13 @@
    "department": "The Eternal Algorithms",
    "position": 26,
    "title": "All Judgment Committed unto the Son (the eternal covenant of the court)",
-   "contentSha": "c1d78fe74dcd077c7ba1bbf46550218f255bc13729afe37e1048b5ad190d6870",
+   "contentSha": "8fded6d6ab8a806055a1fbfe155b27db2863c3546134befaec1c85e8992e05f8",
    "versions": {
-    "teen": "69a343f4c95a209f0b29873be6e87e651f1092e78f5da3c8e2142aa3b505d3ae",
-    "adult": "46e537e08aec4cac3aa06978e7b675240f0af11814d8c841d5ce3fb38bf5c44a",
-    "senior": "7f3cd82e37dcf4a675a4d098b6b6bc15a034cdf0f2de8518fa28cd1c2ed186a3"
+    "child": "eb71d829f0bd85f9788c4c6b77d5ff36d93c165c375fd9c401d074b8634decc2",
+    "youth": "392a8ec1bb8a1d38689c84fd0f3685b5869d6d7159984d05469a33b03b510df2",
+    "teen": "453de5a996f5fc8b7087d72de6ee5ed36eeb90ae9890791c8f46bb781974f0b7",
+    "adult": "72c57fa06ead5476f44c117ea42aa03d6aa3189c1e8a48f6bb1a2587157ad3a8",
+    "senior": "fa52e2f82bf733c8e716b927fc01631568adedccf727749ecfe2f08ca9969772"
    }
   },
   {
