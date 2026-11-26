@@ -293,9 +293,47 @@ like *the God of Abraham* is not named either way. So one blanket search was
 deciding an undecided question by default.
 
 **DR-1670 splits the report and nothing else** — the shape is named, no verdict
-moves, pinned against the bare search as its own oracle. What it cannot do is
-rule on the construct. That is Darrell's call on how a lesson is written, and it
-now comes with a count instead of a guess: if *the God of Abraham* may stand in
-our voice, some share of 25 rows clears by relaxing the gate; if it may not, the
-same share is the writer being plainly wrong and wants the prompt. The next
-receipt says which, per shape.
+moves, pinned against the bare search as its own oracle.
+
+## 8. The question I parked was already answered — DR-1672
+
+I ended §7 by handing the construct to Darrell as his call. **The stop-hook
+refused that reply, and it was right.** DR-0111's carve-out is a *new* bright
+line; this was not one. Reading DR-0210 properly rather than deferring it:
+
+- Its own stated test is *"so the reader is never left guessing which 'god' is
+  meant"* — clarity of identity.
+- Its own stated limit, in the same breath: *"the point is clarity of identity,
+  **not a mechanical find-replace**"*, with "the Father", "the LORD", "the
+  Godhead", "the King" kept available.
+- And CLAUDE.md forbids a blind God→Yahweh sweep **because it would corrupt the
+  text**.
+
+Apply that test per shape instead of to the bare word:
+
+| shape | leaves the reader guessing? | convertible? | verdict |
+|---|---|---|---|
+| `the God of Abraham / of Israel` | no — He is named by covenant | **no** — "the Yahweh of Abraham" is exactly the corruption the rule warns of | **allow** |
+| `God's people` | yes — no qualifier at all | yes: "Yahweh's people" | refuse |
+| `God the Father` | the title alone is already allowed, and clearer | yes: "the Father" | refuse |
+| bare `God` | yes | yes | refuse |
+
+So the rule had already decided it: one shape satisfies it and the gate was
+over-reaching. `the God of Abraham` is both maximally identifying *and* the one
+phrase that cannot be converted at all — which is precisely why CLAUDE.md says
+the rule is judgment rather than a sweep.
+
+**DR-1672 moves exactly one verdict, deliberately**, and the writer is told the
+same thing so the fix is not gate-only. Three things keep it honest: the allowed
+construct is still *subtracted* before the standalone check, so it can never
+smuggle a bare "God" past the gate; the historic bare search stays the oracle for
+every other shape, with one named divergence allowed and all others refused; and
+`our_voice()` strips quoted spans first, so the KJV's own "God" is never seen —
+pinned in a case.
+
+`God-of-a-name` stays in the census vocabulary. It is unreachable by policy, not
+dead: one boolean reverses the decision, and a case checks every clause the gate
+*holds* rather than only those it currently emits, so the words stay in step.
+
+The honest open item is no longer a question but a measurement: how much of the
+25 clears. The next receipt says, per shape.

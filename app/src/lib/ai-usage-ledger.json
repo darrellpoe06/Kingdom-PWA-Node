@@ -947,6 +947,21 @@
       "notes": "Measured from worktree creation 15:10:54Z to the first commit at 15:45Z; it excludes the merge, the push and driving CI afterwards. Tokens and dollars null: no meter is exposed to this session (the standing DR-1347 gap). The estimate without AI covers reading the advisory, choosing and verifying ten KJV spans against the corpus by hand, authoring four age bands onto the ladder plus two parables, writing a 31-case gate with seven proven-to-catch cases, and the record, note and baselines. Two gate findings cost real time and are the part worth reading: a DR id is forbidden in a reader band, and the course header had named a test file that never existed."
     },
     {
+      "id": "the-covenant-construct-was-always-allowed",
+      "date": "2026-11-26",
+      "task": "DR-1670 parked the covenant construct as the Governor's question; the stop-hook caught it and the rule had already decided it",
+      "drs": [
+        "DR-1672"
+      ],
+      "prs": [],
+      "model": "claude-opus-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.5,
+      "estimateWithoutAiHours": 3,
+      "notes": "DR-0210 carries its own test and its own limit. God of a Name is named by covenant and cannot be converted without corrupting the text, so it was always allowed; the three near misses stay refused. Exactly one verdict moves, pinned."
+    },
+    {
       "id": "a-present-base-can-still-be-stale",
       "date": "2026-11-06",
       "task": "format-guard's ensureBase returned early on a present merge base, so a behind origin/main was never refreshed and the added-file set came back empty -- the guard formatted nothing and printed OK; the refresh is now first every run, at a measured cost under a second",

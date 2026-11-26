@@ -1760,18 +1760,21 @@ class WhichProblemNotOnlyWhichGate(unittest.TestCase):
                 self.kinds({"voice": {"passed": False, "problems": [problem]}}),
                 [want], problem)
 
-    def test_PROVEN_TO_CATCH_the_shape_words_drifting_from_the_gate(self):
-        """Two files, one vocabulary: if lesson_gates.py reworded a shape clause and
-        this file did not follow, the receipt would silently fall back to the
-        generic word and the measurement would quietly stop working. So the real
-        gate is run and every clause it produces must map to a word here."""
+    def _gates_module(self):
         import importlib.util
         p = os.path.join(_ROOT, "infra", "nas-lesson-builder", "lesson_gates.py")
         spec = importlib.util.spec_from_file_location("lesson_gates_for_drift", p)
         lg = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(lg)
+        return lg
+
+    def test_PROVEN_TO_CATCH_the_shape_words_drifting_from_the_gate(self):
+        """Two files, one vocabulary: if lesson_gates.py reworded a shape clause and
+        this file did not follow, the receipt would silently fall back to the
+        generic word and the measurement would quietly stop working. So the real
+        gate is run and every clause it produces must map to a word here."""
+        lg = self._gates_module()
         wanted = {
-            "the God of Abraham brought them out": "God-of-a-name",
             "God's people were brought out": "God-possessive",
             "God the Father sent His Son": "God-the-a-title",
             "God is love": "generic-God-not-Yahweh",
@@ -1782,6 +1785,20 @@ class WhichProblemNotOnlyWhichGate(unittest.TestCase):
             got = [qc._kind_of_problem("adult: " + c) for c in clauses]
             self.assertIn(want, got, (text, clauses, got))
             self.assertNotIn(None, got, (text, clauses, got))
+        # DR-1672 ALLOWED the covenant construct, so the gate emits nothing for
+        # it and `God-of-a-name` can no longer reach a receipt.
+        self.assertEqual(lg.god_shapes(lg.our_voice("the God of Abraham kept it")), [])
+
+    def test_every_shape_clause_the_gate_HOLDS_still_has_a_word(self):
+        """`God-of-a-name` is unreachable by POLICY, not dead: its clause is still
+        in GOD_SHAPES behind one `refuse` boolean (DR-1672). If that decision is
+        ever reversed, the vocabulary must already be in step -- so every clause
+        the gate HOLDS is checked, not only the ones it currently emits."""
+        lg = self._gates_module()
+        for entry in lg.GOD_SHAPES:
+            clause = entry[1]
+            self.assertIsNotNone(qc._kind_of_problem("adult: " + clause), clause)
+        self.assertIn("God-of-a-name", qc.PROBLEM_CLASSES)
 
     def test_a_shape_word_leaks_no_draft_prose(self):
         """The receipt rides the PUBLIC road, so only this file's constants travel
