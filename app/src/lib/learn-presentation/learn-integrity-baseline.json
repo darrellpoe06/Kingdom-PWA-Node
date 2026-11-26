@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T14:42:37.331Z",
+ "measuredAt": "2026-11-26T14:47:28.290Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4552
+  "readings": 4554
  },
  "departments": [
   {
@@ -12940,11 +12940,13 @@
    "department": "The Eternal Algorithms",
    "position": 4,
    "title": "Shapen in Iniquity → Truth in the Inward Parts",
-   "contentSha": "869c85c1423728c8f7c61531f0d4c6cb9f69164cfc109c675aa59650c689197a",
+   "contentSha": "6a03f7b5b605521bd776bb9b528425c02071abdad8d04c5438dd75719210897e",
    "versions": {
-    "teen": "d5a9ac184925b044613f8c705c256aa81d354b616ff068a045ac4361c732085b",
-    "adult": "58119dea1a49d42ca6ad686481206f73546a040ba9885e81ace0d61dc7427105",
-    "senior": "5bb31a243a6cf8fb730a44ebbebf99576eb5b77180c96549d979b44ceeb242ad"
+    "child": "8ee0d99712b32fac50c205b96ff3b42b099df5b9ee68cf4d022e392f16a1b065",
+    "youth": "1d50b6c053568a01783d47953e14995dbd80f460d2fc3055185cb7e2e5c4c26a",
+    "teen": "7f16be289b22e549d2dadafcdad49385b79c534702b49a2e1db09680e9b99f08",
+    "adult": "fcf5adb6026e57abeb7f1588a956ae7bb50bcbd90295d520e5ae58fef415f9f6",
+    "senior": "38aa4fe419a21195f14e8349747a0b27cb5363a7f66df66ed31fff1928551b7f"
    }
   },
   {
