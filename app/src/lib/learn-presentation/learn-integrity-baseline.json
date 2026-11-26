@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T03:36:34.184Z",
+ "measuredAt": "2026-11-26T03:41:07.214Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4290
+  "readings": 4292
  },
  "departments": [
   {
@@ -13870,11 +13870,13 @@
    "department": "The Eternal Algorithms",
    "position": 35,
    "title": "Before Abraham was, I am — the Name on Jesus' own lips",
-   "contentSha": "a97273be0f102ef497e46d4454aef66eb08c0778f7f2e0c1f66466d76cfbc346",
+   "contentSha": "9170ef51707df9034fd19dbf89f98603f6b467614876822c5b793d6ee8d8030a",
    "versions": {
-    "teen": "13f5fe08c7bc423e206a8cbe543893251e4074e1301052157523e8ab24b767ec",
-    "adult": "a61c560be5578cae136d4e808d44bafdb33808c11968a7fd8e9d673a83e7f6f9",
-    "senior": "4c22fb46a226dc34908e0b5f23e29ade5b514e76329d2f5ece40580beff5c70a"
+    "child": "0ea99ad238d0bd2f2cda78e9df0b4be8d73553d21b44e55a36326a32804e7cdb",
+    "youth": "22282de5361abeac9524f9f48731be91d5d9877cafc08d91b3f14fa199ce41db",
+    "teen": "aec9cb081e72ad5eebf7943c190b036ca3dd765596993d425dea13020ab13825",
+    "adult": "b86376f5c167f013c03061fbe8cb1d50ab7e6fac426c20b4d53dadcf49069883",
+    "senior": "19a5ef46de44b016cf6eec052da62890e0e6927c80be56b72963f027edba9407"
    }
   },
   {
