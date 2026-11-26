@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T06:16:18.253Z",
+ "measuredAt": "2026-11-26T06:20:27.379Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4370
+  "readings": 4372
  },
  "departments": [
   {
@@ -14407,11 +14407,13 @@
    "department": "The Eternal Algorithms",
    "position": 34,
    "title": "One Lawgiver — Vacate the Seat (who art thou that judgest another?)",
-   "contentSha": "f25d9ea82f0d1fb10fc8120ee117570dba6aca7747c5120c605e404b91e6315e",
+   "contentSha": "6a5bc527475a6551ad41012fba4ad59c66baae7b7d9388e6d37cd5d0a72eb919",
    "versions": {
-    "teen": "10c93f2c5c2101d05b56fc14fe8161006ebe4df97aed7ab63afc9a68b1c3fa86",
-    "adult": "31063f20b24f4636031f52d9f2a04c9cac244b2d4766138ebc75309a7527d391",
-    "senior": "876c6a6916992c7973b98c5615965badebed9c69b59f0abbaebd0f3787606c04"
+    "child": "49c9108ec3dc0ed50aefa15c813c817c1aa1804ef2b48a5605cd4de6e68fe33c",
+    "youth": "9c1e8d254af079d41f4c4063d834f78be458e20b1fc4b907d59a83e1d732aa07",
+    "teen": "ebbca2cf9019c36b18e92189d7fb2710215223298cbabbd66770dd83663fc4bf",
+    "adult": "434103cd79e5686199be7d1eb63474865b9ce61a8513447b89d21238324a02c6",
+    "senior": "20c99d01962f4a0c131a675e54880605b5b9c54c6b8ebe96faf01763758ed0f6"
    }
   },
   {
