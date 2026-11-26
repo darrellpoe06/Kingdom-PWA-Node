@@ -101,7 +101,7 @@ const PINNED = {
   // The ONE catalog whose whole debt is the open capital question DR-1031
   // declined to decide: our capital on a word sitting mid-verse.
   'historical-research-course.js': 36,
-  'infrastructure-class.js': 2, // 2 on 2026-11-26: inf6 rewritten as a full lesson with every quote filled from the KJV (was 3)
+  'infrastructure-class.js': 1, // 1 on 2026-11-26: inf6 and inf9 rewritten as full lessons with every quote filled from the KJV (was 3)
   'legacy-provisions-course.js': 1,
   // THE FIELD-SCOPE FINDING, in one number. Its own gate reports ZERO over
   // 43,054 field-scoped spans and is not wrong; these 8 sit in the 3,500 spans
