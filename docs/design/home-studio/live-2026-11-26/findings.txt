@@ -1,3 +1,2 @@
-390px: a sermon thumbnail did not load
-768px: a sermon thumbnail did not load
-FINDINGS 2
+
+FINDINGS 0
