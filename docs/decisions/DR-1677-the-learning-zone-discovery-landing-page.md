@@ -18,7 +18,7 @@ Learn assumes a person already knows which course holds their answer. Darrell as
 2. Search is browser-side and free: a derived compact index (995 lessons, 51 courses, 13 departments), a stemmer, the finder's seat guarantees kept, a concept map, and a hand-read Life Situations Guide (57 entries, expandable to 150 as data). A situation the curriculum only touches says so on the page; one with no lesson returns nothing rather than unrelated lessons.
 3. Visual: the approved mockup, colors sampled from it. Near-black page in the two dark themes (Night, Midnight); the light themes keep their own surface. No theme is overridden.
 4. Photography: the supplied package fills banner, 11 categories, 4 series and Today's Word; lesson, course and Continue covers are untouched. Technology keeps its existing cover.
-5. Microphone stays off. Trending is excluded until real activity data exists. Series lists stay "proposed" until approved.
+5. Microphone stays off. Trending is excluded until real activity data exists. The five Featured Series (lesson selections and teaching order) were approved by Darrell 2026-11-26; the "Proposed lists" label is removed. The lists may be refined after launch.
 6. ChurchLearn.jsx changes by exactly two lines (the area-hint allow-list). The page is mounted through `surfaces.js` (one line; the frozen shell is untouched) behind `LearnDoor`: deep links, an opt-out and a failed load all show the existing Learn. See `docs/design/learn-discover/INTEGRATION.md`.
 
 ## Verification

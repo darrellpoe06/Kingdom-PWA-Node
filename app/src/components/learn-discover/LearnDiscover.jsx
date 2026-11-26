@@ -604,7 +604,6 @@ export default function LearnDiscover({
               <h2 id="ld-ser-h" className="ld-h2">
                 Featured Series
               </h2>
-              <span className="ld-small ld-prop">Proposed lists</span>
             </div>
             <div className="ld-series-wrap">
               <div className="ld-series" ref={seriesRail}>

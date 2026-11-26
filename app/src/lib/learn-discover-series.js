@@ -12,7 +12,7 @@
 // (docs/design/learn-discover/SERIES-PROPOSAL.md). learn-discover.test.js fails
 // if any id stops resolving to a mounted lesson.
 // =============================================================================
-export const SERIES_STATUS = 'proposed';
+export const SERIES_STATUS = 'approved'; // Darrell approved all five lists and their teaching order for version 1 (2026-11-26)
 
 export const SERIES = Object.freeze([
   {
