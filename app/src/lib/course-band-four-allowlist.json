@@ -28,15 +28,6 @@
     "bonds": [
     ],
     "broadcast": [
-      "bc1-the-whole-chain",
-      "bc2-camera-and-image",
-      "bc3-light",
-      "bc4-obs-switching",
-      "bc5-cpu-gpu-cuda",
-      "bc6-bandwidth-network",
-      "bc7-llms-for-broadcast",
-      "bc8-pov-sops",
-      "bc9-excellence-as-worship"
     ],
     "business-research-wars": [
       "br1-count-the-cost",

@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T16:13:35.866Z",
+ "measuredAt": "2026-11-26T18:45:03.583Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4570
+  "readings": 4588
  },
  "departments": [
   {
@@ -546,11 +546,13 @@
    "department": "Serve the House",
    "position": 1,
    "title": "The whole chain — sanctuary to the world",
-   "contentSha": "26e05dedff924f32a96d7c64afb31a14ea5bec2d8f40a7e722e70519c7d411b9",
+   "contentSha": "10ddb49132a47d2ad5135ea424a2969dbdc20f8d4ca101f02e3ad97bffb5a3d1",
    "versions": {
-    "teen": "2b31bb577a0c08f298490bf6a3ba5b09b190e18ed106928bb33d791cfc97ebea",
-    "adult": "d1a8bff40f1ec6f232776b6f339af9038237a9dd1f4d21a5f05d2add9511c6c0",
-    "senior": "f0d501d594e019621e68f3adbe23f620181c4369dd4b157f77f8681b332c6a64"
+    "child": "b72a7e6703d4b824765c60f03b6481156203f84c86f8123f46dab926cc44eaad",
+    "youth": "2c75e107d668eaa83ea6f4ab5c28df5a98ac0ed3a3d6b7761e4140af055dc945",
+    "teen": "74dd33e97db1abbb43ac430c7a27f4260140a066d5fe87a334c3e326344b9523",
+    "adult": "65eaa124e7d8ba2dcd4ea031d5b2cc5f62ec205f6264e8a92a9f58ada58a72f4",
+    "senior": "4ae38037dc12d8869f5b7e9d9300c67bf2e0060b078d10e208ee6fbb388ce0a1"
    }
   },
   {
@@ -559,11 +561,13 @@
    "department": "Serve the House",
    "position": 2,
    "title": "The camera and the image — Chris’s 4K eye",
-   "contentSha": "7c18e752732580ff0ca105deaff65cf77c88018288c6546df7b57171e7552101",
+   "contentSha": "8312094a1681abf1c0f38152efdfd723d47aa5596322cb264a0849485480d6e4",
    "versions": {
-    "teen": "77e56a5ad42d2c001fbada5399f26923a7ababb89ea3547edb741dd2fb21efb8",
-    "adult": "9e84ff23668e9caeabd737bdd2d353479f840327b11c634da4a7fe7cabe55f4a",
-    "senior": "4def71e9a1515333a570ed1ab378151e39413c9471b3086930abfd6238059241"
+    "child": "b116e6d2d092822a729c7cf9e52177249cb54653f04741dcb3475104dcfb8bc6",
+    "youth": "b227b616435a6f4b550eb2cebd3b68953f7e2c90be6c9346a09b118d76634a52",
+    "teen": "ededb28f4d2fdb5a76c11bf641b4f8d44e0024bfaae61d6851a840549b3cb911",
+    "adult": "8e0271c5a7e3a72061b60f804d5956bb89426100683575198770f1d3e9a83cda",
+    "senior": "d050d033c133fc5caf412dd0a8f787cf33061671cc72a21356926a41a570a57b"
    }
   },
   {
@@ -572,11 +576,13 @@
    "department": "Serve the House",
    "position": 3,
    "title": "Light — Isaiah and Coreyon make it seeable",
-   "contentSha": "b95b21fb73024b09f2084c77d81da05c107817c56416cd599006afe8aa5b8221",
+   "contentSha": "190d09ae8e8dd279963958912f9bff3cc1296c53dfe173051f1bb7edab82f761",
    "versions": {
-    "teen": "c5ac1f8cb5609eb527bc3322c75bbde8bcd2b09a9aa59f83140f66c560572cce",
-    "adult": "872e5dfaceaef026649be62afdea9c0b0f824c51299d325d4e4c93b151f95320",
-    "senior": "d59e768940b2fb48d30f299ea75bfa4b7569d021fcd33c965776f8f7fcd1dd39"
+    "child": "dcf3be7b9bf101fcaaee4e9511af2908ca03b89b129fbf33442cf9880f86d2b5",
+    "youth": "0ebf98367fb3f0ce989f169946ace7957e3a6a5c507ffe6b310243860311a4a8",
+    "teen": "64b19c99a614dbd3dea05c0d1dc0bb7400e84545e5f1a1ab4d19488ee8d8df88",
+    "adult": "4e4bbfdc8d185591d24e4859106247c08b08d02b095dae7be77e94560a1f7ba6",
+    "senior": "47c9630e1e0962c207a32162da9f4b4386b5dbc5b6d4f825e5f297af5d89a7da"
    }
   },
   {
@@ -585,11 +591,13 @@
    "department": "Serve the House",
    "position": 4,
    "title": "OBS and the switch — Bradley runs the look",
-   "contentSha": "33dfc890bdb117d0cdea70066e68a7f0ef55db5dbf78ab1c5a0c27d835dfbfc9",
+   "contentSha": "c779ccf8e48904fd1705ddeb83370c45870ac69770c7f7eae574579d5a970b8c",
    "versions": {
-    "teen": "ffb76e1e48d52b2d9f4111254da4010078fac53d1920cdb81f866eb3d7cd15a6",
-    "adult": "87d18acb4df0e0411e99a9c95e5c8ec846597fb657a9cb92a42b476bd7772421",
-    "senior": "ffc4cefb777eeb044b64b84acaf2894b336d00025a4c9fec721c6d90ee357a68"
+    "child": "9b4c4eefeb046e516aaaef0a7ed132f685e6a46cca402cfc0658e6b50288caa3",
+    "youth": "87bbfc6c7fef4e2c79df155ec164530ec93606a586dae18cb805bae1bed7c631",
+    "teen": "a3c89a67b4d7371f53cd0dd26c2eacb8da15897d38266477f504006659526b9a",
+    "adult": "718627a3d952422ca2fcd53f6ee7fad73f51f057c6b40f53851872d7c52021d4",
+    "senior": "27ff404b3658cb8ec6ea9c140dae213db3c680f3350fdd7731f7477f3fec2632"
    }
   },
   {
@@ -598,11 +606,13 @@
    "department": "Serve the House",
    "position": 5,
    "title": "The machines — CPU, GPU, CUDA, and the two 4070s",
-   "contentSha": "a2c81ab9408f565f69ef6996a06ffdb4d1f3edaa265f08db68ec89dede5db84f",
+   "contentSha": "22bb54d68cb61f8dee3594fe783b7495cb048ce3c322b78c5b7cf80cdb2a9b3d",
    "versions": {
-    "teen": "92ed0207923f2b571373c502687e28a41673a5736bc17ee5c83351fd8f2a8c5d",
-    "adult": "d660ee11d1d00afb39cb83ca8784b2128e3d5d68675f7f81b708d251bd9061cc",
-    "senior": "87d481d75847c5d410ee51cc11768263743d23b416cfc4b971994555ebcf83f0"
+    "child": "6ead3befe3867073d53aec1e41ec1b18ac8ebbdc203a19f16c449741550e7649",
+    "youth": "217f76c2d99a8f9ffe993534690d1deac9532c2d6db368949c34f28b1f3a2e35",
+    "teen": "1ca78ace4ad009e8d70acf659028d1a301f2f1a11ad5d713d6ab163132ad19c7",
+    "adult": "89573f582b1e770498dfe17f8409efbf3846b15ff57e8d7b040d57e6e91a45f1",
+    "senior": "1a661fca3b260f5e48d634a3e8121f77b19933f220b8153328d97c799e4dacd9"
    }
   },
   {
@@ -611,11 +621,13 @@
    "department": "Serve the House",
    "position": 6,
    "title": "The pipes — 4K bandwidth and the network",
-   "contentSha": "a1f890c0ce73ca0cc48162e23b9a454611979fedd4d8b6e7ad987a831f2b8c7a",
+   "contentSha": "e6b51e6c6dc77f87255c5185653868bc02809355423a45c1e5cb3d6f703ed961",
    "versions": {
-    "teen": "a70faf871e9d54f20ffc84c91cab5af8a4bd5eedf6f90a99cae5cae1b684994f",
-    "adult": "a4cfc1bcf2de080d7ddeedf99992591654dde0018ba9a7f1b839dd05567ac987",
-    "senior": "737e146364e191d1a8e9c35be777020567a764b47fa0f3a5ea46aef40d59452d"
+    "child": "ab000340e5868480fdcb0a8e8a0f44d36d1da9b4f6c17a7e0b6c19486b27c18e",
+    "youth": "8efb4f410bc33ca71f7e8f4ff5ff5812952183d36108edcba649d8420f7973ff",
+    "teen": "1aa02bafa76991359c8044908956ec4dcaef71927091e0ed1de3f058248cebd5",
+    "adult": "6281bdfd662b3a062faa3baf7521d7bd82bf485a389a02cab69af766ea485497",
+    "senior": "2e639ac8cdf213dbbd08d93b1a31dfb161bfbaaa94c54513778203ac548b1237"
    }
   },
   {
@@ -624,11 +636,13 @@
    "department": "Serve the House",
    "position": 7,
    "title": "A.I. that serves the broadcast — and how it really works",
-   "contentSha": "7fcf9d08514aa41e12274d7e05f566d73303404b0ccd2c4ae80c90433d82ef0c",
+   "contentSha": "81661047888d943147c490f6b608abb880bf9064127c7700d888855a29e35511",
    "versions": {
-    "teen": "0d40a43d5abf16c1baff1d73b48b6dd604b3fcf7f3d9afd859d046ec0c3c699f",
-    "adult": "3c5099bb544463e9725129edf01daa9b74c0cf88eb2ccf61044d3cef06b87660",
-    "senior": "27c7712def0e2c28a0d8b233bac0a036283724d652e19f04b3fe6a22c88815bb"
+    "child": "42f0a3ea0383b077acc6a0eaa1b62b2310bc5406843ec7dc4b765bf02fd1f087",
+    "youth": "5cb983e19920a67daa3075239e7f9d4831cc6357a60fb47e36997965f43875d9",
+    "teen": "d09ee06047e050fc16707510e3583f50e5a44cae59c1b0d8c895f1f81799fe00",
+    "adult": "fead466274dede7da880663f292fc813df8ac721404d83a07f2a9538be9b39f3",
+    "senior": "9b1395f0653a262852a2bc0088c07a0ef3e86393550f49c359a1bb58540468d5"
    }
   },
   {
@@ -637,11 +651,13 @@
    "department": "Serve the House",
    "position": 8,
    "title": "Capturing the Work: POV SOPs",
-   "contentSha": "8aad9ab8c60110aab1cf5ed0b8871db0204e637bc8d0b0252e04d42a4aa473b8",
+   "contentSha": "649422c4da46d6fffca17e70c4cac9b8a043d7e1f8493802de67f6a1a15aa2d7",
    "versions": {
-    "teen": "a094a09388b9b82672d1801300977b33dc250535a29351bcbbd002d26a17aa31",
-    "adult": "7a3584e36728d0b9ece7010d15b7244fad1c791b2acb2fe844a176ff0038d3f3",
-    "senior": "3fa73e14c40e092adf546b68597e5b73c8fff603e982cfb0110485f80b3f00fb"
+    "child": "73d4cdc053ced1e6f0bb991ae14626972863bc45b86f54311e03e1e15ee3b76d",
+    "youth": "79016827533a9e7da61aead81797fd8f4cf045a720ffc42640320ef5825e1d35",
+    "teen": "5ca5cc1e229aa2dbb9a38e9504d9ed544503c8960ff23abcfe068a3a5542e87a",
+    "adult": "0ec21fb493661c1292b989c5c6db6d55d386b01178a69d6d8eba017c4f762380",
+    "senior": "a4ecb5e713206518c121e6d0fee31f988140512cd67d22a2dc09346d64ffe032"
    }
   },
   {
@@ -650,11 +666,13 @@
    "department": "Serve the House",
    "position": 9,
    "title": "Excellence as worship — and raising the next operators",
-   "contentSha": "6667acba80bd6142b5998c857b5a8437b109ee08d3f58ae38ee4fa5fcf77ff43",
+   "contentSha": "2dd882e9e259f77f87943780a53630f11a9e4c49e0729416ac60a2177389b2c2",
    "versions": {
-    "teen": "20036336dd7d763a47f01333472b133c61ba265778d7b33d437d41be1f0666f3",
-    "adult": "fa22928795818e4f5772350faa3cfff65af7c009d03e5829a402323cafffe444",
-    "senior": "8c2798c59ea585820b2f7c4a3f7e1b227086e6b362ff56c2750e64f505de6be7"
+    "child": "4b04c0e6406ec777bd28ab702ea0caf7ea070ccf7697474034e78d0ca04933ab",
+    "youth": "2108ab745f9bb8d513492661648a892cce3edc6e1de659207016d445aa62d050",
+    "teen": "70662f46ddb6a67ff4a12064481e37959eed900777bb9d2eaa98ab35a6df39ae",
+    "adult": "22476537b062e25d579a40503abdf756409a7477b982d2a22d9dd6e2fa4baed7",
+    "senior": "3571ea7ce5c6ab2d28c099b66bfb516e3f2cefb3465401434bad313c8f549ee1"
    }
   },
   {
@@ -663,13 +681,13 @@
    "department": "Serve the House",
    "position": 1,
    "title": "Own the iron — what \"sovereign infrastructure\" means",
-   "contentSha": "beadbb7aa75e5a770639867f6cc35a76971909b126ed8d639065199a9a68038d",
+   "contentSha": "360a08cd971e447335d947e1c87c9ac7614f4fda342cf1f62f30175d7a649a38",
    "versions": {
-    "child": "05ab1c5d12fc09bd53627dc55d6ca633f41d4bb3c5e702aca9e6af82c188a8b4",
-    "youth": "71647305c42e101986485a1720942000f7558615a4006167e4d81beef0c8d583",
-    "teen": "d1e268e08b9bb21de10df6759a50cdeeac397b2e7d6175efb5f2250f61454f67",
-    "adult": "74d291837594553bfc1eaa0e34a105e99c589a3e5c70a17ea51af6770de6cdc4",
-    "senior": "3c1e906483e2e7e106b0b3b67a2094e96f97d5eb9ea425251dcff12b3517258b"
+    "child": "2f3fb6482cdbd8b82ceb53f5daf89dbf28025959b8e9896d97672b82c6d8cca4",
+    "youth": "760c1b692492401f0a3250e239f3425631fda94632758ce19dc958f0ff248a3f",
+    "teen": "cca3bc620882e5a4859952920d1f9d21f6e299dfefb2c7490e996ec14e58ad15",
+    "adult": "72d519f9610c27fc996c8d22a6e29d88ef8cd5579be6edeb6101635044cf5e68",
+    "senior": "24aebc964082f5490eeb8da0693f450bd90e4c28bd49c2d00f56601e612512c7"
    }
   },
   {
@@ -678,13 +696,13 @@
    "department": "Serve the House",
    "position": 2,
    "title": "The brain and the barn — the Synology NAS",
-   "contentSha": "d1e9e62656597a7f4432b332a7332260b8bc59db8927390cb54bff0cb95fd678",
+   "contentSha": "54b3e37695b12c416974c828b9dcb1a7ab3d0169f821c4d53f6b6c9b5e93ccf7",
    "versions": {
-    "child": "ffcb57fb15889391a9df1ff383120cc950bbc04af13f24cf0cf8c09d41dc63cf",
-    "youth": "30887b83d47a39289237d80e30f3b3549eb80e30d8d1b877fbd23f774e0bde39",
-    "teen": "695719116a35465abae29fd3495036af3652411283c133110a46f34114bde3c1",
-    "adult": "22592bcf8e4924c67f814bd2ecbb90629182effd9d6adb13377484cb383b47dd",
-    "senior": "76158408ad42837e7fbe68042e8410934f93265ba3fce9871f0605e08a178087"
+    "child": "cd8dd57949c8de9201df492279b2cad6bad13bcda30850a28aa48c6827f9ce51",
+    "youth": "55522627ed50f50a7e7cc279d4576c3ef9487019544e167dd14c624180b59f61",
+    "teen": "662e247c3847a1cd2040bc818c102bb689728ff95966cad8a311c8de979eb5b3",
+    "adult": "945a93e5061d5e1f07fdfa93a82eda518f0b714874022154aa6e8ee25ecf44a2",
+    "senior": "8415855942ca5b997a31cad118e04e145b96a7d4f2e181995a56b5473853b058"
    }
   },
   {
@@ -693,13 +711,13 @@
    "department": "Serve the House",
    "position": 3,
    "title": "Never lose the family’s data — disks, RAID, and backups",
-   "contentSha": "6f2522e9bd18771ebeae7b647d44124ce47785c76e30d4dc59d3c9c533a5ac40",
+   "contentSha": "9b4cf619bb16dc8aa8a2d26e4e72058657ebd8fe3287889d194d52d717cebab1",
    "versions": {
-    "child": "a89f42976c69fa34a6609842af9352cfedb072643f596a42ce790ea9b98775cf",
-    "youth": "8ce280d9db1c685928f754d57aec487f5b76c4fd5586a15dfcd206b041fe66d4",
-    "teen": "dc6eb313970ce04d51b7e20b84ab18405784e5a8e92040a3fa939bb4bd400285",
-    "adult": "4c2bbb8a032998241d7ac762d4f1c568eee0601248f4b361bbc3333fa0504315",
-    "senior": "8699c5b63a9e8e38df18ff71b0ca6bba7ce981e08f6bcdb91b07740d36449a49"
+    "child": "4a1a9460409e248ed7fe6eddcb303a809f328da16588b6daa04f25a5fd4e4ab4",
+    "youth": "3b5dee4825dbd034ed2c66dda0fa379385d6d461759645d77ded7efcc8ef1f71",
+    "teen": "e489bac3c6489a381d6b940a376aba3ab5104e5507c09d9d469e86c59a597f11",
+    "adult": "5709ca095be1aba131f83020b3a8b98ab6ef4ed2cdb247e7a8b373f49560c981",
+    "senior": "b35eaedfd1d047b282cbeebd26bef228ec748b8099799e3fc6bfdbf839296134"
    }
   },
   {
@@ -708,13 +726,13 @@
    "department": "Serve the House",
    "position": 4,
    "title": "Walls and gates — the UniFi gateway",
-   "contentSha": "14e3422aadb785a215c0ec510ba8af1119cf9161a8249aeb195c11097bbd858f",
+   "contentSha": "e2457dff35004fc8d135de9051e11a7fb175f711e2ff5fdbc93983719d94b28d",
    "versions": {
-    "child": "8cfdc20c45caaee448141ac206b9d12a607bf18eae11689be162f77f8475a993",
-    "youth": "f00df92d93ca20c5312963e283ecb9cbe1e6618340ac4fe0ee79581fba7e20a0",
-    "teen": "bbdc899aeb7b75d9a10f73da1e0824d164a58d98d2821ff15f95a999b77a02a1",
-    "adult": "cc84807e19bbe45e17ef3c0b05bf286acceb08a450a0848ea2259acb8a9e16b7",
-    "senior": "efb1a16ce272f6af14178c58d215c3a86e875bdce81878881d40157a40a00a92"
+    "child": "19393bc985f1f5cee77825c86b3d5c7a8c4883d9190cd59180db70ad074e75ad",
+    "youth": "66571bcec789410b0e4cc2063693460f85e0e0891238f023ba677af77f97c97b",
+    "teen": "ec350551b67507f67cdfad47569154279bceab123e283a8bbe863b9aab69b2fc",
+    "adult": "59ac81e31cbfacb50224a5289f35e16034b10ccdd1c5401c19cd89cdb11c6932",
+    "senior": "4b4a3b6a25df1666d28ec0df37a6415174fec3fc6038eed09ad6f15666d0e341"
    }
   },
   {
@@ -723,13 +741,13 @@
    "department": "Serve the House",
    "position": 5,
    "title": "Reaching it safely from anywhere — Tailscale & WireGuard",
-   "contentSha": "5b5a4c72f1cc85f7882f7c6ff133cf9bedade16dafbae572ed0d59915a13298c",
+   "contentSha": "ed0df3834da1b6b69d4e3d7aea61ad38a8c297606c33f1bb8d613e1dc804cc5c",
    "versions": {
-    "child": "74635c8d6e94e0d2814d3716210661fb61b9e9e3054876094e654d7b09f9913f",
-    "youth": "784a8d0ee1dc578cc78337a493105200b56aba544eb9d2f5f30a01180e674967",
-    "teen": "d934b97d9f4e4c52153c1f2747d7defa8090e8b8e14635676df5116f4314d5bd",
-    "adult": "9fa85322e0040e65bf168863d958b1002728ea5bc99f78997ed0c6ac02b93fac",
-    "senior": "4ea4bfbe970b48a92bb593507b8b70e1c65a31c505506049aadcc8a36477234c"
+    "child": "2567c7bdf740e5eb793165a3f6d5abf07674a2b2bf8343378360ad91159225ff",
+    "youth": "a542599b72a2519eea0b2ee4ae06a95aaf8e0cbab1b2647b471734ee3262b133",
+    "teen": "13f230f18c174f42ae2cc010ed8a36d8ccd1d21515261e7744e2d88dc08bcc71",
+    "adult": "470ce995d838751dfb25117560ceb454e23fe4861a23fd51aa1ee480c0d4dee8",
+    "senior": "ef8d98f05aabf5f47b553506565ffc5c0c4f783ed3faba79afeddf071443922c"
    }
   },
   {
@@ -738,13 +756,13 @@
    "department": "Serve the House",
    "position": 6,
    "title": "Our own A.I. — Ollama and the models on our hardware",
-   "contentSha": "b9ba263a6a74d90b1ae6feb81d146deb929412a7a165413c16c0c065d6250416",
+   "contentSha": "bf0dc6ca5fc27b9cfa59a7fff11970dc79921d25de3200b3beb080b66bbed1e9",
    "versions": {
-    "child": "52da6e1a8957d04dd81ba0539eec1679c1c9f7d14fbd9f07468b381124a4f6dd",
-    "youth": "9712d58e981432c62f0cdcd2563512e15ca7d8d94a95dbda18508aa099ea3ed7",
-    "teen": "4de9d5fcbaf1cfae662cd723c37d10c611d5d51b7395ba3cf2a092bf917b3716",
-    "adult": "4386b90c2be970619906695fe440097ead8bc9ecb205fa8b44a5efcd71a04fb1",
-    "senior": "c245f6ecfdbe4c292a729f8d995d156cc5ad698d33aa53015e2988afdc587ad4"
+    "child": "69ffe874204b1b822e01ccef3b48aa4a482334d3c2237568edcce1f369f85ac0",
+    "youth": "fe0d6ae8d9362bdc0105dbae4d7dbf22dc4a658e71b153b8a2d252769c5f974f",
+    "teen": "5616db0c2117dfaf7d180e860d8460e352f7e51ba3a81c598aea2753e4ae39a4",
+    "adult": "6ce1def98034e8632cbb2b64207bf4ce0dbaced522482a8ec911dadddcae7713",
+    "senior": "56618a9f75f5114bc92df271cf136f6242ed02432ae2ede9bf9d80b0f7fd7585"
    }
   },
   {
@@ -753,13 +771,13 @@
    "department": "Serve the House",
    "position": 7,
    "title": "Why we’re building a GPU farm — CPU vs GPU and VRAM",
-   "contentSha": "0f65cfd08f8b12130a52fb180f59d2b95c784f5c0d94b3b06676cca7675e21a8",
+   "contentSha": "1defb0f5b06e014618bd696db951710be3c023104dc904bfed73c7c38476973e",
    "versions": {
-    "child": "f9f17605d95fc85177e197d74d9c294c6177487c7bac81d9b7ea9e2a5311bcdb",
-    "youth": "2ef93aee8ec1ee8bb38c3f55dccf08a0046945870a1df63ab7067d5af4e0d03e",
-    "teen": "05cbeb32e766f813520215923d4f0963ee026b89787284819f089d6555f626fc",
-    "adult": "ff1a6e093351ff23bfeceef785a5b79139372bcee66a89fb91a698292e85ebfc",
-    "senior": "4f41f5396d9bc820530f651913213788f05d33a59cf26979b158a5ab22712b58"
+    "child": "0a7dab33a6542a711be080ccea745e1ef40bf1bd9082cf2e03c8bc6397f55c98",
+    "youth": "a7b06024ec254fcafa5bc645ff9d78cfcb68f241546eaf7557dfb667b6b12526",
+    "teen": "0785e269dca69d25346c5bc89edec9ade805db8fa67b2ffac2b477a523f852c2",
+    "adult": "e5512635847e6a007a58b9ac78574bff5a7cbfe6d84671a6a402ee3423f70cde",
+    "senior": "3a10bdb323ca20aa618c51d0c5ef768b55ce556be48b4420156973e155aea5ca"
    }
   },
   {
@@ -768,13 +786,13 @@
    "department": "Serve the House",
    "position": 8,
    "title": "The house of God — COLG’s sovereign stack",
-   "contentSha": "44b86944a15e638ed6d7ec25e370ca904170ce3badb889fec9ca592937067bda",
+   "contentSha": "978d0522f1180292d471d0df3368d8442b4f3c4f7923948a663958484d713546",
    "versions": {
-    "child": "5846a045986f1797e6161b777fcf9ea7a3346a6f51a994e895883df44682a997",
-    "youth": "151bfda91f11f47cd2d40f421966fb3f876ee5c9d723e4f3d129604baef03c38",
-    "teen": "089103bfe9156dcee19a2179591a2dcac372b078e7b3c0c0c919b7e5059f33de",
-    "adult": "11101c2ab818600e663cd3b9c4cccf1085b0ac26a59fd7b78f8c5c1198bf1055",
-    "senior": "5d7626a5fedc059d2bcad53ac40d06a655a33c8861c020767e9202277edb1a64"
+    "child": "11162a5f11e9e341c1dcee5ad62f56d99b71c24be197ab5602af771a0f8874c2",
+    "youth": "26efddd641b4018b9753e09c989301d6c4a4a855c8cd5e075b3c6545fcc4fec4",
+    "teen": "9e2259a086e7d6673b5cc5dd8a4ab7b8c898a4c4aea45d04a4871830b8786d08",
+    "adult": "e37e47828c9e8e8b50a7d61a0703204b6ca10ca5da565c54866adfb40b620186",
+    "senior": "327feefa1b743369507102b3de5561b93bcd2ba8480e36f079dfe161abe89e5f"
    }
   },
   {
@@ -783,13 +801,13 @@
    "department": "Serve the House",
    "position": 9,
    "title": "Keeping it alive — health, alerts, and the three brakes",
-   "contentSha": "0f7d310a97e1a90d1c48a26f3b01279daa0c6b9cd85acb48d07b7a41e8eb91f5",
+   "contentSha": "35a72b6f7c47fae0bd8ddd46cbb50ebd3e263342cb335b9a2087e868ecd3bc11",
    "versions": {
-    "child": "dcd2c8c14dee05dff9732e1e43a395310e717872ce299ab8965a56162893caf6",
-    "youth": "60bcd05aabdc53afdd5eaa6a0bd7e61b43b8ff93c6a3381648ee31743b1797c6",
-    "teen": "72eda0cefe6e9b6412b890fb15d3ed6d0d9af6f631a000fcfeed9a29e6568bf8",
-    "adult": "81e29f9e7215dc4fed3f55cef19704a28ab206e9420dbef92c9cc3f41ec4e6aa",
-    "senior": "0495e5746a5013be55968337bde1853132fe97f980a2041421ca8434a2770887"
+    "child": "bd9d095a38e277748e1d42b22ee0ff279fea707b948d634b154c32c2895ec8e2",
+    "youth": "6587a45b9a278ef021664f58e564df8ac3b9167de92b41cf39d280e8e0b08c49",
+    "teen": "ea1366242257b25af029b8b847c1e4c62b1bd642f9fffc778a96f71ed17fcc02",
+    "adult": "5ff5fad8eaae18803dbbfb351e36ef71009af5814b87a09987a0bc5e2a4c6353",
+    "senior": "2eed0d474b5a3efb6e5899da13a1adda2074b19f3ddb7ed555804b7ddda3b77c"
    }
   },
   {
@@ -798,13 +816,13 @@
    "department": "Serve the House",
    "position": 10,
    "title": "Build it right — and raise the next builders",
-   "contentSha": "69edf212440b434ae75213c7dadc988439d85dc7f5b71593c0b8615ca79a6621",
+   "contentSha": "bbd63671ac353cf1635cfef0946670293af50c2150c5cbc560cd8d187e4f0fc4",
    "versions": {
-    "child": "f0d4fc617d23e9e7e415faf0394cc1f2f3c1921a61b737b6b512afe2235b0860",
-    "youth": "cf445295793dc9e1713e2ddabcc12d1165d46271be294c68e59842617436d9c5",
-    "teen": "8a0637bc8f7937653f0f2a3b9bafd8bb080644b429ea174ed975f0a23bdb8693",
-    "adult": "05aa06ca144c28ceef15478ec1ca03216709f348d9d1a717e9077e286875ebe4",
-    "senior": "bb8a1bdaf7c8a5277a5168f3f1479df0239885a47e52e760daedd36f5ab28dac"
+    "child": "f505f580625aa9504022dd79957e5ba278f2af1074fc2e0635a0980d5a0eedd1",
+    "youth": "149ee84d45b21aa08ab05676a02bfe6b27c3036f7f21821a910bf76429b0cb71",
+    "teen": "2a172808621a9837fe3374d315c8bba0c11f2373d89e0019f39af014538676eb",
+    "adult": "da67eb8471f356817aeee884a8d716c62bf2cb12e8faaee20c57d426c074a11c",
+    "senior": "4eda91d152f6d9b28e876c4111b14fe7447aa920486ceb4086122b56090a8e85"
    }
   },
   {
