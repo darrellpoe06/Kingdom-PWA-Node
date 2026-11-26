@@ -295,20 +295,22 @@ describe('Relationships, in one place', () => {
     expect(relationshipShelf(COURSES, new Map()).map((x) => x.lesson.id)).toEqual([...RELATIONSHIP_LESSONS]);
   });
 
-  it('the shelf sits high on the Learn home, before the hero, and See All opens every lesson on it', async () => {
+  it('the shelf sits high on the Learn home, right after the pictures and before search and the list, and See All opens every lesson on it', async () => {
     const { RELATIONSHIP_LESSONS } = await import('../lib/learn-presentation/presentation.js');
     act(() => root.render(<LearnStudioPreview courses={COURSES} onOpenLesson={vi.fn()} onExit={vi.fn()} ownerDevice ctx={CTX} />));
     const shelf = $('ls-relationships');
     expect(shelf).toBeTruthy();
     expect(shelf.textContent).toContain('Relationships');
     const hero = $('ls-hero');
-    expect(shelf.compareDocumentPosition(hero) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(hero.compareDocumentPosition(shelf) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(shelf.compareDocumentPosition(container.querySelector('.ls-top')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     click([...shelf.querySelectorAll('button')].find((b) => b.textContent.includes('See All')));
     expect(container.querySelectorAll('.ls-grid button.ls-card').length).toBe(RELATIONSHIP_LESSONS.length);
     // A section of its own, in four parts (DR-1675), with every way to view a list: Pictures | List.
     const sections = $('ls-relationship-sections');
     expect(sections.textContent).toMatch(new RegExp(`Relationships · ${RELATIONSHIP_LESSONS.length} lessons`));
-    for (const part of ['Marriage & Love', 'Family & Children', 'Friends, Neighbors & the Church', 'Hard Conversations, Offense & Forgiveness']) expect(sections.textContent).toContain(part);
+    for (const part of ['Marriage & Love', 'Family & Children', 'Friends, Neighbors & the Church', 'Hard Conversations, Offense & Forgiveness'])
+      expect(sections.textContent).toContain(part);
     click([...$('ls-relationship-view').querySelectorAll('button')].find((b) => b.textContent.includes('List')));
     expect(sections.querySelectorAll('button.ls-inorder-row').length).toBe(RELATIONSHIP_LESSONS.length);
     expect(sections.querySelectorAll('button.ls-card').length).toBe(0);
@@ -406,5 +408,16 @@ describe('the Learn home leads with pictures; the Lessons list is a closed drop-
     expect($('lessons-in-order-toggle').textContent).toMatch(/Lessons.*\d+ lessons/);
     fold.open = true;
     expect(fold.querySelector('.ls-inorder-picks')).toBeTruthy();
+  });
+  // Darrell 2026-11-26: "Best start with seeing ourselves!!!" The pictures come before search and the list.
+  it('the home opens on the pictures and Continue Learning, ahead of search and the Lessons list', () => {
+    act(() => root.render(<LearnStudioPreview courses={COURSES} onOpenLesson={vi.fn()} onExit={vi.fn()} ownerDevice ctx={CTX} />));
+    const lead = $('ls-home-lead');
+    expect(lead).toBeTruthy();
+    expect(lead.querySelector('[data-testid="ls-hero"]')).toBeTruthy();
+    const order = (a, b) => a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING;
+    expect(order(lead, container.querySelector('.ls-top'))).toBeTruthy();
+    expect(order(lead, $('lessons-in-order-fold'))).toBeTruthy();
+    expect(container.querySelector('.ls-root').firstElementChild).toBe(lead);
   });
 });

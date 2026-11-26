@@ -568,6 +568,26 @@ export default function LearnStudio({
   return (
     <CoversContext.Provider value={topicCovers}>
       <div className="ls-root">
+        {/* WE SEE OURSELVES FIRST (Darrell 2026-11-26: "Best start with seeing ourselves!!!"): on the
+            Learn home the pictures lead, then Relationships and what you were reading; search and the Lessons
+            list follow. */}
+        {!query.trim() && !pickedCourse && !pickedShelf && (
+          <div data-testid="ls-home-lead">
+            <Hero slides={heroSlides} onOpen={openLesson} onListen={listen} />
+            {/* RELATIONSHIPS, IN ONE PLACE (Darrell 2026-11-26: "my wife says ladies will want those most"). */}
+            <div data-testid="ls-relationships">
+              <Row
+                icon="star"
+                title="Relationships"
+                note="Marriage, love, family and friendship"
+                items={home.relationships}
+                onOpen={openLesson}
+                onSeeAll={() => setShelf('relationships')}
+              />
+            </div>
+            <Row icon="play" title="Continue Learning" items={home.continueLearning} onOpen={openLesson} />
+          </div>
+        )}
         <div className="ls-top">
           <label className="ls-search">
             <span className="ls-search-ico" aria-hidden="true" />
@@ -689,20 +709,7 @@ export default function LearnStudio({
                 </div>
               )}
             />
-            {/* RELATIONSHIPS, IN ONE PLACE (Darrell 2026-11-26: "my wife says ladies will want those most"). */}
-            <div data-testid="ls-relationships">
-              <Row
-                icon="star"
-                title="Relationships"
-                note="Marriage, love, family and friendship"
-                items={home.relationships}
-                onOpen={openLesson}
-                onSeeAll={() => setShelf('relationships')}
-              />
-            </div>
             {dashboard}
-            <Hero slides={heroSlides} onOpen={openLesson} onListen={listen} />
-            <Row icon="play" title="Continue Learning" items={home.continueLearning} onOpen={openLesson} />
             <Row icon="star" title="Discover Something New" note="Hand-picked lessons" items={home.discover} onOpen={openLesson} />
             <Row icon="play" title="Recently Added" items={home.recentlyAdded} onOpen={openLesson} />
             {/* Relationships is a topic of its own, first in the grid (DR-1675; Darrell 2026-11-26: "Should

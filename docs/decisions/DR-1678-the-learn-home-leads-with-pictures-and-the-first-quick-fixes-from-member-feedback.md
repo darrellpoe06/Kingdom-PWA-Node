@@ -43,3 +43,7 @@ Open from the triage, next in the loop: confirm on a device that Choir's Add kee
 - Local: 62 money and calendar files, 1,124 tests, passed; 89 bus ministry tests passed (2026-11-26).
 
 `re-review: 2026-12-03`
+
+## Addendum 2026-11-26: we see ourselves first
+
+Darrell, from his phone, with the Learn home open on the Lessons box: "Best start with seeing ourselves!!!!!!!!!!!!!!!!!! Obviously!!!!!!" On the Learn home the pictures now lead: the featured lessons (the people in our lessons, DR-1287), then the Relationships shelf, then Continue Learning; search, All Courses and the folded Lessons list follow. A search, a course page or a shelf page shows no lead. Pinned by `learn-functions-in-new-look` ("the home opens on the pictures"); it fails with `LearnStudio.jsx` at the previous order.
