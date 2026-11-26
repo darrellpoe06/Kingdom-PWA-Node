@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T08:15:19.269Z",
+ "measuredAt": "2026-11-26T08:18:31.827Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4422
+  "readings": 4424
  },
  "departments": [
   {
@@ -13713,11 +13713,13 @@
    "department": "The Eternal Algorithms",
    "position": 20,
    "title": "He Knew the Betrayer (foreknown is not the same as faithful)",
-   "contentSha": "83150f2a3563a5e514584a2dcca01ed5332f5916158ee9b386119c37f1fc62a1",
+   "contentSha": "181645e689908fe68292bf0bcd46da55e0655c659a6742bf756a05f59fc66106",
    "versions": {
-    "teen": "7564f9fdfad91d29309e493349f3ee2e437ed8982d2ad1164a242e3e5d3e323e",
-    "adult": "df32db6b889c6d4675b9cbf1a28d62bdf92afc3f5f66ae007492495fcc4538f3",
-    "senior": "d7f6eba6c819c240009b91c7cbc0bd34fc8cc1779d5fc7274a50ae2fa1ede49b"
+    "child": "a7a24bd33a9c22c74aeef304fec883d397276b1e5b2f1cef3a143811905f43ee",
+    "youth": "36034047a24bed42711302b8c001bec771900b3a5b6f2a022685c548b669b031",
+    "teen": "f717c9076940536e00784d037d99a21b1e83de5c87e5c3b4aa5d6da4f3d36dbd",
+    "adult": "2e926360195cb3e5809106b77b44e630696a062edcbc532ae746a34d78fc0401",
+    "senior": "43bbbab24634390d595aabbd49bf24d402f14787e77ba7ff443f72581725687f"
    }
   },
   {
