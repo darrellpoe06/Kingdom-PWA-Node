@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T04:17:54.951Z",
+ "measuredAt": "2026-11-26T04:21:02.212Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4314
+  "readings": 4316
  },
  "departments": [
   {
@@ -14667,11 +14667,13 @@
    "department": "The Eternal Algorithms",
    "position": 8,
    "title": "Why Yahweh Gets Both (He made it, and He is worthy)",
-   "contentSha": "b74f00835a8ebeacad0ed5da41821fa55b21388ad3bcde203891362dee4a5ce7",
+   "contentSha": "ee4d2be67dfb95f3ec7dfc6870de864f8e20af2089230ca5b3afc5529da1ccb4",
    "versions": {
-    "teen": "20ab3df3272672916c6a1be44da92ba4b4031a22c0f60f5b8ebc8af8fb36f794",
-    "adult": "4613fa9210ed1ebd498537a9ec988512d3ce7bafc392b94db0f4d737232620db",
-    "senior": "a166a6c8afe5755dc276ff4bf89dbbd4bd7118605e37ec6feed652033be71b9a"
+    "child": "9320f665b896f75060b50b49179a169fcb5021329f4a02594db962521c0e2bc3",
+    "youth": "b1dd99afac1cf29e386ee5d1d0a2f4a6e4385d6257ba774792097090846654d9",
+    "teen": "89ec754d1062cc160917b6efdaa0bbd686fecacb22515db37c9bdd05afac684b",
+    "adult": "3b8b02fd329468de700006e5c68042a8567825083eb6eaaede5e0426dc0c5814",
+    "senior": "07bc869526a0c2fc61670879e956983c9063c9ad6313183f16f2b5001c4f1b0b"
    }
   }
  ]
