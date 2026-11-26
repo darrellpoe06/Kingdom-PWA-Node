@@ -1,5 +1,5 @@
 {
- "measuredAt": "2026-11-26T18:45:03.583Z",
+ "measuredAt": "2026-11-26T18:52:19.014Z",
  "counts": {
   "departments": 13,
   "courses": 51,
@@ -831,13 +831,13 @@
    "department": "A.I. The Way",
    "position": 1,
    "title": "The generator in the garage — why local-first",
-   "contentSha": "fa80fa75e5138f8a33dea77dff83e35e221982dfb7fa31a059bd39f75a86a839",
+   "contentSha": "d2dfce37ae7fdfdc7fa7d13835a2642888f40c9b14153746a488621679c11f96",
    "versions": {
-    "child": "dea16ecaffea990b5bb77df30e73c691af881b09c69892bd76345c75bc222e0f",
-    "youth": "863ac69293547eea18cba736e7873a042b37e93946cec1013e43f60e4025747d",
-    "teen": "be2cbdad6af82be6c427ff3b989f5e7b69800fb6017c93022f2bf4b8af2b6cc4",
-    "adult": "cb85d6093cab208df585a7cfb763a07701e5817f837f709e5473b8e5acd7e3a3",
-    "senior": "076f468aa57f97a05f7e0841a8793041bd99d910c9d61b215fa89c0a31b2c653"
+    "child": "4e8dc0be80fad92cccf100f12c2957f4b67acf06f395257a60e0f7faef6412bf",
+    "youth": "16af9389e9de15ea54b94aa5c342ba2f2f1f74adada6a276cbf6f8e9b83be865",
+    "teen": "4307030872b8200e43c35af16c9b924a0ded18fa0d8f50f57cfe43bc41827ee8",
+    "adult": "5d0643e2badc8f8b29fdde9bec8d5a699749df1f0228229eff42d0a0e5c472fe",
+    "senior": "e4ff8880dd8aa40f64f5daf4527a6f45df1574ca6da978944788d17c7b9f8a8d"
    }
   },
   {
