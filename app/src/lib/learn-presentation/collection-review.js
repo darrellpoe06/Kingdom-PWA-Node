@@ -34,6 +34,7 @@ export const RELATIONSHIP_FLAG = 6;
 export const RELATIONSHIP_REVIEWED_OUT = Object.freeze({
   'ea-gh-rock-house': 'building on the words of Jesus (Matthew 7:24-27), a foundation lesson, not a relationship between people',
   'ea-gh-abide-fruit': 'abiding in Jesus (John 15:5, 7), the vine and the branches, not a relationship between people',
+  'wk5-ai-that-serves': 'an AI course lesson on using the tool to serve others; it mentions elders and grandparents, but teaches the tool, not the relationship',
   'ea-gh-confess-cleanse': 'forgiveness from Yahweh (1 John 1:9), not between people',
   'ea-gh-friendship-world-enmity': 'friendship with the world system, not with people',
   'rto7-covenant-over-contract': 'a business course: covenant with customers and documents',
