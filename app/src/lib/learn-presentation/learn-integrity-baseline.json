@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T09:49:24.666Z",
+ "measuredAt": "2026-11-26T10:22:48.888Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4448
+  "readings": 4456
  },
  "departments": [
   {
@@ -13669,11 +13669,13 @@
    "department": "The Eternal Algorithms",
    "position": 16,
    "title": "Hunger and Suffer for Righteousness → Filled, and the Kingdom",
-   "contentSha": "87d28973b684f7c402f18534a34be3993923298830218014612e7e7485ad12e6",
+   "contentSha": "18170ec66913fa94c82a635876b30c73487fa3ab8844591c7c7cdd61eca3a96e",
    "versions": {
-    "teen": "29919841f106648990898bbe5d7efff03189569698dc7f86fb41912a5b5483f6",
-    "adult": "6e49847443d9e4c35cde35a9cef0c9bcff30e57efad6b1be81027b872f5d119b",
-    "senior": "0c93cadeec7279dccfa85eafbaef998bf26570cface5e39284c458b76805f462"
+    "child": "7ba7eda810ccea03917fac3012a70831eb385d93242b6def7947129ffe5ac359",
+    "youth": "12bafc86ef303a4b3a4387ffee1388aceec3b01994e91181d7949840c1c4b267",
+    "teen": "30c019b4350c9c4637253be3fd5b75b958efdc4c280d39ff447c2f558f5842e3",
+    "adult": "30d28f30ef97e15330ebf6f78c1b785891e493ce4b372238b178ee0ef46f43d6",
+    "senior": "d8b7a1db7cbb0f1a6b3e6bfac769db5a79d539540a3c055960676a01628a16b7"
    }
   },
   {
@@ -14265,11 +14267,13 @@
    "department": "The Eternal Algorithms",
    "position": 20,
    "title": "Every Soul Gets Its Turn (the testing)",
-   "contentSha": "98cda529d58abf67b5b06703a7d3632d0d2773dbe399da68d0512fba6db4649b",
+   "contentSha": "a431ceab1020b4597153b3f1aea60cdc7120b60dfeee5ca35d315d4008d340c5",
    "versions": {
-    "teen": "2dc897bc5fec9356a55430ed09f9b7c7554f3e072319e88c18db647c444b9408",
-    "adult": "85d5e641b4e98a39d99459825914ae0dee559dacc0407554bf56068401ab776c",
-    "senior": "27e47bdf762707d2e1381f21cdd79bde2b0d9d11e46d8ff69c900be58fd9fc9c"
+    "child": "f44390abcc91a7c68e44bd92fd487f8848b1ce6b22660c33eef8245501f21156",
+    "youth": "6f4cde77b4d14abbb2df7fb771daf6eb1fea06725334bea81eb3cfdda4e39897",
+    "teen": "9e50a1c3e0a3c4a1b4f1334a339e4d1e212d105873f4508d682929cfefae2305",
+    "adult": "870004b367371638ff70b0f125dcdfdeebaaffd71f57bf730d7b5804a247326c",
+    "senior": "cd153d000cd31217e77abdb80b357492292473d828e0aaf81a801b25956bfe59"
    }
   },
   {
@@ -14278,11 +14282,13 @@
    "department": "The Eternal Algorithms",
    "position": 21,
    "title": "The Sower Sets the Harvest (sparingly or bountifully)",
-   "contentSha": "2a69da5e81e837c7b9075c0550b93b98a6f124b7c9c5c13ba05010050cc834cd",
+   "contentSha": "2a00f99c131c27639d723ac7008bfe4e139a7f651326e879ce10f1c0525ac68a",
    "versions": {
-    "teen": "f7c6aa4dc136593df2a7e110316cf3e8cf2e880042178f8bd99f69fbc252bcb6",
-    "adult": "df27f039154be8237f8188b0252c5828b7895fca77692425d429c923717b9531",
-    "senior": "d7290457d8ba72a551e4fafc2339179d380ba25e30183d3c26491c9d87dda3cb"
+    "child": "9fbb8c807efb4819f82a1446e0d065975fe3f2eb5afbe358bfab6b5f2878661b",
+    "youth": "e39aec86cc9dbdb50fcf36c1ad37b7b68a550e83ca0f4b05a8e3ba98b8c9a49f",
+    "teen": "15502955b0178c3f8c900904a41cd6e9dffa992243a94fe0393a62151dd09d22",
+    "adult": "cd537b15c20c3b1fad1efa7eb4b3acd95bb5e5b814213a3b4d3d4b61becc993a",
+    "senior": "4ec61956e11a66d11c52bdf75c228f3d30d925e18a0770acf407aa98b005e435"
    }
   },
   {
@@ -14291,11 +14297,13 @@
    "department": "The Eternal Algorithms",
    "position": 22,
    "title": "Forsake Not the Assembling (the Tribe congregates)",
-   "contentSha": "0f02c4c8127e8f790e230b7edb25bb5c1b6b10513d8d18568936a69bcee739d5",
+   "contentSha": "f81fde6bab7b7df4647ae896bddd6ef16087f927d6b66a7c2decce3338aadcc8",
    "versions": {
-    "teen": "605335314a302ba7491c7f077f293476c377a025c194a494e7ee1816de588dd6",
-    "adult": "b110c1387d9abc8d04d0d8fab033aba67815d65ff7cca395b0491c24fb63f03f",
-    "senior": "be87238fb5118f77e14c2b78ec1c9de493579567366fa409678bf48402aacb6c"
+    "child": "610cbf6bfd1bd9975f8bfecd5db62a3c264d637cc2bf5c1ab5950fd31607b378",
+    "youth": "6ad9b165bdf6833a5a80bdc06359d4830b5a9d32eb77b157341e7f466efb0aee",
+    "teen": "3372f854d4ae957f0cb94467c5b62030197bd3a07de2189efdc89ea7ee605838",
+    "adult": "13528ff730127a4ad02c47f1ebb2c36fb5ea1ff40600dcd70ddedeb93628f51e",
+    "senior": "9294f8e6eaf1025bf24f1d175c984dc42ba2194a3fe9badb4d4363aaed245683"
    }
   },
   {
