@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T13:45:34.016Z",
+ "measuredAt": "2026-11-26T13:50:36.182Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4528
+  "readings": 4530
  },
  "departments": [
   {
@@ -13070,11 +13070,13 @@
    "department": "The Eternal Algorithms",
    "position": 14,
    "title": "Dwell in the Secret Place → Abide Under the Shadow",
-   "contentSha": "426fa823e6772561a056bc23bb72b586dc23ec1b7f0a07f51523caa98ce9f0b6",
+   "contentSha": "9eadc0900f4c7c11787f43556e8ab0fa6c45dec6fcef7bd8e4a66a160be6f839",
    "versions": {
-    "teen": "7b149fc8f8b9d609cd1242011d3cfa2324b6c6c71a7d8c2c4d04bc2512d84d8e",
-    "adult": "de31f78b72ee4a2210dbb5777ca9e9c726c73a8f243ea8fb63859c1e70adc41d",
-    "senior": "63cd96c8d6bce24c656be2276a2c37ecb8d74b802e9e5ffeb5b2edca103d059c"
+    "child": "0b1f59833a5356aa56d8f0df35e13baa12d9f8be81aa60e280eb38808d442bfd",
+    "youth": "b38b87f512c31daa4aa035aa2323365b9fc518a65d00975967ebc3343bb3e54e",
+    "teen": "2603c9d4a4986ac4d4bae82e0e56ec7be25665d8b9149920a02bd2fa6376b73d",
+    "adult": "96a7c944cd38d4d5283a713e8e92a59e636aedd249f0bde06cdb75c872301566",
+    "senior": "5c36c25835fdb088bff1a43d8f8f926cd2c341122996c27aaa4e7d411d54d8f8"
    }
   },
   {
