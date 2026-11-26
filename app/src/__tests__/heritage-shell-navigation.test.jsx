@@ -76,7 +76,8 @@ describe('nav-items: the list the shell used to hold inline', () => {
   });
 
   it('the bottom bar is Home, Big Picture, Books, Messages — Home opens the Life Hub, Big Picture the dashboard', () => {
-    expect(BOTTOM_NAV.map((t) => t.key)).toEqual(['home', 'bigpicture', 'books', 'messages']);
+    // Learn and the Institute joined the bar 2026-11-26 (Darrell: "one click"); see one-tap-learn-institute.test.jsx.
+    expect(BOTTOM_NAV.map((t) => t.key)).toEqual(['home', 'bigpicture', 'books', 'messages', 'learn', 'institute']);
     expect(BOTTOM_NAV[0]).toMatchObject({ view: 'overview', home: 'lifehub' });
     expect(BOTTOM_NAV[1]).toMatchObject({ view: 'overview', home: 'current' });
   });

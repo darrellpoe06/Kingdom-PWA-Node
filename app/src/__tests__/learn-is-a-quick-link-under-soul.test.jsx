@@ -28,7 +28,7 @@ describe('the Soul group carries a Learn quick link', () => {
   it('Learn sits in Soul beside Church, Study, Library and Academy, and opens Church on its Learn tab', () => {
     const g = soul(navItems(FAMILY));
     expect(g.items.map(([id]) => id)).toEqual(['church', 'study', 'library', 'store', 'cohorts']); // 'store' joined Soul beside Library (DR-1449)
-    expect(g.links.map((q) => q.key)).toEqual(['learn']);
+    expect(g.links.map((q) => q.key)).toEqual(['learn', 'institute']); // the Institute joined Learn 2026-11-26 (one click to the theology space)
     expect(g.links[0]).toMatchObject({ view: 'church', churchView: 'learn', words: 'Learn' });
   });
 
@@ -38,7 +38,7 @@ describe('the Soul group carries a Learn quick link', () => {
   });
 
   it('the church door alone still gets Learn, because it opens Church', () => {
-    expect(soul(navItems({ ...FAMILY, churchDoorOnly: true })).links.map((q) => q.key)).toEqual(['learn']);
+    expect(soul(navItems({ ...FAMILY, churchDoorOnly: true })).links.map((q) => q.key)).toEqual(['learn', 'institute']);
   });
 
   it("PROVEN TO CATCH: without Church in the reader's list there is no Learn door to a locked room", () => {
@@ -83,7 +83,7 @@ describe('pressing it lands on Learn', () => {
     });
     const row = container.querySelector('[data-testid="dock-more-group-soul"]');
     const order = [...row.querySelectorAll('button')].map((b) => b.getAttribute('data-testid'));
-    expect(order).toEqual(['dock-more-church', 'dock-more-study', 'dock-more-library', 'dock-more-store', 'dock-more-cohorts', 'dock-more-quick-learn']);
+    expect(order).toEqual(['dock-more-church', 'dock-more-study', 'dock-more-library', 'dock-more-store', 'dock-more-cohorts', 'dock-more-quick-learn', 'dock-more-quick-institute']);
     const learn = row.querySelector('[data-testid="dock-more-quick-learn"]');
     expect(learn.textContent).toBe('Learn');
     expect(learn.getAttribute('aria-current')).toBeNull();

@@ -238,10 +238,14 @@ export default function ChromeDock({ onFeedback, feedbackOpen = false, church = 
       scrollPageToTop();
     }
   };
-  const tabActive = (t) => nav && nav.view === t.view && (!t.home || (nav.homeView || 'current') === t.home);
+  const tabActive = (t) =>
+    nav && nav.view === t.view && (!t.home || (nav.homeView || 'current') === t.home) && (!t.churchView || nav.churchView === t.churchView);
   const goTab = (t) => {
     setMoreOpen(false);
-    if (nav && nav.onNavigate) nav.onNavigate(t.view, t.home);
+    if (nav && nav.onNavigate) {
+      if (t.churchView) nav.onNavigate(t.view, t.home, t.churchView);
+      else nav.onNavigate(t.view, t.home);
+    }
   };
   const goSection = (id) => {
     setMoreOpen(false);
@@ -449,7 +453,7 @@ export default function ChromeDock({ onFeedback, feedbackOpen = false, church = 
                         onClick={() => goTab(t)}
                         aria-current={tabActive(t) ? 'page' : undefined}
                         title={t.words}
-                        className={`${tabActive(t) ? DOCK_BTN_ON : DOCK_BTN} ${FOCUS}`}
+                        className={`${tabActive(t) ? DOCK_BTN_ON : DOCK_BTN} poe-dock-compact ${FOCUS}`}
                       >
                         <span aria-hidden="true" className={DOCK_ICON}>
                           <UiIcon name={t.icon} />

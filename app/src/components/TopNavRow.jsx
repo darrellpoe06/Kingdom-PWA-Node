@@ -53,6 +53,11 @@ export default function TopNavRow({ hatch = null, navHistory = {}, collapsed = f
   // The account takes the slack, so it and the chevron hold the right edge.
   const acct = collapsed && account ? <div data-testid="top-nav-account" className="ml-auto shrink-0 self-center px-1">{account}</div> : null;
   const lone = loneTab(children);
+  // Learn and the Institute as tabs of their own in the strip (Darrell
+  // 2026-11-26: one click). The quick links of the reader's own gated groups
+  // (lib/nav-items NAV_QUICK_LINKS), so a door without Church shows neither.
+  const quickLinks =
+    map && typeof map.onNavigate === 'function' && Array.isArray(map.groups) ? map.groups.flatMap((g) => (Array.isArray(g.links) ? g.links : [])) : [];
   // ONE WAY BACK PER PHONE ROW (DR-0640). When the collapsed row sits inside
   // the one-tab row, its "Show header" button and this chevron do the same
   // thing side by side. Measured at 320 px: with both, "Show header" and the
@@ -113,6 +118,31 @@ export default function TopNavRow({ hatch = null, navHistory = {}, collapsed = f
                 {children}
               </TabScroll>
             </div>
+            {/* LEARN AND THE INSTITUTE, ALWAYS IN VIEW (Darrell 2026-11-26: "one
+                click"). Pinned beside the strip, not inside it: at the end of
+                ~35 scrolling tabs they sat off-screen (measured at 800px), and
+                a door you must scroll to find is not one click. The strip's
+                own order is unchanged. From lg the sidebar carries them. */}
+            {quickLinks.length > 0 && (
+              <div data-testid="top-nav-quick" className={`hidden sm:flex shrink-0 items-stretch border-l border-[#E8E4DC] ${tabsHidden ? 'lg:hidden' : ''}`}>
+                {quickLinks.map((q) => {
+                  const on = map.view === q.view && map.churchView === q.churchView;
+                  return (
+                    <button
+                      key={`q-${q.key}`}
+                      type="button"
+                      data-testid={`top-nav-quick-${q.key}`}
+                      title={q.title}
+                      aria-current={on ? 'page' : undefined}
+                      onClick={() => map.onNavigate(q.view, null, q.churchView)}
+                      className={`px-2.5 sm:px-3 py-2.5 whitespace-nowrap border-b-2 transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] ${on ? 'border-[#B85838] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}
+                    >
+                      {q.words}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
             {/* THE OPENERS LEFT THIS ROW (Darrell 2026-10-21: "The Garage Door
                 will get pressed accidentally move it to the open space in the
                 header"). The garage and the household openers now sit in the
