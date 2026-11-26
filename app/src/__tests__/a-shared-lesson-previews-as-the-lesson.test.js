@@ -24,7 +24,7 @@ describe('the preview index and the link', () => {
     expect(PREVIEW_DOORS.poetech.path).toBe(LESSON_DOORS.poetech.path);
   });
 
-  it('a lesson link is sent through its door\'s preview page; anything else is unchanged', () => {
+  it("a lesson link is sent through its door's preview page; anything else is unchanged", () => {
     expect(lessonPreviewUrl(`https://poetech.us/lovecorner/app/${Q}`)).toBe(`https://poetech.us/l/lovecorner/${Q}`);
     expect(lessonPreviewUrl(`https://poetech.us/poetech-app/${Q}`)).toBe(`https://poetech.us/l/poetech/${Q}`);
     expect(lessonPreviewUrl('https://poetech.us/moore/')).toBe('https://poetech.us/moore/');
@@ -36,7 +36,7 @@ describe('the preview page', () => {
   const env = (body, ok = true) => ({ ASSETS: { fetch: async () => ({ ok, json: async () => body }) } });
   const hit = async (path, e = env(INDEX)) => onRequest({ request: new Request(`https://poetech.us${path}`), env: e });
 
-  it('shows the lesson\'s cover and title, short and sweet, and refreshes into the lesson with the same query', async () => {
+  it("shows the lesson's cover and title, short and sweet, and refreshes into the lesson with the same query", async () => {
     const res = await hit(`/l/lovecorner/${Q}`);
     expect(res.status).toBe(200);
     const html = await res.text();

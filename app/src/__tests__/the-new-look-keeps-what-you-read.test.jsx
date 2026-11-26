@@ -18,7 +18,18 @@ const LESSON = COURSES.find((c) => c.key === LL).schedule.find((l) => l.id === '
 let container, root;
 beforeEach(() => {
   window.localStorage.clear();
-  window.speechSynthesis = { speaking: false, pending: false, paused: false, speak() {}, cancel() {}, pause() {}, resume() {}, getVoices: () => [], addEventListener() {}, removeEventListener() {} };
+  window.speechSynthesis = {
+    speaking: false,
+    pending: false,
+    paused: false,
+    speak() {},
+    cancel() {},
+    pause() {},
+    resume() {},
+    getVoices: () => [],
+    addEventListener() {},
+    removeEventListener() {},
+  };
   container = document.createElement('div');
   document.body.appendChild(container);
   root = createRoot(container);
@@ -45,12 +56,25 @@ describe('what you read in the new look is kept where the app looks for it', () 
     let opener = null;
     const seen = [];
     const lessonToolsFor = (lesson, course) => {
-      const t = experienceTools({ module: lesson, course: { ...course, key: course.key }, ageBand: 'adult', versionCount: 0, savePlace: studioSavePlace({ courseKey: course.key, lesson, ageBand: 'adult' }) });
+      const t = experienceTools({
+        module: lesson,
+        course: { ...course, key: course.key },
+        ageBand: 'adult',
+        versionCount: 0,
+        savePlace: studioSavePlace({ courseKey: course.key, lesson, ageBand: 'adult' }),
+      });
       return { ...t, onSeen: (f, v) => (seen.push(f), t.onSeen(f, v)) };
     };
     act(() =>
       root.render(
-        <LearnStudioPreview courses={COURSES} onOpenLesson={() => {}} onExit={() => {}} ownerDevice registerOpener={(fn) => (opener = fn)} lessonToolsFor={lessonToolsFor} />
+        <LearnStudioPreview
+          courses={COURSES}
+          onOpenLesson={() => {}}
+          onExit={() => {}}
+          ownerDevice
+          registerOpener={(fn) => (opener = fn)}
+          lessonToolsFor={lessonToolsFor}
+        />
       )
     );
     act(() => opener(LL, LESSON.id, { mode: 'read' }));

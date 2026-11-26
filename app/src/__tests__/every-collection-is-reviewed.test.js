@@ -27,7 +27,12 @@ describe('Relationships: every flagged lesson is judged, and the section is larg
   });
 
   it('four sections, more than double the first 19', () => {
-    expect(RELATIONSHIP_GROUPS.map((g) => g.label)).toEqual(['Marriage & Love', 'Family & Children', 'Friends, Neighbors & the Church', 'Hard Conversations, Offense & Forgiveness']);
+    expect(RELATIONSHIP_GROUPS.map((g) => g.label)).toEqual([
+      'Marriage & Love',
+      'Family & Children',
+      'Friends, Neighbors & the Church',
+      'Hard Conversations, Offense & Forgiveness',
+    ]);
     expect(RELATIONSHIP_LESSONS.length).toBeGreaterThan(38);
   });
 });
