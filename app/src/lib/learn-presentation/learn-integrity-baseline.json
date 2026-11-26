@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T10:18:34.688Z",
+ "measuredAt": "2026-11-26T10:22:48.888Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4454
+  "readings": 4456
  },
  "departments": [
   {
@@ -13669,11 +13669,13 @@
    "department": "The Eternal Algorithms",
    "position": 16,
    "title": "Hunger and Suffer for Righteousness → Filled, and the Kingdom",
-   "contentSha": "87d28973b684f7c402f18534a34be3993923298830218014612e7e7485ad12e6",
+   "contentSha": "18170ec66913fa94c82a635876b30c73487fa3ab8844591c7c7cdd61eca3a96e",
    "versions": {
-    "teen": "29919841f106648990898bbe5d7efff03189569698dc7f86fb41912a5b5483f6",
-    "adult": "6e49847443d9e4c35cde35a9cef0c9bcff30e57efad6b1be81027b872f5d119b",
-    "senior": "0c93cadeec7279dccfa85eafbaef998bf26570cface5e39284c458b76805f462"
+    "child": "7ba7eda810ccea03917fac3012a70831eb385d93242b6def7947129ffe5ac359",
+    "youth": "12bafc86ef303a4b3a4387ffee1388aceec3b01994e91181d7949840c1c4b267",
+    "teen": "30c019b4350c9c4637253be3fd5b75b958efdc4c280d39ff447c2f558f5842e3",
+    "adult": "30d28f30ef97e15330ebf6f78c1b785891e493ce4b372238b178ee0ef46f43d6",
+    "senior": "d8b7a1db7cbb0f1a6b3e6bfac769db5a79d539540a3c055960676a01628a16b7"
    }
   },
   {
