@@ -165,7 +165,7 @@ const MODULES_BY_FILE = {
 // restored, closing 145 gated faults. succession-class.js reaches ZERO and
 // leaves this list entirely; every other number is the pin it measured after.
 const PINNED = {
-  'broadcast-class.js': 3, // 3 on 2026-11-26: bc4 rewritten as a full lesson with every quote filled from the KJV
+  'broadcast-class.js': 2, // 2 on 2026-11-26: bc4 and bc8 rewritten as full lessons with every quote filled from the KJV (was 4)
   'business-research-course.js': 1,
   'buying-terms-course.js': 4,
   'datasystems-course.js': 1,
