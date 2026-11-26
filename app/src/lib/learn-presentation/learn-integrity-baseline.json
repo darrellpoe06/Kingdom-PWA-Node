@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T16:13:35.866Z",
+ "measuredAt": "2026-11-26T16:22:36.632Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4570
+  "readings": 4572
  },
  "departments": [
   {
@@ -546,11 +546,13 @@
    "department": "Serve the House",
    "position": 1,
    "title": "The whole chain — sanctuary to the world",
-   "contentSha": "26e05dedff924f32a96d7c64afb31a14ea5bec2d8f40a7e722e70519c7d411b9",
+   "contentSha": "10ddb49132a47d2ad5135ea424a2969dbdc20f8d4ca101f02e3ad97bffb5a3d1",
    "versions": {
-    "teen": "2b31bb577a0c08f298490bf6a3ba5b09b190e18ed106928bb33d791cfc97ebea",
-    "adult": "d1a8bff40f1ec6f232776b6f339af9038237a9dd1f4d21a5f05d2add9511c6c0",
-    "senior": "f0d501d594e019621e68f3adbe23f620181c4369dd4b157f77f8681b332c6a64"
+    "child": "b72a7e6703d4b824765c60f03b6481156203f84c86f8123f46dab926cc44eaad",
+    "youth": "2c75e107d668eaa83ea6f4ab5c28df5a98ac0ed3a3d6b7761e4140af055dc945",
+    "teen": "74dd33e97db1abbb43ac430c7a27f4260140a066d5fe87a334c3e326344b9523",
+    "adult": "65eaa124e7d8ba2dcd4ea031d5b2cc5f62ec205f6264e8a92a9f58ada58a72f4",
+    "senior": "4ae38037dc12d8869f5b7e9d9300c67bf2e0060b078d10e208ee6fbb388ce0a1"
    }
   },
   {
