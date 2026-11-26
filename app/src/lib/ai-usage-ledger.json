@@ -2320,6 +2320,21 @@
       "notes": "Measured 994 lessons, 37 age-only, 0 without words."
     },
     {
+      "id": "blessings-overtake-full-lesson",
+      "date": "2026-11-26",
+      "task": "Blessings That Overtake You: a full Word-first lesson on why blessings pursue and Who sends them, with four age versions",
+      "drs": [
+        "DR-1665"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.6,
+      "estimateWithoutAiHours": 8,
+      "notes": "45/45 teaching + course; 77 verses filled verbatim."
+    },
+    {
       "id": "dr-1419-course-list-standing",
       "date": "2026-11-10",
       "task": "The Learn course picker says each course's standing, the list in numbers, and the two nearest wins",
