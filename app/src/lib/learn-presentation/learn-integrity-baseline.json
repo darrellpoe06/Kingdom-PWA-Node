@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T09:17:20.693Z",
+ "measuredAt": "2026-11-26T09:36:24.840Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4440
+  "readings": 4442
  },
  "departments": [
   {
@@ -14733,11 +14733,13 @@
    "department": "The Eternal Algorithms",
    "position": 4,
    "title": "Nothing That Defileth Enters (no more lucifers in the Kingdom)",
-   "contentSha": "404cdb9f91bb40950cce61f23eac0d77b0f805f5646904b360c0575914e736d5",
+   "contentSha": "301591453df023b2a6d74cb34dbbbaa991e0bae47a5f0053686e3f60cdff4ff1",
    "versions": {
-    "teen": "0e4f7b54290fe176ad77c692bda223ae5e1e200e885abb1d7924bde7842da2b8",
-    "adult": "c7d4b2238355a0ee2414adfaf4720b0fac2467e793d3d757990cb2d79d0e15e7",
-    "senior": "d853db23f7aae67ddbd8efb55ccc803359c4193a4397721075e588d097e1f6bc"
+    "child": "b1c4eb144ad6dc691779161395611fd1228644f6a06c9cb8f55a36150d993681",
+    "youth": "dfd6674f0c6c45d071658ad13869e6c44c7c206f8293b030770126c1afdbc7e9",
+    "teen": "4b4aa8fed803139de395a259cbd34f7c1179ffbed53c5c3c6da87f917b7e0fec",
+    "adult": "f45042f3b6a3f2859d9d5c9e9f60bf1f13fbc46e894986a322bf593e308b8f0c",
+    "senior": "f23a422bf6dd4dd3d8529f1ea763b8cc1db57aa3e698450f8bc53dc11254d738"
    }
   },
   {
