@@ -61,9 +61,11 @@ export const ADULT_FALLBACK = ['senior', 'teen', 'youth', 'child'];
  * letters), starts after a sentence end, ends in . ? or !, and is not inside a
  * quotation. Only whitespace changes; every word stays.
  */
+const BROKEN = new Map(); // text -> broken text: the reader re-renders often, the lessons do not change
 export function breakAtLeads(text) {
   if (!own(text)) return text;
-  return text.replace(/([.!?]["”’)]?) ([A-Z][A-Z,'’:-]*(?: [A-Z][A-Z,'’:-]*)+[.?!])(?= [A-Z"“])/g, (all, end, lead, offset, whole) => {
+  if (BROKEN.has(text)) return BROKEN.get(text);
+  const out = text.replace(/([.!?]["”’)]?) ([A-Z][A-Z,'’:-]*(?: [A-Z][A-Z,'’:-]*)+[.?!])(?= [A-Z"“])/g, (all, end, lead, offset, whole) => {
     if (lead.replace(/[^A-Z]/g, '').length < 10) return all;
     const before = whole.slice(0, offset + end.length);
     const straight = (before.match(/"/g) || []).length;
@@ -72,6 +74,8 @@ export function breakAtLeads(text) {
     if (straight % 2 === 1 || opens > closes) return all;
     return `${end}\n\n${lead}`;
   });
+  BROKEN.set(text, out);
+  return out;
 }
 
 const join = (...parts) => parts.filter((p) => own(p)).join('\n\n');
@@ -83,8 +87,17 @@ const join = (...parts) => parts.filter((p) => own(p)).join('\n\n');
  * `lesson`, else the band key), because it is read AFTER the lesson's stories:
  * the last thing read is the payoff (Darrell: "I just needed to feel full").
  */
+const WRAPPED = new WeakMap(); // row -> wrapped row, so a re-render reuses the same object
 export function withTitleAnswer(m, entry) {
   if (!m || !entry || entry.verdict === 'ANSWERS-CLEARLY' || !own(entry.close)) return m;
+  const hit = WRAPPED.get(m);
+  if (hit && hit.entry === entry) return hit.row;
+  const row = wrap(m, entry);
+  WRAPPED.set(m, { entry, row });
+  return row;
+}
+
+function wrap(m, entry) {
   const levels = m.levels && typeof m.levels === 'object' ? m.levels : null;
   const adultKey = own(m.lesson) ? 'lesson' : ADULT_FALLBACK.find((k) => levels && own(levels[k])) || null;
   if (!adultKey) return m;
