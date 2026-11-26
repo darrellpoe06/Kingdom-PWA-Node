@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T14:00:38.883Z",
+ "measuredAt": "2026-11-26T14:05:10.652Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4534
+  "readings": 4536
  },
  "departments": [
   {
@@ -13254,11 +13254,13 @@
    "department": "The Eternal Algorithms",
    "position": 3,
    "title": "The Son Who Sees and Turns (generational curses break)",
-   "contentSha": "3fd62f247087b64990895d0037160dda849664085cd31b82e72f815d43b8286d",
+   "contentSha": "f1f7c247129a1b154c2970c7ce57294e6874a7175f85fd43acc6cfe3d051423c",
    "versions": {
-    "teen": "1e51dbc121e351c73947e0ae752abd44aa4fe61142cc2561495ac8a4b105fad9",
-    "adult": "d99211b9e85bcee7036afb5031b15872ff22734564a7d91a1257b4e65a4441be",
-    "senior": "28ac357b45d9e1e75ab0896c37fb4a4f02fb4bda82f61757948dc68f4c7f8c0e"
+    "child": "e31b24da34f7daa4e02206796baaf4401c9f77785bf0d1e263d7a3f515856f9f",
+    "youth": "13693df931bfbac886255f863fec61849606a17680e6a3ab94e7289350ca40f8",
+    "teen": "22f097fbfd54cd38877242cce2259dc9ea43806a57f2b13cfa5033fa9614b9e9",
+    "adult": "c644eb78a8be038bdccca16f0eb108875dd5098d8198641e2d5be122d4b34e2c",
+    "senior": "bd0fef800970bc3058ddd5313b6dd8ce1923ddf7da76e6e4817f3107d89ece00"
    }
   },
   {
