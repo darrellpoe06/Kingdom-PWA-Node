@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T04:33:20.206Z",
+ "measuredAt": "2026-11-26T04:37:18.409Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4322
+  "readings": 4324
  },
  "departments": [
   {
@@ -14556,11 +14556,13 @@
    "department": "The Eternal Algorithms",
    "position": 47,
    "title": "Where Guilt Comes From (conviction walks you home; accusation walks you off)",
-   "contentSha": "9d1ae73c5c8fccef3cd798a4b2b7d749bf30436bdc4ee911891b827d22b7c3a4",
+   "contentSha": "8d75fbd4ccabb5e25fb37630fcdd6589aa7c025909a3fa98cb621352cfe08128",
    "versions": {
-    "teen": "714caf67f82da4599e14eb75b37202ed1c520e81fa85141a93fcf8885cac3653",
-    "adult": "a56cb409668d44236c1dfe284378b8d0079751b664697a53e278b78896a8837b",
-    "senior": "bcd594db2249032097eba2c71a9991801b89fe09fb0dca73a62ca5f04bf6f3ee"
+    "child": "3616ac262b51416bf29292fd281e3e0c58716e9d8a93d6297d77b1e2b8e560f4",
+    "youth": "b737e68eb40b15c96b381092f9f697468a961a8e1ce9e90b054657dfe6d5a625",
+    "teen": "04e589e5ad6e964bed6fe7069ca1be21d2c54bbf20247c0b67c568997e7bf3ec",
+    "adult": "a04b47b2d8658a179f3c86b202772c32e8adc6d80ae4ae6b1d8be844d6cc721a",
+    "senior": "7cadadcacb1df39c2bcd6df26ea35c9fc5b61b337244deb54ce986a7968e9058"
    }
   },
   {
