@@ -19,11 +19,21 @@ A title and keyword search filled the Learn Relationships shelf with a few dozen
 2. **L344, How Relating Works** teaches the first teaching: four age versions, two parables, ten questions, facilitator. 106 verses filled from the corpus.
 3. **L345, The Mirror** teaches the second (James 1:23-25 the mirror; Hebrews 4:12 soul and spirit; Mark 10:44 the servant king; Psalms 1:3 the tree; John 14:6). Where the Word is reticent (whether the human spirit pre-existed), the lesson teaches only what is written and says so.
 
-## Measured
+## What was measured
 
 - L344: gate 9/9; own-voice words adult 1052, bands child 0.53, youth 0.60, teen 0.61, senior 0.64 of it; reading grades child 0.9 < youth 3.8 < teen 5.6 < senior 8.1; worst band overlap 0.04.
-- L345: gate 9/9; shares 0.52 / 0.62 / 0.64 / 0.66; grades 1.0 < 3.5 < 5.0 < 7.6; 102 quotations.
+- L345: gate 9/9; shares 0.52 / 0.63 / 0.63 / 0.62; grades 1.0 < 3.5 < 4.9 < 7.6.
 - `quoted-verse-is-the-verse.test.js` 17/17 with both lessons in the catalog.
+- L345 first measured 1372 adult words, under the 1500 floor (DR-1353); a Word-only section brought it to 1537.
+
+## Impact
+
+The word Relationships now has one written meaning on the platform, and two lessons teach it at every age. The Learn shelf can be sorted against it (DR-1694) instead of by title search.
+
+## Verification
+
+- Lesson gates, length gate and catalog verse gate pass locally (22/22 and 17/17); CI on the PR is the full suite.
+- After merge: both lessons open in Learn on the live build, and the definition is routed from docs/CONTEXT.md.
 
 ## Open
 
