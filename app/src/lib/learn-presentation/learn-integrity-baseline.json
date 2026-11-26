@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T10:54:16.817Z",
+ "measuredAt": "2026-11-26T11:33:49.998Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4464
+  "readings": 4472
  },
  "departments": [
   {
@@ -14208,11 +14208,13 @@
    "department": "The Eternal Algorithms",
    "position": 15,
    "title": "The Good Fight (joy is strength — happiness is weather)",
-   "contentSha": "b2ddd280090c0f06463545fe2468e9c475bec4cca8a654e53d2fea26a40609d5",
+   "contentSha": "2cfadb129ca212656ef396e7a76841ee97b0709a9a12393c5565068f1f695333",
    "versions": {
-    "teen": "99b779b58ba14c7af27e5a50f43c1111a990c752955a57a907a55d84740ad40d",
-    "adult": "bff5130280da3650d0fc551b155e98821527842c9cbc7998345288f9748fbd0f",
-    "senior": "4951177c7a90447174d6e5cf58e5367b10e4c7a8e5a93976b50fa309388a997d"
+    "child": "e37587214e5c666554417b756524ab9462d70480d76315a53fb4d244d439585c",
+    "youth": "41928a1b28492662a59f68d3f509b5df1303008500b6c9670ac6802bf69e8ec9",
+    "teen": "693713631082c3fa8d85dc8496c7ce9ac2edc61c5b85585d7507a821584a33b7",
+    "adult": "59bd336e458e41d5fbce04f13fe6161a7212405a0b5f02ba6b15fb905f37d705",
+    "senior": "547f41ef26ed5aa33cf522673e83a57e243b5c9166e2438a877aabd5ec341477"
    }
   },
   {
@@ -14221,11 +14223,13 @@
    "department": "The Eternal Algorithms",
    "position": 16,
    "title": "Seated in Heavenly Places (right now — support each other while we grow)",
-   "contentSha": "d00302da41c7333c0cd433a470ce1d9dfd08fc019058990b8f34f8e47dab95d5",
+   "contentSha": "fbc2ae7bf0f54bb28f21c2940a83e8cba4068b4806f18c870173e81eaf1b7449",
    "versions": {
-    "teen": "bf86f87c815ccbcd8f51c7cb72cb0b9e9cea105a5b2e91a90b729b771131f522",
-    "adult": "bfffaf4e3211fa41d17d34d055056fd5c9e6654feec3a2524c4ac6d3b19a47d5",
-    "senior": "f9d69e108397c930fd73dd5d943fd31a09d0ef46b7930c970885a907677e5e8a"
+    "child": "745dc6d600b02c775eabc9f142fb0d80919263ebbacdcaae21341122f913b419",
+    "youth": "12bf9b890ae1cd25d2e15ee8e27b86b8f0d8c58421dbc75179cffc24e32c543b",
+    "teen": "19fe263e3e46403e4b323177cd54d4bb101c310bb968a4d27db2442f08e2c876",
+    "adult": "c858b887ef40641ed0fec388b5a6a37b086e929511aa38a4204dd02c039dbbef",
+    "senior": "85ba41b681d4d1d07634e082e094ab4750249887f4a24d30bd56fed50b5ac26e"
    }
   },
   {
@@ -14234,11 +14238,13 @@
    "department": "The Eternal Algorithms",
    "position": 17,
    "title": "Vengeance Is His (we're eternal anyway — forgive)",
-   "contentSha": "70ed882197b12a8ddc73638c365b357c29c509aca334f1338d02a5687e8113f8",
+   "contentSha": "d1122dacabcf3fb4690bc708dd0b2b0e669bf1b6a0a7f37ba6ef3465668c34f6",
    "versions": {
-    "teen": "7e516e3eda2ec05c68eaabb2e411a9b82e0bbb91da4f36bcfd3fdc650a959ce1",
-    "adult": "bfdc0b8b4281b8b5732ce687149f02aa756acdb4193a4d120360349b13e97ece",
-    "senior": "23c3bcde1099bdd00977ab6efae2ac81cccc6f5f2496bf7d7ea3e47034cb1006"
+    "child": "8ac4b3ef6441aed7f2def677e3c7da2e6ebcd9eb9909dd9d3febf25ec2e1013f",
+    "youth": "f2e8dbde2a5d2d13d14e617f0c0be93b0f39b2bd805321d8010a0155731835e1",
+    "teen": "f9456fe90f067c14a0b7d4e53b1ca19270f170dca684cdd0ada20046228e4c63",
+    "adult": "43465d203f2f7e5a5adc48982ab5c67edbb19b46c131c35062ece8591b045762",
+    "senior": "702fcbe9d70fa934293035cf1018388c0e94bbb3995cd4a456aab5e11d9a25bf"
    }
   },
   {
@@ -14247,11 +14253,13 @@
    "department": "The Eternal Algorithms",
    "position": 18,
    "title": "Humble Yourself Under His Hand → Exalted",
-   "contentSha": "7b3d7b7b7bd7f65f776c35eba52f2f814470b42ba5748942c07d502f579e6bc8",
+   "contentSha": "46402f1b8e55846ebb818aad79234ba56d92d15efa0de6d129dbb421cbc0c2e2",
    "versions": {
-    "teen": "7edbb0872716b08b1d59d9e17ae3351c40a6d1ded61fe6f9ae7317ef81a7b874",
-    "adult": "9e502a96580b78ea5288f35ce3267a3b5a4c253f837a318b390a9e843e5716b0",
-    "senior": "c41091270d2565295e2c5c89582fb432fb12db84c7691e883631ad2aaf5cca23"
+    "child": "c512841ba530c4bd2c05add92122d66afeacbbc474e09733c2a424dad946b5aa",
+    "youth": "b6cccb2a464e9eeaa6649801d550f524c144cec43a11fe152008b5009cf87ced",
+    "teen": "1960d3013ae496f9ae61fd12dbbea3f581195f06044edc5de6a2bd5d11afc791",
+    "adult": "9517c8cada2917ef2351cff191185d1773a48d39f3e08f990cd379de929c3e9d",
+    "senior": "2b892c65643c1f07950d8fd89572ec03fa8ec884ddca335757c9081d173c532a"
    }
   },
   {
