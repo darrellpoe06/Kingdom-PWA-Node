@@ -32,7 +32,7 @@ export const PV_UNSEEN_REALM = [
           'The teaching itself: the unseen realm to be seen; the father of lies tells subtle lies, so close to the truth they cannot be seen; leaders call it justice while keeping justice and righteousness apart and keeping the Word muted; the Truth wins the war Himself and through us; keep your eyes on the prize of the high calling; there is a moral standard throughout all ages; nothing can be lost, it is in His hands.',
         title: 'Spoken teaching, Prophetic Voices thread, 2026-11-26',
         publisher: 'Darrell Poe (spoken into the PoeTech build channel)',
-        url: 'https://github.com/darrellpoe06/Kingdom-PWA-Node/blob/main/docs/decisions/DR-1686-let-them-speak-the-prophetic-voices-teach-what-they-said.md',
+        url: 'https://github.com/darrellpoe06/Kingdom-PWA-Node/blob/main/docs/decisions/DR-1697-let-them-speak-the-prophetic-voices-teach-what-they-said.md',
         asOf: '2026-11-26',
       },
       {

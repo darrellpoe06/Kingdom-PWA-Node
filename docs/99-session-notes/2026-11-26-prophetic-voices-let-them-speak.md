@@ -1,6 +1,6 @@
-# Session note: the Prophetic Voices teach what they said (DR-1686)
+# Session note: the Prophetic Voices teach what they said (DR-1697)
 
-The full narrative behind DR-1686, moved here so the record stays within its length ratchet.
+The full narrative behind DR-1697, moved here so the record stays within its length ratchet.
 
 ## Context
 
