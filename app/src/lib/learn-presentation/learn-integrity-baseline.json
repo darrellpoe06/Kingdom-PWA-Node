@@ -1,5 +1,5 @@
 {
- "measuredAt": "2026-11-26T17:34:23.432Z",
+ "measuredAt": "2026-11-26T17:41:50.694Z",
  "counts": {
   "departments": 13,
   "courses": 51,
@@ -711,13 +711,13 @@
    "department": "Serve the House",
    "position": 3,
    "title": "Never lose the family’s data — disks, RAID, and backups",
-   "contentSha": "6f2522e9bd18771ebeae7b647d44124ce47785c76e30d4dc59d3c9c533a5ac40",
+   "contentSha": "9b4cf619bb16dc8aa8a2d26e4e72058657ebd8fe3287889d194d52d717cebab1",
    "versions": {
-    "child": "a89f42976c69fa34a6609842af9352cfedb072643f596a42ce790ea9b98775cf",
-    "youth": "8ce280d9db1c685928f754d57aec487f5b76c4fd5586a15dfcd206b041fe66d4",
-    "teen": "dc6eb313970ce04d51b7e20b84ab18405784e5a8e92040a3fa939bb4bd400285",
-    "adult": "4c2bbb8a032998241d7ac762d4f1c568eee0601248f4b361bbc3333fa0504315",
-    "senior": "8699c5b63a9e8e38df18ff71b0ca6bba7ce981e08f6bcdb91b07740d36449a49"
+    "child": "4a1a9460409e248ed7fe6eddcb303a809f328da16588b6daa04f25a5fd4e4ab4",
+    "youth": "3b5dee4825dbd034ed2c66dda0fa379385d6d461759645d77ded7efcc8ef1f71",
+    "teen": "e489bac3c6489a381d6b940a376aba3ab5104e5507c09d9d469e86c59a597f11",
+    "adult": "5709ca095be1aba131f83020b3a8b98ab6ef4ed2cdb247e7a8b373f49560c981",
+    "senior": "b35eaedfd1d047b282cbeebd26bef228ec748b8099799e3fc6bfdbf839296134"
    }
   },
   {
