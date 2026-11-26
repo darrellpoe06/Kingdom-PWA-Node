@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T11:26:13.190Z",
+ "measuredAt": "2026-11-26T11:30:16.349Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4468
+  "readings": 4470
  },
  "departments": [
   {
@@ -14221,11 +14221,13 @@
    "department": "The Eternal Algorithms",
    "position": 16,
    "title": "Seated in Heavenly Places (right now — support each other while we grow)",
-   "contentSha": "d00302da41c7333c0cd433a470ce1d9dfd08fc019058990b8f34f8e47dab95d5",
+   "contentSha": "fbc2ae7bf0f54bb28f21c2940a83e8cba4068b4806f18c870173e81eaf1b7449",
    "versions": {
-    "teen": "bf86f87c815ccbcd8f51c7cb72cb0b9e9cea105a5b2e91a90b729b771131f522",
-    "adult": "bfffaf4e3211fa41d17d34d055056fd5c9e6654feec3a2524c4ac6d3b19a47d5",
-    "senior": "f9d69e108397c930fd73dd5d943fd31a09d0ef46b7930c970885a907677e5e8a"
+    "child": "745dc6d600b02c775eabc9f142fb0d80919263ebbacdcaae21341122f913b419",
+    "youth": "12bf9b890ae1cd25d2e15ee8e27b86b8f0d8c58421dbc75179cffc24e32c543b",
+    "teen": "19fe263e3e46403e4b323177cd54d4bb101c310bb968a4d27db2442f08e2c876",
+    "adult": "c858b887ef40641ed0fec388b5a6a37b086e929511aa38a4204dd02c039dbbef",
+    "senior": "85ba41b681d4d1d07634e082e094ab4750249887f4a24d30bd56fed50b5ac26e"
    }
   },
   {
