@@ -226,6 +226,21 @@
       "notes": "17:35:22Z → 17:40:37Z (D4's fixture fix landed in between)."
     },
     {
+      "id": "leaders-lessons-what-they-said",
+      "date": "2026-11-26",
+      "task": "Measured the leaders' lesson history, opened the source sites, set the real-photo rule, drafted the portrait permission requests",
+      "drs": [
+        "DR-1683"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.5,
+      "estimateWithoutAiHours": 4,
+      "notes": "lesson rebuild runs in its own session"
+    },
+    {
       "id": "d6-sign-in-record",
       "date": "2026-11-05",
       "task": "GoTrue hook → audit_log login/failed-auth, migration 0315, smoke, CI leg, matrix",
