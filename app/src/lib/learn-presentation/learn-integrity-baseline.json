@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T06:07:16.329Z",
+ "measuredAt": "2026-11-26T06:27:48.087Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4366
+  "readings": 4376
  },
  "departments": [
   {
@@ -14377,11 +14377,13 @@
    "department": "The Eternal Algorithms",
    "position": 32,
    "title": "A Day Appointed, a Judge Ordained (the resurrection is the assurance)",
-   "contentSha": "f0354dbfec38a93b1d9f699c39db5dd6d8c295251ad3b1b0ce2dbe63765121d8",
+   "contentSha": "a5cd59b7b49751c6c7131912ba5a927592f8512930a1fe5b1672022caee57405",
    "versions": {
-    "teen": "fb36397b462acaf87b320d577c5febdc265f01cdfbd64b4b3333070e46591c3b",
-    "adult": "e91079350950efa344d45283485b1aa5b0da9930b0793e4398ea6f7b5da52d7f",
-    "senior": "3dddc7fd9ae9144538a20f7a57f44069ae3ab0c7e910a29790be8f3ad674e76c"
+    "child": "e1960265ffdc9ab1140700223048bca5113257a3ae9c1e646f8ece4d5057e26d",
+    "youth": "7d19628e7f0afa3e04b722a6bc921c6e998eab8b0aebcc6d07d5bf80c9163333",
+    "teen": "eb4e6159b505fbf3764ee2972e3325cf7d6fa69ad6467d35f6b40ea239d4d9ea",
+    "adult": "854a33a4b3757e7f39c8c4050c6ef787d9fd88ce331ca15305fe5aaa77d044ad",
+    "senior": "ab49426fe6ea2edea8d7f34029fe85407617b935dab0e4941db3c9499e076820"
    }
   },
   {
@@ -14390,11 +14392,13 @@
    "department": "The Eternal Algorithms",
    "position": 33,
    "title": "The Judgment Seat of Christ (every one gives account of himself)",
-   "contentSha": "d81a731bb31a600000f7eb6f7d74ce589cb9b934080dac961279c026ae1b2de2",
+   "contentSha": "715a6572e8f9b8333574a3ac5905b0ae82897e118c30c0a224715ce149eb42d5",
    "versions": {
-    "teen": "ed0ef1db9674e42149a2b1b54715a070bed986e946c457d0fe352631ee53bf6f",
-    "adult": "3bd8e0d0b99375086a6127fd602031abef120a1ee089ff63f8157bd9a9887c67",
-    "senior": "1eb02aa2168ac3b86ff7aa0536e5e11605a67d47da58a25438904afd9d7cb83d"
+    "child": "e12d7bb46224989685df4c26f171eb9b4e7fb0040f8efd3492ba60676b0bcbd6",
+    "youth": "f5a7045093183891996b0382967d82e56359c80fbe4675283e565e3c66478229",
+    "teen": "a688d2051e5c1b4e236062aacc83000794d87bd33b45b51a454544b21da54183",
+    "adult": "386e098870b26547e95cf868ae193cb9e27e73faef6ddba4da5352b28e118393",
+    "senior": "0a38cabab8d69e26b1b67459de6bda0cd9fb07471c66424bd6f6a321da438c6d"
    }
   },
   {
@@ -14403,11 +14407,13 @@
    "department": "The Eternal Algorithms",
    "position": 34,
    "title": "One Lawgiver — Vacate the Seat (who art thou that judgest another?)",
-   "contentSha": "f25d9ea82f0d1fb10fc8120ee117570dba6aca7747c5120c605e404b91e6315e",
+   "contentSha": "6a5bc527475a6551ad41012fba4ad59c66baae7b7d9388e6d37cd5d0a72eb919",
    "versions": {
-    "teen": "10c93f2c5c2101d05b56fc14fe8161006ebe4df97aed7ab63afc9a68b1c3fa86",
-    "adult": "31063f20b24f4636031f52d9f2a04c9cac244b2d4766138ebc75309a7527d391",
-    "senior": "876c6a6916992c7973b98c5615965badebed9c69b59f0abbaebd0f3787606c04"
+    "child": "49c9108ec3dc0ed50aefa15c813c817c1aa1804ef2b48a5605cd4de6e68fe33c",
+    "youth": "9c1e8d254af079d41f4c4063d834f78be458e20b1fc4b907d59a83e1d732aa07",
+    "teen": "ebbca2cf9019c36b18e92189d7fb2710215223298cbabbd66770dd83663fc4bf",
+    "adult": "434103cd79e5686199be7d1eb63474865b9ce61a8513447b89d21238324a02c6",
+    "senior": "20c99d01962f4a0c131a675e54880605b5b9c54c6b8ebe96faf01763758ed0f6"
    }
   },
   {
@@ -14416,11 +14422,13 @@
    "department": "The Eternal Algorithms",
    "position": 35,
    "title": "The Saints Shall Judge the World (Kingdom Believers in training for the bench)",
-   "contentSha": "90a929adc1ba3fc9ee8ec85e1aaace869b72571d101108b71c1ba3d8b97ef4bf",
+   "contentSha": "e19f59f1b825590d9cf02491525b814090e6b6479afb5376edcc4e85049cf4db",
    "versions": {
-    "teen": "2a586e870695a5607f6afec687f598c69e087608d00151fe1d706ec1e3ea1e71",
-    "adult": "80a0998f5a8a5d072177f52b576bc1de88a9745159df9987cb63f4a841d31980",
-    "senior": "0b90ba77961413c69a5951c0c2114116cf6474de1ab781e879efe51045d4670c"
+    "child": "f496b1e7152d8949a90d2f3ebc55b0021e77f23fc1e44c24dd47ed0b58dde9bb",
+    "youth": "6a5198f40026b65dfd94f5b940eac40461653c26d1c9eb533659f431b2a690d6",
+    "teen": "977f9d7f7f9952cb0dd2c495bc78e1a1ec3252bd7930e2ab8256d5ae7103f621",
+    "adult": "5645d33d46f61028cade2253e58b04e721f68e301a4ae80ba5275769f8848109",
+    "senior": "88aa68c7abe4f0143ac822e93b04bacc16ee7161e407b42c48e2bb40183ce7d0"
    }
   },
   {
@@ -14689,11 +14697,13 @@
    "department": "The Eternal Algorithms",
    "position": 6,
    "title": "The Judge Comes With the Reward in His Hand (love His appearing)",
-   "contentSha": "330f8b76553757451e762e3c35bbdd7430482884899efb29a49f6f81b1700376",
+   "contentSha": "852b4293ccd9a0661108d20ea5b9214336f8076e9522a52cc01647d4621ac555",
    "versions": {
-    "teen": "1dc80789b7f2e53e659c6bf44af6eb93debf61c2ad5f6341e556f06785ef229c",
-    "adult": "67ff9a426d66b9343e56a0a0aa5009786edcb5326690c43732670d86db7f31bb",
-    "senior": "70dc54d4b3f0a6ec24a996fbf5cf36165e574f6219102eb6badfa02fb9973e65"
+    "child": "fcf7776a4b40371f233d412a460e718e89339656311b4beaa7da32ab3e344d66",
+    "youth": "57a3192870252a5b01c7df34b195b0e6cd651f2b487970411665b2394377c87f",
+    "teen": "f572276f1ad92876771d4d8ec916391c0fbcde7e31dd405b6f07283d05811ac6",
+    "adult": "21b6a1cd0e945c8f866232abd0e35d27b6415e91e101449b5db9f244cb24faec",
+    "senior": "b96569288b8c8d994041a8cafbc60aca9f8bdfc821ad250b37f7045abf1515e3"
    }
   },
   {
