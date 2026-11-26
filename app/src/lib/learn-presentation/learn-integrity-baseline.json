@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T04:53:18.410Z",
+ "measuredAt": "2026-11-26T04:56:52.770Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4332
+  "readings": 4334
  },
  "departments": [
   {
@@ -14444,11 +14444,13 @@
    "department": "The Eternal Algorithms",
    "position": 39,
    "title": "The Fruit of the Spirit (against such there is no law)",
-   "contentSha": "7ed933fce4cd8e02b4d426a10bb4d7fb1ab35c4e77b3367ffa1f4992f4621eaf",
+   "contentSha": "0c3abf138f1c582ff47a6e8f30ec989b7a571a062dd108bc50274ad197cdd19c",
    "versions": {
-    "teen": "f00a05e31102305bd09a24ecc8b22322a174ab5c8e09bff01015887b59d47cc8",
-    "adult": "692810f92dd308c7e577f4276b88f5ee5600b98f8e0b322c4cdf4f58e66e8104",
-    "senior": "2f92a043c706e95993cd574ba490bbfcdd0fc3fa8d485634c88e63be40df3355"
+    "child": "775c2e0e1cfe2c960b43b1f726793f328a7454c8dd7f09e4b76b0e9537f4858a",
+    "youth": "bb7af0fea7620126fdbf60078b5205fd99b85eed9647b374898727f0dd31ad9b",
+    "teen": "c496e67c13f2e14b9d17d448c7caded69f1a91c4c8add22928e747fb9d8c880f",
+    "adult": "f5854e308dbc2fae992684e54b11d1aa0bff0e8d7d21a17f8dfb7890a4b3a9da",
+    "senior": "4e41192763fad68ebcd6624ede3c239df3529c774fbf31477daf3a44ad902f31"
    }
   },
   {
