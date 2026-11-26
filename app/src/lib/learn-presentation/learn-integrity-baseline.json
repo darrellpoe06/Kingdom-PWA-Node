@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T13:12:30.384Z",
+ "measuredAt": "2026-11-26T13:18:14.550Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4514
+  "readings": 4516
  },
  "departments": [
   {
@@ -13324,11 +13324,13 @@
    "department": "The Eternal Algorithms",
    "position": 9,
    "title": "My Word Shall Not Return Void",
-   "contentSha": "9336f9f6491fe55feae112ab422b917967cc59df2cb6e64232b4e01908245c0d",
+   "contentSha": "d71d57d4d46b94c7aab43eeb858d57f658c1896826dcc8684680098e0298e8b8",
    "versions": {
-    "teen": "5bcfe7c94fa8d05836133ccb2836ec2da8fab2bad3fe10a2024224aa79cfb58b",
-    "adult": "47f32fd8914c533da205e57166245648273d39b3f8d0320328a2c86977a751a3",
-    "senior": "73857aadf2dfe80f3f57897d49ea92bebb2e1c3e6f30654fbac54b0e9c774774"
+    "child": "a3991ebbba2bf167f9490e5f56a971535e8559e1aac3c6f678963b65191d2d4c",
+    "youth": "0ad08e479f19da7427cbc5ae638783ea973bcc6c64ae5e76c0524e9bb05063a5",
+    "teen": "9cdf915d500d643859b3e0aa1e561fc5ee5f661231040c32639169b91d738dd9",
+    "adult": "c5a6b899e11e2cac3290d1ca5c6b0c3c000fe58f4e24f6b667bf5029795c10b1",
+    "senior": "40b816fc5db656f29e912ca1020a299ce88aabceaaa6d7fe31021a3353deb988"
    }
   },
   {
