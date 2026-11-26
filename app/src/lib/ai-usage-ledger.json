@@ -1090,6 +1090,21 @@
       "notes": "Measured worktree creation (15:10:47Z, stat) to the single commit (15:19:33Z, git %cI) on claude/the-in-flight-view-has-an-age: 8m46s. What is NOT on that clock: the collision triage across #2565/#2566/#2567 that exposed the fault, the gh-api comparison that proved a pushed claim was invisible locally, and the 2.4 GB worktree cleanup that freed the builder slot -- all earlier in the session. Tokens and dollars null: no meter exposed. The estimate is this session's own for a human doing the same work by hand, not a measurement."
     },
     {
+      "id": "l343-unbelievers-are-not-righteous",
+      "date": "2026-11-26",
+      "task": "L343 Unbelievers Are Not Righteous: Darrell's spoken teaching built as a Living Lesson (212 KJV quotations filled, four bands, two parables, quiz)",
+      "drs": [
+        "DR-1691"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1,
+      "estimateWithoutAiHours": 10,
+      "notes": ""
+    },
+    {
       "id": "relationships-in-one-place",
       "date": "2026-11-26",
       "task": "A Relationships shelf on the Learn home: 19 hand-picked marriage, love, family and friendship lessons, with See All",
