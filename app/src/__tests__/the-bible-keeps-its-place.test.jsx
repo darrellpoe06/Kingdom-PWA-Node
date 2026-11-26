@@ -19,9 +19,7 @@ import BibleReader from '../components/BibleReader.jsx';
 import { __setBibleFetcher } from '../lib/bible-kjv.js';
 import { __setXrefFetcher } from '../lib/bible-xref.js';
 import { requestBibleTimeline } from '../lib/bible-timeline-link.js';
-import {
-  BIBLE_PLACE_KEY, readBiblePlace, saveBiblePlace, clearBiblePlace, normalizePlace, openingPlace, verseAtLine,
-} from '../lib/bible-place.js';
+import { BIBLE_PLACE_KEY, readBiblePlace, saveBiblePlace, clearBiblePlace, normalizePlace, openingPlace, verseAtLine } from '../lib/bible-place.js';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -29,8 +27,12 @@ const KJV = join(HERE, '../../public/bible/kjv');
 const XREF = join(HERE, '../../public/bible/xref');
 const VOICES = join(HERE, '../../public/bible/voices');
 const fromDisk = (dir) => async (url) => {
-  try { const body = readFileSync(join(dir, String(url).split('/').pop()), 'utf8'); return { ok: true, json: async () => JSON.parse(body) }; }
-  catch { return { ok: false, json: async () => null }; }
+  try {
+    const body = readFileSync(join(dir, String(url).split('/').pop()), 'utf8');
+    return { ok: true, json: async () => JSON.parse(body) };
+  } catch {
+    return { ok: false, json: async () => null };
+  }
 };
 beforeAll(() => {
   window.scrollBy = vi.fn(); // jsdom has no layout; the landing's scroll is asserted as a call
@@ -38,22 +40,43 @@ beforeAll(() => {
   __setXrefFetcher(fromDisk(XREF));
 });
 
-let container; let root;
+let container;
+let root;
 async function unmount() {
-  try { await act(async () => { if (root) root.unmount(); }); } catch { /* noop */ }
+  try {
+    await act(async () => {
+      if (root) root.unmount();
+    });
+  } catch {
+    /* noop */
+  }
   if (container) container.remove();
-  container = null; root = null;
+  container = null;
+  root = null;
 }
 afterEach(async () => {
   await unmount();
   vi.restoreAllMocks();
-  try { window.localStorage.removeItem(BIBLE_PLACE_KEY); window.sessionStorage.clear(); } catch { /* noop */ }
+  try {
+    window.localStorage.removeItem(BIBLE_PLACE_KEY);
+    window.sessionStorage.clear();
+  } catch {
+    /* noop */
+  }
 });
-const settle = async (n = 8) => { for (let i = 0; i < n; i += 1) await act(async () => { await Promise.resolve(); }); };
+const settle = async (n = 8) => {
+  for (let i = 0; i < n; i += 1)
+    await act(async () => {
+      await Promise.resolve();
+    });
+};
 async function mount() {
   container = document.createElement('div');
   document.body.appendChild(container);
-  await act(async () => { root = createRoot(container); root.render(createElement(BibleReader, { email: null })); });
+  await act(async () => {
+    root = createRoot(container);
+    root.render(createElement(BibleReader, { email: null }));
+  });
   await settle();
 }
 const heading = () => {
@@ -72,18 +95,25 @@ const setValue = (el, val) => {
 const clickText = async (re) => {
   const b = Array.from(container.querySelectorAll('button')).find((x) => re.test((x.textContent || '').trim()));
   if (!b) throw new Error(`no button ${re}`);
-  await act(async () => { b.dispatchEvent(new window.MouseEvent('click', { bubbles: true })); });
+  await act(async () => {
+    b.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+  });
   await settle();
 };
 const jumpTo = async (ref) => {
   const input = container.querySelector('input');
-  await act(async () => { setValue(input, ref); });
+  await act(async () => {
+    setValue(input, ref);
+  });
   await clickText(/^Go$/);
 };
 const stored = () => JSON.parse(window.localStorage.getItem(BIBLE_PLACE_KEY) || 'null');
 
 describe('lib/bible-place — ids and indexes only, fail-soft', () => {
-  const mem = () => { const m = new Map(); return { getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), removeItem: (k) => m.delete(k), m }; };
+  const mem = () => {
+    const m = new Map();
+    return { getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), removeItem: (k) => m.delete(k), m };
+  };
   it('round-trips a real place and keeps no text', () => {
     const s = mem();
     expect(saveBiblePlace({ book: 'John', chapter: 3, verse: 16, text: 'For God so loved' }, s, 5)).toEqual({ book: 'John', chapter: 3, verse: 16 });
@@ -94,7 +124,7 @@ describe('lib/bible-place — ids and indexes only, fail-soft', () => {
   });
   it('a place that is not real is not kept or read', () => {
     expect(normalizePlace({ book: 'Hezekiah', chapter: 1 })).toBeNull();
-    expect(normalizePlace({ book: 'Jude', chapter: 2 })).toBeNull();       // Jude has one chapter
+    expect(normalizePlace({ book: 'Jude', chapter: 2 })).toBeNull(); // Jude has one chapter
     expect(normalizePlace({ book: 'John', chapter: 3, verse: 99 })).toEqual({ book: 'John', chapter: 3, verse: null });
     expect(normalizePlace({ book: 'John', chapter: '3' })).toBeNull();
     const s = mem();
@@ -102,24 +132,41 @@ describe('lib/bible-place — ids and indexes only, fail-soft', () => {
     expect(readBiblePlace(s)).toBeNull();
   });
   it('blocked storage never throws', () => {
-    const broken = { getItem() { throw new Error('blocked'); }, setItem() { throw new Error('blocked'); }, removeItem() { throw new Error('blocked'); } };
+    const broken = {
+      getItem() {
+        throw new Error('blocked');
+      },
+      setItem() {
+        throw new Error('blocked');
+      },
+      removeItem() {
+        throw new Error('blocked');
+      },
+    };
     expect(readBiblePlace(broken)).toBeNull();
     expect(() => saveBiblePlace({ book: 'John', chapter: 3 }, broken)).not.toThrow();
     expect(() => clearBiblePlace(broken)).not.toThrow();
     expect(readBiblePlace(null)).toBeNull();
   });
   it('a deliberate jump wins over the saved place; Genesis 1 when there is neither', () => {
-    expect(openingPlace({ jump: { book: 'Romans', chapter: 1 }, saved: { book: 'John', chapter: 3, verse: 16 } }))
-      .toEqual({ book: 'Romans', chapter: 1, verse: null, restored: false });
-    expect(openingPlace({ saved: { book: 'John', chapter: 3, verse: 16 } }))
-      .toEqual({ book: 'John', chapter: 3, verse: 16, restored: true });
+    expect(openingPlace({ jump: { book: 'Romans', chapter: 1 }, saved: { book: 'John', chapter: 3, verse: 16 } })).toEqual({
+      book: 'Romans',
+      chapter: 1,
+      verse: null,
+      restored: false,
+    });
+    expect(openingPlace({ saved: { book: 'John', chapter: 3, verse: 16 } })).toEqual({ book: 'John', chapter: 3, verse: 16, restored: true });
     expect(openingPlace({})).toEqual({ book: 'Genesis', chapter: 1, verse: null, restored: false });
   });
   it('the verse at the reading line', () => {
-    const rows = [{ v: 1, top: 100, bottom: 150 }, { v: 2, top: 154, bottom: 220 }, { v: 3, top: 224, bottom: 300 }];
+    const rows = [
+      { v: 1, top: 100, bottom: 150 },
+      { v: 2, top: 154, bottom: 220 },
+      { v: 3, top: 224, bottom: 300 },
+    ];
     expect(verseAtLine(rows, 200)).toBe(2);
-    expect(verseAtLine(rows, 50)).toBeNull();     // above the chapter's first verse
-    expect(verseAtLine(rows, 400)).toBeNull();    // past the chapter's end
+    expect(verseAtLine(rows, 50)).toBeNull(); // above the chapter's first verse
+    expect(verseAtLine(rows, 400)).toBeNull(); // past the chapter's end
     expect(verseAtLine([], 200)).toBeNull();
   });
 });
@@ -188,8 +235,12 @@ describe('the Bible reader keeps its place', () => {
     await mount();
     expect(heading()).toBe('Genesis 1');
     await unmount();
-    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw new Error('blocked'); });
-    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('blocked'); });
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new Error('blocked');
+    });
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('blocked');
+    });
     await mount();
     expect(heading()).toBe('Genesis 1');
   });
@@ -218,14 +269,20 @@ describe('the Bible reader keeps its place', () => {
       el.getBoundingClientRect = () => ({ top, bottom: top + 36, height: 36, left: 0, right: 0, width: 0 });
     });
     const scroll = async () => {
-      await act(async () => { document.dispatchEvent(new window.Event('scroll')); });
-      await act(async () => { await new Promise((r) => setTimeout(r, 40)); });
+      await act(async () => {
+        document.dispatchEvent(new window.Event('scroll'));
+      });
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 40));
+      });
     };
     // Just landed on verse 5: a scroll now is the page settling, not the reader.
     await scroll();
     expect(stored()).toMatchObject({ book: 'John', chapter: 3, verse: 5 });
     // The reader's own touch ends the settling; their scroll is followed.
-    await act(async () => { window.dispatchEvent(new window.Event('pointerdown')); });
+    await act(async () => {
+      window.dispatchEvent(new window.Event('pointerdown'));
+    });
     await scroll();
     expect(stored()).toMatchObject({ book: 'John', chapter: 3, verse: 10 });
   });

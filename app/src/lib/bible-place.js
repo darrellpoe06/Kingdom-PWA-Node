@@ -31,7 +31,11 @@ import { chapterCount, verseCount } from './bible-kjv.js';
 export const BIBLE_PLACE_KEY = 'poetech.bible.place';
 
 function storeOrNull() {
-  try { return (typeof window !== 'undefined' && window.localStorage) || null; } catch (_) { return null; }
+  try {
+    return (typeof window !== 'undefined' && window.localStorage) || null;
+  } catch (_) {
+    return null;
+  }
 }
 
 const posInt = (n) => (Number.isInteger(n) && n > 0 ? n : null);
@@ -64,7 +68,9 @@ export function readBiblePlace(store = storeOrNull()) {
     if (!s) return null;
     const p = normalizePlace(JSON.parse(s));
     return p;
-  } catch (_) { return null; }
+  } catch (_) {
+    return null;
+  }
 }
 
 /** Remember the place. Returns what was kept (null when it was not a place). */
@@ -73,13 +79,19 @@ export function saveBiblePlace(place, store = storeOrNull(), now = Date.now()) {
   if (!p) return null;
   try {
     if (store) store.setItem(BIBLE_PLACE_KEY, JSON.stringify({ v: 1, ...p, at: now }));
-  } catch (_) { /* a blocked store never breaks the reader */ }
+  } catch (_) {
+    /* a blocked store never breaks the reader */
+  }
   return p;
 }
 
 /** Forget the place (the reader's "Start at Genesis 1"). */
 export function clearBiblePlace(store = storeOrNull()) {
-  try { if (store) store.removeItem(BIBLE_PLACE_KEY); } catch (_) { /* noop */ }
+  try {
+    if (store) store.removeItem(BIBLE_PLACE_KEY);
+  } catch (_) {
+    /* noop */
+  }
 }
 
 /**
