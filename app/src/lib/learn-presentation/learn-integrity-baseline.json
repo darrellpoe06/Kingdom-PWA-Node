@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T12:18:12.320Z",
+ "measuredAt": "2026-11-26T12:24:00.039Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4492
+  "readings": 4494
  },
  "departments": [
   {
@@ -13617,11 +13617,13 @@
    "department": "The Eternal Algorithms",
    "position": 12,
    "title": "Stand On His Word (walk on water, tread on serpents)",
-   "contentSha": "7c37df53456584e4ea42c2548e7704fe5e0024f6e5724889bfe07dea4c2dd92b",
+   "contentSha": "6281f85c85b0851725e24a83a5df98aeec28ac5c3202a7834a6fc38a0b9b9785",
    "versions": {
-    "teen": "0dd40f3443767cc8388f2c5b8134e142e97592efbc285459c1d4b1e69169d79e",
-    "adult": "5c46027d698c9f24e82a55ca88c0fb1e7e91d755778d0b510d809116acf4f4c7",
-    "senior": "5d2e903f3cf2f2d4cff235feb120d1520d0570e44214a120c37b3bdfbcffd733"
+    "child": "c630cd5a9f1004a0c830878a9ecbf1f017716af69c5ca5a2a082155cd7daf6b8",
+    "youth": "a979d322ad5e759f094aa84882b1fd40285257962a39ee49280413c36717ade4",
+    "teen": "9f3e0692786bd913acbd8b8fffd8ef66adf9629562aec16a3bd049b9ce9386a5",
+    "adult": "5d6db15b0a2fb4efcc44382b4c9e79549255991c9ea7f2c1dd86c4eeeea0214c",
+    "senior": "61dce8840f90996803b57ebcc1c109cb524331d47e1944cf62d4ee7947d83000"
    }
   },
   {
