@@ -30,10 +30,13 @@
 // in-flight answer stale (a generation number), never a second voice.
 // =============================================================================
 import { createBrowserTTS, segmentText } from './tts.js';
-import { loadReadingVoiceId, isPersonVoiceId, personKeyOf } from './reading-voice.js';
+import { loadReadingVoiceId, isPersonVoiceId, isSystemVoiceId, personKeyOf } from './reading-voice.js';
+import { SYSTEM_VOICE } from './voice-registry.js';
+import { hasBridgeToken } from './nas-photos.js';
+import { liteClipFor, deviceVoiceNote } from './lesson-audio-voice.js';
 import { myVoiceLine, myVoiceStatus, MY_VOICE } from './my-voice.js';
 import { silentWavDataUri } from './background-audio.js';
-import { probeVoiceService, synthesizeSpeech, speakTimeoutFor, voiceServiceHealth, voiceServiceEngine } from './voice-service.js';
+import { probeVoiceService, synthesizeSpeech, speakTimeoutFor, voiceServiceHealth, voiceServiceEngine, mayTryLiteVoice } from './voice-service.js';
 
 const UNLOCK_WAV = silentWavDataUri(0.05);
 
@@ -82,6 +85,10 @@ export function createCloneNarrator({
     onBoundary: null,
     get status() {
       return status;
+    },
+    // giveSpeed (lesson-speed.js) reads this, so a play at the same speed keeps the pieces made ahead.
+    get rate() {
+      return rate;
     },
     load,
     play,
@@ -161,6 +168,13 @@ export function createCloneNarrator({
         audio.onended = () => resolve(true);
         audio.onerror = () => resolve(false);
         audio.src = r.url;
+        // The voice SPEAKS at clonePace(rate); the element stretches only what is left (above 2x).
+        try {
+          audio.preservesPitch = true;
+          audio.playbackRate = Math.round((rate / clonePace(rate)) * 1000) / 1000 || 1;
+        } catch {
+          /* an element without rate control plays at the voice's own pace */
+        }
         try {
           const p = audio.play();
           if (p && typeof p.catch === 'function') p.catch(() => resolve(false));
@@ -315,6 +329,9 @@ export function chosenVoiceNarrator({
   base = createBrowserTTS,
   engineName = voiceServiceEngine,
   AudioCtor = undefined,
+  systemClipFor = liteClipFor,
+  hasKey = hasBridgeToken,
+  audioRoad = () => hasKey() && mayTryLiteVoice(),
 } = {}) {
   return function createNarrator(opts = {}) {
     let id;
@@ -324,6 +341,33 @@ export function chosenVoiceNarrator({
       id = null;
     }
     const onNote = typeof opts.onNote === 'function' ? opts.onNote : () => {};
+    // THE SYSTEM VOICE IS AUDIO WHEN IT CAN BE (DR-1705). Web Speech stops when the screen turns off;
+    // a NAS clip is media, which the phone keeps playing. A browser accent picked on purpose stays
+    // the listener's choice (base), and with no key or a resting road the phone's voice reads at once
+    // (inside the tap, where the phone allows it) with one line saying it stops at screen-off.
+    if (isSystemVoiceId(id)) {
+      let road;
+      try {
+        road = !!audioRoad();
+      } catch {
+        road = false;
+      }
+      if (!road) {
+        onNote(deviceVoiceNote(hasKey() ? 'voice-lite-resting' : 'voice-lite-401'));
+        return base(opts);
+      }
+      onNote('');
+      return createCloneNarrator({
+        fetchClip: systemClipFor(SYSTEM_VOICE && SYSTEM_VOICE.gender === 'female' ? 'female' : 'male'),
+        fallback: base,
+        fallbackOpts: opts,
+        onState: opts.onState,
+        onNote,
+        noteFor: deviceVoiceNote,
+        readyNote: '',
+        ...(AudioCtor !== undefined ? { AudioCtor } : {}),
+      });
+    }
     if (!isPersonVoiceId(id)) {
       onNote('');
       return base(opts);

@@ -204,7 +204,7 @@ describe('chosenVoiceNarrator', () => {
     expect(dev.made[0].loaded).toBe(TEXT);
   });
 
-  it('no person voice picked: the device voice exactly as before', () => {
+  it('no person voice picked and no key on this device: the device voice reads (DR-1705 adds the audio road when a key is here)', () => {
     const base = vi.fn(() => ({ marker: true }));
     const clipFor = vi.fn();
     const opts = { onState: () => {}, onNote: () => {} };
