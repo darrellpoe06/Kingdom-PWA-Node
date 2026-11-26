@@ -1,0 +1,102 @@
+{
+ "co1-names-and-numbers": {
+  "verdict": "ANSWERS-LATE-OR-BURIED",
+  "reason": "The method is present from the start, but packed in technical shorthand (etymology, corpus, function-over-title synthesis); a reader never gets the plain steps or the 'no guessing' rule spelled out.",
+  "open": "THE QUESTION IN THE TITLE. How can you study a church office like a detective, without guessing? Follow the evidence of the Word in four steps. Learn what the original word means. Count every place it appears. Read the passages that govern it. Then describe the office by what it does, not by its title. Throughout, let Scripture's own usage outrank tradition, and where the Word is silent, say so and stop.",
+  "example": "ONE CASE, FOLLOWED THROUGH. Take elders and bishops. You learn the two words, presbyteros and episkopos. You count where each appears. You read the governing passages, such as the qualification lists in the pastoral epistles. And you notice the text itself uses the two titles for the same people, so you say so. Now take a question like whether deaconess is a separate office. The text is silent, so you say that too, and stop. No guessing either way.",
+  "close": "BACK TO THE QUESTION. How do you study a church office without guessing? Like a detective who only goes where the evidence goes. Learn the word, count every occurrence, read the governing passages, and define the office by its work. Where the text joins two titles, you say so. Where it is silent, you say that and stop. The Word is the evidence, and it gets the final say over tradition.",
+  "teen": {
+   "open": "How do you study a church job title without guessing? Look at the word, find every place it shows up, and read those passages.",
+   "close": "So be a detective. Follow only what the Word actually says. If it joins two titles, say so. If it says nothing, don't make something up."
+  },
+  "senior": {
+   "open": "The title asks how to study a church office carefully, without guessing. The method is a disciplined word study: the original word, every occurrence counted, the governing passages read, and the office defined by its function.",
+   "close": "So the safeguard against guessing is to let Scripture's own usage govern over tradition's. Where the text equates two titles, we say so; where it is silent, we say that and stop."
+  }
+ },
+ "co2-deacon": {
+  "verdict": "ANSWERS-BUT-ENDS-OPEN",
+  "reason": "Names the answer up front (the deacon, the servant with sleeves rolled up) but in dense word-study terms, and ends on the open Phebe question rather than on who carries the tables.",
+  "open": "THE QUESTION IN THE TITLE. Who really carries the tables? The deacon: the servant with sleeves rolled up. The word means service, and the same word family is translated ministry and minister across the New Testament. So the deacon's office is service made formal, not a junior step toward ruling. Acts 6 shows the pattern begin, with seven men chosen for being full of the Spirit and wisdom, though the word deacon itself is not used there.",
+  "close": "BACK TO THE QUESTION. Who really carries the tables? Servants the church has proven: deacons. Their charter in 1 Timothy 3:8-13 asks for character like the overseer's, a household that backs it up, and a proving period first. Their work is service, quiet and essential, the same pattern as the seven of Acts 6 who were full of the Spirit and wisdom. And the promise to those who serve well is a good degree and great boldness in the faith.",
+  "teen": {
+   "open": "Who does the behind-the-scenes serving in a church? The Bible calls them deacons. The word simply means servant.",
+   "close": "So the ones who carry the tables are servants the church tests and trusts. It is quiet work, but those who serve well gain great boldness in their faith (1 Timothy 3:13)."
+  },
+  "senior": {
+   "open": "The title asks who really carries the tables. The Word's answer is the deacon, whose very name means service; the office is service made formal, not lesser governance.",
+   "close": "So the tables are carried by proven servants, chosen for character and tested before they serve (1 Timothy 3:8-13), in the pattern of the Seven of Acts 6. Those who serve well gain a good degree and great boldness in the faith."
+  }
+ },
+ "co3-elder": {
+  "verdict": "DOES-NOT-ANSWER",
+  "reason": "A dense survey of presbyteros occurrences and charter passages; it never says whether age is enough. The answer (no: elders are appointed, qualified, and proven in function) is only implied by the passages cited.",
+  "open": "THE QUESTION IN THE TITLE. Is age enough to lead? Not by itself. The Bible's elder is marked by maturity that is shown: men appointed to the work (Acts 14:23; Titus 1:5) who meet stated qualifications (Titus 1:6-9), who rule and labor in word and doctrine (1 Timothy 5:17), and who shepherd the flock (1 Peter 5:1-4). The word comes from Israel's elders, long before the church.",
+  "close": "BACK TO THE QUESTION. Is age enough to lead? No. In the Word, an elder is not just an older person but a proven one: appointed, measured against the qualifications of Titus 1:6-9, ruling and laboring in word and doctrine, and caring for the sick in prayer (James 5:14). Even Peter called himself also an elder, taking that posture beside them (1 Peter 5:1). The office carries real dignity, reaching to the twenty-four elders around the throne, and it is held by maturity that shepherds.",
+  "teen": {
+   "open": "Does being older make someone a church leader? Not on its own. Elders in the Bible are appointed and have to meet real qualifications.",
+   "close": "So age alone is not enough. A biblical elder has proven character, teaches the Word, prays for people, and cares for them like a shepherd."
+  },
+  "senior": {
+   "open": "The title asks whether age is enough to lead. In the Word, the elder is marked by proven maturity: appointed, qualified (Titus 1:6-9), and laboring in word and doctrine (1 Timothy 5:17).",
+   "close": "So years alone do not make an elder. The office is maturity that shepherds: tested character, faithful teaching, prayer for the sick, and care for the flock, a dignity that reaches even to the throne."
+  }
+ },
+ "co4-bishop-overseer": {
+  "verdict": "DOES-NOT-ANSWER",
+  "reason": "Title promises what it means that Yahweh's Shepherd watches over you; the lesson is a word study showing bishop = overseer = elder, mentions 1 Peter 2:25 (Christ) only in a list, and ends on the 1 Timothy 3 qualifications.",
+  "open": "THE QUESTION IN THE TITLE. What does it mean that Yahweh's Shepherd watches over you? It means your soul has an overseer. The Word uses the word bishop, or overseer, of Christ Himself (1 Peter 2:25). And He gives elders to take the oversight of His flock (Acts 20:28; 1 Peter 5:1-2). Bishop and elder are one shepherding office, named for its work of watching over, and held by those whose character is proven.",
+  "close": "BACK TO THE QUESTION. What does it mean that Yahweh's Shepherd watches over you? First, Christ Himself is the Bishop of your soul (1 Peter 2:25). Then, under Him, the elders are charged to take the oversight of the flock (Acts 20:28; 1 Peter 5:1-2). That watch is entrusted only to people of proven character: blameless, vigilant, sober, patient, ruling their own house well. Being watched over means being kept by Christ Himself through overseers who are fit to keep watch.",
+  "teen": {
+   "open": "What does it mean to be watched over by a shepherd? The Bible calls Jesus the Bishop, the overseer, of your soul (1 Peter 2:25).",
+   "close": "So you are watched over twice: by Jesus Himself, and by church leaders He trusts with the job. That job goes only to people with proven, steady character."
+  },
+  "senior": {
+   "open": "The title asks what it means to be watched over by Yahweh's Shepherd. The Word names Christ the Bishop, or overseer, of our souls (1 Peter 2:25), and charges elders to take the oversight of His flock.",
+   "close": "So the watch over your soul begins with Christ and is carried under Him by elders, one office with two names, entrusted only to those whose character and household are proven (1 Timothy 3:1-7)."
+  }
+ },
+ "co5-pastor-shepherd": {
+  "verdict": "ANSWERS-LATE-OR-BURIED",
+  "reason": "The answer (the shepherd word is used of Christ far more than of officers, the verb carries the work, and Ephesians 4:11 is the one church title) is scattered through dense word-study notes and never stated as the answer.",
+  "open": "THE QUESTION IN THE TITLE. Why does the shepherd show up so much more often than the title pastor? Because the Word cares more about the shepherding than the title. The shepherd word is applied to Christ far more than to church officers. As a title for a church role, pastor appears in one place, Ephesians 4:11. And the work itself is carried by the verb: to shepherd, to feed the flock.",
+  "close": "BACK TO THE QUESTION. Why so few pastors and so many shepherds? Because the role is about feeding, not a name on a door. The shepherd belongs first to Christ, the Chief Shepherd, a title used only once and kept for Him alone (1 Peter 5:4). Under Him, elders are charged to shepherd the flock (John 21:16; Acts 20:28; 1 Peter 5:2), and the prophets warn every shepherd who feeds himself (Jeremiah 23; Ezekiel 34). Elder, bishop, shepherd: one man's maturity, watch, and feeding.",
+  "teen": {
+   "open": "Why does the Bible say shepherd so often and pastor so rarely? Because what matters is the work of caring and feeding, and Jesus is the main Shepherd.",
+   "close": "So a pastor is really a shepherd under Jesus, the Chief Shepherd. The job is to feed and care for people, never to use them."
+  },
+  "senior": {
+   "open": "The title asks why the shepherd appears so often while the title pastor is rare. The Word applies the shepherd word to Christ far more than to officers, and it carries the work in the verb: to shepherd, to feed.",
+   "close": "So the emphasis falls on the feeding, and on the One who is Chief Shepherd alone (1 Peter 5:4). Elders shepherd under Him, warned by Jeremiah 23 and Ezekiel 34 against feeding themselves instead of the flock."
+  }
+ },
+ "co6-fivefold-and-body": {
+  "verdict": "ANSWERS-BUT-ENDS-OPEN",
+  "reason": "First sentence answers (gifts that equip the saints) and Ephesians 4:12 explains it mid-lesson, but it ends on the 1 Corinthians 12:28 ordering instead of landing who the gifts are for.",
+  "open": "THE QUESTION IN THE TITLE. Who are the gifts for? The saints. Apostles, prophets, evangelists, pastors and teachers are given to equip the saints for the work of the ministry (Ephesians 4:11-12). They do not hold the ministry for themselves; they prepare the whole Body to do it, until it grows to unity and maturity in Christ.",
+  "close": "BACK TO THE QUESTION. Who are the gifts for? For you, the saints. The equipping roles prepare the saints, the saints do the work of the ministry, and that ministry builds up the Body, until all come to unity and the measure of Christ's maturity (Ephesians 4:12-13). Growth comes through what every joint supplies (Ephesians 4:16). The order of the gifts is the order of a foundation, with Christ the chief corner stone (Ephesians 2:20), and every saint has a part in what is built on it.",
+  "teen": {
+   "open": "Who are church leaders like apostles, prophets, and evangelists for? For you. They are given to get the whole church ready to serve (Ephesians 4:12).",
+   "close": "So the gifts are for the saints, and that includes you. Leaders train you, you serve, and the whole church grows together."
+  },
+  "senior": {
+   "open": "The title asks whom the equipping gifts serve. The Word answers in Ephesians 4:12: they are given for the perfecting of the saints, so the saints can do the work of the ministry.",
+   "close": "So the gifts exist for the saints, not for themselves. They equip, the saints serve, and the Body is built up toward unity and maturity in Christ, with every joint supplying its part."
+  }
+ },
+ "co7-our-house-now": {
+  "verdict": "ANSWERS-LATE-OR-BURIED",
+  "reason": "The answer (list the house's functions, sort them into serving, oversight-and-feeding, and equipping, gate each by its qualifications) is there but buried in technical 'mapping discipline' language.",
+  "open": "THE QUESTION IN THE TITLE. What does the Word say about who serves, watches, and feeds? It sorts the church's work by function before title. Service belongs with the deacons, oversight and feeding belong with the elders, and the equipping gifts prepare the saints for ministry. So build your house's chart from the verbs: list what actually gets done, put each task in its biblical category, and hold each role to its qualifications.",
+  "example": "ONE TEAM, MAPPED. Say your house has a team that cares for members in need. First you ask what it does: it serves, so it belongs with diakonia, the deacons' kind of service. Then you gate it with 1 Timothy 3:8-13, including a proving period before appointment. Last, you mark what is mandate and what is wisdom: the qualifications are the Word's, but how often the team meets and what it is called are choices left to wisdom, done decently and in order.",
+  "close": "BACK TO THE QUESTION. Who serves, watches, and feeds? Start with the verbs and the answer comes clear. Name each function in your house, place it as service, oversight with feeding, or equipping, and hold each to its qualification text. Then run two checks: are the character gates of 1 Timothy 3 and Titus 1 really applied, and does each office equip the saints rather than absorb the ministry (Ephesians 4:12)? Revisit it yearly. The functions stay the same; the people and the world change.",
+  "teen": {
+   "open": "How should a church decide who does what? Start with the jobs, not the titles: who serves, who watches over people, and who teaches.",
+   "close": "So build the church chart from the work. Match each job to what the Bible says about it, check that the right people hold it, and look again every year."
+  },
+  "senior": {
+   "open": "The title says the church's chart begins with verbs, not titles. The Word sorts its work by function: service, oversight with shepherding, and the gifts that equip the saints.",
+   "close": "So the house is ordered by naming its real functions, placing each in its biblical category, holding each to its qualifications, and asking yearly whether every office still equips the saints for ministry."
+  }
+ }
+}

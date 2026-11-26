@@ -1,0 +1,130 @@
+{
+ "bc2-camera-and-image": {
+  "verdict": "ANSWERS-LATE-OR-BURIED",
+  "reason": "Answer is split: the image is born at the camera (early), but why the whole room sees it (one main feed shared to every screen and the Bishop) is buried mid-paragraph; ends on Matthew 6:22.",
+  "open": "THE QUESTION IN THE TITLE. Why does one camera decide what the whole room sees? Because the picture is born at the camera, and nothing after it can repair a soft focus or a blown-out exposure. And the main 4K camera on the pulpit is deliberately shared: its one feed goes to the parishioners' screens and to the Bishop's monitor, so everyone sees the same thing at the same time.",
+  "close": "BACK TO THE QUESTION. Why does one camera decide what the whole room sees? Because every screen in the Sanctuary, and the Bishop's monitor too, is fed from that one main 4K image, and OBS, the encoder and the screens can only pass on what the camera captured. That is why Chris guards it, and why it runs over SDI, a locking cable that will not pop out mid-service. When that one eye is clear and steady, the whole room is full of light (Matthew 6:22).",
+  "teen": {
+   "open": "Why does one camera decide what everyone sees? Because the picture is made at the camera, and that one feed goes to every screen in the room.",
+   "close": "So one camera decides it all: nothing later can fix a blurry or washed-out shot, and every screen shows that same feed. Keep that one eye clear."
+  },
+  "senior": {
+   "open": "Why should one camera decide what the whole room sees? Because the image is born there, and the main feed is shared on purpose with every screen and with the Bishop's monitor.",
+   "close": "So the answer is plain. Every screen in the room shows what that one camera captured, and nothing downstream can repair it. A clear, steady image at the start fills the whole room with light."
+  }
+ },
+ "bc1-the-whole-chain": {
+  "verdict": "DOES-NOT-ANSWER",
+  "reason": "Teaches the whole chain (camera, capture card, OBS, encoder, protocol, screens) and one body with many parts, but never says plainly what breaks first; the answer (the weakest link) is only implied in the last line.",
+  "open": "THE QUESTION IN THE TITLE. What breaks first when a church broadcast goes dark? The weakest link. A broadcast is a chain: each person hands their work to the next one down the line, so any one link that fails darkens everything after it. That is why the team has to see the whole path before any one station makes sense.",
+  "example": "ONE PATH, SIX HANDOFFS. Walk it the way the picture does. The camera makes the image. The capture card turns the cable signal into something the computer can read. OBS arranges cameras and slides into scenes and switches between them. The encoder squeezes that into a stream small enough to send. The stream protocol carries it out. The screens, in the Sanctuary and at home, show it. If the picture is missing at the end, you check each handoff in that order until you find the one that did not pass it on.",
+  "close": "BACK TO THE QUESTION. What breaks first when a church broadcast goes dark? Whichever link is weakest, because the weakest link sets the strength of the whole. No link is unimportant: the camera, the capture card, OBS, the encoder, the stream and the screens all carry the same Word out to people who cannot be in the room. Know the whole path, strengthen every link, and you will know where to look when the picture goes dark.",
+  "teen": {
+   "open": "What breaks first when a church broadcast goes dark? The weakest link. Every station passes its work to the next one, so one weak spot stops the whole thing.",
+   "close": "So the answer is the weakest link. Learn the whole path from camera to screen, because every part matters, just like every part of one body."
+  },
+  "senior": {
+   "open": "What fails first when a broadcast goes dark? The weakest link in the chain, because each station hands its work to the next, and one failure stops everything after it.",
+   "close": "So the answer is plain. The weakest link sets the strength of the whole, and no link is unimportant. Knowing the whole path is how a team finds and strengthens it."
+  }
+ },
+ "bc3-light": {
+  "verdict": "ANSWERS-LATE-OR-BURIED",
+  "reason": "The answer (no: a camera only records light, so too little light gives a dark, noisy picture) is implied in the first lines but never said plainly; ends on Matthew 5 rather than landing it.",
+  "open": "THE QUESTION IN THE TITLE. Can a camera show the truth without enough light? No. A camera does not see a room; it records the light bouncing off it. Too little light and the image goes dark and grainy; too much and faces blow out to white; uneven light and half a face falls into shadow. So whoever controls the light controls the picture.",
+  "close": "BACK TO THE QUESTION. Can a camera show the truth without enough light? It cannot. The camera can only record the light it is given, so the true picture of the pulpit depends on clean, even light, with the light op and the camera op talking, because a change at the board shows up at once in the viewfinder. Get the light right, and the camera has good raw material, and the world can see the Word being preached (Matthew 5:14-16).",
+  "teen": {
+   "open": "Can a camera show the truth without enough light? No. A camera only records light, so too little light makes the picture dark and grainy.",
+   "close": "So no light, no true picture. Clean, even light is what lets people at home see the Word being preached clearly."
+  },
+  "senior": {
+   "open": "Can a camera show what is truly there without enough light? It cannot, because a camera records only the light that reaches it from the room.",
+   "close": "So the answer is no. The light decides the picture more than almost anything, which is why the light team and the camera team must work together, so the preaching is seen clearly."
+  }
+ },
+ "bc4-obs-switching": {
+  "verdict": "ANSWERS-LATE-OR-BURIED",
+  "reason": "The who (Bradley in the director's chair) is early, but the when (anticipate the service, cut on natural beats, not too often) is buried mid-paragraph; the close joins who and when.",
+  "open": "THE QUESTION IN THE TITLE. Who decides what the congregation sees, and when? The director at the switch: here, Bradley, running OBS. He decides by choosing the scene, a saved layout of cameras, slides, name graphics and audio. He decides when by following the service: being ready before the moment comes, cutting on natural beats, and not cutting too often.",
+  "close": "BACK TO THE QUESTION. Who decides what the congregation sees, and when? The one in the director's chair. Bradley chooses each scene and the moment to switch, ready on the slide before the Bishop reads Scripture, cutting on natural beats, resisting the urge to cut too often. Done well, the switching is invisible and the congregation feels carried, not jostled. That calm hand at the switch is where all things are done decently and in order (1 Corinthians 14:40).",
+  "teen": {
+   "open": "Who decides what the church sees on screen, and when? The director at the switch, choosing which scene shows and when to change it.",
+   "close": "So the director decides: what shows, and when to switch. Good switching follows the service so smoothly that nobody notices it."
+  },
+  "senior": {
+   "open": "Who decides what the congregation sees, and when? The director at the switch, who picks each arranged scene and the moment to move to the next.",
+   "close": "So the answer is the director, working ahead of the service and cutting on its natural beats. Done calmly, the order of the service shows up clean on the screen."
+  }
+ },
+ "bc7-llms-for-broadcast": {
+  "verdict": "ANSWERS-LATE-OR-BURIED",
+  "reason": "Explains that an LLM guesses and can hallucinate, then lists three uses; the plain answer (yes, when A.I. drafts and finds and a person verifies and decides) only arrives in the final sentences.",
+  "open": "THE QUESTION IN THE TITLE. Can an A.I. tool make our broadcast better without making things up? Yes, but only with a person checking it. The tool is a brilliant pattern-guesser, not a knower, and it can write a confident paragraph that is simply made up. So the rule is: A.I. drafts and finds; a person verifies and decides.",
+  "example": "ONE SUNDAY, ONE DRAFT. Say that after service the tool drafts a title, a summary and a few social captions from the recording. One caption names a verse. Before anything goes out, a person reads the draft, checks that verse against the Word, checks the names and the quotes, fixes what is wrong and approves the rest. The tool saved an afternoon of writing. The person made sure nothing false went out under the church's name.",
+  "close": "BACK TO THE QUESTION. Can an A.I. tool make our broadcast better without making things up? It can, as long as it never has the last word. Let it caption the sermon, draft the summary and search the archive by meaning. Then a person proves every Scripture reference, every name and every quote before anything carries the church's name or the Bishop's words (1 Thessalonians 5:21). That way the tool carries the Word further, and carries it accurately.",
+  "teen": {
+   "open": "Can A.I. help the broadcast without making stuff up? Yes, if a person checks it. A.I. guesses well, but it can sound sure and still be wrong.",
+   "close": "So the answer is yes, with a rule: A.I. drafts and finds, and a person checks and decides, especially every Bible verse, name and quote."
+  },
+  "senior": {
+   "open": "Can an A.I. tool improve the broadcast without inventing things? It can, provided a person verifies everything it produces, because the tool can sound certain and still be wrong.",
+   "close": "So the answer is yes, under one rule that never bends: the tool drafts and searches, and a person verifies every reference, name and quote before anything is published."
+  }
+ },
+ "bc6-bandwidth-network": {
+  "verdict": "ANSWERS-BUT-ENDS-OPEN",
+  "reason": "Answers early with numbers (raw 4K60 is about 12 Gbps; home upload is a fraction; NVENC squeezes it to about 35 Mbps), then ends on the general rule for sizing every pipe rather than landing the answer.",
+  "close": "BACK TO THE QUESTION. Why does a 4K picture need bigger pipes than your internet can carry? Because raw 4K at 60 frames a second is about 12 billion bits every second, and ordinary home internet uploads only a tiny fraction of that. Inside the building, a pro 12G-SDI cable is built to carry the live camera picture. To reach the world, NVENC squeezes it about 300 times, to around 35 Mbps, so it fits. Count the cost of each pipe before you trust the broadcast to it.",
+  "teen": {
+   "open": "Why does a 4K picture need bigger pipes than your internet? Because raw 4K is about 12 billion bits every second, far more than home internet can send.",
+   "close": "So the picture has to be squeezed. NVENC shrinks it about 300 times so it fits through the internet, and every other pipe must be big enough too."
+  },
+  "senior": {
+   "open": "Why does a 4K picture need larger pipes than ordinary internet can carry? Because uncompressed, it runs to roughly 12 billion bits per second.",
+   "close": "So the answer is size. Raw 4K is far too large for home internet, which is why the encoder compresses it about 300 times before it goes out, and why each pipe must be sized for its load."
+  }
+ },
+ "bc5-cpu-gpu-cuda": {
+  "verdict": "ANSWERS-LATE-OR-BURIED",
+  "reason": "Opens on clearing up a naming confusion; the answer (thousands of simpler GPU cores doing the same math at once, plus a dedicated NVENC chip) is mid-lesson; ends on Bezalel.",
+  "open": "THE QUESTION IN THE TITLE. Why does a graphics card do so quickly what a processor takes its time on? Because of how many workers it has. A CPU is a few very smart workers doing mostly one hard thing at a time. A GPU is thousands of simpler workers all doing the same kind of math at once, and pushing millions of 4K pixels is exactly that kind of work.",
+  "close": "BACK TO THE QUESTION. Why does a graphics card do so quickly what a processor takes its time on? Because the work of a 4K picture is the same math repeated across millions of pixels, and the RTX 4070 puts 5,888 CUDA cores on it at the same time. Its NVENC chip does nothing but encode video in hardware. So turn on NVENC in OBS: the GPU carries the heavy encoding, and the CPU stays free for the system, the audio and OBS's own logic.",
+  "teen": {
+   "open": "Why is a graphics card so fast at video? A processor has a few smart workers; a graphics card has thousands of simple ones working at the same time.",
+   "close": "So the graphics card wins on video because thousands of cores share the same job at once. Turn on NVENC and let it carry the encoding."
+  },
+  "senior": {
+   "open": "Why can a graphics card do quickly what a processor labors over? Because a processor works on a few hard tasks at a time, while a graphics card runs thousands of simple calculations together.",
+   "close": "So the answer lies in the kind of work. Video is the same calculation repeated across millions of pixels, which suits thousands of cores working at once, and a dedicated encoder chip frees the processor for everything else."
+  }
+ },
+ "bc8-pov-sops": {
+  "verdict": "ANSWERS-LATE-OR-BURIED",
+  "reason": "Says recording first-person captures the knowledge, but the full answer (recording plus local transcription, a person-corrected checklist, and the SOP Library) is spread through the paragraph; ends on Psalm 78.",
+  "open": "THE QUESTION IN THE TITLE. Is recording yourself at work the best way to pass on your skill? It is a strong start. When you record your real procedure first-person while you do it, the knowledge in your head stops depending on you being there. But the recording is only the first step: it becomes something a newcomer can run once it is transcribed, turned into a checklist, and corrected by a person.",
+  "example": "ONE PROCEDURE, START TO FINISH. Say an operator's pre-service routine takes about nine minutes. Wearing the glasses, they record it in three clips of about three minutes, talking through each step as they go. The clips come off the glasses into the church's own NAS. The local A.I. transcribes the narration and drafts a step-by-step checklist. The operator corrects that draft, and the clips and checklist go into the Sequence / SOP Library, ready for the next operator.",
+  "close": "BACK TO THE QUESTION. Is recording yourself at work the best way to pass on your skill? It is how this team stops losing knowledge: you capture your real procedure while you do it, the church's own local A.I. turns your words into a draft checklist, and a person corrects it before it goes into the SOP Library. The content stays on the church's NAS, and we record the team and the gear, never the congregation. Written plainly, the next operator can run (Habakkuk 2:2).",
+  "teen": {
+   "open": "Can you pass on a skill just by recording yourself doing it? It is a great start. Record what you actually do, and talk through it as you go.",
+   "close": "So yes, record yourself, then turn it into a checklist someone corrects. That way the next person can learn your job even when you are not there."
+  },
+  "senior": {
+   "open": "Is recording yourself at work a good way to hand on your skill? It is a strong start, because it captures what you actually do, step by step, in your own words.",
+   "close": "So the answer is yes, with care. The recording, turned into a corrected checklist and kept on the church's own storage, lets the next generation carry on the work."
+  }
+ },
+ "bc9-excellence-as-worship": {
+  "verdict": "ANSWERS-LATE-OR-BURIED",
+  "reason": "The why (worship carrying the Word to people counting on it) is early, but who learns it next (faithful people each operator teaches) only lands at the end; the two halves are never joined.",
+  "open": "THE QUESTION IN THE TITLE. Why does a Sunday broadcast need to work every single week, and who learns it next? Because it is an act of worship that carries the Word to people counting on it, so excellence is not one great Sunday but every Sunday. And the next one to learn it is whoever you teach: every operator prepares to hand their one link to the next person.",
+  "close": "BACK TO THE QUESTION. Why does a Sunday broadcast need to work every single week, and who learns it next? Because people are counting on the Word it carries, so the team works heartily, as for the Lord, and runs the same written checklist every time, so nothing rides on one person's memory. And the one who learns it next is the faithful person you teach (2 Timothy 2:2). Founders raise founders, and the broadcast outlasts any one of us.",
+  "teen": {
+   "open": "Why does the broadcast need to work every week, and who learns it next? Because people count on it to hear the Word, and you teach the next person.",
+   "close": "So: it works every week because of a checklist run the same way every time, and it keeps going because each of us teaches our part to someone new."
+  },
+  "senior": {
+   "open": "Why must the broadcast work every week, and who carries it on? Because it is worship that people depend on, and each operator is to teach the next.",
+   "close": "So the answer has two parts. Reliability comes from a written checklist run faithfully every Sunday, and continuity comes from each operator teaching faithful people who can teach others also."
+  }
+ }
+}
