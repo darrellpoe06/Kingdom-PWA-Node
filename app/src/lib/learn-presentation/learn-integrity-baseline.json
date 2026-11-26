@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T05:22:35.649Z",
+ "measuredAt": "2026-11-26T05:26:55.418Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4346
+  "readings": 4348
  },
  "departments": [
   {
@@ -13838,11 +13838,13 @@
    "department": "The Eternal Algorithms",
    "position": 31,
    "title": "Show Us the Father (he that hath seen Me hath seen the Father)",
-   "contentSha": "9935fe68f648c0d0186daba7cf7377da8cbc0b0cb6d99069d2c038800e21b50d",
+   "contentSha": "8b69a6bf394d27161bb972526a8e234f6f701c374deeb1932bb31da4516df0f5",
    "versions": {
-    "teen": "08d7b0c47ad48968bcc5e3538958add7534d319a327151832703737f67daa09b",
-    "adult": "99160f608318fe7dc77e2734099ac2069889a51db71dafa83acdba9e569c78be",
-    "senior": "eb90633590c636b8de9d65c9434e04472ecc3bdbccd39536699b974fec1a162c"
+    "child": "d5c48159a297591530ce2f6528cc472f9e0e233d6f6a39cc6897f949ce140e5b",
+    "youth": "ff2a41339055202015915470bb925ba14a62813f7a9b8c33a2d018e477685297",
+    "teen": "cc519c8258259a5d929f024ce3c4b35ac180983ad3994a220ad519d715929c93",
+    "adult": "618d7e6f0d37e73ba038eb6a7d7e46f3b0156fd852be7c2b576dc81f9a06a296",
+    "senior": "417942dcaf4fb3cbe8d4d8eb2614f8f184b54cda9dd2ee0c1334fb09a54efe4e"
    }
   },
   {
