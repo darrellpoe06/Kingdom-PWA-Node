@@ -1,5 +1,5 @@
 // =============================================================================
-// Lesson place -- the lesson screen keeps the SAME place as the classic page (DR-1672)
+// Lesson place -- the lesson screen keeps the SAME place as the classic page (DR-1677)
 // =============================================================================
 // Darrell 2026-11-26: "I just ended on chapter 6 and I can't go back to chapter
 // 6 in that exact same lesson, even though while in the lesson it showed me that

@@ -4393,7 +4393,7 @@
       "date": "2026-11-26",
       "task": "The new lesson screen uses the lesson's section plan and its one shared place; Read lists sections with you-are-here; Listen chapters numbered and marked",
       "drs": [
-        "DR-1672"
+        "DR-1677"
       ],
       "prs": [],
       "model": "claude-fable-5-1",

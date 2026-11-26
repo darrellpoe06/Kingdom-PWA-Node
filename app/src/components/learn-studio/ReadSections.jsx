@@ -1,5 +1,5 @@
 // =============================================================================
-// ReadSections -- the lesson's sections in Read: count, where you are, one tap back (DR-1672)
+// ReadSections -- the lesson's sections in Read: count, where you are, one tap back (DR-1677)
 // =============================================================================
 // DR-0385's speaker's index, in the new lesson screen: the number of sections is
 // stated before anything is tapped, every section is listed with its number, the

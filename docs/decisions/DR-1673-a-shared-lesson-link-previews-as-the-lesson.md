@@ -7,7 +7,7 @@
 **Area:** `app/src/lib/learn-link-preview.js` (new), `app/functions/l/[[path]].js` (new), `app/public/_routes.json`, `app/vite.config.js` (emits `learn-preview.json`), `app/src/lib/lesson-links.js`; tests `a-shared-lesson-previews-as-the-lesson.test.js`, `lesson-share-note.test.js`, `a-lesson-link-opens-in-its-own-app.test.js`
 **Sent in by:** Darrell, 2026-11-26, after texting his wife a lesson link that previewed as the church's generic card: "can we send the image and lesson title as a marketing strategy and structural data collection for interest and understanding our stakeholders?" and "I want the photos to be able to promote and provide understanding of the information inside... short and sweet... the lessons titles do this anyway."
 **Grounds:** DR-0698 (a shared lesson link keeps its record: who shared, and whether it opened), DR-1428 (a lesson link opens in its own app), the `/moore` door page (its own preview tags, then a refresh into the app)
-**Pairs with:** DR-1672
+**Pairs with:** DR-1677
 
 ## Context
 

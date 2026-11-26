@@ -1,4 +1,4 @@
-// DR-1672: the lesson screen keeps the SAME place as the classic page, and its sections are
+// DR-1677: the lesson screen keeps the SAME place as the classic page, and its sections are
 // the classic page's sections, so "chapter 6 of 12" is where you come back to, from either view.
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import React, { act } from 'react';
@@ -65,7 +65,7 @@ const shape = (l) => {
   return { paragraphs, segments, ...mapSegmentsToParagraphs(paragraphs, segments) };
 };
 
-describe('one place for the lesson, whichever view saved it (DR-1672)', () => {
+describe('one place for the lesson, whichever view saved it (DR-1677)', () => {
   it("lesson 140 has the classic page's sections, and a place saved at section 6 opens Read on section 6", () => {
     const s = shape(L140.l);
     const sections = readSections(s.paragraphs);

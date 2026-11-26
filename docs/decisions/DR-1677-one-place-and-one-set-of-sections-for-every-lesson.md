@@ -1,4 +1,4 @@
-# DR-1672: One place and one set of sections for every lesson, whichever screen opens it
+# DR-1677: One place and one set of sections for every lesson, whichever screen opens it
 
 **Date:** 2026-11-26
 **Status:** Accepted

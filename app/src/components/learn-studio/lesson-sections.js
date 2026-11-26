@@ -1,5 +1,5 @@
 // =============================================================================
-// Lesson sections -- the lesson's OWN sections, as Read paragraphs and Listen chapters (DR-1672)
+// Lesson sections -- the lesson's OWN sections, as Read paragraphs and Listen chapters (DR-1677)
 // =============================================================================
 // Darrell 2026-11-26, on a 55-minute lesson whose Chapters list showed one
 // chapter from 0:00 to 51:14: "Where are the chapters?!!!! How can we go back or

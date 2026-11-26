@@ -1,4 +1,4 @@
-// DR-1672: a lesson's own numbered section leads become its paragraphs and chapters.
+// DR-1677: a lesson's own numbered section leads become its paragraphs and chapters.
 import { describe, it, expect } from 'vitest';
 import { withSectionBreaks, sectionLeadOf } from '../components/learn-studio/lesson-sections.js';
 import { readingTextFor } from '../components/learn-studio/LessonExperience.jsx';
@@ -14,7 +14,7 @@ const chaptersOf = (text) =>
     .filter(Boolean);
 const HEB = LESSONS.find((l) => l.id && l.id.startsWith('ll136-touched-with-the-feeling'));
 
-describe("the lesson's own sections are its chapters (DR-1672)", () => {
+describe("the lesson's own sections are its chapters (DR-1677)", () => {
   it('the 55-minute High Priest lesson has its question and all twelve numbered sections as chapters, not one', () => {
     expect(HEB).toBeTruthy();
     const leads = chaptersOf(readingTextFor(HEB, 'adult'));

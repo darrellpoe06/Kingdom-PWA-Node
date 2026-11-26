@@ -7,7 +7,7 @@
 **Area:** `app/src/components/learn-studio/LearnStudio.jsx`, `LearnStudioPreview.jsx`, `AskAri.jsx` (new), `LessonExperience.jsx`, `lesson-experience.css`; `app/src/lib/learn-studio-bridge.js`, `app/src/lib/learn-resume.js`; `app/src/components/ChurchLearn.jsx`; `app/src/index.css` (Institute hero); tests `lesson-experience-prototype.test.jsx`, `the-new-look-keeps-what-you-read.test.jsx`
 **Sent in by:** Darrell, 2026-11-26 (phone): "Back button should go to the last page the user was on!!!" / "Not close the app or start over"; "All features should still be here... we need to check of a list of features"; "where's the Ai's!!!!!! Ari... claude..."; "Not showing what I was just reading!!!!!!! No where!!!!! ... can't find it"; "Make sure the image is good in any font size" (the Institute portrait).
 **Grounds:** DR-0262 (the device Back exits the space, `useHistoryValue`), DR-0631 (one place per lesson), DR-1384/1386 (read on evidence), DR-1664 (the new look for every member), DR-1667 (the Institute at every text size)
-**Pairs with:** DR-1672, DR-1673
+**Pairs with:** DR-1677, DR-1673
 
 ## Context
 

@@ -4,7 +4,7 @@
 **Status:** Accepted
 **Tier:** B (every member's lesson Read mode; no schema; the place stays in the same local key)
 **Type:** fix
-**Area:** `app/src/components/learn-studio/lesson-landing.js` (new; renamed `landing-guard.js` by DR-1672), `app/src/components/learn-studio/LessonExperience.jsx`; `app/src/__tests__/lesson-experience-prototype.test.jsx`
+**Area:** `app/src/components/learn-studio/lesson-landing.js` (new; renamed `landing-guard.js` by DR-1677), `app/src/components/learn-studio/LessonExperience.jsx`; `app/src/__tests__/lesson-experience-prototype.test.jsx`
 **Sent in by:** Darrell, 2026-11-26 (phone): "Notice I had history and then when the update came it didn't take me back to paragraph 6 out of 12?!!!!!!!!! Or whatever we should be doing!!!!!!!" (lesson 140 reopened from Recently opened, landed at the top of Read).
 **Pairs with:** DR-1669 (resume after an ended pause), DR-1664 (the new look for every member)
 
