@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T10:46:08.271Z",
+ "measuredAt": "2026-11-26T10:49:54.101Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4460
+  "readings": 4462
  },
  "departments": [
   {
@@ -13630,11 +13630,13 @@
    "department": "The Eternal Algorithms",
    "position": 13,
    "title": "My Sheep Hear My Voice (another voice they will not follow)",
-   "contentSha": "3fd55fd15660e419559fdf08c1644d497f0e8c06aa5509bcf68fed8200574b52",
+   "contentSha": "becf9538ff7116e261b89ae301589435bbd2baa46e5ec1c8b448221b2511b392",
    "versions": {
-    "teen": "980bd17051162f937beefa59f075461762981d605927a8b85b0d90adbda404d2",
-    "adult": "69d326a5150ab0e8a435c429a0304a9de5bd35e8196288b83127b783d9674706",
-    "senior": "6e2dbe9cd2e658d1e26add838ce9208b0e7b98c3eef420b79e2a5f692a653f0a"
+    "child": "13318f96eb4f8a36173ffe6c07e397595af7bcf59ca3d8408e91d8ec3bc3de20",
+    "youth": "fa09762b1af4dfac5e6e11e0b05f52df475545bbfdf9e1ce7377b594975165b5",
+    "teen": "228dfd89d217f6673d611b14373cb1bd2d577adca803621d51370711e45bcb96",
+    "adult": "6c5d1306b4c36fe808c6515cf341f8807662c99442b241aeb4277bc83d41f107",
+    "senior": "fa0925b7f2259e67998c3b0828ad83023f9bdf17f5f0994549e76b4efa666376"
    }
   },
   {
