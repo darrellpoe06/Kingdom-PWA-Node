@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T14:38:40.634Z",
+ "measuredAt": "2026-11-26T14:42:37.331Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4550
+  "readings": 4552
  },
  "departments": [
   {
@@ -12953,11 +12953,13 @@
    "department": "The Eternal Algorithms",
    "position": 5,
    "title": "Delight → Desires",
-   "contentSha": "56860e3f9e49ac9dd7f8faaf8056bc4170a37d9c6e26c2ac44837b3477396c64",
+   "contentSha": "a4b876c49f6cbfee99cbcbdfa5968e1799d69f3ef5c7c3bb26839da6c161d5fd",
    "versions": {
-    "teen": "9a8637cb3fa977512687a52b7a5d2bb94a57a2aeca2578e98c53bcbf125e0d2a",
-    "adult": "46ff15943c4ee913944627674ef5bd13f3133335ccd5dae95770db9d1c570dcc",
-    "senior": "8ed14969f28be0ba64343ab2ef2ad8e38ade9d51a49f10f88087ff2b7f916c20"
+    "child": "fffe3b3a0a17d805c4e1f571330dbef15b1b747d827283b3bfb77f9a68e5b074",
+    "youth": "de4e89d550cf19adcebca44256681589844aec88e5c2478299825c6b20aed9f0",
+    "teen": "7646819be60bb1a705607b6f6b521d018ffff636f1a7fa47281ba86d1c8d8732",
+    "adult": "d48dfd63da85ceee6b6c9e11f292d1101c46df746c5c528d185450e0506ecae7",
+    "senior": "dfbce756178a10bb36c0356657eaaa4d475796ac20a87749f2b3285ff2535589"
    }
   },
   {
