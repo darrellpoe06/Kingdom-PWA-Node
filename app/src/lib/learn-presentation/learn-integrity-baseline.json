@@ -1,5 +1,5 @@
 {
- "measuredAt": "2026-11-26T20:13:31.334Z",
+ "measuredAt": "2026-11-26T20:18:51.119Z",
  "counts": {
   "departments": 13,
   "courses": 51,
@@ -8412,13 +8412,13 @@
    "department": "The Word & The Way",
    "position": 11,
    "title": "The Letters: Who He Is to the Churches",
-   "contentSha": "5ca7248a2c4623b4b749467fcae201063fa24b8d0ba80e6c4dd80245ba0c08d2",
+   "contentSha": "cca6061d8507c1ea8cc57c0018948173c246bb895cbdae0118f5d63635638a2e",
    "versions": {
-    "child": "3ec1f317061404dd1133e136662dfecf3e2f2512707fd8ce35dc7951d1d6ec84",
-    "youth": "e0dd911c2696e771bec799c5e7755a4a0b401a6b02ec14ca6f364ca1d26d7ebe",
-    "teen": "18e515447d1d068218869f3101d48173a882b7bd06a4c8556d6c28c73850d7c1",
-    "adult": "bac1ec7ca184cb87ad706907c34269db385dc78b02b44c9923d49836dddbb6da",
-    "senior": "d2e0d99ab978246e1e7b52231fa2e3d48682b66a6603c5d4bec21e2b33118b51"
+    "child": "f8b5cb7cce19ff4297df77d7de241ce6b82034c7e0dc478d6cebb38a4ccb25db",
+    "youth": "57d0f49bda284d96e95b3fb1cd5e6aac614facb5f52b35b85564db946b2454da",
+    "teen": "870fab384c8a351dc2ac004016574d755ae4240be9cb306354e1424edd1dbfa5",
+    "adult": "bdfd98ddb0742e7dd4f6542d499381c490e65f9cf2885a7c37415695698ba945",
+    "senior": "4ad81c9c1c3c267935634c0f3d8a14e2b52aa6eb993560b2c34437db6ed72988"
    }
   },
   {
