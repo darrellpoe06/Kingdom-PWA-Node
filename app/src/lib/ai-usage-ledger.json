@@ -4138,6 +4138,21 @@
       "notes": "BibleReader place: device-local restore + scroll follow + settle guard"
     },
     {
+      "id": "l349-let-him-say-what-he-says",
+      "date": "2026-11-26",
+      "task": "L349 Let Him Say What He Says: Darrell's spoken teaching on honest study, Jesus in His own words and the incorruptible Word, built in love as a Living Lesson",
+      "drs": [
+        "DR-1703"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.6,
+      "estimateWithoutAiHours": 10,
+      "notes": "Spoken teaching in three parts, captured and shipped the same session. Tokens not metered in this session."
+    },
+    {
       "id": "sov81-what-hast-thou-that-thou-didst-not-receive",
       "date": "2026-11-13",
       "task": "Sovereign A.I. week 81 built from one word over a forwarded IT Brew issue (Copyright, copyleft), all four age bands, 31-case gate",
