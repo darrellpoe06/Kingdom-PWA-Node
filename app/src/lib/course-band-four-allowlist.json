@@ -28,7 +28,6 @@
     "bonds": [
     ],
     "broadcast": [
-      "bc6-bandwidth-network",
       "bc7-llms-for-broadcast",
       "bc8-pov-sops",
       "bc9-excellence-as-worship"
