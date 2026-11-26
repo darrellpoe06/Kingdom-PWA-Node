@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T04:21:02.212Z",
+ "measuredAt": "2026-11-26T04:24:15.885Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4316
+  "readings": 4318
  },
  "departments": [
   {
@@ -13861,11 +13861,13 @@
    "department": "The Eternal Algorithms",
    "position": 34,
    "title": "Glory Refused or Taken (the line, and what happens at it)",
-   "contentSha": "fa3488b6b8edf3b3d19b5477531a374fc57ad4ba379ca8936ab024750e5b0348",
+   "contentSha": "79b26b8f491d70931d616ff65e658b6dda35bcc14b8d53cbbc0bb60c43e4fb41",
    "versions": {
-    "teen": "e84ba6cc3aa709203cb74bb5c3ed84f32c6cc1444dfbe876d419f58b30ec4b6e",
-    "adult": "742313491e7f754d6ba5ec0a53246f1e6e5234c13d61626d32ee5eda03918ba2",
-    "senior": "3167ba44bc87acec4473d66959e12aadda66d2283b2bda9309d57c01d521fa46"
+    "child": "1827e349901d686109b8b1b63d9e775238bcf36f8328ca9da39a5f055d3147bc",
+    "youth": "d488c5b395db12ef6b7d2f97e1cfa8ab0d57fdc6ff52e1bbfe0e86c12fb08ed4",
+    "teen": "53ba64c4b87e3a381b3895311d0ebd4de1a50fbd1c1c9c3212914e314e5f8319",
+    "adult": "396ae6c14457a8da266f88fcf3dcf696a39c10e769d80d8ec3dd36d3cab89467",
+    "senior": "fb9575964623ad0271fb2938ea2bca67902f2bd24d4105aec967c780082911cf"
    }
   },
   {
