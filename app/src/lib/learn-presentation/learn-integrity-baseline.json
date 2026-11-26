@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T16:56:58.364Z",
+ "measuredAt": "2026-11-26T17:03:54.908Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4582
+  "readings": 4584
  },
  "departments": [
   {
@@ -636,11 +636,13 @@
    "department": "Serve the House",
    "position": 7,
    "title": "A.I. that serves the broadcast — and how it really works",
-   "contentSha": "7fcf9d08514aa41e12274d7e05f566d73303404b0ccd2c4ae80c90433d82ef0c",
+   "contentSha": "81661047888d943147c490f6b608abb880bf9064127c7700d888855a29e35511",
    "versions": {
-    "teen": "0d40a43d5abf16c1baff1d73b48b6dd604b3fcf7f3d9afd859d046ec0c3c699f",
-    "adult": "3c5099bb544463e9725129edf01daa9b74c0cf88eb2ccf61044d3cef06b87660",
-    "senior": "27c7712def0e2c28a0d8b233bac0a036283724d652e19f04b3fe6a22c88815bb"
+    "child": "42f0a3ea0383b077acc6a0eaa1b62b2310bc5406843ec7dc4b765bf02fd1f087",
+    "youth": "5cb983e19920a67daa3075239e7f9d4831cc6357a60fb47e36997965f43875d9",
+    "teen": "d09ee06047e050fc16707510e3583f50e5a44cae59c1b0d8c895f1f81799fe00",
+    "adult": "fead466274dede7da880663f292fc813df8ac721404d83a07f2a9538be9b39f3",
+    "senior": "9b1395f0653a262852a2bc0088c07a0ef3e86393550f49c359a1bb58540468d5"
    }
   },
   {
