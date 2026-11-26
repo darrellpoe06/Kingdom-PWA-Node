@@ -1,5 +1,5 @@
 {
- "measuredAt": "2026-11-26T20:24:08.255Z",
+ "measuredAt": "2026-11-26T20:29:23.638Z",
  "counts": {
   "departments": 13,
   "courses": 51,
@@ -8442,13 +8442,13 @@
    "department": "The Word & The Way",
    "position": 13,
    "title": "He Comes Again",
-   "contentSha": "497ee91bea73e1760cf0ea27510a05208136fabb21233360f9f1921f0cf3ca37",
+   "contentSha": "6bc6342d38ab8ec1fa352c3015353872ad69a52d3ba8d72ce5853ee2341b3d98",
    "versions": {
-    "child": "ef28e4d2ffe4b4e18d60470599d15387f7bd8cc5324b41b5984ff963f3b40c8e",
-    "youth": "711d31c4f1466138afd9a5d1832b95a236c040aaace2f8fa6ccb0250b87b56f7",
-    "teen": "473d472e31d9d9f4f34ae6bb520e5f31079a69a9da3fb3fb731a30246ea3f863",
-    "adult": "a67ee4c1bd36855592368068cf17f7268c65a6ae579836e580aaa843f345e5ca",
-    "senior": "8e1f71133402be874117517abfdbf54e13bb365246e8bd17b5fe729d2ee642b5"
+    "child": "d12343441f38df018665b9dc5f1a40f4c4fddb32743b078a4c95c98e1bd786d2",
+    "youth": "b24350db98d257a02564c34ca7ed0c15684b51a39a38f5498fa195cda195bd58",
+    "teen": "ce61a294efbf58cd36c7340451932ed7496a3e4db8ad360fed36a2e83aaf1a6d",
+    "adult": "05f999b22c98edb2b8f032d6e9693a88d4b71cd4519ac28bd87350e306667864",
+    "senior": "027068f72b92f822499ab409dec1375986b5c46fca439d0bfbd1eff3dac74976"
    }
   },
   {
