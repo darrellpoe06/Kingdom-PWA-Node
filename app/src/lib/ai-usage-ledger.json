@@ -1560,6 +1560,21 @@
       "notes": "17 of 17 Kids library tests."
     },
     {
+      "id": "lesson-speed-remembered",
+      "date": "2026-11-26",
+      "task": "Lesson player keeps the listener's chosen read-aloud speed (DR-1688)",
+      "drs": [
+        "DR-1688"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.5,
+      "estimateWithoutAiHours": 3,
+      "notes": ""
+    },
+    {
       "id": "the-lesson-lane-says-why-it-is-asleep",
       "date": "2026-11-10",
       "task": "Give two dormant lanes a voice: the lesson-mail watcher says what its dormancy costs, and the email door reports mail-password presence before the tailnet gate",
