@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T04:41:17.611Z",
+ "measuredAt": "2026-11-26T04:45:44.088Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4326
+  "readings": 4328
  },
  "departments": [
   {
@@ -14573,11 +14573,13 @@
    "department": "The Eternal Algorithms",
    "position": 48,
    "title": "The Word Is 4th-Dimensional Fact (it outranks 3rd-dimensional fact)",
-   "contentSha": "eaee4d67919d031f96e61e008dab1d61f53507755476943ae7ed1ae6fef14d3d",
+   "contentSha": "0ee24460924737b6ef7f6f68b2366715b602e872d14233b3035f4e7e55e8337b",
    "versions": {
-    "teen": "c1076fd3e424be8a2d2aecea7bb4a5ac1e3d5f7ee67d4366bfd7783838a26c04",
-    "adult": "220a065e167be2053a9b0d0a497cd0592d4bac30cf941f7026f49419b289c7ab",
-    "senior": "9402e9c74aadd26bfbab74e257cd5509aa6263d3eef56682121d4ffde029ac77"
+    "child": "dc562e1ef9bb9e3ef362c03b92099c8ba5d36e63eb3cdfaf7bae6a08acc7e012",
+    "youth": "d794ee2c32439a7b0de0036d8384ec35d7489d8cdd11e0bd04d7df7c1e6dfc96",
+    "teen": "fe433e0a62024e6cc1071d82b67dffc77be8597622459760576012d0ac81e8d2",
+    "adult": "a487a497e3da82f84cf9a508d8678210e1be718f8c758eff87211e281e4e8af2",
+    "senior": "65396a4034c462b151372df364ef5f162e2faedbc3dcc9b7121855f1576f3d93"
    }
   },
   {
