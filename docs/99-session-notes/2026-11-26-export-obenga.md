@@ -1,6 +1,6 @@
 # Dr. Théophile Obenga: the lessons, readable export (2026-11-26)
 
-Generated from the lesson data on branch claude/prophetic-voices-lessons (DR-1686). 4 lessons. Each shows the title, the big idea, the full adult lesson, the verses it quotes, the honest note and every source. The child, youth, teen and senior tellings and the two stories live in the app.
+Generated from the lesson data on branch claude/prophetic-voices-lessons (DR-1697). 4 lessons. Each shows the title, the big idea, the full adult lesson, the verses it quotes, the honest note and every source. The child, youth, teen and senior tellings and the two stories live in the app.
 
 ---
 

@@ -1,4 +1,4 @@
-# DR-1686: let them speak — the Prophetic Voices teach what they said
+# DR-1697: let them speak — the Prophetic Voices teach what they said
 
 **Date:** 2026-11-26
 **Status:** Accepted

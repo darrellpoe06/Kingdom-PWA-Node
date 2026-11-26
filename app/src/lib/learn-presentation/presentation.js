@@ -22,6 +22,7 @@
 import seed from './presentation-seed.json';
 import { courseDepartment, departmentCode, lessonVersions } from '../learn-organize.js';
 import { placeReached } from '../learn-resume.js';
+import { closestToFinished } from '../lesson-progress.js';
 import { lessonDuration, spokenMinutes, formatDuration } from '../course-duration.js';
 
 /**
@@ -220,10 +221,30 @@ export const RELATIONSHIP_LESSONS = Object.freeze([
   'll319-what-the-trust-could-not-keep',
   'll157-what-is-love-in-depth-and-in-range-action-based-word-first',
   'll167-be-a-g-about-it-execute-the-fourteen-love-verbs-high-or-low-because-it-is-not-about-how-you-feel',
+  // Added DR-1686 (Darrell 2026-11-26: "Make sure the lessons that should be in the relationship sections are there"),
+  // each read for its subject, not matched on a word: love,
+  'll175-true-love-starts-with-an-act-and-a-sound-mind-and-feelings-come-after-the-test',
+  'll82-love-fulfils-the-law-wake-up-and-get-dressed',
+  'ea-gh-inside-love',
+  // hard conversations and forgiveness,
+  'll15-seasoned-with-salt',
+  'ea-gh-forgive-forgiven',
+  'ea-gh-vengeance-his',
+  'ea-gh-soft-answer',
   'll16-rule-your-spirit-repair-the-bond',
   'll291-fruits-meet-for-repentance',
   'll151-the-tongue-death-and-life-in-a-little-member-and-the-knowledge-that-governs-it',
   'll46-ye-fathers-provoke-to-good-works',
+  // family (DR-1686),
+  'ea-gh-house-serve',
+  'ea-gh-train-child',
+  'll282-the-greater-work',
+  'll294-a-prophet-in-his-own-house',
+  'ea-gh-break-generational',
+  'll154-why-do-we-have-to-pay-for-our-fathers-sins-we-dont-and-it-needs-what-we-do-here',
+  'ea-gh-father-fatherless',
+  'legacy6-hand-it-forward',
+  'll74-church-hurt-the-counterfeit-comfort-and-the-blood',
   'll117-no-two-children-grow-up-in-the-same-house-why-siblings-differ-and-the-one-parent-who-is-the-same',
   'll313-children-are-a-heritage-when-the-school-closes-the-house',
   'll100-guard-the-little-ones-children-the-millstone-and-mastery-over-the-tools',
@@ -267,7 +288,7 @@ export function interimHeadline(p) {
 }
 
 /** The home page, derived from the mounted catalog, the device's places and the record index. */
-export function studioHome(courses, index, { places = [], progress = {}, preview = false } = {}) {
+export function studioHome(courses, index, { places = [], allPlaces = null, progress = {}, preview = false } = {}) {
   const lessons = allLessons(courses).map(({ lesson, course }) => ({ lesson, course, p: presentLesson(lesson, course, index, { preview, lite: true }) }));
   const presented = lessons.filter((x) => x.p.hasPresentation).map((x) => full(x, index, preview));
   const byId = new Map(lessons.map((x) => [`${x.p.courseKey}::${x.p.lessonId}`, x]));
@@ -277,6 +298,16 @@ export function studioHome(courses, index, { places = [], progress = {}, preview
     .map((pl) => {
       const x = byId.get(`${pl.courseKey}::${pl.lessonId}`);
       return x ? { ...full(x, index, preview), reached: placeReached(pl) } : null;
+    })
+    .filter(Boolean)
+    .slice(0, 12);
+  // CLOSEST TO FINISHED (DR-1684): every lesson begun and measured, short of
+  // the end, furthest along first -- from every saved place, not only the
+  // ones with a step to continue, so a lesson read in the Experience counts.
+  const closest = closestToFinished(Array.isArray(allPlaces) ? allPlaces : places)
+    .map(({ place, progress: pr }) => {
+      const x = byId.get(`${place.courseKey}::${place.lessonId}`);
+      return x ? { ...full(x, index, preview), reached: pr.fraction } : null;
     })
     .filter(Boolean)
     .slice(0, 12);
@@ -299,6 +330,7 @@ export function studioHome(courses, index, { places = [], progress = {}, preview
     featured,
     featuredAll,
     continueLearning,
+    closestToFinished: closest,
     // No engagement data is mounted in Learn, so no "Trending" row is offered
     // (spec §7: never fabricate popularity). This row is labeled for what it is.
     discover: presented.filter((x) => !x.p.featured).slice(0, 12),

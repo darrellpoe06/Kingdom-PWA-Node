@@ -34,6 +34,8 @@ import { readMark, readMarkLabel, readMarkSays, VERSION_LABEL } from '../lib/les
 import { confirmThen } from '../lib/confirm-action.js';
 import { unitLabels } from '../lib/learn-units.js';
 import { ownNumber } from '../lib/lesson-order.js';
+import LessonProgressBar from './LessonProgressBar.jsx';
+import { lessonProgress, isUnfinished } from '../lib/lesson-progress.js';
 
 const SERIF = { fontFamily: '"Fraunces", serif' };
 const MONO = { fontFamily: '"JetBrains Mono", monospace' };
@@ -62,20 +64,62 @@ function lessonLabel(course, lesson) {
   return `${U.cap} ${ownNumber(lesson, course.schedule)} · ${lesson.title}`;
 }
 
-/** The top-of-Learn offer: the latest lesson, then every other one begun. */
+/**
+ * CLOSEST TO FINISHED, as an order (DR-1684; Darrell 2026-11-26: "so we can
+ * pick the ones we are closest to finishing"). The begun lessons, furthest
+ * read or heard first; a lesson with nothing measured keeps its recency
+ * order after every measured one (never ranked on a guess). Pure.
+ */
+export function orderClosest(items) {
+  const list = Array.isArray(items) ? items : [];
+  const f = (x) => {
+    const pr = lessonProgress(x && x.place);
+    return isUnfinished(pr) ? pr.fraction : -1;
+  };
+  return list.map((x, i) => ({ x, i, f: f(x) })).sort((a, b) => b.f - a.f || a.i - b.i).map((y) => y.x);
+}
+
+/** ", about 40% read" for a button's aria-label (which overrides its inner words), or ''. */
+function howFar(place) {
+  const pr = lessonProgress(place);
+  return pr ? `, ${pr.label.charAt(0).toLowerCase()}${pr.label.slice(1)}` : '';
+}
+
+/** The top-of-Learn offer: the latest lesson, then every other one begun (or the closest to finished first). */
 export function ContinueOffer({ items, onContinue, onRefresh, onForget, now = Date.now(), max = 4 }) {
+  const [order, setOrder] = React.useState('latest');
   if (!Array.isArray(items) || items.length === 0) return null;
-  const [first, ...rest] = items;
+  const canOrder = items.length > 1 && items.some((x) => isUnfinished(lessonProgress(x.place)));
+  const shown = canOrder && order === 'closest' ? orderClosest(items) : items;
+  const [first, ...rest] = shown;
   const { place, course, lesson } = first;
   const more = rest.slice(0, Math.max(0, max - 1));
   return (
     <div className="mb-4 border-2 border-[#5A6E3D] bg-[#5A6E3D]/[0.06] p-3" data-testid="continue-offer">
-      <div className="text-[0.6875rem] uppercase tracking-[0.2em] text-[#5A6E3D] font-semibold mb-2">Pick up where you left off</div>
+      <div className="flex items-center justify-between gap-2 flex-wrap mb-2">
+        <div className="text-[0.6875rem] uppercase tracking-[0.2em] text-[#5A6E3D] font-semibold">{order === 'closest' && canOrder ? 'Closest to finished' : 'Pick up where you left off'}</div>
+        {canOrder && (
+          <div className="flex gap-1" role="group" aria-label="Order the lessons in progress" data-testid="continue-order">
+            {[['latest', 'Latest'], ['closest', 'Closest to finished']].map(([k, label]) => (
+              <button
+                key={k}
+                type="button"
+                aria-pressed={order === k}
+                onClick={() => setOrder(k)}
+                data-testid={`continue-order-${k}`}
+                className={`text-[0.625rem] uppercase tracking-wider px-2 py-1 min-h-[36px] border border-[#5A6E3D] ${order === k ? 'bg-[#5A6E3D] text-white' : 'text-[#5A6E3D]'} ${FOCUS}`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
       <button
         type="button"
         onClick={() => onContinue(place)}
         data-testid="continue-latest"
-        aria-label={`Continue ${lesson.title}, ${placeWhere(place)}`}
+        aria-label={`Continue ${lesson.title}, ${placeWhere(place)}${howFar(place)}`}
         className={`w-full text-left px-4 py-3 min-h-[56px] border-2 border-[#5A6E3D] bg-[#5A6E3D] text-white hover:bg-[#4a5a31] ${FOCUS}`}
       >
         <span className="block text-[0.8125rem] uppercase tracking-wider font-semibold">Continue →</span>
@@ -83,6 +127,7 @@ export function ContinueOffer({ items, onContinue, onRefresh, onForget, now = Da
         <span className="block text-[0.75rem] opacity-90 mt-0.5">
           {course.meta.title} · {placeWhere(place)}{placeAgo(place.at, now) ? ` · ${placeAgo(place.at, now)}` : ''}
         </span>
+        <LessonProgressBar place={place} look="oncolor" silent />
       </button>
       <div className="flex flex-wrap gap-2 mt-2">
         {place.step > 0 && (
@@ -117,13 +162,14 @@ export function ContinueOffer({ items, onContinue, onRefresh, onForget, now = Da
                 <button
                   type="button"
                   onClick={() => onContinue(p)}
-                  aria-label={`Continue ${l.title}, ${placeWhere(p)}`}
+                  aria-label={`Continue ${l.title}, ${placeWhere(p)}${howFar(p)}`}
                   className={`w-full text-left px-2 py-2 min-h-[44px] border border-[#5A6E3D]/50 bg-white text-[#1A1815] hover:border-[#5A6E3D] ${FOCUS}`}
                 >
                   <span className="block text-sm leading-snug" style={SERIF}>{lessonLabel(c, l)}</span>
                   <span className="block text-[0.6875rem] text-[#5A5751]">
                     Continue → {c.meta.title} · {placeWhere(p)}{placeAgo(p.at, now) ? ` · ${placeAgo(p.at, now)}` : ''}
                   </span>
+                  <LessonProgressBar place={p} look="classic" silent />
                 </button>
               </li>
             ))}
@@ -208,6 +254,17 @@ export function RowContinue({ place, title, onContinue, versions = null, record 
             {VERSION_LABEL[id]}
           </button>
         ))}
+        {/* READ BEFORE, AND BEING READ AGAIN (DR-1684): the new reading's own bar. */}
+        {isUnfinished(lessonProgress(place)) && <LessonProgressBar place={place} look="classic" className="basis-full" />}
+      </span>
+    );
+  }
+  // MEASURED BUT NOT A STEP IN (DR-1684): read or heard in the new-look
+  // Experience, which keeps no step. No Continue claimed; the bar alone says how far.
+  if (place && !placeInProgress(place) && isUnfinished(lessonProgress(place))) {
+    return (
+      <span className="basis-full order-last" data-testid="row-progress-only">
+        <LessonProgressBar place={place} look="classic" />
       </span>
     );
   }
@@ -231,6 +288,7 @@ export function RowContinue({ place, title, onContinue, versions = null, record 
       className={`shrink-0 text-[0.625rem] uppercase tracking-wider px-2 py-2 min-h-[44px] border-2 border-[#5A6E3D] bg-[#5A6E3D] text-white font-semibold hover:bg-[#4a5a31] ${FOCUS}`}
     >
       Continue{left ? <span className="font-normal" data-testid="row-left">{` · ${left}`}</span> : null}
+      <LessonProgressBar place={place} look="oncolor" silent />
     </button>
   );
 }
