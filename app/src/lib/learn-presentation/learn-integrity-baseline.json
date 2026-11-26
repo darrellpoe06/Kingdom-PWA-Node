@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T06:20:27.379Z",
+ "measuredAt": "2026-11-26T06:23:48.573Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4372
+  "readings": 4374
  },
  "departments": [
   {
@@ -14422,11 +14422,13 @@
    "department": "The Eternal Algorithms",
    "position": 35,
    "title": "The Saints Shall Judge the World (Kingdom Believers in training for the bench)",
-   "contentSha": "90a929adc1ba3fc9ee8ec85e1aaace869b72571d101108b71c1ba3d8b97ef4bf",
+   "contentSha": "e19f59f1b825590d9cf02491525b814090e6b6479afb5376edcc4e85049cf4db",
    "versions": {
-    "teen": "2a586e870695a5607f6afec687f598c69e087608d00151fe1d706ec1e3ea1e71",
-    "adult": "80a0998f5a8a5d072177f52b576bc1de88a9745159df9987cb63f4a841d31980",
-    "senior": "0b90ba77961413c69a5951c0c2114116cf6474de1ab781e879efe51045d4670c"
+    "child": "f496b1e7152d8949a90d2f3ebc55b0021e77f23fc1e44c24dd47ed0b58dde9bb",
+    "youth": "6a5198f40026b65dfd94f5b940eac40461653c26d1c9eb533659f431b2a690d6",
+    "teen": "977f9d7f7f9952cb0dd2c495bc78e1a1ec3252bd7930e2ab8256d5ae7103f621",
+    "adult": "5645d33d46f61028cade2253e58b04e721f68e301a4ae80ba5275769f8848109",
+    "senior": "88aa68c7abe4f0143ac822e93b04bacc16ee7161e407b42c48e2bb40183ce7d0"
    }
   },
   {
