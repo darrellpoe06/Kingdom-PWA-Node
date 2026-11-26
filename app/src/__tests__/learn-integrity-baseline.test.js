@@ -58,8 +58,8 @@ describe('Learn content integrity baseline', () => {
   });
   // 4,258 readings at Phase 1; +2 each as an Eternal pattern becomes a full lesson
   // with child and youth versions it never had (Darrell 2026-11-26): joy-three-days,
-  // genesis-holds-the-whole-plan, spirit-formed-and-returns, eyes-opened-by-prayer.
-  it('the baseline is the measured Phase 1 catalog (13 / 51 / 994 / 4,266)', () => {
-    expect(base.counts).toEqual({ departments: 13, courses: 51, lessons: 994, readings: 4266 });
+  // genesis-holds-the-whole-plan, spirit-formed-and-returns, eyes-opened-by-prayer, the-door.
+  it('the baseline is the measured Phase 1 catalog (13 / 51 / 994 / 4,268)', () => {
+    expect(base.counts).toEqual({ departments: 13, courses: 51, lessons: 994, readings: 4268 });
   });
 });

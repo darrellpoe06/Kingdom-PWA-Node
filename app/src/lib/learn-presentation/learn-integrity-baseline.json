@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T02:30:00.613Z",
+ "measuredAt": "2026-11-26T02:53:14.478Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4266
+  "readings": 4268
  },
  "departments": [
   {
@@ -13410,11 +13410,13 @@
    "department": "The Eternal Algorithms",
    "position": 1,
    "title": "I Am The Door (there is no other way in)",
-   "contentSha": "52c96c2dd03c6f0eddcfa786ea6f4c7ab90185549e799f0c0c177d84911fb2be",
+   "contentSha": "ee4111b7bbcd2ce7d794477798c162c73b998b3ff50c29515ac8d8f6f6891c78",
    "versions": {
-    "teen": "985984396fb9064ba14e74b0fbb28b5dd0984c367481f6f05c980943fde81081",
-    "adult": "8d6509a4f131b6ce1d3c89311d830e7bc15f8c25d5c0fc53ec43065ee55baa00",
-    "senior": "985ea7498291349e59b16f0417f268f5d113592b4569bb68f6aca8223f4a86cf"
+    "child": "440b96405549d834a2e00050e89dc60db0d326278ef2cb44e612900dff8b4753",
+    "youth": "f214c66c7a50349fed4e652acf5cf05b0718b3df92649fe31fa5e48fad06fd71",
+    "teen": "a335848dac72b9088d57e49cfa56af2d7d865bb34d9f97f6706a4a7614572817",
+    "adult": "0528a7007361eab2f6e0eb72119a91623d7bb32d797dabe526876181c79b8042",
+    "senior": "5da614fc050e9f2f1bdab2d43d429ab588a28dd71bf0804bb5da5b5690b77390"
    }
   },
   {
