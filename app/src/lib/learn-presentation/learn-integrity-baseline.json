@@ -1,5 +1,5 @@
 {
- "measuredAt": "2026-11-26T18:11:29.673Z",
+ "measuredAt": "2026-11-26T18:18:45.590Z",
  "counts": {
   "departments": 13,
   "courses": 51,
@@ -801,13 +801,13 @@
    "department": "Serve the House",
    "position": 9,
    "title": "Keeping it alive — health, alerts, and the three brakes",
-   "contentSha": "0f7d310a97e1a90d1c48a26f3b01279daa0c6b9cd85acb48d07b7a41e8eb91f5",
+   "contentSha": "03966f5113823e464c43ec021f5884a22fdf5b3d00b0a155ac41269cb41253d8",
    "versions": {
-    "child": "dcd2c8c14dee05dff9732e1e43a395310e717872ce299ab8965a56162893caf6",
-    "youth": "60bcd05aabdc53afdd5eaa6a0bd7e61b43b8ff93c6a3381648ee31743b1797c6",
-    "teen": "72eda0cefe6e9b6412b890fb15d3ed6d0d9af6f631a000fcfeed9a29e6568bf8",
-    "adult": "81e29f9e7215dc4fed3f55cef19704a28ab206e9420dbef92c9cc3f41ec4e6aa",
-    "senior": "0495e5746a5013be55968337bde1853132fe97f980a2041421ca8434a2770887"
+    "child": "bd9d095a38e277748e1d42b22ee0ff279fea707b948d634b154c32c2895ec8e2",
+    "youth": "6587a45b9a278ef021664f58e564df8ac3b9167de92b41cf39d280e8e0b08c49",
+    "teen": "c5871cdfef432101f0511633ac119db9e205e3a11ce29bd3b276e9b63e9db2a7",
+    "adult": "c370e1a8cbd29bab3f3b1e5b141bb1bfaf469f663d6e8f24117290c88773d492",
+    "senior": "5f2cccfd25e16a5e049ffd2b498164f64f26a85449f132f5fed58740102b0c50"
    }
   },
   {
