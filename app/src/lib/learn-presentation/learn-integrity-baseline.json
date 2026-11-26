@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T02:53:14.478Z",
+ "measuredAt": "2026-11-26T02:57:57.519Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4268
+  "readings": 4270
  },
  "departments": [
   {
@@ -13906,11 +13906,13 @@
    "department": "The Eternal Algorithms",
    "position": 1,
    "title": "One Mediator (the traffic all goes through the Son)",
-   "contentSha": "ef71c7621d273e4634d808ed2fa2d4c39d1ea91d5f8d88ddb4b440dc3e2ab68d",
+   "contentSha": "5e11ed91bb4c4e0e00a6d098248a99745b87a897fe55531cb1025d058a09d96b",
    "versions": {
-    "teen": "d31280e788cda3e4f4361975db4f4402e30293f927ebf164f88c41d9ffd1d88f",
-    "adult": "23aea3bd5cd338c5f8e9db6b8c2b8293f138c3a77b216635beda498da945f64f",
-    "senior": "fafc7be2c557c3e7912486e72dd9a779fedd6636bcf744bfd5a37dc6409c2a7f"
+    "child": "5586d50691140329ec91b0530207a6e155a597d3528daea3f0459b4b74d887c7",
+    "youth": "715f0d2880e496dbdf9f4903e1455c5c21cfb96e1b8c6df827c0ae535b9f4fa6",
+    "teen": "9728c93efdfb67135a21279454ee0cba9661413e694e8f33cac7c8c8efc0a6d6",
+    "adult": "e0ac9bedab6b225df02563e1970d20a79877ae0d1128d22a2223af6f6cdf7865",
+    "senior": "4995ef83ea24efa06b138f3097078bc015fb3d8b7c753269d72828fee281ea60"
    }
   },
   {
