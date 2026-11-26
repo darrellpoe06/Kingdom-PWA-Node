@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T05:00:59.440Z",
+ "measuredAt": "2026-11-26T05:04:48.870Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4336
+  "readings": 4338
  },
  "departments": [
   {
@@ -13138,11 +13138,13 @@
    "department": "The Eternal Algorithms",
    "position": 20,
    "title": "Iron Sharpens Iron (own the why of your faith)",
-   "contentSha": "c4ab06d88bbbf6be6510594a947b9580dc5649804ea357983268cd3b13cc6bac",
+   "contentSha": "3ead3d966b95487625f7b780a034ebcc3f34e7dfe431a863d76393e426e2e9e5",
    "versions": {
-    "teen": "defff6c7d59856aeb0c7e227378db886c0c3e99c775ecf2da29888def5f95021",
-    "adult": "49fab71782eff700dbf2563de9ea3747e6b7d4d527e3f2a7f95e96c67f75013a",
-    "senior": "0f2aea1574e4e3b5bb25a3a3f85e785549914742380e69718d6cf676d0783da3"
+    "child": "e7cc4b8c49e8fa716a1bbc0b4937e2ecf5c72ec46a5b060cf58fea440687423d",
+    "youth": "bc4049e611a31eca89382d8379f925fb4bfe6aaac8facae86255a171ca625aff",
+    "teen": "d94dc909b0bab85fd36a553c0f153c2b05c80693dd11b0f13732cdfb0432a1ff",
+    "adult": "9d9b7756eb7151b888a5382050e3a6084612cf9a6514cd59a7aa468c1f19136a",
+    "senior": "862a8145b7db9945c4a47b71bd1e09a52b42fd1443fa3cec6d13b017cc989d4b"
    }
   },
   {

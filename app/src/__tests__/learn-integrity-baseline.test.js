@@ -69,8 +69,8 @@ describe('Learn content integrity baseline', () => {
   // yahweh-gets-both, glory-refused-or-taken, keep-yourself-by-the-word,
   // knowledge-and-sin, conviction-vs-condemnation, mind-of-christ-in-the-hidden-part,
   // word-is-4d-fact, justice-rationed-at-the-gate, remedy-that-arrives-on-a-calendar,
-  // fruit-no-law, god-not-colorblind.
-  it('the baseline is the measured Phase 1 catalog (13 / 51 / 994 / 4,336)', () => {
-    expect(base.counts).toEqual({ departments: 13, courses: 51, lessons: 994, readings: 4336 });
+  // fruit-no-law, god-not-colorblind, own-your-faith.
+  it('the baseline is the measured Phase 1 catalog (13 / 51 / 994 / 4,338)', () => {
+    expect(base.counts).toEqual({ departments: 13, courses: 51, lessons: 994, readings: 4338 });
   });
 });
