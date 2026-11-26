@@ -1,5 +1,5 @@
 {
- "measuredAt": "2026-11-26T20:35:31.101Z",
+ "measuredAt": "2026-11-26T20:44:04.585Z",
  "counts": {
   "departments": 13,
   "courses": 51,
@@ -2318,13 +2318,13 @@
    "department": "A.I. The Way",
    "position": 1,
    "title": "The one rule — it is a stranger’s computer",
-   "contentSha": "74c60b44e1d671ca01b2c32cfdbe56b90865368670b710e81eb1f0edb684e250",
+   "contentSha": "2308c592e87d2da269e3d0737a6633ba339ae7c45d41b10ac24bad24005d0443",
    "versions": {
-    "child": "b52c45789a43a6535d5548d84c6dc2f7b94bfa7bec3ebef645d25c6eb6d3dbe6",
-    "youth": "c02886dc01728a249a0fc7c95f685f8f38c3106c16d1cf940da74ac102fba4a7",
-    "teen": "349b94faef0f21c9ee281c9e8eed9a7a46ab0b786e220ead6ac67670ef777c72",
-    "adult": "f106079b67e50af66c4cb11b9f22b58b34f285f58e2b81070ce3724806cb65be",
-    "senior": "e7aa4e44d6582474bb4a57d54149d9f718237f1e1d9861b54dff8c049a675d8f"
+    "child": "9561d35aee9f90fa5f8bd9ca459b59b61b8decbfe6ffd66ac9da748948bf4c06",
+    "youth": "a6b7baaec30616de25bc371f3874fb197230a1fa43c20d274fa93532859c4a65",
+    "teen": "ce78163e89179ae715c8878fe280dbfab9ab4e316244f275b516edf99c98b256",
+    "adult": "2ccb66a4148b2b9909f28cdc8d43752297fbfce915978efea678524f0b386d01",
+    "senior": "c0d95a6f0e2b0c57ab728430c95bbbd6a4af02a1f0488abf257cd209eebde2c8"
    }
   },
   {
