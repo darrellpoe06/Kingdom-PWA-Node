@@ -70,8 +70,8 @@ describe('Learn content integrity baseline', () => {
   // knowledge-and-sin, conviction-vs-condemnation, mind-of-christ-in-the-hidden-part,
   // word-is-4d-fact, justice-rationed-at-the-gate, remedy-that-arrives-on-a-calendar,
   // fruit-no-law, god-not-colorblind, own-your-faith, made-in-his-image,
-  // thief-targets-identity.
-  it('the baseline is the measured Phase 1 catalog (13 / 51 / 994 / 4,342)', () => {
-    expect(base.counts).toEqual({ departments: 13, courses: 51, lessons: 994, readings: 4342 });
+  // thief-targets-identity, testing-not-temptation.
+  it('the baseline is the measured Phase 1 catalog (13 / 51 / 994 / 4,344)', () => {
+    expect(base.counts).toEqual({ departments: 13, courses: 51, lessons: 994, readings: 4344 });
   });
 });

@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T05:13:50.483Z",
+ "measuredAt": "2026-11-26T05:18:07.762Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4342
+  "readings": 4344
  },
  "departments": [
   {
@@ -14411,11 +14411,13 @@
    "department": "The Eternal Algorithms",
    "position": 36,
    "title": "Temptation vs. Testing (the way of escape is already built in)",
-   "contentSha": "5a46620d0d9bf209f35353951c09623f6425456225fc7b8629398c92c267c3bd",
+   "contentSha": "c274a32544762a6e9ebb0fc8d858542cbdaa3431ac56c52a756239dd36576f36",
    "versions": {
-    "teen": "74d4d5818e8cf1715191c331d3934610877da44b74d2b125113575d8f7d557fb",
-    "adult": "5cda5169a2b545074af1ad82ceb8f5c6b390beefa9fb95adf3e41b41e43bc42d",
-    "senior": "cf3fb1451d5a8a8f25143dcf4caf1e6d06275b301a3633570de075dc688f57bf"
+    "child": "fd122e8d8ce3121280057bc16bed43a7d026475bceee168bd33579fb35d0f7dd",
+    "youth": "1b41a3ee8b8dd2cfed2f69ae3e77996cc71855b4d7d71b581649b5bbea8d7918",
+    "teen": "9ab3a966285da2496f6a720b9de7249124beb983804645ab5068b78be488d363",
+    "adult": "e33432bcdfb419b7e4aac71d076299d9532f7f79f7d14ff0db9154567deaea58",
+    "senior": "42609dd1d208631730c0d7519783c2115578b6d71a440135eaaa2d789f2f5bf8"
    }
   },
   {
