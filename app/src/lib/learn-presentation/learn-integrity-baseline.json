@@ -1,5 +1,5 @@
 {
- "measuredAt": "2026-11-26T19:13:06.723Z",
+ "measuredAt": "2026-11-26T19:19:17.089Z",
  "counts": {
   "departments": 13,
   "courses": 51,
@@ -891,13 +891,13 @@
    "department": "A.I. The Way",
    "position": 5,
    "title": "How SKOS runs it — Ollama, routing, and the Cage",
-   "contentSha": "d6fc0cafa731e9eee0cd443d032003aa0ba98981b2c3f95fc80500e23c81936e",
+   "contentSha": "15b5a9e030ca4cd4e8b3eb4159b69aa7b468b0676bd907288dd4a57fb55b70b8",
    "versions": {
-    "child": "8f374905f6e625b552d341ed11d9205382b7953ac96d031daed478aaa2465723",
-    "youth": "4829868ee9530f8221b014d5e63dc9c8a89135fcde6cbebdfc0fe8152ed72285",
-    "teen": "2a2bcff7572cd6de82caf846030be4222c13ba3e5766ca2da6d61303236e65b7",
-    "adult": "ee22951cc328224afe7ef1940f714805d6365fcc9a063f0c4573432b9559f1c8",
-    "senior": "5ada981d9458a4df6fcfde3f8cddf8737bc36cd407c7147ecea6af68eb9ba100"
+    "child": "e3942e590bb7441902822f356aa84e93527bfedae87df4e0c63fef544703ec7a",
+    "youth": "489d2f76badc53da4d5d2091c077d9892fdcce64c94df2e9e0af95035ff71831",
+    "teen": "bade32cbe1dd88e77c48658d946c5d42003a3fe8ddb83abbcc1f302ffd361906",
+    "adult": "548ddb133d14f5b18b976f3cf1ec03ddf6031452f2ec067b3bb8fcca9894e30d",
+    "senior": "2adb11e1108c87bec6c765f31f382133e91c4543f4b97fc8e46a0d1c6adf7d2f"
    }
   },
   {
