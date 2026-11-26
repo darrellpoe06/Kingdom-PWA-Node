@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T07:28:14.226Z",
+ "measuredAt": "2026-11-26T07:33:12.107Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4402
+  "readings": 4404
  },
  "departments": [
   {
@@ -12732,11 +12732,13 @@
    "department": "The Eternal Algorithms",
    "position": 11,
    "title": "He Watches — but Only Yahweh Knows the Heart (the counterfeit is not omniscient)",
-   "contentSha": "b797fd53c65f535ccb3f674310daa7d13e8b5816199945c35b74718150cdc345",
+   "contentSha": "aaa9b1b59f68d1fa7f7b19c623bacd2dd9abf07c69521891b41ec1f77d8c922a",
    "versions": {
-    "teen": "389b25f323db566627570f67db361857cb78d15313cdf7e21371b2d855a9f2d2",
-    "adult": "013c9a87977a1c4b4133b305a7782eafa3653748a48aaa159d9a41d17ff803b9",
-    "senior": "22468942985e50f6ec79dc0c2327887e51e88953f1810e17e0eb9babfa238180"
+    "child": "d86f51d9e161a956275636bcc96ac90abcd0e4868c6b2a5590ec56105e099d16",
+    "youth": "197610f5d065aae674d1bc2c9351e860479b5ba153871c8768c8c69a37a66db4",
+    "teen": "01bd05e3834555c38a796c68fb9cf94edc08fa2df96db1bba6e5233900ca6b15",
+    "adult": "099380f24d6c15babc98d7ac3211c8ae543843f5b74282c50a6a97ed4e3cdb8a",
+    "senior": "da4e1281f1f63b052da733018bddff753a17261f59301599612f344b5de8c195"
    }
   },
   {
