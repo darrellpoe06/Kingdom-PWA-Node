@@ -1,5 +1,5 @@
 {
- "measuredAt": "2026-11-26T19:50:58.992Z",
+ "measuredAt": "2026-11-26T19:56:01.798Z",
  "counts": {
   "departments": 13,
   "courses": 51,
@@ -8352,13 +8352,13 @@
    "department": "The Word & The Way",
    "position": 7,
    "title": "His Ministry: Every Scene",
-   "contentSha": "3fdb446266915a451bdc72b726d23609023a451620004e1781b54afc0fd0e971",
+   "contentSha": "d5c2f990b74235195a39dd163741a48208ee64bd88faf2932eb5abc3a2c0ecaf",
    "versions": {
-    "child": "6f185719f05c48ca17c7dda1ca15cece51f5da44c03cfe3bb87f9b7a1c5d7493",
-    "youth": "0527b23bde8d9e9ecc30206ba74fbe7d24019baa0cf2dcd59cb2d2cf90f827f2",
-    "teen": "4359c7ed74e8c5c4960f77f7cf46bb753f89b981107fd34b5fceaa208bae5144",
-    "adult": "ee874602442eb8713d4a3b77f90698de4309b157fbc302387976bf1c25d15df1",
-    "senior": "9e08749cece94cb5ab85ae6ec68869aaedbbd36a3b4ecc13d882fb0d31cb2cd6"
+    "child": "8bd6161ae698fc85f2356a6e769cd18c0b8212bfd9ce765920567325bfda6ae8",
+    "youth": "045253d5c4398effa7314792e98c8f8ac9414c0a5e69e42817cd0ce1982d1b68",
+    "teen": "e245c679540a689284a5ca6559ab2335306429ff1d02a3bd862c7ab6360716f2",
+    "adult": "cd6953abcfd5b74c458dc4af27a3dfd8f51a4ec358670031e4c45c0aaf5028bd",
+    "senior": "d41686894f7cd7c8839572900520179b1e987a2b84d62fb7cae7ea175c6c09a2"
    }
   },
   {
