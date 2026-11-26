@@ -1,5 +1,5 @@
 {
- "measuredAt": "2026-11-26T19:19:17.089Z",
+ "measuredAt": "2026-11-26T19:26:16.482Z",
  "counts": {
   "departments": 13,
   "courses": 51,
@@ -906,13 +906,13 @@
    "department": "A.I. The Way",
    "position": 6,
    "title": "Vendor vs local — the honest trade-offs",
-   "contentSha": "f33e2515d4e07a366c39968f55a6b562736993f160976024a903aa2a16054e90",
+   "contentSha": "a1e0eb2c3880dfb9d95c835679a11de2e8f7a981c02b67f94a02d0af895495d7",
    "versions": {
-    "child": "8135e4af3247ed1ae92b57b1c185a5f30b30628967c5a8d6193211268f98ecf1",
-    "youth": "65505c36d6408622254a6be53199c59050af7979e9a3c751c8caedafbfb27765",
-    "teen": "a142b8851739e520e9e373e45837d3620ee5eea21db9e19c78f719428c9d9c3f",
-    "adult": "f2bad072db0fc57e77591505ddcf3518df727e43abef0ee172fe75497f0b8393",
-    "senior": "ade55d36f3c138a7a6de82c6fe82b00e3d7fec47f05b067c0a9ca580ebe7c99d"
+    "child": "df7fe87949c552d5cccfc045d552b6dbc46cf6fd0c4c81b1f3bacbe2406f9eed",
+    "youth": "86711bbf09b69c870b250c601797e9c0ffc43c51f4c00e2074660ee61440ba70",
+    "teen": "e8a0c8266f2819e6b5f2f173fea2ad2b90e89fd4fc41de79904e1abefcece84d",
+    "adult": "3f682262709a9692eff9edcbfe47de6ed4f3dd42609e299466cf1e6da7a3cda0",
+    "senior": "230ae808046279be7f69016daf26423105bf9c441cbd2b42ade6d1d17877ba70"
    }
   },
   {
