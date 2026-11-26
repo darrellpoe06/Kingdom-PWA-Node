@@ -15,7 +15,7 @@ import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { LiveWorshipBar, livePlayerSrc } from '../components/LiveWorshipBar.jsx';
 import { COLG_DEFAULT_CHURCH } from '../lib/default-church.js';
-import { __resetLivePlayerPrefs, setLivePlayerScale, setLiveBarCollapsed, LIVE_PLAYER_SCALE_KEY, barFrameStyle } from '../lib/live-player-prefs.js';
+import { setLiveBarMini, __resetLivePlayerPrefs, setLivePlayerScale, setLiveBarCollapsed, LIVE_PLAYER_SCALE_KEY, barFrameStyle } from '../lib/live-player-prefs.js';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -106,14 +106,36 @@ describe('LiveWorshipBar — honest service-window gate', () => {
 // the device, with no tap. Proven-to-catch: the frame's style is read from the
 // rendered DOM, not asserted from the store.
 // -----------------------------------------------------------------------------
-describe('LiveWorshipBar — the viewer\'s remembered choice is honoured on the automatic first open', () => {
+// 2026-11-25 (Darrell: "Watching the latest message shouldn't interfere with using the app... we
+// should be able to do both"): the bar now opens as a SMALL FLOATING player. The remembered size
+// (2026-09-09) is honoured the moment the viewer presses Wide; it is no longer the first open.
+describe('LiveWorshipBar — small floating by default; the remembered size is honoured when the viewer goes Wide', () => {
   const frame = () => container.querySelector('[data-live-scale]');
+  const wide = () => act(() => setLiveBarMini(false));
 
-  it('opens in FULL VIEW on first mount when the device remembers Large — no interaction needed', () => {
+  it('opens small and floating, out of the page flow, and one press makes it wide and back without a remount', () => {
+    mount({ now: IN_WINDOW });
+    const before = container.querySelector('iframe');
+    expect(frame().style.position).toBe('fixed');
+    expect(frame().style.width).toBe('min(46vw, 20rem)');
+    const btn = container.querySelector('[data-testid="live-bar-mini"]');
+    expect(btn.getAttribute('aria-pressed')).toBe('true');
+    expect(btn.textContent).toBe('Wide');
+    act(() => btn.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+    expect(frame().style.position).toBe('');
+    expect(frame().style.maxWidth).toBe('56rem');
+    expect(container.querySelector('[data-testid="live-bar-mini"]').textContent).toBe('Small');
+    act(() => container.querySelector('[data-testid="live-bar-mini"]').dispatchEvent(new MouseEvent('click', { bubbles: true })));
+    expect(frame().style.position).toBe('fixed');
+    expect(container.querySelector('iframe')).toBe(before); // same frame: the stream never restarted
+  });
+
+  it('goes to FULL VIEW when the device remembers Large and the viewer presses Wide', () => {
     try { localStorage.setItem(LIVE_PLAYER_SCALE_KEY, 'l'); } catch (_) { /* ignore */ }
     // A fresh session reads the device on module load; simulate that read.
     setLivePlayerScale('l');
     mount({ now: IN_WINDOW });
+    wide();
     expect(frame()).toBeTruthy();
     expect(frame().getAttribute('data-live-scale')).toBe('l');
     expect(frame().style.width).toBe('100%');
@@ -121,8 +143,9 @@ describe('LiveWorshipBar — the viewer\'s remembered choice is honoured on the 
     expect(frame().style.maxHeight).toBe('60vh');
   });
 
-  it('keeps the original medium shape when nothing was chosen', () => {
+  it('Wide keeps the original medium shape when nothing was chosen', () => {
     mount({ now: IN_WINDOW });
+    wide();
     expect(frame().getAttribute('data-live-scale')).toBe('m');
     expect(frame().style.maxWidth).toBe('56rem');
     expect(frame().style.maxHeight).toBe('45vh');
@@ -130,6 +153,7 @@ describe('LiveWorshipBar — the viewer\'s remembered choice is honoured on the 
 
   it('a choice made on the Church home player changes the pinned bar live, with no remount', () => {
     mount({ now: IN_WINDOW });
+    wide();
     const before = container.querySelector('iframe');
     act(() => setLivePlayerScale('l'));
     expect(frame().style.maxHeight).toBe('60vh');

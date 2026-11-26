@@ -1,5 +1,5 @@
 {
- "measuredAt": "2026-11-26T00:29:11.565Z",
+ "measuredAt": "2026-11-26T00:28:35.348Z",
  "counts": {
   "departments": 13,
   "courses": 51,
@@ -572,9 +572,9 @@
    "department": "Serve the House",
    "position": 3,
    "title": "Light — Isaiah and Coreyon make it seeable",
-   "contentSha": "b95b21fb73024b09f2084c77d81da05c107817c56416cd599006afe8aa5b8221",
+   "contentSha": "67dec5fb66a567784abc5575fb6ee0c41913ddac6241f2a039997a221a8229e4",
    "versions": {
-    "teen": "c5ac1f8cb5609eb527bc3322c75bbde8bcd2b09a9aa59f83140f66c560572cce",
+    "teen": "58792dc5a6e8c286ea890771a97137b31b8a712337b7e605c494b3ccbe76315e",
     "adult": "872e5dfaceaef026649be62afdea9c0b0f824c51299d325d4e4c93b151f95320",
     "senior": "d59e768940b2fb48d30f299ea75bfa4b7569d021fcd33c965776f8f7fcd1dd39"
    }
@@ -768,13 +768,13 @@
    "department": "Serve the House",
    "position": 8,
    "title": "The house of God — COLG’s sovereign stack",
-   "contentSha": "5b635d050a7c3d283b83ca89e798d800c567b3324980012d5e7779d889f116fe",
+   "contentSha": "44b86944a15e638ed6d7ec25e370ca904170ce3badb889fec9ca592937067bda",
    "versions": {
-    "child": "4c1a690ec6ce4bc2b419068ef5c700ec409e1d25fdcb605682931c35c78cb211",
-    "youth": "f7c92d0ba1c96702d2f29354119fc70503d6ba1db0679eda10c59a07de70b671",
-    "teen": "0c41421f46b8184caf3ae6d905ed1dd8ccec7b16a5980675fd027d76231a0d66",
-    "adult": "8dfa7ae2c980600f7532625e0bfb5120d40bce3c84f89d0d7429ef06f28de244",
-    "senior": "18b630e7e8de84578c4242b00ed54d8e1bcce70951e7d87aedc8b1f39a474c6b"
+    "child": "5846a045986f1797e6161b777fcf9ea7a3346a6f51a994e895883df44682a997",
+    "youth": "151bfda91f11f47cd2d40f421966fb3f876ee5c9d723e4f3d129604baef03c38",
+    "teen": "089103bfe9156dcee19a2179591a2dcac372b078e7b3c0c0c919b7e5059f33de",
+    "adult": "11101c2ab818600e663cd3b9c4cccf1085b0ac26a59fd7b78f8c5c1198bf1055",
+    "senior": "5d7626a5fedc059d2bcad53ac40d06a655a33c8861c020767e9202277edb1a64"
    }
   },
   {
@@ -5595,9 +5595,9 @@
    "department": "Living Lessons",
    "position": 219,
    "title": "Owning the Light Instead of Renting It — Count the Cost, Carry the Risk Honestly, and Follow His Wisdom First",
-   "contentSha": "405c5a7d96df412c49080ac94443e6ef8e217b5fca4b225eaf4e07a0d9c35969",
+   "contentSha": "55429d8069f93d89634174539ec8d01c37aa8c2bc3a272b22f73c0778cba6df3",
    "versions": {
-    "child": "3f1f17b442f5168ada2cd168a54aa3db84afd55ca17ab229ecfc724d9df2e1be",
+    "child": "9d1ebd8588d9dbdf4b95dff662b34f1a466e2132b10b4365699a67d0330c9839",
     "youth": "1c0fd73c935d29e1de7edec71124a1765a4dd067b3fa4e4436aa153522206cee",
     "teen": "8771be3e8d2f0c07281f6e391173030851e5bd9ef902ea065506bdf42694a5e6",
     "adult": "8f6430ca26763de20791a27d66d9dc2c40553cc9739584edb79cad6d50db85db",
@@ -6075,9 +6075,9 @@
    "department": "Living Lessons",
    "position": 251,
    "title": "Laziness Is a Character Matter — the Four Domains and the Five Marks of the Sluggard",
-   "contentSha": "c07eeb011e5764b02a49dabbad3def1b48660ee9e07e9777442bdd2caa9b5641",
+   "contentSha": "455ba6ead0da5874a036dda79c66334fcfb8d495837e9bdba6d58b39103da960",
    "versions": {
-    "child": "f56b4c73744ce9d6cecb5ff7dd9adbec63481de8cbc8d8e9bebe32a0e337fc3e",
+    "child": "e589f5a7c3146aa000fd6aaa36eb6f9558d57a5e99599c1270f8613bc5614b94",
     "youth": "f004a4f1c8f5b4406556f0b763868dc6edfff7f12c8fdadcf28de8616367d4c0",
     "teen": "55a5d6f91c68c285eaea37bf895bd02f9fb9dbd834e723764f26526b1a8cdff8",
     "adult": "c10154374bc29f8e8a0cf34171d8d22e3a987299ff6230f3f2f248a078c9a38f",
@@ -7395,12 +7395,12 @@
    "department": "The Word & The Way",
    "position": 2,
    "title": "Count the Days — Numbers 1 to 7 from Creation",
-   "contentSha": "a55d57ee46921486b5408c0bc441dcea52467f3d0bdb19e4c45c3768187c1268",
+   "contentSha": "a777aa9b603042840d7712c818fcd72eb79f6b74f22d01af9f5e69be8e0bab57",
    "versions": {
-    "child": "77be62285f2861c6f1f86807b26575a909214a8da2234e984cd289cd6ee69137",
-    "youth": "f1a79999abf364ea2666d5fb436c525759e05177f205e967f7d8caa5cde5064a",
+    "child": "8e1f10f2a425d184117662f3e9119238f5e922f4572adf15fe8e7e18efff6be1",
+    "youth": "e22f1285678879462ac68d7dd421e4448420251fd6ada7da88ba194e2e349321",
     "teen": "2962e3b838ab3c0e2b7703e76bb89c1bdbfce72bff2bf07e376b0981d3237980",
-    "adult": "5eb30092c2c3fbd59dc3b182b06ade5661c846126a6222bc4c0fb8679abf6633",
+    "adult": "4823b14a5b860a93f1b5bdf191a30f2dbaa9dfa3e66acf8d34d2f3b8c30bf4f6",
     "senior": "6af59c135658b05dbab184d03d430b0d848ac5d5917cfc586b7a0afa7714c355"
    }
   },
@@ -7440,12 +7440,12 @@
    "department": "The Word & The Way",
    "position": 5,
    "title": "First Words from the Word — Light, Good, Love, Made",
-   "contentSha": "a397ecf08c59870a95c68e08830900ea3560ac61ccbce1a429ed60b1ac0e486e",
+   "contentSha": "910bae488127cdf7f0e6cd0eb3c53c326c25022d4c6abc4166d5009642160f91",
    "versions": {
-    "child": "84b4b342d233c6404082260c02257040a1f6b24b37b65eb201217d85e4ab98d2",
-    "youth": "159041a5496d1d9d3dd4de9b0dde38461b9e549f41f3e6a04db209d1e99f1698",
+    "child": "947e88eb7c517013536c515e8ba67a498fd961511effd39470bb803a61a31929",
+    "youth": "2049d034b67152dbc5cdb3e116d63aa81046098cd90c5d6aa0cf637e2cd4b8a7",
     "teen": "d159b4e3fe2a9d204c27db24e3112c9b13d6ab3a394d938e66cbd52b4209bff2",
-    "adult": "b06fe0242ac6728f14e1a4bf7f701ba2d0d6100ccbb6a94d5b9bd47633d8ae24",
+    "adult": "eac1533a6392ad1cf79c1e525e6e64554e964d164773d51e37f4746ec17c3cb5",
     "senior": "869d92c35477a8a091801d2e495a6e8f5090f0d5320cfafdf7d2092dd02eb4a7"
    }
   },
@@ -8006,12 +8006,12 @@
    "department": "The Word & The Way",
    "position": 2,
    "title": "The Young He Called",
-   "contentSha": "c46fa70ae3b0992a2761631bacf094d10f0215e8b501360f855e8d6edf52a082",
+   "contentSha": "8d17863b9cf3cdaf3fab95b1ebf711c65743101e7305d09c36121379a3819b1b",
    "versions": {
     "child": "764f297abf4490a30d611cdce8e95b9475f821c6bcdec3cf4842b9a5aee98264",
-    "teen": "931eeb1256b20b598f3073aa0ce3a051493021b3a5f29e196d802bb5dcbb5855",
-    "adult": "a82b2a87044010db00a1f36e38d6a3dcd8fbedfb7a05764e1dc0639f95af3ec3",
-    "senior": "7499e2cc80435e4ef4a2b0e9b0eadae2b1d6361fa7ffbbd317a6d788de28c91b"
+    "teen": "5f90d00b1b45556795840d1b255d9f71743b113594621f336fc5c5b685009b0e",
+    "adult": "650eea80350cf2a7f36cb943264249f30b0d5aa3cb1b2b48dce3e391dab03fba",
+    "senior": "73039cbe522f2cf8ddccd4c13c1c964e521513d6f55530dce993900caca6a407"
    }
   },
   {
@@ -12426,7 +12426,7 @@
    "department": "Kingdom Life & Stewardship",
    "position": 4,
    "title": "Group economics — the Body pools its strength",
-   "contentSha": "ea48d39a4757245e61abc91ff119c44cffa5b8ef90b4058c55213efcc5c777be",
+   "contentSha": "93453a9cbda15418a1a2b1a8ad9b14aaa30ec7ce2dfc25c55fffeb3b8e44b3f7",
    "versions": {
     "child": "e5c760de57d370f87baf674a774ca879b96d3f02a0be9c810bc2d0e64a0975e7",
     "adult": "60031e9cd023bba1c907296b4b9c26d0e154f89f823d489ec92c8f5b7a2ea32e",

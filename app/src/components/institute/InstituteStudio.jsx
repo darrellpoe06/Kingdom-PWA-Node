@@ -18,6 +18,7 @@
 // home (public/lovecorner/bishop-lloyd-e-gwin-*.jpg — a straight resize of the
 // original, measured mean pixel difference ~2/255). It is cropped by CSS only;
 // never retouched, regenerated or cut out.
+import InstituteRecord from './InstituteRecord.jsx';
 import React, { useMemo } from 'react';
 import UiIcon from '../UiIcon.jsx';
 import { InstituteArt } from '../ChurchInstitute.jsx';
@@ -84,6 +85,8 @@ export default function InstituteStudio({
   onOpen = () => {},
   onExplore = () => {},
   places = null,
+  record = null,
+  onOpenRecord = null,
 }) {
   const stats = studentStats({ mine, standing, creds });
   const name = firstName(studentName);
@@ -220,6 +223,8 @@ export default function InstituteStudio({
           </div>
         </div>
       </section>
+
+      <InstituteRecord record={record} signedIn={signedIn} certificates={stats.certificates} onOpenRecord={onOpenRecord} onOpenCertificates={() => onOpen('certificates')} />
 
       <section aria-labelledby="is-cont-h">
         <div className="is-head">

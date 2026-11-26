@@ -800,3 +800,30 @@
   flex-wrap: wrap;
   margin-top: 10px;
 }
+
+/* Course page: Pictures | List switch beside the order picker (CourseLessonsView.jsx). */
+.ls-courseview-picks {
+  align-items: center;
+  margin: 10px 0 12px;
+}
+.ls-courseview-switch {
+  display: inline-flex;
+  border: 1px solid #5a4c4f;
+  border-radius: 10px;
+  overflow: hidden;
+  flex: 0 0 auto;
+}
+.ls-courseview-btn {
+  min-height: 44px;
+  padding: 0 16px;
+  border: 0;
+  background: var(--ls-bg);
+  color: var(--ls-text);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.ls-courseview-btn[aria-pressed='true'] {
+  background: var(--ls-text);
+  color: var(--ls-bg);
+}

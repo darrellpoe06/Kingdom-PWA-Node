@@ -39,8 +39,10 @@ describe('PROVEN-TO-CATCH: both players read the ONE store — no private size s
   });
   it('LiveWorshipBar takes scale + collapsed from the store and sizes its frame by barFrameStyle', () => {
     const src = read('../components/LiveWorshipBar.jsx');
-    expect(src).toMatch(/const \{ scale, barCollapsed: collapsed \} = useLivePlayerPrefs\(\)/);
-    expect(src).toMatch(/style=\{barFrameStyle\(scale\)\}/);
+    // The small/wide choice (2026-11-25) comes from the same one store; no private state for it either.
+    expect(src).toMatch(/const \{ scale, barCollapsed: collapsed, barMini: mini \} = useLivePlayerPrefs\(\)/);
+    expect(src).toMatch(/style=\{mini \? MINI_FRAME_STYLE : barFrameStyle\(scale\)\}/);
+    expect(src).not.toMatch(/const \[mini, setMini\] = useState/);
     expect(src).not.toMatch(/useState\(false\); *\/\/ collapsed|const \[collapsed, setCollapsed\] = useState/);
     expect(src).not.toMatch(/max-w-4xl/);
   });
