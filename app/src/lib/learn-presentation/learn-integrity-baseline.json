@@ -1,5 +1,5 @@
 {
- "measuredAt": "2026-11-26T19:06:54.271Z",
+ "measuredAt": "2026-11-26T19:13:06.723Z",
  "counts": {
   "departments": 13,
   "courses": 51,
@@ -876,13 +876,13 @@
    "department": "A.I. The Way",
    "position": 4,
    "title": "The honest ceiling — what small CPU models can and can’t do",
-   "contentSha": "42d8efd4aee63b0272d0853bd4abcc62817303e1f24232052953b9b6d4e79fc8",
+   "contentSha": "2bbf09c17c6d6905bdc8ddf0b5dfb5c19cf9fcf81ea5d76c1fce1aa97c956e55",
    "versions": {
-    "child": "0695631fbe71ec45ef0f8a5afc736ea3f820d4a5c54bd1551aaab370976befb0",
-    "youth": "63367d87f2bcd4d07eb664c297c8d026498eb9ab433b39f9b756250b34728884",
-    "teen": "5c80712ee35f767351f9ef253b921b58696469f4496c7d4e194f8f31e281b240",
-    "adult": "1f14822909ad649d1ed1bf70916bcda3f278a3391c83096c22b8c263564e5acf",
-    "senior": "0868030b080f67266f55a0242a574ab60734c6a5c91e825203ad50f89f20fcea"
+    "child": "4d2c20792d0dccb8198c639d57982cd4342d64946ec6e8d387f4de64900d9bd6",
+    "youth": "267c18acc4e92637ee921293ea847bbdfb74fa000b26a4ab97bc50e7e6fe79b2",
+    "teen": "6f3219395b59d2270e321aa7b1b8beea1650249b7142a284cf10a297e1257d92",
+    "adult": "3f0334c2e31c84c3f273a05917629f4d04901833c7cf8aadd0dcc74adfdec679",
+    "senior": "3fc85c21b592e35399c8c0ef33599e27bc20eadd269a86e0b1cd936700ff41f7"
    }
   },
   {
