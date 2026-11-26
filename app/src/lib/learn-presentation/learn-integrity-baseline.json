@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T03:47:36.469Z",
+ "measuredAt": "2026-11-26T03:50:44.170Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4296
+  "readings": 4298
  },
  "departments": [
   {
@@ -13915,11 +13915,13 @@
    "department": "The Eternal Algorithms",
    "position": 38,
    "title": "Without Me ye can do nothing — the conduit is not the source",
-   "contentSha": "f0daa5ef2f65e5b423dea8c0088e6793c9f812e4bcd3f8445084970199f6d001",
+   "contentSha": "7ab9d73f944acafb2df14aeb421854995a8bceb2b5ed2a40f438c6548fcd910f",
    "versions": {
-    "teen": "5ec1d39f1d34fb73951a9a91a08fa8f54f55ab4129e831a0c6902a767d7f5056",
-    "adult": "8e0ef9c3adafcda34526e29076b1e9fbdc56b3b04d169289fb2444b7b9f775a7",
-    "senior": "fb46b057c3cad0f7d4d760b30584170406b797589cc27b302b745cf3e425d522"
+    "child": "c9b7e385e4328b5d7117e655dfc6a30678ee3b79012d6aba80382f57525816ae",
+    "youth": "0fc9b53996d633ac9379e5f9208c36fdd7a756584458e72ab20c256eb481f538",
+    "teen": "1eb1fb92fa931745e3f5f90316389c0e86c62fcf21960e9ed5aac7e07fea1b10",
+    "adult": "69462067934f6ecf7763727d0d21b2c49e31a906ef39c5c9608d8a60137081ec",
+    "senior": "d55eeee4ce0185e246c84d914016bcc3fdebaba907ec81ed609dc2baa3b2c644"
    }
   },
   {
