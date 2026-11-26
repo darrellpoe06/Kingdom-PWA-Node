@@ -101,7 +101,7 @@ export default function LearnDashboard({ courses, index, preview = false, ctx, o
   const [view, setViewState] = useState(() =>
     remembered(
       'course-view',
-      'list',
+      'pictures',
       VIEWS.map((o) => o.key)
     )
   );
@@ -263,7 +263,8 @@ export default function LearnDashboard({ courses, index, preview = false, ctx, o
             No course here is {(COURSE_SHOWS.find((o) => o.key === show) || {}).label.toLowerCase()}. Choose Show: All to see every course.
           </p>
         )}
-        <div className={`ls-mini-list ls-mini-list--${view}`}>
+        {/* Pictures: a condensed shelf of course tiles to swipe; Show all lays every one out. */}
+        <div className={`ls-mini-list ls-mini-list--${view}${view === 'pictures' && !showAll ? ' ls-mini-list--shelf' : ''}`}>
           {shown.map((c) => (
             <CourseRow key={keyOf(c)} course={c} cover={covers.get(keyOf(c))} ctx={ctx} onOpen={onOpenCourse} />
           ))}

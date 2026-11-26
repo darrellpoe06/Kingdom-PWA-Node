@@ -1006,32 +1006,28 @@
   width: 80px;
 }
 /* Cards view: the same rows as tiles, picture on top, title under it. */
-.ls-mini-list--cards {
+.ls-mini-list--pictures {
   grid-template-columns: repeat(auto-fill, minmax(min(200px, 46%), 1fr));
 }
-.ls-mini-list--cards .ls-mini,
-.ls-inorder-list--cards .ls-inorder-row {
+.ls-mini-list--pictures .ls-mini,
+.ls-inorder-list--pictures .ls-inorder-row {
   flex-direction: column;
   align-items: stretch;
 }
-.ls-mini-list--cards .ls-mini-thumb,
-.ls-inorder-list--cards .ls-mini-thumb {
+.ls-mini-list--pictures .ls-mini-thumb,
+.ls-inorder-list--pictures .ls-mini-thumb {
   width: 100%;
 }
-.ls-inorder-list--cards {
+.ls-inorder-list--pictures {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(200px, 46%), 1fr));
   gap: 10px;
 }
-.ls-inorder-list--cards .ls-month {
+.ls-inorder-list--pictures .ls-month {
   grid-column: 1 / -1;
 }
-.ls-inorder-list--cards .ls-inorder-go {
+.ls-inorder-list--pictures .ls-inorder-go {
   display: none;
-}
-/* The classic tools keep their own (theme-recolored) colors inside this page. */
-.ls-full-tools {
-  color: initial;
 }
 @media (max-width: 640px) {
   .ls-stats {
@@ -1064,7 +1060,7 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
-.ls-inorder-list--cards .ls-ages-mini {
+.ls-inorder-list--pictures .ls-ages-mini {
   padding-left: 0;
 }
 /* The classic tools (Record, Downloads, Find...) wear the new look's panels. */
@@ -1109,4 +1105,53 @@
 .ls-courseview-btn[aria-pressed='true'] {
   background: var(--ls-text);
   color: var(--ls-bg);
+}
+
+/* Pictures first (DR-1662 follow-up): the course shelf swipes; the tools stay condensed until opened. */
+.ls-mini-list--shelf {
+  grid-auto-flow: column;
+  grid-template-columns: none;
+  grid-auto-columns: min(240px, 62%);
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  padding-bottom: 6px;
+}
+.ls-mini-list--shelf > * {
+  scroll-snap-align: start;
+}
+.ls-inorder-pictures {
+  margin-top: 4px;
+}
+.ls-tools-summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  cursor: pointer;
+  list-style: none;
+  padding: 6px 0;
+}
+.ls-tools-summary::-webkit-details-marker {
+  display: none;
+}
+.ls-tools-title {
+  font-size: 1.375rem;
+  font-weight: 700;
+  flex: 1;
+}
+.ls-tools-open {
+  border: 1px solid #7c6431;
+  color: #e9c766;
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.ls-full-tools[open] .ls-tools-open {
+  visibility: hidden;
+}
+.ls-tools-body {
+  padding-top: 10px;
 }

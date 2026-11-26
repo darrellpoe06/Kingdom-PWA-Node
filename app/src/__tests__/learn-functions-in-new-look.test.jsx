@@ -103,15 +103,30 @@ describe('Courses: compact thumbnail rows with Sort · Show · View', () => {
     expect($('ls-courses-none')).toBeTruthy();
   });
 
-  it('Sort A to Z orders by title; View: Cards turns the rows into tiles and is remembered', () => {
+  it('Sort A to Z orders by title; courses open as a picture shelf and List is one tap, remembered', () => {
     act(() => root.render(<LearnDashboard courses={COURSES} index={new Map()} ctx={CTX} onOpenCourse={vi.fn()} />));
+    expect($('ls-courses').querySelector('.ls-mini-list--pictures.ls-mini-list--shelf')).toBeTruthy(); // condensed by default
     pick($('ls-course-sort'), 'title');
     click($('ls-courses-all'));
     const titles = [...$('ls-courses').querySelectorAll('.ls-mini-title')].map((n) => n.textContent);
     expect(titles.length).toBe(COURSES.length);
-    click(pressed('ls-course-view', 'Cards'));
-    expect($('ls-courses').querySelector('.ls-mini-list--cards')).toBeTruthy();
-    expect(window.localStorage.getItem('ls-view:course-view')).toBe('cards');
+    click(pressed('ls-course-view', 'List'));
+    expect($('ls-courses').querySelector('.ls-mini-list--list')).toBeTruthy();
+    expect(window.localStorage.getItem('ls-view:course-view')).toBe('list');
+  });
+});
+
+describe('the first view is condensed: pictures and titles first (Darrell 2026-11-26)', () => {
+  it('the home lessons open as full-image cards with their titles; List is one tap', () => {
+    act(() => root.render(<LearnStudioPreview courses={COURSES} onOpenLesson={vi.fn()} onExit={vi.fn()} ownerDevice ctx={CTX} />));
+    const pics = $('inorder-pictures');
+    expect(pics).toBeTruthy();
+    const cards = pics.querySelectorAll('button.ls-card');
+    expect(cards.length).toBeGreaterThan(0);
+    expect(cards[0].querySelector('.ls-card-title').textContent.length).toBeGreaterThan(0);
+    expect(container.querySelector('.ls-inorder-row')).toBeNull();
+    click(pressed('inorder-view', 'List'));
+    expect(container.querySelectorAll('.ls-inorder-row').length).toBeGreaterThan(0);
   });
 });
 
@@ -139,8 +154,6 @@ describe('Lessons: thumbnails, read marks, ages, Show and View', () => {
     expect(first.querySelector('.ls-mini-thumb')).toBeTruthy();
     click(pressed('inorder-show', 'Read'));
     expect(container.querySelectorAll('button.ls-inorder-row').length).toBe(3);
-    click(pressed('inorder-view', 'Cards'));
-    expect(container.querySelector('.ls-inorder-list--cards')).toBeTruthy();
     // Every Living Lesson carries a Child version (DR-1657): its chip opens the lesson in the Experience.
     const chip = $(`inorder-age-${LIVING.schedule[0].id}-child`);
     expect(chip).toBeTruthy();
@@ -154,6 +167,7 @@ describe('the classic tools render inside the new look, and their lessons open t
     const tools = <div data-testid="learn-areas">classic tools</div>;
     act(() => root.render(<LearnStudioPreview courses={COURSES} onOpenLesson={vi.fn()} onExit={vi.fn()} ownerDevice tools={tools} ctx={CTX} />));
     expect($('ls-full-tools')).toBeTruthy();
+    expect($('ls-full-tools').open).toBe(false); // condensed by default; one tap opens it
     expect($('ls-full-tools').querySelector('[data-testid="learn-areas"]')).toBeTruthy();
     expect($('learn-dashboard')).toBeTruthy();
     click($(`ls-course-${COURSES[0].key}`));

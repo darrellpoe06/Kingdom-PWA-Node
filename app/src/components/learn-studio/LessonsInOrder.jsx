@@ -67,9 +67,11 @@ export const LESSON_SHOWS = Object.freeze([
   { key: 'unread', label: 'Not read' },
   { key: 'read', label: 'Read' },
 ]);
+// Pictures first (Darrell 2026-11-26: "by default it should be condensed... we should see images and
+// titles... and the full images with options for pictures or list"); List is the compact rows.
 export const VIEWS = Object.freeze([
+  { key: 'pictures', label: 'Pictures' },
   { key: 'list', label: 'List' },
-  { key: 'cards', label: 'Cards' },
 ]);
 
 /** A row of pressed/unpressed buttons: one tap, the choice is visible. */
@@ -117,6 +119,7 @@ export default function LessonsInOrder({
   onVersion = null,
   order: orderProp = null,
   listTestId = null,
+  renderPictures = null, // (rows, { grid }) => the full-image cards; without it the list is the only look
 }) {
   const list = useMemo(() => (Array.isArray(courses) ? courses : []).filter((c) => keyOf(c) && (c.schedule || []).length), [courses]);
   const first = useMemo(
@@ -140,7 +143,7 @@ export default function LessonsInOrder({
   const [view, setViewState] = useState(() =>
     remembered(
       'lesson-view',
-      'list',
+      'pictures',
       VIEWS.map((o) => o.key)
     )
   );
@@ -211,55 +214,61 @@ export default function LessonsInOrder({
       </div>
       <div className="ls-controls">
         <Toggle label="Show" options={LESSON_SHOWS} value={show} onChange={setShow} testid="inorder-show" />
-        <Toggle label="View" options={VIEWS} value={view} onChange={setView} testid="inorder-view" />
+        {renderPictures && <Toggle label="View" options={VIEWS} value={view} onChange={setView} testid="inorder-view" />}
       </div>
       {!rows.length && (
         <p className="ls-empty" role="status" data-testid="inorder-none">
           {show === 'read' ? 'No lesson of this course is on your record yet.' : 'Every lesson of this course is read.'} Choose Show: All to see every lesson.
         </p>
       )}
-      <ol className={`ls-inorder-list ls-inorder-list--${view}`} data-testid={listTestId || undefined}>
-        {rows.slice(0, shown).map((x, i, arr) => (
-          <React.Fragment key={x.lesson.id}>
-            {(order === 'order' || order === 'newest') && monthOf(x.lesson) && monthOf(x.lesson) !== monthOf(arr[i - 1] && arr[i - 1].lesson) && (
-              <li className="ls-month" aria-hidden="true">
-                {monthOf(x.lesson)}
-              </li>
-            )}
-            <li>
-              <button type="button" className={`ls-inorder-row ${RING}`} onClick={() => onOpen(x)} data-testid={`inorder-${x.lesson.id}`}>
-                <MiniThumb image={x.p.image} label={x.n} />
-                <span className="ls-inorder-n">{x.n}</span>
-                <span className="ls-inorder-t">
-                  {x.lesson.title || x.p.displayTitle}
-                  {(() => {
-                    const mark = markFor ? markFor(x.lesson, courseKey) : done.has(x.lesson.id) ? '✓ READ' : '';
-                    return mark ? <span className="ls-read-mark">{mark}</span> : null;
-                  })()}
-                </span>
-                <span className="ls-inorder-go" aria-hidden="true">
-                  ▶
-                </span>
-              </button>
-              {onVersion && x.p.versions && x.p.versions.length > 1 && (
-                <div className="ls-ages-mini" role="group" aria-label={`Read ${x.lesson.title || x.p.displayTitle} for an age`}>
-                  {x.p.versions.map((v) => (
-                    <button
-                      key={v}
-                      type="button"
-                      className={`ls-age-chip ${RING}`}
-                      onClick={() => onVersion(x, v)}
-                      data-testid={`inorder-age-${x.lesson.id}-${v}`}
-                    >
-                      {(READING_VERSIONS.find((b) => b.id === v) || { label: v }).label}
-                    </button>
-                  ))}
-                </div>
+      {renderPictures && view === 'pictures' ? (
+        <div className="ls-inorder-pictures" data-testid="inorder-pictures">
+          {renderPictures(rows.slice(0, shown), { grid: shown > FIRST_ROWS })}
+        </div>
+      ) : (
+        <ol className="ls-inorder-list ls-inorder-list--list" data-testid={listTestId || undefined}>
+          {rows.slice(0, shown).map((x, i, arr) => (
+            <React.Fragment key={x.lesson.id}>
+              {(order === 'order' || order === 'newest') && monthOf(x.lesson) && monthOf(x.lesson) !== monthOf(arr[i - 1] && arr[i - 1].lesson) && (
+                <li className="ls-month" aria-hidden="true">
+                  {monthOf(x.lesson)}
+                </li>
               )}
-            </li>
-          </React.Fragment>
-        ))}
-      </ol>
+              <li>
+                <button type="button" className={`ls-inorder-row ${RING}`} onClick={() => onOpen(x)} data-testid={`inorder-${x.lesson.id}`}>
+                  <MiniThumb image={x.p.image} label={x.n} />
+                  <span className="ls-inorder-n">{x.n}</span>
+                  <span className="ls-inorder-t">
+                    {x.lesson.title || x.p.displayTitle}
+                    {(() => {
+                      const mark = markFor ? markFor(x.lesson, courseKey) : done.has(x.lesson.id) ? '✓ READ' : '';
+                      return mark ? <span className="ls-read-mark">{mark}</span> : null;
+                    })()}
+                  </span>
+                  <span className="ls-inorder-go" aria-hidden="true">
+                    ▶
+                  </span>
+                </button>
+                {onVersion && x.p.versions && x.p.versions.length > 1 && (
+                  <div className="ls-ages-mini" role="group" aria-label={`Read ${x.lesson.title || x.p.displayTitle} for an age`}>
+                    {x.p.versions.map((v) => (
+                      <button
+                        key={v}
+                        type="button"
+                        className={`ls-age-chip ${RING}`}
+                        onClick={() => onVersion(x, v)}
+                        data-testid={`inorder-age-${x.lesson.id}-${v}`}
+                      >
+                        {(READING_VERSIONS.find((b) => b.id === v) || { label: v }).label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </li>
+            </React.Fragment>
+          ))}
+        </ol>
+      )}
       {shown < rows.length && (
         <div className="ls-inorder-more">
           <button type="button" className={`ls-btn ls-btn--outline ${RING}`} onClick={() => setShown((n) => n + MORE_ROWS)} data-testid="inorder-more">

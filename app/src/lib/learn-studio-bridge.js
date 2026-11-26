@@ -37,6 +37,7 @@ export function studioMarkFor({ places, recordFor, ageBand }) {
 export function scrollToStudioTools() {
   setTimeout(() => {
     const el = typeof document !== 'undefined' && document.getElementById('ls-full-tools');
+    if (el && 'open' in el) el.open = true; // the tools are condensed by default; a tool chip opens them
     if (el && el.scrollIntoView) el.scrollIntoView({ block: 'start' });
   }, 0);
 }

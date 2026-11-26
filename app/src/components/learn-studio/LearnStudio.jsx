@@ -26,6 +26,7 @@ const versionLabel = (id) => (READING_VERSIONS.find((b) => b.id === id) || { lab
 // A keyboard user must SEE where they are (ui-standards focus-ring). Gold, never red (red is reserved, DR-0099).
 const RING = 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2';
 import LessonsInOrder from './LessonsInOrder.jsx';
+import { scrollToStudioTools } from '../../lib/learn-studio-bridge.js';
 import CourseLessonsView from './CourseLessonsView.jsx';
 import './learn-studio.css';
 
@@ -192,6 +193,27 @@ function Hero({ slides, onOpen, onListen }) {
         ))}
       </div>
     </section>
+  );
+}
+
+/**
+ * Every classic Learn tool, CONDENSED BY DEFAULT (Darrell 2026-11-26: "this functionality is
+ * great however by default it should be condensed"). One tap opens it; a tool or department
+ * chip opens it and scrolls to it (scrollToStudioTools). Its contents stay mounted while closed.
+ */
+function ToolsPanel({ title, note, children }) {
+  return (
+    <details className="ls-row ls-full-tools" id="ls-full-tools" data-testid="ls-full-tools">
+      <summary className={`ls-tools-summary ${RING}`}>
+        <span className="ls-ico ls-ico--star" aria-hidden="true" />
+        <span className="ls-tools-title">{title}</span>
+        {note && <span className="ls-note">{note}</span>}
+        <span className="ls-tools-open" aria-hidden="true">
+          Open ▾
+        </span>
+      </summary>
+      <div className="ls-tools-body">{children}</div>
+    </details>
   );
 }
 
@@ -498,15 +520,9 @@ export default function LearnStudio({
               )}
             />
             {tools && (
-              <section className="ls-row ls-full-tools" id="ls-full-tools" data-testid="ls-full-tools">
-                <header className="ls-row-head">
-                  <h2>
-                    <span className="ls-ico ls-ico--star" aria-hidden="true" />
-                    {pickedCourse.title}: every tool
-                  </h2>
-                </header>
+              <ToolsPanel title={`${pickedCourse.title}: every tool`} note="record, downloads, share, ages">
                 {tools}
-              </section>
+              </ToolsPanel>
             )}
           </>
         ) : pickedShelf ? (
@@ -518,7 +534,22 @@ export default function LearnStudio({
           </>
         ) : (
           <>
-            <LessonsInOrder courses={courses} index={index} preview={preview} onOpen={(x) => read(x)} done={done} markFor={markFor} onVersion={version} />
+            <LessonsInOrder
+              courses={courses}
+              index={index}
+              preview={preview}
+              onOpen={(x) => read(x)}
+              done={done}
+              markFor={markFor}
+              onVersion={version}
+              renderPictures={(rows, { grid }) => (
+                <div className={grid ? 'ls-grid ts-grid-collapse' : 'ls-scroller'}>
+                  {rows.map((x) => (
+                    <Card key={`${x.p.courseKey}::${x.p.lessonId}`} x={x} onOpen={openLesson} />
+                  ))}
+                </div>
+              )}
+            />
             {dashboard}
             <Hero slides={heroSlides} onOpen={openLesson} onListen={listen} />
             <Row icon="play" title="Continue Learning" items={home.continueLearning} onOpen={openLesson} />
@@ -544,10 +575,8 @@ export default function LearnStudio({
                     className={`ls-chip ls-chip--dept ${RING}`}
                     onClick={() => {
                       // The department opens in the tools on this page; only a department the tools do not know leaves for All Courses.
-                      if (onDepartment && onDepartment(t.label)) {
-                        const el = typeof document !== 'undefined' && document.getElementById('ls-full-tools');
-                        if (el && el.scrollIntoView) el.scrollIntoView({ block: 'start' });
-                      } else onExit();
+                      if (onDepartment && onDepartment(t.label)) scrollToStudioTools();
+                      else onExit();
                     }}
                   >
                     {t.label} · {t.lessons}
@@ -556,16 +585,9 @@ export default function LearnStudio({
               </div>
             </section>
             {tools && (
-              <section className="ls-row ls-full-tools" id="ls-full-tools" data-testid="ls-full-tools">
-                <header className="ls-row-head">
-                  <h2>
-                    <span className="ls-ico ls-ico--star" aria-hidden="true" />
-                    Every Learn Tool
-                  </h2>
-                  <span className="ls-note">departments, courses, Continue, Latest, Browse, Find, Record, Downloads</span>
-                </header>
+              <ToolsPanel title="Every Learn Tool" note="Continue, Latest, Browse, Find, Record, Downloads">
                 {tools}
-              </section>
+              </ToolsPanel>
             )}
           </>
         )}
