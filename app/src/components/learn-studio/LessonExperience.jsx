@@ -28,6 +28,7 @@ import LessonNav from './LessonNav.jsx';
 import useChromeTop from './useChromeTop.js';
 import { shippedSrcSet } from '../../lib/institute-studio.js';
 import { sentenceKeyOf } from '../../lib/learn-resume.js';
+import { titleClosingFor } from '../../lib/lesson-title-answers.js';
 import { storiesTextFor, HIGHLIGHT_KEY, HIGHLIGHT_PENS, nextPen, readHighlights, saveHighlights } from './lesson-reading.js';
 
 export { storiesTextFor, HIGHLIGHT_KEY, HIGHLIGHT_PENS, nextPen, readHighlights };
@@ -204,7 +205,8 @@ export function textFor(lesson, level) {
 
 /** The whole reading every mode shows and speaks: the teaching at this level, then the lesson's stories. */
 export function readingTextFor(lesson, level) {
-  return [textFor(lesson, level), storiesTextFor(lesson)].filter(Boolean).join('\n\n');
+  // The title's answer lands LAST, after the stories (DR-1687): the reader finishes full.
+  return [textFor(lesson, level), storiesTextFor(lesson), titleClosingFor(lesson, level)].filter(Boolean).join('\n\n');
 }
 
 // The lesson's OWN structural leads ("FIRST, THE MASTER WHO WENT AWAY.",

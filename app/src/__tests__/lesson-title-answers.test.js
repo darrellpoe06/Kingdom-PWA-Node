@@ -15,8 +15,10 @@ import RECORDS from '../lib/learn-presentation/presentation-records.json';
 import { learnInventory } from '../lib/learn-presentation/integrity.js';
 import {
   TITLE_ANSWERS, TITLE_LEAD, CLOSE_LEAD, ADULT_FALLBACK,
-  titleAnswerFor, withTitleAnswer, withTitleAnswers, breakAtLeads, entryProblems,
+  titleAnswerFor, withTitleAnswer, withTitleAnswers, breakAtLeads, entryProblems, titleClosingFor,
 } from '../lib/lesson-title-answers.js';
+import { readingTextFor } from '../components/learn-studio/LessonExperience.jsx';
+import { buildLessonArc, readAloudTextFromArc } from '../lib/lesson-flow.js';
 
 const PENDING_COURSES = new Set([
   // filled per batch; empty when every course is answered
@@ -58,7 +60,7 @@ describe('every presented lesson answers its title', () => {
     expect(bad).toEqual([]);
   });
 
-  it('as read: opens on the answer, keeps every word of the author, ends on the answer', () => {
+  it('as read (adult, teen, senior): opens on the answer, keeps every word of the author and the stories, ENDS on the answer after the stories', () => {
     const bad = [];
     for (const [course, table] of Object.entries(TITLE_ANSWERS)) {
       for (const [id, entry] of Object.entries(table)) {
@@ -66,10 +68,18 @@ describe('every presented lesson answers its title', () => {
         if (!l || entry.verdict === 'ANSWERS-CLEARLY') continue;
         const author = authorAdult(l);
         if (author.startsWith(TITLE_LEAD)) continue;
-        const read = authorAdult(withTitleAnswer(l, entry));
+        const m = withTitleAnswer(l, entry);
+        const read = readingTextFor(m, 'adult');
         if (entry.open && !read.startsWith(`${TITLE_LEAD} `)) bad.push(`${id}: does not open on the answer`);
-        if (!read.endsWith(entry.close)) bad.push(`${id}: does not end on the answer`);
+        if (!read.endsWith(entry.close)) bad.push(`${id}: the last thing read is not the answer`);
         if (!squash(read).includes(squash(author))) bad.push(`${id}: the author's text is not intact`);
+        if (squash(readingTextFor(l, 'adult')).length && !squash(read).includes(squash(readingTextFor(l, 'adult')).replace(squash(author), '').trim())) bad.push(`${id}: a story changed`);
+        for (const band of ['teen', 'senior']) {
+          if (!own(l.levels && l.levels[band]) || !entry[band] || band === ADULT_FALLBACK.find((k) => !own(l.lesson) && own(l.levels && l.levels[k]))) continue;
+          const r = readingTextFor(m, band);
+          if (entry[band].close && !r.endsWith(entry[band].close)) bad.push(`${id}: ${band} does not end on the answer`);
+          if (!squash(r).includes(squash(l.levels[band]))) bad.push(`${id}: ${band} text is not intact`);
+        }
       }
     }
     expect(bad).toEqual([]);
@@ -97,9 +107,11 @@ describe('the gate is proven to catch', () => {
     expect(entryProblems(good, lesson.lesson)).toEqual([]);
     const read = withTitleAnswer(lesson, good);
     expect(read.lesson.startsWith(TITLE_LEAD)).toBe(true);
-    expect(read.lesson.endsWith(good.close)).toBe(true);
+    expect(read.lesson.includes(good.close)).toBe(false);
+    expect(readingTextFor(read, 'adult').endsWith(good.close)).toBe(true);
     expect(read.levels.teen.startsWith(good.teen.open)).toBe(true);
-    expect(read.levels.senior.endsWith(good.senior.close)).toBe(true);
+    expect(readingTextFor(read, 'senior').endsWith(good.senior.close)).toBe(true);
+    expect(titleClosingFor(read, 'teen')).toBe(good.teen.close);
   });
 
   it('catches a quotation the lesson does not hold', () => {
@@ -112,6 +124,16 @@ describe('the gate is proven to catch', () => {
     expect(entryProblems({ ...good, open: good.open.replace(TITLE_LEAD, 'ANSWER.') }, lesson.lesson).join()).toMatch(/must open/);
     expect(entryProblems({ ...good, open: `${good.open} God sees it.` }, lesson.lesson).join()).toMatch(/Yahweh/);
     expect(entryProblems({ ...good, close: `${good.close} Satan lost.` }, lesson.lesson).join()).toMatch(/adversary/);
+  });
+
+  it('the closing is read after the stories, in both readers and in the voice', () => {
+    const withStory = { ...lesson, stories: [{ kind: 'parable', title: 'The Lamp', body: 'A lamp was lit and set on a stand.' }] };
+    const read = withTitleAnswer(withStory, good);
+    const text = readingTextFor(read, 'adult');
+    expect(text.indexOf('A lamp was lit')).toBeGreaterThan(-1);
+    expect(text.indexOf(good.close)).toBeGreaterThan(text.indexOf('A lamp was lit'));
+    const spoken = readAloudTextFromArc(buildLessonArc(read));
+    expect(spoken.indexOf(good.close.slice(0, 40))).toBeGreaterThan(spoken.indexOf('A lamp was lit'));
   });
 
   it('catches a lesson left unanswered', () => {
