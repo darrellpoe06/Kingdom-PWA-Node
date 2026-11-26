@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T04:02:08.202Z",
+ "measuredAt": "2026-11-26T04:05:31.527Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4304
+  "readings": 4306
  },
  "departments": [
   {
@@ -14488,11 +14488,13 @@
    "department": "The Eternal Algorithms",
    "position": 43,
    "title": "Where the Spirit of the Lord is, there is liberty",
-   "contentSha": "f806837266a27215c455040ae9b30d6900766ad2e6551311c93a2061d382c247",
+   "contentSha": "3c393d3365f1dde8cc879337e7dd672a5ce4b0ecab90522071a536342e9ca0db",
    "versions": {
-    "teen": "86ca8178bd7c812b19b7ec1e384f164b3090463204b835ccb5ab54c00843887f",
-    "adult": "c01fdb21eebbd4b285c0c199af17127e2724393abcefcfabf86848fe7fdb0759",
-    "senior": "2de72a0708020aebf6ea8b7bf04dba845b7cef395e96984033f923105582be84"
+    "child": "00301cc3bf0c5356e2dd11a6618d71bd193c2d89fe72cf44bf2ab72a30c144f1",
+    "youth": "37dfb62cd5bad1466b7eaa3baa9f5886a589fb0155f39ed94bbd21350410447a",
+    "teen": "ccdce3b3c738085b2cbc309f19f64f6b463dc4aacdbbf78413ef584ce49ef171",
+    "adult": "644601ef64a761d9267eb5f53cc4a4a84dc141bfdcce21f0a45e0c5289296fcb",
+    "senior": "aa5f4638ab293408bc17c1791bf383f1bf9c78667e67e447a2106ccbb4cd58e5"
    }
   },
   {
