@@ -1,5 +1,5 @@
 {
- "measuredAt": "2026-11-26T16:07:25.708Z",
+ "measuredAt": "2026-11-26T16:13:35.866Z",
  "counts": {
   "departments": 13,
   "courses": 51,
@@ -456,13 +456,13 @@
    "department": "A.I. The Way",
    "position": 3,
    "title": "The Test — judging what A.I. tells you",
-   "contentSha": "1a32073779d1b7d0cdfa6840f5fe4fe9f06d11d2f95d377be2fea820b48a9aaf",
+   "contentSha": "54e46f5840b73b128785609c48750bf3b848242f46817e3208b628bfedc937b7",
    "versions": {
     "child": "f5d46e18dd22a5fbefdd3f3b5868a03f8b520799fafca6e04039a0074e3a74b0",
     "youth": "c501a4f2f3551e844a2821d4b9076de77789b7bffe1acb829b8611b22876f90c",
     "teen": "7c8a08843b0dfcb97cb459efefd2087ede363be288fb88618b4666762fdb6ca1",
     "adult": "87133a66622ed7a4af5194fc02e2e0d581b9d86ac7df2675ebbe89a65b102c0e",
-    "senior": "3120b0623c6cfdeae76d8d59da6aa3ce339ecc9000681f4915cdad9c495f834a"
+    "senior": "372573b317205707bc71d41a98b718670c93b2bb5d6208dcef84c97f835b5d4e"
    }
   },
   {
