@@ -303,7 +303,7 @@ export function LiveWorshipBar({ church, view, churchView, onOpenChurch, now }) 
               title="Drag to move the video"
               style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 2, display: 'flex', alignItems: 'center', gap: 4, padding: '2px 4px', minHeight: 36, background: 'linear-gradient(rgba(0,0,0,.78), rgba(0,0,0,.35))', touchAction: 'none', cursor: 'grab' }}
             >
-              <span aria-hidden="true" style={{ color: '#fff', fontSize: 14, letterSpacing: 1, padding: '0 6px', flex: 1, userSelect: 'none' }}>⠿ Move</span>
+              <span aria-hidden="true" style={{ color: '#fff', fontSize: '0.875rem', letterSpacing: 1, padding: '0 6px', flex: 1, userSelect: 'none' }}>⠿ Move</span>
               <button type="button" onClick={() => setLiveBarMini(false)} aria-label="Show the live service across the top" data-testid="live-mini-wide" className="text-[0.625rem] uppercase tracking-wider px-2 border border-white/50 text-white bg-black/40 focus:outline focus:outline-2 focus:outline-white" style={{ minHeight: 32 }}>
                 Wide
               </button>
