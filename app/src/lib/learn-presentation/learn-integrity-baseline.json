@@ -1,5 +1,5 @@
 {
- "measuredAt": "2026-11-26T15:23:25.586Z",
+ "measuredAt": "2026-11-26T15:37:26.588Z",
  "counts": {
   "departments": 13,
   "courses": 51,
@@ -426,13 +426,13 @@
    "department": "A.I. The Way",
    "position": 1,
    "title": "What is A.I., really?",
-   "contentSha": "ea02013ff65cfb33b0c6c5dee4d8f590c99afb41b8fde76b1460e184e7af7a18",
+   "contentSha": "98c59b163bc0ee28e1d74adaf4ead7db82ac6c385f575e930d3302697df74f29",
    "versions": {
-    "child": "8ee02f807b1b855b74a9eae6f379409fcb2997f5da83af8e4cab6d4c7589049b",
-    "youth": "ee1a65174567f20d6d399016e22b98d68b070c7789afd5f0ff95b33979af94b0",
-    "teen": "e9844d66e95c4be85889c914c0205f5417c9651e29ee657126de1ac823fc1922",
-    "adult": "1a55bad2db8521470528088c54a034ee5526981ffa6c29908535f5245b8ed591",
-    "senior": "f3abdc6b283d9e8be5d752ec49418aea394e822b43068090b1ee378d6ebd0a68"
+    "child": "62cf01db8f0f6522162bfaf99e854b6cde2c0fc2ebbbd59aa3eec05c1e652882",
+    "youth": "a4ede1b5b2f1eaaafbda31e2735da257e46b28a067889e17ada7f5810c86ed58",
+    "teen": "c2ca80d01bfaaac9bbd6f8b0535f7b86ffea9390fda0cdc23c1d6399abd60143",
+    "adult": "f40a568123de2ca6d06d7eb9f0b702b32cf8fe66033b6f44adcf6a87bd364139",
+    "senior": "e5c67fc1fb6fda3f1d923e9cd8cc2bd6837f843617f8724b034fa0fc7bd34b97"
    }
   },
   {
