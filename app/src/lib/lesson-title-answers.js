@@ -158,6 +158,10 @@ const plain = (s) =>
     .replace(/\s+/g, ' ');
 const quoted = (s) => [...plain(s).matchAll(/"([^"]{4,})"/g)].map((m) => m[1].trim());
 const unquoted = (s) => plain(s).replace(/"[^"]*"/g, ' ');
+// The names are written here in lowercase, as they are everywhere we author;
+// a match is a fault only when the reader would see a capital first letter.
+const ADVERSARY = /\b(satan|lucifer|devil|baal|dragon|adversary|accuser|deceiver)\b/gi;
+const capitalizedAdversary = (s) => [...String(s).matchAll(ADVERSARY)].some((m) => m[0][0] !== m[0][0].toLowerCase());
 const SECTION_LEAD = /^[A-Z][A-Z ,'’:-]{2,90}?\. /;
 
 /** Every problem with one entry, read against the author's own adult text. [] = sound. */
@@ -176,7 +180,7 @@ export function entryProblems(entry, authorText) {
     for (const q of quoted(s)) if (!text.includes(q)) out.push(`${label} quotes words the lesson does not hold: "${q.slice(0, 60)}"`);
     const o = unquoted(s);
     if (/\bGod\b/.test(o)) out.push(`${label} says "God" in our voice; say Yahweh (quotes are left as written)`);
-    if (/\b(Satan|Lucifer|Devil|Baal|Dragon|Adversary|Accuser|Deceiver)\b/.test(o)) out.push(`${label} capitalizes an adversary name`);
+    if (capitalizedAdversary(o)) out.push(`${label} capitalizes an adversary name`);
   };
   if (entry.verdict === 'ANSWERS-CLEARLY') {
     for (const k of ['open', 'example', 'close', 'teen', 'senior']) if (entry[k] != null) out.push(`ANSWERS-CLEARLY carries ${k}`);
