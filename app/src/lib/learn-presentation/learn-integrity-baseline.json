@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T07:33:12.107Z",
+ "measuredAt": "2026-11-26T07:38:26.041Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4404
+  "readings": 4406
  },
  "departments": [
   {
@@ -13718,11 +13718,13 @@
    "department": "The Eternal Algorithms",
    "position": 21,
    "title": "Not Every Thought Is Yours (the enemy injects; you take captive)",
-   "contentSha": "f0cc971060c742009b489657cfad13e9671af2a6154e45a9b2eece823712ded0",
+   "contentSha": "d605bac1453d27a6fbae754da72c3853532cd2a98ae3d1b53b51ee5a023a9a3e",
    "versions": {
-    "teen": "bd3c68c7e481e25fd71ac3f0ef42234be34f9f7145a3c55e2d84efc963ca0ca6",
-    "adult": "ce5e8d862238553c83f04ac3d5e224d83f0f68a6bc3c5e17a9f4f26bae9514bb",
-    "senior": "b57a4cdbc4dcfc770c29b3e2ecaaa572f61e54be40d576fc6399af1b2c2cae71"
+    "child": "cad2fa2967b30e8440001b9fd098893e0cbae9d1b93dbcaea60447fe35e9b99a",
+    "youth": "67bad605133adc052f40f564d714a1d2b3b3b1a6f5c057b11414a6a68a28684e",
+    "teen": "d0667568bb6bd4338bc2b9f53cf96ac8fa900e728fcfa1eb1e6c4d5da265535f",
+    "adult": "56ba28638c895f3cd2a0ffdffc7531afcfb750a36df6156a26d6f8f681f217bc",
+    "senior": "b0c21cb96e2eb826e265e478f0fab07736ea490c68ee29c3629724780e839cbc"
    }
   },
   {

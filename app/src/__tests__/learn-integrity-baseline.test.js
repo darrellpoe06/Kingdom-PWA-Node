@@ -80,8 +80,8 @@ describe('Learn content integrity baseline', () => {
   // word-written-on-the-heart, sheep-and-goats, wheat-and-tares,
   // not-my-will-but-thine, friendship-world-enmity, handling-word-deceitfully,
   // spirits-seek-a-body, angels-left-their-estate, sons-of-god-and-giants,
-  // only-he-knows-the-heart.
-  it('the baseline is the measured Phase 1 catalog (13 / 51 / 994 / 4,404)', () => {
-    expect(base.counts).toEqual({ departments: 13, courses: 51, lessons: 994, readings: 4404 });
+  // only-he-knows-the-heart, enemy-injects-thoughts.
+  it('the baseline is the measured Phase 1 catalog (13 / 51 / 994 / 4,406)', () => {
+    expect(base.counts).toEqual({ departments: 13, courses: 51, lessons: 994, readings: 4406 });
   });
 });
