@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T12:01:26.964Z",
+ "measuredAt": "2026-11-26T12:06:08.449Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4484
+  "readings": 4486
  },
  "departments": [
   {
@@ -14117,11 +14117,13 @@
    "department": "The Eternal Algorithms",
    "position": 8,
    "title": "Truth in Love (the wound of a friend, the freedom of the mirror)",
-   "contentSha": "503c989b3db96f453de6565749698534b1e2f9c876889e49dda23aa3bd654757",
+   "contentSha": "6f0a09d7281b3975a2f252d8e5c2163825cddc4f9efa7e16bb566090b6c796c4",
    "versions": {
-    "teen": "010e20591998416434b180c38502884518a3e745e2943db0381fb4c612ca5c2b",
-    "adult": "49763680497d2ba034e288d99045cd54c3b190ffb9a5b30b6d2db263707543a4",
-    "senior": "1a2ccefcbd3fc68e671ed9a1367f8a572b78359ba7de2faf6b1b13f299fcb967"
+    "child": "8ff25eb4b8d38323d228bcc12dd4975a53c153c6d978ce4962317f840a081499",
+    "youth": "107c048a75f3d0623e61c549aad5f27eb4e2b5d8043822248cd28d2bb0348693",
+    "teen": "9290db53f510f0034d569d91d87fd979207c9024d350dacb1b83d29fb6fcfe60",
+    "adult": "bc2b209fa15dbde9a030da7cde5c780b46904e451823a31072230334c313f933",
+    "senior": "28adaa0e5457d3c906f6f70f23cab4ab55c90cfd5c4179a9b03162f59a862a42"
    }
   },
   {

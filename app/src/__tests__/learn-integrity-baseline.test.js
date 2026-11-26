@@ -88,8 +88,8 @@ describe('Learn content integrity baseline', () => {
   // word-framed-worlds, nothing-unclean, door-sup, overcome-throne,
   // faithful-crown, assembling, sow-bountifully, tested-soul,
   // filled-righteousness, feed-sheep, closet, sheep-voice, confess-cleanse,
-  // humble-exalt, vengeance-his, seated-heavenly, good-fight-exercise, more-than-conquerors, quickened, resist-flee, church-born-fire, higher-priority, renew-mind.
-  it('the baseline is the measured Phase 1 catalog (13 / 51 / 994 / 4,484)', () => {
-    expect(base.counts).toEqual({ departments: 13, courses: 51, lessons: 994, readings: 4484 });
+  // humble-exalt, vengeance-his, seated-heavenly, good-fight-exercise, more-than-conquerors, quickened, resist-flee, church-born-fire, higher-priority, renew-mind, truth-love.
+  it('the baseline is the measured Phase 1 catalog (13 / 51 / 994 / 4,486)', () => {
+    expect(base.counts).toEqual({ departments: 13, courses: 51, lessons: 994, readings: 4486 });
   });
 });
