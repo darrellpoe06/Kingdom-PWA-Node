@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T03:53:58.280Z",
+ "measuredAt": "2026-11-26T03:57:22.676Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4300
+  "readings": 4302
  },
  "departments": [
   {
@@ -14458,11 +14458,13 @@
    "department": "The Eternal Algorithms",
    "position": 41,
    "title": "A shew of wisdom — why rules cannot deliver anybody",
-   "contentSha": "04d0431b681e1a4b35f97231ef599d1e8e8adf245d4b426a0e50769b591368f3",
+   "contentSha": "3c03d45f2cd0f3950e92f77482497f4d99dfd4d84267d467f59be3f40568421f",
    "versions": {
-    "teen": "e20968eb4725f3df47813536706cf212fbb7b2dd1bbeafa59da0e549b9fdd386",
-    "adult": "91ef5cdd3500f37434effae43b12189e081a762cd4b24698cbc33825a08300ae",
-    "senior": "3c079f6a32277243ba984f968bda6b73423ba3777d0c356ad9f041cf4dd3914a"
+    "child": "b72219ea95b850aa05c09e85985926adb97cae7a4cc1da467192e261ec087bb2",
+    "youth": "a0c548221be86b313acee31b0e0a84616f9441e109f8f396b806780d32245f7b",
+    "teen": "df9b4f862642726a3ddbe963ba3665b040b3b1e95dc533cf54cddceeeb886a02",
+    "adult": "297cb16bc3a22736cbdfe3759c6c8da2e7c2931497a6e189ed52851d45abaec1",
+    "senior": "6816d398f11beb8ff8e38e47c5dc5d129686d516e2f6cfd533d66b3f79ed955c"
    }
   },
   {
