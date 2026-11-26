@@ -1,5 +1,5 @@
 {
- "measuredAt": "2026-11-26T18:24:29.140Z",
+ "measuredAt": "2026-11-26T18:45:03.583Z",
  "counts": {
   "departments": 13,
   "courses": 51,
@@ -771,13 +771,13 @@
    "department": "Serve the House",
    "position": 7,
    "title": "Why we’re building a GPU farm — CPU vs GPU and VRAM",
-   "contentSha": "1f03c6b213be851b3232566244657c4fa8ce04fb2cc58aa6a5402a3deeffde9a",
+   "contentSha": "1defb0f5b06e014618bd696db951710be3c023104dc904bfed73c7c38476973e",
    "versions": {
     "child": "0a7dab33a6542a711be080ccea745e1ef40bf1bd9082cf2e03c8bc6397f55c98",
-    "youth": "0f98d0c83cc43b2fb6b420136db903bee68c0cec80a5d28fc24c9f14f536e1e8",
-    "teen": "b78d520017fdaae9c1b210ad003615b153aa29c438c149039ca224e82a2b9984",
-    "adult": "3cccd763596d0961d36690e1cc738182953745dc0826a6d3a2e35ade22abc7e8",
-    "senior": "8357077af88f0a32cb7d63b4d96bdf327fd161c655f7994aa55fa43488904930"
+    "youth": "a7b06024ec254fcafa5bc645ff9d78cfcb68f241546eaf7557dfb667b6b12526",
+    "teen": "0785e269dca69d25346c5bc89edec9ade805db8fa67b2ffac2b477a523f852c2",
+    "adult": "e5512635847e6a007a58b9ac78574bff5a7cbfe6d84671a6a402ee3423f70cde",
+    "senior": "3a10bdb323ca20aa618c51d0c5ef768b55ce556be48b4420156973e155aea5ca"
    }
   },
   {
@@ -801,13 +801,13 @@
    "department": "Serve the House",
    "position": 9,
    "title": "Keeping it alive — health, alerts, and the three brakes",
-   "contentSha": "03966f5113823e464c43ec021f5884a22fdf5b3d00b0a155ac41269cb41253d8",
+   "contentSha": "35a72b6f7c47fae0bd8ddd46cbb50ebd3e263342cb335b9a2087e868ecd3bc11",
    "versions": {
     "child": "bd9d095a38e277748e1d42b22ee0ff279fea707b948d634b154c32c2895ec8e2",
     "youth": "6587a45b9a278ef021664f58e564df8ac3b9167de92b41cf39d280e8e0b08c49",
-    "teen": "c5871cdfef432101f0511633ac119db9e205e3a11ce29bd3b276e9b63e9db2a7",
-    "adult": "c370e1a8cbd29bab3f3b1e5b141bb1bfaf469f663d6e8f24117290c88773d492",
-    "senior": "5f2cccfd25e16a5e049ffd2b498164f64f26a85449f132f5fed58740102b0c50"
+    "teen": "ea1366242257b25af029b8b847c1e4c62b1bd642f9fffc778a96f71ed17fcc02",
+    "adult": "5ff5fad8eaae18803dbbfb351e36ef71009af5814b87a09987a0bc5e2a4c6353",
+    "senior": "2eed0d474b5a3efb6e5899da13a1adda2074b19f3ddb7ed555804b7ddda3b77c"
    }
   },
   {
