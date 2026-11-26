@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T06:39:11.894Z",
+ "measuredAt": "2026-11-26T06:43:57.069Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4380
+  "readings": 4382
  },
  "departments": [
   {
@@ -14368,11 +14368,13 @@
    "department": "The Eternal Algorithms",
    "position": 31,
    "title": "Holding Down the Truth That Is Plainly Seen (the same thing we do to Yahweh)",
-   "contentSha": "e523641a6bcff8d798c2539ed065face06757bb018e377631ba9be7dd542ead1",
+   "contentSha": "21c986fb4774e21ff27dd2b26ff2f8c87699410c651099e71cd50ed629e54872",
    "versions": {
-    "teen": "ebbcf94398de563b1c91818099c090ce5122b1eb03728fdbb754acb0a82a7cd4",
-    "adult": "51ae81068f293872bf409c30f45dd6ebf0a9f8a200ea73ebeb4196e9a1711de9",
-    "senior": "6b019c7f62cfb1124786f9448c0b27ea56d74af672060776694386b414206b12"
+    "child": "204454a8c70883c46c17ce193ecf8cccd9384bb346a44c08f725c83aad7984a2",
+    "youth": "dc47415d41446860d83e74492b469cd8c46e3992783648b7966b12def8a04708",
+    "teen": "ef98adfb911f329575e20000e386fb81a461edf85c0be347de4a5acd144eadfd",
+    "adult": "45e895e832a1d4035599e1e7eeabea90f7237b6e54db6414c8ed2d129fa5a094",
+    "senior": "53b94c94d83ee945c081ec182f9a6b0589e19f6251a2f69099c09564abe1cd12"
    }
   },
   {
