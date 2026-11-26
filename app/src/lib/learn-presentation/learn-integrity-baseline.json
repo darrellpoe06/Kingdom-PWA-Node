@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T14:53:55.023Z",
+ "measuredAt": "2026-11-26T14:58:26.706Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4556
+  "readings": 4558
  },
  "departments": [
   {
@@ -12914,11 +12914,13 @@
    "department": "The Eternal Algorithms",
    "position": 2,
    "title": "Trust → Directed Paths",
-   "contentSha": "6bd0cec3cf7431741448c142fa64d44d0735191394c817cede4e35f8a019ef4e",
+   "contentSha": "30b47db6951e9f63e0aad07148c0ef6d235c4e71f0023ea88eff9f3b8a9fa800",
    "versions": {
-    "teen": "0ed98417043116721a16e39391b78a39d0eea7356c024ec7250f5c29b1d7e377",
-    "adult": "9482550e1866c4f443772a6f5c343783d5a8c09f303ac05105ff60643a84c06a",
-    "senior": "b3c6975662b8de6b9781c0b09ccfad6ace6d525efbeded559e50b3af424db709"
+    "child": "09a883f4101cc4242a0b19f767f13ebed6ae8320aad444bbe78a4de615a3450d",
+    "youth": "c2622452b506a4ecca21c6f07d5342639d8ee0062fcb64c5405a412d2471695d",
+    "teen": "021233a0531601ae87954071cd963fa8031bcee6e2b7e067e83965c8bc156a2e",
+    "adult": "1411501eee6b21d392513a4499ce749fca1d18d88842685febc47374050b8527",
+    "senior": "58b7978c14d3af0e7698f6c3788a9259fdea96919fe4f20c9b7b2d72e16acadc"
    }
   },
   {
