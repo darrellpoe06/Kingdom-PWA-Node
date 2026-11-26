@@ -282,3 +282,28 @@ describe('the new look is for every member, not two accounts (DR-1664)', () => {
     expect(shell).not.toMatch(/(learnStudioDefaultOn|studioDefaultOn)=\{\['darrell', 'christina'\]/);
   });
 });
+
+// Darrell 2026-11-26: "We need the relationships lessons in one place... my wife says ladies will
+// want those most."
+describe('Relationships, in one place', () => {
+  it('every listed lesson is a real mounted lesson (a removed or renamed one fails the build)', async () => {
+    const { RELATIONSHIP_LESSONS, relationshipShelf } = await import('../lib/learn-presentation/presentation.js');
+    const ids = new Set(COURSES.flatMap((c) => c.schedule.map((l) => l.id)));
+    const missing = RELATIONSHIP_LESSONS.filter((id) => !ids.has(id));
+    expect(missing).toEqual([]);
+    expect(new Set(RELATIONSHIP_LESSONS).size).toBe(RELATIONSHIP_LESSONS.length);
+    expect(relationshipShelf(COURSES, new Map()).map((x) => x.lesson.id)).toEqual([...RELATIONSHIP_LESSONS]);
+  });
+
+  it('the shelf sits high on the Learn home, before the hero, and See All opens every lesson on it', async () => {
+    const { RELATIONSHIP_LESSONS } = await import('../lib/learn-presentation/presentation.js');
+    act(() => root.render(<LearnStudioPreview courses={COURSES} onOpenLesson={vi.fn()} onExit={vi.fn()} ownerDevice ctx={CTX} />));
+    const shelf = $('ls-relationships');
+    expect(shelf).toBeTruthy();
+    expect(shelf.textContent).toContain('Relationships');
+    const hero = $('ls-hero');
+    expect(shelf.compareDocumentPosition(hero) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    click([...shelf.querySelectorAll('button')].find((b) => b.textContent.includes('See All')));
+    expect(container.querySelectorAll('.ls-grid button.ls-card').length).toBe(RELATIONSHIP_LESSONS.length);
+  });
+});

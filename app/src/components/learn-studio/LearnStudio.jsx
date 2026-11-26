@@ -500,7 +500,8 @@ export default function LearnStudio({
   }
 
   const heroSlides = (home.featuredAll.length ? home.featuredAll : home.discover).slice(0, 4);
-  const pickedShelf = shelf && home.shelves.find((s) => s.id === shelf);
+  const pickedShelf =
+    shelf === 'relationships' ? { id: 'relationships', label: 'Relationships', items: home.relationships } : shelf && home.shelves.find((s) => s.id === shelf);
   return (
     <CoversContext.Provider value={topicCovers}>
       <div className="ls-root">
@@ -609,6 +610,17 @@ export default function LearnStudio({
                 </div>
               )}
             />
+            {/* RELATIONSHIPS, IN ONE PLACE (Darrell 2026-11-26: "my wife says ladies will want those most"). */}
+            <div data-testid="ls-relationships">
+              <Row
+                icon="star"
+                title="Relationships"
+                note="Marriage, love, family and friendship"
+                items={home.relationships}
+                onOpen={openLesson}
+                onSeeAll={() => setShelf('relationships')}
+              />
+            </div>
             {dashboard}
             <Hero slides={heroSlides} onOpen={openLesson} onListen={listen} />
             <Row icon="play" title="Continue Learning" items={home.continueLearning} onOpen={openLesson} />
