@@ -55,9 +55,10 @@ export function learnTokens({ color, border }) {
   const dark = luminance(color) < 0.18;
   const bg = color;
   // LOW LIGHT READS FIRST (Darrell 2026-11-26: "Make sure that accessibility and backgrounds work well with
-  // white words for low light"). Dark themes carry pure white words and a bright second tone; every word on
+  // white words for low light"). Dark themes carry light words and a bright second tone; every word on
   // every theme reaches 7:1 (WCAG AAA) on its background and its panels, gated in the test.
-  const text = dark ? '#ffffff' : '#1a1815';
+  // Light, not stark (Darrell: "Lighter text is good.. not just white"): a soft ivory warmed by the theme's own accent.
+  const text = dark ? mix('#fbf7f1', border, 0.05) : '#1a1815';
   const panel = dark ? mix(bg, '#ffffff', 0.06) : mix(bg, border, 0.06);
   const line = dark ? mix(bg, '#ffffff', 0.16) : mix(bg, border, 0.22);
   const dim = dark ? '#dcd6d1' : mix(text, bg, 0.2);

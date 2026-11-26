@@ -2,7 +2,7 @@
 // colors come from each theme's own background and accent, and every pair a reader meets reads (WCAG AA).
 import { describe, it, expect } from 'vitest';
 import { THEMES } from '../lib/theme-css.js';
-import { learnTokens, learnThemeCss, contrast } from '../lib/learn-theme.js';
+import { learnTokens, learnThemeCss, contrast, luminance } from '../lib/learn-theme.js';
 
 describe('the new look follows every theme, readably', () => {
   for (const th of THEMES) {
@@ -16,7 +16,8 @@ describe('the new look follows every theme, readably', () => {
       expect(contrast(t.dim, t.bg)).toBeGreaterThanOrEqual(7);
       expect(contrast(t.dim, t.panel)).toBeGreaterThanOrEqual(7);
       expect(contrast(t.accent, t.bg)).toBeGreaterThanOrEqual(t.dark ? 7 : 4.5);
-      if (t.dark) expect(t.text).toBe('#ffffff');
+      // Light words on dark themes: soft ivory, not stark white, and still well past 7:1.
+      if (t.dark) expect(luminance(t.text)).toBeGreaterThan(0.85);
       expect(contrast(t.onAccent, t.accent)).toBeGreaterThanOrEqual(4.5);
     });
   }
