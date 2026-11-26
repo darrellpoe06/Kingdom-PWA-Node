@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T10:54:16.817Z",
+ "measuredAt": "2026-11-26T11:21:39.438Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4464
+  "readings": 4466
  },
  "departments": [
   {
@@ -14247,11 +14247,13 @@
    "department": "The Eternal Algorithms",
    "position": 18,
    "title": "Humble Yourself Under His Hand → Exalted",
-   "contentSha": "7b3d7b7b7bd7f65f776c35eba52f2f814470b42ba5748942c07d502f579e6bc8",
+   "contentSha": "46402f1b8e55846ebb818aad79234ba56d92d15efa0de6d129dbb421cbc0c2e2",
    "versions": {
-    "teen": "7edbb0872716b08b1d59d9e17ae3351c40a6d1ded61fe6f9ae7317ef81a7b874",
-    "adult": "9e502a96580b78ea5288f35ce3267a3b5a4c253f837a318b390a9e843e5716b0",
-    "senior": "c41091270d2565295e2c5c89582fb432fb12db84c7691e883631ad2aaf5cca23"
+    "child": "c512841ba530c4bd2c05add92122d66afeacbbc474e09733c2a424dad946b5aa",
+    "youth": "b6cccb2a464e9eeaa6649801d550f524c144cec43a11fe152008b5009cf87ced",
+    "teen": "1960d3013ae496f9ae61fd12dbbea3f581195f06044edc5de6a2bd5d11afc791",
+    "adult": "9517c8cada2917ef2351cff191185d1773a48d39f3e08f990cd379de929c3e9d",
+    "senior": "2b892c65643c1f07950d8fd89572ec03fa8ec884ddca335757c9081d173c532a"
    }
   },
   {
