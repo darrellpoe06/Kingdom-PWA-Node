@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T05:58:27.363Z",
+ "measuredAt": "2026-11-26T06:03:35.845Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4362
+  "readings": 4364
  },
  "departments": [
   {
@@ -13788,11 +13788,13 @@
    "department": "The Eternal Algorithms",
    "position": 27,
    "title": "Hear and Believe → No Condemnation (the Judge published the exemption)",
-   "contentSha": "8d777e4de3e1b07acd26a3ee5cd63fa2afcc28ae7850dfd385a8c45698860305",
+   "contentSha": "a5882541d8a586ef0a98d0250d0d92f89ae531329741343a7806dc3f8168b221",
    "versions": {
-    "teen": "98181f3f4994936ca86f1d7c6c443f134cc2f5f2d9d08e6e9722a932cd6135b3",
-    "adult": "21d0ee04b687ceb39d0a83b66c38469a071d21d59a2c65cf369a657b1fefddff",
-    "senior": "67c8b601e9a1fe263a178199bafa5ef63e64109fbe2ba3a250946f500c05cab4"
+    "child": "fa621c403f1409836eca7e0bdb4ec1184b189daf903f9afbc523f275ba20b986",
+    "youth": "67294b748772a712cfab3d1980bfceedea20082fb53342956f0b807ed72d7f32",
+    "teen": "8bc3a68719f4c8adc942e93c1163033b29bf43b4095733c49570e66ff6d6cb8f",
+    "adult": "851638e6ce2ce4a231a827dd0af7a8107a321b2509b938952cef36e7879835f5",
+    "senior": "a3d8572e5ad93215176f8037a2ee201125ec5a8b166ffc7fd38d6d6baa8d6bee"
    }
   },
   {
