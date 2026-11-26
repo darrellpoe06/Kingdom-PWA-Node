@@ -259,7 +259,7 @@ export function AllFeaturesSheet({
                 </button>
                 {onFeedback && (
                   <button type="button" onClick={onFeedback} className={`lch-pill ${FOCUS}`} data-testid="lch-feedback">
-                    Tell us what is working
+                    Send feedback: what works, what does not
                   </button>
                 )}
                 <button

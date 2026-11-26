@@ -313,6 +313,14 @@ describe('Relationships, in one place', () => {
     expect(sections.querySelectorAll('button.ls-inorder-row').length).toBe(RELATIONSHIP_LESSONS.length);
     expect(sections.querySelectorAll('button.ls-card').length).toBe(0);
   });
+
+  it('Explore by Topic offers Relationships first, and it opens the section', () => {
+    act(() => root.render(<LearnStudioPreview courses={COURSES} onOpenLesson={vi.fn()} onExit={vi.fn()} ownerDevice ctx={CTX} />));
+    const tiles = [...container.querySelectorAll('button.ls-topic')];
+    expect(tiles[0].textContent).toMatch(/Relationships/);
+    click(tiles[0]);
+    expect($('ls-relationship-sections')).toBeTruthy();
+  });
 });
 
 // Darrell 2026-11-26, sending the classic Living Lessons page: "All options?!!!"

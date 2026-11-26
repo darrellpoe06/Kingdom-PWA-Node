@@ -21,7 +21,9 @@ import {
   findPresentedLesson,
 } from '../../lib/learn-presentation/presentation.js';
 import { READING_VERSIONS } from '../../lib/learn-organize.js';
-import { lessonUrl } from '../../lib/lesson-links.js';
+import { lessonUrl, lessonSharePayload, lessonDoorFor, shareLink } from '../../lib/lesson-links.js';
+import { newShareToken } from '../../lib/lesson-share.js';
+import { recordLessonShare, reportShareLanded, pendingShareToken } from '../../lib/lesson-share-record.js';
 
 const versionLabel = (id) => (READING_VERSIONS.find((b) => b.id === id) || { label: id }).label;
 // A keyboard user must SEE where they are (ui-standards focus-ring). Gold, never red (red is reserved, DR-0099).
@@ -277,6 +279,8 @@ function ToolsPanel({ title, note, children }) {
   );
 }
 
+const RELATIONSHIPS_TOPIC = Object.freeze({ id: 'relationships', label: 'Relationships', departments: ['Marriage', 'Family', 'Friends', 'Forgiveness'] });
+
 function TopicGrid({ topics, covers, onPick }) {
   return (
     <section className="ls-row">
@@ -315,18 +319,34 @@ export function LessonCover({ x, next, onBack, onRead, onListen, onVersion, onOp
   // (?course=...&lesson=...), so a link shared from here opens exactly this
   // lesson for anyone, and (via ChurchLearn's deepLink -> initialLessonId)
   // lands back in this same new look for the owner's device.
+  // THE SAME SHARE AS THE CLASSIC BUTTON (DR-1676; measured 2026-11-26: lesson_shares held 0 rows,
+  // ever, while lessons were being shared from here). A fresh token rides on the link, the share is
+  // recorded (DR-0698), and the message is the lesson's own note with its title and summary; the
+  // link previews as the lesson's picture and title (DR-1673).
   const share = async () => {
-    const url = lessonUrl({ courseKey: p.courseKey, lessonId: p.lessonId, course: x.course });
-    try {
-      if (navigator.share) await navigator.share({ title: p.displayTitle, url });
-      else await navigator.clipboard.writeText(url);
+    const course = x.course;
+    const meta = (course && course.meta) || {};
+    const payload = lessonSharePayload(x.lesson || { id: p.lessonId, title: p.displayTitle }, {
+      url: lessonUrl({ courseKey: p.courseKey, lessonId: p.lessonId, course }),
+      courseTitle: meta.title || p.courseTitle || '',
+      token: newShareToken(),
+      courseKey: p.courseKey,
+      lessonId: p.lessonId,
+      brand: lessonDoorFor(course).brand,
+    });
+    const result = await shareLink(payload);
+    if (result === 'shared' || result === 'copied') {
       setShared(true);
-    } catch {
-      /* the person closed the share sheet */
+      recordLessonShare(payload, result);
     }
   };
+  // A shared link that opened this lesson reports it on screen (the open's record, DR-0698): the
+  // classic watch looks for the classic card, which the new look never draws.
+  useEffect(() => {
+    if (pendingShareToken()) reportShareLanded({ ok: true });
+  }, []);
   return (
-    <article className="ls-cover">
+    <article className="ls-cover" id={`learn-lesson-${p.lessonId}`}>
       <button type="button" className={`ls-back ${RING}`} onClick={onBack}>
         ‹ Back to Learn
       </button>
@@ -684,7 +704,17 @@ export default function LearnStudio({
             <Row icon="play" title="Continue Learning" items={home.continueLearning} onOpen={openLesson} />
             <Row icon="star" title="Discover Something New" note="Hand-picked lessons" items={home.discover} onOpen={openLesson} />
             <Row icon="play" title="Recently Added" items={home.recentlyAdded} onOpen={openLesson} />
-            <TopicGrid topics={SHELVES} covers={topicCovers} onPick={(t) => setShelf(t.id)} />
+            {/* Relationships is a topic of its own, first in the grid (DR-1675; Darrell 2026-11-26: "Should
+                say relationships as an option"), wearing one of its own lessons' approved covers. */}
+            <TopicGrid
+              topics={home.relationships && home.relationships.length ? [RELATIONSHIPS_TOPIC, ...SHELVES] : SHELVES}
+              covers={
+                home.relationships && home.relationships[0] && home.relationships[0].p.image
+                  ? { ...topicCovers, relationships: { image: home.relationships[0].p.image, alt: home.relationships[0].p.displayTitle } }
+                  : topicCovers
+              }
+              onPick={(t) => setShelf(t.id)}
+            />
             {home.shelves.map((s) => (
               <Row key={s.id} title={s.label} items={s.items} onOpen={openLesson} onSeeAll={() => setShelf(s.id)} />
             ))}

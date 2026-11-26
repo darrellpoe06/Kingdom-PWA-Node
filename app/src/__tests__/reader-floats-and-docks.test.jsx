@@ -143,3 +143,20 @@ describe('move, reset, dock', () => {
     expect(q('floating-reader'), 'the float was forgotten across a reload').toBeTruthy();
   });
 });
+
+// DR-1676: Darrell 2026-11-26, "put a close button in the middle of the screen so the reader can be
+// closed where the thumb already is". A second Close sits under Pop out; it closes the panel exactly as
+// the corner × does.
+describe('a Close in the middle of the reader panel', () => {
+  it('the open panel carries a full-width Close beside Pop out, and it closes the panel', () => {
+    render();
+    act(() => { setReadTarget(OWNER, { label: 'this lesson', title: 'Lesson Seven', text: PARAS.join(' '), elementId: 'lesson-float' }); });
+    act(() => { container.querySelector('button[aria-label*="read-aloud controls"]').click(); });
+    const mid = q('reader-close-middle');
+    expect(mid).toBeTruthy();
+    expect(q('reader-pop-out')).toBeTruthy();
+    act(() => { mid.click(); });
+    expect(q('reader-close-middle')).toBeNull();
+    expect(q('reader-pop-out')).toBeNull();
+  });
+});

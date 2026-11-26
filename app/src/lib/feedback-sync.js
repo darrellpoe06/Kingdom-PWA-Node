@@ -34,6 +34,7 @@ import supabase from './supabase.js';
 import { postToChat, formatFeedbackMessage } from './synology-chat.js';
 import { currentDoor, PERSONAL_DOOR } from './app-doors.js';
 import { categorizeIntake } from './intake-outcome.js';
+import { submitDoorFeedback, fetchDoorFeedback } from './door-feedback-sync.js';
 
 // THE OUTCOME RIDES BESIDE THE LIST (DR-0625, migration 0236). The category
 // and its basis, what changed and when, and the note a reply answers. Asked
@@ -41,7 +42,7 @@ import { categorizeIntake } from './intake-outcome.js';
 // 0236 yet, so the board never goes dark over a column that is on its way.
 const FEEDBACK_INTAKE_COLUMNS = ['intake_category', 'intake_basis', 'outcome_note', 'outcome_ref', 'outcome_at', 'reply_to'];
 const INTAKE_INSERT_KEYS = ['intake_category', 'intake_basis', 'reply_to'];
-const LEDGER = (typeof __DR_LEDGER__ !== 'undefined') ? __DR_LEDGER__ : null;
+const LEDGER = typeof __DR_LEDGER__ !== 'undefined' ? __DR_LEDGER__ : null;
 
 /**
  * One of the OUTCOME columns is missing (0236 not applied yet), as PostgREST
@@ -69,7 +70,9 @@ async function withIntakeColumns(base, build) {
 export function newFeedbackId() {
   try {
     if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return crypto.randomUUID();
-  } catch { /* fall through */ }
+  } catch {
+    /* fall through */
+  }
   return `fb-${Date.now()}`;
 }
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -96,12 +99,23 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 // blob column has to be typed in here on purpose. The test that pins this
 // reads the source for `select('*')` for exactly that reason.
 const FEEDBACK_LIST_COLUMNS = [
-  'id', 'instance_id', 'user_id', 'display_name', 'device_label',
-  'app_version', 'which_tab', 'feedback_text', 'sentiment',
-  'is_confidential', 'submitted_at', 'triage_status', 'triage_notes',
+  'id',
+  'instance_id',
+  'user_id',
+  'display_name',
+  'device_label',
+  'app_version',
+  'which_tab',
+  'feedback_text',
+  'sentiment',
+  'is_confidential',
+  'submitted_at',
+  'triage_status',
+  'triage_notes',
   'promoted_to_project_id',
   // Derived in the DB (0135) — presence and count without the bytes.
-  'has_screenshot', 'screenshot_count',
+  'has_screenshot',
+  'screenshot_count',
 ].join(', ');
 
 // A bound, so this query's cost cannot grow without limit as feedback
@@ -181,10 +195,11 @@ export async function doorInstanceId(client = supabase, loc = null) {
   if (!door || door.path === PERSONAL_DOOR) return null;
   for (const slug of door.instances) {
     try {
-      const { data, error } = await client
-        .from('instances').select('id').eq('slug', slug).maybeSingle();
+      const { data, error } = await client.from('instances').select('id').eq('slug', slug).maybeSingle();
       if (!error && data && data.id) return data.id;
-    } catch { /* try the next slug this door answers to */ }
+    } catch {
+      /* try the next slug this door answers to */
+    }
   }
   return null;
 }
@@ -197,17 +212,39 @@ export async function doorInstanceId(client = supabase, loc = null) {
  * @param item       Object from addFeedback() — see prototype line ~1039
  * @param meta       { activeTab?: string, appVersion?: string, deviceLabel?: string }
  */
+// EVERY VOICE REACHES THE OFFICE (DR-1676; Darrell 2026-11-26: "We want to understand users all of
+// them!!! Fix feedback!!! Use another channel if needed"). The `feedback` table admits only a signed-in
+// member of the space (RLS), so a signed-out visitor's note, or a church member's note refused by the
+// membership rule, stayed on their phone and reached no one. The second channel is the one every door
+// already has: door_feedback_submit (0216), anon-callable, flood-braked, read by the office. A note the
+// first channel cannot take goes there, with the page it came from. Never throws.
+async function fileThroughDoor(item, meta = {}) {
+  try {
+    const where = typeof window !== 'undefined' ? window.location : null;
+    const door = currentDoor(where && where.pathname, where && where.search);
+    const doorSlug = (door && door.key) || 'poetech';
+    const instanceSlug = (door && door.instances && door.instances[0]) || 'poe-family';
+    const where2 = meta.activeTab || item.currentView || item.area || '';
+    const body = [where2 ? `[${where2}]` : '', composeFeedbackBody(item)].filter(Boolean).join(' ').slice(0, 3900);
+    const r = await submitDoorFeedback(doorSlug, instanceSlug, { area: 'other', body, contact: item.contact || null });
+    return r.ok ? { uploaded: true, via: 'door' } : { skipped: 'door-error', error: r.error };
+  } catch (e) {
+    return { skipped: 'door-error', error: e };
+  }
+}
+
 export async function uploadFeedback(item, meta = {}) {
   const session = await currentSession();
-  if (!session) return { skipped: 'signed-out' };
+  if (!session) return fileThroughDoor(item, meta);
 
   // The user must be a tenant member for the INSERT to pass RLS.
   let tenantId;
   try {
     tenantId = await ensureTenantMembership();
   } catch (e) {
-    console.warn('[feedback-sync] tenant membership setup failed:', e);
-    return { skipped: 'no-tenant', error: e };
+    console.warn('[feedback-sync] tenant membership setup failed, filing through the door channel:', e);
+    const viaDoor = await fileThroughDoor(item, meta);
+    return viaDoor.uploaded ? viaDoor : { skipped: 'no-tenant', error: e };
   }
 
   // File it to the space the person was standing in, when they belong to it
@@ -254,7 +291,9 @@ export async function uploadFeedback(item, meta = {}) {
     const cat = categorizeIntake({ ...item, text: composedBody, replyTo: row.reply_to || null, screenshotCount: 0 }, { ledger: LEDGER });
     row.intake_category = cat.category;
     row.intake_basis = cat.basis;
-  } catch { /* the runner categorizes it on its next pass */ }
+  } catch {
+    /* the runner categorizes it on its next pass */
+  }
 
   // Optional screenshots (compressed JPEG data URLs). The legacy single-image
   // `screenshot` text column (migration 0003) keeps the FIRST image for back-
@@ -262,8 +301,10 @@ export async function uploadFeedback(item, meta = {}) {
   // Accept the multi-image `meta.screenshots` array and the legacy single
   // `meta.screenshot`.
   const shots = Array.isArray(meta.screenshots)
-    ? meta.screenshots.filter(s => typeof s === 'string' && s)
-    : ((typeof meta.screenshot === 'string' && meta.screenshot) ? [meta.screenshot] : []);
+    ? meta.screenshots.filter((s) => typeof s === 'string' && s)
+    : typeof meta.screenshot === 'string' && meta.screenshot
+      ? [meta.screenshot]
+      : [];
   const firstShot = shots[0] || null;
 
   // Insert with the richest payload the live schema supports, degrading on each
@@ -296,8 +337,9 @@ export async function uploadFeedback(item, meta = {}) {
     ({ error } = await insertRow(row));
   }
   if (error) {
-    console.warn('[feedback-sync] upload failed:', error);
-    return { skipped: 'insert-error', error };
+    console.warn('[feedback-sync] upload failed, filing through the door channel:', error);
+    const viaDoor = await fileThroughDoor(item, meta);
+    return viaDoor.uploaded ? viaDoor : { skipped: 'insert-error', error };
   }
 
   // Best-effort native Synology Chat post — fire-and-forget. Never blocks
@@ -341,11 +383,7 @@ export async function uploadFeedback(item, meta = {}) {
  */
 export async function fetchFeedbackImages(id) {
   if (!id) return { screenshots: [] };
-  const { data, error } = await supabase
-    .from('feedback')
-    .select('id, screenshot, screenshots')
-    .eq('id', id)
-    .maybeSingle();
+  const { data, error } = await supabase.from('feedback').select('id, screenshot, screenshots').eq('id', id).maybeSingle();
   if (error || !data) {
     if (error) console.warn('[feedback-sync] image fetch failed:', error);
     return { screenshots: [] };
@@ -369,12 +407,9 @@ export async function fetchMyFeedback(client = supabase) {
     const { data: s } = await client.auth.getSession();
     const uid = s && s.session && s.session.user && s.session.user.id;
     if (!uid) return { ok: false, items: [], reason: 'signed-out' };
-    const { data, error } = await withIntakeColumns(FEEDBACK_LIST_COLUMNS, (cols) => client
-      .from('feedback')
-      .select(cols)
-      .eq('user_id', uid)
-      .order('submitted_at', { ascending: false })
-      .limit(MY_FEEDBACK_LIMIT));
+    const { data, error } = await withIntakeColumns(FEEDBACK_LIST_COLUMNS, (cols) =>
+      client.from('feedback').select(cols).eq('user_id', uid).order('submitted_at', { ascending: false }).limit(MY_FEEDBACK_LIMIT)
+    );
     if (error) return { ok: false, items: [], reason: error.message || 'unreadable' };
     return { ok: true, items: (data || []).map((r) => ({ ...toPrototypeShape(r), mine: true })), reason: '' };
   } catch (e) {
@@ -395,14 +430,16 @@ export function subscribeFeedback(onRemote) {
     // already in local data.feedback via addFeedback — surfacing them
     // again from the remote stream would create visual duplicates.
     const fetchOthers = async () => {
-      const { data, error } = await withIntakeColumns(FEEDBACK_LIST_COLUMNS, (cols) => supabase
-        .from('feedback')
-        .select(cols)
-        .neq('user_id', myUserId)
-        // DESCENDING, so the cap drops the oldest rows and never the newest.
-        // Ascending + limit is what made every recent submission invisible.
-        .order('submitted_at', { ascending: false })
-        .limit(FEEDBACK_LIST_LIMIT));
+      const { data, error } = await withIntakeColumns(FEEDBACK_LIST_COLUMNS, (cols) =>
+        supabase
+          .from('feedback')
+          .select(cols)
+          .neq('user_id', myUserId)
+          // DESCENDING, so the cap drops the oldest rows and never the newest.
+          // Ascending + limit is what made every recent submission invisible.
+          .order('submitted_at', { ascending: false })
+          .limit(FEEDBACK_LIST_LIMIT)
+      );
       if (error) {
         console.warn('[feedback-sync] fetch failed:', error);
         return null;
@@ -410,8 +447,26 @@ export function subscribeFeedback(onRemote) {
       return data || [];
     };
 
-    const initial = await fetchOthers();
-    if (initial) onRemote(initial.map(toPrototypeShape));
+    // The second channel's notes (DR-1676): what the family and church doors filed through
+    // door_feedback_submit, read with the office's own rights and shown on the same board.
+    const fetchDoorNotes = async () => {
+      const out = [];
+      for (const slug of DOOR_NOTE_SPACES) {
+        try {
+          const r = await fetchDoorFeedback(slug, { limit: 100 });
+          if (r.ok) out.push(...r.rows.map(doorRowToShape));
+        } catch {
+          /* a space the reader may not read is simply not shown */
+        }
+      }
+      return out;
+    };
+    const both = async () => {
+      const [rows, door] = await Promise.all([fetchOthers(), fetchDoorNotes()]);
+      return rows ? [...rows.map(toPrototypeShape), ...door] : door.length ? door : null;
+    };
+    const initial = await both();
+    if (initial) onRemote(initial);
 
     // Realtime subscription on inserts. Re-fetch (with the same
     // user-id filter) so the merge logic stays simple. Family-scale
@@ -419,8 +474,8 @@ export function subscribeFeedback(onRemote) {
     // INSERT and UPDATE: a steward's triage and the fix lane's outcome are
     // UPDATEs, and until DR-0625 the board never heard them without a reload.
     const refresh = () => {
-      fetchOthers().then((refreshed) => {
-        if (refreshed) onRemote(refreshed.map(toPrototypeShape));
+      both().then((refreshed) => {
+        if (refreshed) onRemote(refreshed);
       });
     };
     channel = supabase
@@ -454,7 +509,7 @@ export function subscribeFeedback(onRemote) {
  */
 export function composeFeedbackBody(item = {}) {
   const trip = item.readerTrip ? String(item.readerTrip).trim() : '';
-  const withTrip = (body) => (trip && body ? `${body} | [reader] ${trip}` : (trip ? `[reader] ${trip}` : body));
+  const withTrip = (body) => (trip && body ? `${body} | [reader] ${trip}` : trip ? `[reader] ${trip}` : body);
   if (item.text) return withTrip(item.text);
   if (item.feedback_text) return withTrip(item.feedback_text);
   const parts = [];
@@ -495,6 +550,29 @@ function normalizeSentiment(s) {
 }
 
 /** Convert a Supabase feedback row into the prototype's local shape. */
+/** The spaces whose door notes the board shows (the family app and the church door). */
+export const DOOR_NOTE_SPACES = Object.freeze(['poe-family', 'colg']);
+
+/** A door_feedback row in the board's shape, marked as the second channel. Pure. */
+export function doorRowToShape(row) {
+  return {
+    id: row.id,
+    text: row.body,
+    currentView: `door:${row.door_slug || ''}${row.area ? `/${row.area}` : ''}`,
+    sentiment: 'neutral',
+    category: 'neutral',
+    isConfidential: false,
+    submittedAt: row.created_at,
+    createdAt: row.created_at,
+    displayName: row.submitted_by ? 'A member (door channel)' : 'A visitor (door channel)',
+    triageStatus: row.status || 'new',
+    triageNotes: row.office_note || '',
+    userId: row.submitted_by || null,
+    source: 'door',
+    screenshots: [],
+  };
+}
+
 function toPrototypeShape(row) {
   return {
     id: row.id,
@@ -525,20 +603,21 @@ function toPrototypeShape(row) {
     // carries image bytes (see FEEDBACK_LIST_COLUMNS). They fill in when the
     // same row is re-read through `fetchFeedbackImages`, so this mapper serves
     // both shapes without the caller having to know which one it holds.
-    screenshots: Array.isArray(row.screenshots) && row.screenshots.length > 0
-      ? row.screenshots
-      : (row.screenshot ? [row.screenshot] : []),
+    screenshots: Array.isArray(row.screenshots) && row.screenshots.length > 0 ? row.screenshots : row.screenshot ? [row.screenshot] : [],
     // Presence and count come from the DERIVED columns (migration 0135) when
     // they are there, because those are true even when the bytes are absent.
     // Computing them from the blob columns instead — the old behaviour, kept
     // here as the fallback — would report "no screenshot" for every row in a
     // blob-free list, which is a painted answer, not a missing one (DR-0076).
-    hasScreenshot: typeof row.has_screenshot === 'boolean'
-      ? row.has_screenshot
-      : !!(row.screenshot || (Array.isArray(row.screenshots) && row.screenshots.length > 0)),
+    hasScreenshot:
+      typeof row.has_screenshot === 'boolean' ? row.has_screenshot : !!(row.screenshot || (Array.isArray(row.screenshots) && row.screenshots.length > 0)),
     screenshotCount: Number.isFinite(row.screenshot_count)
       ? row.screenshot_count
-      : (Array.isArray(row.screenshots) ? row.screenshots.length : (row.screenshot ? 1 : 0)),
+      : Array.isArray(row.screenshots)
+        ? row.screenshots.length
+        : row.screenshot
+          ? 1
+          : 0,
     // 'remote: true' lets the UI render a small badge so users can see
     // which feedback came from another device.
     remote: true,

@@ -206,3 +206,20 @@ describe('ChurchTabStrip', () => {
     expect(container.innerHTML).toBe('');
   });
 });
+
+// DR-1676: Darrell 2026-11-26, "No longer see a feedback option!!!!!!" -- the door's bar lost More
+// (DR-1484) and the header never handed Feedback to the sheet that replaced it.
+describe('Feedback has a home on the church door', () => {
+  it('the menu sheet offers Send feedback, and it opens the feedback form', async () => {
+    const onFeedback = vi.fn();
+    mount({ onFeedback });
+    await flush();
+    act(() => q('[data-testid="lch-menu"]').dispatchEvent(new MouseEvent('click', { bubbles: true })));
+    await flush();
+    const btn = q('[data-testid="lch-feedback"]');
+    expect(btn).toBeTruthy();
+    expect(btn.textContent).toMatch(/Send feedback/);
+    act(() => btn.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+    expect(onFeedback).toHaveBeenCalledTimes(1);
+  });
+});

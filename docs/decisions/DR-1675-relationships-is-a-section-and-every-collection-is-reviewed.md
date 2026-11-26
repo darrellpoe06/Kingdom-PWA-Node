@@ -21,7 +21,7 @@ Lessons carry no topic tags. DR-1666 picked 19 relationship lessons by reading a
 
 ## Decision
 
-1. **Relationships is a section of its own** with four parts and a count, opened from the shelf's See All, and it keeps every way to view a list: Pictures | List (remembered per device).
+1. **Relationships is a section of its own** with four parts and a count, first in Explore by Topic ("Should say relationships as an option"; Marriage · Family · Friends · Forgiveness), opened from the shelf's See All, and it keeps every way to view a list: Pictures | List (remembered per device).
 2. **Every collection is reviewed by rule, measure and judgment.** A test fails the build while any lesson at or above the flag is neither in a section nor judged out with a reason, so a new lesson can never silently miss the collection.
 3. **More lessons** come from new teaching: the measured section shows where it is thin (Friends, Neighbors & the Church has 8); the research plan for what members want to learn is in the reply and its follow-up record.
 
