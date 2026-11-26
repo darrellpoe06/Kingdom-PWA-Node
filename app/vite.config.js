@@ -9,6 +9,7 @@ import { buildTestCensus } from '../scripts/test-census.mjs';
 import { buildLessonsManifest } from '../scripts/lessons-manifest.mjs';
 import { chainOf } from './src/lib/decision-chain.js';
 import { parseGovernanceQueue } from './src/lib/governance-queue-parse.js';
+import { buildPreviewIndex } from './src/lib/learn-link-preview.js';
 
 // (The build-time n8n workflow counter + registry — countWorkflowFiles /
 // buildWorkflowRegistry, DR-0061 / DR-0158 — were removed when n8n left the
@@ -395,9 +396,21 @@ function repoDocuments() {
   };
 }
 
+// A shared lesson link previews as the lesson (DR-1673): the build emits the compact
+// lessonId -> [title, cover] index the /l/ Function reads (lib/learn-link-preview.js).
+function learnPreviewIndex() {
+  return {
+    name: 'poetech-learn-preview-index',
+    generateBundle() {
+      const records = JSON.parse(readFileSync(fileURLToPath(new URL('./src/lib/learn-presentation/presentation-records.json', import.meta.url)), 'utf8')).records;
+      this.emitFile({ type: 'asset', fileName: 'learn-preview.json', source: JSON.stringify(buildPreviewIndex(records)) });
+    },
+  };
+}
+
 export default defineConfig({
   base: BASE,
-  plugins: [react(), swVersionStamp(), modulepreloadMonolith(), repoDocuments()],
+  plugins: [react(), swVersionStamp(), modulepreloadMonolith(), repoDocuments(), learnPreviewIndex()],
   // The on-device voice's worker (lib/device-voice.worker.js, DR-0656) imports
   // onnxruntime-web's ESM build, which reads import.meta.url; the default
   // 'iife' worker format cannot carry that, so workers are built as modules.

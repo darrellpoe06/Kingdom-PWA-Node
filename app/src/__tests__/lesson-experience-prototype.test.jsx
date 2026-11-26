@@ -389,6 +389,7 @@ describe('four-mode reference layout -- real data only', () => {
     click(byText('Study')[0]);
     const titles = [...container.querySelectorAll('.le-acc-title')].map((n) => n.textContent);
     expect(titles).toEqual([
+      'Ask Ari', // the church's own tutor, first in Study (DR-1674)
       'Scripture Focus',
       'Key Takeaways',
       'Reflection Questions',
@@ -1044,6 +1045,20 @@ describe('quoted verses keep their joining punctuation', () => {
     expect(parts.filter((x) => !x.verse).map((x) => x.text)).toEqual(['Before: ', 'The gathering is promised.']);
     expect(parts.filter((x) => x.verse).length).toBe(2);
   });
+
+  it('no lesson leaves a lone mark (";", "—") standing between verses, and every character is kept', async () => {
+    const { verseParts, readingTextFor } = await import('../components/learn-studio/LessonExperience.jsx');
+    expect(verseParts('"a" (John 1:1) — "b" (John 1:2)').map((x) => x.verse)).toEqual([true, true]);
+    const lone = [];
+    for (const l of learnInventory().flatMap((c) => c.lessons || [])) {
+      for (const para of readingTextFor(l, 'adult').split(/\n\n+/)) {
+        const parts = verseParts(para);
+        expect(parts.map((x) => x.text).join('')).toBe(para);
+        for (const x of parts) if (!x.verse && /^[\s;:,.!?—–-]+$/.test(x.text)) lone.push(`${l.id}: ${JSON.stringify(x.text)}`);
+      }
+    }
+    expect(lone).toEqual([]);
+  });
 });
 
 // Darrell 2026-11-26: "I just paused the lesson and it stopped and didn't start or ask if I wanted to
@@ -1156,3 +1171,77 @@ describe('the Read place survives the landing (DR-1671)', () => {
     expect(container.querySelector('[data-testid="le-read-landed"]')).toBeNull();
   });
 });
+
+// Darrell 2026-11-26: "Back button should go to the last page the user was on!!!" -- "Not close
+// the app or start over". DR-1674.
+describe("the phone's Back goes to the last page, never out of the app", () => {
+  it('an open lesson takes one history step; Back closes it and lands on Learn, and its own close gives the step back', async () => {
+    render(<LearnStudioPreview courses={COURSES} onOpenLesson={vi.fn()} onExit={vi.fn()} ownerDevice registerOpener={registerOpener} />);
+    const before = window.history.length;
+    openThe338();
+    expect(container.querySelector('.le-root')).toBeTruthy();
+    expect(window.history.length).toBe(before + 1);
+    expect(window.history.state && window.history.state.hvKey).toBe('ls-lesson');
+    act(() => window.dispatchEvent(new PopStateEvent('popstate', { state: null })));
+    expect(container.querySelector('.le-root')).toBeNull();
+    expect(container.querySelector('[data-testid="learn-dashboard"], .ls-root, .ls-studio')).toBeTruthy();
+  });
+  it('a course page takes one history step; Back returns to the Learn home', () => {
+    render(<LearnStudioPreview courses={COURSES} onOpenLesson={vi.fn()} onExit={vi.fn()} ownerDevice registerOpener={registerOpener} />);
+    const row = container.querySelector('[data-testid^="ls-course-"]');
+    expect(row).toBeTruthy();
+    click(row);
+    expect(window.history.state && window.history.state.hvKey).toBe('ls-course');
+    expect(container.textContent).toMatch(/Back to Learn/);
+    act(() => window.dispatchEvent(new PopStateEvent('popstate', { state: null })));
+    expect(container.querySelector('[data-testid="learn-dashboard"]')).toBeTruthy();
+  });
+});
+
+// Darrell 2026-11-26: "where's the Ai's!!!!!! Ari..." The classic lesson guide's tutor, in the new
+// lesson screen (DR-1674): the same askTutor, the same honesty, the same offline fallback.
+describe('Ari is in the lesson screen', () => {
+  it('Study offers Ask Ari; a question goes to the tutor with this lesson and the answer shows, marked as Ari', async () => {
+    const { default: AskAri } = await import('../components/learn-studio/AskAri.jsx');
+    const calls = [];
+    const ask = async (lesson, messages) => {
+      calls.push({ id: lesson.id, last: messages[messages.length - 1].content });
+      return { ok: true, reply: 'Faithful work is seen by Yahweh.', source: 'local' };
+    };
+    render(<AskAri lesson={REAL_LESSON} ask={ask} />);
+    const box = container.querySelector('textarea');
+    act(() => {
+      const set = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value').set;
+      set.call(box, 'What is eyeservice?');
+      box.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    await act(async () => {
+      container.querySelector('[data-testid="le-ari-send"]').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    expect(calls).toEqual([{ id: REAL_LESSON.id, last: 'What is eyeservice?' }]);
+    expect(container.textContent).toContain('Faithful work is seen by Yahweh.');
+    expect(container.textContent).toMatch(/Ari · the church's own tutor · test what it tells you/);
+  });
+
+  it('when the tutor cannot be reached it says so honestly, and never makes up an answer', async () => {
+    const { default: AskAri } = await import('../components/learn-studio/AskAri.jsx');
+    render(<AskAri lesson={REAL_LESSON} ask={async () => ({ ok: false, reply: null })} />);
+    const box = container.querySelector('textarea');
+    act(() => {
+      const set = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value').set;
+      set.call(box, 'Hello?');
+      box.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    await act(async () => {
+      container.querySelector('[data-testid="le-ari-send"]').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    expect(container.querySelector('[data-testid="le-ari-offline"]')).toBeTruthy();
+    expect(container.querySelectorAll('.le-ari-msg--assistant').length).toBe(0);
+  });
+
+  it('the lesson screen shows Ask Ari in Study', () => {
+    render(<LessonExperience lesson={REAL_LESSON} record={null} onExit={vi.fn()} initialMode="study" />);
+    expect(container.querySelector('[data-testid="le-ask-ari"]')).toBeTruthy();
+  });
+});
+

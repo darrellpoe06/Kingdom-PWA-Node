@@ -396,16 +396,20 @@ export function toRideRequestShape(row, myUserId) {
   };
 }
 
-// Validate a rider's ride-request form. A name is required (so a driver knows who
-// they're picking up); a pickup area OR address is required (so they know where).
-// Returns { ok, errors:{field:msg} }. Phone/date/notes are optional but urged.
+// Validate a rider's ride-request form. Required (a member's note, 2026-07, triaged in REV-0262 and
+// shipped DR-1678: "make phone and pickup address required with a red star, and make choosing a regular
+// or accessible van required"): a name (who to pick up), a phone (so the driver can reach them), the
+// pickup address (where to come), and which van. The pickup area stays an optional help.
+// Returns { ok, errors:{field:msg} }.
 export function validateRideRequest(form = {}) {
   const errors = {};
   const name = (form.riderName || '').trim();
-  const area = (form.pickupArea || '').trim();
+  const phone = String(form.riderPhone || '').replace(/[^0-9]/g, '');
   const address = (form.pickupAddress || '').trim();
   if (!name) errors.riderName = 'Please add your name so the driver knows who to pick up.';
-  if (!area && !address) errors.pickupArea = 'Add a pickup area or address so we know where to come.';
+  if (phone.length < 7) errors.riderPhone = 'Please add a phone number so the driver can reach you.';
+  if (!address) errors.pickupAddress = 'Please add the pickup address so we know where to come.';
+  if (form.vanChoice !== 'regular' && form.vanChoice !== 'accessible') errors.vanChoice = 'Please choose the regular van or the accessible van.';
   const p = Number(form.passengers);
   if (form.passengers != null && form.passengers !== '' && (!Number.isFinite(p) || p < 1)) {
     errors.passengers = 'How many riders? (at least 1).';

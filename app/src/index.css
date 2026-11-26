@@ -1238,11 +1238,17 @@ html[data-reader-rails="sides"] header[data-read-skip] {
 /* ===== Institute studio at every text size (DR-1667; Darrell 2026-11-26, at a larger text size: "Don't look right!!!!" --
    the hero kept two columns and the tiles three, so words split mid-word). The app's text size scales the root font,
    so these breakpoints are in em: the layout follows the reader's text size, not only the screen. ===== */
-.is-hero{grid-template-columns:minmax(0,1fr);padding:1.125rem 1.125rem 0}
-.is-leader{max-width:20em;justify-self:end;width:100%}
+/* The portrait bleeds to the card's right and bottom edges at EVERY size (Darrell 2026-11-26, two screenshots: stacked
+   at a large text size it stopped short of the edge with its open side hanging; side by side the gold arc ran through
+   the Bishop's name). Only the text keeps a right margin, and the arc sits behind the portrait. */
+.is-hero{grid-template-columns:minmax(0,1fr);padding:1.125rem 0 0 1.125rem}
+.is-hero-text{padding-right:1.125rem}
+.is-hero::after{z-index:0}
+.is-leader{max-width:20em;justify-self:end;width:100%;z-index:2}
 .is-leader-ph{aspect-ratio:4/3}
 @container inst (min-width:22em){
   .is-hero{grid-template-columns:minmax(0,1fr) minmax(0,42%);padding:1.125rem 0 0 1.125rem}
+  .is-hero-text{padding-right:0}
   .is-leader{max-width:none;justify-self:stretch}
   .is-leader-ph{aspect-ratio:4/5}
 }

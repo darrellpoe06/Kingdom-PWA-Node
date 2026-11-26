@@ -14,6 +14,8 @@ import { neighborLessons } from './LessonNav.jsx';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import LearnDashboard from './LearnDashboard.jsx';
 import { recordUse } from '../../lib/ux-signals.js';
+import { useHistoryValue } from '../../lib/nav-history.js';
+import { ensureLearnTheme } from '../../lib/learn-theme.js';
 import { listPlaces, placeInProgress } from '../../lib/learn-resume.js';
 import { studioWitness } from '../../lib/lesson-progress.js';
 import LearnStudio from './LearnStudio.jsx';
@@ -23,6 +25,9 @@ export { isLearnStudioOn };
 import RECORDS from '../../lib/learn-presentation/presentation-records.json';
 import TOPICS from '../../lib/learn-presentation/presentation-topics.json';
 import LessonExperience, { LessonExperienceBoundary, textFor } from './LessonExperience.jsx';
+
+// The new look follows the chosen theme (DR-1679).
+ensureLearnTheme();
 
 // Covers ship under public/learn-thumbs with base-relative paths; resolve them
 // against the app's base (web /poetech-app/, native /).
@@ -61,6 +66,7 @@ const NO_DONE = new Set();
 const NO_CTX = Object.freeze({ places: NO_PLACES, progress: {} });
 
 export default function LearnStudioPreview({
+  lessonToolsFor = null,
   courses,
   onOpenLesson,
   onExit,
@@ -91,6 +97,14 @@ export default function LearnStudioPreview({
   // Studio on. Only a lesson with no words at all would go to the classic
   // reader, so nothing is ever opened empty.
   const [active, setActive] = useState(null); // { lesson, course } open in the Experience, or null
+  // Back closes the open lesson and lands where the reader was (DR-1674), never out of the app.
+  const closeActive = React.useCallback((v) => {
+    if (v == null) {
+      setActive(null);
+      setClosed((n) => n + 1); // Back re-reads the places too (DR-1684)
+    }
+  }, []);
+  useHistoryValue(active ? active.lesson.id : null, closeActive, { base: null, key: 'ls-lesson' });
   const [experienceMode, setExperienceMode] = useState('watch');
   const [experienceLevel, setExperienceLevel] = useState('adult');
   const catalog = useMemo(() => allLessons(courses), [courses]);
@@ -181,19 +195,25 @@ export default function LearnStudioPreview({
           lesson={active.lesson}
           record={activeRecord}
           onExit={closeLesson}
-          lessonTools={{
-            place: witness.place,
-            onLevel: witness.onLevel,
-            onHeard: witness.onHeard,
-            onSeen: witness.onSeen,
-            ...(quiz
-              ? {
-                  quizSaves: !!quiz.saves,
-                  quizSaved: quiz.saved(active.lesson.id),
-                  onRecordQuiz: (id, r) => quiz.record(activeCourseKey, id, r),
+          lessonTools={
+            // The classic space's full tools when the Learn page hands them over (DR-1674): reading
+            // credit, place, downloads, age first. Else the lesson's own place witness (DR-1684) and the quiz.
+            lessonToolsFor
+              ? lessonToolsFor(active.lesson, active.course)
+              : {
+                  place: witness.place,
+                  onLevel: witness.onLevel,
+                  onHeard: witness.onHeard,
+                  onSeen: witness.onSeen,
+                  ...(quiz
+                    ? {
+                        quizSaves: !!quiz.saves,
+                        quizSaved: quiz.saved(active.lesson.id),
+                        onRecordQuiz: (id, r) => quiz.record(activeCourseKey, id, r),
+                      }
+                    : {}),
                 }
-              : {}),
-          }}
+          }
           initialMode={experienceMode}
           initialLevel={experienceLevel}
           moreLessons={moreLessons}

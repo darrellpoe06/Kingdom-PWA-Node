@@ -210,47 +210,108 @@ export const SHELVES = Object.freeze([
  * only mentions a wife or a marriage in passing is not on it). A test fails the build if any id
  * stops resolving to a mounted lesson. In reading order: marriage, love, family, friendship.
  */
-export const RELATIONSHIP_LESSONS = Object.freeze([
-  'll230-competence-before-submission-the-study-skills-and-doing-skills-of-a-wife-and-a-husband-with-the-word-answering-first',
-  'll231-does-yahweh-rank-a-wife-over-a-woman-covenant-the-proverbs-31-woman-and-the-order-with-the-word-answering-first',
-  'll122-does-she-feel-like-your-favorite-person-preferring-one-another-and-the-first-works',
-  'll114-what-makes-having-you-better-covenant-not-contract-and-the-value-a-paycheck-cannot-cover',
-  'll121-know-your-own-post-her-provision-her-guard-and-the-beam-in-the-pointing-eye',
-  'll115-meek-and-quiet-strength-the-ornament-of-great-price-and-why-jael-is-not-the-blueprint',
-  'll123-would-you-sign-that-contract-the-answer-the-qualification-and-the-manner-that-forfeited-it',
-  'll319-what-the-trust-could-not-keep',
-  'll157-what-is-love-in-depth-and-in-range-action-based-word-first',
-  'll167-be-a-g-about-it-execute-the-fourteen-love-verbs-high-or-low-because-it-is-not-about-how-you-feel',
-  // Added DR-1686 (Darrell 2026-11-26: "Make sure the lessons that should be in the relationship sections are there"),
-  // each read for its subject, not matched on a word: love,
-  'll175-true-love-starts-with-an-act-and-a-sound-mind-and-feelings-come-after-the-test',
-  'll82-love-fulfils-the-law-wake-up-and-get-dressed',
-  'ea-gh-inside-love',
-  // hard conversations and forgiveness,
-  'll15-seasoned-with-salt',
-  'ea-gh-forgive-forgiven',
-  'ea-gh-vengeance-his',
-  'ea-gh-soft-answer',
-  'll16-rule-your-spirit-repair-the-bond',
-  'll291-fruits-meet-for-repentance',
-  'll151-the-tongue-death-and-life-in-a-little-member-and-the-knowledge-that-governs-it',
-  'll46-ye-fathers-provoke-to-good-works',
-  // family (DR-1686),
-  'ea-gh-house-serve',
-  'ea-gh-train-child',
-  'll282-the-greater-work',
-  'll294-a-prophet-in-his-own-house',
-  'ea-gh-break-generational',
-  'll154-why-do-we-have-to-pay-for-our-fathers-sins-we-dont-and-it-needs-what-we-do-here',
-  'ea-gh-father-fatherless',
-  'legacy6-hand-it-forward',
-  'll74-church-hurt-the-counterfeit-comfort-and-the-blood',
-  'll117-no-two-children-grow-up-in-the-same-house-why-siblings-differ-and-the-one-parent-who-is-the-same',
-  'll313-children-are-a-heritage-when-the-school-closes-the-house',
-  'll100-guard-the-little-ones-children-the-millstone-and-mastery-over-the-tools',
-  'll205-talk-about-it-together-parents-children-friends-until-we-see-yahweh-has-been-right',
-  'ea-gh-truth-love',
+// A LARGER SECTION, IN FOUR PARTS (Darrell 2026-11-26: "We don't have a lot on relationships?!!!!!!
+// How is that possible?!!!" -- "relationships should be a larger section of the sections of
+// learning"). Measured: a scan of every lesson's FULL text for relationship words (901 lessons of
+// 300+ words), then each of the top 140 read by title and big idea. The 19 first picked grew to
+// those whose teaching is about how we love and live with people; a lesson that only touches a
+// family word, or is mostly about money, history or doctrine, stays off (named in DR-1675).
+export const RELATIONSHIP_GROUPS = Object.freeze([
+  Object.freeze({
+    id: 'marriage',
+    label: 'Marriage & Love',
+    ids: Object.freeze([
+      'll230-competence-before-submission-the-study-skills-and-doing-skills-of-a-wife-and-a-husband-with-the-word-answering-first',
+      'll231-does-yahweh-rank-a-wife-over-a-woman-covenant-the-proverbs-31-woman-and-the-order-with-the-word-answering-first',
+      'll122-does-she-feel-like-your-favorite-person-preferring-one-another-and-the-first-works',
+      'll114-what-makes-having-you-better-covenant-not-contract-and-the-value-a-paycheck-cannot-cover',
+      'll121-know-your-own-post-her-provision-her-guard-and-the-beam-in-the-pointing-eye',
+      'll115-meek-and-quiet-strength-the-ornament-of-great-price-and-why-jael-is-not-the-blueprint',
+      'll319-what-the-trust-could-not-keep',
+      'll157-what-is-love-in-depth-and-in-range-action-based-word-first',
+      'll167-be-a-g-about-it-execute-the-fourteen-love-verbs-high-or-low-because-it-is-not-about-how-you-feel',
+      'll307-love-walks-with-you-on-the-training-ground',
+      'll228-can-a-man-be-taught-by-a-woman-knowing-him-is-most-important-he-can-use-anyone-and-the-word-answers-first',
+      'll118-ninety-seven-percent-testing-a-viral-number-against-the-word-and-the-real-research',
+      'ea-gh-truth-love',
+      'ea-gh-inside-love',
+      'll175-true-love-starts-with-an-act-and-a-sound-mind-and-feelings-come-after-the-test',
+      'll82-love-fulfils-the-law-wake-up-and-get-dressed',
+    ]),
+  }),
+  Object.freeze({
+    id: 'family',
+    label: 'Family & Children',
+    ids: Object.freeze([
+      'll46-ye-fathers-provoke-to-good-works',
+      'll117-no-two-children-grow-up-in-the-same-house-why-siblings-differ-and-the-one-parent-who-is-the-same',
+      'll313-children-are-a-heritage-when-the-school-closes-the-house',
+      'll100-guard-the-little-ones-children-the-millstone-and-mastery-over-the-tools',
+      'll205-talk-about-it-together-parents-children-friends-until-we-see-yahweh-has-been-right',
+      'll294-a-prophet-in-his-own-house',
+      'll154-why-do-we-have-to-pay-for-our-fathers-sins-we-dont-and-it-needs-what-we-do-here',
+      'll63-the-family-in-the-field-offense-defense-why-yahweh-allows',
+      'll282-the-greater-work',
+      'll74-church-hurt-the-counterfeit-comfort-and-the-blood',
+      'll273-they-called-long-life-a-problem',
+      'll301-old-men-dream-young-men-see',
+      'legacy6-hand-it-forward',
+      'ea-gh-train-child',
+      'ea-gh-humble-heal',
+      'ea-gh-house-serve',
+      'ea-gh-break-generational',
+      'ea-gh-father-fatherless',
+    ]),
+  }),
+  Object.freeze({
+    id: 'community',
+    label: 'Friends, Neighbors & the Church',
+    ids: Object.freeze([
+      'ea-gh-own-your-faith',
+      'll256-the-lords-release-is-for-a-neighbor-loving-a-mixed-multitude-the-way-he-means',
+      'ea-gh-assembling',
+      'll44-safe-to-speak-psychological-safety',
+      'll15-seasoned-with-salt',
+      'll12-if-one-member-suffers',
+      'll253-benefiters-or-underminers-of-the-eternal-kingdom',
+      'ea-gh-seated-heavenly',
+    ]),
+  }),
+  Object.freeze({
+    id: 'repair',
+    label: 'Hard Conversations, Offense & Forgiveness',
+    ids: Object.freeze([
+      'll16-rule-your-spirit-repair-the-bond',
+      'ea-gh-forgive-forgiven',
+      'ea-gh-soft-answer',
+      'll291-fruits-meet-for-repentance',
+      'll151-the-tongue-death-and-life-in-a-little-member-and-the-knowledge-that-governs-it',
+      'll141-separate-and-connect-working-through-issues-studying-to-be-approved-tempted-versus-tried-and-how-we-handle-each-other-and-enemies',
+      'll218-do-not-switch-up-on-his-way-yahwehs-principles-documented-no-offense-taken-and-letting-him-win-so-we-win',
+      'ea-gh-vengeance-his',
+      'ea-gh-admit-wrong-to-grow',
+      'ea-gh-vacate-the-seat',
+      'll321-lay-hands-suddenly-on-no-man',
+      'll123-would-you-sign-that-contract-the-answer-the-qualification-and-the-manner-that-forfeited-it',
+    ]),
+  }),
 ]);
+/** Every relationship lesson, in section order. */
+export const RELATIONSHIP_LESSONS = Object.freeze(RELATIONSHIP_GROUPS.flatMap((g) => g.ids));
+
+/** The Relationships sections, each with its lessons from the mounted catalog. Pure. */
+export function relationshipGroups(courses, index, { preview = false } = {}) {
+  const at = new Map(allLessons(courses).map((x) => [x.lesson.id, x]));
+  return RELATIONSHIP_GROUPS.map((g) => ({
+    id: g.id,
+    label: g.label,
+    items: g.ids
+      .map((id) => at.get(id))
+      .filter(Boolean)
+      .map((x) => full(x, index, preview))
+      .filter((x) => x.p),
+  })).filter((g) => g.items.length);
+}
 
 /** The Relationships shelf: each listed lesson from the mounted catalog, in the list's order. Pure. */
 export function relationshipShelf(courses, index, { preview = false } = {}) {
@@ -337,6 +398,7 @@ export function studioHome(courses, index, { places = [], allPlaces = null, prog
     recentlyAdded,
     shelves,
     relationships: relationshipShelf(courses, index, { preview }),
+    relationshipGroups: relationshipGroups(courses, index, { preview }),
     topics,
     totals: { lessons: lessons.length, presented: presented.length, completed },
   };

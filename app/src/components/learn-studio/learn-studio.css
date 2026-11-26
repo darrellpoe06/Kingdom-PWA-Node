@@ -37,7 +37,8 @@
 .ls-root *::after {
   box-sizing: border-box;
 }
-.ls-root button {
+/* The weakest possible rule (DR-1679): any button style of its own wins, in every theme. */
+:where(.ls-root) button {
   font: inherit;
   color: inherit;
   cursor: pointer;
@@ -55,8 +56,8 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  border: 1px solid #4a3e41;
-  background: #1a1214;
+  border: 1px solid var(--ls-line);
+  background: var(--ls-panel);
   border-radius: 999px;
   padding: 0 16px;
   height: 44px;
@@ -103,7 +104,7 @@
   background: none;
 }
 .ls-btn--outline {
-  border-color: #5a4c4f;
+  border-color: var(--ls-line);
 }
 .ls-btn--red {
   background: var(--ls-red);
@@ -163,6 +164,7 @@
   justify-content: flex-start;
   padding: 10px;
   background: linear-gradient(135deg, #3a2a2c, #6b2a22);
+  color: #fff;
 }
 .ls-pic--empty span {
   font-size: 0.625rem;
@@ -201,7 +203,8 @@
   z-index: 1;
 }
 .ls-hl-gold {
-  color: var(--ls-gold);
+  /* Printed on a photo: a fixed, photo-safe gold in every theme. */
+  color: #f2bf2e;
 }
 .ls-brush {
   position: absolute;
@@ -349,7 +352,7 @@
   inset: 0;
   display: grid;
   place-items: center;
-  color: #1a1012;
+  color: var(--ls-on-gold, #1a1012);
   font-size: 1rem;
 }
 .ls-ico--play {
@@ -441,6 +444,7 @@
   right: 8px;
   bottom: 8px;
   background: rgba(0, 0, 0, 0.78);
+  color: #fff;
   font-size: 0.75rem;
   font-weight: 700;
   padding: 3px 7px;
@@ -507,8 +511,8 @@
   gap: 8px;
 }
 .ls-chip {
-  border: 1px solid #7c6431;
-  color: #e9c766;
+  border: 1px solid var(--ls-gold);
+  color: var(--ls-gold);
   background: none;
   border-radius: 999px;
   padding: 6px 14px;
@@ -550,7 +554,8 @@
 }
 .ls-cover-title {
   font-family: 'Fraunces', Georgia, serif;
-  font-size: clamp(1.75rem, 4vw, 3rem);
+  /* At Big Print a title stays a little above the body, never four letters a line (DR-1681). */
+  font-size: min(clamp(1.75rem, 4vw, 3rem), max(1.15rem, 9vw));
   line-height: 1.1;
   margin: 22px 0 6px;
   max-width: 900px;
@@ -608,6 +613,11 @@
   .ls-hero {
     aspect-ratio: 1 / 1;
     min-height: 0;
+    /* A tablet or an opened fold is up to 760px wide: square there was a whole screen of one picture
+       (Darrell 2026-11-26: "just a huge big picture... see more than just that one thing"). Capped, the
+       lesson pictures under it show on the first screen too. */
+    width: 100%;
+    max-height: min(58vh, 480px);
     border-radius: 16px;
   }
   .ls-hero-body {
@@ -638,7 +648,8 @@
     grid-template-columns: repeat(2, 1fr);
   }
   .ls-scroller {
-    grid-auto-columns: 82%;
+    /* A phone shows one card and the edge of the next; a tablet two and more, not one giant card (2026-11-26). */
+    grid-auto-columns: min(82%, 340px);
   }
   .ls-headline--card {
     font-size: clamp(1.1875rem, 5.8vw, 1.75rem);
@@ -775,7 +786,7 @@
   width: 100%;
   min-height: 44px;
   border-radius: 10px;
-  border: 1px solid #5a4c4f;
+  border: 1px solid var(--ls-line);
   background: var(--ls-bg);
   color: var(--ls-text);
   padding: 0 10px;
@@ -809,7 +820,7 @@
   padding: 4px 6px;
   border-radius: 8px;
   background: var(--ls-gold);
-  color: #1a1416;
+  color: var(--ls-on-gold, #1a1416);
   font-weight: 800;
   font-size: 0.875rem;
   text-align: center;
@@ -848,6 +859,8 @@
 }
 .ls-mini {
   display: flex;
+  /* With no room beside the thumbnail (big text, narrow phone) the words move below it (DR-1681). */
+  flex-wrap: wrap;
   align-items: center;
   gap: 12px;
   width: 100%;
@@ -860,7 +873,7 @@
   text-align: left;
 }
 .ls-mini:hover {
-  border-color: #7c6431;
+  border-color: var(--ls-gold);
 }
 .ls-mini-thumb {
   position: relative;
@@ -870,6 +883,7 @@
   border-radius: 8px;
   overflow: hidden;
   background: linear-gradient(135deg, #2c2326, #1a1416);
+  color: #fff;
   display: grid;
   place-items: center;
 }
@@ -893,7 +907,7 @@
   flex-direction: column;
   gap: 3px;
   min-width: 0;
-  flex: 1;
+  flex: 1 1 11em;
 }
 .ls-mini-kicker {
   color: var(--ls-gold);
@@ -967,7 +981,7 @@
 .ls-chip--dept.is-on {
   background: var(--ls-gold);
   border-color: var(--ls-gold);
-  color: #1a1012;
+  color: var(--ls-on-gold, #1a1012);
 }
 .ls-depts + .ls-controls {
   margin-top: 14px;
@@ -1012,7 +1026,7 @@
 .ls-toggle-btn[aria-pressed='true'] {
   background: var(--ls-gold);
   border-color: var(--ls-gold);
-  color: #1a1012;
+  color: var(--ls-on-gold, #1a1012);
 }
 .ls-more {
   margin-top: 14px;
@@ -1083,9 +1097,9 @@
   min-height: 36px;
   padding: 4px 12px;
   border-radius: 999px;
-  border: 1px solid #7c6431;
+  border: 1px solid var(--ls-gold);
   background: none;
-  color: #e9c766;
+  color: var(--ls-gold);
   font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -1118,7 +1132,7 @@
 }
 .ls-courseview-switch {
   display: inline-flex;
-  border: 1px solid #5a4c4f;
+  border: 1px solid var(--ls-line);
   border-radius: 10px;
   overflow: hidden;
   flex: 0 0 auto;
@@ -1142,7 +1156,8 @@
 .ls-mini-list--shelf {
   grid-auto-flow: column;
   grid-template-columns: none;
-  grid-auto-columns: min(240px, 62%);
+  /* A shelf card grows with the text size so its title is never a column of letters (DR-1681). */
+  grid-auto-columns: min(max(240px, 13em), 86%);
   overflow-x: auto;
   scroll-snap-type: x mandatory;
   scrollbar-width: none;
@@ -1172,8 +1187,8 @@
   flex: 1;
 }
 .ls-tools-open {
-  border: 1px solid #7c6431;
-  color: #e9c766;
+  border: 1px solid var(--ls-gold);
+  color: var(--ls-gold);
   border-radius: 999px;
   padding: 8px 14px;
   font-size: 0.8125rem;
@@ -1251,4 +1266,69 @@
   .ls-play-chip {
     margin-left: 0;
   }
+}
+
+/* Relationships, a section of its own (DR-1675). */
+.ls-section-title {
+  margin: 0.5rem 0 0.25rem;
+  font-size: 1.375rem;
+  line-height: 1.25;
+}
+
+/* The Learn home's Lessons list folds under its heading, closed, so the pictures lead (DR-1678). */
+.ls-inorder-summary {
+  cursor: pointer;
+  list-style: none;
+  min-height: 44px;
+  align-items: center;
+}
+.ls-inorder-summary::-webkit-details-marker {
+  display: none;
+}
+.ls-inorder-summary::after {
+  content: '▾';
+  margin-left: 0.5rem;
+  color: var(--ls-gold, #e7b23c);
+  transition: transform 0.15s;
+}
+.ls-inorder-fold:not([open]) .ls-inorder-summary::after {
+  transform: rotate(-90deg);
+}
+@media (prefers-reduced-motion: reduce) {
+  .ls-inorder-summary::after {
+    transition: none;
+  }
+}
+
+/* ===== The classic tools, worn in the new look (DR-1679; Darrell 2026-11-26: "Don't look like our new
+   standard and app views..."). Every classic Learn tool (Latest, Browse, Find, Record, Downloads) renders
+   inside this panel; instead of restyling each component, the panel gives them the new look's type,
+   corners and accent, in whatever theme is chosen. Scoped to the panel only. ===== */
+.ls-tools-body {
+  font-family: 'DM Sans', system-ui, sans-serif;
+}
+.ls-tools-body [style*='JetBrains'],
+.ls-tools-body [style*='monospace'],
+.ls-tools-body .font-mono {
+  font-family: inherit !important;
+  letter-spacing: 0 !important;
+}
+.ls-tools-body :is(button, input, select, textarea, summary) {
+  border-radius: 0.75rem;
+}
+.ls-tools-body :is(section, details, article, ol, ul):where([class*='border']) {
+  border-radius: 1rem;
+}
+[data-theme] .ls-root .ls-tools-body :is(.text-\[\#5A6E3D\], .text-\[\#3F5226\], .text-\[\#B85838\]) {
+  color: var(--ls-gold) !important;
+}
+[data-theme] .ls-root .ls-tools-body :is(.border-\[\#5A6E3D\], .border-\[\#3F5226\], .border-\[\#B85838\]) {
+  border-color: var(--ls-gold) !important;
+}
+[data-theme] .ls-root .ls-tools-body :is(.bg-\[\#5A6E3D\], .bg-\[\#3F5226\], .bg-\[\#B85838\]) {
+  background-color: var(--ls-gold) !important;
+  color: var(--ls-on-gold, #1a1012) !important;
+}
+[data-theme] .ls-root .ls-tools-body :is(.bg-\[\#5A6E3D\], .bg-\[\#3F5226\], .bg-\[\#B85838\]) * {
+  color: inherit !important;
 }

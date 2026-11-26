@@ -277,6 +277,21 @@
       "notes": "17:53:16Z (D7 push) to this push. A Node ESM JSON-import attribute error split the rules from the file binding."
     },
     {
+      "id": "lesson-link-previews",
+      "date": "2026-11-26",
+      "task": "A shared lesson link previews as the lesson: picture and title, refreshing into the lesson with the same share token",
+      "drs": [
+        "DR-1673"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.7,
+      "estimateWithoutAiHours": 8,
+      "notes": "fail-safe route; proven to catch"
+    },
+    {
       "id": "d9-bloat-ratchets",
       "date": "2026-11-05",
       "task": "Bloat ratchets: record length and INDEX row caps from DR-1339 on, per-file line ceilings for 16 files, new files under 1,500; lesson-content move measured and dated",
@@ -1637,6 +1652,21 @@
       "notes": "The two ratchet files conflict on every landing and were resolved by hand twice the same day, which is quadratic in open branches. The resolver unions raises, re-bases our entries keeping each delta, and defers the ceiling to each guard's own down-only --generate and check so it never invents a measurement. 11 new checks on the real 2026-11-06 numbers; one expected-refusal check proved the code wrong rather than the test."
     },
     {
+      "id": "one-place-one-set-of-sections",
+      "date": "2026-11-26",
+      "task": "The new lesson screen uses the lesson's section plan and its one shared place; Read lists sections with you-are-here; Listen chapters numbered and marked",
+      "drs": [
+        "DR-1677"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1,
+      "estimateWithoutAiHours": 10,
+      "notes": "each part proven to catch"
+    },
+    {
       "id": "dr-1385-doors-stack",
       "date": "2026-11-10",
       "task": "The end-of-lesson doors stack full width at Big Print, Next first, titles wrap inside their borders; a sixth gate case",
@@ -1922,6 +1952,21 @@
       "notes": "Darrell: Do they work well together and or separately?"
     },
     {
+      "id": "new-look-every-lesson-feature",
+      "date": "2026-11-26",
+      "task": "Back goes back, Ari in the lesson screen, the classic tools and reading credit in the new look, seen/heard counts as begun, Institute portrait at every size",
+      "drs": [
+        "DR-1674"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.2,
+      "estimateWithoutAiHours": 14,
+      "notes": "feature inventory; each fix proven to catch"
+    },
+    {
       "id": "dr-1401-house-reports-itself-lesson",
       "date": "2026-11-10",
       "task": "dsi16, a Data Systems module teaching the before and after of the migration lane and the loops witness: what, where, when, how and why, four bands, verses verbatim, reality-traced gate",
@@ -2153,6 +2198,21 @@
       "wallClockHours": 0.6,
       "estimateWithoutAiHours": 10,
       "notes": "Darrell: Fix the dates; research their standards so we have a reason to have the ones we have"
+    },
+    {
+      "id": "new-look-follows-every-theme",
+      "date": "2026-11-26",
+      "task": "The new look takes its colors from the chosen theme (AA in all 12), classic tools wear the new look in the panel, Personalize keeps the page in view",
+      "drs": [
+        "DR-1679"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.9,
+      "estimateWithoutAiHours": 10,
+      "notes": "rendered in three themes; contrast gate"
     },
     {
       "id": "shell-dock-home-order-2026-11-13",
@@ -2564,6 +2624,21 @@
       "wallClockHours": 2.4,
       "estimateWithoutAiHours": 14,
       "notes": "Gmail thread 1a168bfea63e45ea, one word over the forward: Lesson. Seam chosen by measurement (sov15 and sov44 already teach two of its four tests). 49 quoted spans filled from the KJV corpus on disk, never typed. Three findings: a gate caught the lesson reciting a decision record; the suspicion guard first fired on the safeguard it protects; prettier on the whole class file reformatted the other 72 lessons (8,962 insertions for one lesson) and was redone as 180 insertions, 0 deletions."
+    },
+    {
+      "id": "learn-home-pictures-first-quick-fixes",
+      "date": "2026-11-26",
+      "task": "Learn home leads with pictures (Lessons folds closed); member quick fixes: ride form required fields, every-two-weeks bills with notes, no email in learning signals",
+      "drs": [
+        "DR-1678"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.8,
+      "estimateWithoutAiHours": 7,
+      "notes": "from the REV-0262 triage of 151 notes"
     },
     {
       "id": "dr-1424-learn-quick-link-soul",
@@ -3853,6 +3928,21 @@
       "notes": "Last per-lesson edited line removed; proven to catch."
     },
     {
+      "id": "leaders-lessons-what-they-said",
+      "date": "2026-11-26",
+      "task": "Measured the leaders' lesson history, opened the source sites, set the real-photo rule, drafted the portrait permission requests",
+      "drs": [
+        "DR-1683"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.5,
+      "estimateWithoutAiHours": 4,
+      "notes": "lesson rebuild runs in its own session"
+    },
+    {
       "id": "a-check-narrower-than-its-name",
       "date": "2026-11-13",
       "task": "Three verification instruments measured reporting on less than their names claimed, in the hours after sov76 and sov77 landed: a guard list recalled as four where CI runs forty, format-guard reporting exit 0 from a directory where the script does not exist, and a shallow clone answering ancestry questions wrongly rather than refusing them",
@@ -4183,6 +4273,21 @@
       "notes": "Reserved L330 and DR-1567 on origin with new-lesson.mjs. 278 verses filled from app/public/bible/kjv by fill-verses.mjs, none typed. The video was not reachable and not watched; the speakers' claims ride UNCHECKED as theirs, re-review 2026-12-18."
     },
     {
+      "id": "new-look-every-text-size",
+      "date": "2026-11-26",
+      "task": "A real-browser sweep of the new look at every text size; big-print titles capped and rows wrap",
+      "drs": [
+        "DR-1681"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.5,
+      "estimateWithoutAiHours": 5,
+      "notes": "24 surfaces measured"
+    },
+    {
       "id": "record-lists-open-to-their-lessons",
       "date": "2026-11-13",
       "task": "The class record's Most studied and Most opportunities lists became closed folds per course, titled, opening onto their lessons oldest first, each one tap to its lesson",
@@ -4498,6 +4603,21 @@
       "notes": "15 of the 30 most recent failed runs are this race, classified from their own logs. The refusal is now the authority; a transport fault is still red, pinned four ways."
     },
     {
+      "id": "relationships-section-reviewed",
+      "date": "2026-11-26",
+      "task": "Relationships as a section in four parts (19 to 44 lessons) by full-text measurement and judgment, with a review gate and Pictures | List",
+      "drs": [
+        "DR-1675"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.6,
+      "estimateWithoutAiHours": 8,
+      "notes": "gate proven to catch"
+    },
+    {
       "id": "a-door-lands-on-what-it-names",
       "date": "2026-11-13",
       "task": "The Love Corner hero's Watch button changed the section correctly and never moved the reader to it, so the player stayed below the fold and the button read as dead; a requested section now arrives, on all three roads",
@@ -4511,6 +4631,21 @@
       "wallClockHours": 0.8,
       "estimateWithoutAiHours": 4,
       "notes": "Traced on the live component before changing anything (DR-0061): the wiring was sound and the existing render test passed green the whole time the defect was live, because it asserts the section CHANGES, not that the reader arrives. Auditing every door rather than only the one he pressed (DR-0219) found two more roads with the same defect: a launch target's mount, which never touches the subscriber, and a handled request that was kept and replayed on the next mount. Each of the three mechanisms is proven to catch by its own named cases, and a section the viewer taps on the strip is deliberately not scrolled, so the fix cannot become the defect."
+    },
+    {
+      "id": "shares-feedback-reader-close",
+      "date": "2026-11-26",
+      "task": "New-look shares recorded with token and preview, Feedback restored on the church door, a mid-panel Close on the reader",
+      "drs": [
+        "DR-1680"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.8,
+      "estimateWithoutAiHours": 8,
+      "notes": "measured on the live database; each proven to catch"
     },
     {
       "id": "dr-1635-research-always-done",

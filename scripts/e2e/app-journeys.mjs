@@ -157,6 +157,10 @@ const JOURNEY_DEFS = {
     await t.open(page, '?view=church');
     await t.tap(page, 'button:text-is("Learn")', 'the Learn sub-tab');
     await page.locator('[data-testid="lessons-in-order"]').first().waitFor({ timeout: 20000 });
+    // The Lessons list folds closed on the Learn home so the pictures show first (DR-1678): a
+    // person opens it before choosing a lesson from it.
+    const fold = page.locator('[data-testid="lessons-in-order"] details.ls-inorder-fold:not([open]) > summary').first();
+    if (await fold.count()) await t.tap(page, '[data-testid="lessons-in-order"] details.ls-inorder-fold > summary', 'the Lessons fold');
     await t.tap(page, '[data-testid="lessons-in-order"] button.ls-card', 'the first lesson picture');
     await t.tap(page, '.ls-cover button:text-is("Read Lesson")', 'Read Lesson on its cover');
     // Read opens the lesson as a page (.le-book-title); Watch puts its title on the stage (.le-title).

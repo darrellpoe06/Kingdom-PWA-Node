@@ -107,9 +107,10 @@ describe('the message names the app the link opens', () => {
       { url: lessonUrl({ courseKey: pt.key, lessonId: 'x', course: pt, origin: ORIGIN }), courseTitle: 'Business', brand: lessonDoorFor(pt).brand }
     );
     expect(a.text).toMatch(/Living Lessons from the Word · The Love Corner/);
-    expect(a.text).toMatch(/\/lovecorner\/app\/\?/);
+    // Sent through each door's preview page (DR-1673), which refreshes into that door.
+    expect(a.text).toMatch(/\/l\/lovecorner\/\?/);
     expect(b.text).toMatch(/Business · PoeTech/);
-    expect(b.text).toMatch(/\/poetech-app\/\?/);
+    expect(b.text).toMatch(/\/l\/poetech\/\?/);
     for (const t of [a.text, b.text]) expect(t).toMatch(/open the link, no account needed/);
   });
 });

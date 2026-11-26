@@ -206,3 +206,35 @@ describe('ChurchTabStrip', () => {
     expect(container.innerHTML).toBe('');
   });
 });
+
+// DR-1680: Darrell 2026-11-26, "No longer see a feedback option!!!!!!" -- the door's bar lost More
+// (DR-1484) and the header never handed Feedback to the sheet that replaced it.
+describe('Feedback has a home on the church door', () => {
+  it('the menu sheet offers Send feedback, and it opens the feedback form', async () => {
+    const onFeedback = vi.fn();
+    mount({ onFeedback });
+    await flush();
+    act(() => q('[data-testid="lch-menu"]').dispatchEvent(new MouseEvent('click', { bubbles: true })));
+    await flush();
+    const btn = q('[data-testid="lch-feedback"]');
+    expect(btn).toBeTruthy();
+    expect(btn.textContent).toMatch(/Send feedback/);
+    act(() => btn.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+    expect(onFeedback).toHaveBeenCalledTimes(1);
+  });
+});
+
+// DR-1679: "We like stark white too... why limitations!?" -- Personalize offers the words on dark themes.
+describe('Personalize: words on dark themes', () => {
+  it('offers Soft light and Bright white; Bright white is saved and applied at once', () => {
+    try { localStorage.removeItem('poe-dark-ink'); } catch (_) { /* private mode */ }
+    act(() => root.render(createElement(PersonalizeSheet, { open: true, onClose: () => {}, theme: 'night', setTheme: () => {} })));
+    const soft = q('[data-testid="lch-ink-soft"]');
+    const white = q('[data-testid="lch-ink-white"]');
+    expect(soft.getAttribute('aria-checked')).toBe('true');
+    click(white);
+    expect(q('[data-testid="lch-ink-white"]').getAttribute('aria-checked')).toBe('true');
+    expect(localStorage.getItem('poe-dark-ink')).toBe('white');
+    expect(document.documentElement.getAttribute('data-dark-ink')).toBe('white');
+  });
+});

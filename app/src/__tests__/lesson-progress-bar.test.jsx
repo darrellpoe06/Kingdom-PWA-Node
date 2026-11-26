@@ -158,8 +158,11 @@ describe('2. the bar draws only from a real record', () => {
     render(<RowContinue place={place({ step: 2, seen: 0.38 })} title="T" onContinue={() => {}} />);
     expect(container.querySelector('[data-testid="row-continue"] [data-testid="lesson-progress-fill"]').style.width).toBe('38%');
     expect(container.querySelector('[data-testid="row-continue"]').textContent).toBe('Continue · 38% read'); // the number said once
+    // A reading measured in the new-look Experience (no step) counts as begun past 2% (DR-1674, reconciled with
+    // DR-1684 on merge): it is offered as Continue, carrying its own bar, so what he was reading is found.
     render(<RowContinue place={place({ seen: 0.5 })} title="T" onContinue={() => {}} />);
-    expect(container.querySelector('[data-testid="row-progress-only"] [data-testid="lesson-progress"]').textContent).toBe('About 50% read');
+    expect(container.querySelector('[data-testid="row-continue"]').textContent).toBe('Continue · 50% read');
+    expect(container.querySelector('[data-testid="row-continue"] [data-testid="lesson-progress-fill"]').style.width).toBe('50%');
     render(<RowContinue place={place()} title="T" onContinue={() => {}} />);
     expect(all('[data-testid="lesson-progress"]')).toHaveLength(0);
   });

@@ -119,16 +119,19 @@ describe('row -> shape mappers', () => {
 });
 
 describe('ride requests — a rider asks for a pickup', () => {
-  it('validate requires a name and a pickup area or address', () => {
-    expect(validateRideRequest({ riderName: '', pickupArea: '' }).ok).toBe(false);
-    expect(validateRideRequest({ riderName: 'Kay', pickupArea: '' }).errors.pickupArea).toBeTruthy();
-    expect(validateRideRequest({ riderName: '', pickupArea: 'Urbana' }).errors.riderName).toBeTruthy();
-    expect(validateRideRequest({ riderName: 'Kay', pickupArea: 'Urbana' }).ok).toBe(true);
-    expect(validateRideRequest({ riderName: 'Kay', pickupAddress: '12 Main St' }).ok).toBe(true);
-  });
-  it('validate rejects a passenger count below 1', () => {
-    expect(validateRideRequest({ riderName: 'Kay', pickupArea: 'Urbana', passengers: 0 }).errors.passengers).toBeTruthy();
-    expect(validateRideRequest({ riderName: 'Kay', pickupArea: 'Urbana', passengers: 3 }).ok).toBe(true);
+  it('validate requires a name, a phone, the pickup address and which van', () => {
+    // A member's note (REV-0262, DR-1678): name, phone, pickup address and the van are required.
+    const full = { riderName: 'Kay', riderPhone: '217-555-0100', pickupAddress: '12 Main St', vanChoice: 'regular' };
+    expect(validateRideRequest(full).ok).toBe(true);
+    expect(validateRideRequest({ ...full, vanChoice: 'accessible' }).ok).toBe(true);
+    expect(validateRideRequest({ ...full, riderName: '' }).errors.riderName).toBeTruthy();
+    expect(validateRideRequest({ ...full, riderPhone: '' }).errors.riderPhone).toBeTruthy();
+    expect(validateRideRequest({ ...full, riderPhone: '55' }).errors.riderPhone).toBeTruthy();
+    expect(validateRideRequest({ ...full, pickupAddress: '' }).errors.pickupAddress).toBeTruthy();
+    expect(validateRideRequest({ ...full, pickupAddress: '', pickupArea: 'Urbana' }).errors.pickupAddress).toBeTruthy();
+    expect(validateRideRequest({ ...full, vanChoice: '' }).errors.vanChoice).toBeTruthy();
+    expect(validateRideRequest({ ...full, passengers: 0 }).errors.passengers).toBeTruthy();
+    expect(validateRideRequest({ ...full, passengers: 3 }).ok).toBe(true);
   });
   it('open status covers new/acknowledged/scheduled; closed covers completed/cancelled/declined', () => {
     expect(['new', 'acknowledged', 'scheduled'].every(rideRequestOpen)).toBe(true);

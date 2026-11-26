@@ -132,7 +132,7 @@ import { recordUse, recentUsed } from '../lib/ux-signals.js';
 import { noteUse } from '../lib/usage-events.js';
 import { getPlace, getPlaceFor, listPlaces, placeInProgress, placeWhere, recordPlace, finishPlace, clearPlace, getTimeFit, recordTimeFit, refreshPlace, placeIsFinished, placeFinishes, versionsRead, PLACE_FINISHED_EVENT, readingIsFresh } from '../lib/learn-resume.js';
 import { versionRead, deckVersion, bandVersion } from '../lib/lesson-read-mark.js';
-import { studioRecord, studioMarkFor, scrollToStudioTools } from '../lib/learn-studio-bridge.js';
+import { studioRecord, studioMarkFor, scrollToStudioTools, studioSavePlace } from '../lib/learn-studio-bridge.js';
 import { fileQuizAttempt } from '../lib/quiz-attempt.js';
 import { unitLabels } from '../lib/learn-units.js';
 import { ContinueOffer, ContinueChip, RowContinue, resolvePlaces } from './LessonContinue.jsx';
@@ -6028,6 +6028,7 @@ function ChurchLearn({
       initialLessonId={deepLink && deepLink.lessonId} initialCourseKey={deepLink && deepLink.courseKey} tools={classicLearn} ctx={studioRec.ctx} places={studioRec.begun} done={studioRec.done}
       continueCount={inProgress.length} recordCount={recordHead ? recordHead.lessonsRead : 0} markFor={studioMarkFor({ places: devicePlaces, recordFor: myRecordFor, ageBand })}
       quiz={{ saves: !!recordQuiz, saved: (id) => (quizState && quizState[id]) || null, record: (k, id, r) => fileQuizAttempt({ courseKey: k, lessonId: id, result: r, recordQuiz: recordQuiz ? (mid, res) => recordQuiz(mid, res, k) : null }) }}
+      lessonToolsFor={(lesson, course) => { const k = course.key || (course.meta && course.meta.key); const lo = learnLevel && learnLevel !== 'auto' && learnLevel !== DEFAULT_AGE_BAND ? learnLevel : null; return experienceTools({ module: lesson, course: { ...course, key: k }, signedIn, ageBand, levelOverride: lo, learnLevel, setAgeBand, setLearnLevel, LevelControl: LessonLevelControl, versionCount: lessonVersionCount(lesson), savePlace: studioSavePlace({ courseKey: k, lesson, ageBand, levelOverride: lo }), quizSaved: (quizState && quizState[lesson.id]) || null, quizSaves: !!recordQuiz, onRecordQuiz: (id, r) => fileQuizAttempt({ courseKey: k, lessonId: id, result: r, recordQuiz: recordQuiz ? (mid, res) => recordQuiz(mid, res, k) : null }) }); }}
       onTool={onTool} registerOpener={(fn) => { studioOpenRef.current = fn; }} onCourse={(k) => { if (k) openCourseFromRecord(k); }} onDepartment={onDepartment} />;
   }
   return classicLearn;

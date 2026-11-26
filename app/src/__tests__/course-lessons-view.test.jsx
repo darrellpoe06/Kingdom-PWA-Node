@@ -121,3 +121,15 @@ describe('on the Learn Studio course page', () => {
     // The cold import of the whole Learn Studio tree is most of this test's time (~17 s on a loaded runner).
   }, 60000);
 });
+
+// Darrell 2026-11-26, on a course page that opened in words: "Fix learn!!! Images at the top of the page remember?"
+describe('the course page leads with its pictures', () => {
+  it('in Pictures the lessons come first, the switch and order follow; a device that chose List before opens in Pictures once', () => {
+    window.localStorage.setItem('poe-learn-course-view', 'list'); // the old key: no longer holds a device in words
+    mount();
+    const view = q('course-lessons-view');
+    expect(view.getAttribute('data-view')).toBe('pictures');
+    expect(view.firstElementChild).toBe(q('pictures'));
+    expect(q('pictures').compareDocumentPosition(q('course-view-order')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+});

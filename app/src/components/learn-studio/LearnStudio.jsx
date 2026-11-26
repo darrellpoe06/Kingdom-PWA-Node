@@ -9,7 +9,8 @@
 // Inside an opened lesson the author's COMPLETE ORIGINAL TITLE is shown in full,
 // directly under the new display title — visible text, never a tooltip.
 // =============================================================================
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useCallback, useMemo, useState, useEffect } from 'react';
+import { useHistoryValue } from '../../lib/nav-history.js';
 import {
   studioHome,
   searchPresented,
@@ -20,12 +21,14 @@ import {
   findPresentedLesson,
 } from '../../lib/learn-presentation/presentation.js';
 import { READING_VERSIONS } from '../../lib/learn-organize.js';
-import { lessonUrl } from '../../lib/lesson-links.js';
+import { lessonUrl, lessonSharePayload, lessonDoorFor, shareLink } from '../../lib/lesson-links.js';
+import { newShareToken } from '../../lib/lesson-share.js';
+import { recordLessonShare, reportShareLanded, pendingShareToken } from '../../lib/lesson-share-record.js';
 
 const versionLabel = (id) => (READING_VERSIONS.find((b) => b.id === id) || { label: id }).label;
 // A keyboard user must SEE where they are (ui-standards focus-ring). Gold, never red (red is reserved, DR-0099).
 const RING = 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2';
-import LessonsInOrder from './LessonsInOrder.jsx';
+import LessonsInOrder, { MiniThumb, Toggle, VIEWS, remembered, remember } from './LessonsInOrder.jsx';
 import { shippedSrcSet } from '../../lib/institute-studio.js';
 import { scrollToStudioTools } from '../../lib/learn-studio-bridge.js';
 import CourseLessonsView from './CourseLessonsView.jsx';
@@ -140,7 +143,7 @@ function Card({ x, onOpen }) {
   );
 }
 
-function Row({ icon = 'play', title, note, items, onOpen, onSeeAll, grid = false }) {
+function Row({ icon = 'play', title, note, items, onOpen, onSeeAll, grid = false, view = 'pictures' }) {
   if (!items || !items.length) return null;
   return (
     <section className="ls-row">
@@ -156,11 +159,28 @@ function Row({ icon = 'play', title, note, items, onOpen, onSeeAll, grid = false
           </button>
         )}
       </header>
-      <div className={grid ? 'ls-grid ts-grid-collapse' : 'ls-scroller'}>
-        {items.map((x) => (
-          <Card key={`${x.p.courseKey}::${x.p.lessonId}`} x={x} onOpen={onOpen} />
-        ))}
-      </div>
+      {view === 'list' ? (
+        // The compact rows every lesson list offers (Pictures | List, DR-1662): same picture, full title.
+        <ol className="ls-inorder-list ls-inorder-list--list">
+          {items.map((x) => (
+            <li key={`${x.p.courseKey}::${x.p.lessonId}`}>
+              <button type="button" className={`ls-inorder-row ${RING}`} onClick={() => onOpen(x)} data-testid={`row-${x.p.lessonId}`}>
+                <MiniThumb image={x.p.image} label={x.p.code || ''} />
+                <span className="ls-inorder-t">{x.p.displayTitle}</span>
+                <span className="ls-inorder-go" aria-hidden="true">
+                  ▶
+                </span>
+              </button>
+            </li>
+          ))}
+        </ol>
+      ) : (
+        <div className={grid ? 'ls-grid ts-grid-collapse' : 'ls-scroller'}>
+          {items.map((x) => (
+            <Card key={`${x.p.courseKey}::${x.p.lessonId}`} x={x} onOpen={onOpen} />
+          ))}
+        </div>
+      )}
     </section>
   );
 }
@@ -263,6 +283,8 @@ function ToolsPanel({ title, note, children }) {
   );
 }
 
+const RELATIONSHIPS_TOPIC = Object.freeze({ id: 'relationships', label: 'Relationships', departments: ['Marriage', 'Family', 'Friends', 'Forgiveness'] });
+
 function TopicGrid({ topics, covers, onPick }) {
   return (
     <section className="ls-row">
@@ -301,18 +323,34 @@ export function LessonCover({ x, next, onBack, onRead, onListen, onVersion, onOp
   // (?course=...&lesson=...), so a link shared from here opens exactly this
   // lesson for anyone, and (via ChurchLearn's deepLink -> initialLessonId)
   // lands back in this same new look for the owner's device.
+  // THE SAME SHARE AS THE CLASSIC BUTTON (DR-1680; measured 2026-11-26: lesson_shares held 0 rows,
+  // ever, while lessons were being shared from here). A fresh token rides on the link, the share is
+  // recorded (DR-0698), and the message is the lesson's own note with its title and summary; the
+  // link previews as the lesson's picture and title (DR-1673).
   const share = async () => {
-    const url = lessonUrl({ courseKey: p.courseKey, lessonId: p.lessonId, course: x.course });
-    try {
-      if (navigator.share) await navigator.share({ title: p.displayTitle, url });
-      else await navigator.clipboard.writeText(url);
+    const course = x.course;
+    const meta = (course && course.meta) || {};
+    const payload = lessonSharePayload(x.lesson || { id: p.lessonId, title: p.displayTitle }, {
+      url: lessonUrl({ courseKey: p.courseKey, lessonId: p.lessonId, course }),
+      courseTitle: meta.title || p.courseTitle || '',
+      token: newShareToken(),
+      courseKey: p.courseKey,
+      lessonId: p.lessonId,
+      brand: lessonDoorFor(course).brand,
+    });
+    const result = await shareLink(payload);
+    if (result === 'shared' || result === 'copied') {
       setShared(true);
-    } catch {
-      /* the person closed the share sheet */
+      recordLessonShare(payload, result);
     }
   };
+  // A shared link that opened this lesson reports it on screen (the open's record, DR-0698): the
+  // classic watch looks for the classic card, which the new look never draws.
+  useEffect(() => {
+    if (pendingShareToken()) reportShareLanded({ ok: true });
+  }, []);
   return (
-    <article className="ls-cover">
+    <article className="ls-cover" id={`learn-lesson-${p.lessonId}`}>
       <button type="button" className={`ls-back ${RING}`} onClick={onBack}>
         ‹ Back to Learn
       </button>
@@ -429,6 +467,28 @@ export default function LearnStudio({
   // existing Art fallback), so nothing new is generated and nothing is hidden.
   const [courseKey, setCourseKey] = useState(null);
   const [allCoursesTick, setAllCoursesTick] = useState(0);
+  const [relView, setRelViewState] = useState(() =>
+    remembered(
+      'relationship-view',
+      'pictures',
+      VIEWS.map((o) => o.key)
+    )
+  );
+  const setRelView = (v) => {
+    setRelViewState(v);
+    remember('relationship-view', v);
+  };
+  // THE PHONE'S BACK GOES TO THE LAST PAGE (Darrell 2026-11-26: "Back button should go to the last
+  // page the user was on!!!" -- "Not close the app or start over"). A course page, a shelf and a
+  // lesson's cover each take one history step when they open, so Back closes the one on top and
+  // lands where the reader was; their own Back to Learn gives the step back (useHistoryValue,
+  // the primitive the classic lesson space has used since DR-0262).
+  useHistoryValue(courseKey, setCourseKey, { base: null, key: 'ls-course' });
+  useHistoryValue(shelf, setShelf, { base: null, key: 'ls-shelf' });
+  const closeCover = useCallback((v) => {
+    if (v == null) setOpen(null);
+  }, []);
+  useHistoryValue(open ? (open.p && open.p.lessonId) || 'cover' : null, closeCover, { base: null, key: 'ls-cover' });
   useEffect(() => {
     if (!allCoursesTick) return;
     const el = typeof document !== 'undefined' && document.querySelector('[data-testid="ls-courses"]');
@@ -522,11 +582,30 @@ export default function LearnStudio({
     <CoversContext.Provider value={topicCovers}>
       <PlaceLookupContext.Provider value={findPlace}>
         <div className="ls-root">
-          {/* PICTURES AT THE TOP (Darrell 2026-11-26, circling the search box, the course picker and
-              the list on his phone: "We have pictures. Why are we showing words all the time? More
-              images at the top of the app."). On the home the featured carousel leads, then the
-              lessons themselves as pictures (DR-1661's lessons-first, kept, in pictures). DR-1686. */}
-          {!query.trim() && !pickedCourse && !pickedShelf && <Hero slides={heroSlides} onOpen={openLesson} onListen={listen} />}
+          {/* WE SEE OURSELVES FIRST (Darrell 2026-11-26: "Best start with seeing ourselves!!!"): on the
+            Learn home the pictures lead, then Relationships and what you were reading; search and the Lessons
+            list follow. */}
+          {!query.trim() && !pickedCourse && !pickedShelf && (
+            <div data-testid="ls-home-lead">
+              <Hero slides={heroSlides} onOpen={openLesson} onListen={listen} />
+              {/* RELATIONSHIPS, IN ONE PLACE (Darrell 2026-11-26: "my wife says ladies will want those most"). */}
+              <div data-testid="ls-relationships">
+                <Row
+                  icon="star"
+                  title="Relationships"
+                  note="Marriage, love, family and friendship"
+                  items={home.relationships}
+                  onOpen={openLesson}
+                  onSeeAll={() => setShelf('relationships')}
+                />
+              </div>
+              <Row icon="play" title="Continue Learning" items={home.continueLearning} onOpen={openLesson} />
+              {/* DR-1684 (Darrell 2026-11-26): "so we can pick the ones we are closest to finishing". */}
+              <div data-testid="ls-closest">
+                <Row icon="play" title="Closest to Finished" note="Started, furthest along first" items={home.closestToFinished} onOpen={openLesson} />
+              </div>
+            </div>
+          )}
           <div className="ls-top">
             <label className="ls-search">
               <span className="ls-search-ico" aria-hidden="true" />
@@ -616,11 +695,23 @@ export default function LearnStudio({
               <button type="button" className={`ls-back ${RING}`} onClick={() => setShelf(null)}>
                 ‹ Back to Learn
               </button>
-              <Row title={pickedShelf.label} items={pickedShelf.items} onOpen={openLesson} grid />
+              {pickedShelf.id === 'relationships' && home.relationshipGroups && home.relationshipGroups.length ? (
+                // Relationships is a section of its own, in four parts (DR-1675).
+                <div data-testid="ls-relationship-sections">
+                  <h2 className="ls-section-title">Relationships · {pickedShelf.items.length} lessons</h2>
+                  <Toggle label="View" options={VIEWS} value={relView} onChange={setRelView} testid="ls-relationship-view" />
+                  {home.relationshipGroups.map((g) => (
+                    <Row key={g.id} title={`${g.label} · ${g.items.length}`} items={g.items} onOpen={openLesson} grid view={relView} />
+                  ))}
+                </div>
+              ) : (
+                <Row title={pickedShelf.label} items={pickedShelf.items} onOpen={openLesson} grid />
+              )}
             </>
           ) : (
             <>
               <LessonsInOrder
+                foldable
                 courses={courses}
                 index={index}
                 preview={preview}
@@ -636,27 +727,21 @@ export default function LearnStudio({
                   </div>
                 )}
               />
-              {/* The picture shelves next, then the words (your record, the course list) below them (DR-1686). */}
-              <Row icon="play" title="Continue Learning" items={home.continueLearning} onOpen={openLesson} />
-              {/* DR-1684 (Darrell 2026-11-26): "so we can pick the ones we are closest to finishing". */}
-              <div data-testid="ls-closest">
-                <Row icon="play" title="Closest to Finished" note="Started, furthest along first" items={home.closestToFinished} onOpen={openLesson} />
-              </div>
-              {/* RELATIONSHIPS, IN ONE PLACE (Darrell 2026-11-26: "my wife says ladies will want those most"). */}
-              <div data-testid="ls-relationships">
-                <Row
-                  icon="star"
-                  title="Relationships"
-                  note="Marriage, love, family and friendship"
-                  items={home.relationships}
-                  onOpen={openLesson}
-                  onSeeAll={() => setShelf('relationships')}
-                />
-              </div>
               <Row icon="star" title="Discover Something New" note="Hand-picked lessons" items={home.discover} onOpen={openLesson} />
               <Row icon="play" title="Recently Added" items={home.recentlyAdded} onOpen={openLesson} />
+              {/* The picture shelves first, then the words (your record, the course list) below them (DR-1686). */}
               {dashboard}
-              <TopicGrid topics={SHELVES} covers={topicCovers} onPick={(t) => setShelf(t.id)} />
+              {/* Relationships is a topic of its own, first in the grid (DR-1675; Darrell 2026-11-26: "Should
+                say relationships as an option"), wearing one of its own lessons' approved covers. */}
+              <TopicGrid
+                topics={home.relationships && home.relationships.length ? [RELATIONSHIPS_TOPIC, ...SHELVES] : SHELVES}
+                covers={
+                  home.relationships && home.relationships[0] && home.relationships[0].p.image
+                    ? { ...topicCovers, relationships: { image: home.relationships[0].p.image, alt: home.relationships[0].p.displayTitle } }
+                    : topicCovers
+                }
+                onPick={(t) => setShelf(t.id)}
+              />
               {home.shelves.map((s) => (
                 <Row key={s.id} title={s.label} items={s.items} onOpen={openLesson} onSeeAll={() => setShelf(s.id)} />
               ))}

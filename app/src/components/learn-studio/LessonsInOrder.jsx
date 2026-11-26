@@ -138,6 +138,7 @@ export default function LessonsInOrder({
   onVersion = null,
   order: orderProp = null,
   listTestId = null,
+  foldable = false, // the Learn home: the list folds under its heading, closed, so the pictures lead
   renderPictures = null, // (rows, { grid }) => the full-image cards; without it the list is the only look
   onlyIds = null, // a Set: show only these lessons (a part of the course chosen above)
   onListen = null, // (x) => play the lesson aloud (the classic ▶ Play)
@@ -264,14 +265,16 @@ export default function LessonsInOrder({
       )}
     </>
   );
-  return (
-    <section className="ls-inorder" aria-labelledby="ls-inorder-h" data-testid="lessons-in-order">
-      <header className="ls-inorder-head">
-        <h2 id="ls-inorder-h">{fixedCourse ? titleOf(course) : 'Lessons'}</h2>
-        <span className="ls-note">
-          {ordered.length} lessons{readHere ? ` · ${readHere} read` : ''}
-        </span>
-      </header>
+  const headKids = (
+    <>
+      <h2 id="ls-inorder-h">{fixedCourse ? titleOf(course) : 'Lessons'}</h2>
+      <span className="ls-note">
+        {ordered.length} lessons{readHere ? ` · ${readHere} read` : ''}
+      </span>
+    </>
+  );
+  const body = (
+    <>
       {!picturesFirst && controls}
       {!rows.length && (
         <p className="ls-empty" role="status" data-testid="inorder-none">
@@ -359,6 +362,26 @@ export default function LessonsInOrder({
         </div>
       )}
       {picturesFirst && controls}
+    </>
+  );
+  return (
+    <section className="ls-inorder" aria-labelledby="ls-inorder-h" data-testid="lessons-in-order">
+      {foldable ? (
+        // THE PICTURES COME FIRST (Darrell 2026-11-26, on the Learn home: "start with the images... should
+        // be maybe a drop down defaulting closed... so the images below are showing initially"). The whole
+        // list, its picks and its toggles, one tap away under its own heading.
+        <details className="ls-inorder-fold" data-testid="lessons-in-order-fold">
+          <summary className={`ls-inorder-head ls-inorder-summary ${RING}`} data-testid="lessons-in-order-toggle">
+            {headKids}
+          </summary>
+          {body}
+        </details>
+      ) : (
+        <>
+          <header className="ls-inorder-head">{headKids}</header>
+          {body}
+        </>
+      )}
     </section>
   );
 }
