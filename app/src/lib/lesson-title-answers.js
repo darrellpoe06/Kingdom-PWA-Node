@@ -19,8 +19,9 @@
 //                               each of its own ALL-CAPS section leads so they
 //                               read as headings; no word changes);
 //   an example (optional)       one short worked example in the lesson's terms;
-//   BACK TO THE QUESTION.       the answer landed, so the last thing read is
-//                               the payoff.
+//   the lesson's stories        untouched, in their order;
+//   BACK TO THE QUESTION.       the answer landed AFTER the stories, so the
+//                               last thing read is the payoff (titleClosing).
 //
 // The teen and senior versions get their own opening and closing sentence in
 // their own register. Additions draw only on what the lesson teaches and the
@@ -75,7 +76,13 @@ export function breakAtLeads(text) {
 
 const join = (...parts) => parts.filter((p) => own(p)).join('\n\n');
 
-/** One lesson row with its title answered, or the row unchanged. */
+/**
+ * One lesson row with its title answered, or the row unchanged. The opening
+ * (and any example) join the reading itself; the closing is held apart on
+ * `titleClosing`, keyed by the version it belongs to ('adult' for the top-level
+ * `lesson`, else the band key), because it is read AFTER the lesson's stories:
+ * the last thing read is the payoff (Darrell: "I just needed to feel full").
+ */
 export function withTitleAnswer(m, entry) {
   if (!m || !entry || entry.verdict === 'ANSWERS-CLEARLY' || !own(entry.close)) return m;
   const levels = m.levels && typeof m.levels === 'object' ? m.levels : null;
@@ -83,18 +90,41 @@ export function withTitleAnswer(m, entry) {
   if (!adultKey) return m;
   const adultText = adultKey === 'lesson' ? m.lesson : levels[adultKey];
   if (adultText.startsWith(TITLE_LEAD)) return m; // the author wrote it into the lesson itself
-  const adult = join(entry.open, breakAtLeads(adultText), entry.example, entry.close);
+  const adult = join(entry.open, breakAtLeads(adultText), entry.example);
+  const titleClosing = { [adultKey === 'lesson' ? 'adult' : adultKey]: entry.close };
   let nextLevels = levels;
   if (levels) {
     nextLevels = { ...levels };
     for (const band of ['teen', 'senior']) {
       if (band === adultKey || !own(levels[band]) || !entry[band]) continue;
-      if (levels[band].startsWith(entry[band].open || '\u0000')) continue;
-      nextLevels[band] = join(entry[band].open, levels[band], entry[band].close);
+      nextLevels[band] = join(entry[band].open, levels[band]);
+      if (own(entry[band].close)) titleClosing[band] = entry[band].close;
     }
     if (adultKey !== 'lesson') nextLevels[adultKey] = adult;
   }
-  return { ...m, ...(adultKey === 'lesson' ? { lesson: adult } : {}), ...(nextLevels ? { levels: nextLevels } : {}) };
+  return { ...m, ...(adultKey === 'lesson' ? { lesson: adult } : {}), ...(nextLevels ? { levels: nextLevels } : {}), titleClosing };
+}
+
+/**
+ * Which version a reading is drawn from: 'adult' (the top-level `lesson`) or a
+ * band key. `level` is the band asked for ('adult' or a band key); it mirrors
+ * the reader's own choice (LessonExperience textFor; learn-framework
+ * resolveForAge): the band's own text, else the adult lesson, else the
+ * richest band the lesson carries.
+ */
+export function readingKeyFor(m, level) {
+  if (!m) return null;
+  const levels = m.levels && typeof m.levels === 'object' ? m.levels : {};
+  if (level && level !== 'adult' && own(levels[level])) return level;
+  if (own(m.lesson)) return 'adult';
+  return ADULT_FALLBACK.find((k) => own(levels[k])) || null;
+}
+
+/** The closing read after the stories for this version, or ''. */
+export function titleClosingFor(m, level) {
+  const c = m && m.titleClosing;
+  if (!c) return '';
+  return own(c[readingKeyFor(m, level)]) || '';
 }
 
 /** Every mounted course, each lesson answering its title. */

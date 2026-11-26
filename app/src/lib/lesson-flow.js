@@ -43,6 +43,7 @@
 // than shown empty; every word of the authored lesson survives (the chunking lives
 // in learn-framework). Claims are derived from real fields, not painted.
 // =============================================================================
+import { titleClosingFor } from './lesson-title-answers.js';
 import { segmentsWithoutTalkTail } from './talk-together.js';
 import { lessonPlanForAge, resolveForAge, DEFAULT_AGE_BAND } from './learn-framework.js';
 import { storyHeading, storyFootnote } from './story-truth.js';
@@ -280,6 +281,7 @@ export function readAloudTextFromArc(arc, { includeTalk = false } = {}) {
         if (s.verse) parts.push(s.verse);
         parts.push(storyFootnote(s)); // DR-0811: the spoken flow says what the story is, too
       }
+      if (a.titleClosing) parts.push(a.titleClosing); // DR-1687: the answer is the last thing heard
     } else if (seg.kind === 'engage') {
       if ((a.prompts || []).length) parts.push('Questions to think about:', ...a.prompts);
     } else if (seg.kind === 'apply') {
@@ -440,7 +442,8 @@ export function buildLessonArc(module, opts = {}) {
       hasContent: !!(intro.text || anchor.ref),
     },
     teach: {
-      audience: { lessonPlan, stories, hasMedia, hasHardware, hasRpe },
+      // The title's answer, read after the stories (DR-1687).
+      audience: { lessonPlan, stories, titleClosing: titleClosingFor(m, lessonPlan && lessonPlan.levelId), hasMedia, hasHardware, hasRpe },
       facilitator: { say: talking, do: facDo('teach') },
       hasContent: lessonSegs.length > 0 || stories.length > 0 || talking.length > 0 || hasMedia || hasHardware,
     },
