@@ -156,7 +156,7 @@ const JOURNEY_DEFS = {
   async 'learn-by-taps'(page, t) {
     await t.open(page, '?view=church');
     await t.tap(page, 'button:text-is("Learn")', 'the Learn sub-tab');
-    // The Learning Zone opens on its discovery front door (DR-1677); "Browse All Lessons" is the way into the existing Learn.
+    // The Learning Zone opens on its discovery front door (DR-1699); "Browse All Lessons" is the way into the existing Learn.
     await t.tap(page, '[data-testid="learn-discover"] button:text-is("Browse All Lessons")', 'Browse All Lessons on the Learning Zone front door');
     await page.locator('[data-testid="lessons-in-order"]').first().waitFor({ timeout: 20000 });
     await t.tap(page, '[data-testid="lessons-in-order"] button.ls-card', 'the first lesson picture');

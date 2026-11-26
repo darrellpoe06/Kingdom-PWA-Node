@@ -1,4 +1,4 @@
-# DR-1677: The Learning Zone discovery landing page
+# DR-1699: The Learning Zone discovery landing page
 
 **Date:** 2026-11-26
 **Status:** Proposed (built and verified on `preview/learn-discover`; not wired, not merged, not deployed; release needs Darrell's final approval and the homepage owner's review)
