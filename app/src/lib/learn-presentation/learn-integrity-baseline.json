@@ -1,5 +1,5 @@
 {
- "measuredAt": "2026-11-26T15:46:10.736Z",
+ "measuredAt": "2026-11-26T15:50:38.647Z",
  "counts": {
   "departments": 13,
   "courses": 51,
@@ -471,13 +471,13 @@
    "department": "A.I. The Way",
    "position": 4,
    "title": "A.I. for school — honestly",
-   "contentSha": "b35205850c944daa14366ae9a81bc96a0dcbc7c61973554980943a8c92b9ecb4",
+   "contentSha": "f0c6061ad2b2dab57ed7c41bab049ccddecd339500ededd03c7c0da675ace21b",
    "versions": {
-    "child": "735136fcaf68416891779b29de8136df93587f179a0945b2e99b8c8df81ffe1f",
-    "youth": "a961e3734065c0cf9b75f267ef538663ee7bc1f26a002eaf5d7da055fa3c3cb4",
-    "teen": "a55b55c02134184200dc3b922fcba7272906a1aad947e00cfaaa35dcafae8f01",
-    "adult": "4b8e9f40eed64293aa3e587ae190d7ae9fed8d7927dd3986f31ccaf6a040e1bc",
-    "senior": "c6d155f9a79d6c8ac54c06db1b08cef3bbfdafbba2a4e19e28667fa6a5300425"
+    "child": "716a746f13834a57e747c1d6caa9a4394832e81b7191af7dfeb56ece8c748602",
+    "youth": "bae9571231ea48b1d5c4db56d261e0958fd7e0eccec23a4550b94cbd751c1516",
+    "teen": "8172f9eccf19a685f5080d74b9dd844355105c219719853c5ed75986326cef74",
+    "adult": "31eb695ae608d5db802eddd67abd6cac979b72fa26f32dc9d5f465e119c1e380",
+    "senior": "35fed258d9a77a30311e3c14ea827ecca674fe64eb6fc0a0e6548d4c12576cc3"
    }
   },
   {
