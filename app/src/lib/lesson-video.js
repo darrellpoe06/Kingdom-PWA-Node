@@ -4,7 +4,7 @@
 // Darrell 2026-11-12: the self-paced course, "without any teacher under paid
 // PoeTech ... have a video of each section and walk through the sections".
 // A lesson module may carry a `video` field:
-//   video: { url, title?, seconds? }   — a YouTube link or a same-origin file
+//   video: { url, title?, seconds?, label? } — a YouTube link or a same-origin file
 //                                        (/media/..., served by the NAS through
 //                                        the app's own transport, DR-0083)
 // Nothing here paints a player where there is no recording: a lesson without
@@ -29,11 +29,14 @@ export function lessonVideo(lesson) {
   const url = asStr(v && v.url);
   const title = asStr(v && v.title) || asStr(lesson && lesson.title);
   const seconds = Number.isFinite(v && v.seconds) ? v.seconds : null;
+  // What the recording IS, said honestly: a lesson's own walk-through, or (a
+  // Prophetic Voices lesson) the teacher's own message in his own voice.
+  const label = asStr(v && v.label) || 'Walk-through';
   if (!url) return { kind: 'none', title, seconds: null };
   const yt = youtubeEmbedUrl(url);
-  if (yt) return { kind: 'youtube', embedUrl: yt, title, seconds };
+  if (yt) return { kind: 'youtube', embedUrl: yt, title, seconds, label };
   const file = sameOriginMedia(url);
-  if (file) return { kind: 'file', src: file, title, seconds };
+  if (file) return { kind: 'file', src: file, title, seconds, label };
   return { kind: 'none', title, seconds: null, rejected: url };
 }
 

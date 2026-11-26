@@ -34,6 +34,7 @@ import { storiesTextFor, HIGHLIGHT_KEY, HIGHLIGHT_PENS, nextPen, readHighlights,
 
 export { storiesTextFor, HIGHLIGHT_KEY, HIGHLIGHT_PENS, nextPen, readHighlights };
 import LessonFigures from '../LessonFigures.jsx';
+import LessonVideo from '../LessonVideo.jsx'; // the lesson's recording, the same player as the classic page
 import StudyQuiz from './StudyQuiz.jsx';
 import { ExperienceToolsContext, resumable, pacedFraction, VoiceNote, useCaptionPlace, CaptionPlaceChip, PresentChip } from './LessonExperienceTools.jsx';
 import './lesson-experience.css';
@@ -125,6 +126,7 @@ export function LessonConversation({ lesson, level: levelProp }) {
   if (young) {
     return (
       <section className="le-conversation" aria-label="Stories" data-read-skip="" data-young="true">
+        <LessonVideo lesson={lesson} />
         <LessonFigures module={lesson} />
         <h2 className="le-conversation-title">Stories</h2>
         <p className="le-conversation-sub">The stories this lesson teaches. Posts from others are for grown-ups.</p>
@@ -134,6 +136,7 @@ export function LessonConversation({ lesson, level: levelProp }) {
   }
   return (
     <section className="le-conversation" aria-label="Stories and perspectives" data-read-skip="">
+      <LessonVideo lesson={lesson} />
       <LessonFigures module={lesson} />
       {openFullPage && (
         <button type="button" className={`le-fullpage ${RING}`} onClick={openFullPage}>
