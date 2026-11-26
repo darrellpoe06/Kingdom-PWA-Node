@@ -14,6 +14,7 @@ import { ordersForCourse } from './LessonsInOrder.jsx';
 import { wantsSections, sectionLessons, divisionOf, LESSON_DIVISIONS } from '../../lib/lesson-sections.js';
 import { courseCompleteness, completenessLine } from '../../lib/lesson-completeness.js';
 import { recentUsed } from '../../lib/ux-signals.js';
+import { LessonProgressFor } from '../LessonProgressBar.jsx';
 
 const RING = 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2';
 export const COURSE_VIEW_KEY = 'poe-learn-course-view';
@@ -136,7 +137,10 @@ export default function CourseLessonsView({ title, items, onOpen, renderPictures
           <div className="ls-mini-list">
             {recent.map((x) => (
               <button key={x.lesson.id} type="button" className={`ls-inorder-row ${RING}`} onClick={() => (onResume || onOpen)(x)}>
-                <span className="ls-inorder-t">{titleOf(x)}</span>
+                <span className="ls-inorder-t">
+                  {titleOf(x)}
+                  <LessonProgressFor courseKey={x.p && x.p.courseKey} lessonId={x.lesson.id} look="studio" className="ls-progress--inline" />
+                </span>
                 <span className="ls-inorder-go" aria-hidden="true">
                   ▶
                 </span>
@@ -191,7 +195,10 @@ export default function CourseLessonsView({ title, items, onOpen, renderPictures
                 <li key={x.lesson.id}>
                   <button type="button" className={`ls-inorder-row ${RING}`} onClick={() => onOpen(x)} data-testid={`course-row-${x.lesson.id}`}>
                     <span className="ls-inorder-n">{x.n}</span>
-                    <span className="ls-inorder-t">{titleOf(x)}</span>
+                    <span className="ls-inorder-t">
+                      {titleOf(x)}
+                      <LessonProgressFor courseKey={x.p && x.p.courseKey} lessonId={x.lesson.id} look="studio" className="ls-progress--inline" />
+                    </span>
                     <span className="ls-inorder-go" aria-hidden="true">
                       ▶
                     </span>

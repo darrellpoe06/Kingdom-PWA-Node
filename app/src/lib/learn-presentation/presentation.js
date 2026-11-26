@@ -22,6 +22,7 @@
 import seed from './presentation-seed.json';
 import { courseDepartment, departmentCode, lessonVersions } from '../learn-organize.js';
 import { placeReached } from '../learn-resume.js';
+import { closestToFinished } from '../lesson-progress.js';
 import { lessonDuration, spokenMinutes, formatDuration } from '../course-duration.js';
 
 /**
@@ -267,7 +268,7 @@ export function interimHeadline(p) {
 }
 
 /** The home page, derived from the mounted catalog, the device's places and the record index. */
-export function studioHome(courses, index, { places = [], progress = {}, preview = false } = {}) {
+export function studioHome(courses, index, { places = [], allPlaces = null, progress = {}, preview = false } = {}) {
   const lessons = allLessons(courses).map(({ lesson, course }) => ({ lesson, course, p: presentLesson(lesson, course, index, { preview, lite: true }) }));
   const presented = lessons.filter((x) => x.p.hasPresentation).map((x) => full(x, index, preview));
   const byId = new Map(lessons.map((x) => [`${x.p.courseKey}::${x.p.lessonId}`, x]));
@@ -277,6 +278,16 @@ export function studioHome(courses, index, { places = [], progress = {}, preview
     .map((pl) => {
       const x = byId.get(`${pl.courseKey}::${pl.lessonId}`);
       return x ? { ...full(x, index, preview), reached: placeReached(pl) } : null;
+    })
+    .filter(Boolean)
+    .slice(0, 12);
+  // CLOSEST TO FINISHED (DR-1684): every lesson begun and measured, short of
+  // the end, furthest along first -- from every saved place, not only the
+  // ones with a step to continue, so a lesson read in the Experience counts.
+  const closest = closestToFinished(Array.isArray(allPlaces) ? allPlaces : places)
+    .map(({ place, progress: pr }) => {
+      const x = byId.get(`${place.courseKey}::${place.lessonId}`);
+      return x ? { ...full(x, index, preview), reached: pr.fraction } : null;
     })
     .filter(Boolean)
     .slice(0, 12);
@@ -299,6 +310,7 @@ export function studioHome(courses, index, { places = [], progress = {}, preview
     featured,
     featuredAll,
     continueLearning,
+    closestToFinished: closest,
     // No engagement data is mounted in Learn, so no "Trending" row is offered
     // (spec §7: never fabricate popularity). This row is labeled for what it is.
     discover: presented.filter((x) => !x.p.featured).slice(0, 12),
