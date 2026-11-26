@@ -242,7 +242,9 @@ describe('the course door shows the time, before the decision', () => {
 
   it('shows a per-lesson figure derived from the same total', () => {
     mount();
-    const d = courseDuration(LIVING_LESSONS_MODULES, { ageBand: 'adult' });
+    // The lessons as read, the same pipeline as above (the title answers add spoken words, DR-1687).
+    const asRead = withSideStories(withWordQuotes(withTitleAnswers([{ key: 'living-lessons', schedule: LIVING_LESSONS_MODULES }])))[0].schedule;
+    const d = courseDuration(asRead, { ageBand: 'adult' });
     expect(flat(panel('course-duration')))
       .toContain(formatDuration(d.listen[0].minutes / d.lessons));
   });
