@@ -36,8 +36,14 @@ const SKIP_KEYS = new Set(['id', 'quiz', 'levels', 'media', 'voices', 'sources',
 function bodyText(m) {
   const out = [];
   const walk = (v, key) => {
-    if (typeof v === 'string') { out.push(v); return; }
-    if (Array.isArray(v)) { v.forEach((x) => walk(x, key)); return; }
+    if (typeof v === 'string') {
+      out.push(v);
+      return;
+    }
+    if (Array.isArray(v)) {
+      v.forEach((x) => walk(x, key));
+      return;
+    }
     if (v && typeof v === 'object') for (const [k, x] of Object.entries(v)) if (!SKIP_KEYS.has(k)) walk(x, k);
   };
   walk(m, '');
@@ -45,7 +51,12 @@ function bodyText(m) {
   return out.join(' ');
 }
 
-const cut = (s, n) => { const t = String(s || '').replace(/\s+/g, ' ').trim(); return t.length > n ? `${t.slice(0, n - 1).trimEnd()}…` : t; };
+const cut = (s, n) => {
+  const t = String(s || '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return t.length > n ? `${t.slice(0, n - 1).trimEnd()}…` : t;
+};
 
 export function buildIndex() {
   const inv = learnInventory();
@@ -101,7 +112,14 @@ export function buildIndex() {
     schema: 'learn-discover-index/1',
     note: 'Derived by scripts/derive-learn-discover-index.mjs from the mounted catalog. Never hand-edit; run the script.',
     counts: { courses: inv.length, lessons: lessons.length, departments: depts.size },
-    courses: inv.map((c) => ({ k: c.key, t: String((c.meta && c.meta.title) || c.key), d: c.department, p: plainWordsFor(c.key), n: c.lessons.length, deep: c.source === 'eternal-algorithms' ? 1 : 0 })),
+    courses: inv.map((c) => ({
+      k: c.key,
+      t: String((c.meta && c.meta.title) || c.key),
+      d: c.department,
+      p: plainWordsFor(c.key),
+      n: c.lessons.length,
+      deep: c.source === 'eternal-algorithms' ? 1 : 0,
+    })),
     lessons,
   };
 }
@@ -109,10 +127,15 @@ export function buildIndex() {
 const next = `${JSON.stringify(buildIndex())}\n`;
 if (CHECK) {
   const have = existsSync(OUT) ? readFileSync(OUT, 'utf8') : '';
-  if (have !== next) { console.error('learn-discover-index.json is out of date. Run: cd app && npx vite-node ../scripts/derive-learn-discover-index.mjs'); process.exit(1); }
+  if (have !== next) {
+    console.error('learn-discover-index.json is out of date. Run: cd app && npx vite-node ../scripts/derive-learn-discover-index.mjs');
+    process.exit(1);
+  }
   console.log('learn-discover-index.json is current.');
 } else {
   writeFileSync(OUT, next);
   const j = JSON.parse(next);
-  console.log(`wrote ${OUT}: ${j.counts.lessons} lessons, ${j.counts.courses} courses, ${j.counts.departments} departments, ${(next.length / 1e6).toFixed(2)} MB`);
+  console.log(
+    `wrote ${OUT}: ${j.counts.lessons} lessons, ${j.counts.courses} courses, ${j.counts.departments} departments, ${(next.length / 1e6).toFixed(2)} MB`
+  );
 }

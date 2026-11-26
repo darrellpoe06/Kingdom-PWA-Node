@@ -36,12 +36,15 @@ export function newestRows(P, dates, limit = 12) {
 
 /** Lessons the presentation records mark `featured`, in their own order. */
 export function featuredRows(P, records, limit = 8) {
-  const feat = (records || []).filter((r) => r && r.featured && P.byId.has(r.lessonId))
+  const feat = (records || [])
+    .filter((r) => r && r.featured && P.byId.has(r.lessonId))
     .sort((a, b) => (Number(a.featuredOrder) || 99) - (Number(b.featuredOrder) || 99));
   return feat.slice(0, limit).map((r) => ({ row: P.byId.get(r.lessonId).raw, course: P.byId.get(r.lessonId).course }));
 }
 
 /** The Relationships shelf Learn Studio already carries, resolved against the index. */
 export function relationshipRows(P) {
-  return RELATIONSHIP_LESSONS.map((id) => P.byId.get(id)).filter(Boolean).map((L) => ({ row: L.raw, course: L.course }));
+  return RELATIONSHIP_LESSONS.map((id) => P.byId.get(id))
+    .filter(Boolean)
+    .map((L) => ({ row: L.raw, course: L.course }));
 }

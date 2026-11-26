@@ -39,7 +39,10 @@ const PRESENT = '[data-testid="ls-hero"], [data-testid="ls-courses"], [data-test
  * @param opts.openLearn  opens the Learn tab (the shell's setChurchView('learn'))
  * @returns a cancel function (stop looking for Learn Studio's controls)
  */
-export function openLearnArea(area, { openLearn, doc = typeof document !== 'undefined' ? document : null, tries = 40, every = 100, setTimer = setTimeout, clearTimer = clearTimeout } = {}) {
+export function openLearnArea(
+  area,
+  { openLearn, doc = typeof document !== 'undefined' ? document : null, tries = 40, every = 100, setTimer = setTimeout, clearTimer = clearTimeout } = {}
+) {
   const route = AREA_ROUTES[area];
   if (typeof openLearn === 'function') {
     if (route) setLearnAreaHint(route.hint);
@@ -65,5 +68,8 @@ export function openLearnArea(area, { openLearn, doc = typeof document !== 'unde
     if (n < tries && !doc.querySelector('[data-testid="learn-areas"]')) timer = setTimer(step, every);
   };
   timer = setTimer(step, 0);
-  return () => { stopped = true; if (timer) clearTimer(timer); };
+  return () => {
+    stopped = true;
+    if (timer) clearTimer(timer);
+  };
 }

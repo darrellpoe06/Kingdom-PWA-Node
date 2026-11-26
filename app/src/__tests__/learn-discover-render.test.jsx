@@ -32,8 +32,12 @@ async function mount(props = {}) {
   host = document.createElement('div');
   document.body.appendChild(host);
   root = createRoot(host);
-  await act(async () => { root.render(createElement(LearnDiscover, { getBook, places: [], now: new Date(2026, 10, 26), ...props })); });
-  await act(async () => { await Promise.resolve(); });
+  await act(async () => {
+    root.render(createElement(LearnDiscover, { getBook, places: [], now: new Date(2026, 10, 26), ...props }));
+  });
+  await act(async () => {
+    await Promise.resolve();
+  });
   return host;
 }
 const $ = (sel) => host.querySelector(sel);
@@ -41,8 +45,13 @@ const $$ = (sel) => [...host.querySelectorAll(sel)];
 async function type(value) {
   const input = $('#ld-q');
   const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
-  await act(async () => { set.call(input, value); input.dispatchEvent(new Event('input', { bubbles: true })); });
-  await act(async () => { await Promise.resolve(); });
+  await act(async () => {
+    set.call(input, value);
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  await act(async () => {
+    await Promise.resolve();
+  });
 }
 
 describe('the front door', () => {
@@ -59,7 +68,9 @@ describe('the front door', () => {
     await mount({ onBrowseAll });
     const buttons = $$('button').filter((b) => b.textContent === 'Browse All Lessons');
     expect(buttons.length).toBe(2);
-    await act(async () => { buttons[0].click(); });
+    await act(async () => {
+      buttons[0].click();
+    });
     expect(onBrowseAll).toHaveBeenCalledTimes(1);
   });
 
@@ -70,7 +81,9 @@ describe('the front door', () => {
     for (const [id, label] of Object.entries(want)) {
       const b = $(`[data-testid=ld-access-${id}]`);
       expect(b.textContent).toContain(label);
-      await act(async () => { b.click(); });
+      await act(async () => {
+        b.click();
+      });
     }
     expect(onOpenArea.mock.calls.map((c) => c[0])).toEqual(['lessons', 'browse', 'record', 'tools', 'downloads']);
   });
@@ -89,7 +102,9 @@ describe('Continue Learning is real saved progress', () => {
     const card = $('[data-testid=ld-continue] [data-testid=ld-lesson-card]');
     expect(card.getAttribute('data-lesson')).toBe(L.i);
     expect(card.querySelector('.ld-bar2 i').style.width).toBe('50%');
-    await act(async () => { card.click(); });
+    await act(async () => {
+      card.click();
+    });
     expect(onOpenLesson).toHaveBeenCalledWith(course, L.i);
   });
   it('ignores a saved place for a lesson that is not in the curriculum', async () => {
@@ -111,14 +126,20 @@ describe('search shows the promotional title and keeps the original', () => {
     const L = INDEX.lessons.find((l) => l.i === r.getAttribute('data-lesson'));
     expect(r.querySelector('.ld-res-t').textContent).toBe(L.p);
     expect(r.querySelector('.ld-res-o').textContent).toBe(L.t);
-    await act(async () => { r.click(); });
+    await act(async () => {
+      r.click();
+    });
     expect(onOpenLesson).toHaveBeenCalledWith(INDEX.courses[L.c].k, L.i);
   });
   it('hides the shelf rows while results show, and restores them on Clear', async () => {
     await mount();
     await type('forgiveness');
     expect($('[data-testid=ld-categories]')).toBeNull();
-    await act(async () => { $$('button').find((b) => b.textContent === 'Clear').click(); });
+    await act(async () => {
+      $$('button')
+        .find((b) => b.textContent === 'Clear')
+        .click();
+    });
     expect($('[data-testid=ld-categories]')).toBeTruthy();
   });
 });
@@ -132,26 +153,38 @@ describe("categories, Today's Word and collections", () => {
     // (the tiles follow the approved mockup's order, so compare as a set, then check the mockup's first row)
     const labels = cards.map((c) => c.getAttribute('aria-label').replace(/, \d+ lessons$/, ''));
     expect([...labels].sort()).toEqual(CATEGORIES.map((c) => c.label).sort());
-    expect(labels.slice(0, 5)).toEqual(['Faith & Spiritual Growth', 'Mental & Emotional Wellness', 'Marriage & Relationships', 'Parenting & Family', 'Purpose & Personal Growth']);
+    expect(labels.slice(0, 5)).toEqual([
+      'Faith & Spiritual Growth',
+      'Mental & Emotional Wellness',
+      'Marriage & Relationships',
+      'Parenting & Family',
+      'Purpose & Personal Growth',
+    ]);
     for (const c of cards) expect(c.querySelector('.ld-tile-n').textContent).toMatch(/^\d+$/);
   });
   it('opens a category shelf of lessons without leaving the page', async () => {
     await mount();
-    await act(async () => { $('[data-testid=ld-category][data-cat=money]').click(); });
+    await act(async () => {
+      $('[data-testid=ld-category][data-cat=money]').click();
+    });
     const shelf = $('[data-testid=ld-category-shelf]');
     expect(shelf.querySelectorAll('[data-testid=ld-lesson-card]').length).toBe(12);
     expect(shelf.querySelector('h3').textContent).toContain('Money & Financial Stewardship');
   });
   it('View All Topics shows every category at once', async () => {
     await mount();
-    await act(async () => { $('[data-testid=ld-all-topics]').click(); });
+    await act(async () => {
+      $('[data-testid=ld-all-topics]').click();
+    });
     expect($('.ld-tiles').className).toContain('ld-tiles-all');
     expect($$('[data-testid=ld-category]').length).toBe(12);
   });
   it('shows five Featured Series, each opening its own ordered list of real lessons', async () => {
     await mount();
     expect($$('[data-testid=ld-series-tile]').length).toBe(5);
-    await act(async () => { $('[data-testid=ld-series-tile][data-series=anxiety]').click(); });
+    await act(async () => {
+      $('[data-testid=ld-series-tile][data-series=anxiety]').click();
+    });
     const cards = $$('[data-testid=ld-series-shelf] [data-testid=ld-lesson-card]');
     expect(cards.length).toBe(12);
     expect(cards[0].getAttribute('data-lesson')).toBe('ll2-the-energy-you-were-given');
@@ -163,7 +196,9 @@ describe("categories, Today's Word and collections", () => {
     const c = INDEX.courses.find((x) => x.k === first.getAttribute('data-course'));
     expect(first.textContent).toContain(`${c.n} lessons`);
     const chip = $$('[data-testid=ld-dept-chips] button').find((b) => b.textContent === 'Real Estate');
-    await act(async () => { chip.click(); });
+    await act(async () => {
+      chip.click();
+    });
     for (const el of $$('[data-testid=ld-course]')) expect(INDEX.courses.find((x) => x.k === el.getAttribute('data-course')).d).toBe('Real Estate');
   });
   it('keeps Featured Lessons and Featured Series as separate sections', async () => {
@@ -180,7 +215,9 @@ describe("categories, Today's Word and collections", () => {
   it("draws Today's Word from the shipped text, labelled KJV", async () => {
     await mount();
     expect($('[data-testid=ld-word]').textContent).toContain('KJV');
-    await act(async () => { $('[data-testid=ld-word-toggle]').click(); });
+    await act(async () => {
+      $('[data-testid=ld-word-toggle]').click();
+    });
     expect($('[data-testid=ld-verse] p').textContent).toContain('verse');
   });
   it('shows featured lessons and both collections from the real catalog', async () => {

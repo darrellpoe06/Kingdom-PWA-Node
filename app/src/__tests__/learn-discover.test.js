@@ -40,7 +40,10 @@ describe('the index is the catalog, and only points at it', () => {
     const moved = [];
     for (const l of INDEX.lessons) {
       const h = have.get(l.i);
-      if (!h) { lost.push(l.i); continue; }
+      if (!h) {
+        lost.push(l.i);
+        continue;
+      }
       if (h.title !== l.t) retitled.push(l.i);
       if (h.course !== INDEX.courses[l.c].k) moved.push(l.i);
     }
@@ -108,7 +111,10 @@ const QUESTIONS = [
   ['How can I become a better leader?', /lead|shepherd|pastor|elder|serve|office|steward|follow/i],
   ['How can I grow closer to God?', /pray|spirit|worship|presence|obey|abide|seek|faith|know|holy|voice|hear/i],
 ];
-const textOf = (id) => { const l = P.byId.get(id).raw; return `${l.p || ''} ${l.t} ${l.th || ''} ${l.b || ''}`; };
+const textOf = (id) => {
+  const l = P.byId.get(id).raw;
+  return `${l.p || ''} ${l.t} ${l.th || ''} ${l.b || ''}`;
+};
 
 describe('natural questions reach the curriculum (measured on the real catalog)', () => {
   for (const [q, re] of QUESTIONS) {
@@ -142,7 +148,10 @@ describe('natural questions reach the curriculum (measured on the real catalog)'
 });
 
 describe('sixty realistic searches (conversational, short, misspelled, everyday), on the real catalog', () => {
-  const fits = (Q) => discoverSearch(P, Q.q).slice(0, 10).filter((x) => Q.expect.test(textOf(x.lessonId))).length;
+  const fits = (Q) =>
+    discoverSearch(P, Q.q)
+      .slice(0, 10)
+      .filter((x) => Q.expect.test(textOf(x.lessonId))).length;
   it('has at least fifty of them, across the four ways people type', () => {
     expect(QUERIES.length).toBeGreaterThanOrEqual(50);
     expect(new Set(QUERIES.map((q) => q.kind))).toEqual(new Set(['question', 'phrase', 'typo', 'concern']));
@@ -162,7 +171,10 @@ describe('sixty realistic searches (conversational, short, misspelled, everyday)
   });
   it('puts a misspelling right, and never changes a word the curriculum already uses', () => {
     // "forgivness" needs no correction: the stemmer already reads it as the stem of "forgiveness".
-    const ids = (q) => discoverSearch(P, q).slice(0, 10).map((r) => r.lessonId);
+    const ids = (q) =>
+      discoverSearch(P, q)
+        .slice(0, 10)
+        .map((r) => r.lessonId);
     expect(ids('forgivness')).toEqual(ids('forgiveness'));
     expect(correctQuery(P, 'how to get a morgage').text).toBe('how to get a mortgage');
     expect(correctQuery(P, 'raising childern').text).toBe('raising children');
@@ -174,9 +186,18 @@ describe('the discovery categories are supported by the real curriculum', () => 
   const M = categoryMembers(P);
   it('declares the twelve categories Darrell named', () => {
     expect(CATEGORIES.map((c) => c.label)).toEqual([
-      'Faith & Spiritual Growth', 'Marriage & Relationships', 'Parenting & Family', 'Mental & Emotional Wellness',
-      'Purpose & Personal Growth', 'Money & Financial Stewardship', 'Business & Entrepreneurship', 'Real Estate & Homeownership',
-      'Leadership & Ministry', 'Bible Study & Scripture', 'History & Understanding Our World', 'Technology, AI & Innovation',
+      'Faith & Spiritual Growth',
+      'Marriage & Relationships',
+      'Parenting & Family',
+      'Mental & Emotional Wellness',
+      'Purpose & Personal Growth',
+      'Money & Financial Stewardship',
+      'Business & Entrepreneurship',
+      'Real Estate & Homeownership',
+      'Leadership & Ministry',
+      'Bible Study & Scripture',
+      'History & Understanding Our World',
+      'Technology, AI & Innovation',
     ]);
   });
   it('fills every one with at least MIN_SHOWN lessons, so none is shown empty', () => {
@@ -187,7 +208,10 @@ describe('the discovery categories are supported by the real curriculum', () => 
     for (const c of CATEGORIES) {
       const ids = M.get(c.id).lessonIds;
       expect(new Set(ids).size).toBe(ids.length);
-      for (const id of ids) { expect(P.byId.has(id), id).toBe(true); per.set(id, (per.get(id) || 0) + 1); }
+      for (const id of ids) {
+        expect(P.byId.has(id), id).toBe(true);
+        per.set(id, (per.get(id) || 0) + 1);
+      }
     }
     expect([...per.values()].some((n) => n > 1)).toBe(true);
   });
@@ -197,14 +221,22 @@ describe('the discovery categories are supported by the real curriculum', () => 
       const hits = INDEX.lessons.filter((l) => l.i.startsWith(pre));
       expect(hits.length, `${pre} must match exactly one lesson`).toBe(1);
     }
-    for (const id of Object.keys(REVIEWED)) expect(CATEGORIES.some((c) => c.id === id), id).toBe(true);
+    for (const id of Object.keys(REVIEWED))
+      expect(
+        CATEGORIES.some((c) => c.id === id),
+        id
+      ).toBe(true);
   });
   it('leaves only a handful of lessons in no category, and never forces one in', () => {
     const placed = new Set();
     for (const c of CATEGORIES) M.get(c.id).lessonIds.forEach((i) => placed.add(i));
     const none = INDEX.lessons.filter((l) => !placed.has(l.i)).map((l) => l.i);
     expect(none.length).toBeLessThanOrEqual(UNPLACED.length + 2);
-    for (const pre of UNPLACED) expect(none.some((i) => i.startsWith(pre)), `${pre} was reviewed and has no fit`).toBe(true);
+    for (const pre of UNPLACED)
+      expect(
+        none.some((i) => i.startsWith(pre)),
+        `${pre} was reviewed and has no fit`
+      ).toBe(true);
   });
   it('keeps a lesson that is in no category reachable by search, by its own title', () => {
     for (const pre of UNPLACED) {
@@ -232,7 +264,13 @@ describe('the discovery categories are supported by the real curriculum', () => 
 
 describe('the five Featured Series are ordered lists of real lessons, drawn from the curriculum as it is', () => {
   it('are the five Darrell named, in order', () => {
-    expect(SERIES.map((s) => s.title)).toEqual(['Overcoming Anxiety', 'Building a Stronger Marriage', 'Biblical Money Management', 'Identity & Purpose', "Walking in God's Plan"]);
+    expect(SERIES.map((s) => s.title)).toEqual([
+      'Overcoming Anxiety',
+      'Building a Stronger Marriage',
+      'Biblical Money Management',
+      'Identity & Purpose',
+      "Walking in God's Plan",
+    ]);
   });
   it('resolve every lesson, with none repeated inside a series and at least eight in each', () => {
     for (const s of SERIES) {
@@ -242,10 +280,11 @@ describe('the five Featured Series are ordered lists of real lessons, drawn from
     }
   });
   it('change no course assignment: a lesson in a series still lives in its own course', () => {
-    for (const s of SERIES) for (const id of s.lessons) {
-      const own = INV.find((c) => c.lessons.some((m) => m.id === id));
-      expect(own && own.key, id).toBe(P.byId.get(id).course.k);
-    }
+    for (const s of SERIES)
+      for (const id of s.lessons) {
+        const own = INV.find((c) => c.lessons.some((m) => m.id === id));
+        expect(own && own.key, id).toBe(P.byId.get(id).course.k);
+      }
   });
 });
 
@@ -267,7 +306,13 @@ describe("Today's Word is the shipped King James text, verbatim", () => {
       expect(w, `day ${d}`).toBeTruthy();
       const p = parsePassage(w.ref.replace('–', '-'));
       const book = await getBook(p.file);
-      expect(w.text).toBe(book.chapters[p.chapter - 1].slice(p.from - 1, p.to).join(' ').replace(/\s+/g, ' ').trim());
+      expect(w.text).toBe(
+        book.chapters[p.chapter - 1]
+          .slice(p.from - 1, p.to)
+          .join(' ')
+          .replace(/\s+/g, ' ')
+          .trim()
+      );
       expect(w.translation).toBe('KJV');
     }
   });

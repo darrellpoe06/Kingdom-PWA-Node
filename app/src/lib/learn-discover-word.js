@@ -49,10 +49,18 @@ export async function todaysWord(index, getBook, date = new Date()) {
     const l = cands[(start + k) % cands.length];
     const p = parsePassage(l.r);
     let book;
-    try { book = await getBook(p.file); } catch { book = null; }
+    try {
+      book = await getBook(p.file);
+    } catch {
+      book = null;
+    }
     const verses = book && Array.isArray(book.chapters) ? book.chapters[p.chapter - 1] : null;
     if (!Array.isArray(verses)) continue;
-    const text = verses.slice(p.from - 1, p.to).join(' ').replace(/\s+/g, ' ').trim();
+    const text = verses
+      .slice(p.from - 1, p.to)
+      .join(' ')
+      .replace(/\s+/g, ' ')
+      .trim();
     if (!text || p.to > verses.length || text.length > MAX_CHARS) continue;
     return { lessonId: l.i, courseKey: null, ref: l.r.replace('-', '–'), text, translation: 'KJV', theme: l.th || '' };
   }

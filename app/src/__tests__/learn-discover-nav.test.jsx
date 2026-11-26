@@ -21,7 +21,12 @@ let root;
 beforeEach(() => {
   window.speechSynthesis = { speak() {}, cancel() {}, pause() {}, resume() {}, getVoices: () => [], addEventListener() {}, removeEventListener() {} };
   window.SpeechSynthesisUtterance = class {};
-  try { window.localStorage.clear(); window.sessionStorage.clear(); } catch { /* no storage */ }
+  try {
+    window.localStorage.clear();
+    window.sessionStorage.clear();
+  } catch {
+    /* no storage */
+  }
   container = document.createElement('div');
   document.body.appendChild(container);
   root = createRoot(container);
@@ -29,7 +34,12 @@ beforeEach(() => {
 afterEach(() => {
   act(() => root.unmount());
   if (container.parentNode) container.parentNode.removeChild(container);
-  try { window.localStorage.clear(); window.sessionStorage.clear(); } catch { /* no storage */ }
+  try {
+    window.localStorage.clear();
+    window.sessionStorage.clear();
+  } catch {
+    /* no storage */
+  }
 });
 
 const mount = (props = {}) => act(() => root.render(createElement(ChurchLearn, props)));
@@ -37,7 +47,10 @@ const selectedArea = () => {
   const t = container.querySelector('[role="tab"][aria-selected="true"][id^="learn-area-tab-"]');
   return t ? t.id.replace('learn-area-tab-', '') : null;
 };
-const sleep = (ms) => act(async () => { await new Promise((r) => setTimeout(r, ms)); });
+const sleep = (ms) =>
+  act(async () => {
+    await new Promise((r) => setTimeout(r, ms));
+  });
 
 describe('the area hint Learn already reads, now carrying the discovery routes', () => {
   it('still accepts "record" exactly as before, and nothing else by default', () => {
@@ -89,14 +102,24 @@ describe('classic Learn: the hint opens the asked area, and ordinary visits are 
 describe('openLearnArea: opens Learn, sets the hint, and finds the new look when it is on', () => {
   it('opens Learn once and sets the classic hint for a known area', () => {
     let opened = 0;
-    openLearnArea('downloads', { openLearn: () => { opened += 1; }, doc: null });
+    openLearnArea('downloads', {
+      openLearn: () => {
+        opened += 1;
+      },
+      doc: null,
+    });
     expect(opened).toBe(1);
     expect(window.sessionStorage.getItem(LEARN_AREA_HINT_KEY)).toBe('downloads');
   });
   it('opens Learn with no hint for "Browse All Lessons" (Learn opens exactly as it does today)', () => {
     let opened = 0;
     // Browse All Lessons is openLearn() itself: no area, so no hint.
-    const cancel = openLearnArea('none-such', { openLearn: () => { opened += 1; }, doc: null });
+    const cancel = openLearnArea('none-such', {
+      openLearn: () => {
+        opened += 1;
+      },
+      doc: null,
+    });
     cancel();
     expect(opened).toBe(1);
     expect(window.sessionStorage.getItem(LEARN_AREA_HINT_KEY)).toBeNull();

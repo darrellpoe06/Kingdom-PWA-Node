@@ -39,7 +39,60 @@ const W_CATEGORY = 2.2;
 // A lesson hand-read as a true answer to an everyday concept (learn-discover-concepts.js `seeds`).
 const W_SEED = 9;
 // Words that say little about the subject ("high", "handle") count for a quarter of a subject word.
-const GENERIC = new Set(['high', 'handle', 'hard', 'day', 'make', 'makes', 'good', 'great', 'best', 'new', 'time', 'life', 'thing', 'things', 'people', 'person', 'problem', 'problems', 'advice', 'skill', 'skills', 'tips', 'lesson', 'lessons', 'work', 'raise', 'grow', 'become', 'find', 'start', 'begin', 'deal', 'keep', 'closer', 'first', 'choose', 'decide', 'pick', 'use', 'using', 'take', 'help', 'allow', 'lost', 'lose', 'losing', 'handle', 'every', 'month', 'hard'].map(stem));
+const GENERIC = new Set(
+  [
+    'high',
+    'handle',
+    'hard',
+    'day',
+    'make',
+    'makes',
+    'good',
+    'great',
+    'best',
+    'new',
+    'time',
+    'life',
+    'thing',
+    'things',
+    'people',
+    'person',
+    'problem',
+    'problems',
+    'advice',
+    'skill',
+    'skills',
+    'tips',
+    'lesson',
+    'lessons',
+    'work',
+    'raise',
+    'grow',
+    'become',
+    'find',
+    'start',
+    'begin',
+    'deal',
+    'keep',
+    'closer',
+    'first',
+    'choose',
+    'decide',
+    'pick',
+    'use',
+    'using',
+    'take',
+    'help',
+    'allow',
+    'lost',
+    'lose',
+    'losing',
+    'handle',
+    'every',
+    'month',
+    'hard',
+  ].map(stem)
+);
 const W_VERSE = 6;
 const CONCEPT_WEIGHT = 0.5;
 const PURE_WEIGHT = 0.85; // when the typed words are all ones a concept answers, the concept's own words count nearly as much as the typed ones
@@ -96,14 +149,35 @@ export function prepareIndex(data) {
   }
   // The words the curriculum itself uses (not stems), for a spelling that is one or two letters off.
   const rawVocab = new Map();
-  const addRaw = (text) => { for (const w of String(text || '').toLowerCase().replace(/[\u2018\u2019']/g, '').match(/[a-z]{4,}/g) || []) rawVocab.set(w, (rawVocab.get(w) || 0) + 1); };
-  for (const l of data.lessons || []) { addRaw(l.t); addRaw(l.p); addRaw(l.th); addRaw(l.b); addRaw(l.d); }
+  const addRaw = (text) => {
+    for (const w of String(text || '')
+      .toLowerCase()
+      .replace(/[\u2018\u2019']/g, '')
+      .match(/[a-z]{4,}/g) || [])
+      rawVocab.set(w, (rawVocab.get(w) || 0) + 1);
+  };
+  for (const l of data.lessons || []) {
+    addRaw(l.t);
+    addRaw(l.p);
+    addRaw(l.th);
+    addRaw(l.b);
+    addRaw(l.d);
+  }
   for (const w of conceptWords()) if (!rawVocab.has(w)) rawVocab.set(w, 1);
   const dfHead = new Map();
   for (const L of lessons) for (const s of new Set([...L.titleSet, ...L.metaSet, ...L.courseSet])) dfHead.set(s, (dfHead.get(s) || 0) + 1);
   const declared = new Set();
   for (const c of courses) for (const w of c.p || []) declared.add(String(w).toLowerCase());
-  const P = { rawVocab, declared, lessons, df, dfHead, N: lessons.length, byId: new Map(lessons.map((L) => [L.raw.i, L])), finderRows: lessons.map((L) => L.row) };
+  const P = {
+    rawVocab,
+    declared,
+    lessons,
+    df,
+    dfHead,
+    N: lessons.length,
+    byId: new Map(lessons.map((L) => [L.raw.i, L])),
+    finderRows: lessons.map((L) => L.row),
+  };
   P.catStrong = new Map([...categoryMembers(P)].map(([id, m]) => [id, m.strong]));
   return P;
 }
@@ -151,9 +225,16 @@ export function correctQuery(P, q) {
     for (const [cand, n] of P.rawVocab) {
       if (Math.abs(cand.length - w.length) > max) continue;
       const d = editDistance(w, cand, max);
-      if (d < bestD || (d === bestD && n > bestN)) { best = cand; bestD = d; bestN = n; }
+      if (d < bestD || (d === bestD && n > bestN)) {
+        best = cand;
+        bestD = d;
+        bestN = n;
+      }
     }
-    if (best && bestD <= max) { changed.push([word, best]); return best; }
+    if (best && bestD <= max) {
+      changed.push([word, best]);
+      return best;
+    }
     return word;
   });
   return { text: out, changed };
@@ -172,7 +253,10 @@ export function discoverSearch(P, query, limit = RESULT_LIMIT) {
   // A word a course DECLARED ("bible", "will") can also be a question word or a stopword. When it is
   // everything the reader typed, it is the subject, and the declaring courses keep their seats.
   if (!typed.length && !words.length) {
-    const own = q.toLowerCase().split(/[^a-z]+/).filter((t) => t.length >= 3 && P.declared.has(t));
+    const own = q
+      .toLowerCase()
+      .split(/[^a-z]+/)
+      .filter((t) => t.length >= 3 && P.declared.has(t));
     words = own;
     typed = [...new Set(own.map((t) => stem(t)))];
   }
@@ -191,37 +275,90 @@ export function discoverSearch(P, query, limit = RESULT_LIMIT) {
     let hitIdf = 0;
     let head = false;
     let why = null;
-    const mark = (w) => { if (!why || RANK[w] > RANK[why]) why = w; };
+    const mark = (w) => {
+      if (!why || RANK[w] > RANK[why]) why = w;
+    };
     for (const t of typed) {
       const g = weightOf(P, t);
       const iH = idfH(P, t) * g;
       const iB = idf(P, t) * g;
       let got = 0;
       let used = iH;
-      const take = (w, i, isHead) => { if (w * i > got) { got = w * i; used = i; } if (isHead) head = true; };
-      if (L.titleSet.has(t)) { take(W_TITLE, iH, true); mark('title'); }
-      if (L.metaSet.has(t)) { take(W_META, iH, true); mark('topic'); }
-      if (L.courseSet.has(t)) { take(W_COURSE, iH, true); mark('topic'); }
-      if (L.plainSet.has(t)) { take(W_PLAIN, iH, false); mark('topic'); }
-      if (L.bodySet.has(t)) { take(W_BODY, iB, false); mark('content'); }
+      const take = (w, i, isHead) => {
+        if (w * i > got) {
+          got = w * i;
+          used = i;
+        }
+        if (isHead) head = true;
+      };
+      if (L.titleSet.has(t)) {
+        take(W_TITLE, iH, true);
+        mark('title');
+      }
+      if (L.metaSet.has(t)) {
+        take(W_META, iH, true);
+        mark('topic');
+      }
+      if (L.courseSet.has(t)) {
+        take(W_COURSE, iH, true);
+        mark('topic');
+      }
+      if (L.plainSet.has(t)) {
+        take(W_PLAIN, iH, false);
+        mark('topic');
+      }
+      if (L.bodySet.has(t)) {
+        take(W_BODY, iB, false);
+        mark('content');
+      }
       const pos = L.bodyPos.get(t);
-      if (pos !== undefined) { const c = W_CENTRAL * iH * (1 - pos / CENTRAL_N); got += c; head = true; mark('topic'); }
-      if (got) { score += got; hitIdf += used; }
+      if (pos !== undefined) {
+        const c = W_CENTRAL * iH * (1 - pos / CENTRAL_N);
+        got += c;
+        head = true;
+        mark('topic');
+      }
+      if (got) {
+        score += got;
+        hitIdf += used;
+      }
     }
     let relScore = 0;
     for (const t of related) {
       const iH = idfH(P, t) * cw;
       const iB = idf(P, t) * cw;
       let got = 0;
-      if (L.titleSet.has(t)) { got = W_TITLE * iH; head = true; } else if (L.metaSet.has(t)) { got = W_META * iH; head = true; } else if (L.bodySet.has(t)) got = W_BODY * iB;
-      if (got) { relScore += got; mark('related'); }
+      if (L.titleSet.has(t)) {
+        got = W_TITLE * iH;
+        head = true;
+      } else if (L.metaSet.has(t)) {
+        got = W_META * iH;
+        head = true;
+      } else if (L.bodySet.has(t)) got = W_BODY * iB;
+      if (got) {
+        relScore += got;
+        mark('related');
+      }
     }
     // The words the curriculum uses for what was typed can support a lesson, never outweigh one that says it.
     // A question with no distinctive word of its own ("grow closer to God") IS its related words, so it is not capped.
     score += anchored ? Math.min(relScore, RELATED_CAP) : relScore;
-    for (const r of qRefs) if (L.refSet.has(r)) { score += W_VERSE * 2; hitIdf += refIdf; mark('verse'); }
-    if (seeds.has(L.raw.i)) { score += W_SEED; head = true; if (!why || RANK.topic > RANK[why]) why = 'topic'; }
-    if (strongSets.some((set) => set.has(L.raw.i))) { score += W_CATEGORY; head = true; if (!why) why = 'topic'; }
+    for (const r of qRefs)
+      if (L.refSet.has(r)) {
+        score += W_VERSE * 2;
+        hitIdf += refIdf;
+        mark('verse');
+      }
+    if (seeds.has(L.raw.i)) {
+      score += W_SEED;
+      head = true;
+      if (!why || RANK.topic > RANK[why]) why = 'topic';
+    }
+    if (strongSets.some((set) => set.has(L.raw.i))) {
+      score += W_CATEGORY;
+      head = true;
+      if (!why) why = 'topic';
+    }
     if (!score) continue;
     if (!head && !qRefs.length) score *= NO_HEAD;
     // Matching more of what was typed beats matching one word hard, and a
@@ -229,7 +366,7 @@ export function discoverSearch(P, query, limit = RESULT_LIMIT) {
     if (typed.length + qRefs.length > 1 && needIdf > 0) score *= 0.45 + 0.55 * Math.min(1, hitIdf / needIdf);
     scored.push({ L, score, why: why || 'related' });
   }
-  scored.sort((a, b) => (b.score - a.score) || (a.L.order - b.L.order));
+  scored.sort((a, b) => b.score - a.score || a.L.order - b.L.order);
 
   // Best-scored lessons lead. Then the finder's guarantee is applied: every
   // course that DECLARED the typed word keeps one seat in the window (DR-1049,
@@ -247,13 +384,19 @@ export function discoverSearch(P, query, limit = RESULT_LIMIT) {
       const L = P.byId.get(r.lessonId);
       if (!L) continue;
       const k = L.course.k;
-      if (declared && !have.has(k) && !taken.has(k)) { taken.add(k); owed.push(L); }
+      if (declared && !have.has(k) && !taken.has(k)) {
+        taken.add(k);
+        owed.push(L);
+      }
       const w = window.find((x) => x.L === L);
       if (w) w.finder = true;
     }
     let at = window.length - 1;
     for (const L of owed) {
-      if (window.length < limit) { window.push({ L, score: 0, why: whyOf.get(L.raw.i) || 'topic', finder: true, seat: true }); continue; }
+      if (window.length < limit) {
+        window.push({ L, score: 0, why: whyOf.get(L.raw.i) || 'topic', finder: true, seat: true });
+        continue;
+      }
       while (at >= 0) {
         const k = window[at].L.course.k;
         const sole = window[at].seat || window.filter((x) => x.L.course.k === k).length === 1;

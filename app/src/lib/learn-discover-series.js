@@ -15,7 +15,10 @@
 export const SERIES_STATUS = 'proposed';
 
 export const SERIES = Object.freeze([
-  { id: 'anxiety', title: 'Overcoming Anxiety', blurb: 'From a worn-out body to a steady mind: what the Word says about worry, fear and peace.',
+  {
+    id: 'anxiety',
+    title: 'Overcoming Anxiety',
+    blurb: 'From a worn-out body to a steady mind: what the Word says about worry, fear and peace.',
     lessons: [
       'll2-the-energy-you-were-given',
       'll5-take-no-thought-for-tomorrow',
@@ -29,8 +32,12 @@ export const SERIES = Object.freeze([
       'll282-the-greater-work',
       'll102-bold-as-a-lion-boldness-from-righteousness-not-bravado-no-fear',
       'll336-the-lie-the-fear-and-the-last-adam',
-    ] },
-  { id: 'marriage', title: 'Building a Stronger Marriage', blurb: 'Covenant, love and the daily work of a husband and a wife.',
+    ],
+  },
+  {
+    id: 'marriage',
+    title: 'Building a Stronger Marriage',
+    blurb: 'Covenant, love and the daily work of a husband and a wife.',
     lessons: [
       'll230-competence-before-submission-the-study-skills-and-doing-skills-of-a-wife-and-a-husband-with-the-word-answering-first',
       'll114-what-makes-having-you-better-covenant-not-contract-and-the-value-a-paycheck-cannot-cover',
@@ -43,8 +50,12 @@ export const SERIES = Object.freeze([
       'll157-what-is-love-in-depth-and-in-range-action-based-word-first',
       'll151-the-tongue-death-and-life-in-a-little-member-and-the-knowledge-that-governs-it',
       'll16-rule-your-spirit-repair-the-bond',
-    ] },
-  { id: 'money', title: 'Biblical Money Management', blurb: 'Own, work, save, borrow wisely, give and leave a legacy, the way the Word teaches.',
+    ],
+  },
+  {
+    id: 'money',
+    title: 'Biblical Money Management',
+    blurb: 'Own, work, save, borrow wisely, give and leave a legacy, the way the Word teaches.',
     lessons: [
       'econ2-ownership-vs-consumption',
       'econ8-test-build-multiply',
@@ -59,8 +70,12 @@ export const SERIES = Object.freeze([
       'inv8-enough',
       'legacy4-forced-production',
       'll69-faithful-over-a-few-things-stewardship-and-increase',
-    ] },
-  { id: 'identity', title: 'Identity & Purpose', blurb: 'Who Yahweh made you to be, and the work He gave you to do.',
+    ],
+  },
+  {
+    id: 'identity',
+    title: 'Identity & Purpose',
+    blurb: 'Who Yahweh made you to be, and the work He gave you to do.',
     lessons: [
       'ea-gh-thief-targets-identity',
       'ea-gh-made-in-his-image',
@@ -72,8 +87,12 @@ export const SERIES = Object.freeze([
       'll49-mastery-without-manipulation-lifes-task-envy-sober-mind',
       'll156-teach-yourself-anything-qualitative-and-quantitative-analysis-loving-yahweh-while-you-do-it',
       'ea-gh-babel-make-us-a-name',
-    ] },
-  { id: 'plan', title: "Walking in God's Plan", blurb: 'Waiting, timing and trust: when the plan is bigger than your season.',
+    ],
+  },
+  {
+    id: 'plan',
+    title: "Walking in God's Plan",
+    blurb: 'Waiting, timing and trust: when the plan is bigger than your season.',
     lessons: [
       'mit1-the-design-in-time',
       'mit2-the-young-he-called',
@@ -86,5 +105,6 @@ export const SERIES = Object.freeze([
       'll240-he-said-it-and-did-not-do-it-the-offer-moses-refused-the-breach-he-stood-in-and-the-nation-made-of-the-children-they-gave-up-on',
       'll301-old-men-dream-young-men-see',
       'll332-give-me-this-mountain',
-    ] },
+    ],
+  },
 ]);
