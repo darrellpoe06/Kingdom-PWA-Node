@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T03:57:22.676Z",
+ "measuredAt": "2026-11-26T04:02:08.202Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4302
+  "readings": 4304
  },
  "departments": [
   {
@@ -14473,11 +14473,13 @@
    "department": "The Eternal Algorithms",
    "position": 42,
    "title": "Jesus I know, and Paul I know; but who are ye?",
-   "contentSha": "4277d971a0e6b683a3541072bc111cf59e459a0a7bc0b65ec3f060003fd5f076",
+   "contentSha": "9494b8788ac16e0ae97ca34fa8c9e3f3dc8c21467c8a991b2c7b81b2813bbd4b",
    "versions": {
-    "teen": "e55eb2669208285f6c870d785d11a21c5ab9654630de10af58db0787acfcbc7f",
-    "adult": "ee0554bc7b34b86d74dea6999f181dfbee3d4d677ffc6354c7cf969d3591e807",
-    "senior": "219c5d7e45af6f37936a80f274e6a5b13ab626cc5bddb039885fa09087dbe526"
+    "child": "e3218806655cbf9718876c4d9c177e2db939723a91341a2d67d96866dbef65ad",
+    "youth": "90911e8a705386a348809b75507190eac2c5116496e6b045c552228369e8e9e1",
+    "teen": "c927b1313a6d3e93f10182bf7ac145fa4214f4a11a3cf51ac118358517af15fb",
+    "adult": "c92fbcf7641c4b370e9c6faa2c17f97255ac447acc11bb8e0212a280949a8c39",
+    "senior": "9f067e34640453622964b4f2030926eb50886993a284fff058541c735934935b"
    }
   },
   {

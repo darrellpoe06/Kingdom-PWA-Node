@@ -63,8 +63,9 @@ describe('Learn content integrity baseline', () => {
   // i-am-that-i-am, babel-make-us-a-name, nations-divided-portion,
   // borrowed-crown, they-that-make-them, inscription-that-asked-eternity,
   // before-abraham-i-am, name-that-saves, all-power-is-his,
-  // without-me-nothing, triumph-already-public, will-worship-frees-no-one.
-  it('the baseline is the measured Phase 1 catalog (13 / 51 / 994 / 4,302)', () => {
-    expect(base.counts).toEqual({ departments: 13, courses: 51, lessons: 994, readings: 4302 });
+  // without-me-nothing, triumph-already-public, will-worship-frees-no-one,
+  // jesus-i-know-who-are-ye.
+  it('the baseline is the measured Phase 1 catalog (13 / 51 / 994 / 4,304)', () => {
+    expect(base.counts).toEqual({ departments: 13, courses: 51, lessons: 994, readings: 4304 });
   });
 });
