@@ -160,7 +160,7 @@ export default function GarageHeaderButton({ token: given = undefined, fetchImpl
       ) : null}
       {/* The answer, in words, where a driver can read it. */}
       {/* Out of the row (absolute, under the button): saying it never moves the button being held. */}
-      {(said || hint) ? <span data-testid="garage-header-said" role="status" aria-live="polite" className="absolute right-0 top-full z-50 mt-1 max-w-[16rem] w-max px-2 py-1 rounded border border-[#E8E4DC] bg-[#FAF8F4] shadow text-[0.625rem] leading-tight text-[#5A5751] pointer-events-none">{said || hint}</span>
+      {(said || hint) ? <span data-testid="garage-header-said" role="status" aria-live="polite" className="absolute right-0 top-full z-50 mt-1 w-max px-2 py-1 rounded border border-[#E8E4DC] bg-[#FAF8F4] shadow text-[0.625rem] leading-tight text-[#5A5751] pointer-events-none" style={{ maxWidth: '16rem' }}>{said || hint}</span>
         : <span data-testid="garage-header-said" role="status" aria-live="polite" className="sr-only" />}
     </div>
   );
