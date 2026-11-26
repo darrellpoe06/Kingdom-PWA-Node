@@ -2783,6 +2783,21 @@
       "notes": "Found by the hourly voice-lane tick reading its own run log, not asked for. Six prior ticks re-measured the same tailnet-join failure and waited on a key only Darrell can mint; DR-1360 had already decided that road was to be reversed. The census writer already existed and was enabled but had never been read from outside the house. Proof ran on a throwaway PostgreSQL 16 cluster: 8 executed cases, including a seeded lesson body that must not appear and SET ROLE anon both ways. That proof caught a clamp of my own that turned a corrupt total of -5 into 0 - a manufactured empty queue, the one lie this lane exists to prevent."
     },
     {
+      "id": "learn-pictures-first",
+      "date": "2026-11-26",
+      "task": "The Learn home leads with the carousel and the lessons as pictures; pickers under the pictures; Pictures by default on every device; Relationships shelf 19 to 35",
+      "drs": [
+        "DR-1686"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.6,
+      "estimateWithoutAiHours": 4,
+      "notes": ""
+    },
+    {
       "id": "the-house-keeps-and-reads-the-church-pictures",
       "date": "2026-11-24",
       "task": "Church archive + calendar read moved onto the NAS services-sync clock; runner road retired to a witness",

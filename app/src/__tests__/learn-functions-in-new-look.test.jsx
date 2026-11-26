@@ -295,14 +295,16 @@ describe('Relationships, in one place', () => {
     expect(relationshipShelf(COURSES, new Map()).map((x) => x.lesson.id)).toEqual([...RELATIONSHIP_LESSONS]);
   });
 
-  it('the shelf sits high on the Learn home, before the hero, and See All opens every lesson on it', async () => {
+  it('the shelf sits high on the Learn home, among the picture rows before your record, and See All opens every lesson on it', async () => {
     const { RELATIONSHIP_LESSONS } = await import('../lib/learn-presentation/presentation.js');
     act(() => root.render(<LearnStudioPreview courses={COURSES} onOpenLesson={vi.fn()} onExit={vi.fn()} ownerDevice ctx={CTX} />));
     const shelf = $('ls-relationships');
     expect(shelf).toBeTruthy();
     expect(shelf.textContent).toContain('Relationships');
-    const hero = $('ls-hero');
-    expect(shelf.compareDocumentPosition(hero) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // DR-1686: the carousel leads; the Relationships shelf stays with the picture rows, above the dashboard's words.
+    const dash = $('learn-dashboard');
+    expect($('ls-hero').compareDocumentPosition(shelf) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    if (dash) expect(shelf.compareDocumentPosition(dash) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     click([...shelf.querySelectorAll('button')].find((b) => b.textContent.includes('See All')));
     expect(container.querySelectorAll('.ls-grid button.ls-card').length).toBe(RELATIONSHIP_LESSONS.length);
   });
