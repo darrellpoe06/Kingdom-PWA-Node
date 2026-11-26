@@ -41,9 +41,7 @@ export const VERDICTS = ['ANSWERS-CLEARLY', 'ANSWERS-LATE-OR-BURIED', 'DOES-NOT-
 const FILES = import.meta.glob('./lesson-title-answers/*.json', { eager: true, import: 'default' });
 
 /** { courseKey: { lessonId: entry } } from the per-course files. */
-export const TITLE_ANSWERS = Object.fromEntries(
-  Object.entries(FILES).map(([path, table]) => [path.replace(/^.*\/([^/]+)\.json$/, '$1'), table]),
-);
+export const TITLE_ANSWERS = Object.fromEntries(Object.entries(FILES).map(([path, table]) => [path.replace(/^.*\/([^/]+)\.json$/, '$1'), table]));
 
 export function titleAnswerFor(courseKey, lessonId, table = TITLE_ANSWERS) {
   const e = (table[courseKey] || {})[lessonId];
@@ -153,7 +151,11 @@ export function withTitleAnswers(courses, table = TITLE_ANSWERS) {
 // The checks every entry must pass (the gate, lesson-title-answers.test.js).
 // ---------------------------------------------------------------------------
 const words = (s) => (s || '').split(/\s+/).filter(Boolean).length;
-const plain = (s) => String(s || '').replace(/[“”]/g, '"').replace(/[‘’]/g, "'").replace(/\s+/g, ' ');
+const plain = (s) =>
+  String(s || '')
+    .replace(/[“”]/g, '"')
+    .replace(/[‘’]/g, "'")
+    .replace(/\s+/g, ' ');
 const quoted = (s) => [...plain(s).matchAll(/"([^"]{4,})"/g)].map((m) => m[1].trim());
 const unquoted = (s) => plain(s).replace(/"[^"]*"/g, ' ');
 const SECTION_LEAD = /^[A-Z][A-Z ,'’:-]{2,90}?\. /;
@@ -188,7 +190,10 @@ export function entryProblems(entry, authorText) {
   }
   for (const band of ['teen', 'senior']) {
     const b = entry[band];
-    if (!b || typeof b !== 'object') { out.push(`${band} opening/closing missing`); continue; }
+    if (!b || typeof b !== 'object') {
+      out.push(`${band} opening/closing missing`);
+      continue;
+    }
     if (entry.verdict !== 'ANSWERS-BUT-ENDS-OPEN' || b.open != null) field(`${band}.open`, b.open, null, 10, 70);
     field(`${band}.close`, b.close, null, 10, 70);
   }

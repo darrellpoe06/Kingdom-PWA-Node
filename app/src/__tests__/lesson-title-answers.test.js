@@ -14,8 +14,16 @@ import { execFileSync } from 'node:child_process';
 import RECORDS from '../lib/learn-presentation/presentation-records.json';
 import { learnInventory } from '../lib/learn-presentation/integrity.js';
 import {
-  TITLE_ANSWERS, TITLE_LEAD, CLOSE_LEAD, ADULT_FALLBACK,
-  titleAnswerFor, withTitleAnswer, withTitleAnswers, breakAtLeads, entryProblems, titleClosingFor,
+  TITLE_ANSWERS,
+  TITLE_LEAD,
+  CLOSE_LEAD,
+  ADULT_FALLBACK,
+  titleAnswerFor,
+  withTitleAnswer,
+  withTitleAnswers,
+  breakAtLeads,
+  entryProblems,
+  titleClosingFor,
 } from '../lib/lesson-title-answers.js';
 import { readingTextFor } from '../components/learn-studio/LessonExperience.jsx';
 import { buildLessonArc, readAloudTextFromArc } from '../lib/lesson-flow.js';
@@ -53,7 +61,10 @@ describe('every presented lesson answers its title', () => {
     for (const [course, table] of Object.entries(TITLE_ANSWERS)) {
       for (const [id, entry] of Object.entries(table)) {
         const key = `${course}::${id}`;
-        if (!presented.has(key) || !raw.has(key)) { bad.push(`${key}: not a presented lesson`); continue; }
+        if (!presented.has(key) || !raw.has(key)) {
+          bad.push(`${key}: not a presented lesson`);
+          continue;
+        }
         for (const p of entryProblems(entry, authorAdult(raw.get(key)))) bad.push(`${key}: ${p}`);
       }
     }
@@ -73,7 +84,8 @@ describe('every presented lesson answers its title', () => {
         if (entry.open && !read.startsWith(`${TITLE_LEAD} `)) bad.push(`${id}: does not open on the answer`);
         if (!read.endsWith(entry.close)) bad.push(`${id}: the last thing read is not the answer`);
         if (!squash(read).includes(squash(author))) bad.push(`${id}: the author's text is not intact`);
-        if (squash(readingTextFor(l, 'adult')).length && !squash(read).includes(squash(readingTextFor(l, 'adult')).replace(squash(author), '').trim())) bad.push(`${id}: a story changed`);
+        if (squash(readingTextFor(l, 'adult')).length && !squash(read).includes(squash(readingTextFor(l, 'adult')).replace(squash(author), '').trim()))
+          bad.push(`${id}: a story changed`);
         for (const band of ['teen', 'senior']) {
           if (!own(l.levels && l.levels[band]) || !entry[band] || band === ADULT_FALLBACK.find((k) => !own(l.lesson) && own(l.levels && l.levels[k]))) continue;
           const r = readingTextFor(m, band);
@@ -93,7 +105,11 @@ describe('the audit table is the data, not a copy of it', () => {
 });
 
 describe('the gate is proven to catch', () => {
-  const lesson = { id: 'x1', lesson: 'Opening words. THE FIRST SECTION. Body here, "WITHIN A QUOTE. Still quoted" ends. LAST PART.', levels: { teen: 'Teen text.', senior: 'Senior text.' } };
+  const lesson = {
+    id: 'x1',
+    lesson: 'Opening words. THE FIRST SECTION. Body here, "WITHIN A QUOTE. Still quoted" ends. LAST PART.',
+    levels: { teen: 'Teen text.', senior: 'Senior text.' },
+  };
   const good = {
     verdict: 'DOES-NOT-ANSWER',
     reason: 'Teaches around the question and never states the answer.',
@@ -115,7 +131,10 @@ describe('the gate is proven to catch', () => {
   });
 
   it('catches a quotation the lesson does not hold', () => {
-    const bad = { ...good, close: `${CLOSE_LEAD} The answer is "words that were never in this lesson at all" and that must be caught before any reader sees it in the app.` };
+    const bad = {
+      ...good,
+      close: `${CLOSE_LEAD} The answer is "words that were never in this lesson at all" and that must be caught before any reader sees it in the app.`,
+    };
     expect(entryProblems(bad, lesson.lesson).join()).toMatch(/quotes words the lesson does not hold/);
   });
 

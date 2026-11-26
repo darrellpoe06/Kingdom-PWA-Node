@@ -24,7 +24,7 @@ const VERDICTS = ['ANSWERS-CLEARLY', 'ANSWERS-LATE-OR-BURIED', 'DOES-NOT-ANSWER'
 
 const records = JSON.parse(readFileSync(RECORDS, 'utf8')).records;
 const tables = Object.fromEntries(
-  (existsSync(DIR) ? readdirSync(DIR) : []).filter((f) => f.endsWith('.json')).map((f) => [f.slice(0, -5), JSON.parse(readFileSync(join(DIR, f), 'utf8'))]),
+  (existsSync(DIR) ? readdirSync(DIR) : []).filter((f) => f.endsWith('.json')).map((f) => [f.slice(0, -5), JSON.parse(readFileSync(join(DIR, f), 'utf8'))])
 );
 const cell = (s) => String(s).replace(/\|/g, '\\|').replace(/\s+/g, ' ').trim();
 
@@ -36,8 +36,19 @@ const rows = [];
 for (const r of records) {
   const e = (tables[r.courseKey] || {})[r.lessonId];
   if (!e) {
-    if (r.lessonId === 'buy2-two-sets-of-weights-in-one-bag') { inSource += 1; rows.push([r.courseKey, r.lessonId, r.displayTitle, 'ANSWERED-IN-SOURCE', 'The reference lesson: answer-first opening, example and closing written into its own source by the parent session.']); }
-    else { pending += 1; rows.push([r.courseKey, r.lessonId, r.displayTitle, 'PENDING', 'Course not yet audited in this effort.']); }
+    if (r.lessonId === 'buy2-two-sets-of-weights-in-one-bag') {
+      inSource += 1;
+      rows.push([
+        r.courseKey,
+        r.lessonId,
+        r.displayTitle,
+        'ANSWERED-IN-SOURCE',
+        'The reference lesson: answer-first opening, example and closing written into its own source by the parent session.',
+      ]);
+    } else {
+      pending += 1;
+      rows.push([r.courseKey, r.lessonId, r.displayTitle, 'PENDING', 'Course not yet audited in this effort.']);
+    }
     continue;
   }
   counts[e.verdict] = (counts[e.verdict] || 0) + 1;
@@ -76,7 +87,10 @@ ${rows.map((r) => `| ${r.map(cell).join(' | ')} |`).join('\n')}
 
 if (process.argv.includes('--check')) {
   const have = existsSync(OUT) ? readFileSync(OUT, 'utf8') : '';
-  if (have !== text) { console.error(`lesson-title-answers-audit: ${OUT} is stale; run node scripts/lesson-title-answers-audit.mjs`); process.exit(1); }
+  if (have !== text) {
+    console.error(`lesson-title-answers-audit: ${OUT} is stale; run node scripts/lesson-title-answers-audit.mjs`);
+    process.exit(1);
+  }
   console.log(`lesson-title-answers-audit: OK (${records.length} lessons, ${pending} pending)`);
 } else {
   writeFileSync(OUT, text);
