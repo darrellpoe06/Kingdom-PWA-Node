@@ -19,7 +19,8 @@ export default function LessonVideo({ lesson, isGovernor = false }) {
       </p>
     );
   }
-  const label = v.title ? `Walk-through: ${v.title}` : 'Walk-through video';
+  const kind = v.label || 'Walk-through';
+  const label = v.title ? `${kind}: ${v.title}` : `${kind} video`;
   return (
     <figure className="mb-3 border border-[#E8E4DC] bg-[#FAF8F4]" data-testid="lesson-video" data-state={v.kind}>
       <div className="aspect-video w-full bg-black">

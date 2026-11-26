@@ -261,7 +261,14 @@ export function figureProblems(f) {
     if (typeof f.src !== 'string' || !f.src.startsWith(FIGURE_IMAGE_ROOT)) out.push(`image src must live under ${FIGURE_IMAGE_ROOT}`);
     if (!f.alt) out.push('image without alt text');
     if (typeof f.depictsPeople !== 'boolean') out.push('image must say whether it shows people (depictsPeople)');
-    if (f.depictsPeople === true && f.peopleShown !== LESSON_PEOPLE_SHOWN) out.push(`the people in a lesson picture are drawn as ${LESSON_PEOPLE_SHOWN} (DR-1287)`);
+    // A real photograph of a real, named person (a Prophetic Voices teacher,
+    // Darrell 2026-11-26: "images of the men ... so people could see them")
+    // is not a drawing: it shows who he is, and labeling a Senegalese or
+    // Congolese scholar "African American" would be false (DR-0076). It names
+    // who it shows and the license that lets us show it, instead.
+    const photo = typeof f.photographOf === 'string' && f.photographOf.trim();
+    if (photo && !(typeof f.license === 'string' && f.license.trim())) out.push('a photograph of a real person names its license');
+    if (f.depictsPeople === true && !photo && f.peopleShown !== LESSON_PEOPLE_SHOWN) out.push(`the people in a lesson picture are drawn as ${LESSON_PEOPLE_SHOWN} (DR-1287)`);
   }
   return out;
 }

@@ -15,15 +15,22 @@ describe('lessonVideo', () => {
       embedUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
       title: 'L',
       seconds: 600,
+      label: 'Walk-through',
     });
     expect(lessonVideo({ title: 'L', video: { url: '/media/courses/banking/1.mp4', title: 'Week 1' } })).toEqual({
       kind: 'file',
       src: '/media/courses/banking/1.mp4',
       title: 'Week 1',
       seconds: null,
+      label: 'Walk-through',
     });
     expect(lessonVideo({ title: 'L' })).toEqual({ kind: 'none', title: 'L', seconds: null });
     expect(lessonVideo(null)).toEqual({ kind: 'none', title: '', seconds: null });
+  });
+  it('says what the recording is: a walk-through by default, or the teacher\'s own message when the lesson says so', () => {
+    const own = lessonVideo({ title: 'P', video: { url: 'https://youtu.be/Nx44eoRK8z8', label: 'His own message' } });
+    expect(own.label).toBe('His own message');
+    expect(lessonVideo({ video: { url: 'https://youtu.be/Nx44eoRK8z8' } }).label).toBe('Walk-through');
   });
   it("refuses a file off the app's origin or without a video extension (no third-party player painted)", () => {
     expect(sameOriginMedia('https://cdn.example/x.mp4')).toBeNull();
