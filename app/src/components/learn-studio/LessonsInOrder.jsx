@@ -14,6 +14,7 @@
 // =============================================================================
 import React, { useMemo, useState } from 'react';
 import { presentLesson } from '../../lib/learn-presentation/presentation.js';
+import { READING_VERSIONS } from '../../lib/learn-organize.js';
 
 const RING = 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2';
 export const FIRST_ROWS = 5;
@@ -42,76 +43,232 @@ export function orderedLessons(course, index, { order = 'order', preview = false
   return rows;
 }
 
-export default function LessonsInOrder({ courses, index, preview = false, onOpen }) {
+const NO_DONE = new Set();
+
+// A choice the reader made stays made on this device (a convenience only; the
+// page renders the same without storage).
+export function remembered(key, fallback, allowed) {
+  try {
+    const v = window.localStorage.getItem(`ls-view:${key}`);
+    return allowed.includes(v) ? v : fallback;
+  } catch {
+    return fallback;
+  }
+}
+export function remember(key, value) {
+  try {
+    window.localStorage.setItem(`ls-view:${key}`, value);
+  } catch {
+    /* no storage */
+  }
+}
+export const LESSON_SHOWS = Object.freeze([
+  { key: 'all', label: 'All' },
+  { key: 'unread', label: 'Not read' },
+  { key: 'read', label: 'Read' },
+]);
+// Pictures first (Darrell 2026-11-26: "by default it should be condensed... we should see images and
+// titles... and the full images with options for pictures or list"); List is the compact rows.
+export const VIEWS = Object.freeze([
+  { key: 'pictures', label: 'Pictures' },
+  { key: 'list', label: 'List' },
+]);
+
+/** A row of pressed/unpressed buttons: one tap, the choice is visible. */
+export function Toggle({ label, options, value, onChange, testid }) {
+  return (
+    <div className="ls-toggle" role="group" aria-label={label} data-testid={testid}>
+      <span className="ls-toggle-label">{label}</span>
+      {options.map((o) => (
+        <button key={o.key} type="button" aria-pressed={value === o.key} className={`ls-toggle-btn ${RING}`} onClick={() => onChange(o.key)}>
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** The smallest thumbnail: the lesson's approved cover, or its number on a panel. Never blank. */
+export function MiniThumb({ image, label }) {
+  return (
+    <span className="ls-mini-thumb" aria-hidden="true">
+      {image && image.src ? <img src={image.src} alt="" loading="lazy" decoding="async" /> : <span className="ls-mini-code">{label}</span>}
+    </span>
+  );
+}
+
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+/** "July 2026" from a lesson's recorded day ('YYYY-MM-DD'), or ''. Pure. */
+export function monthOf(lesson) {
+  const m = /^(\d{4})-(\d{2})-\d{2}$/.exec(String((lesson && lesson.added) || ''));
+  return m ? `${MONTHS[Number(m[2]) - 1]} ${m[1]}` : '';
+}
+
+/**
+ * props: courses, index, preview, onOpen(x), done (Set of read lesson ids),
+ * fixedCourse (a course key: the course page -- no course picker, every row shown).
+ */
+export default function LessonsInOrder({
+  courses,
+  index,
+  preview = false,
+  onOpen,
+  done = NO_DONE,
+  fixedCourse = null,
+  markFor = null,
+  onVersion = null,
+  order: orderProp = null,
+  listTestId = null,
+  renderPictures = null, // (rows, { grid }) => the full-image cards; without it the list is the only look
+}) {
   const list = useMemo(() => (Array.isArray(courses) ? courses : []).filter((c) => keyOf(c) && (c.schedule || []).length), [courses]);
   const first = useMemo(
     () => (list.find((c) => keyOf(c) === 'living-lessons') || list[0] ? keyOf(list.find((c) => keyOf(c) === 'living-lessons') || list[0]) : ''),
     [list]
   );
   const [picked, setPicked] = useState('');
-  const [order, setOrder] = useState('order');
-  const [shown, setShown] = useState(FIRST_ROWS);
-  const courseKey = picked || first;
+  const [orderPick, setOrder] = useState('order');
+  // A parent that owns the order (the course page's own picker) hides this one: one control, never two.
+  const order = orderProp || orderPick;
+  const [shown, setShown] = useState(fixedCourse ? Infinity : FIRST_ROWS);
+  const courseKey = fixedCourse || picked || first;
   const course = list.find((c) => keyOf(c) === courseKey) || null;
-  const rows = useMemo(() => orderedLessons(course, index, { order, preview }), [course, index, order, preview]);
+  const [show, setShowState] = useState(() =>
+    remembered(
+      'lesson-show',
+      'all',
+      LESSON_SHOWS.map((o) => o.key)
+    )
+  );
+  const [view, setViewState] = useState(() =>
+    remembered(
+      'lesson-view',
+      'pictures',
+      VIEWS.map((o) => o.key)
+    )
+  );
+  const setShow = (v) => {
+    setShowState(v);
+    remember('lesson-show', v);
+  };
+  const setView = (v) => {
+    setViewState(v);
+    remember('lesson-view', v);
+  };
+  const ordered = useMemo(() => orderedLessons(course, index, { order, preview }), [course, index, order, preview]);
+  const rows = useMemo(
+    () => (show === 'read' ? ordered.filter((x) => done.has(x.lesson.id)) : show === 'unread' ? ordered.filter((x) => !done.has(x.lesson.id)) : ordered),
+    [ordered, show, done]
+  );
+  const readHere = useMemo(() => ordered.filter((x) => done.has(x.lesson.id)).length, [ordered, done]);
   if (!course) return null;
   return (
     <section className="ls-inorder" aria-labelledby="ls-inorder-h" data-testid="lessons-in-order">
       <header className="ls-inorder-head">
-        <h2 id="ls-inorder-h">Lessons</h2>
-        <span className="ls-note">{rows.length} lessons</span>
+        <h2 id="ls-inorder-h">{fixedCourse ? titleOf(course) : 'Lessons'}</h2>
+        <span className="ls-note">
+          {ordered.length} lessons{readHere ? ` · ${readHere} read` : ''}
+        </span>
       </header>
       <div className="ls-inorder-picks">
-        <label>
-          <span className="sr-only">Course</span>
-          <select
-            className={RING}
-            value={courseKey}
-            onChange={(e) => {
-              setPicked(e.target.value);
-              setShown(FIRST_ROWS);
-            }}
-            data-testid="inorder-course"
-          >
-            {list.map((c) => (
-              <option key={keyOf(c)} value={keyOf(c)}>
-                {titleOf(c)}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          <span className="sr-only">Order</span>
-          <select
-            className={RING}
-            value={order}
-            onChange={(e) => {
-              setOrder(e.target.value);
-              setShown(FIRST_ROWS);
-            }}
-            data-testid="inorder-order"
-          >
-            {ORDERS.map((o) => (
-              <option key={o.key} value={o.key}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-        </label>
+        {!fixedCourse && (
+          <label>
+            <span className="sr-only">Course</span>
+            <select
+              className={RING}
+              value={courseKey}
+              onChange={(e) => {
+                setPicked(e.target.value);
+                setShown(FIRST_ROWS);
+              }}
+              data-testid="inorder-course"
+            >
+              {list.map((c) => (
+                <option key={keyOf(c)} value={keyOf(c)}>
+                  {titleOf(c)}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+        {!orderProp && (
+          <label>
+            <span className="sr-only">Order</span>
+            <select
+              className={RING}
+              value={order}
+              onChange={(e) => {
+                setOrder(e.target.value);
+                setShown(FIRST_ROWS);
+              }}
+              data-testid="inorder-order"
+            >
+              {ORDERS.map((o) => (
+                <option key={o.key} value={o.key}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
       </div>
-      <ol className="ls-inorder-list">
-        {rows.slice(0, shown).map((x) => (
-          <li key={x.lesson.id}>
-            <button type="button" className={`ls-inorder-row ${RING}`} onClick={() => onOpen(x)} data-testid={`inorder-${x.lesson.id}`}>
-              <span className="ls-inorder-n">{x.n}</span>
-              <span className="ls-inorder-t">{x.lesson.title || x.p.displayTitle}</span>
-              <span className="ls-inorder-go" aria-hidden="true">
-                ▶
-              </span>
-            </button>
-          </li>
-        ))}
-      </ol>
+      <div className="ls-controls">
+        <Toggle label="Show" options={LESSON_SHOWS} value={show} onChange={setShow} testid="inorder-show" />
+        {renderPictures && <Toggle label="View" options={VIEWS} value={view} onChange={setView} testid="inorder-view" />}
+      </div>
+      {!rows.length && (
+        <p className="ls-empty" role="status" data-testid="inorder-none">
+          {show === 'read' ? 'No lesson of this course is on your record yet.' : 'Every lesson of this course is read.'} Choose Show: All to see every lesson.
+        </p>
+      )}
+      {renderPictures && view === 'pictures' ? (
+        <div className="ls-inorder-pictures" data-testid="inorder-pictures">
+          {renderPictures(rows.slice(0, shown), { grid: shown > FIRST_ROWS })}
+        </div>
+      ) : (
+        <ol className="ls-inorder-list ls-inorder-list--list" data-testid={listTestId || undefined}>
+          {rows.slice(0, shown).map((x, i, arr) => (
+            <React.Fragment key={x.lesson.id}>
+              {(order === 'order' || order === 'newest') && monthOf(x.lesson) && monthOf(x.lesson) !== monthOf(arr[i - 1] && arr[i - 1].lesson) && (
+                <li className="ls-month" aria-hidden="true">
+                  {monthOf(x.lesson)}
+                </li>
+              )}
+              <li>
+                <button type="button" className={`ls-inorder-row ${RING}`} onClick={() => onOpen(x)} data-testid={`inorder-${x.lesson.id}`}>
+                  <MiniThumb image={x.p.image} label={x.n} />
+                  <span className="ls-inorder-n">{x.n}</span>
+                  <span className="ls-inorder-t">
+                    {x.lesson.title || x.p.displayTitle}
+                    {(() => {
+                      const mark = markFor ? markFor(x.lesson, courseKey) : done.has(x.lesson.id) ? '✓ READ' : '';
+                      return mark ? <span className="ls-read-mark">{mark}</span> : null;
+                    })()}
+                  </span>
+                  <span className="ls-inorder-go" aria-hidden="true">
+                    ▶
+                  </span>
+                </button>
+                {onVersion && x.p.versions && x.p.versions.length > 1 && (
+                  <div className="ls-ages-mini" role="group" aria-label={`Read ${x.lesson.title || x.p.displayTitle} for an age`}>
+                    {x.p.versions.map((v) => (
+                      <button
+                        key={v}
+                        type="button"
+                        className={`ls-age-chip ${RING}`}
+                        onClick={() => onVersion(x, v)}
+                        data-testid={`inorder-age-${x.lesson.id}-${v}`}
+                      >
+                        {(READING_VERSIONS.find((b) => b.id === v) || { label: v }).label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </li>
+            </React.Fragment>
+          ))}
+        </ol>
+      )}
       {shown < rows.length && (
         <div className="ls-inorder-more">
           <button type="button" className={`ls-btn ls-btn--outline ${RING}`} onClick={() => setShown((n) => n + MORE_ROWS)} data-testid="inorder-more">

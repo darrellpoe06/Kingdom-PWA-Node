@@ -26,6 +26,7 @@ const versionLabel = (id) => (READING_VERSIONS.find((b) => b.id === id) || { lab
 // A keyboard user must SEE where they are (ui-standards focus-ring). Gold, never red (red is reserved, DR-0099).
 const RING = 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2';
 import LessonsInOrder from './LessonsInOrder.jsx';
+import { scrollToStudioTools } from '../../lib/learn-studio-bridge.js';
 import CourseLessonsView from './CourseLessonsView.jsx';
 import './learn-studio.css';
 
@@ -157,17 +158,56 @@ function Row({ icon = 'play', title, note, items, onOpen, onSeeAll, grid = false
   );
 }
 
+/** A horizontal swipe of at least this many px, more sideways than up/down, turns the slide. */
+export const SWIPE_PX = 40;
+/** -1 (back), 1 (forward) or 0 for a touch that moved from (x0, y0) to (x1, y1). Pure. */
+export function swipeStep(x0, y0, x1, y1) {
+  const dx = x1 - x0;
+  const dy = y1 - y0;
+  if (Math.abs(dx) < SWIPE_PX || Math.abs(dx) <= Math.abs(dy)) return 0;
+  return dx < 0 ? 1 : -1;
+}
+
 function Hero({ slides, onOpen, onListen }) {
   const [i, setI] = useState(0);
+  // A swipe or a dot restarts the clock, so the slide just chosen is not turned away a moment later.
+  const [moved, setMoved] = useState(0);
+  const start = React.useRef(null);
   useEffect(() => {
     if (slides.length < 2) return undefined;
     const t = setInterval(() => setI((n) => (n + 1) % slides.length), 7000);
     return () => clearInterval(t);
-  }, [slides.length]);
+  }, [slides.length, moved]);
   if (!slides.length) return null;
   const x = slides[i % slides.length];
+  const go = (n) => {
+    setI(((n % slides.length) + slides.length) % slides.length);
+    setMoved((m) => m + 1);
+  };
+  // SWIPING THE PICTURE MOVES IT (Darrell 2026-11-26, on his phone: "Swiping there pictures of
+  // lessons should move it"). Only the dots turned it before.
+  const onTouchStart = (e) => {
+    const t = e.touches && e.touches[0];
+    start.current = t ? { x: t.clientX, y: t.clientY } : null;
+  };
+  const onTouchEnd = (e) => {
+    const t = e.changedTouches && e.changedTouches[0];
+    const s0 = start.current;
+    start.current = null;
+    if (!t || !s0 || slides.length < 2) return;
+    const step = swipeStep(s0.x, s0.y, t.clientX, t.clientY);
+    if (step) go((i % slides.length) + step);
+  };
   return (
-    <section className="ls-hero" aria-roledescription="carousel" aria-label="Featured lessons">
+    <section
+      className="ls-hero"
+      aria-roledescription="carousel"
+      aria-label="Featured lessons"
+      onTouchStart={onTouchStart}
+      onTouchEnd={onTouchEnd}
+      data-testid="ls-hero"
+      data-slide={i % slides.length}
+    >
       <Art p={x.p} eager sizes="100vw" />
       <div className="ls-hero-body">
         <Headline text={x.p.displayTitle} size="hero" align="right" />
@@ -187,11 +227,32 @@ function Hero({ slides, onOpen, onListen }) {
             type="button"
             aria-label={`Show featured lesson ${n + 1}`}
             className={`${n === i % slides.length ? 'on' : ''} ${RING}`}
-            onClick={() => setI(n)}
+            onClick={() => go(n)}
           />
         ))}
       </div>
     </section>
+  );
+}
+
+/**
+ * Every classic Learn tool, CONDENSED BY DEFAULT (Darrell 2026-11-26: "this functionality is
+ * great however by default it should be condensed"). One tap opens it; a tool or department
+ * chip opens it and scrolls to it (scrollToStudioTools). Its contents stay mounted while closed.
+ */
+function ToolsPanel({ title, note, children }) {
+  return (
+    <details className="ls-row ls-full-tools" id="ls-full-tools" data-testid="ls-full-tools">
+      <summary className={`ls-tools-summary ${RING}`}>
+        <span className="ls-ico ls-ico--star" aria-hidden="true" />
+        <span className="ls-tools-title">{title}</span>
+        {note && <span className="ls-note">{note}</span>}
+        <span className="ls-tools-open" aria-hidden="true">
+          Open ▾
+        </span>
+      </summary>
+      <div className="ls-tools-body">{children}</div>
+    </details>
   );
 }
 
@@ -319,6 +380,7 @@ export function LessonCover({ x, next, onBack, onRead, onListen, onVersion, onOp
 const NO_PLACES = Object.freeze([]);
 const NO_PROGRESS = Object.freeze({});
 const NO_COVERS = Object.freeze({});
+const NO_DONE = new Set();
 const CoversContext = React.createContext(NO_COVERS);
 
 export default function LearnStudio({
@@ -334,6 +396,14 @@ export default function LearnStudio({
   onExit,
   initialLesson = null,
   initialCourse = null,
+  // DR-1662: every classic Learn function in the new look.
+  dashboard = null, // node: Your Learning, Pick Up Next, Courses (LearnDashboard)
+  tools = null, // node: the full classic tools (Record, Downloads, Find by verse...), in this page
+  done = NO_DONE, // Set of lesson ids on the reader's record
+  onCourse = null, // (courseKey) a course page opened: the tools follow it
+  onDepartment = null, // (label) -> true when the tools took the department
+  courseRequest = null, // { key, nonce }: open this course page (from the dashboard)
+  markFor = null, // (lesson, courseKey) -> "✓ READ ×3 · Adult" or ''
 }) {
   const home = useMemo(() => studioHome(courses, index, { places, progress, preview }), [courses, index, places, progress, preview]);
   const [query, setQuery] = useState('');
@@ -352,6 +422,23 @@ export default function LearnStudio({
     courseOpened.current = true;
     setCourseKey(initialCourse);
   }, [initialCourse]);
+  useEffect(() => {
+    if (!courseRequest || !courseRequest.key) return;
+    setShelf(null);
+    setQuery('');
+    setOpen(null);
+    setCourseKey(courseRequest.key);
+    try {
+      window.scrollTo(0, 0);
+    } catch {
+      /* no window (tests) */
+    }
+  }, [courseRequest]);
+  useEffect(() => {
+    if (courseKey && onCourse) onCourse(courseKey);
+    // onCourse is a fresh closure each parent render; the course is what matters
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [courseKey]);
   const pickedCourse = useMemo(() => {
     if (!courseKey) return null;
     const c = (courses || []).find((k) => (k.key || (k.meta && k.meta.key)) === courseKey);
@@ -455,7 +542,27 @@ export default function LearnStudio({
               items={pickedCourse.items}
               onOpen={openLesson}
               renderPictures={(rows) => <Row title={pickedCourse.title} note={`${rows.length} lessons`} items={rows} onOpen={openLesson} grid />}
+              // DR-1662: List is the compact-thumbnail list (read marks, ages, Show), in the order chosen above.
+              renderList={(order) => (
+                <LessonsInOrder
+                  courses={courses}
+                  index={index}
+                  preview={preview}
+                  onOpen={(x) => read(x)}
+                  done={done}
+                  fixedCourse={courseKey}
+                  order={order}
+                  listTestId="course-list"
+                  markFor={markFor}
+                  onVersion={version}
+                />
+              )}
             />
+            {tools && (
+              <ToolsPanel title={`${pickedCourse.title}: every tool`} note="record, downloads, share, ages">
+                {tools}
+              </ToolsPanel>
+            )}
           </>
         ) : pickedShelf ? (
           <>
@@ -466,7 +573,23 @@ export default function LearnStudio({
           </>
         ) : (
           <>
-            <LessonsInOrder courses={courses} index={index} preview={preview} onOpen={(x) => read(x)} />
+            <LessonsInOrder
+              courses={courses}
+              index={index}
+              preview={preview}
+              onOpen={(x) => read(x)}
+              done={done}
+              markFor={markFor}
+              onVersion={version}
+              renderPictures={(rows, { grid }) => (
+                <div className={grid ? 'ls-grid ts-grid-collapse' : 'ls-scroller'}>
+                  {rows.map((x) => (
+                    <Card key={`${x.p.courseKey}::${x.p.lessonId}`} x={x} onOpen={openLesson} />
+                  ))}
+                </div>
+              )}
+            />
+            {dashboard}
             <Hero slides={heroSlides} onOpen={openLesson} onListen={listen} />
             <Row icon="play" title="Continue Learning" items={home.continueLearning} onOpen={openLesson} />
             <Row icon="star" title="Discover Something New" note="Hand-picked lessons" items={home.discover} onOpen={openLesson} />
@@ -485,12 +608,26 @@ export default function LearnStudio({
               </header>
               <div className="ls-depts">
                 {home.topics.map((t) => (
-                  <button key={t.label} type="button" className={`ls-chip ls-chip--dept ${RING}`} onClick={onExit}>
+                  <button
+                    key={t.label}
+                    type="button"
+                    className={`ls-chip ls-chip--dept ${RING}`}
+                    onClick={() => {
+                      // The department opens in the tools on this page; only a department the tools do not know leaves for All Courses.
+                      if (onDepartment && onDepartment(t.label)) scrollToStudioTools();
+                      else onExit();
+                    }}
+                  >
                     {t.label} · {t.lessons}
                   </button>
                 ))}
               </div>
             </section>
+            {tools && (
+              <ToolsPanel title="Every Learn Tool" note="Continue, Latest, Browse, Find, Record, Downloads">
+                {tools}
+              </ToolsPanel>
+            )}
           </>
         )}
       </div>

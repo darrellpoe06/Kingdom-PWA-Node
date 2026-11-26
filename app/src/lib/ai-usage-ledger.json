@@ -533,6 +533,23 @@
       "notes": "Checked one teaching one lesson: the fall is taught in L310 and L319, so only the new teaching was built. Rival's quarter read back via search summaries of its 8-K; the rest tiered as reported. 123 quotations filled from the corpus; gate 9/9; shares first failed and were fixed."
     },
     {
+      "id": "learn-functions-in-new-look",
+      "date": "2026-11-26",
+      "task": "Every classic Learn function in the new look: Your Learning, Pick Up Next, courses and lessons as compact thumbnail rows with Sort / Show / View, read marks and ages, the whole classic page as Every Learn Tool, lessons opening in the new Experience",
+      "drs": [
+        "DR-1662"
+      ],
+      "prs": [
+        2901
+      ],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.2,
+      "estimateWithoutAiHours": 14,
+      "notes": "110 of 110 across the six suites after merging main; wiring test proven to catch."
+    },
+    {
       "id": "home-goes-home-and-the-menu-goes-where-it-says",
       "date": "2026-11-19",
       "task": "Three more reports from the Love Corner door on a phone: the bottom bar's Home that did not go home and lit the wrong item, account-menu rows that did not open what they named, and the header title running under its buttons",
