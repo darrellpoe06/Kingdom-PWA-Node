@@ -11,7 +11,9 @@
 // Darrell's wife, 2026-11-24, with every button in the app frozen: this
 // boundary is the fix for THAT CLASS of failure, whatever the exact cause.
 import { neighborLessons } from './LessonNav.jsx';
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import LearnDashboard from './LearnDashboard.jsx';
+import { recordUse } from '../../lib/ux-signals.js';
 import LearnStudio from './LearnStudio.jsx';
 import { presentationIndex, isLearnStudioOn, STUDIO_FLAG_KEY, allLessons } from '../../lib/learn-presentation/presentation.js';
 
@@ -53,7 +55,31 @@ export class LearnStudioErrorBoundary extends React.Component {
   }
 }
 
-export default function LearnStudioPreview({ courses, onOpenLesson, onExit, ownerDevice = false, initialLessonId = null, initialCourseKey = null }) {
+const NO_PLACES = Object.freeze([]);
+const NO_DONE = new Set();
+const NO_CTX = Object.freeze({ places: NO_PLACES, progress: {} });
+
+export default function LearnStudioPreview({
+  courses,
+  onOpenLesson,
+  onExit,
+  ownerDevice = false,
+  initialLessonId = null,
+  initialCourseKey = null,
+  // DR-1662: every classic Learn function, in the new look.
+  tools = null,
+  registerOpener = null,
+  onCourse = null,
+  onDepartment = null,
+  onTool = null,
+  ctx = NO_CTX,
+  places = NO_PLACES,
+  done = NO_DONE,
+  continueCount = 0,
+  recordCount = 0,
+  markFor = null,
+}) {
+  const [courseRequest, setCourseRequest] = useState(null);
   const index = useMemo(() => presentationIndex(((RECORDS && RECORDS.records) || []).map((r) => ({ ...r, image: image(r.image) }))), []);
   const topics = useMemo(() => Object.fromEntries(Object.entries(TOPICS || {}).map(([k, v]) => [k, { ...v, image: image(v.image) }])), []);
   // The Lesson Experience (Watch / Read / Listen / Study). Built as a ONE-lesson
@@ -90,6 +116,12 @@ export default function LearnStudioPreview({ courses, onOpenLesson, onExit, owne
   };
   const opens = (lesson) => ownerDevice && hasOwnText(lesson);
   const open = (lesson, course, mode, level) => {
+    // Recently opened is shared with the classic page (lib/ux-signals.js): a lesson opened here counts there too.
+    try {
+      recordUse(lesson && lesson.id);
+    } catch {
+      /* no storage */
+    }
     setExperienceLevel(level);
     setExperienceMode(mode);
     setActive({ lesson, course });
@@ -108,6 +140,24 @@ export default function LearnStudioPreview({ courses, onOpenLesson, onExit, owne
     setActive(null);
     return onOpenLesson(courseKey, lessonId);
   };
+  // A lesson chosen in the classic tools on this page (Continue, Latest, Find,
+  // Record, Play...) opens in the Experience too. Returns false when it cannot
+  // (not the owner device, or no words), so the classic path runs instead.
+  const openerRef = useRef(null);
+  openerRef.current = (courseKey, lessonId, { mode = 'read', level = 'adult' } = {}) => {
+    const hit = catalog.find((x) => x.lesson.id === lessonId && courseKeyOf(x.course) === courseKey);
+    if (!hit || !opens(hit.lesson)) return false;
+    const lv = ['child', 'youth', 'teen', 'adult', 'senior'].includes(level) ? level : 'adult';
+    open(hit.lesson, hit.course, mode === 'listen' ? 'listen' : mode === 'watch' ? 'watch' : 'read', lv);
+    return true;
+  };
+  useEffect(() => {
+    if (!registerOpener) return undefined;
+    registerOpener((...a) => openerRef.current(...a));
+    return () => registerOpener(null);
+    // registered once per mount; the ref always holds the current opener
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   if (active && ownerDevice) {
     return (
       <LessonExperienceBoundary onExit={() => setActive(null)}>
@@ -145,6 +195,26 @@ export default function LearnStudioPreview({ courses, onOpenLesson, onExit, owne
           onExit={onExit}
           initialLesson={initialLessonId}
           initialCourse={initialCourseKey}
+          places={places}
+          progress={ctx.progress || {}}
+          done={done}
+          markFor={markFor}
+          tools={tools}
+          onCourse={onCourse}
+          onDepartment={onDepartment}
+          courseRequest={courseRequest}
+          dashboard={
+            <LearnDashboard
+              courses={courses}
+              index={index}
+              preview
+              ctx={ctx}
+              onOpenCourse={(key) => setCourseRequest({ key, nonce: Date.now() })}
+              onTool={onTool}
+              continueCount={continueCount}
+              recordCount={recordCount}
+            />
+          }
         />
       </LearnStudioErrorBoundary>
       {ownerDevice && prototypeRecord && (

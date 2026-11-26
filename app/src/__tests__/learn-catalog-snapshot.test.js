@@ -14,7 +14,8 @@ describe('catalogSnapshot', () => {
   it('keeps every course and every lesson, in order', () => {
     expect(SNAP.map((c) => c.key)).toEqual(LIVE.map((c) => c.key));
     expect(SNAP.reduce((n, c) => n + c.schedule.length, 0)).toBe(LIVE.reduce((n, c) => n + c.schedule.length, 0));
-    expect(SNAP.reduce((n, c) => n + c.schedule.length, 0)).toBe(994);
+    // A floor, not a pin: no lesson lost from the 994 measured 2026-11-24; new lessons (L342 on) pass.
+    expect(SNAP.reduce((n, c) => n + c.schedule.length, 0)).toBeGreaterThanOrEqual(994);
   });
 
   it('presents every lesson exactly as the live catalog does', () => {
@@ -27,7 +28,8 @@ describe('catalogSnapshot', () => {
         checked += 1;
       });
     });
-    expect(checked).toBe(994);
+    expect(checked).toBe(LIVE.reduce((n, c) => n + c.schedule.length, 0));
+    expect(checked).toBeGreaterThanOrEqual(994);
   });
 
   it('carries no lesson text', () => {

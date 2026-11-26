@@ -682,7 +682,6 @@ export default function LessonExperience({
       <button type="button" className={`le-back ${RING}`} onClick={onExit}>
         ‹ Back to Learn
       </button>
-      {!lessonTools && <span className="le-proto-badge">Owner preview · this lesson is not public yet</span>}
       <button type="button" className={`le-pagelight ${RING}`} onClick={togglePage} aria-pressed={darkPage} data-testid="le-page-light">
         {darkPage ? 'Bright page' : 'Dark page'}
       </button>
@@ -696,11 +695,7 @@ export default function LessonExperience({
     <FullPageContext.Provider value={onFullPage}>
       <LevelContext.Provider value={level}>
         <ExperienceToolsContext.Provider value={lessonTools}>
-          <div
-            ref={rootRef}
-            className={`le-root le-root--${mode}${darkPage ? ' le-root--darkpage' : ''}`}
-            aria-label={lessonTools ? 'Lesson' : 'Lesson Experience (prototype)'}
-          >
+          <div ref={rootRef} className={`le-root le-root--${mode}${darkPage ? ' le-root--darkpage' : ''}`} aria-label="Lesson">
             {header}
             {lessonTools && lessonTools.screenHint}
             {!started ? (

@@ -96,10 +96,12 @@ describe('LearnStudio', () => {
     expect(q('[role=status]').textContent).toMatch(/No lesson has an approved cover yet/);
   });
 
-  it('every department and all 994 lessons stay reachable, and search finds an original title', () => {
+  it('every department and every lesson (994 or more) stay reachable, and search finds an original title', () => {
     render(<LearnStudio courses={COURSES} index={presentationIndex([REC])} preview />);
+    const total = COURSES.reduce((n, c) => n + c.schedule.length, 0);
+    expect(total).toBeGreaterThanOrEqual(994); // a floor: none lost; new lessons (L342 on) pass
     expect(container.textContent).toContain('All 13 Departments');
-    expect(container.textContent).toContain('994 lessons');
+    expect(container.textContent).toContain(`${total} lessons`);
     type(q('input[type=search]'), 'Eyeservice');
     expect(container.textContent).toContain('Results for');
     expect(byText('Who Is Watching When You Work Alone?').length).toBeGreaterThan(0);
