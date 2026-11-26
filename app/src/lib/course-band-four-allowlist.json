@@ -28,7 +28,6 @@
     "bonds": [
     ],
     "broadcast": [
-      "bc1-the-whole-chain",
       "bc2-camera-and-image",
       "bc3-light",
       "bc4-obs-switching",
