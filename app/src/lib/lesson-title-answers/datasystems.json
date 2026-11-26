@@ -1,0 +1,184 @@
+{
+ "dsi1-what-poetech-is": {
+  "verdict": "ANSWERS-LATE-OR-BURIED",
+  "reason": "Opens by defining a PWA and listing uses; the answer (no painted numbers, every figure traces to real state) comes mid-paragraph; ends on stewardship verses, not on trusting the number.",
+  "open": "THE QUESTION IN THE TITLE. Can you trust a number on your screen? In PoeTech, yes, because of a binding rule: no painted numbers. Every figure traces back to a real record, a real run, or a real timestamp, and where the real data is missing, the screen says so. The second idea, sovereignty, keeps that data on our own equipment, serving you rather than being sold. Here is how both work.",
+  "close": "BACK TO THE QUESTION. Can you trust a number on your screen? Yes, because it is built to be traced: no painted numbers, and an honest \"not connected\" or empty space instead of a pretty guess. That trust rests on two ideas, truth and sovereignty, on equipment the family and church control. And it stays honest when you keep asking of any figure, \"where does this come from?\" That is how a faithful steward handles a tool for the Body (1 Corinthians 4:2).",
+  "teen": {
+   "open": "Can you trust the numbers in this app? Yes. Every number comes from real data, and if the data isn't there, the app tells you.",
+   "close": "So yes, you can trust a number here, because it is never made up. Still build the habit: ask where it comes from."
+  },
+  "senior": {
+   "open": "The question is whether a figure on the screen can be trusted. In this app it can, because every number must trace to a real record, and missing data is shown honestly.",
+   "close": "So the answer is yes, with a steward's habit attached. The numbers are real, the data stays on our own equipment, and asking where a figure comes from keeps that trust honest."
+  }
+ },
+ "dsi2-the-shared-data-layer": {
+  "verdict": "ANSWERS-LATE-OR-BURIED",
+  "reason": "Opens on device-first sync; the answer to who can see your data (Row-Level Security by role and relationship, enforced in the database) arrives mid-lesson; ends on verses about guarding.",
+  "open": "THE QUESTION IN THE TITLE. Who can see your data? Only the people your role and your relationship to each record allow. The data layer is shared, but a rule called Row-Level Security checks who you are before any record opens, row by row, and it is enforced inside the database itself, not just hidden on screen. Here is where your data lives and how that guard works.",
+  "close": "BACK TO THE QUESTION. Who can see your data? You, first, because it is written to your own device. Then, after it syncs to our own database, only those whose role and relationship to a record let the guard open that row. A child is denied money data at the database, and a tenant can report a repair but never reach a money row. And the data is never sold: it is yours, and you can export it. That is faithfulness in little (Luke 16:10).",
+  "teen": {
+   "open": "Who can see your stuff in this app? Only people whose role lets them, checked row by row by the database itself.",
+   "close": "So who sees your data? You do, and only others your role allows. It is guarded at the database, never sold, and yours to take with you."
+  },
+  "senior": {
+   "open": "The question is who may see what you enter. The answer is governed: the data is shared, but each record opens only to those whose role and relationship permit it.",
+   "close": "So the answer is clear. Your work lives first on your device, then in our own database, where Row-Level Security admits only those your role permits. It is never sold, and it remains yours."
+  }
+ },
+ "dsi3-the-loops": {
+  "verdict": "ANSWERS-CLEARLY",
+  "reason": "Names the loop and its five steps in the first sentences, shows the system checking itself, and ends on the loops keeping an honest eye on real condition instead of decaying."
+ },
+ "dsi5-meet-ari": {
+  "verdict": "ANSWERS-CLEARLY",
+  "reason": "Opens with one Ari, one identity on every surface; explains serving under the Most High and honesty about being wrong; ends on Ari as an honest helper under Yahweh, to lean on and verify."
+ },
+ "dsi4-how-modules-connect": {
+  "verdict": "ANSWERS-CLEARLY",
+  "reason": "Opens with one recording feeding many places through the harvest pipeline (\"no video lost\"); ends on John 6:12, gather the fragments that nothing be lost, tied directly to the pipeline."
+ },
+ "dsi6-the-nas": {
+  "verdict": "ANSWERS-BUT-ENDS-OPEN",
+  "reason": "Barn-and-brain answers stores and runs early, and private-network access answers keeps private mid-lesson, but it ends on an SME status flag and storehouse verses without landing the privacy.",
+  "open": "THE QUESTION IN THE TITLE. What does a home server store, run, and keep private? The NAS stores the family's and church's data across several drives with backups, runs the services that make the system go, and keeps it all private because it is reached only on our own network, never the open internet. Here is how.",
+  "close": "BACK TO THE QUESTION. What does your family's storehouse store, run, and keep private? It stores data safely across several drives, with an encrypted copy kept offsite. It runs the automation, the small local A.I., family sharing, and phone alerts. And it keeps all of it private by being reachable only on our own network, never exposed to strangers on the public internet. Like Joseph's storehouse (Genesis 41:48-49), it keeps what is precious safe and gathered for the work ahead.",
+  "teen": {
+   "open": "What does the home server do? It stores the family's data, runs the app's services, and stays off the public internet.",
+   "close": "So the NAS is the family's storehouse: it keeps data safe, runs the services, and stays private on our own network."
+  },
+  "senior": {
+   "open": "The question is what this home server holds and does. It stores and backs up the family's data, runs the system's services, and is kept off the public internet.",
+   "close": "So the storehouse does three things: it stores with backups, it runs the services, and it keeps everything private by staying on our own network, a careful store like Joseph's (Genesis 41:48-49)."
+  }
+ },
+ "dsi7-the-gpu-node": {
+  "verdict": "ANSWERS-BUT-ENDS-OPEN",
+  "reason": "Answers early (two church GPU machines, transcription and local model, nothing called outside), but ends on Presenter strategy, SME flags and a verse without landing the locality answer.",
+  "open": "THE QUESTION IN THE TITLE. How does a church run heavy A.I. without sending a word outside? It runs it on its own two GPU machines. The heavy jobs are transcribing services and running a local language model for Ari, so no outside company's A.I. is called. Node 1 carries the everyday A.I.; Node 2 runs live production and stays off A.I. during church hours.",
+  "close": "BACK TO THE QUESTION. How does a church run heavy A.I. without sending a word outside? By doing the heavy work on its own hardware. The GPU machines carry two jobs: transcribing every service with Whisper and running a local model so Ari answers on our own equipment. Node 1 carries that everyday A.I. while Node 2 guards live worship. And the design states its limits honestly rather than pretending. That is how sovereignty is kept in practice: skill put to holy use, like Bezalel's (Exodus 31:1-6).",
+  "teen": {
+   "open": "How does the church use A.I. without sending your words to a big company? It runs it on its own two computers with graphics cards.",
+   "close": "So the church keeps A.I. at home: its own machines transcribe services and run Ari, and nothing gets sent outside."
+  },
+  "senior": {
+   "open": "The question is how heavy A.I. work is done without sending anything outside. The answer is two church-owned GPU machines, one for everyday A.I. and one guarding live production.",
+   "close": "So the answer is locality. Transcription and Ari's reasoning run on the church's own GPU machines, Node 2 is kept clear for worship, and the limits are stated honestly rather than hidden."
+  }
+ },
+ "dsi9-sunday-and-wednesday": {
+  "verdict": "ANSWERS-LATE-OR-BURIED",
+  "reason": "Walks the lanes but never says who runs the service until the last sentence (a team, each part in order); the opening only hints at it; SME flags and Presenter cutover come in between.",
+  "open": "THE QUESTION IN THE TITLE. Who runs the service behind the screen? A team, each in its own lane. Presentation puts words on the LED wall, production routes cameras to the switcher, the stream and the side screens, the A.I. lane transcribes and serves Ari, and the recording feeds the harvest afterward. No one carries it alone; it runs because each part does its job in order (1 Corinthians 14:40).",
+  "close": "BACK TO THE QUESTION. Who runs the service behind the screen? The team does, lane by lane: presentation, production, A.I., and the harvest after the last amen. Each part does its job in order, live worship is never gambled on unproven software, and the people work together with one heart (Nehemiah 4:6). That ordered team is what you are joining.",
+  "teen": {
+   "open": "Who runs the service behind the screen? A team. Each person handles one lane, and together it flows.",
+   "close": "So a team runs it, each lane in order. When you join, you are one part of that, working with one heart."
+  },
+  "senior": {
+   "open": "The question is who carries a service behind the screen. A team does, each member in a lane: presentation, production, A.I., and the harvest that follows.",
+   "close": "So the answer is an ordered team. Each lane does its part decently and in order (1 Corinthians 14:40), and the work goes well when hearts are joined to it."
+  }
+ },
+ "dsi8-the-led-wall": {
+  "verdict": "ANSWERS-LATE-OR-BURIED",
+  "reason": "Spends the first half on wall specs and the VX1000; the causes of blur (HDMI 1.4 limit, stretched or wrong-shape images) arrive late; ends on an SME pixel-map flag and verses.",
+  "open": "THE QUESTION IN THE TITLE. Why does the sanctuary wall go blurry? It goes blurry when it is fed less than it needs: a small image stretched big, a square image forced into the widescreen, or a plain HDMI 1.4 cable that tops out around 1080p. Feed it the full picture, about 2560 by 1440 in its 16:9 shape, over DVI or a higher-bandwidth input, and it stays sharp. Here is how the wall works.",
+  "example": "ONE SLIDE, TWO WAYS. Say a volunteer makes a slide at 1920 by 1080 and sends it over plain HDMI 1.4. The wall is about 2560 by 1440, so that picture has to be stretched to fill it, and the fine P1.99mm wall shows every soft edge. Now make the same slide at 2560 by 1440, in the 16:9 shape, edge to edge, and send it over DVI or the higher-bandwidth input. Nothing has to be stretched, and the words stay sharp.",
+  "close": "BACK TO THE QUESTION. Why does the sanctuary wall go blurry? Because a fine P1.99mm wall shows every soft edge it is given. So give it none: send the picture by cable through the VX1000, not by NDI; use the higher-bandwidth input for the full resolution at 60 frames per second; and make every image at the wall's native size and 16:9 shape, edge to edge, never stretched. Then the vision is written plain, so the one who reads it may run (Habakkuk 2:2).",
+  "teen": {
+   "open": "Why does the big wall look blurry sometimes? It is being fed a small or wrong-shaped picture, or the wrong cable.",
+   "close": "So to keep it sharp: right cable, full-size images in the wide shape, no stretching. Clear screens help everyone read the message."
+  },
+  "senior": {
+   "open": "The question is why the wall loses its sharpness. It does when it receives less than its full picture: a stretched image, the wrong shape, or a cable that cannot carry the resolution.",
+   "close": "So the remedy follows the cause: the right cable through the processor, images made at the wall's native size and shape, and nothing stretched. Then the vision is made plain (Habakkuk 2:2)."
+  }
+ },
+ "dsi10-running-a-service": {
+  "verdict": "ANSWERS-CLEARLY",
+  "reason": "Opens saying it is a calm, repeatable routine with safety nets, explains prepare, stay ahead and the built-in safeguards, and ends: prepare your set, stay a beat ahead, trust the safety nets."
+ },
+ "dsi11-adding-content-no-json": {
+  "verdict": "ANSWERS-CLEARLY",
+  "reason": "First sentences tell the reader to set the fear down because adding content is like filling a form; explains you cannot corrupt data via normal screens; ends on ease of contributing being on purpose."
+ },
+ "dsi12-voice-and-help": {
+  "verdict": "ANSWERS-CLEARLY",
+  "reason": "Opens saying the app answers you at every turn so you are never stuck, walks through ?, Read this page and Talk about this, and ends: the guidance is built in, so asking is always the easy path."
+ },
+ "dsi14-your-onboarding-path": {
+  "verdict": "ANSWERS-BUT-ENDS-OPEN",
+  "reason": "Says early the course replaces weeks of shoulder-tapping with a sourced path done in hours; the middle covers living source and honest flags; ends on 2 Timothy 2:2 and a welcome, not on the hours-not-weeks answer.",
+  "open": "THE QUESTION IN THE TITLE. Could you be up to speed in hours, not weeks? Yes. This course is your onboarding path: one clear, sourced, self-paced order that replaces weeks of someone tapping you on the shoulder, and you can finish it in hours. It stays faithful because it is drawn from the real system and says plainly what still needs an expert to confirm.",
+  "close": "BACK TO THE QUESTION. Could you be up to speed in hours, not weeks? You can, because the knowledge no longer lives in one person's head. It lives in a sourced path: foundations, then infrastructure, then operating skills, with a checkpoint quiz in each module and an honest completion record at the end. It shares its material with the in-app help, so it stays true as the app changes, and it flags what still needs the right person. That is faithful teaching (2 Timothy 2:2): knowledge entrusted to you well enough that you can pass it on.",
+  "teen": {
+   "open": "Can you learn this system in hours instead of weeks? Yes. The course lays out one clear path, so you are not waiting on someone to explain each piece.",
+   "close": "So yes, hours, not weeks. Follow the path, pass each quiz, ask the right person when the course says to confirm, and then teach the next person."
+  },
+  "senior": {
+   "open": "The title asks whether a new steward can be ready in hours rather than weeks. This course answers yes: a sourced, ordered path replaces the old way of learning piece by piece from one person.",
+   "close": "So the answer stands. A clear path drawn from the real system, honest about what it has not confirmed, brings you up to speed in hours, and it equips you to entrust the same knowledge to others (2 Timothy 2:2)."
+  }
+ },
+ "dsi13-roles-and-permissions": {
+  "verdict": "ANSWERS-LATE-OR-BURIED",
+  "reason": "Opens on relationship and role, but who-can-do-what and why it protects everyone are spread through the middle; ends on Romans 12 and Luke 12:48 rather than the plain answer to the title.",
+  "open": "THE QUESTION IN THE TITLE. Who can do what in the app, and why does that protect everyone? Your access comes from your relationship and your role. A child cannot reach money or security, a tenant can report a repair but never touch money, stewards run operations, and a governor reviews. Some of those limits are built into the data and cannot be switched off, so the people they guard do not depend on anyone remembering to be careful.",
+  "example": "TWO VOLUNTEERS, TWO SCREENS. Say two volunteers sit side by side. One is a steward and sees the choir and the order of service and can edit them. The other is not and does not see those tabs at all. Nothing is broken. The same Row-Level Security that guards the data is simply showing up as what each person can see and do.",
+  "close": "BACK TO THE QUESTION. Who can do what in the app, and why does that protect everyone? Your role tells you exactly what is yours: stewards write to the operational surfaces, a governor reviews, a tenant reports repairs, and a child is locked out of money and security at the data level. That protects you, because you cannot disrupt a job that is not available to you. It protects children and tenants, because their safety is structural, not a habit. Each member stewards what is truly theirs (Romans 12:4-6), and more access always means more responsibility (Luke 12:48).",
+  "teen": {
+   "open": "Who can do what in the app? It depends on your role. Some limits, like keeping kids away from money, are built in and cannot be turned on.",
+   "close": "So your role shows what is yours to do, and the built-in limits keep kids and tenants safe no matter who forgets. If a teammate has a button you don't, that is their role, not a bug."
+  },
+  "senior": {
+   "open": "The title asks who may do what, and why it protects everyone. Access follows real relationships and roles, and some limits are set in the data itself so they can never be granted by accident.",
+   "close": "So the answer is plain. Your role defines your work and spares you the fear of overstepping, while the structural limits keep the vulnerable safe without relying on anyone's memory. More access carries more responsibility (Luke 12:48)."
+  }
+ },
+ "dsi15-weighed-into-named-hands": {
+  "verdict": "ANSWERS-LATE-OR-BURIED",
+  "reason": "Defines ghost assets early, but the answer (only a real count against the record shows it; name keepers, record moves, count, close what leaves) arrives near the end; ends on the family talk.",
+  "open": "THE QUESTION IN THE TITLE. Your records say you own it, but does the shelf agree? You only know by counting. A ghost asset is a thing the list still says you have when it is gone, and a wrong list is worse than none because it stops you from looking. Ezra's way is the cure: weigh it out into named hands, weigh it again on arrival, and write it down (Ezra 8:25-34).",
+  "example": "THE PROJECTOR ON THE LIST. Say the register shows two projectors. One left with a volunteer who moved away last year, and nobody recorded it. The church plans a second service around two projectors and almost buys a third bulb for the missing one. A walk to the closet finds one. The count is recorded as a correction movement, the history stays honest, and the ghost is gone.",
+  "close": "BACK TO THE QUESTION. Your records say you own it, but does the shelf agree? Only a count can tell you, and the count is what makes the search possible, just as the woman in Luke 15:8 knew she had ten. So name a keeper for every real thing, record each movement when it happens, count on a rhythm you will keep and let the shelf correct the ledger, and close what was someone's when they leave. Then there is no gap where a ghost can live, and your record tells the truth about what Yahweh has put in your care.",
+  "teen": {
+   "open": "Does your list match what is really on the shelf? The only way to know is to go and count.",
+   "close": "So check the shelf, not just the list. Give everything a keeper, write down when it moves, and count it again, the way Ezra weighed the treasure twice."
+  },
+  "senior": {
+   "open": "The title asks whether the shelf agrees with the record. It does only when someone counts and reconciles, because a list nobody checks quietly drifts from the truth.",
+   "close": "So the answer is the old one Ezra practiced: weighed out into named hands, weighed again on arrival, and written down. A regular count keeps the record honest and leaves no place for a ghost asset to hide."
+  }
+ },
+ "dsi16-the-house-reports-itself": {
+  "verdict": "ANSWERS-LATE-OR-BURIED",
+  "reason": "Long setup on pieces, roads and the failed key; the answer (yes, the NAS now reports itself over the public road through receipts) comes mid-lesson; ends on the family talk, not the answer.",
+  "open": "THE QUESTION IN THE TITLE. When your only door locks, can the house still tell you it is okay? Yes. When the outside key to our NAS server stopped working, the checks stopped reaching in. Now the house reports itself: on its own clock it applies changes and writes a heartbeat, and the checks read those receipts over the public road the website already uses. Nothing outside has to hold a key.",
+  "close": "BACK TO THE QUESTION. When your only door locks, can the house still tell you it is okay? It can, because the house now starts every road itself. The migration receipt says which changes are applied, the heartbeat carries the last cycle's outcome, and the diagnosis names one cause or says plainly it is unknown. On November 10 that proof came from recorded runs. So when a check is red, read the named cause first. That is knowing the state of your flocks (Proverbs 27:23), watching faithfully under Yahweh, who keeps the house (Psalms 127:1).",
+  "teen": {
+   "open": "If the only key to the house stops working, can the house still tell you it's okay? Yes. Ours now sends its own report.",
+   "close": "So the house reports itself every fifteen minutes, and the checks read that report instead of needing a key. A true report is how we keep watch."
+  },
+  "senior": {
+   "open": "The title asks whether a house can still report its health when the one door in is locked. This one can, because the server now sends its own receipts out over the public road.",
+   "close": "So the answer is yes. The house reports itself, the checks read those receipts, and we no longer depend on a key we do not control. It is a small faithfulness repeated every fifteen minutes (Luke 16:10)."
+  }
+ },
+ "dsi17-what-an-attacker-would-use": {
+  "verdict": "ANSWERS-LATE-OR-BURIED",
+  "reason": "Spends its opening on the occasion and the Gartner report; the four questions and the ranking that answer the title come mid-lesson; ends on the family talk, not on which weakness comes first.",
+  "open": "THE QUESTION IN THE TITLE. Which weakness would a thief try first? Not simply the one with the highest severity score. It is the one being used in real attacks now, that sits in what reaches people, that can be reached easily, and that nothing proven is holding back. Ask those four questions before you fix anything, and the real danger rises to the top.",
+  "example": "TWO LISTS, ONE TOP ITEM. On November 10, 2026, the app carried ten packages with known weaknesses. Sorted by severity alone, two critical test tools led the list. Sorted by the four questions, the spreadsheet library that ships to people led it, because it reaches every phone. The test tools fell below it, since they never run on anyone's phone, and they stayed held by their own dated decisions.",
+  "close": "BACK TO THE QUESTION. Which weakness would a thief try first? The one already being exploited, sitting in what ships to people, reachable without help, and not held by a control anyone has checked. That is why the weekly exposure report asks all four questions and ranks each item Act now, Plan or Watch, and never calls an unknown safe. You report the conditions before you fix (Proverbs 18:13), like the goodman who would have watched had he known in what watch the thief would come (Matthew 24:43), under Yahweh who keeps the house.",
+  "teen": {
+   "open": "Which weak spot would a thief try first? Not just the scariest-sounding one. The one people are really attacking, that reaches users, and that nothing is blocking.",
+   "close": "So rank risk by those four questions before fixing anything. Then you guard the door a thief would actually use first."
+  },
+  "senior": {
+   "open": "The title asks which weakness an attacker would try first. A severity score alone cannot say. The answer comes from four questions: is it being exploited, what does it touch, how is it reached, and what already holds it.",
+   "close": "So the weakness to fear first is the exploited, reachable one in what ships, with no proven control. Report that before any fix, and place the watch where the wall is weakest (Nehemiah 4:13)."
+  }
+ }
+}

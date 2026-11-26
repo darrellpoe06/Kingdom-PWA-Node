@@ -30,16 +30,17 @@ promised, or stated it mid-way and ended elsewhere.
 3. **The lesson is kept word for word, and wrapped**: `THE QUESTION IN THE
    TITLE.` answers the title plainly first; the author's text follows unchanged
    (a paragraph break before each of its own ALL-CAPS leads, no word changed);
-   an optional short worked example in the lesson's own terms; `BACK TO THE
-   QUESTION.` lands the answer last, so the reader finishes full. Teen and
-   senior get their own opening and closing sentence. The Word still reads first
-   (DR-0127): the quoted anchor verses precede the answer.
+   an optional short worked example in the lesson's own terms; the lesson's
+   stories, untouched; then `BACK TO THE QUESTION.` lands the answer as the
+   last thing read and heard (both readers and Read Aloud), so the reader
+   finishes full. Teen and senior get their own opening and closing sentence.
+   The Word still reads first (DR-0127): the anchor verses precede the answer.
 4. **A layer, not a rewrite.** The additions live per course in
    `lesson-title-answers/<course>.json`, mounted in ChurchLearn beside
    `withWordQuotes`/`withSideStories`, so every reader (classic and new look)
    gets them and the author's rows stay byte-identical: the integrity baseline
-   needs no re-measure. buy2 (the parent session's model) is answered in its
-   own source and is recognised, never doubled.
+   needs no re-measure. A lesson answered in its own source (buy2, PR #2942)
+   is recognised and never doubled.
 5. **Bright lines, checked by the gate:** additions hold no teaching the lesson
    does not; any quotation in them must be found character for character in
    that lesson's own text; our voice says Yahweh; adversary names lowercase.
@@ -47,7 +48,7 @@ promised, or stated it mid-way and ended elsewhere.
    presented lesson has an audited entry or the answer in its own source; each
    entry is sound against the author's text; as read, the lesson opens on the
    answer, keeps every author word, and ends on the answer. `PENDING_COURSES`
-   is a shrinking ratchet while the courses land in batches.
+   is a shrink-only ratchet, empty now that all 976 are answered.
 
 ## Impact
 

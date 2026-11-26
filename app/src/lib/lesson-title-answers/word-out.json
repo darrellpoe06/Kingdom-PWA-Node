@@ -1,0 +1,74 @@
+{
+ "wo1-one-upload-everywhere": {
+  "verdict": "ANSWERS-LATE-OR-BURIED",
+  "reason": "Never says plainly 'no, you don't need to be technical'; the answer (stream or upload to the channel and the app shows it automatically) is buried in terms like same-origin relay and single source of truth.",
+  "open": "THE QUESTION IN THE TITLE. Do you have to be a tech expert to keep your church's latest message up front? No. The app reads the church's video channel directly and shows its newest upload first, within a few minutes. When a livestream ends, it becomes the newest upload on its own. So streaming the service is publishing it. No page edits, no logins, no swapping videos by hand.",
+  "close": "BACK TO THE QUESTION. Do you need to be a tech expert to keep the latest message up front? No. The whole system is one habit: stream or upload to the church channel. The Church page player and The Word archive are live views of that channel, newest first, so they stay current by themselves. The old monthly chores of swapping the featured video and adding buttons are retired, because the channel already knows what is newest.",
+  "teen": {
+   "open": "Do you need tech skills to keep the newest sermon on the app? No. The app shows the channel's newest video by itself.",
+   "close": "So just stream or upload the service. The app picks it up within a few minutes, and nobody has to edit anything."
+  },
+  "senior": {
+   "open": "The title asks whether keeping the latest message up front takes a technical expert. It does not. The app reads the church channel directly, and a finished livestream becomes its newest upload automatically.",
+   "close": "So the whole system rests on one simple habit: put the message on the channel. Every surface in the app follows from it, current within minutes, with no hand edits to fall behind."
+  }
+ },
+ "wo2-find-and-share": {
+  "verdict": "ANSWERS-BUT-ENDS-OPEN",
+  "reason": "First sentence answers (The Word tab), but the 'last week' tools are listed as features and the lesson ends on account rules for shared links rather than on finding the message.",
+  "open": "THE QUESTION IN THE TITLE. Can't find last week's message? It lives in The Word tab. Every message from the church channel is there, newest first, so last week's is near the top. You can also jump by month, search by title, filter by Sunday or Wednesday, or type a date to go straight to a week.",
+  "example": "ONE MISSED WEDNESDAY. Say you missed last Wednesday's service. Open The Word tab and set the service-day filter to Wednesday, or type that date in the date field. The message is there. Tap to share it, and the link opens your friend straight into that spot in the archive, on a phone or a computer, whether or not they have an account.",
+  "close": "BACK TO THE QUESTION. Where does last week's message live? In The Word tab, newest first, complete and current, because it reads from the same channel as the Church page. Find it by scrolling, searching, filtering by service day, or entering the date. Then share it: the link opens right to it on any device, and watching needs no account.",
+  "teen": {
+   "open": "Missed last week's message? Open The Word tab. The newest messages are at the top.",
+   "close": "So it's always in The Word tab. Search, filter by day, or pick the date, then send the link to a friend. They can watch without an account."
+  },
+  "senior": {
+   "open": "The title asks where last week's message can be found. It is in The Word tab, which lists every message newest first, with search, month jumps, service-day filters, and a date field.",
+   "close": "So the archive is always complete and current in The Word tab. Find the message there, and share it with a link that opens directly to it, no account needed to watch."
+  }
+ },
+ "wo4-when-it-looks-stale": {
+  "verdict": "ANSWERS-LATE-OR-BURIED",
+  "reason": "The steps (wait out the roughly ten-minute cache, reopen the tab, then file Feedback with page name and expected video) are implied in technical prose, never laid out as the three steps the title promises.",
+  "open": "THE QUESTION IN THE TITLE. The page is behind, so now what? Three steps. First, give it about ten minutes after the upload, because the app checks the channel about that often. Second, refresh or reopen the tab, since an app left open a long time can still show an old view. Third, if it is still behind, report it through Feedback with the page name and the video you expected.",
+  "close": "BACK TO THE QUESTION. The page is behind, so now what? Wait about ten minutes from the upload. Reopen the tab so the view loads fresh. If it is still behind after that, it is a real problem, so file it through Feedback with the page name and the expected video, and your words become the record in the fix queue. The app is built to tell you honest timing rather than pretend to be instant, so a short wait is normal and a long one is worth reporting.",
+  "teen": {
+   "open": "Is the page showing an old video? Wait about ten minutes, then reopen the tab.",
+   "close": "So: wait, reopen, then report. If it's still behind, send Feedback with the page name and the video you expected."
+  },
+  "senior": {
+   "open": "The title asks what to do when a page looks behind. Allow about ten minutes after an upload, reopen the tab so it loads fresh, and only then report it.",
+   "close": "So a short delay is normal and honest. Beyond that window, after a reopen, it is a genuine defect, and a Feedback note with the page name and expected video puts it in the queue to be fixed."
+  }
+ },
+ "wo5-ask-for-what-you-want": {
+  "verdict": "ANSWERS-LATE-OR-BURIED",
+  "reason": "The answer (yes: your request is kept word for word, reviewed, built through the same queue, and closed visibly) is present but in terms like request rail and first-class infrastructure; it never says plainly 'ask'.",
+  "open": "THE QUESTION IN THE TITLE. Could the app do what you keep wishing it would? It can, and your words are where it starts. When you make a request, it is kept exactly as you said it, turned into clear requirements, reviewed by a steward, and placed in the same build queue every feature moves through. It is not a suggestion box. Every request gets an answer.",
+  "close": "BACK TO THE QUESTION. Could the app do what you keep wishing it would? Yes, if you ask. Your request is saved word for word, reviewed, and built through the same path as every other feature. And it does not vanish: each one is closed in the open, either shipped or answered with a reason and a date to revisit it. That is what it means for the church to set its own roadmap: the house's own voice, not a vendor's, decides what gets built.",
+  "teen": {
+   "open": "Wish the app did something it doesn't? Ask. Your exact words go into the same line every new feature comes from.",
+   "close": "So say what you want. Every request gets an answer: it gets built, or you get a reason and a date when it will be looked at again."
+  },
+  "senior": {
+   "open": "The title asks whether the app could do what you have been wishing for. It can begin with your words: each request is preserved verbatim, reviewed by a steward, and placed in the build queue.",
+   "close": "So your voice is the blueprint. Every request is closed visibly, shipped or answered with a reason and a revisit date, and the church's own voice sets the roadmap."
+  }
+ },
+ "wo3-retire-the-old-site": {
+  "verdict": "ANSWERS-LATE-OR-BURIED",
+  "reason": "The why (a static embed pins one video) and the one edit (switch to the uploads-playlist embed, drop the month buttons) are there but in technical shorthand; the plain answer is never stated for a reader.",
+  "open": "THE QUESTION IN THE TITLE. Is your church website always a message behind? The old site is, because its video player is pinned to one video, so someone has to swap it by hand every time. One edit stops that: replace it with the channel's uploads playlist, which always plays the newest message first with no upkeep. Then the monthly scramble is over.",
+  "example": "ONE ID, TWO LETTERS. The uploads playlist uses the channel id with its first two letters changed. Say a channel id were UCabc123; its uploads list would be UUabc123. Put that into the playlist embed, and the page shows the newest upload first from then on. The month buttons can simply be removed, because The Word tab in the app already sorts every message by month automatically.",
+  "close": "BACK TO THE QUESTION. Is your church website always a message behind? Only while it points at one fixed video. Make the one last edit to the uploads playlist embed, remove the month buttons, and the old page stays current with no monthly work. Its remaining job is to point people to the app, which is now the church's main home on the web: installable, searchable, and live.",
+  "teen": {
+   "open": "Why is the old church website always behind? Its player is stuck on one video. One change fixes it.",
+   "close": "So swap in the playlist that always shows the newest video, remove the old month buttons, and send people to the app."
+  },
+  "senior": {
+   "open": "The title asks why the church website is always a message behind. Its player pins a single video, so it must be replaced by hand; one edit to the uploads playlist ends that.",
+   "close": "So one last edit retires the monthly busywork. The page then shows the newest message by itself, and its remaining work is to direct people to the app, the church's primary presence."
+  }
+ }
+}

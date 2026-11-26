@@ -1,0 +1,97 @@
+{
+ "snd1-the-board-and-the-signal-chain": {
+  "verdict": "ANSWERS-CLEARLY",
+  "reason": "Opening says don't memorize knobs, learn the path the sound takes; the final paragraph lands it: trace one channel from input to mains and monitor and you have the map."
+ },
+ "snd2-gain-staging": {
+  "verdict": "ANSWERS-LATE-OR-BURIED",
+  "reason": "Opens on gain as the foundation; the actual why (gain too low amplifies hiss, too high clips at the input before the fader) arrives mid-lesson; ends on the wise builder, not the hiss-and-crackle answer.",
+  "open": "THE QUESTION IN THE TITLE. Why does your mix hiss and crackle before you even touch the fader? Because the gain, the first control the signal meets, is set wrong. Too low, and you push everything downstream to hear it, raising the hiss with it. Too high, and the signal clips at the input, so it crackles and distorts before the fader can do anything. Gain staging sets that first level right, so the mix is built on a clean foundation.",
+  "example": "ONE SINGER, TWO SOUNDCHECKS. Say the lead singer sings softly at soundcheck, so the gain is set high to fill the meter. On Sunday she belts the chorus, the input clips, and the crackle starts. Pulling her fader down only gives you quieter distortion. Now do it the right way: have her sing at her real, loudest level, and bring the gain up until the meter sits around -18 dBFS on average with peaks near -6 dBFS. Plenty of signal, plenty of headroom, and the fader is free to mix.",
+  "close": "BACK TO THE QUESTION. Why does your mix hiss and crackle before you touch the fader? Because the problem lives at the gain, ahead of the fader, where no fader move can reach it. Set gain first, one input at a time, with each source at its real loudest, and re-check after compression or big EQ boosts. Then the noise stays down, the peaks stay out of the red, and every fader starts from the same healthy place. Like the house founded on the rock (Luke 6:48), the whole worship sound stands on that base.",
+  "teen": {
+   "open": "Why does the sound hiss or crackle even when you haven't touched the fader? Because the gain, the very first knob, is set too low or too high.",
+   "close": "So fix it at the start. Set the gain right with each singer at full volume, and the hiss and crackle go away. Build on that, and the whole mix stands."
+  },
+  "senior": {
+   "open": "The title asks why a mix can hiss and crackle before the fader is touched. The reason is gain: set too low it raises the noise, set too high it clips at the input, ahead of every fader.",
+   "close": "So the answer sits at the very start of the channel. Set each gain with the source at its real loudest, leave healthy headroom, and re-check after processing. A sound foundation, laid with care, lets everything built on it stand (1 Corinthians 3:10)."
+  }
+ },
+ "snd4-taming-feedback": {
+  "verdict": "ANSWERS-BUT-ENDS-OPEN",
+  "reason": "Answers the 'why' early (feedback is a loop), but the ways to break it are scattered through a long middle, and the ending lands only the attitude (quick to hear), not the gathered answer.",
+  "open": "THE QUESTION IN THE TITLE. Why does your sound system scream? Because a microphone is hearing its own speaker, and the sound goes round and round, louder each time, until it rings at the room's own pitches. Feedback is a loop, so you beat it by breaking the loop: fewer open mics, smart placement, and ringing out the system ahead of time. Yahweh's peace asks the operator to hear it early and act calmly.",
+  "close": "BACK TO THE QUESTION. Why does the system scream, and what do you do? It screams because sound is looping from speaker to mic and back. You break that loop before the service: mute every mic no one is using, keep mics out of the speakers' line, ring out the monitors and mains, and set your level a few dB below where it rang. In the service, pull down only the channel or send that rings, never the master. Yahweh brings peace, not confusion (1 Corinthians 14:33), and a quick-to-hear operator keeps that peace in the room (James 1:19).",
+  "teen": {
+   "open": "Why does the sound system squeal? Because a mic is picking up its own speaker, again and again, in a loop.",
+   "close": "So break the loop. Mute mics nobody is using, keep mics away from speakers, and fix the ringing spots before church. If it starts, pull down just the one that is ringing. That keeps the room peaceful."
+  },
+  "senior": {
+   "open": "The title asks why a sound system screams. It is a loop: a microphone picks up a speaker, the board amplifies it, and it builds until it rings at the room's resonant pitches.",
+   "close": "So the answer is to break the loop, not chase it. Fewer open mics, careful placement, a system rung out ahead of time, and a calm, surgical response if it starts. That is how the operator serves the peace Yahweh intends for His house."
+  }
+ },
+ "snd3-eq-the-frequency-ranges": {
+  "verdict": "ANSWERS-LATE-OR-BURIED",
+  "reason": "Opens with a long frequency map; the actual answer (cut before you boost; mud is piled low energy you remove, plus aggressive high-pass) arrives two-thirds in; ends on Psalm 33:3, not on less-not-more.",
+  "open": "THE QUESTION IN THE TITLE. Why does a muddy mix need less, not more? Because mud is too much low energy piling up, mostly around 200 to 300 Hz, from many channels at once. Adding highs or bass only stacks more on the pile. The fix is to remove what is offending: cut the muddy frequency, and high-pass everything that is not bass. Here is the map that shows you where to cut.",
+  "example": "ONE MUDDY VOICE. Say a vocal sounds cloudy and thick. The beginner turns up the highs to brighten it, and now it is cloudy and harsh. Instead, put a high-pass filter on it around 80 to 120 Hz to clear the rumble. Then sweep slowly through the low-mids, between 250 and 500 Hz, until the muddy note jumps out, and cut it a little. Nothing was added, yet the voice is clearer than any boost could make it, and the words come through.",
+  "close": "BACK TO THE QUESTION. Why does a muddy mix need less, not more? Because mud is not missing sound; it is extra sound in the wrong place. Cut before you boost. High-pass everything that is not bass, find the muddy low-mid frequency and remove it, and give each instrument its own lane so nothing stacks. When every part stays distinct, the worship and the Word come through clear, as Paul says distinct notes must (1 Corinthians 14:7-9).",
+  "teen": {
+   "open": "Why does a muddy mix need less, not more? Because the mud is too much low sound piled up. Turning things up only adds to the pile.",
+   "close": "So take away, don't add. Cut the muddy spot, filter out the rumble, and give each instrument its own space. Then the words come through clear."
+  },
+  "senior": {
+   "open": "The title asks why a muddy mix calls for less, not more. Mud is low energy stacking up from many channels, so the remedy is to take it away, not to add brightness on top of it.",
+   "close": "So the answer is subtractive. Cut the offending frequency before boosting anything, filter out the low end that does not belong, and carve lanes so each part stays distinct. That distinctness is what lets the Word be understood (1 Corinthians 14:7-9)."
+  }
+ },
+ "snd5-monitors-vs-the-house": {
+  "verdict": "ANSWERS-BUT-ENDS-OPEN",
+  "reason": "States the two mixes and opposite goals early; the practical rule (never solve a stage problem in the house) is mid-lesson, and it ends on 1 Corinthians 12 without returning to why the two must stay separate.",
+  "open": "THE QUESTION IN THE TITLE. Why should your monitor mix never be your house mix? Because they serve opposite goals. The house mix is for the congregation: balanced, full, words on top. The monitor mix is for each performer: whatever lets them do their job. Built on separate controls, they must be solved separately, or you fix one person's need by ruining everyone else's.",
+  "close": "BACK TO THE QUESTION. Why should your monitor mix never be your house mix? Because one serves the people and the other serves the performers, and mixing them up fails both. When a singer cannot hear herself, turn her up in her monitor send only, and leave the house alone. Keep wedges sparse, use pre-fader sends, and watch stage volume. That is Philippians 2:3-4 in faders: giving each person what they need, honoring the stage and the house as different members of one body.",
+  "teen": {
+   "open": "There are two mixes at once: one for the people in the seats, one for the people on stage. They want different things, so you keep them separate.",
+   "close": "So if a singer can't hear herself, turn her up in her own monitor, not in the room. Give each person what they need. That is putting others first."
+  },
+  "senior": {
+   "open": "The title says the monitor mix should never be the house mix. The reason is simple: the house mix serves the congregation's worship, while each monitor mix serves one performer's function.",
+   "close": "So keep two mixes and two sets of controls. Solve stage problems on the stage and house problems in the house. In that discipline the operator looks to the interests of others (Philippians 2:3-4) and honors every member of the body."
+  }
+ },
+ "snd8-our-digital-console-yamaha-ql": {
+  "verdict": "ANSWERS-LATE-OR-BURIED",
+  "reason": "Opens on digital vs analog and editing one channel; scenes (the whole desk recalled in about a second, a mid-service safety net) arrive mid-lesson; ends on Proverbs 21:5 after network and A.I. detours.",
+  "open": "THE QUESTION IN THE TITLE. Could one saved scene save your Sunday? Yes. On our Yamaha QL, a scene stores the whole board: every gain, EQ, level, and route. Recall it and the entire desk snaps back in about a second. You start each service prepared instead of from scratch, and if a mix goes sideways mid-service, a known-good scene is your instant safety net.",
+  "example": "ONE SUNDAY, TWO WAYS. Say the mix drifts during a long service: a monitor runs hot and the EQ was nudged in a hurry. Without a scene, you hunt knob by knob while the room waits. With a saved default scene, you recall it and the board returns to a known-good state in about a second. Then, after the service, you play the multitrack recording back into the console, refine the mix with an empty stage, and save the better scene for next week.",
+  "close": "BACK TO THE QUESTION. Could one saved scene save your Sunday? It can. A good default scene means you never start from scratch, and recalling it rescues a mix that goes sideways. Add the virtual soundcheck, and every recording helps you refine that scene for the next service. On this console, all things decently and in order (1 Corinthians 14:40) is something you literally save and recall, and the diligent plans of Proverbs 21:5 become a habit: prepare, save, recall, refine.",
+  "teen": {
+   "open": "Can one saved setting save your Sunday? Yes. Our board can save the whole setup as a scene and bring it all back in about a second.",
+   "close": "So save a good scene and use it. You start every service ready, and if things go wrong, one recall puts the board back where it should be."
+  },
+  "senior": {
+   "open": "The title asks whether one saved scene could save a Sunday. On our digital console it can: a scene stores every gain, EQ, level, and route, and recalls the whole desk in about a second.",
+   "close": "So the saved scene is both preparation and protection. It starts each service in order, rescues a mix that goes astray, and grows better week by week as recordings are reviewed. That is diligent planning (Proverbs 21:5) made practical."
+  }
+ },
+ "snd7-before-during-after": {
+  "verdict": "ANSWERS-CLEARLY",
+  "reason": "Opens naming the three jobs a faithful operator does across time; ends landing the who: the operator who serves where almost no one sees, so everyone can hear, offered to Him (Colossians 3:23)."
+ },
+ "snd6-mixing-the-worship-team-and-choir": {
+  "verdict": "ANSWERS-LATE-OR-BURIED",
+  "reason": "Builds the hierarchy and lanes first; the plain yes (many voices become one sound, 2 Chronicles 5:13) arrives only in the final lines and ends on Chenaniah's skill rather than the answer.",
+  "open": "THE QUESTION IN THE TITLE. Can many voices become one sound? Yes, and that is the mixer's calling. It happens not by turning everything up, but by order: the lead vocal on top and clear, each instrument in its own lane, and the choir blended as one body instead of a spotlight on single voices. Here is how to build it.",
+  "close": "BACK TO THE QUESTION. Can many voices become one sound? Yes. Put the lead vocal first so the words stay clear. Give the kick and bass, keys and guitars their own lanes. Capture the choir with the fewest mics, rung out ahead of time, and blend it as one rich voice. Then ride the faders through the whole arc. That is the picture of 2 Chronicles 5:13, singers \"as one, to make one sound\" in praise, and it is skilled work Yahweh honors (1 Chronicles 15:22).",
+  "teen": {
+   "open": "Can a whole team and a big choir sound like one voice? Yes. It comes from order, not from turning everything up.",
+   "close": "So yes, many voices can be one sound. Keep the lead singer clear, give each instrument its own space, and blend the choir together. That is what the singers in 2 Chronicles 5:13 did."
+  },
+  "senior": {
+   "open": "The title asks whether many voices can become one sound. They can, when the mix is built as a hierarchy: the lead vocal clear on top, each instrument in its own lane, and the choir blended as one body.",
+   "close": "So the answer is yes, by skill and order rather than volume. Lead first, lanes for the band, a blended choir guarded against feedback, and faders ridden through the arc. The singers of 2 Chronicles 5:13 are the standard the mixer aims at."
+  }
+ }
+}

@@ -1,0 +1,118 @@
+{
+ "stk2-when-you-buy-a-share-the-company-gets-nothing": {
+  "verdict": "ANSWERS-LATE-OR-BURIED",
+  "reason": "Most of the lesson covers primary vs secondary markets and why companies issue equity; the four reasons a board cares about the price (the title’s question) come only in the final section.",
+  "open": "THE QUESTION IN THE TITLE. Why would a company care about a share price it never gets paid for? When you buy a share on an exchange, your money goes to another owner, not the company. But the price still matters to the board for four reasons: it sets what any new shares will raise, it is currency for buying other companies, the directors’ own pay rides on it, and a low price makes the company cheap to take over.",
+  "example": "TWICE THE PRICE, HALF THE SLICES. Say a company needs to raise $10 million by selling new shares. At $20 a share it must issue 500,000 shares. At $40 it issues 250,000, and so gives away half as much of everything it will ever earn. The trades between owners paid the company nothing, yet they set the price the company now sells at.",
+  "close": "BACK TO THE QUESTION. Why would a company care about a price it never gets paid for? Because the secondary market sets the terms for what the company does next. The price decides what a new issue raises, how much another company costs in shares, what the directors’ own shares are worth, and how cheaply someone could buy the company and replace the board. Hold those four, and much corporate behavior becomes readable, including the kind you should question. You cannot judge the actors until you know what they are aiming for.",
+  "teen": {
+   "open": "When you buy a share in an app, the company gets none of your money. So why does the company care about its price? There are four reasons.",
+   "close": "So here is the answer: the price decides how much new shares raise, what the company can buy with shares, what the bosses get paid, and whether someone can buy the company cheap."
+  },
+  "senior": {
+   "open": "If the company receives nothing when its shares change hands, why does its board watch the price? Because that price governs four things the company does care about.",
+   "close": "So the title’s question has a plain answer. The price sets what a new issue will raise, what shares will buy in an acquisition, what senior pay is worth, and how exposed the company is to takeover."
+  }
+ },
+ "stk3-between-buy-and-owned": {
+  "verdict": "ANSWERS-LATE-OR-BURIED",
+  "reason": "Walks the steps (spread, clearing, settlement, collateral) one by one with no plain summary up front; the two-weights meaning of the title is tied in only at the very end.",
+  "open": "THE QUESTION IN THE TITLE. What happens between tapping buy and owning a share? Three steps you never see. Your order is matched against the lowest offer to sell, and you pay the spread, the gap between the buying and selling prices. Then the trade is cleared, confirming what each side owes. Then it settles: the share and the cash actually move, in the United States one business day later. The two weights are one market seen two ways, by the person who knows these steps and the person who does not.",
+  "example": "MEASURE THE SPREAD YOURSELF. Say a busy share shows a bid of 49.99 and an ask of 50.00: buying and selling straight back costs a penny. Say a rarely traded share shows a bid of 9.50 and an ask of 10.00. Buy at 10.00, sell straight back at 9.50, and you have lost 50 pence, five percent, with no price movement and nobody doing anything wrong. That is the price of liquidity, and you can read it off the screen yourself.",
+  "close": "BACK TO THE QUESTION. What happens between buy and owned? A match across the spread, which you pay and are never billed for; clearing, which confirms and nets what each side owes; and settlement, which moves the share to you and the cash to the seller, now one business day in the United States. While that window is open, collateral is held against failure. Deuteronomy 25:13-15 forbids two weights in one bag. Knowing these steps is how you stop being the person shown the lighter one.",
+  "teen": {
+   "open": "When you tap buy, you do not own the share yet. First your order is matched, then the trade is checked, then the share actually moves to you.",
+   "close": "So between buy and owned there are three steps: matching, clearing, and settlement. You also pay a hidden cost called the spread. Knowing that keeps the weights fair for you."
+  },
+  "senior": {
+   "open": "What happens between tapping buy and owning a share? A match across the spread, then clearing, then settlement, each a measuring step seldom shown to the person transacting.",
+   "close": "So the title’s question is answered. You pay the spread at the match, the trade is cleared, and settlement moves the share to you, now one business day in the United States. Knowing the weight is how you are dealt with justly."
+  }
+ },
+ "stk1-a-share-is-a-piece-of-a-company": {
+  "verdict": "ANSWERS-BUT-ENDS-OPEN",
+  "reason": "States early that a share is a legal slice of a real business (one millionth of premises, machines, contracts); ends on the parable posture and the course ahead rather than landing chart vs business.",
+  "close": "BACK TO THE QUESTION. Are you holding a chart or a piece of a business? A piece of a business. Hold one hundred of one hundred million shares and you own one millionth of its premises, machines, contracts and name. That means you are paid last, from whatever is left; you have a vote; and your loss is capped at what you put in. And under all of it sits the posture the parable gives: what you hold is entrusted, not finally yours, and you will give account for what you did with it (Matthew 25:14).",
+  "teen": {
+   "open": "Is a stock just a line on a chart? No. A share is a real piece of a real company, like owning a tiny slice of its buildings and its name.",
+   "close": "So you are holding a piece of a business, not a chart. You get paid last, you get a vote, and you can only lose what you put in. And you will answer for how you use it."
+  },
+  "senior": {
+   "open": "Is a share a line on a chart or a piece of a business? It is a legal slice of ownership in a real company; the chart is only a record of what people lately agreed to pay.",
+   "close": "So the title’s question has its answer. One millionth of a company is one millionth of a real business: paid last, with a vote, liability capped at your stake, and held as an entrusted thing you will give account for."
+  }
+ },
+ "stk4-price-is-not-value": {
+  "verdict": "ANSWERS-LATE-OR-BURIED",
+  "reason": "Spends its opening separating price from value; the actual measure (whole-company price divided by last year’s earnings = years of earnings) is in the middle, and it ends on the Proverbs gap and humility.",
+  "open": "THE QUESTION IN THE TITLE. How do you measure what a share is really asking you to pay? Take the share price times the number of shares, which is the price of the whole company. Divide that by what the company earned last year. The answer is how many years of last year’s earnings you are being asked to pay. A price is only the last deal two people made; this number gives you something you can compare.",
+  "example": "TWENTY YEARS OF LAST YEAR. Say a company has 10 million shares priced at $30, so the whole company is priced at $300 million. Last year it earned $15 million. $300 million divided by $15 million is 20. You are being asked to pay twenty years of last year. Now compare it with the same company in earlier years, with its competitors, and with what a safe loan would pay over the same period.",
+  "close": "BACK TO THE QUESTION. How do you measure what a share is asking you to pay? Not by treating the price as a verdict; it is only the last trade, made by someone you know nothing about. Divide the company’s whole price by last year’s earnings and you see how many years of last year you are buying. Set that beside earlier years, competitors and a safe loan, then ask what would have to be true for it to make sense. Write what you measured apart from what you guessed, and the screen stops doing your thinking.",
+  "teen": {
+   "open": "A share price is just the last deal someone made. To see what you are really paying, compare the whole company’s price with what it earned last year.",
+   "close": "So here is how you measure it: the whole company’s price divided by last year’s earnings tells you how many years of earnings you are paying. Then compare, and keep facts apart from guesses."
+  },
+  "senior": {
+   "open": "How do you measure what a share asks you to pay? Divide what the whole company is priced at by what it earned last year, and you have the years of present earnings you are being asked to buy.",
+   "close": "So the title’s question is answered. A price is not a verdict; it is the last transaction. Measure the years of earnings, compare them honestly, and keep what you measured separate from what you guessed."
+  }
+ },
+ "stk5-how-a-share-actually-pays-you": {
+  "verdict": "ANSWERS-LATE-OR-BURIED",
+  "reason": "The hidden way (buybacks shrinking the share count; also retention) is the third of three doors, mid-lesson; ends on the parable warning without tying it back to the growing slice.",
+  "open": "THE QUESTION IN THE TITLE. How can your slice grow without a single payment? Two ways. The company can keep its earnings and use them well, so the business you own part of grows. Or it can buy back its own shares and cancel them, so each remaining share owns a larger fraction of the same business. Nothing lands in your account, yet you own more. The parable adds the warning: burying what you hold is not the safe choice.",
+  "example": "FEWER SLICES, SAME BUSINESS. Say a company has 100 million shares and you hold 100, one millionth of it. Over some years it buys back and cancels 20 million shares. Now 80 million remain, and your 100 shares are one eight-hundred-thousandth of the business, a larger slice than before. No payment ever arrived. The only way to see it is to check whether the share count fell.",
+  "close": "BACK TO THE QUESTION. How does your slice grow without a single payment? Through earnings retained and well used, and through buybacks that shrink the share count so you own more of the same business. Check the share count, not only the dividends, and watch the price the company pays and whose interest it serves. And hear the parable’s warning: the servant who buried his talent lost nothing and was still condemned (Matthew 25:18, 25-27). What is entrusted is meant to be employed, and doing nothing is not the safe choice.",
+  "teen": {
+   "open": "Can your piece of a company grow even if it never pays you cash? Yes. When a company buys back its own shares, there are fewer pieces, so yours gets bigger.",
+   "close": "So your slice can grow without a payment, through smart reinvesting or buybacks. And the talent story warns us: hiding what you were given is not playing it safe."
+  },
+  "senior": {
+   "open": "How can an owner’s slice grow without any payment arriving? When earnings are reinvested well, or when the company buys back and cancels its own shares, leaving each remaining holder a larger fraction.",
+   "close": "So the title’s question is answered. Value can reach you silently, through retention and buybacks, seen only in a falling share count. And the parable warns that burying what was entrusted, however carefully, was the condemned choice."
+  }
+ },
+ "stk6-the-index-is-a-weighting-choice": {
+  "verdict": "ANSWERS-LATE-OR-BURIED",
+  "reason": "Says early the index is an average somebody designed, but who decides and how (size vs price weighting, the published rule) is spread through the body; ends on the Word, not on the answer.",
+  "open": "THE QUESTION IN THE TITLE. Who decides how much each company counts? The people who designed the index, by the rule they chose. Most weight by size, so a few giant companies can lift the number on a day when most companies fell. One famous average weights by share price, so a company counts more just because its shares cost more. So the market was up is a sentence about an average somebody designed.",
+  "example": "SAME BUSINESS, HALF THE WEIGHT. In a price-weighted average, a company whose shares cost 300 counts ten times as much as one at 30. Say the 300 company splits its shares two for one. The next morning it has the same earnings, premises and staff, twice as many shares at 150 each, and it now counts half as much in that average. Nothing happened but the slicing.",
+  "close": "BACK TO THE QUESTION. Who decides how much each company counts? Whoever wrote the index’s rule, and that rule is published but almost never mentioned. Weight by size and a handful of giants can carry the headline. Weight by price and a share split halves a company’s say overnight. So carry the four-second question: which average, weighted how, over what set of companies? A just weight is Yahweh’s delight (Proverbs 11:1), and the reader who looks at the weight, not only the number, is reading the market instead of receiving it.",
+  "teen": {
+   "open": "Who decides how much each company counts in the market number? The people who built the index did, by choosing a rule.",
+   "close": "So someone chose the rule. Next time you hear the market was up, ask: which average, weighted how, and which companies? That is reading the number, not just hearing it."
+  },
+  "senior": {
+   "open": "Who decides how much each company counts? The designer of the index, through a weighting rule, usually by size, sometimes by share price, and seldom explained to the public.",
+   "close": "So the title’s question has its answer. The weight was chosen and published, though rarely mentioned. Ask which average, weighted how, over what companies, and you will weigh the headline justly."
+  }
+ },
+ "stk8-the-question-the-screen-never-asks": {
+  "verdict": "ANSWERS-LATE-OR-BURIED",
+  "reason": "Opens on what screens ask; the answer to whose money it is (never yours: his goods, Matthew 25:14) is the first of three points mid-lesson, and the lesson ends on the question rather than the answer.",
+  "open": "THE QUESTION IN THE TITLE. Whose money is it really? Not yours. In Matthew 25 the servants were trusted with their master’s goods, and even the frightened servant admitted it when he handed his talent back. A screen can only ask what something is worth now. The parable asks whose it is and what you did with it, and it says a reckoning comes. Here is how the Word frames it.",
+  "close": "BACK TO THE QUESTION. Whose money is it really? It belongs to the master who entrusted it, and you are the servant who will give account. The reckoning is not about the sum: the five-talent and two-talent servants heard the identical commendation, so faithfulness was the measure. The condemned choice was doing nothing out of fear. And the money is the least of it (Luke 16:10): what you do with a small sum, an afternoon, a reputation, is what you are. Learn the machinery well, and answer the screen’s silence with faithfulness.",
+  "teen": {
+   "open": "Whose money is it? The story in Matthew 25 says it was never really ours. We are trusted with it, and one day we will be asked what we did with it.",
+   "close": "So the money is not really yours; it is trusted to you. Being faithful with a little is what counts, and hiding it out of fear is not."
+  },
+  "senior": {
+   "open": "Whose money is it, finally? Matthew 25 answers that it was never ours: the servants held their master’s goods and were reckoned with on his return.",
+   "close": "So the title’s question is settled. What we hold is entrusted, and the reckoning weighs faithfulness, not the size of the return. Faithful in the least, faithful also in much."
+  }
+ },
+ "stk7-who-is-on-the-other-side": {
+  "verdict": "ANSWERS-LATE-OR-BURIED",
+  "reason": "Raises who the seller is early but answers in pieces (four counterparty types, frequent-trading finding, counsel); ends on a pointer to the second story rather than the answer.",
+  "open": "THE QUESTION IN THE TITLE. Who is selling to you? Every purchase has a seller: an ordinary person, a large institution, a market maker earning the spread, or an index fund obeying a rule. Sometimes the seller has no view at all; sometimes they know more than you. Trading often tends to do worse, because each trade pays a spread and often a fee, and strong feelings usually arrive late. The remedy is counsel before you click.",
+  "close": "BACK TO THE QUESTION. Who is selling to you? It may be someone with no opinion at all, or someone who studied the business for months and is right. The screen will not tell you which, so never assume the harmless case. That is why frequent trading costs: spreads, fees, and acting on feelings the crowd had first. The answer is not to bury your money, and it is not a lone click. It is counsel: let the decision pass through more than one mind before it becomes an act, for in the multitude of counsellors there is safety (Proverbs 11:14).",
+  "teen": {
+   "open": "Every time you buy a share, someone is selling it to you. They might know something you do not. Trading a lot usually costs more than it earns.",
+   "close": "So ask who is on the other side, and slow down. Before you click buy, talk it over with people you trust. Proverbs says there is safety in many counselors."
+  },
+  "senior": {
+   "open": "Who is on the other side of your trade? An individual, an institution, a market maker or an index fund, and you cannot tell which, nor what they know.",
+   "close": "So the title’s question carries its lesson. Frequent trading quietly pays spreads, fees and late feelings, and the safeguard Proverbs gives is counsel: no decision acted on until it has passed through more than one mind."
+  }
+ }
+}

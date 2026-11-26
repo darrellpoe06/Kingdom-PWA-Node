@@ -187,7 +187,9 @@ export function planSessions(module, opts = {}) {
   const plan = lessonPlanForAge(m, ageBand, levelOverride);
   const teachText = ((plan && plan.segments) || []).join(' ').trim();
   const teachWords = wordsIn(teachText);
-  const storyWords = (Array.isArray(m.stories) ? m.stories : []).reduce((t, s) => t + wordsIn(s.body), 0);
+  const storyWords = (Array.isArray(m.stories) ? m.stories : []).reduce((t, s) => t + wordsIn(s.body), 0)
+    // The title's answer, spoken after the stories (DR-1687).
+    + wordsIn(titleClosingFor(m, plan && plan.levelId));
   const talk = (m.facilitator && Array.isArray(m.facilitator.talkingPoints)) ? m.facilitator.talkingPoints : [];
   const talkWords = talk.reduce((t, p) => t + wordsIn(p), 0);
 

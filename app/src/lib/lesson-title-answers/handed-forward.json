@@ -1,0 +1,29 @@
+{
+ "succ2-read-before-you-rule": {
+  "verdict": "ANSWERS-CLEARLY",
+  "reason": "First sentence answers it (an heir learns to READ the real books before managing them); ends on Luke 16:10 and taking the read-only seat as an honor that forms a steward."
+ },
+ "succ3-new-builder-new-work": {
+  "verdict": "ANSWERS-CLEARLY",
+  "reason": "Opens with David told the temple belonged to his son, so he gathered for it; ends: the family's gathering is David's, your generation is Solomon, and your work will be great and new."
+ },
+ "succ4-cross-what-we-could-not": {
+  "verdict": "ANSWERS-CLEARLY",
+  "reason": "Opens: some works the founder cannot finish because the crossing is assigned to the next leader; ends: the founder gets you to the edge, you lead the crossing, with Yahweh going before you."
+ },
+ "succ1-mission-not-map": {
+  "verdict": "ANSWERS-BUT-ENDS-OPEN",
+  "reason": "Answers in the body (you cannot hand down control, only wisdom, understanding and character, a commission not a map), but the last sentence is a course roadmap list rather than the answer.",
+  "close": "BACK TO THE QUESTION. What can you really pass on when your heir will face problems you never saw? Not control, and not a map: Solomon admits the builder cannot decide whether the heir will be wise or a fool (Ecclesiastes 2:18-19). What you can pass on is wisdom and understanding (Proverbs 4:7), a soul that prospers first, and a commission. You do not clone the founder. You hand the heir the mission and trust them to meet the new issues you will never see.",
+  "teen": {
+   "close": "So what can your family really pass on to you? Not a copy of how they did it. They pass on wisdom, character and the mission, and trust you to face what is new."
+  },
+  "senior": {
+   "close": "So the question in the title has a plain answer. A founder cannot hand down control or a map for problems he never saw; he hands down wisdom, understanding and character, and commissions the heir to carry the mission into new ground."
+  }
+ },
+ "succ5-double-portion-hand-it-forward": {
+  "verdict": "ANSWERS-CLEARLY",
+  "reason": "Opens: a faithful successor with holy ambition (Elisha's double portion) and a plan to hand it on; ends: ask to make the mission bigger, and plan from the beginning to hand it forward."
+ }
+}
