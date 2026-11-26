@@ -72,8 +72,9 @@ describe('Learn content integrity baseline', () => {
   // fruit-no-law, god-not-colorblind, own-your-faith, made-in-his-image,
   // thief-targets-identity, testing-not-temptation, pray-for-protection,
   // see-father-in-son, he-already-knew, strengthen-your-brethren,
-  // all-things-work-together, admit-wrong-to-grow, god-beyond-dimension.
-  it('the baseline is the measured Phase 1 catalog (13 / 51 / 994 / 4,358)', () => {
-    expect(base.counts).toEqual({ departments: 13, courses: 51, lessons: 994, readings: 4358 });
+  // all-things-work-together, admit-wrong-to-grow, god-beyond-dimension,
+  // two-courts.
+  it('the baseline is the measured Phase 1 catalog (13 / 51 / 994 / 4,360)', () => {
+    expect(base.counts).toEqual({ departments: 13, courses: 51, lessons: 994, readings: 4360 });
   });
 });

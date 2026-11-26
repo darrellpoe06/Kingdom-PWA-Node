@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T05:50:33.023Z",
+ "measuredAt": "2026-11-26T05:54:55.126Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4358
+  "readings": 4360
  },
  "departments": [
   {
@@ -13127,11 +13127,13 @@
    "department": "The Eternal Algorithms",
    "position": 19,
    "title": "The Two Courts (man’s court is not the court of record)",
-   "contentSha": "c280805e1f6eb9bdf2b4226faa8d3fc560da36e72639010db13682456d5c4c81",
+   "contentSha": "24afae14f7d4aab354a0b690c023ec6855ae187079a3edd8325c824657b2c52e",
    "versions": {
-    "teen": "d131c73a01c352a0e105bba69c7e5f5983c7fb4e083b144bc51b14ca42d02176",
-    "adult": "d2e09a2cd291f00ae6bf8eb0f76875e3cac0f7486b19294cfcf8e03efc1b9d49",
-    "senior": "5af2b4fdd51563772d192c7295f49b44ad992dedcb29e3fb110375c4f6ce0537"
+    "child": "e6b9a6d600b751d15c35c670a0c7c5cb4a51725372d02ec8ef3985b89e42693d",
+    "youth": "e33dfe56943f84f778d36261ffb383d46ab24681116e081d52464cdfc5c6594a",
+    "teen": "1fb204f391253ac68832f73e92542dda7774bc7a5f11c8041027d48a2914b7d4",
+    "adult": "890d7df96868c15b52a5cf44259de272cb10400288c71e1290ae6fd557426666",
+    "senior": "8e646e3f6a91579a189c7ca38ab9b6682c08591e6a4d92bc07fbd21390a37d91"
    }
   },
   {
