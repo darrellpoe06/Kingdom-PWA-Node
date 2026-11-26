@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T11:33:49.998Z",
+ "measuredAt": "2026-11-26T11:38:55.120Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4472
+  "readings": 4474
  },
  "departments": [
   {
@@ -14195,11 +14195,13 @@
    "department": "The Eternal Algorithms",
    "position": 14,
    "title": "More Than Conquerors (the separation cannot separate)",
-   "contentSha": "d3dab4c715d5693f025983e6470937c581119a9d979d4a93b6af7e08616d7c16",
+   "contentSha": "194b7c07e6e85eb54346c8c9ff3f27ef1066c46af3a970c8a006625652c777ba",
    "versions": {
-    "teen": "2c80c81604923980c8e0b1bbe4631c4d5568a69013f500a1cf3cf273297b11fa",
-    "adult": "8ccf2ad3ee23b1e8fdd379fdb201259a51378aed630146bb3681e7483697eff9",
-    "senior": "f36abe25bf97a6eab14caebe6e1d1ae864d47341c6f112d30a9ba5f85ea18da3"
+    "child": "6de8e6fbd98740b19f4e17968863810f1105df0f641eb21c4c0afefc8e791836",
+    "youth": "36e9c679f13859fe4e43eb9dc744427f810a04f4e2a90cf9d4a273e2b6b9729b",
+    "teen": "34864fc5b00dde2313acc06797901f04643fbaec39b0ef943023fc074b27e27b",
+    "adult": "4cf9eb79ca438ffb9d319dbc2417e6c75696049fb7533a89d5792147e07c178e",
+    "senior": "9c5007b9f851917131171818aca649682f2d1dbf113ae588a9d6e304eda230ad"
    }
   },
   {
