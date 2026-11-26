@@ -62,3 +62,45 @@ export function saveHighlights(id, marks) {
     /* no storage: the marks hold for this visit */
   }
 }
+
+// WHERE THE WORDS LAND ON THE PICTURE (Darrell 2026-11-26, from the full screen: "We need the
+// words to be at the top of the screen... not the bottom unless we say so... let's give the options
+// to users... I want to be able to use this on the led wall behind the speakers podium at church").
+// Top by default; Top, Middle or Bottom is the viewer's choice, kept on this device. A link can fix
+// the place for one screen (`?captions=bottom`), so the LED wall's computer opens where the room
+// needs it without anyone touching the chip; the link wins over the remembered choice.
+export const CAPTION_PLACE_KEY = 'poe-lesson-caption-place';
+export const CAPTION_PLACES = Object.freeze(['top', 'middle', 'bottom']);
+export const CAPTION_PLACE_LABEL = Object.freeze({ top: 'Words: Top', middle: 'Words: Middle', bottom: 'Words: Bottom' });
+export function captionPlaceFrom(search, stored) {
+  let asked;
+  try {
+    asked = new URLSearchParams(search || '').get('captions') || '';
+  } catch {
+    asked = '';
+  }
+  if (CAPTION_PLACES.includes(asked)) return asked;
+  return CAPTION_PLACES.includes(stored) ? stored : 'top';
+}
+export function nextCaptionPlace(place) {
+  const at = CAPTION_PLACES.indexOf(place);
+  return CAPTION_PLACES[(at + 1) % CAPTION_PLACES.length];
+}
+export function readCaptionPlace() {
+  let stored = '';
+  let search = '';
+  try {
+    stored = window.localStorage.getItem(CAPTION_PLACE_KEY) || '';
+    search = window.location.search || '';
+  } catch {
+    /* no storage or no window: the default */
+  }
+  return captionPlaceFrom(search, stored);
+}
+export function saveCaptionPlace(place) {
+  try {
+    window.localStorage.setItem(CAPTION_PLACE_KEY, place);
+  } catch {
+    /* kept for this visit only */
+  }
+}

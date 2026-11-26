@@ -46,6 +46,8 @@ afterEach(() => {
   try { act(() => root && root.unmount()); } catch { /* noop */ }
   if (container) container.remove();
   container = null; root = null;
+  // The Bible keeps its place (DR: bible-place); each case here starts at the start.
+  try { window.localStorage.removeItem('poetech.bible.place'); } catch { /* noop */ }
 });
 
 const tick = () => act(async () => { await Promise.resolve(); await Promise.resolve(); });
