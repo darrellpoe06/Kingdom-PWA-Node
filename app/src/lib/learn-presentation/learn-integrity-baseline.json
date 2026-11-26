@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T12:37:57.643Z",
+ "measuredAt": "2026-11-26T12:46:05.848Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4500
+  "readings": 4502
  },
  "departments": [
   {
@@ -13565,11 +13565,13 @@
    "department": "The Eternal Algorithms",
    "position": 8,
    "title": "Lose Your Life → Find It",
-   "contentSha": "7bb0839e4d8bcc16c3637e714a2d08b1043f2e886d63ee6e5c27c417d7709822",
+   "contentSha": "5f5c83c79d67bc51b786e69abd0d4d39fd1c6771a397cc93664a1a1fa64a5089",
    "versions": {
-    "teen": "db37b24b9e767656487b5b0c0af8b6b4a0baf561862f1aca7f03e5a324995e3e",
-    "adult": "9b1dca166bce4c7b4b4df08ee09712043b35241537ea331e4a4c1bc46638d2b4",
-    "senior": "2e0a17d6f5eba4316dbc7e25b5e331cd01eb4435988cd96f5c02bb4ebe37ece7"
+    "child": "203e10a40f98e5f63dd1efe23cea1452fad4b581b4b9286a9e99f11a2720dd48",
+    "youth": "93fc794a51a9a807ecdfb7a32fce024a5841dad182ceadc63f4e664508cb4593",
+    "teen": "dfe26ff494c52b910badbde0e051612971bb00e575cc6f0cd831896d4ef4c3f6",
+    "adult": "f70e244140ff3851247596d759448547b58ec8cef355747e163ade458f05386f",
+    "senior": "4934922903f3ba9ede4d394c5aec82bc524ae421989b0f5dc57af1c51cf9ceb4"
    }
   },
   {
