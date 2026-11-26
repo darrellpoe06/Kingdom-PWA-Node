@@ -91,6 +91,33 @@ const TALK = {
     'what Dr. Williams’ Master Plan asked of a scattered people, and how the Word answers bitterness with love',
     'share one way you will work together for the good of others this month',
   ],
+  'pv-price-the-tape': [
+    'how Dr. Price forgave the minister at once and still corrected him in public',
+    'share one wrong you will forgive and one truth you will still speak in love',
+  ],
+  'pv-price-naming-the-sin': ['why Dr. Price called racism by its Bible name, sin', 'name one partiality you will turn from this week'],
+  'pv-price-one-blood': ['what it means that Yahweh made every nation of one blood', 'tell each other one way you will treat every person as kin'],
+  'pv-price-color-in-the-bible': [
+    'what the Bible says about Cush, Egypt and the wife of Moses',
+    'find one African place named in the Word and read it together',
+  ],
+  'pv-price-curse-of-ham': ['who really spoke the curse in Genesis 9, and why the old teaching was wrong', 'read Genesis 9:25 together and say who is named'],
+  'pv-price-testing-the-note': ['how to test a study-Bible note by the text itself', 'check one note or saying against the verse it cites'],
+  'pv-price-the-dake-letter': [
+    'what the Dake family admitted in their own letter, and what forgiveness looked like',
+    'share one wrong you will own in writing or in person',
+  ],
+  'pv-price-the-only-restriction': [
+    'what the one line is that the Bible draws for marriage',
+    'tell each other what matters most in choosing a husband or wife',
+  ],
+  'pv-price-religion-and-slavery': ['how religion can bend the Gospel, and how the Word corrects it', 'name one tradition you will test by the Word'],
+  'pv-price-the-color-of-jesus': [
+    'why Dr. Price said he needed a real Jesus, and who the women in His family line were',
+    'read the names in Matthew 1 together',
+  ],
+  'pv-price-not-the-white-mans-religion': ['how Dr. Price answered the charge that the Bible is a poison book', 'share one verse that set someone free'],
+  'pv-price-recognition': ['why Dr. Price asked for recognition and not only reconciliation', 'tell each other one way you will honor someone as an equal'],
 };
 
 const strip = (s) => s.replace(/[.!?]$/, '');

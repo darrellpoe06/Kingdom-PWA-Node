@@ -12506,22 +12506,22 @@
    "department": "The Word & The Way",
    "position": 1,
    "title": "Dr. Frederick K.C. Price — \"Race, Religion & Racism\" (1997)",
-   "contentSha": "4cc525721c8caecbc8226b0c34cb190f5a3d54c37c494df5f36242b2a7b59c55",
+   "contentSha": "00386f02ef33b8b987696a20752d653821c6a9d3e35056a2e9564d6ffe84f626",
    "versions": {
-    "child": "587742b8ba1b69c2fbfc74592331167b731ab99e9929ea3759083f53c5cd4bdc",
-    "youth": "e91f650f0a7b33ce814781c1d619c9b993a76704f159d8dc48a5702b2b629a09",
-    "teen": "f6bf50f9ba21d70a7e7f60733994c6be7029532103d67c5b702a026d180cf306",
-    "adult": "bc3cf1a53b5cb857c580d5ce219d658ddbf19af72f12d53e0800831bb8ce48a9",
-    "senior": "6ff651d3ee8f7429b9f2456b72362f6268f45474ffae08d7d19ec2fca6dbdaa3"
+    "child": "9068305e4b7c203f5c43857bf4e5dce178e4e76331df724e537a37f1b6a9c403",
+    "youth": "88113dc462708f53e1326e7c3a3a4737e867c5d0127b142c27e4fad850ab20c5",
+    "teen": "39b75923563f0ee19c9a40f4bd7226af8ac221a74e9b2923243a8027d5a0cfcc",
+    "adult": "3e484590c3fcdca49a81a75d4ddd397376e5ecdf35a473520289faf795e4a225",
+    "senior": "9b6d8378cebde6c152c5728430f00155bf70b53d63cb02f9ee7294a4d2aabd86"
    }
   },
   {
    "id": "pv-darby",
    "course": "prophetic-voices",
    "department": "The Word & The Way",
-   "position": 2,
+   "position": 14,
    "title": "Pastor Stephen Darby — identity, the Church’s account, and the unseen realm",
-   "contentSha": "fb6969b880db02f4a28bdcf5f7e66033eb45ad7e1cc2d581e15e3e3eba41a8fb",
+   "contentSha": "d7c073db7dc01cda651390afa5b29bc594486598e5168958b1d1f4616b922be8",
    "versions": {
     "child": "e7ac7b22c3df5a077c2ea0db7f5f1fc9b994cf60c72ed91c290975ea4df97d6c",
     "youth": "4035ac4087e0edea1ff944fcb025a8cda97deb6278b10cd4a742c069409fabe1",
@@ -12534,9 +12534,9 @@
    "id": "pv-diop",
    "course": "prophetic-voices",
    "department": "The Word & The Way",
-   "position": 16,
+   "position": 28,
    "title": "Dr. Cheikh Anta Diop — the scientist who put Kemet back in Africa",
-   "contentSha": "f93be6809a9f54a976c7ac1499563256d3cd5019868a64188c4614bf1020065b",
+   "contentSha": "453d66d7280ff0e77a7dc35f07693a85d96faea5a8970488bdacb676948e90f9",
    "versions": {
     "child": "1b0f8d98695b51105117fcc01770b8b3ab59a2895d7aa51b4b0810a2f6da8638",
     "youth": "f508e957d8e87ad8e8bb20053b4bb114a22d67dd36f284e4a4ee890ca65703ea",
@@ -12549,9 +12549,9 @@
    "id": "pv-obenga",
    "course": "prophetic-voices",
    "department": "The Word & The Way",
-   "position": 22,
+   "position": 34,
    "title": "Dr. Théophile Obenga — the tongue that carried the truth",
-   "contentSha": "80f41d2b2be369749e716717be08a434e7cda959a78924a0a130c4d8e71e1c43",
+   "contentSha": "7258d3c32c7b4ed4d5c470ba4a7c759722adcd7166547ff69a47eb835d9fd3bf",
    "versions": {
     "child": "03744c8609a578579ac42c94035284d6a4328f1b103350117761abf0ad73cb1f",
     "youth": "adf1e56721074328385b8f6fbbe034c4bd8b9161a32e6cb59ded5aaea785736d",
@@ -12564,9 +12564,9 @@
    "id": "pv-williams",
    "course": "prophetic-voices",
    "department": "The Word & The Way",
-   "position": 26,
+   "position": 38,
    "title": "Dr. Chancellor Williams — the destruction, and the knowledge to rebuild",
-   "contentSha": "dbd7625c66d4ab57b3fcaca91069284f23e4a6a1e97662f0b8e72a9bd0a169c6",
+   "contentSha": "e84010a3830c9dbdab05684d4843532713027b7f2ec086e84b3cc35ee044bfb5",
    "versions": {
     "child": "dabdcd50e27025add9cabc9539b04b20d3d28e6b142d9a89d4b3d6763a6f4fae",
     "youth": "400e9accbee6bf08d556ae9bb5f9ebc475c2e3b1a87b2cc83273db9103fa56da",
@@ -12579,9 +12579,9 @@
    "id": "pv-inventions",
    "course": "prophetic-voices",
    "department": "The Word & The Way",
-   "position": 31,
+   "position": 43,
    "title": "The stolen record — Black inventions and the theft of credit",
-   "contentSha": "dda12884ae6c1155e7ea58be3c27409041e29818d53442a67c23b11a9bce9483",
+   "contentSha": "39ec50950e00378d251995ec73f47dd843835463ad8d477b02c3f9c9dbc43821",
    "versions": {
     "child": "13b8d318b670aed98503339d5c918f4fe51a6ed232f796b7cc77f086b5d53752",
     "youth": "b5a0a224bae715db63001253d8d9650d92c0a438841b03274213304e5f7c1250",

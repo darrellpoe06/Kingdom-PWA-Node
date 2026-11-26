@@ -110,7 +110,7 @@ const PINNED = {
   // a value walk reaches and a field list does not.
   'living-lessons-class.js': 8,
   'made-in-time-course.js': 120,
-  'prophetic-voices.js': 5,
+  'prophetic-voices.js': 3,
   'scripture-teaching.js': 2,
   // The largest single store outside the courses, and it was never read.
   'scriptures.js': 41,

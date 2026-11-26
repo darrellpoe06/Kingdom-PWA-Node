@@ -166,6 +166,66 @@ const B = {
     'Know the record: the 1807 Slave Bible and the anti-literacy laws',
     'Keep your eyes on the prize of the high calling (Philippians 3:14)',
   ],
+  'pv-price-the-tape': [
+    'See how Dr. Price forgave at once and still corrected a public wrong in public',
+    'Learn from Matthew 18 and Galatians 2 how correction is done',
+    'Practice forgiving without staying silent',
+  ],
+  'pv-price-naming-the-sin': [
+    'Know why Dr. Price named racism a sin, not a mistake',
+    'Tell prejudice from racism as a system, in his terms',
+    'Turn from partiality by the Word (James 2:9)',
+  ],
+  'pv-price-one-blood': [
+    'Learn his argument from Acts 17:26 that there is one human race',
+    'See that the Bible sorts people by kindred, tongue and nation, never by color',
+    'Treat every person as kin made from the same dust',
+  ],
+  'pv-price-color-in-the-bible': [
+    'Learn what the Bible says of Cush, Mizraim and Egypt',
+    'See how Yahweh answered Miriam over Moses’ Cushite wife',
+    'Read the Word’s own record of Africa',
+  ],
+  'pv-price-curse-of-ham': [
+    'See why the so-called curse of Ham is not in the text',
+    'Read who spoke the words and who was named (Genesis 9:25)',
+    'Answer a lie used to justify slavery with the Word',
+  ],
+  'pv-price-testing-the-note': [
+    'Learn Dr. Price’s method: test the note by the text',
+    'See how a study Bible printed thirty reasons for segregation',
+    'Check any teaching against the verse it cites',
+  ],
+  'pv-price-the-dake-letter': [
+    'Read the Dake family’s own letter asking forgiveness',
+    'See a source that tells on itself and repents',
+    'Learn how grace receives a public confession',
+  ],
+  'pv-price-the-only-restriction': [
+    'Learn the one line the Bible draws for marriage: believer and unbeliever',
+    'See why Dr. Price said any other restriction is wrong',
+    'Choose by faith and character, not color',
+  ],
+  'pv-price-religion-and-slavery': [
+    'Hear Dr. Price’s charge that religion perverted the Gospel',
+    'Know how the Church took part in slavery, from the record',
+    'Let the Word, not tradition, be the authority',
+  ],
+  'pv-price-the-color-of-jesus': [
+    'Hear why Dr. Price wanted a real Jesus, not a painted one',
+    'Learn the women named in Jesus’ genealogy (Matthew 1)',
+    'Worship the Son as the Word shows Him',
+  ],
+  'pv-price-not-the-white-mans-religion': [
+    'Know the poison-book charge and Dr. Price’s answer',
+    'See the Gospel in Africa from Acts 8 onward',
+    'Tell the Church’s failures from the Word’s truth',
+  ],
+  'pv-price-recognition': [
+    'Learn why Dr. Price asked for recognition before reconciliation',
+    'See public sin met with public correction and love',
+    'Honor someone as an equal this week',
+  ],
 };
 
 /** The module with its benefits (unchanged when it has its own or is not listed). */
