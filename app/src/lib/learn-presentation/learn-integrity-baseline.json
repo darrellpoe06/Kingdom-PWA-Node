@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T05:37:21.906Z",
+ "measuredAt": "2026-11-26T05:41:46.632Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4352
+  "readings": 4354
  },
  "departments": [
   {
@@ -14434,11 +14434,13 @@
    "department": "The Eternal Algorithms",
    "position": 37,
    "title": "All Things Work Together for Good (the outcome is already rigged)",
-   "contentSha": "c981da0b537c2c71509c902754a5f3324a0982fc5a9aae1e29793caa5ad3803d",
+   "contentSha": "cc031daecbec8de08d896153eabfc991633b5d195789788b186f40acd12e408b",
    "versions": {
-    "teen": "3a2fc370933135b5aff2b4633363b878fdf5dbeb441960dfda0fc3f0dacb2ab2",
-    "adult": "e2e93470624e23e1b0f875a316e26682a64d33cec1652e7eb0924fed3b84dc2d",
-    "senior": "f2948b7fa7f8ec153970eaa0ba97d8055d9d608a13d568a7aac4cd53a4cc6b08"
+    "child": "ecf09407df0370f16ffd806dee5de7a116575b97d240aeb168e080df3d8ae052",
+    "youth": "98faf733e1f31abc01651af78a2be3b7e794ddd9877452589969531b48978e11",
+    "teen": "2a2e66e62a94ac294e2ef3fb2d5f58daacc679e8ccd871952a95c41127802612",
+    "adult": "b6b020ab1dea083710c3a9a38c88667017f3b6e45f523695134b809ad0fd3cb7",
+    "senior": "c00caaac172bb46c64cabec0445dab1ed3912eb85acaa3a13e2d355cc971c49b"
    }
   },
   {

@@ -71,8 +71,9 @@ describe('Learn content integrity baseline', () => {
   // word-is-4d-fact, justice-rationed-at-the-gate, remedy-that-arrives-on-a-calendar,
   // fruit-no-law, god-not-colorblind, own-your-faith, made-in-his-image,
   // thief-targets-identity, testing-not-temptation, pray-for-protection,
-  // see-father-in-son, he-already-knew, strengthen-your-brethren.
-  it('the baseline is the measured Phase 1 catalog (13 / 51 / 994 / 4,352)', () => {
-    expect(base.counts).toEqual({ departments: 13, courses: 51, lessons: 994, readings: 4352 });
+  // see-father-in-son, he-already-knew, strengthen-your-brethren,
+  // all-things-work-together.
+  it('the baseline is the measured Phase 1 catalog (13 / 51 / 994 / 4,354)', () => {
+    expect(base.counts).toEqual({ departments: 13, courses: 51, lessons: 994, readings: 4354 });
   });
 });
