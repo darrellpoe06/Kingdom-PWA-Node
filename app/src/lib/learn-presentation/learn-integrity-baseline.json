@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T05:28:29.754Z",
+ "measuredAt": "2026-11-26T05:32:43.858Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4348
+  "readings": 4350
  },
  "departments": [
   {
@@ -13853,11 +13853,13 @@
    "department": "The Eternal Algorithms",
    "position": 32,
    "title": "He Said This to Prove Him (the test He already knew the answer to)",
-   "contentSha": "241d54b526f00486c7ea6ae527650e214e2f8ee3b7eb6caeb3f4dff2180dde7e",
+   "contentSha": "acbba3847bfdff67127165d0125ffae89c5c54c598ba31d6eefc001e967ea7d8",
    "versions": {
-    "teen": "8457c28a14ca9baef0bb83331d4f37804e651ea09f14fe7d64eadc62e49b6c97",
-    "adult": "4c918c0f350eab5e89f101437f860159e9b787dd3f1cf7e301617c842d109014",
-    "senior": "b44c674ab8dbce93fd1f8b6cc26d03f9fc08b48a49eb37614671496bc576d94a"
+    "child": "787ee877302e97a7f7100ed6702e5fd183f7b173df8c3482db610e098bcfeb4c",
+    "youth": "acccd42f66d9bcf2f4fbe985fdce37528b2152c1a73c85c9d58fa5c6e0de3b41",
+    "teen": "7c0ed54c5204d005cff9bcc29b74d72c68cc1a504d0d942469d6df4e904fa46d",
+    "adult": "2bdc90120f4996be52343dcf2fe794c5a71a8e2e477a295324d1250b27978db2",
+    "senior": "dd1a7091545e374260f9edebb40bb3c2ef20c6569eccdcb0df0d2b192e626d2b"
    }
   },
   {
