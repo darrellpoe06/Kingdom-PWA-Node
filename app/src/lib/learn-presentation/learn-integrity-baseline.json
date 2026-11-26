@@ -1,5 +1,5 @@
 {
- "measuredAt": "2026-11-26T17:53:14.560Z",
+ "measuredAt": "2026-11-26T17:59:41.118Z",
  "counts": {
   "departments": 13,
   "courses": 51,
@@ -756,13 +756,13 @@
    "department": "Serve the House",
    "position": 6,
    "title": "Our own A.I. — Ollama and the models on our hardware",
-   "contentSha": "b9ba263a6a74d90b1ae6feb81d146deb929412a7a165413c16c0c065d6250416",
+   "contentSha": "bf0dc6ca5fc27b9cfa59a7fff11970dc79921d25de3200b3beb080b66bbed1e9",
    "versions": {
-    "child": "52da6e1a8957d04dd81ba0539eec1679c1c9f7d14fbd9f07468b381124a4f6dd",
-    "youth": "9712d58e981432c62f0cdcd2563512e15ca7d8d94a95dbda18508aa099ea3ed7",
-    "teen": "4de9d5fcbaf1cfae662cd723c37d10c611d5d51b7395ba3cf2a092bf917b3716",
-    "adult": "4386b90c2be970619906695fe440097ead8bc9ecb205fa8b44a5efcd71a04fb1",
-    "senior": "c245f6ecfdbe4c292a729f8d995d156cc5ad698d33aa53015e2988afdc587ad4"
+    "child": "69ffe874204b1b822e01ccef3b48aa4a482334d3c2237568edcce1f369f85ac0",
+    "youth": "fe0d6ae8d9362bdc0105dbae4d7dbf22dc4a658e71b153b8a2d252769c5f974f",
+    "teen": "5616db0c2117dfaf7d180e860d8460e352f7e51ba3a81c598aea2753e4ae39a4",
+    "adult": "6ce1def98034e8632cbb2b64207bf4ce0dbaced522482a8ec911dadddcae7713",
+    "senior": "56618a9f75f5114bc92df271cf136f6242ed02432ae2ede9bf9d80b0f7fd7585"
    }
   },
   {
