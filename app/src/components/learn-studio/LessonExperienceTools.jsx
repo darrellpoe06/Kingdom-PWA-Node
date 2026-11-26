@@ -145,7 +145,7 @@ export function CaptionPlaceChip({ place, onCycle, className = '' }) {
   return (
     <button
       type="button"
-      className={`le-chip ${className}`}
+      className={`le-chip focus:outline focus:outline-2 ${className}`}
       onClick={onCycle}
       data-testid="le-caption-place"
       aria-label={`${CAPTION_PLACE_LABEL[place]}. Tap to move the words.`}
@@ -162,7 +162,7 @@ export function PresentChip({ onPresent, className = '' }) {
   return (
     <button
       type="button"
-      className={`le-chip ${className}`}
+      className={`le-chip focus:outline focus:outline-2 ${className}`}
       onClick={onPresent}
       data-testid="le-present"
       aria-label="Present to the room: open the presenter and the projector screen"
