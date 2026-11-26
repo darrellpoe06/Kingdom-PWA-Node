@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T14:33:41.222Z",
+ "measuredAt": "2026-11-26T14:38:40.634Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4548
+  "readings": 4550
  },
  "departments": [
   {
@@ -12966,11 +12966,13 @@
    "department": "The Eternal Algorithms",
    "position": 6,
    "title": "The Meek Inherit (strength under the General)",
-   "contentSha": "293ee085cbcfd4d70e054550db419776b37c0fbcc8e92cb291e60a5238c44154",
+   "contentSha": "d72ef78aa2d390ff45fd89c57bed89ec5fb2b31aed38f6a89f4af81863f8c12c",
    "versions": {
-    "teen": "d2225423564a2c5e0c6be4e2981c4e7b8276544f028543a57b58ad45402ef1e4",
-    "adult": "bc9e8305a00f30d4be45e985b8da9d01756286efa63730a22d3f56b16f518c35",
-    "senior": "88aa985b521753c7efc0e6f75a536ba17d64a9ac0c929a4caf80d01a29ac0126"
+    "child": "59f66859c012db75d1e5f600afdbf0f30925d81fcb7251c2f831b72b1d755c23",
+    "youth": "28c26090e213222057a640ab9b2c014e8421e6e0198c437d30d5fcbea1ed07d0",
+    "teen": "c1594ea3d2047e30d85c9fde99e0d5b0cb5ce9e3af0b470595cef9e1832a2e00",
+    "adult": "a271c2a20aab133701e8f2309e65a4402826e165ae944490f1e84de741174bc1",
+    "senior": "f64bea846ee91a051f2bdfeebd64ab4da90ba52e8e486b50a21177c675c02225"
    }
   },
   {
