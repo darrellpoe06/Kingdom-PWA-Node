@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T09:40:38.907Z",
+ "measuredAt": "2026-11-26T09:45:44.572Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4444
+  "readings": 4446
  },
  "departments": [
   {
@@ -14707,11 +14707,13 @@
    "department": "The Eternal Algorithms",
    "position": 2,
    "title": "Overcome → Sit With Me in My Throne",
-   "contentSha": "cc17380ea70743a7edb82a50bf99d6605c8fe6aa8f78aa773b898a4f552fe956",
+   "contentSha": "8ca76bd209705bc69791d08be5cc2f67ade9eb82354dec39a76920a6bd5efe3f",
    "versions": {
-    "teen": "ad8dae26963e20cb032ec37f5ee9a161bb8e303a83f6a073c94e099e15231c65",
-    "adult": "81d907577fe434e2a3eff52018f9aece0a2010eedf0e7e39c44e61f917cae7a6",
-    "senior": "c6fecdd7ff37e0a928b17ed9270517648af9825aa69a1ed84b05769f7b1c3ec5"
+    "child": "9649d77e405be5d342821319a4e833b2fef295effb068aad17f9a9632533d64d",
+    "youth": "d3b6d41bd8780a19cab3073f05ab0cf985bd204bcdee2467768bc87efde928e5",
+    "teen": "e6b27ed1687dbd31b3f3e59d16f414d623757d58b123265a3c3107723bbc611c",
+    "adult": "1e4b7d1a7c6496a717a33128352d9906cbde4c0ec677d52e7645758fcded9805",
+    "senior": "9b0ad8fadf742bc5a1534a72baaabdbd6a613c26b7d7c77fd012d7df39aa138d"
    }
   },
   {
