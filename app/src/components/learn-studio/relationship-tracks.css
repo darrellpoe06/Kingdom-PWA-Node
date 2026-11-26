@@ -1,0 +1,132 @@
+/* Guided tracks on the Relationships page (DR-1702). Rides the .ls-root tokens;
+   gold for progress and the label, never red (red is the Blood's, DR-0099). */
+.ls-tracks {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr));
+  gap: 22px 18px;
+  /* A track opened to its steps grows alone; its row-mate keeps its own height. */
+  align-items: start;
+}
+.ls-track {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--ls-panel);
+  border: 1px solid var(--ls-line);
+  border-radius: 16px;
+  overflow: hidden;
+}
+.ls-track-thumb {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  padding: 0;
+  border: 0;
+  background: var(--ls-bg);
+  overflow: hidden;
+}
+.ls-track-thumb picture,
+.ls-track-thumb .ls-interim {
+  position: absolute;
+  inset: 0;
+}
+.ls-track-body {
+  padding: 14px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.ls-track-title {
+  margin: 0;
+  font-size: 1.125rem;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+.ls-track-label {
+  display: block;
+  color: var(--ls-gold);
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.ls-track-note,
+.ls-track-count,
+.ls-track-why,
+.ls-track-talk,
+.ls-track-status {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.ls-track-note {
+  color: var(--ls-dim);
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+.ls-track-count {
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+.ls-track-go {
+  align-self: flex-start;
+  min-height: 44px;
+}
+.ls-track-steps summary {
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 0.875rem;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+}
+.ls-track-steps ol {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.ls-track-steps li {
+  border-top: 1px solid var(--ls-line);
+  padding-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.ls-track-step-open {
+  background: none;
+  border: 0;
+  padding: 0;
+  text-align: left;
+  color: var(--ls-text);
+  font-weight: 700;
+  font-size: 0.9375rem;
+  line-height: 1.35;
+  min-height: 44px;
+  overflow-wrap: anywhere;
+}
+.ls-track-step-n {
+  color: var(--ls-gold);
+  margin-right: 4px;
+}
+.ls-track-why {
+  font-size: 0.875rem;
+  line-height: 1.45;
+  font-style: italic;
+}
+.ls-track-talk {
+  font-size: 0.875rem;
+  line-height: 1.45;
+  color: var(--ls-dim);
+}
+.ls-track-talk strong {
+  color: var(--ls-text);
+}
+.ls-track-status {
+  font-size: 0.75rem;
+  color: var(--ls-gold);
+  font-weight: 700;
+}

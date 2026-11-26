@@ -3477,6 +3477,21 @@
       "notes": "No token meter in this session, so tokens and cost are null. The build needed NODE_OPTIONS=--max-old-space-size=8192 when run beside the gate suite on a 16 GB box; alone at the default heap it had aborted once."
     },
     {
+      "id": "relationship-guided-tracks",
+      "date": "2026-11-26",
+      "task": "Relationships gets three free guided tracks (Couples six weeks, Parents, Repair) built from the shelf's own lessons: each why a span of the lesson's bigIdea, each talk prompt its own discussion prompt, progress from the saved place and read record, Start/Continue opens the Lesson Experience",
+      "drs": [
+        "DR-1702"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.2,
+      "estimateWithoutAiHours": 10,
+      "notes": "Proven to catch: invented why fails 1, unmounted fails 3, painted progress fails 4. Probe at 390 and 750 px found and fixed a stretched row-mate."
+    },
+    {
       "id": "youth-zone-2026-11-12",
       "date": "2026-11-12",
       "task": "Phase 2 of the Love Corner redesign, pulled forward the day Phase 1 went live: the Youth Zone surface with Kids and Teens doors over the age bands, the memory verse game over the hosted KJV, this week's real lesson, Bishop Gwin's trivia card shared, badges derived from learner rows, youth events from the record; the staff allowlist extracted from the shell to pay for the mount",
