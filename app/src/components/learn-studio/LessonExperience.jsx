@@ -35,7 +35,10 @@ import LessonFigures from '../LessonFigures.jsx';
 import StudyQuiz from './StudyQuiz.jsx';
 import { ExperienceToolsContext, resumable, pacedFraction } from './LessonExperienceTools.jsx';
 import './lesson-experience.css';
-import { useLanding } from './lesson-landing.js';
+import { useLanding } from './landing-guard.js';
+import { sectionLeadOf, withSectionBreaks } from './lesson-sections.js';
+import { placeParagraph, recordReadPlace } from './lesson-place.js';
+import ReadSections, { readSections } from './ReadSections.jsx';
 import { renderWithVerses, verseParts, VERSE_RE } from './lesson-verses.jsx';
 export { verseParts };
 
@@ -204,19 +207,7 @@ export function textFor(lesson, level) {
 
 /** The whole reading every mode shows and speaks: the teaching at this level, then the lesson's stories. */
 export function readingTextFor(lesson, level) {
-  return [textFor(lesson, level), storiesTextFor(lesson)].filter(Boolean).join('\n\n');
-}
-
-// The lesson's OWN structural leads ("FIRST, THE MASTER WHO WENT AWAY.",
-// "SECOND, NOT WITH EYESERVICE.") are Darrell's real section markers, written
-// into the text already -- recognized for display, never invented, and the
-// full paragraph that follows is never shortened.
-function sectionLeadOf(paragraph) {
-  // Up to 90 capitals, colon allowed, so the opening "NOT WITH EYESERVICE:
-  // FAITHFUL WORK WHEN NO ONE IS WATCHING." reads as the article's headline
-  // too. Recognized, never rewritten: every character still renders.
-  const m = paragraph.match(/^([A-Z][A-Z ,':-]{2,90}?\.) /);
-  return m ? { lead: m[1], rest: paragraph.slice(m[0].length) } : { lead: null, rest: paragraph };
+  return [withSectionBreaks(textFor(lesson, level)), storiesTextFor(lesson)].filter(Boolean).join('\n\n');
 }
 
 function CoverImage({ image, alt, className, animated = false }) {
@@ -420,17 +411,6 @@ export default function LessonExperience({
   const [showChapters, setShowChapters] = useState(false);
   const engineRef = useRef(null);
   const offsetRef = useRef(0);
-  // The Read page, per reading level, kept here (not inside Read) so it
-  // survives a trip to Watch or Listen, and saved so it survives a reload.
-  const [readPages, setReadPages] = useState({});
-  const readPage = readPages[level] ?? (Number(saved.get(PAGE_KEY(lesson.id, level), 0)) || 0);
-  const setReadPage = useCallback(
-    (n) => {
-      setReadPages((m) => ({ ...m, [level]: n }));
-      saved.set(PAGE_KEY(lesson.id, level), n);
-    },
-    [lesson.id, level]
-  );
   const stageRef = useRef(null);
   const rootRef = useRef(null);
   useChromeTop(rootRef);
@@ -448,6 +428,27 @@ export default function LessonExperience({
   const text = useMemo(() => readingTextFor(lesson, level), [lesson, level]);
   const segments = useMemo(() => segmentText(text), [text]);
   const paragraphs = useMemo(() => (text || '').split(/\n\n+/).filter(Boolean), [text]);
+  const paraMap = useMemo(() => mapSegmentsToParagraphs(paragraphs, segments), [paragraphs, segments]);
+  // Where the shared place says this reader is (read once per lesson and level, before any move).
+  const sharedPage = useMemo(
+    () => placeParagraph({ lessonId: lesson.id, courseKey: record && record.courseKey, segments, segPara: paraMap.segPara }),
+    [lesson.id, level] // eslint-disable-line react-hooks/exhaustive-deps
+  );
+  // The Read page, per reading level, kept here (not inside Read) so it
+  // survives a trip to Watch or Listen, and saved so it survives a reload.
+  // The place itself is the lesson's ONE shared place (lib/learn-resume.js, DR-0631), the
+  // same record the classic page reads; the old per-level paragraph key is read only as a fallback.
+  const [readPages, setReadPages] = useState({});
+  const courseKey = record && record.courseKey;
+  const readPage = readPages[level] ?? (sharedPage >= 0 ? sharedPage : Number(saved.get(PAGE_KEY(lesson.id, level), 0)) || 0);
+  const setReadPage = useCallback(
+    (n) => {
+      setReadPages((m) => ({ ...m, [level]: n }));
+      saved.set(PAGE_KEY(lesson.id, level), n);
+      recordReadPlace({ lessonId: lesson.id, courseKey, segments, sentence: paraMap.firstSeg[n] });
+    },
+    [lesson.id, level, courseKey, segments, paraMap]
+  );
 
   // PROGRESS ON EVIDENCE (DR-1384/1386), through the classic space's savePlace:
   // the version on screen, what was heard, and what was seen (paced, so a
@@ -476,15 +477,8 @@ export default function LessonExperience({
 
   // Chapters = the lesson's own section leads ("FIRST, THE MASTER WHO WENT
   // AWAY."), each pointed at the sentence where it begins.
-  const chapters = useMemo(
-    () =>
-      paragraphs
-        .map((p) => sectionLeadOf(p).lead)
-        .filter(Boolean)
-        .map((lead) => ({ lead, at: segments.findIndex((s) => s.includes(lead)) }))
-        .filter((c) => c.at >= 0),
-    [paragraphs, segments]
-  );
+  const chapters = useMemo(() => readSections(paragraphs).map((c) => ({ lead: c.lead, at: paraMap.firstSeg[c.at] })), [paragraphs, paraMap]);
+  const chapterNow = chapters.reduce((h, c, i) => (c.at <= idx ? i : h), -1);
 
   const verses = useMemo(() => textFor(lesson, 'adult').match(VERSE_RE) || [], [lesson]);
 
@@ -920,10 +914,17 @@ export default function LessonExperience({
                     </div>
                     {showChapters && (
                       <ol className="le-chapters">
-                        {chapters.map((c) => (
+                        {chapters.map((c, i) => (
                           <li key={c.at}>
-                            <button type="button" className={`le-chapter ${RING}`} onClick={() => jumpTo(c.at)}>
-                              <span>{c.lead}</span>
+                            <button
+                              type="button"
+                              className={`le-chapter ${i === chapterNow ? 'is-here' : ''} ${RING}`}
+                              aria-current={i === chapterNow ? 'true' : undefined}
+                              onClick={() => jumpTo(c.at)}
+                            >
+                              <span>
+                                {i + 1}. {c.lead}
+                              </span>
                               <span className="le-tstamp">~{clock(starts[c.at])}</span>
                             </button>
                           </li>
@@ -1235,6 +1236,7 @@ function ReadMode({ lesson, record, title, number, paragraphs, level, setLevel, 
             </button>
           </p>
         )}
+        <ReadSections paragraphs={paragraphs} page={page} onGo={go} />
         <article className="le-book-text" ref={textRef}>
           {paragraphs.map((p, i) => {
             const { lead, rest } = sectionLeadOf(p);

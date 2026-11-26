@@ -4344,6 +4344,21 @@
       "notes": "15 of the 30 most recent failed runs are this race, classified from their own logs. The refusal is now the authority; a transport fault is still red, pinned four ways."
     },
     {
+      "id": "one-place-one-set-of-sections",
+      "date": "2026-11-26",
+      "task": "The new lesson screen uses the lesson's section plan and its one shared place; Read lists sections with you-are-here; Listen chapters numbered and marked",
+      "drs": [
+        "DR-1672"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1,
+      "estimateWithoutAiHours": 10,
+      "notes": "each part proven to catch"
+    },
+    {
       "id": "a-door-lands-on-what-it-names",
       "date": "2026-11-13",
       "task": "The Love Corner hero's Watch button changed the section correctly and never moved the reader to it, so the player stayed below the fold and the button read as dead; a requested section now arrives, on all three roads",
