@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T12:28:46.997Z",
+ "measuredAt": "2026-11-26T12:34:22.935Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4496
+  "readings": 4498
  },
  "departments": [
   {
@@ -13591,11 +13591,13 @@
    "department": "The Eternal Algorithms",
    "position": 10,
    "title": "Abide in the Vine → Much Fruit",
-   "contentSha": "5712038364935a3504870be99adb2c8d67300308b4a852b73fd96a4136325b1d",
+   "contentSha": "9fd0062e08b4253f575c674332ee986d5f013f83f221e6cd5e780fd5ad2e5b8b",
    "versions": {
-    "teen": "30ca3ba5b9cea2ba83f3f268ff8606bf48b8d430b2f76d0c0d395cbeb1da7c5b",
-    "adult": "66777739d1ae2b9db786c9942f8020587b12d034550a7fe85b0816965c7342bb",
-    "senior": "287f06c002ce50355efe24c4934d0e9f795f243f41ebd5b78ec86d4a7245e051"
+    "child": "c990214cf2cfafa293f506702a63811829ac2eccd09b26947be89c098d77c4eb",
+    "youth": "acc408fa1c60df952cb4b30fccec8f6f2016fa5cec20bcaef14bcdc4d59dd953",
+    "teen": "5ff83084845a78df97124c69946f295d33d66912e0d94f79317318452b3168ae",
+    "adult": "be4c328b78608615cf0967f2b717a23ec9694e3a63b70a905cb37e6c78460fdf",
+    "senior": "6900d463995539f2d5ffdb795451925fb9e34ce4904ac3c36dd845d3373a2ba8"
    }
   },
   {
