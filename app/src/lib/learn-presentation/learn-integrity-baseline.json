@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T10:22:48.888Z",
+ "measuredAt": "2026-11-26T10:54:16.817Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4456
+  "readings": 4464
  },
  "departments": [
   {
@@ -13630,11 +13630,13 @@
    "department": "The Eternal Algorithms",
    "position": 13,
    "title": "My Sheep Hear My Voice (another voice they will not follow)",
-   "contentSha": "3fd55fd15660e419559fdf08c1644d497f0e8c06aa5509bcf68fed8200574b52",
+   "contentSha": "becf9538ff7116e261b89ae301589435bbd2baa46e5ec1c8b448221b2511b392",
    "versions": {
-    "teen": "980bd17051162f937beefa59f075461762981d605927a8b85b0d90adbda404d2",
-    "adult": "69d326a5150ab0e8a435c429a0304a9de5bd35e8196288b83127b783d9674706",
-    "senior": "6e2dbe9cd2e658d1e26add838ce9208b0e7b98c3eef420b79e2a5f692a653f0a"
+    "child": "13318f96eb4f8a36173ffe6c07e397595af7bcf59ca3d8408e91d8ec3bc3de20",
+    "youth": "fa09762b1af4dfac5e6e11e0b05f52df475545bbfdf9e1ce7377b594975165b5",
+    "teen": "228dfd89d217f6673d611b14373cb1bd2d577adca803621d51370711e45bcb96",
+    "adult": "6c5d1306b4c36fe808c6515cf341f8807662c99442b241aeb4277bc83d41f107",
+    "senior": "fa0925b7f2259e67998c3b0828ad83023f9bdf17f5f0994549e76b4efa666376"
    }
   },
   {
@@ -13643,11 +13645,13 @@
    "department": "The Eternal Algorithms",
    "position": 14,
    "title": "The Closet (in secret, He teaches — and rewards openly)",
-   "contentSha": "7194328127f47e887d94aa345cb901e1d042f412f500b3bcbb2b36903bfc63a5",
+   "contentSha": "af3775d1dcfd3482961ec4a2d6740c373c941c6be6a544315520785d57cbc651",
    "versions": {
-    "teen": "99671334fff5e332f86dfbc4803dacddd1599c27e9dc8416ebfddc3e64760276",
-    "adult": "439a833da4dabcdeb3b7112b7445c509abe2f8caadfe1061291321665d4af65d",
-    "senior": "d9af75c78dcd4256c0659be27859eeed0ae81cbba65bfe0ba4e409b06ccce2cf"
+    "child": "db0c8736b73a21fa5844fe9356bc2772b0d6ce631e9390b43d26bc7394ae7c86",
+    "youth": "d781ac172c25aa742b213e5d17014fbac2595f1ceb2188dffeed481d5e214ade",
+    "teen": "5b25c23ef3dda495a10a135bf81c21ff355ad69d7a66ea38d8d5b38bfa5513a0",
+    "adult": "d9fea82d9a9f2e6233ab329d380199bb1eb88fa6246ef16d2dc21096fb5b4126",
+    "senior": "340bbec89209248e324ad2369e9e2b3d21cb597e5e5e908b6bc1165d0caf87f1"
    }
   },
   {
@@ -13656,11 +13660,13 @@
    "department": "The Eternal Algorithms",
    "position": 15,
    "title": "Feed My Sheep (the King's investment platform)",
-   "contentSha": "645f313f372e26065228887730c894dde79c41561b240ee1d919bb2951486158",
+   "contentSha": "36602d8d42860b3e8b03586f40a62adf186770a7f8b464586afd49adb343ac8a",
    "versions": {
-    "teen": "72b326baa4dabb17195455489ddc72558f4c3b6a37e0ed40e166df813e307c9d",
-    "adult": "41eba45092e0e0771ba7e71eee2c06f43db46c891f1452929b6af2b11c9d0325",
-    "senior": "1190ba380ddb65d4c75310dbf4641d18569b9896775dcb24ee10ba5ce0cd13a5"
+    "child": "59f5ad14cb5e505a629ea75e871f9ada4cdac7e467f07b573a82b542b732e442",
+    "youth": "bdfb87bd847ce815b55aec58fbf935fd9a28c9fe94f878d2199568bc641e19c6",
+    "teen": "ba708d33028b83a0cbe5509765eefceb808c40cd8c2fd6f28d9b880b8abbd455",
+    "adult": "eee349a569715ae3263df737f61ac73b01af77daf2537a05d51ea952d62bfdab",
+    "senior": "5053a545a5dd24ca3bcd99b301de38596f590c489e7445ce331c25e00060ddea"
    }
   },
   {
@@ -14254,11 +14260,13 @@
    "department": "The Eternal Algorithms",
    "position": 19,
    "title": "Confess → He Is Faithful to Forgive",
-   "contentSha": "964bd3afa0b4112fb375d47eca4e85451ce624d888afd08bbd52efb88b8d9b52",
+   "contentSha": "7e7d665030751b2e6fb8bf3dcbaac577666e2b8b4067b9ed9c4046cfbbf8a8fc",
    "versions": {
-    "teen": "ba3ae3be20256a57bbe437df9cfce95a81121482dc6b8114095803f6b2768ba2",
-    "adult": "6ce4d4f85a914ff73cadbcbaa56b8927c1645c050896bb4411105010363e3b34",
-    "senior": "caf9fc477c9204cdcf0e30416fcc228a5ccb76e51d98f8b59a519986b7a4d0e1"
+    "child": "dd84203255b38707a48c34e3c665461369207c7b5804a00cdb61e93b43b59622",
+    "youth": "cd0c34caef67e7e1f0edad32dc9c7d18246814a94d432164ac2597d6310a5205",
+    "teen": "59f4853f0001d0f0fd81332acd9738dfea40ea72ef3a45ea3858874bd07badd1",
+    "adult": "abd64d54d7f293fc2399458209ebf2d882d5d58693889840a8ab7a3cf4866b6a",
+    "senior": "cc6d8e22d3b909853f8519dbf895de3e3bcd03530bc100d5c3000ce2220ed9b2"
    }
   },
   {
