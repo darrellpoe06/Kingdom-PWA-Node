@@ -26,6 +26,7 @@ const versionLabel = (id) => (READING_VERSIONS.find((b) => b.id === id) || { lab
 // A keyboard user must SEE where they are (ui-standards focus-ring). Gold, never red (red is reserved, DR-0099).
 const RING = 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2';
 import LessonsInOrder from './LessonsInOrder.jsx';
+import { shippedSrcSet } from '../../lib/institute-studio.js';
 import { scrollToStudioTools } from '../../lib/learn-studio-bridge.js';
 import CourseLessonsView from './CourseLessonsView.jsx';
 import './learn-studio.css';
@@ -74,7 +75,9 @@ function Picture({ image, alt, eager = false, sizes = '(max-width: 640px) 90vw, 
   return (
     <picture>
       {image.srcSet && image.srcSet.avif && <source type="image/avif" srcSet={image.srcSet.avif} sizes={sizes} />}
-      {image.srcSet && image.srcSet.webp && <source type="image/webp" srcSet={image.srcSet.webp} sizes={sizes} />}
+      {/* Only the sizes that really ship (w640, w1280): 826 of 976 records also list w320 and w1920,
+          which do not exist, and a big picture picked w1920 and broke (Darrell 2026-11-26). */}
+      {image.srcSet && shippedSrcSet(image.srcSet.webp) && <source type="image/webp" srcSet={shippedSrcSet(image.srcSet.webp)} sizes={sizes} />}
       <img
         className="ls-pic"
         src={image.src}
@@ -351,7 +354,7 @@ export function LessonCover({ x, next, onBack, onRead, onListen, onVersion, onOp
         </div>
       )}
       <p className="ls-handoff">
-        The lesson opens in the reader exactly as written, with its Scriptures, age versions, read-aloud, quiz, downloads and your saved place.
+        Every lesson opens exactly as written: Watch, Read, Listen and Study, its Scriptures, every age version, the quiz and your place.
       </p>
       {next && (
         <section className="ls-row ls-next">

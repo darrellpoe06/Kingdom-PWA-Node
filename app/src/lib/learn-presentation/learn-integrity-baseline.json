@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T07:40:52.568Z",
+ "measuredAt": "2026-11-26T11:51:48.417Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4406
+  "readings": 4480
  },
  "departments": [
   {
@@ -12706,11 +12706,13 @@
    "department": "The Eternal Algorithms",
    "position": 9,
    "title": "Told a Day Before He Came (Behold the man)",
-   "contentSha": "58ee8a777cde53fc9c76640213f78370670611a1c617c79b108adcd8b5a29527",
+   "contentSha": "9da7be6770bcf6be648cf49c162918af710df8a1374463d2dd1806d260dcda9d",
    "versions": {
-    "teen": "5c529917f829d4a8210cd997049e44c2580abc114239f71e78d2dbc614db278d",
-    "adult": "20933c542e218929e27ec1223c0f15f0f709bdbb19c97c361a51ba418dacc48d",
-    "senior": "61f4076b152f9b6c39c5a366088ae4d62d1fdbaf1cfa7851b36259e3bba8befe"
+    "child": "1bcdf18a227b8c84660f579e744ba1ecd8683da6788c2b19c68e23c3665d376d",
+    "youth": "7ca8c7413f457de3cc2b1ff6dd17a7530bcfc58e70e24a8ed245b88f50812443",
+    "teen": "05f05155a613942b14b4ef2f39bc10b915e1ae40a4ddb346956a91a9378fac1c",
+    "adult": "629acb566f071899092f430fd9b81b4510e01de69105a3a43786fcfb77120d72",
+    "senior": "c87cb9ad9a6ee562fe259dfbc63e215aefb21b1fb56391269c761235da32b2ef"
    }
   },
   {
@@ -12719,11 +12721,13 @@
    "department": "The Eternal Algorithms",
    "position": 10,
    "title": "The Provider Commanded Ahead (I have commanded a widow there)",
-   "contentSha": "c50a64b8a09412504b62c9bee6867d6ff0cd73c2eb2f007c8127bd982f65144a",
+   "contentSha": "0abbd8e1097269df62b1a2231aa39b038cd5ebc1e03609b8ddd3d3413075b6fa",
    "versions": {
-    "teen": "497c2060ccfd8e434491066fec237cff7e2ae83fc4a60e351722e611c1fb250a",
-    "adult": "4d8126cef1a9c93bc7d64ce79372cb8edd3a91d1fe0976bb8a523f232ad67cac",
-    "senior": "05b8625f51983c1f4bf8d65ce8ec2c3e1ddb5e9ac52a4d81591ad9763fc978fc"
+    "child": "e19fa0dff49e5ca72f54936ba1c71b54dd10d99fe2bb4d6733b53cbd9fc2aac1",
+    "youth": "2d75be556f4e2bea08c63f51bbb817e786ddbdc4608ac1544f8c3aaff361b4fd",
+    "teen": "77f887500e529221b3396c223648b35c62bfdf8ed038f615cc8096ab1ad19714",
+    "adult": "370dea8abfcc565184785514e2386ad6eb0646c8a1fe3f959689aa834ff7046a",
+    "senior": "79438bd14d727cf5f6f63680595e4fd7e308e28168beae617da1cab64c5d4a69"
    }
   },
   {
@@ -13092,11 +13096,13 @@
    "department": "The Eternal Algorithms",
    "position": 16,
    "title": "Searched and Known (every word before it is on your tongue)",
-   "contentSha": "a65adbfdeceeb2a666ef79028cf49acce546e5941c79628c8104c8b4f42e1f1b",
+   "contentSha": "60b6d453a0f0c37c577ea6bf8bcec7952e26f6ec7d6aeab924891b112e561085",
    "versions": {
-    "teen": "31882477ea9031a561e519f6555b89acefc76508481d7e4653a5591bae07b7f4",
-    "adult": "4d617327e77a04ad0fa4ae93211b6c7654413e41c9b6cb3b70cfdd08bd5bd32e",
-    "senior": "0d33fe5fa750dc76ed315b212055de5baf108c0f3345d6db628219be75341451"
+    "child": "dcd6c3569bd5dc45dee6999623e4412d1a21caba4c6d5acc8e7beb670932d104",
+    "youth": "85d863390a889385ae1c81a50c878b5802305701890cb434a0659a960a994c92",
+    "teen": "96ee012f2a7f3fa54cc0be6bad6546d89e14313aa75615cfcd313fa3f9b373d9",
+    "adult": "3a1422f0a38e259a968e5b62ee1f5eb4e5bc8fb84da443d7d7737afbc50e2690",
+    "senior": "0df9428abff283fdcc85f80522bf942eb86b72eb70076ccd300a566ff93e4107"
    }
   },
   {
@@ -13105,11 +13111,13 @@
    "department": "The Eternal Algorithms",
    "position": 17,
    "title": "Your Breath Is in His Hand (we cannot keep ourselves alive)",
-   "contentSha": "cba5cadd0382e1c68393c99d5541da956319e73d6b37dac5bedaf95c0781448e",
+   "contentSha": "b0a991103ce62035f6eba129d36566b1a7ee6c7ee714c0c395045f7989a059ec",
    "versions": {
-    "teen": "7e1d54eb665fff362d1aa7eba0b500404af418d60367415a7bc64d161d0e37df",
-    "adult": "d1cd50681724fadb2798985cb20f7ec6cea78927d0718ae1e6e344d90e90ff46",
-    "senior": "cf1140a056721c5467850a43ecfd9789dd42e6036b83c0bc15eb938ad9edd161"
+    "child": "35ab002f1e3e61d8b29823228bb83b321710026dba9ff2a390eef08904c1db27",
+    "youth": "cfa780aca21fe754c2f08761eb784c82d71cbabf96baf9d09bd2cffa68eafb5c",
+    "teen": "d3e338227b19822073d8cbd1c49e514f81a115901aee4b208826d1a68ef95d3d",
+    "adult": "be82d29a7a28f516cdd89791ea7f4ed7e9d35637a0dd2eb315d1d7a88cca4c92",
+    "senior": "9ff233fe243a6cb5d0116f7470e20b6acbe4a45a2bb49bc53914cb3f27db140f"
    }
   },
   {
@@ -13118,11 +13126,13 @@
    "department": "The Eternal Algorithms",
    "position": 18,
    "title": "Money Cannot Ransom a Soul (only Yahweh redeems)",
-   "contentSha": "b41f7bbdf4add75704b74d0b22918c02d8c5ad3699f72f12b6d8919ee2dc40f9",
+   "contentSha": "696603e3b660950a4c560bbf8d4e4e892a3da18c6d8b7ace6b7e05154a104db0",
    "versions": {
-    "teen": "b847fe8ad8e93410478d8f2e3488375ae7bfff88513c3e83b7462c4c7c0e159b",
-    "adult": "e6b9f65b3043d15b4d45d07f1bd597764dcff69a58c4ee82b6ed4dac994d65a0",
-    "senior": "f850b0173937ff9367e1d4795644fdd4c44db3d3b0bb8e39a22ff471bff7c9d3"
+    "child": "03ab5158022642baa8accb3a805f2e7c2faf11995808db7f6ce8950557ce69fa",
+    "youth": "b49f47e2a25358457809cb29867ce48cd5f55aa5c27ce123c02d5c4852957ca9",
+    "teen": "3cdadd551bd4e804a2c00bebd814822e5f3a69e4bd334c91b62e3a0663682765",
+    "adult": "bb2387c4850da0e6ffdc587080695dc14db095d49327a0a906d34121d3a3d629",
+    "senior": "341a0d71e8577952e1c97d14d32d86d7dc79573d7124f2b178e2935b421e8e01"
    }
   },
   {
@@ -13327,11 +13337,13 @@
    "department": "The Eternal Algorithms",
    "position": 10,
    "title": "Known Before You Were Formed (the purpose predates you)",
-   "contentSha": "917e9d59340adba3cdfc8b6072268d6ce374e7012aee7681da8edac95094a9a9",
+   "contentSha": "c1584a4392a4af0242b30ee9069fef374e7514f1ee3c22d36ed9ec867c53daa2",
    "versions": {
-    "teen": "b4bafac3841652392cb6755eade42f8d0ce2f1a03d347f20b369382ee01e1222",
-    "adult": "a75d84318f00e60bd8487a810eaf98378f2d4026922e3136ec1c0facee18b707",
-    "senior": "9f2cec986f72384a76b00e3856819cd0d54881c8e474b0e06e4f65eebd904adf"
+    "child": "a3e8ef3ae8d29fdb2512464600657444506b3f3c3c9876b853a9d364475374dc",
+    "youth": "ac8c7b5f9f71d945825cae0bf0f33685476dd7bfa821fee691b06d875b8f5e6b",
+    "teen": "3a082eb4589ba7bd4f513306dc12e13db98e9e49b19b464cc121a4b52be8a244",
+    "adult": "d532a81d363ca4fc4b8783282068668c3ceb4514dec6d0a657f71e97839800c2",
+    "senior": "38b206ab79c035ebfbfa276716bfd8c8fbbb4eb173626751100fc9d59169ce33"
    }
   },
   {
@@ -13340,11 +13352,13 @@
    "department": "The Eternal Algorithms",
    "position": 11,
    "title": "He Declares the End From the Beginning (only Yahweh can)",
-   "contentSha": "dbcb4984648ea13cca43f9f0cf2545f3d47e8b75296773e97037343e59909454",
+   "contentSha": "d26b3a543158b52543fc39e7750c31507307cbfbba5c8214ca32eddf7b3a9346",
    "versions": {
-    "teen": "16b9040233a5fb832128a464898d34307fd37e0886cd6ae7df3ec61db481967a",
-    "adult": "97237899cc4f249e437ed5c77d072b8fd796d6cb70a37788756cac2339ec42bf",
-    "senior": "8c810f0ceae99d99acf6cf4abd3a57356a577250d10177c5c31667e812ed19f3"
+    "child": "682b7a8d567d216877155da1ec8d549bd7803f0644fae57ebe226c9c4b8bc3a2",
+    "youth": "1017decee74b97c79d05614461d32a26d9d53e7835521656bcf85794e9904274",
+    "teen": "05a230cbda4dd50f4d49a96e09a0908819298a3c47addeae81962147fbab78c7",
+    "adult": "d53228b76ff5676f8b00ac86390f59a8e80bc87996f34a81ddeff64e09b21af1",
+    "senior": "2b00266fa7ddde5e39db102a0588060ab1f69b8bc76488bebfc143a25ade3a6a"
    }
   },
   {
@@ -13353,11 +13367,13 @@
    "department": "The Eternal Algorithms",
    "position": 12,
    "title": "The First and the Last (past, present, and future at once)",
-   "contentSha": "0ba9f0b020eb0999a46ca334a9cc320a0ba7adb704d40449cca56866cb105127",
+   "contentSha": "85b6a2482a58595f90d9710cf15c14a3944cfa908427780cf8d2c7686cdda255",
    "versions": {
-    "teen": "7e21fa0dcaab0954a36bc0c0840938995063e8438ed5fbef4ac22e6493a18927",
-    "adult": "12cd8e7aed2ff4d13966baefb2f6907f8616c1680f3e11e93536ad9c527bdbee",
-    "senior": "4984c348916bd25930ec193ab732ccdadd6968672a4661bd1702a2040156bf61"
+    "child": "6f1ac6861ce6ddca8428487074551088f7f1518ba31153cf726dc4c05ad5a7b7",
+    "youth": "4be6cd7edfcee2afa64b60c9ecbcd5e350464324a47b929321449df070b8b33a",
+    "teen": "baef91b498de01403ea87129b964c8a3cac740bfc94b00bf7b09e9d284b91809",
+    "adult": "a4a299b253f65d82a5b89b6967be8483059367a9059bc34701fd783a020c4776",
+    "senior": "a8c55a64f9c2449728e0fc6d0ee9758c3ed414d182f24464596c3c31d9fa65b0"
    }
   },
   {
@@ -13614,11 +13630,13 @@
    "department": "The Eternal Algorithms",
    "position": 13,
    "title": "My Sheep Hear My Voice (another voice they will not follow)",
-   "contentSha": "3fd55fd15660e419559fdf08c1644d497f0e8c06aa5509bcf68fed8200574b52",
+   "contentSha": "becf9538ff7116e261b89ae301589435bbd2baa46e5ec1c8b448221b2511b392",
    "versions": {
-    "teen": "980bd17051162f937beefa59f075461762981d605927a8b85b0d90adbda404d2",
-    "adult": "69d326a5150ab0e8a435c429a0304a9de5bd35e8196288b83127b783d9674706",
-    "senior": "6e2dbe9cd2e658d1e26add838ce9208b0e7b98c3eef420b79e2a5f692a653f0a"
+    "child": "13318f96eb4f8a36173ffe6c07e397595af7bcf59ca3d8408e91d8ec3bc3de20",
+    "youth": "fa09762b1af4dfac5e6e11e0b05f52df475545bbfdf9e1ce7377b594975165b5",
+    "teen": "228dfd89d217f6673d611b14373cb1bd2d577adca803621d51370711e45bcb96",
+    "adult": "6c5d1306b4c36fe808c6515cf341f8807662c99442b241aeb4277bc83d41f107",
+    "senior": "fa0925b7f2259e67998c3b0828ad83023f9bdf17f5f0994549e76b4efa666376"
    }
   },
   {
@@ -13627,11 +13645,13 @@
    "department": "The Eternal Algorithms",
    "position": 14,
    "title": "The Closet (in secret, He teaches — and rewards openly)",
-   "contentSha": "7194328127f47e887d94aa345cb901e1d042f412f500b3bcbb2b36903bfc63a5",
+   "contentSha": "af3775d1dcfd3482961ec4a2d6740c373c941c6be6a544315520785d57cbc651",
    "versions": {
-    "teen": "99671334fff5e332f86dfbc4803dacddd1599c27e9dc8416ebfddc3e64760276",
-    "adult": "439a833da4dabcdeb3b7112b7445c509abe2f8caadfe1061291321665d4af65d",
-    "senior": "d9af75c78dcd4256c0659be27859eeed0ae81cbba65bfe0ba4e409b06ccce2cf"
+    "child": "db0c8736b73a21fa5844fe9356bc2772b0d6ce631e9390b43d26bc7394ae7c86",
+    "youth": "d781ac172c25aa742b213e5d17014fbac2595f1ceb2188dffeed481d5e214ade",
+    "teen": "5b25c23ef3dda495a10a135bf81c21ff355ad69d7a66ea38d8d5b38bfa5513a0",
+    "adult": "d9fea82d9a9f2e6233ab329d380199bb1eb88fa6246ef16d2dc21096fb5b4126",
+    "senior": "340bbec89209248e324ad2369e9e2b3d21cb597e5e5e908b6bc1165d0caf87f1"
    }
   },
   {
@@ -13640,11 +13660,13 @@
    "department": "The Eternal Algorithms",
    "position": 15,
    "title": "Feed My Sheep (the King's investment platform)",
-   "contentSha": "645f313f372e26065228887730c894dde79c41561b240ee1d919bb2951486158",
+   "contentSha": "36602d8d42860b3e8b03586f40a62adf186770a7f8b464586afd49adb343ac8a",
    "versions": {
-    "teen": "72b326baa4dabb17195455489ddc72558f4c3b6a37e0ed40e166df813e307c9d",
-    "adult": "41eba45092e0e0771ba7e71eee2c06f43db46c891f1452929b6af2b11c9d0325",
-    "senior": "1190ba380ddb65d4c75310dbf4641d18569b9896775dcb24ee10ba5ce0cd13a5"
+    "child": "59f5ad14cb5e505a629ea75e871f9ada4cdac7e467f07b573a82b542b732e442",
+    "youth": "bdfb87bd847ce815b55aec58fbf935fd9a28c9fe94f878d2199568bc641e19c6",
+    "teen": "ba708d33028b83a0cbe5509765eefceb808c40cd8c2fd6f28d9b880b8abbd455",
+    "adult": "eee349a569715ae3263df737f61ac73b01af77daf2537a05d51ea952d62bfdab",
+    "senior": "5053a545a5dd24ca3bcd99b301de38596f590c489e7445ce331c25e00060ddea"
    }
   },
   {
@@ -13653,11 +13675,13 @@
    "department": "The Eternal Algorithms",
    "position": 16,
    "title": "Hunger and Suffer for Righteousness → Filled, and the Kingdom",
-   "contentSha": "87d28973b684f7c402f18534a34be3993923298830218014612e7e7485ad12e6",
+   "contentSha": "18170ec66913fa94c82a635876b30c73487fa3ab8844591c7c7cdd61eca3a96e",
    "versions": {
-    "teen": "29919841f106648990898bbe5d7efff03189569698dc7f86fb41912a5b5483f6",
-    "adult": "6e49847443d9e4c35cde35a9cef0c9bcff30e57efad6b1be81027b872f5d119b",
-    "senior": "0c93cadeec7279dccfa85eafbaef998bf26570cface5e39284c458b76805f462"
+    "child": "7ba7eda810ccea03917fac3012a70831eb385d93242b6def7947129ffe5ac359",
+    "youth": "12bafc86ef303a4b3a4387ffee1388aceec3b01994e91181d7949840c1c4b267",
+    "teen": "30c019b4350c9c4637253be3fd5b75b958efdc4c280d39ff447c2f558f5842e3",
+    "adult": "30d28f30ef97e15330ebf6f78c1b785891e493ce4b372238b178ee0ef46f43d6",
+    "senior": "d8b7a1db7cbb0f1a6b3e6bfac769db5a79d539540a3c055960676a01628a16b7"
    }
   },
   {
@@ -13666,11 +13690,13 @@
    "department": "The Eternal Algorithms",
    "position": 17,
    "title": "The Word Framed the Worlds (the Outside Agent before time)",
-   "contentSha": "eb8594f1e20db16477bc59dd4abb60a06fe5861a9a2eebffe7878040c4d550e4",
+   "contentSha": "782563538344575f18b04adf3c245031e1f5d97cc492b0170a120ca83e0cef7f",
    "versions": {
-    "teen": "7b64eabee25be3439c874b7b5b5f40112c0edeb737d4446d6d55d1bdf07dd4e6",
-    "adult": "3def014d92c2efb165b97b80d5acd56eac3e6dcee89805d2753bcdca8a1b4b31",
-    "senior": "76d8be706bb014af0f2408fc35c5c4778c806262b173c990439efaa0b2bc9b7e"
+    "child": "90329a80f6999ee1370a79838cea7f2c0563667e7f69baebf98398f0da53e8ba",
+    "youth": "9b04fa1a0385c6769f94c9221bf575a47c8bf369d01e90c20a22d543d01723df",
+    "teen": "3924680d55926ff4604825cc003402fb32ab68638ff72d869fd14e0b4c40e862",
+    "adult": "d331a4bf796ea199c3a920c6fcc7865d09c9604c8ac045876bb9f9c21b2dbc63",
+    "senior": "ae47ed9c4c56a48f5e85f1b99c58b682eabc5778803a3edb33cb2d81fbf12381"
    }
   },
   {
@@ -13679,11 +13705,13 @@
    "department": "The Eternal Algorithms",
    "position": 18,
    "title": "The Kept Appointment (Simeon and Anna, positioned at the very hour)",
-   "contentSha": "e7b4fe4f4e5841f21cd75be328c47117e63735fcce9da279610768dd3469550c",
+   "contentSha": "6704c4482ddac79c3b13dbaa44917fbdb8e017f16cacf239f84bb917b67006be",
    "versions": {
-    "teen": "ee2d10365c49434447f7de30e139548eb517b9373367d57610cc095fae9d12cc",
-    "adult": "df1fccf9a41fd07e150b38710273a4b269ee687ef2fb963da68460a48311ced4",
-    "senior": "c0ba6e9d9cf03c3466b506f794b18172c3ee40830d2a3291ac14c1b79477f234"
+    "child": "2567243e1e9f15c743325ea5a7042d23f2ddfc4abbef20022ab95723bd37145d",
+    "youth": "0f4dd7266e7649a157e6804d29431e3239d78de39cda443b6206490b50d6df49",
+    "teen": "4f8ccc13c152281de2efa2080bbafbe810737a7367ea2bce392c5acaedfb7042",
+    "adult": "3ef97dea67067fe218cadcbaba817a51c9db750e2d118af819870220a95c06de",
+    "senior": "e7a631b579dc807d2b0c764804ac6e393f479885cb3e9c933fd5c119208919d9"
    }
   },
   {
@@ -13692,11 +13720,13 @@
    "department": "The Eternal Algorithms",
    "position": 19,
    "title": "Seen Under the Fig Tree (He knew the man before the meeting)",
-   "contentSha": "681dcc8d7049420d0a06351f72be444ed148fa037b6f71c14cfc2c4f4d04a568",
+   "contentSha": "fd01039b0853d457c01c0485b8ded3b09c041350f59b993bab9ea828c11805c7",
    "versions": {
-    "teen": "d164e5d82f7c0d004975af9e56de00beb683ffffa973ded463cdd74b0abf386c",
-    "adult": "ed878d404ed4550a44adf27b73f6296d90a6ce02e37de50480b6321b1bc8f1e8",
-    "senior": "3d6af4f7668b1bfc97fbc5f75b2e5c7538bd161fb75e2312c53d71fd36cf56ee"
+    "child": "564c9c8f2201e7212bf67454d8fe5e0ee7efba2a555c232681481aa2f2c22bcf",
+    "youth": "d435e2bc21eb66df1785103dfb2d07dfe3c7b5349ec70c17e7d2e28e4bbac09c",
+    "teen": "5b858956418b669f95028ca42a86fd670bb24360281e07bbd48e7dcfcc49ece1",
+    "adult": "604c803e4dc1177ef6f44193e7527028de991685d221e84f58402eba659c2d91",
+    "senior": "b16cf0079a2e22f507d7c31de2464b3998198947dc2a9a13de8698abb0004eea"
    }
   },
   {
@@ -13705,11 +13735,13 @@
    "department": "The Eternal Algorithms",
    "position": 20,
    "title": "He Knew the Betrayer (foreknown is not the same as faithful)",
-   "contentSha": "83150f2a3563a5e514584a2dcca01ed5332f5916158ee9b386119c37f1fc62a1",
+   "contentSha": "181645e689908fe68292bf0bcd46da55e0655c659a6742bf756a05f59fc66106",
    "versions": {
-    "teen": "7564f9fdfad91d29309e493349f3ee2e437ed8982d2ad1164a242e3e5d3e323e",
-    "adult": "df32db6b889c6d4675b9cbf1a28d62bdf92afc3f5f66ae007492495fcc4538f3",
-    "senior": "d7f6eba6c819c240009b91c7cbc0bd34fc8cc1779d5fc7274a50ae2fa1ede49b"
+    "child": "a7a24bd33a9c22c74aeef304fec883d397276b1e5b2f1cef3a143811905f43ee",
+    "youth": "36034047a24bed42711302b8c001bec771900b3a5b6f2a022685c548b669b031",
+    "teen": "f717c9076940536e00784d037d99a21b1e83de5c87e5c3b4aa5d6da4f3d36dbd",
+    "adult": "2e926360195cb3e5809106b77b44e630696a062edcbc532ae746a34d78fc0401",
+    "senior": "43bbbab24634390d595aabbd49bf24d402f14787e77ba7ff443f72581725687f"
    }
   },
   {
@@ -14124,11 +14156,13 @@
    "department": "The Eternal Algorithms",
    "position": 11,
    "title": "The Church Born in the Fire (priceless, because the King's Blood is)",
-   "contentSha": "ec372e37a66aff32e42a4cc857a3703d976e760392a678ee4985ecf906ce0c2d",
+   "contentSha": "d5549c5ce792835b32271e5b45d7b318fdde398c308cb0edbf27b0876829ac33",
    "versions": {
-    "teen": "f776116921073827a538ef27e5cf1b368c7c300120bd71706f8aea839f5fca22",
-    "adult": "b20d9a35f93cd294a0e0f3ffc6307bea15c6625d4e625709c6e4d15afc87157e",
-    "senior": "04dc40d6240768edf4f1d35b1b714907334d0ac27909da8d7b570f921e0ab9b6"
+    "child": "4d1350c6493860a02faa789ad216ac62818df96aee2556271bcfb7f4280f1df4",
+    "youth": "537164442315e60da36164b060c2138664530cd113f1f607aec5ee12be85e522",
+    "teen": "621fc8fbccd938a89fad3ccad876363f00c79847bb9eb831932b80a3d0f0072a",
+    "adult": "fcfdf1307c542551cf8006463ffa1ccde255b061e3f20ed8323b932d8b980ad6",
+    "senior": "3fea782cfd6761acb61671334ed6eeaa27c7139a92b1365aec3912ffb256b113"
    }
   },
   {
@@ -14137,11 +14171,13 @@
    "department": "The Eternal Algorithms",
    "position": 12,
    "title": "Submit · Resist → he Flees",
-   "contentSha": "d1059d6b05303cef2807eb199d09bf3daf99f3e0e3eea9121dfc38b7e6aa2242",
+   "contentSha": "e3cf57fa90c4c28a804be22d0c156332f2021eb16a9171336ef1bb6e89f9bf2f",
    "versions": {
-    "teen": "626b3b39c04543013f083e158ad131fa7bbafb5d0d45bb5a0aadd9c5e2694f0d",
-    "adult": "44006487b190e5ed4b3b9f545e4aa7066610041b96cf41fc34e0835e4cd975c8",
-    "senior": "d72b1772bf19c02096ee231fbb24e80c01e51db2240ed39364d8b321f13be9c0"
+    "child": "11e8006cab4017446a038c13a9cc07f658c9380b25de8db9edbddcdd69220c81",
+    "youth": "0d2865c690e1d9a385584bd17de3845313279c7d90a10045c5ab50c2a800a191",
+    "teen": "6162bd099873e63173341212b80a169a83615fbff8691bd5e9f348f9a60837de",
+    "adult": "dfba571aa3957189d44fc84e9bdf481ee6f3e0c63701e471d79244febb67e5de",
+    "senior": "0ce9bd6942edfd5068d67cdb14cf61d47b309643417cd2e6f9f1183f28f83fc1"
    }
   },
   {
@@ -14150,11 +14186,13 @@
    "department": "The Eternal Algorithms",
    "position": 13,
    "title": "Dead in Sin → Quickened (the Blood restarts the system)",
-   "contentSha": "5144c96c84ccc08541694e92c5163b93de1682684e90834d119d11c43931f748",
+   "contentSha": "4dcb28458fff697549f95936c9517ce5c9282fed97af7efe09e28e3656b597f6",
    "versions": {
-    "teen": "0463f4add20c271035de21ce4b92cd861a7b257ee268a63922b2f4dba88e040a",
-    "adult": "e7f691a725e832e5371b46f200eae201e5a7fcada1c3949c6e6697a7c8342010",
-    "senior": "6853daac3de8f9adf37288d64943c234a9d7e3a175ff7875cacd090455f21f9f"
+    "child": "aa4dcaa68c12dd452a1894a1c4e5db9556bf061c2db0bc04c4f7c5800f1d5747",
+    "youth": "114d2dabc4487c14ec9f1cb82b4b7690288a6bf0de2aa726a20ad2db9f602285",
+    "teen": "1aac3055f9e142d15b51a25ad74405799aee3155f309a2ae876ff6d3f94e9175",
+    "adult": "1bacd1f2e714d67795d9e6099cb7e746b3685f170694b2c855c8e161c7a32007",
+    "senior": "fcd0bbfd9579169bc09d3cf15d80428e04a54bd133f72be9acf04ed0e4230ba7"
    }
   },
   {
@@ -14163,11 +14201,13 @@
    "department": "The Eternal Algorithms",
    "position": 14,
    "title": "More Than Conquerors (the separation cannot separate)",
-   "contentSha": "d3dab4c715d5693f025983e6470937c581119a9d979d4a93b6af7e08616d7c16",
+   "contentSha": "194b7c07e6e85eb54346c8c9ff3f27ef1066c46af3a970c8a006625652c777ba",
    "versions": {
-    "teen": "2c80c81604923980c8e0b1bbe4631c4d5568a69013f500a1cf3cf273297b11fa",
-    "adult": "8ccf2ad3ee23b1e8fdd379fdb201259a51378aed630146bb3681e7483697eff9",
-    "senior": "f36abe25bf97a6eab14caebe6e1d1ae864d47341c6f112d30a9ba5f85ea18da3"
+    "child": "6de8e6fbd98740b19f4e17968863810f1105df0f641eb21c4c0afefc8e791836",
+    "youth": "36e9c679f13859fe4e43eb9dc744427f810a04f4e2a90cf9d4a273e2b6b9729b",
+    "teen": "34864fc5b00dde2313acc06797901f04643fbaec39b0ef943023fc074b27e27b",
+    "adult": "4cf9eb79ca438ffb9d319dbc2417e6c75696049fb7533a89d5792147e07c178e",
+    "senior": "9c5007b9f851917131171818aca649682f2d1dbf113ae588a9d6e304eda230ad"
    }
   },
   {
@@ -14176,11 +14216,13 @@
    "department": "The Eternal Algorithms",
    "position": 15,
    "title": "The Good Fight (joy is strength — happiness is weather)",
-   "contentSha": "b2ddd280090c0f06463545fe2468e9c475bec4cca8a654e53d2fea26a40609d5",
+   "contentSha": "2cfadb129ca212656ef396e7a76841ee97b0709a9a12393c5565068f1f695333",
    "versions": {
-    "teen": "99b779b58ba14c7af27e5a50f43c1111a990c752955a57a907a55d84740ad40d",
-    "adult": "bff5130280da3650d0fc551b155e98821527842c9cbc7998345288f9748fbd0f",
-    "senior": "4951177c7a90447174d6e5cf58e5367b10e4c7a8e5a93976b50fa309388a997d"
+    "child": "e37587214e5c666554417b756524ab9462d70480d76315a53fb4d244d439585c",
+    "youth": "41928a1b28492662a59f68d3f509b5df1303008500b6c9670ac6802bf69e8ec9",
+    "teen": "693713631082c3fa8d85dc8496c7ce9ac2edc61c5b85585d7507a821584a33b7",
+    "adult": "59bd336e458e41d5fbce04f13fe6161a7212405a0b5f02ba6b15fb905f37d705",
+    "senior": "547f41ef26ed5aa33cf522673e83a57e243b5c9166e2438a877aabd5ec341477"
    }
   },
   {
@@ -14189,11 +14231,13 @@
    "department": "The Eternal Algorithms",
    "position": 16,
    "title": "Seated in Heavenly Places (right now — support each other while we grow)",
-   "contentSha": "d00302da41c7333c0cd433a470ce1d9dfd08fc019058990b8f34f8e47dab95d5",
+   "contentSha": "fbc2ae7bf0f54bb28f21c2940a83e8cba4068b4806f18c870173e81eaf1b7449",
    "versions": {
-    "teen": "bf86f87c815ccbcd8f51c7cb72cb0b9e9cea105a5b2e91a90b729b771131f522",
-    "adult": "bfffaf4e3211fa41d17d34d055056fd5c9e6654feec3a2524c4ac6d3b19a47d5",
-    "senior": "f9d69e108397c930fd73dd5d943fd31a09d0ef46b7930c970885a907677e5e8a"
+    "child": "745dc6d600b02c775eabc9f142fb0d80919263ebbacdcaae21341122f913b419",
+    "youth": "12bf9b890ae1cd25d2e15ee8e27b86b8f0d8c58421dbc75179cffc24e32c543b",
+    "teen": "19fe263e3e46403e4b323177cd54d4bb101c310bb968a4d27db2442f08e2c876",
+    "adult": "c858b887ef40641ed0fec388b5a6a37b086e929511aa38a4204dd02c039dbbef",
+    "senior": "85ba41b681d4d1d07634e082e094ab4750249887f4a24d30bd56fed50b5ac26e"
    }
   },
   {
@@ -14202,11 +14246,13 @@
    "department": "The Eternal Algorithms",
    "position": 17,
    "title": "Vengeance Is His (we're eternal anyway — forgive)",
-   "contentSha": "70ed882197b12a8ddc73638c365b357c29c509aca334f1338d02a5687e8113f8",
+   "contentSha": "d1122dacabcf3fb4690bc708dd0b2b0e669bf1b6a0a7f37ba6ef3465668c34f6",
    "versions": {
-    "teen": "7e516e3eda2ec05c68eaabb2e411a9b82e0bbb91da4f36bcfd3fdc650a959ce1",
-    "adult": "bfdc0b8b4281b8b5732ce687149f02aa756acdb4193a4d120360349b13e97ece",
-    "senior": "23c3bcde1099bdd00977ab6efae2ac81cccc6f5f2496bf7d7ea3e47034cb1006"
+    "child": "8ac4b3ef6441aed7f2def677e3c7da2e6ebcd9eb9909dd9d3febf25ec2e1013f",
+    "youth": "f2e8dbde2a5d2d13d14e617f0c0be93b0f39b2bd805321d8010a0155731835e1",
+    "teen": "f9456fe90f067c14a0b7d4e53b1ca19270f170dca684cdd0ada20046228e4c63",
+    "adult": "43465d203f2f7e5a5adc48982ab5c67edbb19b46c131c35062ece8591b045762",
+    "senior": "702fcbe9d70fa934293035cf1018388c0e94bbb3995cd4a456aab5e11d9a25bf"
    }
   },
   {
@@ -14215,11 +14261,13 @@
    "department": "The Eternal Algorithms",
    "position": 18,
    "title": "Humble Yourself Under His Hand → Exalted",
-   "contentSha": "7b3d7b7b7bd7f65f776c35eba52f2f814470b42ba5748942c07d502f579e6bc8",
+   "contentSha": "46402f1b8e55846ebb818aad79234ba56d92d15efa0de6d129dbb421cbc0c2e2",
    "versions": {
-    "teen": "7edbb0872716b08b1d59d9e17ae3351c40a6d1ded61fe6f9ae7317ef81a7b874",
-    "adult": "9e502a96580b78ea5288f35ce3267a3b5a4c253f837a318b390a9e843e5716b0",
-    "senior": "c41091270d2565295e2c5c89582fb432fb12db84c7691e883631ad2aaf5cca23"
+    "child": "c512841ba530c4bd2c05add92122d66afeacbbc474e09733c2a424dad946b5aa",
+    "youth": "b6cccb2a464e9eeaa6649801d550f524c144cec43a11fe152008b5009cf87ced",
+    "teen": "1960d3013ae496f9ae61fd12dbbea3f581195f06044edc5de6a2bd5d11afc791",
+    "adult": "9517c8cada2917ef2351cff191185d1773a48d39f3e08f990cd379de929c3e9d",
+    "senior": "2b892c65643c1f07950d8fd89572ec03fa8ec884ddca335757c9081d173c532a"
    }
   },
   {
@@ -14228,11 +14276,13 @@
    "department": "The Eternal Algorithms",
    "position": 19,
    "title": "Confess → He Is Faithful to Forgive",
-   "contentSha": "964bd3afa0b4112fb375d47eca4e85451ce624d888afd08bbd52efb88b8d9b52",
+   "contentSha": "7e7d665030751b2e6fb8bf3dcbaac577666e2b8b4067b9ed9c4046cfbbf8a8fc",
    "versions": {
-    "teen": "ba3ae3be20256a57bbe437df9cfce95a81121482dc6b8114095803f6b2768ba2",
-    "adult": "6ce4d4f85a914ff73cadbcbaa56b8927c1645c050896bb4411105010363e3b34",
-    "senior": "caf9fc477c9204cdcf0e30416fcc228a5ccb76e51d98f8b59a519986b7a4d0e1"
+    "child": "dd84203255b38707a48c34e3c665461369207c7b5804a00cdb61e93b43b59622",
+    "youth": "cd0c34caef67e7e1f0edad32dc9c7d18246814a94d432164ac2597d6310a5205",
+    "teen": "59f4853f0001d0f0fd81332acd9738dfea40ea72ef3a45ea3858874bd07badd1",
+    "adult": "abd64d54d7f293fc2399458209ebf2d882d5d58693889840a8ab7a3cf4866b6a",
+    "senior": "cc6d8e22d3b909853f8519dbf895de3e3bcd03530bc100d5c3000ce2220ed9b2"
    }
   },
   {
@@ -14241,11 +14291,13 @@
    "department": "The Eternal Algorithms",
    "position": 20,
    "title": "Every Soul Gets Its Turn (the testing)",
-   "contentSha": "98cda529d58abf67b5b06703a7d3632d0d2773dbe399da68d0512fba6db4649b",
+   "contentSha": "a431ceab1020b4597153b3f1aea60cdc7120b60dfeee5ca35d315d4008d340c5",
    "versions": {
-    "teen": "2dc897bc5fec9356a55430ed09f9b7c7554f3e072319e88c18db647c444b9408",
-    "adult": "85d5e641b4e98a39d99459825914ae0dee559dacc0407554bf56068401ab776c",
-    "senior": "27e47bdf762707d2e1381f21cdd79bde2b0d9d11e46d8ff69c900be58fd9fc9c"
+    "child": "f44390abcc91a7c68e44bd92fd487f8848b1ce6b22660c33eef8245501f21156",
+    "youth": "6f4cde77b4d14abbb2df7fb771daf6eb1fea06725334bea81eb3cfdda4e39897",
+    "teen": "9e50a1c3e0a3c4a1b4f1334a339e4d1e212d105873f4508d682929cfefae2305",
+    "adult": "870004b367371638ff70b0f125dcdfdeebaaffd71f57bf730d7b5804a247326c",
+    "senior": "cd153d000cd31217e77abdb80b357492292473d828e0aaf81a801b25956bfe59"
    }
   },
   {
@@ -14254,11 +14306,13 @@
    "department": "The Eternal Algorithms",
    "position": 21,
    "title": "The Sower Sets the Harvest (sparingly or bountifully)",
-   "contentSha": "2a69da5e81e837c7b9075c0550b93b98a6f124b7c9c5c13ba05010050cc834cd",
+   "contentSha": "2a00f99c131c27639d723ac7008bfe4e139a7f651326e879ce10f1c0525ac68a",
    "versions": {
-    "teen": "f7c6aa4dc136593df2a7e110316cf3e8cf2e880042178f8bd99f69fbc252bcb6",
-    "adult": "df27f039154be8237f8188b0252c5828b7895fca77692425d429c923717b9531",
-    "senior": "d7290457d8ba72a551e4fafc2339179d380ba25e30183d3c26491c9d87dda3cb"
+    "child": "9fbb8c807efb4819f82a1446e0d065975fe3f2eb5afbe358bfab6b5f2878661b",
+    "youth": "e39aec86cc9dbdb50fcf36c1ad37b7b68a550e83ca0f4b05a8e3ba98b8c9a49f",
+    "teen": "15502955b0178c3f8c900904a41cd6e9dffa992243a94fe0393a62151dd09d22",
+    "adult": "cd537b15c20c3b1fad1efa7eb4b3acd95bb5e5b814213a3b4d3d4b61becc993a",
+    "senior": "4ec61956e11a66d11c52bdf75c228f3d30d925e18a0770acf407aa98b005e435"
    }
   },
   {
@@ -14267,11 +14321,13 @@
    "department": "The Eternal Algorithms",
    "position": 22,
    "title": "Forsake Not the Assembling (the Tribe congregates)",
-   "contentSha": "0f02c4c8127e8f790e230b7edb25bb5c1b6b10513d8d18568936a69bcee739d5",
+   "contentSha": "f81fde6bab7b7df4647ae896bddd6ef16087f927d6b66a7c2decce3338aadcc8",
    "versions": {
-    "teen": "605335314a302ba7491c7f077f293476c377a025c194a494e7ee1816de588dd6",
-    "adult": "b110c1387d9abc8d04d0d8fab033aba67815d65ff7cca395b0491c24fb63f03f",
-    "senior": "be87238fb5118f77e14c2b78ec1c9de493579567366fa409678bf48402aacb6c"
+    "child": "610cbf6bfd1bd9975f8bfecd5db62a3c264d637cc2bf5c1ab5950fd31607b378",
+    "youth": "6ad9b165bdf6833a5a80bdc06359d4830b5a9d32eb77b157341e7f466efb0aee",
+    "teen": "3372f854d4ae957f0cb94467c5b62030197bd3a07de2189efdc89ea7ee605838",
+    "adult": "13528ff730127a4ad02c47f1ebb2c36fb5ea1ff40600dcd70ddedeb93628f51e",
+    "senior": "9294f8e6eaf1025bf24f1d175c984dc42ba2194a3fe9badb4d4363aaed245683"
    }
   },
   {
@@ -14280,11 +14336,13 @@
    "department": "The Eternal Algorithms",
    "position": 23,
    "title": "Clearly Seen, Without Excuse (they knew God and glorified Him not)",
-   "contentSha": "8217a7142e50c67d97de9b47e981a675b8e06c5ebbd1490b8240196a16a47bd0",
+   "contentSha": "4398c08b93daeb66a41d313554340cb1659a1d20e0a03d2f069724c7d88dee6a",
    "versions": {
-    "teen": "761f6cd010866dcb89411ac3d343ba250491d6fa0e099ff9e7babad9c45c22da",
-    "adult": "5a34196b8949db015dbbb60dd688fbeb24f73a74c22e7a6e381cd711443d62b4",
-    "senior": "93d96852415f687462ab9811ebef41b29633bb260cff2b68d3d57be9407d1bd1"
+    "child": "be1b3472b05a43bc207acde7a137b68d46ce679899a2b24c619ea03ae7737b95",
+    "youth": "8107c8d523f927c72e4d1f61c2df02adee10957c0804f94ab3796738d5d0cd4b",
+    "teen": "2d025649b712d861702e0826cd5a65c1ab5a84324f2e09702a1103ee19a4f6e7",
+    "adult": "134aba894e5333ca7b7bc657665e3b27713d45724d3b048739a83489ace6daa7",
+    "senior": "7fee94b3c47494a8001a122d138bb28f05c2097428fd57e7299e676371b11a2c"
    }
   },
   {
@@ -14293,11 +14351,13 @@
    "department": "The Eternal Algorithms",
    "position": 24,
    "title": "His Ways Past Finding Out (our minds cannot comprehend Him)",
-   "contentSha": "e4ff6d3e6c5bd61a90aed49e9fb368867f81c284919cb8e667064af4bda64aa4",
+   "contentSha": "f4bc9486ebae67ccd1ce68651856a9b00354e42bfc840e44fd089be59ea78300",
    "versions": {
-    "teen": "2e896eb157bb01aa5f8d7a891e88ad146a3b38d8a063e753b7ab33b7d9804125",
-    "adult": "d1b7d749951e201c972ca0a4a04f9d525f055ab3f53a4e1620ef66472f04da3c",
-    "senior": "9bd19778ce9c615078b7e0243caf6d36fcf1f02432e25f63d61f8ab084b36235"
+    "child": "fc25c9aec517f9396604c99b65f84f63e4c20156a7e1f51ce7600cdd21cdd3e3",
+    "youth": "efe56183cc4211eba10c5f6f0879098b3dbe8d70e529ddea1ac87d996886b28b",
+    "teen": "39ff7888db9acf3961186950e58d1eeee9a8f2981aadfc3179c70ad08c4ad4f0",
+    "adult": "04370e8bb5eb79173409a91510a6edb48f407ddb005332b0b9a3d8af74b89aec",
+    "senior": "ea1280e327c8bf071e8c7b437c474b7561a380df569190b20706a9fdcf761fb6"
    }
   },
   {
@@ -14306,11 +14366,13 @@
    "department": "The Eternal Algorithms",
    "position": 25,
    "title": "The Wage and the Gift (doomed apart from Him, Life through the Son)",
-   "contentSha": "434695fce431be8969b0ae7b344b1e47d3e9c2d0bf85c589611b08560f21ab9e",
+   "contentSha": "a627840421ffcfc6881f45a3a8976ed1ee096921f10b8aa80dba34bbca91009a",
    "versions": {
-    "teen": "6ed8444a3be06c47ae3f9233f048ee1cee449d5c91f90cc03d4057de694e6657",
-    "adult": "dc7a98146a75d0a773a1090979fd948138c95eb72640dfb3f387121cb6dae136",
-    "senior": "6e2c1df2ab5c3e967686dfaf61b7a545611a3cb7acb20033ff282458f61863b6"
+    "child": "9f4a5ea456c9413454b5954590edf5433fa86fbfdf152c8b6dd2e5cf23915a12",
+    "youth": "ff2aecf4fbaf22926d642bfbf4ae1e4dca5081fc99e7c1d61dd0881a42df5a5e",
+    "teen": "2e47bb8b5b6663e39b9834090540bdf9d16f0dc16dd3ffed08d221ae4730fd60",
+    "adult": "f25efc889d6ea4ba3663e29023e01734aef267bb0f4e2e579aeeee67ff5eb17e",
+    "senior": "d1ae3fc97b1b20715f64620e2c09a7d90e3ec0f8fa72de13bed290d7499c4228"
    }
   },
   {
@@ -14319,11 +14381,13 @@
    "department": "The Eternal Algorithms",
    "position": 26,
    "title": "The God of This World (we left Him; the world is occupied, not neutral)",
-   "contentSha": "19640bbd6485a834991a04b92e2dd1a179c4444911d6d26ddcda75dad0a39e2d",
+   "contentSha": "3d9588b07b5fbe904f34569593c7b80f096315bdd2e12677a24f8159e6710d60",
    "versions": {
-    "teen": "91f7a9602fd89de8d66b94c76022e65fe9bc5eeaf293bf541f1c3bffca3d0503",
-    "adult": "9cbbf1fd63263023c5ffaa1334a42899fa8dbf25b33a5d649c618372e519835a",
-    "senior": "0b56a088870aa6015fc54c875a32e97f73584ea962b39d83229ffe150272eb77"
+    "child": "4828e7e355d490b2af4e01916229d99b00b77ac1257e5db32d59116823554b89",
+    "youth": "89955a9dec2800ae6c84894e40396326d0e0f6584b15a0b3bfb841c7ee37cd37",
+    "teen": "7cde451bfbf5655ee6c0f155ada3a4f55763846186c1ac6b5591ac77f24a4cb1",
+    "adult": "940fe9840e03865851d454ce0fae8d541831411900cb7f3ea4eb9d42640602b3",
+    "senior": "2e74c231bd5f4c565fb542bc2aa33679deeb4bc68302db3597be3d6ae14748f4"
    }
   },
   {
@@ -14332,11 +14396,13 @@
    "department": "The Eternal Algorithms",
    "position": 27,
    "title": "Appointed Once to Die (death is a doorway to the eternal, then the judgment)",
-   "contentSha": "e87d120542023ca62d83c0455dc683961ea393e97dc8337b18728321cc867c1c",
+   "contentSha": "9646c9ecaa8da0c6a147418f3e4aa0684c64444f32f213d3a696a8356867cd57",
    "versions": {
-    "teen": "ec01bf72bd938b02533891d7fbd20c3c0231cfc7e046ab677737aca835b7be31",
-    "adult": "9d4ff89be0d5e5f94cd6a70504e4a066f906e44e64bcc51ab8390763c1a1de23",
-    "senior": "0a3201e6245518779a56f422df07d928452f6a72f8215e94b6a54de41ed8178c"
+    "child": "8f62679f20473dce00e3bb52b81c09f8c24e71d69b5635518e698797cf8ab060",
+    "youth": "9dac12625e3d89b8501d50d36325aa3538f0c18070c6fc9073044372f0f1d2dc",
+    "teen": "c590654e4e1fd947a3d052dfde45c146f135d332ff2dc77beebafed82df4f943",
+    "adult": "3303cb2dc6346265c6d3683eb289e04dfe62d220697f73ce7a1465181411c3e8",
+    "senior": "02dffe2de1ae28b190cb01353e2cac350ac162b8065be9e4e94096c79dba1b67"
    }
   },
   {
@@ -14660,11 +14726,13 @@
    "department": "The Eternal Algorithms",
    "position": 1,
    "title": "Faithful unto Death → the Crown of Life",
-   "contentSha": "230192942df296142cc4855da999e3cbd396f4a86dc36a16a5e93f7f5d0a8ed7",
+   "contentSha": "2a766bf14d8447b5400e90c644253dac0c9754d9eb60f6936be0e9458e2a05f7",
    "versions": {
-    "teen": "91df9f528877ad48a607430ffc19209a35971cb904f1dbaa8fac341ee0dd0ad2",
-    "adult": "9cca264b7e0f1201c4bba67d8e374344c97c9dd4320720de36270641e9ded0e6",
-    "senior": "6e384730d9ae1551372663bf09bc1aa20a2b649fb72e20d82bdd048f1974cc71"
+    "child": "3c0f0bf9b67f64323b5cd9a7f098f76a5081c0aae29958813be5c3732288c9ab",
+    "youth": "f1b89fc88b938de61cdface74b414726ce255129da0e70f116707e1011684fd0",
+    "teen": "465f7ee5d062c1ce027e6a1bc17c7fc51250d464991fd91ebc508887339f4e22",
+    "adult": "18e0da4bef34761993fb8ffbdb0f3eaed9c405afdd7f631c3f3443876cf7bb9d",
+    "senior": "176b4ed762b2c5c7575e8b2ecf164f09534d128538247942ba9d87fa17e5f612"
    }
   },
   {
@@ -14673,11 +14741,13 @@
    "department": "The Eternal Algorithms",
    "position": 2,
    "title": "Overcome → Sit With Me in My Throne",
-   "contentSha": "cc17380ea70743a7edb82a50bf99d6605c8fe6aa8f78aa773b898a4f552fe956",
+   "contentSha": "8ca76bd209705bc69791d08be5cc2f67ade9eb82354dec39a76920a6bd5efe3f",
    "versions": {
-    "teen": "ad8dae26963e20cb032ec37f5ee9a161bb8e303a83f6a073c94e099e15231c65",
-    "adult": "81d907577fe434e2a3eff52018f9aece0a2010eedf0e7e39c44e61f917cae7a6",
-    "senior": "c6fecdd7ff37e0a928b17ed9270517648af9825aa69a1ed84b05769f7b1c3ec5"
+    "child": "9649d77e405be5d342821319a4e833b2fef295effb068aad17f9a9632533d64d",
+    "youth": "d3b6d41bd8780a19cab3073f05ab0cf985bd204bcdee2467768bc87efde928e5",
+    "teen": "e6b27ed1687dbd31b3f3e59d16f414d623757d58b123265a3c3107723bbc611c",
+    "adult": "1e4b7d1a7c6496a717a33128352d9906cbde4c0ec677d52e7645758fcded9805",
+    "senior": "9b0ad8fadf742bc5a1534a72baaabdbd6a613c26b7d7c77fd012d7df39aa138d"
    }
   },
   {
@@ -14686,11 +14756,13 @@
    "department": "The Eternal Algorithms",
    "position": 3,
    "title": "Open the Door → He Comes In to Sup",
-   "contentSha": "feb599206c3d7a1cde270ea09c506d5532dda64eba346f0cf861ebea3a317dce",
+   "contentSha": "c5aac25b88cdc0ab5c587898ba5628a570861a979c7a4bbfbbac7b17b6756196",
    "versions": {
-    "teen": "1ed3bfce38592f07ed9dfc98af0c0ac259711915cbf7b4fc1a3388da9f86a9c4",
-    "adult": "67d7ed6a33ffa7f8d8ce36d351016781edb2aaec4e6d808157bfe592421b1e40",
-    "senior": "83200729cbc7aa24bc34b3824c1cd5be96b3ad2f80446f7b7fcd8962cf735a6f"
+    "child": "70f96fd20e3527e739dced5a527813dd851fcfe8fbbf8255f3a9ef9a55093f68",
+    "youth": "cc1d1118b2f83d41fa76637ae8d76435ab37443af110f0a76a3158a3bc3c1226",
+    "teen": "67a36eb49429c4a56a38eeac2bc85d64b2e250f443cb2fa90cb7932b57e22035",
+    "adult": "45becdacb3b8303a911db9c9c0ce004070c179cb64991c2e627e41e6e37f8597",
+    "senior": "185efa68244a81972c7da4535c6c1ebe694caea7bbe1b4e49a587c0fcdb5739c"
    }
   },
   {
@@ -14699,11 +14771,13 @@
    "department": "The Eternal Algorithms",
    "position": 4,
    "title": "Nothing That Defileth Enters (no more lucifers in the Kingdom)",
-   "contentSha": "404cdb9f91bb40950cce61f23eac0d77b0f805f5646904b360c0575914e736d5",
+   "contentSha": "301591453df023b2a6d74cb34dbbbaa991e0bae47a5f0053686e3f60cdff4ff1",
    "versions": {
-    "teen": "0e4f7b54290fe176ad77c692bda223ae5e1e200e885abb1d7924bde7842da2b8",
-    "adult": "c7d4b2238355a0ee2414adfaf4720b0fac2467e793d3d757990cb2d79d0e15e7",
-    "senior": "d853db23f7aae67ddbd8efb55ccc803359c4193a4397721075e588d097e1f6bc"
+    "child": "b1c4eb144ad6dc691779161395611fd1228644f6a06c9cb8f55a36150d993681",
+    "youth": "dfd6674f0c6c45d071658ad13869e6c44c7c206f8293b030770126c1afdbc7e9",
+    "teen": "4b4aa8fed803139de395a259cbd34f7c1179ffbed53c5c3c6da87f917b7e0fec",
+    "adult": "f45042f3b6a3f2859d9d5c9e9f60bf1f13fbc46e894986a322bf593e308b8f0c",
+    "senior": "f23a422bf6dd4dd3d8529f1ea763b8cc1db57aa3e698450f8bc53dc11254d738"
    }
   },
   {

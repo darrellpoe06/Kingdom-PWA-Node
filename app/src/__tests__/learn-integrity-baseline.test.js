@@ -80,8 +80,16 @@ describe('Learn content integrity baseline', () => {
   // word-written-on-the-heart, sheep-and-goats, wheat-and-tares,
   // not-my-will-but-thine, friendship-world-enmity, handling-word-deceitfully,
   // spirits-seek-a-body, angels-left-their-estate, sons-of-god-and-giants,
-  // only-he-knows-the-heart, enemy-injects-thoughts.
-  it('the baseline is the measured Phase 1 catalog (13 / 51 / 994 / 4,406)', () => {
-    expect(base.counts).toEqual({ departments: 13, courses: 51, lessons: 994, readings: 4406 });
+  // only-he-knows-the-heart, enemy-injects-thoughts, appointed-then-judgment,
+  // god-of-this-world, money-cannot-redeem, wages-and-gift, breath-in-his-hand,
+  // past-finding-out, first-and-last, end-from-beginning, foreknew-betrayer,
+  // provider-prepared, no-guile-figtree, told-before-he-came, appointment-kept,
+  // searched-and-known, known-before-formed, clearly-seen-without-excuse,
+  // word-framed-worlds, nothing-unclean, door-sup, overcome-throne,
+  // faithful-crown, assembling, sow-bountifully, tested-soul,
+  // filled-righteousness, feed-sheep, closet, sheep-voice, confess-cleanse,
+  // humble-exalt, vengeance-his, seated-heavenly, good-fight-exercise, more-than-conquerors, quickened, resist-flee, church-born-fire.
+  it('the baseline is the measured Phase 1 catalog (13 / 51 / 994 / 4,480)', () => {
+    expect(base.counts).toEqual({ departments: 13, courses: 51, lessons: 994, readings: 4480 });
   });
 });

@@ -20,8 +20,7 @@ import { presentationIndex, isLearnStudioOn, STUDIO_FLAG_KEY, allLessons } from 
 export { isLearnStudioOn };
 import RECORDS from '../../lib/learn-presentation/presentation-records.json';
 import TOPICS from '../../lib/learn-presentation/presentation-topics.json';
-import LessonExperience, { LessonExperienceBoundary, PROTOTYPE_LESSON_ID, textFor } from './LessonExperience.jsx';
-import PROTOTYPE_LESSON from '../../lib/living-lessons/ll338-not-with-eyeservice.js';
+import LessonExperience, { LessonExperienceBoundary, textFor } from './LessonExperience.jsx';
 
 // Covers ship under public/learn-thumbs with base-relative paths; resolve them
 // against the app's base (web /poetech-app/, native /).
@@ -78,6 +77,7 @@ export default function LearnStudioPreview({
   continueCount = 0,
   recordCount = 0,
   markFor = null,
+  quiz = null, // { saves, saved(id), record(courseKey, id, result) }: the Study quiz files to the member's record (DR-1669)
 }) {
   const [courseRequest, setCourseRequest] = useState(null);
   const index = useMemo(() => presentationIndex(((RECORDS && RECORDS.records) || []).map((r) => ({ ...r, image: image(r.image) }))), []);
@@ -92,7 +92,6 @@ export default function LearnStudioPreview({
   const [experienceMode, setExperienceMode] = useState('watch');
   const [experienceLevel, setExperienceLevel] = useState('adult');
   const catalog = useMemo(() => allLessons(courses), [courses]);
-  const prototypeRecord = index.get(PROTOTYPE_LESSON_ID) || null;
   const activeRecord = active ? index.get(active.lesson.id) || null : null;
   const activeCourseKey = active ? courseKeyOf(active.course) : null;
   // Darrell, 2026-11-25: "the all listed should populate like YouTube... so
@@ -166,6 +165,18 @@ export default function LearnStudioPreview({
           lesson={active.lesson}
           record={activeRecord}
           onExit={() => setActive(null)}
+          lessonTools={
+            quiz
+              ? {
+                  onLevel() {},
+                  onHeard() {},
+                  onSeen() {},
+                  quizSaves: !!quiz.saves,
+                  quizSaved: quiz.saved(active.lesson.id),
+                  onRecordQuiz: (id, r) => quiz.record(activeCourseKey, id, r),
+                }
+              : null
+          }
           initialMode={experienceMode}
           initialLevel={experienceLevel}
           moreLessons={moreLessons}
@@ -217,27 +228,6 @@ export default function LearnStudioPreview({
           }
         />
       </LearnStudioErrorBoundary>
-      {ownerDevice && prototypeRecord && (
-        <button
-          type="button"
-          onClick={() => open(PROTOTYPE_LESSON, catalog.find((x) => x.lesson.id === PROTOTYPE_LESSON_ID)?.course || null, 'watch', 'adult')}
-          style={{
-            display: 'block',
-            width: '100%',
-            margin: '12px 0 0',
-            padding: '12px 16px',
-            borderRadius: 14,
-            border: '1px solid #f2bf2e',
-            background: 'rgba(242,191,46,0.1)',
-            color: '#f2bf2e',
-            fontWeight: 700,
-            fontSize: '0.9375rem',
-            textAlign: 'left',
-          }}
-        >
-          ✦ Try the new lesson experience (prototype) — Not with Eyeservice
-        </button>
-      )}
     </section>
   );
 }

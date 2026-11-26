@@ -118,5 +118,6 @@ describe('on the Learn Studio course page', () => {
     expect(q('course-lessons-view')).toBeTruthy();
     click(q('course-view-list'));
     expect([...q('course-list').querySelectorAll('.ls-inorder-t')].map((e) => e.textContent)).toEqual(['First lesson', 'Second lesson']);
-  });
+    // The cold import of the whole Learn Studio tree is most of this test's time (~17 s on a loaded runner).
+  }, 60000);
 });

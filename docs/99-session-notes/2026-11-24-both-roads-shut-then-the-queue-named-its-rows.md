@@ -337,3 +337,38 @@ dead: one boolean reverses the decision, and a case checks every clause the gate
 
 The honest open item is no longer a question but a measurement: how much of the
 25 clears. The next receipt says, per shape.
+
+### How to prove the NAS actually took it — an exact value, not a promise
+
+Every record today closed with "the next receipt is the proof", which is weak:
+it does not say what the proof would LOOK like. The receipt's
+`The builder -- ... code: <16 hex>` is computable, so it can be an exact test.
+
+`infra/nas-lesson-builder/install.sh:49` writes it:
+
+```
+CODE_SHA=$(cat lesson_builder.py lesson_writer.py lesson_gates.py | sha256sum | cut -c1-16)
+```
+
+So the same three files hash the same way from any checkout:
+
+```
+git show <ref>:infra/nas-lesson-builder/lesson_builder.py \
+         <ref>:infra/nas-lesson-builder/lesson_writer.py \
+         <ref>:infra/nas-lesson-builder/lesson_gates.py | sha256sum | cut -c1-16
+```
+
+Measured 2026-11-26 13:15Z, which also **cleared a suspicion rather than
+confirming it**: the receipt had read `ec1c66316d4ad3ca` all day while the
+census code moved, which looked like a stale builder. It is not.
+`origin/main` computes to **exactly `ec1c66316d4ad3ca`** — the builder is
+current. The hash had not moved because main's three builder files had not
+moved since `028d266ab05` (DR-1646, 2026-11-24); DR-1670 and DR-1672 were still
+on the branch. A number that does not change is not evidence of a fault.
+
+**The expected value for the next re-review:** once DR-1670 + DR-1672 merge,
+recompute the hash on `origin/main` and the receipt must come to read it. On the
+branch as pushed that value is `98a82136aec37d6a`; recompute after the squash
+rather than trusting this line, since a later builder change would alter it.
+Until the receipt reads main's hash, DR-1670 and DR-1672 are shipped but NOT
+live, and anything claiming otherwise is unproven.

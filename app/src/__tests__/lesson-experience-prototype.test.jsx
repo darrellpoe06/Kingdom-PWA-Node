@@ -66,23 +66,34 @@ const render = (el) => act(() => root.render(el));
 const click = (node) => act(() => node.dispatchEvent(new MouseEvent('click', { bubbles: true })));
 const byText = (text, tag = 'button') => [...container.querySelectorAll(tag)].filter((n) => n.textContent.trim().includes(text));
 
+// DR-1669: no prototype entry any more. A test opens the lesson the way every member's taps do,
+// through the opener the new look registers (Read, Play, Continue, a row, a card).
+let opener = null;
+const registerOpener = (fn) => {
+  opener = fn;
+};
+const openThe338 = () =>
+  act(() => {
+    opener('living-lessons', PROTOTYPE_LESSON_ID, { mode: 'watch' });
+  });
+
 const COURSES = learnInventory().map((c) => ({ key: c.key, meta: { ...(c.meta || {}), key: c.key }, schedule: c.lessons }));
 
-describe('the prototype entry is private to the owner device', () => {
-  it('shows nothing extra when ownerDevice is false', () => {
+describe('no prototype entry: the new look is the finished product (DR-1669)', () => {
+  it('no prototype banner on the Learn home, on or off the owner device', () => {
     render(<LearnStudioPreview courses={COURSES} onOpenLesson={vi.fn()} onExit={vi.fn()} ownerDevice={false} />);
     expect(container.textContent).not.toContain('Try the new lesson experience');
+    expect(container.textContent).not.toMatch(/prototype/i);
+    render(<LearnStudioPreview courses={COURSES} onOpenLesson={vi.fn()} onExit={vi.fn()} ownerDevice />);
+    expect(container.textContent).not.toContain('Try the new lesson experience');
+    expect(container.textContent).not.toMatch(/prototype/i);
   });
 
-  it('shows the entry card only when ownerDevice is true', () => {
-    render(<LearnStudioPreview courses={COURSES} onOpenLesson={vi.fn()} onExit={vi.fn()} ownerDevice />);
-    expect(container.textContent).toContain('Try the new lesson experience');
-  });
-
-  it('opens the prototype overlay on tap, with all four modes', () => {
-    render(<LearnStudioPreview courses={COURSES} onOpenLesson={vi.fn()} onExit={vi.fn()} ownerDevice />);
-    click(byText('Try the new lesson experience')[0]);
-    expect(container.querySelector('.le-root')).toBeTruthy(); // the Lesson Experience opened (its old 'Owner preview' badge is gone: DR-1664)
+  it('a lesson opens in the Lesson Experience with all four modes', () => {
+    render(<LearnStudioPreview courses={COURSES} onOpenLesson={vi.fn()} onExit={vi.fn()} ownerDevice registerOpener={registerOpener} />);
+    openThe338();
+    expect(container.querySelector('.le-root')).toBeTruthy();
+    expect(container.textContent).not.toMatch(/prototype|owner preview/i);
     for (const label of ['Watch', 'Read', 'Listen', 'Study']) {
       expect(byText(label).length).toBeGreaterThan(0);
     }
@@ -228,8 +239,8 @@ describe("the lesson's own Read/Listen/age-chip buttons stay in the new look (no
 describe('More Lessons — a YouTube-style queue of all available lessons (same course)', () => {
   it('Watch mode lists other real lessons (never the prototype lesson itself), each with its real image', () => {
     const onOpenLesson = vi.fn();
-    render(<LearnStudioPreview courses={COURSES} onOpenLesson={onOpenLesson} onExit={vi.fn()} ownerDevice />);
-    click(byText('Try the new lesson experience')[0]);
+    render(<LearnStudioPreview courses={COURSES} onOpenLesson={onOpenLesson} onExit={vi.fn()} ownerDevice registerOpener={registerOpener} />);
+    openThe338();
     expect(container.textContent).toContain('More Lessons');
     const rows = [...container.querySelectorAll('.le-more-card')];
     expect(rows.length).toBeGreaterThan(0);
@@ -239,8 +250,8 @@ describe('More Lessons — a YouTube-style queue of all available lessons (same 
 
   it('tapping a More Lessons row stays in the new look and opens THAT lesson', () => {
     const onOpenLesson = vi.fn();
-    render(<LearnStudioPreview courses={COURSES} onOpenLesson={onOpenLesson} onExit={vi.fn()} ownerDevice />);
-    click(byText('Try the new lesson experience')[0]);
+    render(<LearnStudioPreview courses={COURSES} onOpenLesson={onOpenLesson} onExit={vi.fn()} ownerDevice registerOpener={registerOpener} />);
+    openThe338();
     const row = container.querySelector('.le-more-card');
     expect(row).toBeTruthy();
     const picked = row.textContent;
@@ -767,8 +778,8 @@ describe('Watch: the Back to the current line button never shifts the transcript
 describe('the new look keeps every classic lesson feature', () => {
   it('Read ends with Stories & Perspectives, the add-yours entry, and the full-page tools', () => {
     const onOpenLesson = vi.fn();
-    render(<LearnStudioPreview courses={COURSES} onOpenLesson={onOpenLesson} onExit={vi.fn()} ownerDevice />);
-    click(byText('Try the new lesson experience')[0]);
+    render(<LearnStudioPreview courses={COURSES} onOpenLesson={onOpenLesson} onExit={vi.fn()} ownerDevice registerOpener={registerOpener} />);
+    openThe338();
     click(byText('Read').find((b) => b.getAttribute('role') === 'tab' || b.getAttribute('aria-selected') != null));
     expect(container.querySelector('[data-testid="lesson-stories"]')).toBeTruthy();
     expect(container.textContent).toContain('Stories & Perspectives');
@@ -974,5 +985,174 @@ describe('Previous lesson / Next lesson at the end of the lesson', () => {
     root = createRoot(container);
     render(<LessonExperience lesson={REAL_LESSON} record={null} onExit={vi.fn()} />);
     expect(q('le-lesson-nav')).toBeNull();
+  });
+});
+
+// DR-1669: the new look is the finished product, so a member's quiz grade in the Lesson Experience
+// is filed to their record (it used to say "the owner preview of a lesson that is not public yet").
+describe('the Study quiz files to the member record from the new look', () => {
+  it('answering every question files ONE attempt for that lesson in its course', () => {
+    const record = vi.fn();
+    render(
+      <LearnStudioPreview
+        courses={COURSES}
+        onOpenLesson={vi.fn()}
+        onExit={vi.fn()}
+        ownerDevice
+        registerOpener={registerOpener}
+        quiz={{ saves: true, saved: () => null, record }}
+      />
+    );
+    openThe338();
+    click(byText('Study').find((b) => b.getAttribute('role') === 'tab' || b.getAttribute('aria-selected') != null) || byText('Study')[0]);
+    expect(container.querySelector('[data-testid="le-quiz-none"]')).toBeTruthy();
+    const qs = REAL_LESSON.quiz.questions;
+    qs.forEach((qq, qi) => click(container.querySelector(`[data-testid="le-quiz-${qi}-${qq.answer}"]`)));
+    expect(record).toHaveBeenCalledTimes(1);
+    const [courseKey, id, r] = record.mock.calls[0];
+    expect(courseKey).toBe('living-lessons');
+    expect(id).toBe(PROTOTYPE_LESSON_ID);
+    expect(r).toMatchObject({ passed: true, pct: 100, questions: qs.length });
+    expect(container.querySelector('[data-testid="le-quiz-result"]').textContent).toContain('Saved to your record');
+  });
+
+  it('fileQuizAttempt sends the attempt with its integrity through the one record function', async () => {
+    const { fileQuizAttempt } = await import('../lib/quiz-attempt.js');
+    const recordQuiz = vi.fn();
+    const integrity = fileQuizAttempt({
+      courseKey: 'living-lessons',
+      lessonId: 'x1',
+      result: { passed: true, pct: 100, at: '2026-11-26T00:00:00Z', ms: 60000, questions: 4 },
+      recordQuiz,
+    });
+    expect(recordQuiz).toHaveBeenCalledTimes(1);
+    expect(recordQuiz.mock.calls[0][0]).toBe('x1');
+    expect(recordQuiz.mock.calls[0][1]).toMatchObject({ passed: true, pct: 100, integrity });
+  });
+});
+
+// Darrell 2026-11-26, on a lesson in Read: "Too much space in between the words" -- a lone ";" and a
+// sentence starting with ". " sat between quoted verses, each a block with its own margin.
+describe('quoted verses keep their joining punctuation', () => {
+  it('no text fragment between verses starts with punctuation, and every character is kept in order', async () => {
+    const { verseParts } = await import('../components/learn-studio/LessonExperience.jsx');
+    const text =
+      'Before: "blindness in part is happened to Israel" (Romans 11:25); "the LORD thy God will turn thy captivity" (Deuteronomy 30:3). The gathering is promised.';
+    const parts = verseParts(text);
+    expect(parts.map((p) => p.text).join('')).toBe(text);
+    for (const p of parts.filter((x) => !x.verse)) expect(p.text).not.toMatch(/^[\s;:,.!?]/);
+    expect(parts.filter((x) => !x.verse).map((x) => x.text)).toEqual(['Before: ', 'The gathering is promised.']);
+    expect(parts.filter((x) => x.verse).length).toBe(2);
+  });
+});
+
+// Darrell 2026-11-26: "I just paused the lesson and it stopped and didn't start or ask if I wanted to
+// start where I left off". A pause that something else ended (screen lock, the app backgrounded) left
+// the player idle with its sentence kept, and Play started the lesson over.
+describe('a paused lesson continues where it left off', () => {
+  const segments = segmentText(REAL_LESSON.lesson);
+  let made;
+  const createNarrator = (opts) => {
+    const e = {
+      status: 'idle',
+      at: 0,
+      loads: [],
+      onBoundary() {},
+      load(t) {
+        this.loads.push(t);
+      },
+      play() {
+        this.status = 'playing';
+        opts.onState({ status: 'playing', segmentIndex: 0 });
+      },
+      pause() {
+        this.status = 'paused';
+        opts.onState({ status: 'paused', segmentIndex: this.at });
+      },
+      resume() {
+        this.status = 'playing';
+        opts.onState({ status: 'playing', segmentIndex: this.at });
+      },
+      stop() {
+        if (this.status !== 'idle') {
+          this.status = 'idle';
+          opts.onState({ status: 'idle', segmentIndex: 0 });
+        }
+      },
+      setRate() {},
+    };
+    made.push(e);
+    return e;
+  };
+  const engine = () => made[made.length - 1];
+  beforeEach(() => {
+    made = [];
+    window.localStorage.clear();
+    Element.prototype.scrollIntoView = () => {};
+  });
+  afterEach(() => {
+    delete Element.prototype.scrollIntoView;
+  });
+
+  it('after the pause is ended by something else, it says where you were and Play continues there; Start over starts at the top', () => {
+    render(<LessonExperience lesson={REAL_LESSON} record={null} onExit={vi.fn()} createNarrator={createNarrator} />);
+    click(container.querySelector('.le-playerbar button[aria-label="Play"]'));
+    const e = engine();
+    e.at = 6;
+    act(() => e.pause());
+    act(() => e.stop()); // the screen locked: the voice is ended, the place is kept
+    expect(container.querySelector('[data-testid="le-resume-note"]').textContent).toMatch(/continue where you left off/i);
+    click(container.querySelector('.le-playerbar button[aria-label="Play"]'));
+    expect(e.loads[e.loads.length - 1].startsWith(segments[6])).toBe(true); // not the first sentence again
+    act(() => e.pause());
+    act(() => e.stop());
+    click(container.querySelector('[data-testid="le-start-over"]'));
+    expect(e.loads[e.loads.length - 1].startsWith(segments[0])).toBe(true);
+  });
+});
+
+describe('the Read place survives the landing (DR-1671)', () => {
+  const KEY = `poe-lesson-experience:${REAL_LESSON.id}:adult:read-page`;
+  const paras = () => [...container.querySelectorAll('.le-book-p')];
+  // Lay the paragraphs out as if paragraph k sat at the reading line, then fire a scroll.
+  const pageAt = (k) => {
+    paras().forEach((p, i) => {
+      p.getBoundingClientRect = () => ({ top: (i - k) * 300, bottom: (i - k) * 300 + 290 });
+    });
+    act(() => window.dispatchEvent(new Event('scroll')));
+  };
+  const flush = () => act(() => new Promise((r) => requestAnimationFrame(() => r())));
+  let landed;
+  beforeEach(() => {
+    window.localStorage.clear();
+    landed = [];
+    Element.prototype.scrollIntoView = function spy() {
+      landed.push(paras().indexOf(this));
+    };
+  });
+  afterEach(() => {
+    delete Element.prototype.scrollIntoView;
+  });
+  const openRead = () => render(<LessonExperience lesson={REAL_LESSON} record={null} onExit={vi.fn()} initialMode="read" />);
+
+  it('reopened after an update, a page jump to the top does not overwrite paragraph 6', async () => {
+    window.localStorage.setItem(KEY, JSON.stringify(5));
+    openRead();
+    expect(landed[0]).toBe(5);
+    expect(container.querySelector('[data-testid="le-read-landed"]').textContent).toMatch(/paragraph 6 of \d+/);
+    pageAt(0); // the app resets to the top while the picture loads
+    await flush();
+    expect(JSON.parse(window.localStorage.getItem(KEY))).toBe(5);
+  });
+
+  it('the reader moving is followed at once, and Start from the top goes to the top', async () => {
+    window.localStorage.setItem(KEY, JSON.stringify(5));
+    openRead();
+    act(() => window.dispatchEvent(new Event('wheel')));
+    pageAt(2);
+    await flush();
+    expect(JSON.parse(window.localStorage.getItem(KEY))).toBe(2);
+    click(container.querySelector('[data-testid="le-read-from-top"]'));
+    expect(container.querySelector('[data-testid="le-read-landed"]')).toBeNull();
   });
 });

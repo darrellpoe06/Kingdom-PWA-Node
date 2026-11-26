@@ -140,3 +140,31 @@ describe('the garage door rides the header', () => {
     expect(keepAfterRead({ kind: 'ok' })).toBe('replace');
   });
 });
+
+// Darrell 2026-11-26: "the button for the garage door keeps moving on long pause... inside the header...
+// fix it so the button can be held long without moving."
+describe('the header garage button stays put while it is held', () => {
+  it('the answer floats out of the header row, the label keeps one width, and the press captures the pointer', async () => {
+    const calls = [];
+    await mount({ token: 'family-key', fetchImpl: fakeFetch(calls), storage: memStore() });
+    const btn = container.querySelector('[data-testid="garage-header-press"]');
+    // Every label in one cell: Hold / Telling / Sent never resize the button.
+    const label = container.querySelector('[data-testid="garage-header-label"]');
+    expect([...label.children].map((c) => c.textContent)).toEqual(['Hold · Garage', 'Telling', 'Sent']);
+    const capture = vi.fn();
+    btn.setPointerCapture = capture;
+    vi.useFakeTimers();
+    await act(async () => {
+      const e = new window.MouseEvent('pointerdown', { bubbles: true });
+      Object.defineProperty(e, 'pointerId', { value: 7 });
+      btn.dispatchEvent(e);
+    });
+    expect(capture).toHaveBeenCalledWith(7);
+    await act(async () => { vi.advanceTimersByTime(HOLD_MS + 100); });
+    vi.useRealTimers();
+    await act(async () => { for (let i = 0; i < 5; i += 1) await Promise.resolve(); });
+    const said = container.querySelector('[data-testid="garage-header-said"]');
+    expect(said.textContent).toMatch(/door was told to move/i);
+    expect(said.className).toMatch(/\babsolute\b/); // out of the row: saying it never moves the button
+  });
+});
