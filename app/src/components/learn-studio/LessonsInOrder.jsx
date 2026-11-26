@@ -14,6 +14,7 @@
 // =============================================================================
 import React, { useMemo, useState } from 'react';
 import { presentLesson } from '../../lib/learn-presentation/presentation.js';
+import { LessonProgressFor } from '../LessonProgressBar.jsx';
 import { READING_VERSIONS } from '../../lib/learn-organize.js';
 import { wantsSections, divisionOf, LESSON_DIVISIONS } from '../../lib/lesson-sections.js';
 
@@ -299,6 +300,7 @@ export default function LessonsInOrder({
                         const mark = markFor ? markFor(x.lesson, courseKey) : done.has(x.lesson.id) ? '✓ READ' : '';
                         return mark ? <span className="ls-read-mark">{mark}</span> : null;
                       })()}
+                      <LessonProgressFor courseKey={x.p.courseKey || courseKey} lessonId={x.lesson.id} look="studio" className="ls-progress--inline" />
                     </span>
                     <span className="ls-inorder-go" aria-hidden="true">
                       ▶
