@@ -21,6 +21,11 @@ And: "We have pictures. Why are we showing words all the time?"
    dark look. Courses, Latest, Continue and Browse listed lessons and courses as text; 0 pictures.
 2. 51 classic sources reach 90 distinct color classes; 6 colors had no defined role at all.
 
+## Impact
+
+Whoever opens the tools panel in the new look met a second, older app inside it; now one look, with pictures.
+The classic page and every function are unchanged; one generated stylesheet (~110 rules), no data, no latency.
+
 ## Decision
 
 1. ONE mapping (`learn-classic-skin.js`) gives every classic color a new-look role (panel, ink,
