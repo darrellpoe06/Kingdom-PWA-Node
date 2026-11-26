@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T11:33:49.998Z",
+ "measuredAt": "2026-11-26T11:51:48.417Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4472
+  "readings": 4480
  },
  "departments": [
   {
@@ -14156,11 +14156,13 @@
    "department": "The Eternal Algorithms",
    "position": 11,
    "title": "The Church Born in the Fire (priceless, because the King's Blood is)",
-   "contentSha": "ec372e37a66aff32e42a4cc857a3703d976e760392a678ee4985ecf906ce0c2d",
+   "contentSha": "d5549c5ce792835b32271e5b45d7b318fdde398c308cb0edbf27b0876829ac33",
    "versions": {
-    "teen": "f776116921073827a538ef27e5cf1b368c7c300120bd71706f8aea839f5fca22",
-    "adult": "b20d9a35f93cd294a0e0f3ffc6307bea15c6625d4e625709c6e4d15afc87157e",
-    "senior": "04dc40d6240768edf4f1d35b1b714907334d0ac27909da8d7b570f921e0ab9b6"
+    "child": "4d1350c6493860a02faa789ad216ac62818df96aee2556271bcfb7f4280f1df4",
+    "youth": "537164442315e60da36164b060c2138664530cd113f1f607aec5ee12be85e522",
+    "teen": "621fc8fbccd938a89fad3ccad876363f00c79847bb9eb831932b80a3d0f0072a",
+    "adult": "fcfdf1307c542551cf8006463ffa1ccde255b061e3f20ed8323b932d8b980ad6",
+    "senior": "3fea782cfd6761acb61671334ed6eeaa27c7139a92b1365aec3912ffb256b113"
    }
   },
   {
@@ -14169,11 +14171,13 @@
    "department": "The Eternal Algorithms",
    "position": 12,
    "title": "Submit · Resist → he Flees",
-   "contentSha": "d1059d6b05303cef2807eb199d09bf3daf99f3e0e3eea9121dfc38b7e6aa2242",
+   "contentSha": "e3cf57fa90c4c28a804be22d0c156332f2021eb16a9171336ef1bb6e89f9bf2f",
    "versions": {
-    "teen": "626b3b39c04543013f083e158ad131fa7bbafb5d0d45bb5a0aadd9c5e2694f0d",
-    "adult": "44006487b190e5ed4b3b9f545e4aa7066610041b96cf41fc34e0835e4cd975c8",
-    "senior": "d72b1772bf19c02096ee231fbb24e80c01e51db2240ed39364d8b321f13be9c0"
+    "child": "11e8006cab4017446a038c13a9cc07f658c9380b25de8db9edbddcdd69220c81",
+    "youth": "0d2865c690e1d9a385584bd17de3845313279c7d90a10045c5ab50c2a800a191",
+    "teen": "6162bd099873e63173341212b80a169a83615fbff8691bd5e9f348f9a60837de",
+    "adult": "dfba571aa3957189d44fc84e9bdf481ee6f3e0c63701e471d79244febb67e5de",
+    "senior": "0ce9bd6942edfd5068d67cdb14cf61d47b309643417cd2e6f9f1183f28f83fc1"
    }
   },
   {
@@ -14182,11 +14186,13 @@
    "department": "The Eternal Algorithms",
    "position": 13,
    "title": "Dead in Sin → Quickened (the Blood restarts the system)",
-   "contentSha": "5144c96c84ccc08541694e92c5163b93de1682684e90834d119d11c43931f748",
+   "contentSha": "4dcb28458fff697549f95936c9517ce5c9282fed97af7efe09e28e3656b597f6",
    "versions": {
-    "teen": "0463f4add20c271035de21ce4b92cd861a7b257ee268a63922b2f4dba88e040a",
-    "adult": "e7f691a725e832e5371b46f200eae201e5a7fcada1c3949c6e6697a7c8342010",
-    "senior": "6853daac3de8f9adf37288d64943c234a9d7e3a175ff7875cacd090455f21f9f"
+    "child": "aa4dcaa68c12dd452a1894a1c4e5db9556bf061c2db0bc04c4f7c5800f1d5747",
+    "youth": "114d2dabc4487c14ec9f1cb82b4b7690288a6bf0de2aa726a20ad2db9f602285",
+    "teen": "1aac3055f9e142d15b51a25ad74405799aee3155f309a2ae876ff6d3f94e9175",
+    "adult": "1bacd1f2e714d67795d9e6099cb7e746b3685f170694b2c855c8e161c7a32007",
+    "senior": "fcd0bbfd9579169bc09d3cf15d80428e04a54bd133f72be9acf04ed0e4230ba7"
    }
   },
   {
@@ -14195,11 +14201,13 @@
    "department": "The Eternal Algorithms",
    "position": 14,
    "title": "More Than Conquerors (the separation cannot separate)",
-   "contentSha": "d3dab4c715d5693f025983e6470937c581119a9d979d4a93b6af7e08616d7c16",
+   "contentSha": "194b7c07e6e85eb54346c8c9ff3f27ef1066c46af3a970c8a006625652c777ba",
    "versions": {
-    "teen": "2c80c81604923980c8e0b1bbe4631c4d5568a69013f500a1cf3cf273297b11fa",
-    "adult": "8ccf2ad3ee23b1e8fdd379fdb201259a51378aed630146bb3681e7483697eff9",
-    "senior": "f36abe25bf97a6eab14caebe6e1d1ae864d47341c6f112d30a9ba5f85ea18da3"
+    "child": "6de8e6fbd98740b19f4e17968863810f1105df0f641eb21c4c0afefc8e791836",
+    "youth": "36e9c679f13859fe4e43eb9dc744427f810a04f4e2a90cf9d4a273e2b6b9729b",
+    "teen": "34864fc5b00dde2313acc06797901f04643fbaec39b0ef943023fc074b27e27b",
+    "adult": "4cf9eb79ca438ffb9d319dbc2417e6c75696049fb7533a89d5792147e07c178e",
+    "senior": "9c5007b9f851917131171818aca649682f2d1dbf113ae588a9d6e304eda230ad"
    }
   },
   {
