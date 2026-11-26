@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T13:26:04.822Z",
+ "measuredAt": "2026-11-26T13:30:34.769Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4520
+  "readings": 4522
  },
  "departments": [
   {
@@ -13285,11 +13285,13 @@
    "department": "The Eternal Algorithms",
    "position": 6,
    "title": "Prove Me in the Tithe (windows of Heaven)",
-   "contentSha": "19c6078a9011c7aa708227a8378ebdf08d131a2bc590f7047bdc2ae4af7d1e56",
+   "contentSha": "d4536c6bb4286d3c801f24aa8685e1b0e6fbdd7b4bd7be033267aebfc2222ccb",
    "versions": {
-    "teen": "ba188556c39ce5ee1c9768c30ce11969d46e0ea75a9091a5f9800409d4d7d942",
-    "adult": "0f6ae33b0f3fffa8c6a0b1586d68928cde44c897f210034652087aad3cdc4505",
-    "senior": "672b116530c77c67f6ab0718349f1346fc8d2d945c38b68ee92bd42c4eea38eb"
+    "child": "439659aa24f9260b0dcb551286c8b4242b4bd371be9a60f96ab8ec8234b723aa",
+    "youth": "3739b4a53a23ffd5a56fddd23860dc483c1b24656d45f8787fdcd0f8741087de",
+    "teen": "de38e7f79f6ad57e454a538f982eb560ca74ce280664654db30f339f0765f6e5",
+    "adult": "27595b3c0696fa871f2372d75230cfef096a81b39343cf8a09c42bee2a2ee05e",
+    "senior": "4061e14aa5e01d0324479a92831d5ef4f60bf19ea639e8958eb9bf8b0026f944"
    }
   },
   {
