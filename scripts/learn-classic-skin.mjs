@@ -48,6 +48,9 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
     const css = fs.existsSync(CSS_PATH) ? fs.readFileSync(CSS_PATH, 'utf8') : '';
     const miss = uncoveredTokens(sources, css);
     console.log(`${files.length} files; ${miss.length} uncovered`);
-    if (miss.length) { console.log(miss.join('\n')); process.exit(1); }
+    if (miss.length) {
+      console.log(miss.join('\n'));
+      process.exit(1);
+    }
   }
 }

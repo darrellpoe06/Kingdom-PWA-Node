@@ -39,12 +39,35 @@ export const SKIN_VARS = Object.freeze({
 
 /** Every classic color, by role. A color here with no role fails the gate. */
 const COLOR = {
-  '#FFFFFF': 'paper', white: 'paper', '#FAF8F4': 'paper', '#F0ECE4': 'paper', '#F6F1E7': 'paper',
-  '#E8E4DC': 'rule', '#C9BFA8': 'rule', '#CFC9BD': 'rule', '#C9C2B6': 'rule', '#B8B4AC': 'rule',
-  '#1A1815': 'ink', black: 'ink', '#2E2B26': 'ink', '#0F1A14': 'ink', '#3a352f': 'ink-hover',
-  '#5A5751': 'dim', '#8A857D': 'dim', '#8A857C': 'dim', '#8A857B': 'dim',
-  '#5A6E3D': 'green', '#4a5a31': 'green', '#4A5D30': 'green', '#3F5226': 'green', '#2F5D50': 'green', '#C9A227': 'green', '#1F3A2E': 'green',
-  '#B85838': 'warm', '#7A1F1F': 'warm', '#B45309': 'warm',
+  '#FFFFFF': 'paper',
+  white: 'paper',
+  '#FAF8F4': 'paper',
+  '#F0ECE4': 'paper',
+  '#F6F1E7': 'paper',
+  '#E8E4DC': 'rule',
+  '#C9BFA8': 'rule',
+  '#CFC9BD': 'rule',
+  '#C9C2B6': 'rule',
+  '#B8B4AC': 'rule',
+  '#1A1815': 'ink',
+  black: 'ink',
+  '#2E2B26': 'ink',
+  '#0F1A14': 'ink',
+  '#3a352f': 'ink-hover',
+  '#5A5751': 'dim',
+  '#8A857D': 'dim',
+  '#8A857C': 'dim',
+  '#8A857B': 'dim',
+  '#5A6E3D': 'green',
+  '#4a5a31': 'green',
+  '#4A5D30': 'green',
+  '#3F5226': 'green',
+  '#2F5D50': 'green',
+  '#C9A227': 'green',
+  '#1F3A2E': 'green',
+  '#B85838': 'warm',
+  '#7A1F1F': 'warm',
+  '#B45309': 'warm',
   '#2A5A8E': 'blue',
   '#A3141C': 'keep', // the new look's own red door button; never recolored
 };
@@ -58,14 +81,51 @@ export function roleOf(color) {
 }
 
 // What each role becomes, per utility. `fill` = a solid background whose words must flip dark.
-const BG = { paper: 'var(--sk-panel)', rule: 'var(--sk-line)', ink: 'var(--sk-ink)', 'ink-hover': 'var(--sk-dim)', dim: 'var(--sk-line)', green: 'var(--sk-gold)', warm: 'var(--sk-warm)', blue: 'var(--sk-blue)' };
+const BG = {
+  paper: 'var(--sk-panel)',
+  rule: 'var(--sk-line)',
+  ink: 'var(--sk-ink)',
+  'ink-hover': 'var(--sk-dim)',
+  dim: 'var(--sk-line)',
+  green: 'var(--sk-gold)',
+  warm: 'var(--sk-warm)',
+  blue: 'var(--sk-blue)',
+};
 const FILL = new Set(['ink', 'ink-hover', 'green', 'warm', 'blue']);
-const TEXT = { paper: 'var(--sk-ink)', rule: 'var(--sk-dim)', ink: 'var(--sk-ink)', 'ink-hover': 'var(--sk-ink)', dim: 'var(--sk-dim)', green: 'var(--sk-gold-ink)', warm: 'var(--sk-warm)', blue: 'var(--sk-blue)' };
-const LINE = { paper: 'var(--sk-line)', rule: 'var(--sk-line)', ink: 'var(--sk-dim)', 'ink-hover': 'var(--sk-dim)', dim: 'var(--sk-line)', green: 'var(--sk-gold-line)', warm: 'var(--sk-warm)', blue: 'var(--sk-blue)' };
-const RING = { paper: 'var(--sk-ink)', rule: 'var(--sk-line)', ink: 'var(--sk-ink)', 'ink-hover': 'var(--sk-ink)', dim: 'var(--sk-dim)', green: 'var(--sk-gold-ink)', warm: 'var(--sk-gold-ink)', blue: 'var(--sk-blue)' };
+const TEXT = {
+  paper: 'var(--sk-ink)',
+  rule: 'var(--sk-dim)',
+  ink: 'var(--sk-ink)',
+  'ink-hover': 'var(--sk-ink)',
+  dim: 'var(--sk-dim)',
+  green: 'var(--sk-gold-ink)',
+  warm: 'var(--sk-warm)',
+  blue: 'var(--sk-blue)',
+};
+const LINE = {
+  paper: 'var(--sk-line)',
+  rule: 'var(--sk-line)',
+  ink: 'var(--sk-dim)',
+  'ink-hover': 'var(--sk-dim)',
+  dim: 'var(--sk-line)',
+  green: 'var(--sk-gold-line)',
+  warm: 'var(--sk-warm)',
+  blue: 'var(--sk-blue)',
+};
+const RING = {
+  paper: 'var(--sk-ink)',
+  rule: 'var(--sk-line)',
+  ink: 'var(--sk-ink)',
+  'ink-hover': 'var(--sk-ink)',
+  dim: 'var(--sk-dim)',
+  green: 'var(--sk-gold-ink)',
+  warm: 'var(--sk-gold-ink)',
+  blue: 'var(--sk-blue)',
+};
 
 /** A color class: an optional state, the utility, the color, an optional opacity. */
-export const TOKEN_RE = /(?<![\w-])((?:hover|focus|focus-visible|active|disabled|group-hover):)?(bg|text|border|border-[tblrxy]|outline|ring|divide|decoration|accent|placeholder)-(\[#[0-9A-Fa-f]{3,8}\]|white|black)(\/(?:\[[0-9.]+\]|[0-9]+))?(?![\w\-[])/g;
+export const TOKEN_RE =
+  /(?<![\w-])((?:hover|focus|focus-visible|active|disabled|group-hover):)?(bg|text|border|border-[tblrxy]|outline|ring|divide|decoration|accent|placeholder)-(\[#[0-9A-Fa-f]{3,8}\]|white|black)(\/(?:\[[0-9.]+\]|[0-9]+))?(?![\w\-[])/g;
 
 /** Every distinct classic color class in a source text, in first-seen order. Pure. */
 export function skinTokens(source) {
@@ -94,7 +154,16 @@ export function alphaOf(alpha) {
   return alpha.includes('[') ? n : n / 100;
 }
 // A see-through fill's tint, per role: paper -> the dark panel, ink -> the dark ground, the accents as themselves.
-const ALPHA_RGB = { paper: '26,20,22', rule: '74,62,65', ink: '15,11,13', 'ink-hover': '15,11,13', dim: '74,62,65', green: '242,191,46', warm: '240,160,122', blue: '156,195,239' };
+const ALPHA_RGB = {
+  paper: '26,20,22',
+  rule: '74,62,65',
+  ink: '15,11,13',
+  'ink-hover': '15,11,13',
+  dim: '74,62,65',
+  green: '242,191,46',
+  warm: '240,160,122',
+  blue: '156,195,239',
+};
 /**
  * A light classic surface that sets its own colors inline (the Presenter's
  * full-screen paper, an audience slide) carries data-classic-paper: the skin
@@ -136,13 +205,16 @@ export function skinRule(token) {
   if (u === 'decoration') return `${sel}{text-decoration-color:${LINE[role]}!important}`;
   if (u === 'outline') return `${sel}{outline-color:${RING[role]}!important}`;
   if (u === 'ring') return `${sel}{--tw-ring-color:${RING[role]}!important}`;
-  if (u === 'divide') return `${SCOPE} [class~="${esc(token)}"]${pseudo[t.state] || ''}${EXEMPT}>:not([hidden])~:not([hidden]){border-color:${LINE[role]}!important}`;
+  if (u === 'divide')
+    return `${SCOPE} [class~="${esc(token)}"]${pseudo[t.state] || ''}${EXEMPT}>:not([hidden])~:not([hidden]){border-color:${LINE[role]}!important}`;
   return `${sel}{border-color:${LINE[role]}!important}`; // border, border-t...
 }
 
 /** The whole stylesheet for a list of classic color classes. Pure. */
 export function skinCss(tokens) {
-  const vars = Object.entries(SKIN_VARS).map(([k, v]) => `${k}:${v}`).join(';');
+  const vars = Object.entries(SKIN_VARS)
+    .map(([k, v]) => `${k}:${v}`)
+    .join(';');
   const rules = [...new Set(tokens)].sort().map(skinRule).filter(Boolean);
   return [
     '/* GENERATED by scripts/learn-classic-skin.mjs from app/src/lib/learn-classic-skin.js -- do not edit by hand. */',
@@ -177,9 +249,10 @@ export function uncoveredTokens(sources, css) {
 /** Colors in `sources` with no role at all. Pure. */
 export function unknownColors(sources) {
   const out = new Set();
-  for (const src of sources) for (const tok of skinTokens(src)) {
-    const t = parse(tok);
-    if (t && !roleOf(t.color)) out.add(t.color);
-  }
+  for (const src of sources)
+    for (const tok of skinTokens(src)) {
+      const t = parse(tok);
+      if (t && !roleOf(t.color)) out.add(t.color);
+    }
   return [...out];
 }

@@ -39,7 +39,16 @@ const CSS = read(CSS_PATH);
 describe('the skin gate: no classic tool arrives in the new look still in cream and green', () => {
   it('reaches the classic Learn sources (ChurchLearn and the tools it renders)', () => {
     const names = FILES.map((f) => f.split('/').pop());
-    for (const n of ['ChurchLearn.jsx', 'LatestLessons.jsx', 'LessonContinue.jsx', 'CourseChoiceList.jsx', 'LearnSquares.jsx', 'LearnersPanel.jsx', 'SectionTabs.jsx']) expect(names).toContain(n);
+    for (const n of [
+      'ChurchLearn.jsx',
+      'LatestLessons.jsx',
+      'LessonContinue.jsx',
+      'CourseChoiceList.jsx',
+      'LearnSquares.jsx',
+      'LearnersPanel.jsx',
+      'SectionTabs.jsx',
+    ])
+      expect(names).toContain(n);
     expect(names.some((n) => FILES.find((f) => f.endsWith(n)).includes('/learn-studio/'))).toBe(false);
   });
   it('every color has a role and every color class has a rule', () => {
@@ -63,7 +72,9 @@ describe('the skin gate: no classic tool arrives in the new look still in cream 
     expect(read(join(HERE, '..', 'components', 'learn-studio', 'LearnStudio.jsx'))).toMatch(/className="ls-tools-body ls-classic-skin"/);
   });
   it('outranks every app theme override and stops at a light surface that paints itself', () => {
-    expect(skinRule('bg-white')).toMatch(/^\.ls-root \.ls-classic-skin \[class~="bg-white"\]:not\(\[data-classic-paper\] \*\)\{background-color:var\(--sk-panel\)!important/);
+    expect(skinRule('bg-white')).toMatch(
+      /^\.ls-root \.ls-classic-skin \[class~="bg-white"\]:not\(\[data-classic-paper\] \*\)\{background-color:var\(--sk-panel\)!important/
+    );
     // Words on a gold fill flip dark, more specific than a text-* class on the same element.
     expect(skinRule('bg-[#5A6E3D]')).toContain('[class]{color:var(--sk-on-fill)!important}');
     for (const f of ['Presenter.jsx', 'AudienceSlide.jsx']) expect(read(join(HERE, '..', 'components', f))).toContain('data-classic-paper');
@@ -84,7 +95,11 @@ const covered = LIVING.schedule.find((m) => TOOLS.lessonCover('living-lessons', 
 
 let container, root;
 beforeEach(() => {
-  try { window.localStorage.clear(); } catch { /* no storage */ }
+  try {
+    window.localStorage.clear();
+  } catch {
+    /* no storage */
+  }
   container = document.createElement('div');
   document.body.appendChild(container);
   root = createRoot(container);
@@ -127,7 +142,9 @@ describe('Courses: picture cards in the new look, rows on the classic page, the 
 
 describe('Latest: every row leads with its cover; open, Play and Continue still work', () => {
   it('in the new look', () => {
-    const onOpen = vi.fn(), onPlay = vi.fn(), onContinue = vi.fn();
+    const onOpen = vi.fn(),
+      onPlay = vi.fn(),
+      onContinue = vi.fn();
     act(() => root.render(inLook(<LatestLessons courses={[LIVING]} onOpen={onOpen} onPlay={onPlay} onContinue={onContinue} />)));
     const row = container.querySelector(`li[data-lesson-id="${covered.id}"]`);
     expect(row.classList.contains('ls-tool-row')).toBe(true);
@@ -147,9 +164,13 @@ describe('Latest: every row leads with its cover; open, Play and Continue still 
 });
 
 describe('Continue: the lessons begun carry their covers; Continue, Refresh, Start fresh still work', () => {
-  const items = LIVING.schedule.slice(0, 3).map((lesson, i) => ({ place: { courseKey: 'living-lessons', lessonId: lesson.id, stage: 1, step: 2, at: 1 + i }, course: LIVING, lesson }));
+  const items = LIVING.schedule
+    .slice(0, 3)
+    .map((lesson, i) => ({ place: { courseKey: 'living-lessons', lessonId: lesson.id, stage: 1, step: 2, at: 1 + i }, course: LIVING, lesson }));
   it('in the new look', () => {
-    const onContinue = vi.fn(), onRefresh = vi.fn(), onForget = vi.fn();
+    const onContinue = vi.fn(),
+      onRefresh = vi.fn(),
+      onForget = vi.fn();
     vi.spyOn(window, 'confirm').mockReturnValue(true);
     act(() => root.render(inLook(<ContinueOffer items={items} onContinue={onContinue} onRefresh={onRefresh} onForget={onForget} />)));
     expect($$('[data-testid="ls-tool-thumb"]').length).toBe(3);
@@ -172,7 +193,13 @@ describe('Browse: area, course and lesson squares are pictures; every tap still 
   it('in the new look', () => {
     const onOpenLesson = vi.fn();
     const tools = studioToolsFor(INDEX, { 'living-lessons': { image: { src: 'topic.webp' } } }, () => 'living-lessons');
-    act(() => root.render(<StudioToolsContext.Provider value={tools}><LearnSquares courses={[LIVING]} onOpenLesson={onOpenLesson} /></StudioToolsContext.Provider>));
+    act(() =>
+      root.render(
+        <StudioToolsContext.Provider value={tools}>
+          <LearnSquares courses={[LIVING]} onOpenLesson={onOpenLesson} />
+        </StudioToolsContext.Provider>
+      )
+    );
     const area = container.querySelector('[data-testid^="square-area-"]');
     expect(area.querySelector('[data-testid="ls-tile-cover"]')).toBeTruthy();
     click(area);
