@@ -1,5 +1,5 @@
 {
- "measuredAt": "2026-11-26T18:45:03.583Z",
+ "measuredAt": "2026-11-26T20:50:14.993Z",
  "counts": {
   "departments": 13,
   "courses": 51,
@@ -831,13 +831,13 @@
    "department": "A.I. The Way",
    "position": 1,
    "title": "The generator in the garage — why local-first",
-   "contentSha": "fa80fa75e5138f8a33dea77dff83e35e221982dfb7fa31a059bd39f75a86a839",
+   "contentSha": "d2dfce37ae7fdfdc7fa7d13835a2642888f40c9b14153746a488621679c11f96",
    "versions": {
-    "child": "dea16ecaffea990b5bb77df30e73c691af881b09c69892bd76345c75bc222e0f",
-    "youth": "863ac69293547eea18cba736e7873a042b37e93946cec1013e43f60e4025747d",
-    "teen": "be2cbdad6af82be6c427ff3b989f5e7b69800fb6017c93022f2bf4b8af2b6cc4",
-    "adult": "cb85d6093cab208df585a7cfb763a07701e5817f837f709e5473b8e5acd7e3a3",
-    "senior": "076f468aa57f97a05f7e0841a8793041bd99d910c9d61b215fa89c0a31b2c653"
+    "child": "4e8dc0be80fad92cccf100f12c2957f4b67acf06f395257a60e0f7faef6412bf",
+    "youth": "16af9389e9de15ea54b94aa5c342ba2f2f1f74adada6a276cbf6f8e9b83be865",
+    "teen": "4307030872b8200e43c35af16c9b924a0ded18fa0d8f50f57cfe43bc41827ee8",
+    "adult": "5d0643e2badc8f8b29fdde9bec8d5a699749df1f0228229eff42d0a0e5c472fe",
+    "senior": "e4ff8880dd8aa40f64f5daf4527a6f45df1574ca6da978944788d17c7b9f8a8d"
    }
   },
   {
@@ -846,13 +846,13 @@
    "department": "A.I. The Way",
    "position": 2,
    "title": "What a model costs to run — size, capability, hardware",
-   "contentSha": "7dcd77fe7461ce7c947d47de11426841d64c0bd57e391ccabcf50c423a8c6a69",
+   "contentSha": "a5c48030f01557cc6364007f057a421a762359ec33a28bfa1178348d2f817eaf",
    "versions": {
-    "child": "2dfebc695b964a0940e96fbe7e5b561cd989302358e047f94de333423a2709ed",
-    "youth": "5f1a96b400fcd0ede2ba0fe11500aa3e07471c5f8f2d5bbea46512a9a4864ab9",
-    "teen": "df6879b71cabafd47fe3d486653303d0268b788a29c349f6604f30952c6b282a",
-    "adult": "0f568e99aeb6a5736cf0a6998849f082b337453f6e3d8d6b1d3b3821f5d37a30",
-    "senior": "9c2452cc847b7e4ed2223893df8b26656efa136f08d0a076f4ec5bbfdf96e594"
+    "child": "c0a2e697e70d7a2f85f46ed520608e1cdd5a85015d1e9a22c8a8be352b0cffa2",
+    "youth": "4a0483167f1b5365f36ece035c0d2e223084193e77a9b4e0be9fd0d9df13af84",
+    "teen": "3c37b17f57f07b0dd0ecb136fe5c76ff5362b92bff1c6b139549ceda4a33173a",
+    "adult": "35e0f2a69aa2c53d60142bd4df88189c8e1a6331cce61c774a38f0f98d138666",
+    "senior": "d62e2db0fcefdbb3c665c1b248df05e58b8bb260f8b9ee4d2ec1d9b146120181"
    }
   },
   {
@@ -861,13 +861,13 @@
    "department": "A.I. The Way",
    "position": 3,
    "title": "The model-tier landscape — what runs where",
-   "contentSha": "4779353b28c619af35fa10787571d5e57a8bd62361069d9ac007cba2ffe5991b",
+   "contentSha": "ebe48b382f25376632b38c724b6ae5ff44d42c7a3388b1623589b95828a15ec8",
    "versions": {
-    "child": "b5ed38489a174f3a84c9e60ff1fa6078f01eb923dfe81e1e452edcd7ae7b09da",
-    "youth": "d392b72b8dd54f03f0f3d21dc552cfb25e17b9cab6ce38fa1e65a572dec32d7a",
-    "teen": "a2f78090bd189757b3af937bd542f1e8a3b3aa3b9fb3129855e90ce2b41a92f8",
-    "adult": "8d4db27d8f27857eb50253f19c8e4fadc18782c85ddeb3df328421b0d447c18a",
-    "senior": "2301b3654d5c2be9e1ade392654d7403fb188c868a55272fffd20cc4fb913740"
+    "child": "819940caac66382fee90afac69770565f42adafe7b5bf70e52db227ec79d896d",
+    "youth": "ff2f4738a6e9d4e17ea603f3bfe9fb79fafcad41bf9cb5ee9b38e8dd97a762ed",
+    "teen": "b4e09e18552e57fa78cb0625f0a43a63399dac6a7682258d45abb57c187167db",
+    "adult": "6dd48a7250be1afebc0451098f12754c31e3d0a892fee568d085638a86244fb7",
+    "senior": "7c4a614668d92d584f12a5ff1b56940dede58e179bd9e3fed2fb24afc8d98d1a"
    }
   },
   {
@@ -876,13 +876,13 @@
    "department": "A.I. The Way",
    "position": 4,
    "title": "The honest ceiling — what small CPU models can and can’t do",
-   "contentSha": "42d8efd4aee63b0272d0853bd4abcc62817303e1f24232052953b9b6d4e79fc8",
+   "contentSha": "2bbf09c17c6d6905bdc8ddf0b5dfb5c19cf9fcf81ea5d76c1fce1aa97c956e55",
    "versions": {
-    "child": "0695631fbe71ec45ef0f8a5afc736ea3f820d4a5c54bd1551aaab370976befb0",
-    "youth": "63367d87f2bcd4d07eb664c297c8d026498eb9ab433b39f9b756250b34728884",
-    "teen": "5c80712ee35f767351f9ef253b921b58696469f4496c7d4e194f8f31e281b240",
-    "adult": "1f14822909ad649d1ed1bf70916bcda3f278a3391c83096c22b8c263564e5acf",
-    "senior": "0868030b080f67266f55a0242a574ab60734c6a5c91e825203ad50f89f20fcea"
+    "child": "4d2c20792d0dccb8198c639d57982cd4342d64946ec6e8d387f4de64900d9bd6",
+    "youth": "267c18acc4e92637ee921293ea847bbdfb74fa000b26a4ab97bc50e7e6fe79b2",
+    "teen": "6f3219395b59d2270e321aa7b1b8beea1650249b7142a284cf10a297e1257d92",
+    "adult": "3f0334c2e31c84c3f273a05917629f4d04901833c7cf8aadd0dcc74adfdec679",
+    "senior": "3fc85c21b592e35399c8c0ef33599e27bc20eadd269a86e0b1cd936700ff41f7"
    }
   },
   {
@@ -891,13 +891,13 @@
    "department": "A.I. The Way",
    "position": 5,
    "title": "How SKOS runs it — Ollama, routing, and the Cage",
-   "contentSha": "d6fc0cafa731e9eee0cd443d032003aa0ba98981b2c3f95fc80500e23c81936e",
+   "contentSha": "15b5a9e030ca4cd4e8b3eb4159b69aa7b468b0676bd907288dd4a57fb55b70b8",
    "versions": {
-    "child": "8f374905f6e625b552d341ed11d9205382b7953ac96d031daed478aaa2465723",
-    "youth": "4829868ee9530f8221b014d5e63dc9c8a89135fcde6cbebdfc0fe8152ed72285",
-    "teen": "2a2bcff7572cd6de82caf846030be4222c13ba3e5766ca2da6d61303236e65b7",
-    "adult": "ee22951cc328224afe7ef1940f714805d6365fcc9a063f0c4573432b9559f1c8",
-    "senior": "5ada981d9458a4df6fcfde3f8cddf8737bc36cd407c7147ecea6af68eb9ba100"
+    "child": "e3942e590bb7441902822f356aa84e93527bfedae87df4e0c63fef544703ec7a",
+    "youth": "489d2f76badc53da4d5d2091c077d9892fdcce64c94df2e9e0af95035ff71831",
+    "teen": "bade32cbe1dd88e77c48658d946c5d42003a3fe8ddb83abbcc1f302ffd361906",
+    "adult": "548ddb133d14f5b18b976f3cf1ec03ddf6031452f2ec067b3bb8fcca9894e30d",
+    "senior": "2adb11e1108c87bec6c765f31f382133e91c4543f4b97fc8e46a0d1c6adf7d2f"
    }
   },
   {
@@ -906,13 +906,13 @@
    "department": "A.I. The Way",
    "position": 6,
    "title": "Vendor vs local — the honest trade-offs",
-   "contentSha": "f33e2515d4e07a366c39968f55a6b562736993f160976024a903aa2a16054e90",
+   "contentSha": "a1e0eb2c3880dfb9d95c835679a11de2e8f7a981c02b67f94a02d0af895495d7",
    "versions": {
-    "child": "8135e4af3247ed1ae92b57b1c185a5f30b30628967c5a8d6193211268f98ecf1",
-    "youth": "65505c36d6408622254a6be53199c59050af7979e9a3c751c8caedafbfb27765",
-    "teen": "a142b8851739e520e9e373e45837d3620ee5eea21db9e19c78f719428c9d9c3f",
-    "adult": "f2bad072db0fc57e77591505ddcf3518df727e43abef0ee172fe75497f0b8393",
-    "senior": "ade55d36f3c138a7a6de82c6fe82b00e3d7fec47f05b067c0a9ca580ebe7c99d"
+    "child": "df7fe87949c552d5cccfc045d552b6dbc46cf6fd0c4c81b1f3bacbe2406f9eed",
+    "youth": "86711bbf09b69c870b250c601797e9c0ffc43c51f4c00e2074660ee61440ba70",
+    "teen": "e8a0c8266f2819e6b5f2f173fea2ad2b90e89fd4fc41de79904e1abefcece84d",
+    "adult": "3f682262709a9692eff9edcbfe47de6ed4f3dd42609e299466cf1e6da7a3cda0",
+    "senior": "230ae808046279be7f69016daf26423105bf9c441cbd2b42ade6d1d17877ba70"
    }
   },
   {
@@ -921,13 +921,13 @@
    "department": "A.I. The Way",
    "position": 7,
    "title": "The five local-A.I. opportunities — the strategy",
-   "contentSha": "8f85b4ca94707da157951780bea0f71aaae1281a8c45891300f98375426ff7d5",
+   "contentSha": "5bc8f6af9312b31d0b927933a04a6e2544cdd096d231e93eb7f1463a5169b86b",
    "versions": {
-    "child": "68ee5d64573e3f7dc194adead6bcc0b87b1bccc91e79591d9c9826e13d91f051",
-    "youth": "976219a539e7550944c4900c785012438d907f1585ff203607cb1a665f382d9b",
-    "teen": "0dd0a9e4ecd57b694a481ffd214b76b223e87efbf1f383410eb47bca3fe5899a",
-    "adult": "d557343c93ea0f05394d2ca5b810ffe50f376a119e89696e76ebf59b58da6d9d",
-    "senior": "020dc069a0e3ac323dee3e37ed0f8cc4ceb2536e5bdb130b7637803f486e5509"
+    "child": "437fdb4148b2d633ae1449ec382248a010fc6d19f71c8893357a127667b62cad",
+    "youth": "ddec949593af3b650d7e32e1067e7b44e848476acf36fbecadc77788592be9c0",
+    "teen": "8841381f2a829df01cb763dd3e1d126233733d97d5859b234f4b3f9aa14bbbb6",
+    "adult": "b25d5157f99604807adac0196a927c7c2dcf6e02c18f162a0e403f99720118f7",
+    "senior": "fbb356553fdca1371b859d3d6c1069375e91ae621eba026870ce78c9b174bafb"
    }
   },
   {
@@ -936,13 +936,13 @@
    "department": "A.I. The Way",
    "position": 8,
    "title": "Build it sovereign — and hand it on",
-   "contentSha": "d557900329e9d1a9b555cdfa2db4e072bd175dbcd969e44f36116251a21531d4",
+   "contentSha": "051e8bf9548a74e5b941da08738d76e3a295a1e87df65f096c87e5eb5e2dd9ae",
    "versions": {
-    "child": "b1357611bbab38a44c80260baec530d924d9b2c89be672da810d0733d8665d5b",
-    "youth": "4b55fe3af32ec7cefce683e391ef9f72685f17ceee841cebebbee70e3f50d0ac",
-    "teen": "3a615c5030e88a8e45953f683fd4803e591f057a21ca644103d7a2e849e2b2c8",
-    "adult": "42f1d71613c58dd3e96b559870b379ce289cdf865c3294869b7eddf9f3cb3bea",
-    "senior": "53bfa5b4b514ab5ded9c936820fb6d6ff710ca0be782e3dd8e3420f89078a5b0"
+    "child": "37e11039b1b4e799c8787916b92a65b552c0ade6173f41e369e4ec4597e9d910",
+    "youth": "9b3874fb8bca67af806c803b80986ee32a78c78f1f38430f474f0e60e81dd1d6",
+    "teen": "32776ad267d26a94f0cf24c56314c09fccd677fa8be6b0eae6097690865672cd",
+    "adult": "6045455a8da9a51d85dc5e275c3f3f4ad6b8e8c1a0493c5ddf8c1e697876e74f",
+    "senior": "66f4f1192a9ea986577f9dec091e251e7989298f98fdec5d5c564b785cbc6b65"
    }
   },
   {
@@ -2318,13 +2318,13 @@
    "department": "A.I. The Way",
    "position": 1,
    "title": "The one rule — it is a stranger’s computer",
-   "contentSha": "74c60b44e1d671ca01b2c32cfdbe56b90865368670b710e81eb1f0edb684e250",
+   "contentSha": "2308c592e87d2da269e3d0737a6633ba339ae7c45d41b10ac24bad24005d0443",
    "versions": {
-    "child": "b52c45789a43a6535d5548d84c6dc2f7b94bfa7bec3ebef645d25c6eb6d3dbe6",
-    "youth": "c02886dc01728a249a0fc7c95f685f8f38c3106c16d1cf940da74ac102fba4a7",
-    "teen": "349b94faef0f21c9ee281c9e8eed9a7a46ab0b786e220ead6ac67670ef777c72",
-    "adult": "f106079b67e50af66c4cb11b9f22b58b34f285f58e2b81070ce3724806cb65be",
-    "senior": "e7aa4e44d6582474bb4a57d54149d9f718237f1e1d9861b54dff8c049a675d8f"
+    "child": "9561d35aee9f90fa5f8bd9ca459b59b61b8decbfe6ffd66ac9da748948bf4c06",
+    "youth": "a6b7baaec30616de25bc371f3874fb197230a1fa43c20d274fa93532859c4a65",
+    "teen": "ce78163e89179ae715c8878fe280dbfab9ab4e316244f275b516edf99c98b256",
+    "adult": "2ccb66a4148b2b9909f28cdc8d43752297fbfce915978efea678524f0b386d01",
+    "senior": "c0d95a6f0e2b0c57ab728430c95bbbd6a4af02a1f0488abf257cd209eebde2c8"
    }
   },
   {
@@ -2333,13 +2333,13 @@
    "department": "A.I. The Way",
    "position": 2,
    "title": "The DO-NOT-SHARE list — the cheat-sheet",
-   "contentSha": "c40923fe2f45d16585d4fd86610f590c841e7d1e87d84ad1862aea56eb70c142",
+   "contentSha": "4173dd13d9c3783a67bc1e7a4969d58910748ebf4212a3b0f7c0109bd5826e1a",
    "versions": {
-    "child": "ffbaf2f029d6e053f5234620f52d48b80ea181c1f681234945323454989cd34b",
-    "youth": "a9eb74b79417827060e6c0ea2f615888d9c11df358a51f4171d8ce949445a6f1",
-    "teen": "2a0a1628d3eb545bec0cf52867654c3c4ba8990494621298126d7e6cbf714974",
-    "adult": "2424959fbf1d1c925b2df17c68d648fd8c69b74959863bc556822db22b4a8b5d",
-    "senior": "7ad2b450df35944c52d279090df96f8d68b0e76b3e7381460390da49a7892096"
+    "child": "d953429fb1d8fd86348fe277a46d3d23d1db202cdfbca60f58ccdd84954e003a",
+    "youth": "622903771f21655b69fb61402c75fefef8dfcfe8aacd45f68618ef7ca9311398",
+    "teen": "4832f83426f0ed139c7e4af07b538e97fe838bf7ee4df8fcfc267df873249e9c",
+    "adult": "641cf548ea2243f02cf2e240c0358c60e8b08b3887b36543783dc6636ad1ac4a",
+    "senior": "a3cf92fdc442c51d6911a9e8517352a5b73414201bf17450c45cc8c6ab98825c"
    }
   },
   {
@@ -8307,13 +8307,13 @@
    "department": "The Word & The Way",
    "position": 4,
    "title": "The Kings and the Psalms",
-   "contentSha": "372749f2181571950f9f92c9948042d9f5b88e446379b0e10717a0db2db921a9",
+   "contentSha": "4c87b035b44f318b1a81467576dedf550e5dd19d019e54f359ee1d01343cd49e",
    "versions": {
-    "child": "225ccfbb0784235a3c0dc8b9a0fd76710fbc70327da0e8538ca5c52cc55fde29",
-    "youth": "694d0e6ad3caec5dc1d7db05c69a1c233c5ecd2fb93e0f94f3a8449fd55f5151",
-    "teen": "b7db4b9b809ac08145e5aaa3d428b6422ddac9d8e4bab4bf5d45061467defe6c",
-    "adult": "8cda9917017808e038f5ac521566b2efe2a5514425a2240b735481ab34cb20e6",
-    "senior": "88d0ac7efa6eccea37fb5880fc5065ca2ddbc6b4e6c69c75a6d64b71f0f03344"
+    "child": "1f97fb3f4bf46be109283c73d78bb55bb41eb806f3b3e08f0d58817311678a38",
+    "youth": "1e95a7e8460a3119955572c020f98bc322d5e530bb6a702171024013c3c1a60d",
+    "teen": "2a644743b790f755a2d2aea9976434bc14bfab1e6f3d61ef581f93f877418898",
+    "adult": "898c1afa29c1039be4cb25b6f06b214900cde6d32f296f8033e27af2dbed8496",
+    "senior": "b1d0944b0535acd83f8cce2c7a7772c8b5640465d5c3636148ef381cd170cf6a"
    }
   },
   {
@@ -8337,13 +8337,13 @@
    "department": "The Word & The Way",
    "position": 6,
    "title": "He Comes in the Flesh",
-   "contentSha": "94dc45b2d8b30b23badf591b29743a975949aef9387afe9fe4e67708952cf8ab",
+   "contentSha": "4a50eca60a0f7e64383cff097e99c37a30b15ec29255e1b26ac78b41596188d5",
    "versions": {
-    "child": "66109a607aaa2bd2df901d420a21e7528b985a492889f0e966db20fe78562a9e",
-    "youth": "9052c0d33770c6276a54e7aa127ebb10e2d3b993d4ae7e8b4117706302d768b1",
-    "teen": "e8766a5cfb14cc47b0d368697897a1d59953869321030294652f0ca4b1282b1f",
-    "adult": "6853f28d4b7bffa2c217998f0b732be58fe89353b7b1aa809fe4b7385ba0f7a1",
-    "senior": "8fb568cdeb0d93a0e39e4034bb8ca29364080e7f41bbb95f36a0d1c2f2295a85"
+    "child": "60f272935d2686c057fcf85f8e9531bb248c41be403219dfd2616446a5481b5e",
+    "youth": "e8b9b4247b69dcaf9258c83dc3510e0e4023d66e8dd6806b6a1ad4c1b75db45d",
+    "teen": "6ab2ca613cfc25a1988b9e33683e782117e593565e060ed878a1594d4b045d18",
+    "adult": "cdc060c986b8704c776b786db11fd4a8c9ee6f0a37955ccc0600f928a001ecd0",
+    "senior": "8ea3bda50c591e729b07e75249dcd8f31d0d53c15b373fe57eb3665d7762ee45"
    }
   },
   {
@@ -8352,13 +8352,13 @@
    "department": "The Word & The Way",
    "position": 7,
    "title": "His Ministry: Every Scene",
-   "contentSha": "3fdb446266915a451bdc72b726d23609023a451620004e1781b54afc0fd0e971",
+   "contentSha": "d5c2f990b74235195a39dd163741a48208ee64bd88faf2932eb5abc3a2c0ecaf",
    "versions": {
-    "child": "6f185719f05c48ca17c7dda1ca15cece51f5da44c03cfe3bb87f9b7a1c5d7493",
-    "youth": "0527b23bde8d9e9ecc30206ba74fbe7d24019baa0cf2dcd59cb2d2cf90f827f2",
-    "teen": "4359c7ed74e8c5c4960f77f7cf46bb753f89b981107fd34b5fceaa208bae5144",
-    "adult": "ee874602442eb8713d4a3b77f90698de4309b157fbc302387976bf1c25d15df1",
-    "senior": "9e08749cece94cb5ab85ae6ec68869aaedbbd36a3b4ecc13d882fb0d31cb2cd6"
+    "child": "8bd6161ae698fc85f2356a6e769cd18c0b8212bfd9ce765920567325bfda6ae8",
+    "youth": "045253d5c4398effa7314792e98c8f8ac9414c0a5e69e42817cd0ce1982d1b68",
+    "teen": "e245c679540a689284a5ca6559ab2335306429ff1d02a3bd862c7ab6360716f2",
+    "adult": "cd6953abcfd5b74c458dc4af27a3dfd8f51a4ec358670031e4c45c0aaf5028bd",
+    "senior": "d41686894f7cd7c8839572900520179b1e987a2b84d62fb7cae7ea175c6c09a2"
    }
   },
   {
@@ -8367,13 +8367,13 @@
    "department": "The Word & The Way",
    "position": 8,
    "title": "The Cross",
-   "contentSha": "dffe06837a5f752e9f6a95747a2f8c895b246603017245086b2a177f33a70027",
+   "contentSha": "80230be95ce39089a78ec159e7134890007a93431347e6fb1aa0b52b96ae6a50",
    "versions": {
-    "child": "6f3809b1a1866c6b2d6522ec137a393798f242dd210862ac7f34b805167b9115",
-    "youth": "9933f456b5de61ea4a67139283e7a87786a615ff0d9a88c23d1cc75ddb898cf4",
-    "teen": "bc28b7b8b7c2d107de54e1f3770af23a981caf2dfcfb1e1230a37873ba589a80",
-    "adult": "3dc2116cc1e9b7c07503c8913d2b7256316577a362b888dc3483ff4f7698cce4",
-    "senior": "d3d1f2cf816f68a240b8d2f44ced42e37379016ddfc8ed05a42a071a7d8114f5"
+    "child": "f6abf5e776d2c53cb3b1f534409f0b2ef4d03ce149ad8240aa056a973d796e45",
+    "youth": "634c56647da6bec02724b165281bae669e0c75c1c8e249a17862f16de567d17e",
+    "teen": "15d4e97da2eb916eb2784578c7123b10b645e4123e5ec4070c4a76dfbd328031",
+    "adult": "b7fabec0a4669653566763ecc7f763cdb2aa858afb3c4623b41f37d806f5d3ff",
+    "senior": "b80f95e980faab30bbe425e44f9363b6adb33dc487abc87fe137951c47b23b5f"
    }
   },
   {
@@ -8382,13 +8382,13 @@
    "department": "The Word & The Way",
    "position": 9,
    "title": "He Is Risen, and He Goes Up",
-   "contentSha": "eec6e855c7a48514b1e560851c7019121e7f3b126c2521abf81f715b7535538f",
+   "contentSha": "eb2ca264f1142ec8259d60a9d045566198b4baf20d6f11a63a8ddc95a5e2853c",
    "versions": {
-    "child": "a131b1d5d549ce7814d2a9ec993040e450389fb947ca8f96a8be2c2d5b604fe6",
-    "youth": "23b41a253adfbe26894a6bd53d5de44d273d8f315699e7cfd2d083d52e6f635a",
-    "teen": "c2705ffacafaffef7bb73039f8e712a726a4889c81c4429f3748a47c35955181",
-    "adult": "7e123c27aac5e69b5ae520672ea5da7c21dc2f4ca191da5571f788a9f070b22c",
-    "senior": "a6b55af564d5bbdf5c4d60c5c54e15e6f91077882f47145f4b4a16d0a75c6494"
+    "child": "f6abd820bdc988ea1ab6857fa1cdd9937dfbaedc56a39646e5a738b1cba6d718",
+    "youth": "4e57254bdfb244c54443aa580576f9016402398c921290628f2846e6a0e158ef",
+    "teen": "b2e50835a544fef328e13612aae28b9c4c40907454d24c3010f51ed1669c091a",
+    "adult": "1af3c6890cd1732c8199f3a11db101e67107cb5f477cf2e81a7e2e92044eeb3d",
+    "senior": "8274f9ea389e51dde0d05af516f2fab69b01551218b59dc0d86e751918ebcbdf"
    }
   },
   {
@@ -8397,13 +8397,13 @@
    "department": "The Word & The Way",
    "position": 10,
    "title": "His Witnesses in Acts",
-   "contentSha": "45906773d0a73897633b640d56812bd88e6e60501bc876827511ae75a36b5e19",
+   "contentSha": "09cd4de242b67235103979a00a2a83b0bf54fe7891dcd873df429f49d4ccf768",
    "versions": {
-    "child": "685c506cef39f49bee860e627808b6936f31264b67f89cf355133180391cd9e2",
-    "youth": "3cf8b7bdec10022120800ff5c72868255175f75497bafb6b92a1b625d283f60a",
-    "teen": "9aaffe57b73a2ac9cbbc28584fe21a0f065e81f6f45c0ac2c2e8ca8d6eb8fad7",
-    "adult": "6802560f4c27dc66828d1a1ca813b72fb1bcc75849a3e8f35fd5562f184a8f8d",
-    "senior": "cee7bc89e1823c640f9836c640add4f5a4cb6adc02d3379e5cd394b5a17b8984"
+    "child": "b8d8ef2f0ffc0af4a2f33152b3f1398215607904c340ab51518486cd412d0ea6",
+    "youth": "13d89aeeb2e97aa1e7a3bbf976e212c38df6d6aaea8870a51496e75d66e2115e",
+    "teen": "49c5535affa75818ed869ac1ca4c20afea17cc4fbc7e0482465d5ade05bdd14c",
+    "adult": "ea8889955e41f6523d45acf28abe2735c43a5fea09fd225be4d19cf7080671f8",
+    "senior": "51556ffd05d110c3f24e5172d05519d1eb3cefe0bf7d8a6a33a8b74b04a19549"
    }
   },
   {
@@ -8412,13 +8412,13 @@
    "department": "The Word & The Way",
    "position": 11,
    "title": "The Letters: Who He Is to the Churches",
-   "contentSha": "5ca7248a2c4623b4b749467fcae201063fa24b8d0ba80e6c4dd80245ba0c08d2",
+   "contentSha": "cca6061d8507c1ea8cc57c0018948173c246bb895cbdae0118f5d63635638a2e",
    "versions": {
-    "child": "3ec1f317061404dd1133e136662dfecf3e2f2512707fd8ce35dc7951d1d6ec84",
-    "youth": "e0dd911c2696e771bec799c5e7755a4a0b401a6b02ec14ca6f364ca1d26d7ebe",
-    "teen": "18e515447d1d068218869f3101d48173a882b7bd06a4c8556d6c28c73850d7c1",
-    "adult": "bac1ec7ca184cb87ad706907c34269db385dc78b02b44c9923d49836dddbb6da",
-    "senior": "d2e0d99ab978246e1e7b52231fa2e3d48682b66a6603c5d4bec21e2b33118b51"
+    "child": "f8b5cb7cce19ff4297df77d7de241ce6b82034c7e0dc478d6cebb38a4ccb25db",
+    "youth": "57d0f49bda284d96e95b3fb1cd5e6aac614facb5f52b35b85564db946b2454da",
+    "teen": "870fab384c8a351dc2ac004016574d755ae4240be9cb306354e1424edd1dbfa5",
+    "adult": "bdfd98ddb0742e7dd4f6542d499381c490e65f9cf2885a7c37415695698ba945",
+    "senior": "4ad81c9c1c3c267935634c0f3d8a14e2b52aa6eb993560b2c34437db6ed72988"
    }
   },
   {
@@ -8427,13 +8427,13 @@
    "department": "The Word & The Way",
    "position": 12,
    "title": "The Revelation of Jesus Christ",
-   "contentSha": "bc5d2f89f5fc968e7b40b07d99477a5a3cc342e15e5ddcd12f93fb951dff7d0c",
+   "contentSha": "d62220ffffd0092cacb79828c4297421804ec7794008a45ccaf4f736cdea1de8",
    "versions": {
-    "child": "8e56ec89d2e5c360de2bf5649de221ad70e1ce374337c04c8e3629fa41243507",
-    "youth": "1d78fddd11afd1894cbcc119e01656e023b80eb4f729cb8703d787bb1ca8772d",
-    "teen": "385bfd38cb2048b5271ee0395b491db3f84b04cb66ee70057514b510ccd1815d",
-    "adult": "8b6607cbe7ef3034f0dfc589f622584cbd3e1e64f9edc5aef492dc629ee0b52d",
-    "senior": "4d8f3b654e142e4f00338b6cfb336234cf96bcdbb5aafca51b24dba1fd3f4211"
+    "child": "d5ac53d3b852279f913e9b4cdb87baafe4ef5e81e963697496d966bbbc44e153",
+    "youth": "c5b1237bbf005520e71680b6dab827f9deeeb62c14304397260241c8bef709e2",
+    "teen": "72d3bf170f0eb617aa8fcda68e90b14b3029f27d3cb5456faf2ffd9db5132a31",
+    "adult": "dd4feeca497e8c96614e8ed2510ae9b648e8e5e9fc0411ebf2e49c3aaf0304b0",
+    "senior": "0839261c7d2640fb7ab41d05b850f30d61debc84d07a0b2e672e44e12fc55217"
    }
   },
   {
@@ -8442,13 +8442,13 @@
    "department": "The Word & The Way",
    "position": 13,
    "title": "He Comes Again",
-   "contentSha": "497ee91bea73e1760cf0ea27510a05208136fabb21233360f9f1921f0cf3ca37",
+   "contentSha": "6bc6342d38ab8ec1fa352c3015353872ad69a52d3ba8d72ce5853ee2341b3d98",
    "versions": {
-    "child": "ef28e4d2ffe4b4e18d60470599d15387f7bd8cc5324b41b5984ff963f3b40c8e",
-    "youth": "711d31c4f1466138afd9a5d1832b95a236c040aaace2f8fa6ccb0250b87b56f7",
-    "teen": "473d472e31d9d9f4f34ae6bb520e5f31079a69a9da3fb3fb731a30246ea3f863",
-    "adult": "a67ee4c1bd36855592368068cf17f7268c65a6ae579836e580aaa843f345e5ca",
-    "senior": "8e1f71133402be874117517abfdbf54e13bb365246e8bd17b5fe729d2ee642b5"
+    "child": "d12343441f38df018665b9dc5f1a40f4c4fddb32743b078a4c95c98e1bd786d2",
+    "youth": "b24350db98d257a02564c34ca7ed0c15684b51a39a38f5498fa195cda195bd58",
+    "teen": "ce61a294efbf58cd36c7340451932ed7496a3e4db8ad360fed36a2e83aaf1a6d",
+    "adult": "05f999b22c98edb2b8f032d6e9693a88d4b71cd4519ac28bd87350e306667864",
+    "senior": "027068f72b92f822499ab409dec1375986b5c46fca439d0bfbd1eff3dac74976"
    }
   },
   {
@@ -8457,13 +8457,13 @@
    "department": "The Word & The Way",
    "position": 14,
    "title": "For Ever",
-   "contentSha": "8db8778e1b12b501c439bd6c7695aba72b586f123f7e033119cb4373d2ebc262",
+   "contentSha": "0495af39f506e4d42c4dc59e10f37eb798c4b5d65bf0a6c994db69099b550b48",
    "versions": {
-    "child": "dd40f336a7aca5a9c377f2020d6f24edeb4cdc15155525e25fa1706c4acfd67a",
-    "youth": "51a68fdd6b9b321692aa34e77acb19da13718e2940dad6f668038db1dc15ca55",
-    "teen": "d0d61a5822e7d9f9c05255e927d638eb30e2c5d8c8a286c28c86404cbfadecc2",
-    "adult": "fe2e47f47201229bf0f4ffb8d341fcf90edb1d34e6ce837dabf37e2f807b6045",
-    "senior": "d67cfeed90d0b5584e41aa760e47a899cf5adefe7b58fe1946a89fa34f89b7cf"
+    "child": "08851f6370a0268c95753bfbbe0c352b29be4f1f3d08225d8ed0058c7fa5dab2",
+    "youth": "9abe5a8e2e4427da0cf61d78945491222027375f8ab68ebf01b7042cb2639d68",
+    "teen": "61e2470378bce374b0b80746a262537153129b4245ba22e9b5d9d747fcd6b1c3",
+    "adult": "d5eca3bf54bddcca149d43065da2a6846edec1500f1a0a442e0b376108b4a0a1",
+    "senior": "7598cee551ad774f0be83f3079896ef3373acb4e6d802a6885a10ce407e8fbdf"
    }
   },
   {
