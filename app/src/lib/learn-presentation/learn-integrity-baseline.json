@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T14:47:28.290Z",
+ "measuredAt": "2026-11-26T16:13:35.866Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4554
+  "readings": 4570
  },
  "departments": [
   {
@@ -426,13 +426,13 @@
    "department": "A.I. The Way",
    "position": 1,
    "title": "What is A.I., really?",
-   "contentSha": "ea02013ff65cfb33b0c6c5dee4d8f590c99afb41b8fde76b1460e184e7af7a18",
+   "contentSha": "98c59b163bc0ee28e1d74adaf4ead7db82ac6c385f575e930d3302697df74f29",
    "versions": {
-    "child": "8ee02f807b1b855b74a9eae6f379409fcb2997f5da83af8e4cab6d4c7589049b",
-    "youth": "ee1a65174567f20d6d399016e22b98d68b070c7789afd5f0ff95b33979af94b0",
-    "teen": "e9844d66e95c4be85889c914c0205f5417c9651e29ee657126de1ac823fc1922",
-    "adult": "1a55bad2db8521470528088c54a034ee5526981ffa6c29908535f5245b8ed591",
-    "senior": "f3abdc6b283d9e8be5d752ec49418aea394e822b43068090b1ee378d6ebd0a68"
+    "child": "62cf01db8f0f6522162bfaf99e854b6cde2c0fc2ebbbd59aa3eec05c1e652882",
+    "youth": "a4ede1b5b2f1eaaafbda31e2735da257e46b28a067889e17ada7f5810c86ed58",
+    "teen": "c2ca80d01bfaaac9bbd6f8b0535f7b86ffea9390fda0cdc23c1d6399abd60143",
+    "adult": "f40a568123de2ca6d06d7eb9f0b702b32cf8fe66033b6f44adcf6a87bd364139",
+    "senior": "e5c67fc1fb6fda3f1d923e9cd8cc2bd6837f843617f8724b034fa0fc7bd34b97"
    }
   },
   {
@@ -441,13 +441,13 @@
    "department": "A.I. The Way",
    "position": 2,
    "title": "Asking good questions",
-   "contentSha": "7215b732c4a9fbe9a41ac54c7d507f7c251bd7c9a0eabac607920fc3fd8f3541",
+   "contentSha": "af31968e0733726cebf01530fa779b46e3dd44ffd5d7df9555a87dde446a5271",
    "versions": {
-    "child": "a1b9b362d543f3b768e3290a232ff600f5e2fcf906eb0b7ac711fa1fe770e984",
-    "youth": "d0c55d96f490ee3eb8d7b6dd0beabe90bce381d636e81dd7234895adbfde7758",
-    "teen": "bd8258701a90cbac9aa208edec6256ef20590960b3c1340709070a6fa4a0280d",
-    "adult": "e0b4ad1cd7027449d6575f5e5e581b0ca7966187cd1a89dcd90df8948672d4e1",
-    "senior": "d53be92b2aee58c4a1d1e4ad68b648bf1d0121729ea537281853280aaddfc66b"
+    "child": "710d32d2212c829bea94721824adb94a684164864d1492c3d88391e7d0d9dd55",
+    "youth": "bd689203d1bff7e0098b2eb4c8ffd317facef20f49357764f1fc4b12145ff25d",
+    "teen": "74a85f992ac9b1f054d37864c9f225e99dc94dd020122c9d009892742a6092cd",
+    "adult": "741a91304391256d3bbcece5e66afc24617cf7462db4c5620cfdd2e3856a835f",
+    "senior": "8e33b000203f89d28aad23981c93b8c14299c003b8a67291d626b4f89c233bfc"
    }
   },
   {
@@ -456,13 +456,13 @@
    "department": "A.I. The Way",
    "position": 3,
    "title": "The Test — judging what A.I. tells you",
-   "contentSha": "9bd267f44121c998293df33590a957ef3ea49dd9275968a7242327ee1c14848d",
+   "contentSha": "54e46f5840b73b128785609c48750bf3b848242f46817e3208b628bfedc937b7",
    "versions": {
-    "child": "e8c6c6b2955f3072e93f5cc8757c5889c41fa12e4ae2d1d61f8fe5c87965bd4a",
-    "youth": "20ae7eed1f863c416e1409c8fafbe401b12ac327b97b489d14210ec6de3e73da",
-    "teen": "e8407d54a81c2d487c9528905a69a676cc608e69a2c9137fab56fda636fbcd10",
-    "adult": "bd13869bd62d4284aaba903f8714723977f3067f144c2c78771ed8ad43cf1ab2",
-    "senior": "6635b83f0a79dadeb3bbe2d81fe0696851a1d765baed21fe1d7ab7ccd71f7e93"
+    "child": "f5d46e18dd22a5fbefdd3f3b5868a03f8b520799fafca6e04039a0074e3a74b0",
+    "youth": "c501a4f2f3551e844a2821d4b9076de77789b7bffe1acb829b8611b22876f90c",
+    "teen": "7c8a08843b0dfcb97cb459efefd2087ede363be288fb88618b4666762fdb6ca1",
+    "adult": "87133a66622ed7a4af5194fc02e2e0d581b9d86ac7df2675ebbe89a65b102c0e",
+    "senior": "372573b317205707bc71d41a98b718670c93b2bb5d6208dcef84c97f835b5d4e"
    }
   },
   {
@@ -471,13 +471,13 @@
    "department": "A.I. The Way",
    "position": 4,
    "title": "A.I. for school — honestly",
-   "contentSha": "b35205850c944daa14366ae9a81bc96a0dcbc7c61973554980943a8c92b9ecb4",
+   "contentSha": "f0c6061ad2b2dab57ed7c41bab049ccddecd339500ededd03c7c0da675ace21b",
    "versions": {
-    "child": "735136fcaf68416891779b29de8136df93587f179a0945b2e99b8c8df81ffe1f",
-    "youth": "a961e3734065c0cf9b75f267ef538663ee7bc1f26a002eaf5d7da055fa3c3cb4",
-    "teen": "a55b55c02134184200dc3b922fcba7272906a1aad947e00cfaaa35dcafae8f01",
-    "adult": "4b8e9f40eed64293aa3e587ae190d7ae9fed8d7927dd3986f31ccaf6a040e1bc",
-    "senior": "c6d155f9a79d6c8ac54c06db1b08cef3bbfdafbba2a4e19e28667fa6a5300425"
+    "child": "716a746f13834a57e747c1d6caa9a4394832e81b7191af7dfeb56ece8c748602",
+    "youth": "bae9571231ea48b1d5c4db56d261e0958fd7e0eccec23a4550b94cbd751c1516",
+    "teen": "8172f9eccf19a685f5080d74b9dd844355105c219719853c5ed75986326cef74",
+    "adult": "31eb695ae608d5db802eddd67abd6cac979b72fa26f32dc9d5f465e119c1e380",
+    "senior": "35fed258d9a77a30311e3c14ea827ecca674fe64eb6fc0a0e6548d4c12576cc3"
    }
   },
   {
@@ -486,13 +486,13 @@
    "department": "A.I. The Way",
    "position": 5,
    "title": "A.I. that serves people",
-   "contentSha": "db29774e014c8c63b02d685a9211105393f7fd6b8d98fc2046a93b2947ac489d",
+   "contentSha": "304cdfcf4ee7e9b3425ed3d2c1c41c9c2a289496465e79fcca64a6a7a9ca37a4",
    "versions": {
-    "child": "2497847ab58479267e3eec5d9a174cda9fd0d6cacebe0b278a3d09972598378b",
-    "youth": "234495c12eadcc73cc80497a6075a8493c8f3f7dfa762e77357478886726154f",
-    "teen": "bc0beaf7fb6c4b4267c855f1e13c9672a4c4104a5474119a00350aec5845bf78",
-    "adult": "ff13b8c8d83df3546bdd083e5cd118f7c1996bfeb4e51c8b295e46f3ba530806",
-    "senior": "407d82ac9e87070a9886859da277d02c56b19c89cf60213d80401e56d1549f53"
+    "child": "e5a0cfc811a56c6fdc28d1e7922a620eefe5df8d1fd2462047562e6d0ea37b61",
+    "youth": "909bffdf25a9f9c60d7fcb0a17bf5ce403ed0117f4cd8ffbdb8c8b884ffb6d8c",
+    "teen": "7413157dd4284d488bf82b3cc5e695b1dd0a3572e52b1b6d7832a18dedaac310",
+    "adult": "359491c20ae9d493ebd7cea1747411b2c6f1f4d0e14f689174786fa7668d730c",
+    "senior": "51bc2107ff28c78fe248a01930b43ac4c5a0d68869809f2bb0f0abcd4355a51d"
    }
   },
   {
@@ -501,13 +501,13 @@
    "department": "A.I. The Way",
    "position": 6,
    "title": "Build something useful",
-   "contentSha": "c0b85426533d08af5f1908060874a5da1a5127bf0850e597dd9d9e27f82816cb",
+   "contentSha": "fe142bb39b7fa9b58b59e25b9009abdcc4d5a56eb0c6c1341b22a12baa6b6971",
    "versions": {
-    "child": "c66ef7a00743be9446749358b3f3d92cddc09db9fc8f690dd1f319d1307a2c87",
-    "youth": "33b7a9bb370cf12fe0dcab91257f8576eaa0a0356fcdf885c6ba98bc260dbb7a",
-    "teen": "db125fe39ebe45f8f907149e24b9e7382e43c50c06e0435c7f9354b54e4231d9",
-    "adult": "9d7a22f430b0f7bd0354d6394aad6f983419b69ff2a435281bab12b0f3390b7e",
-    "senior": "2bbb7d59942475f1177fdd6a8de130e6838c34b56b29acecf640ccc2a419de85"
+    "child": "360b150a40cfd6a87879bac8e654a08d8d76ec9959c6fac56e9d83b92f795bd3",
+    "youth": "2d9b6299ccbb7beb66591b16671a6bca7b9095bf2db191845003dcfaaea58bb7",
+    "teen": "a28c1c02a4a1812f82ae963464aef447e5bea23f03522965505f88c6adbffab2",
+    "adult": "4ddb4e0d93e19c52c83c232434c34e2b0c7bff753792dac06f8be0b8e0e49433",
+    "senior": "013125e59f521ec19ac1c870d91e373eb0508f0597fe7f4454d22f37da8cb689"
    }
   },
   {
@@ -516,13 +516,13 @@
    "department": "A.I. The Way",
    "position": 7,
    "title": "Guarding your heart and your time",
-   "contentSha": "abaa66463dec937f6a7937cc0d8ecf03e36b5b8acbeeb876f7dfb2da4d8f6dda",
+   "contentSha": "86eb2678b5b707ac67d7a62260945fe41df35eb6cea52e747c892d76eb9a26a1",
    "versions": {
-    "child": "fd974923c57020d6ab76276183ed93117c9aeb5bb850b767928cca848e752fd9",
-    "youth": "cb794b5e29fa2c2a9505567a36cf7f7cc457c2a4a8085b5d054f33b5f5a42897",
-    "teen": "51b320451b77b90f5d2564bee98d10e2123bdf83f88e7d692a3b2deb9dfd411b",
-    "adult": "7814f416065d8a0a769cc2e05ca74170cd037ac327f96c7bf0b426cd3ae682f1",
-    "senior": "f7cb18a78953c156475f7d4d60f9a2efa65e2d8c494b8eb05b978c7a0a47c735"
+    "child": "5f8fd3e5dc8d33142c0e5d9d19ba66f55572ef3218742b9acd324c62c57d2576",
+    "youth": "cf63ac20fe8e8fe2d98aa7afc8d6f18de5b83920a721731a9d4de68d475d87d5",
+    "teen": "aa1a46b1792a2cffc4e1cc7a1146e59dea704da9d3e7797330898da8789c1bbb",
+    "adult": "d515679f7369070a1d8cf701c2e98a9f806e9219bf4e7edad7c76aeb2a948dba",
+    "senior": "14b5ecee8641a745a3fc3b8091f87ad2317f974cc582c5ba06ec638f49c16174"
    }
   },
   {
@@ -531,13 +531,13 @@
    "department": "A.I. The Way",
    "position": 8,
    "title": "Teach the next group",
-   "contentSha": "fc90dc0e025b2d2972f8abbd6ac8dc59cb0bb859237f0d832f7508f15540fdd6",
+   "contentSha": "540a317c7024cb3acad696d8066e5d87e24e51cb04f8e718adc4b37728aa438e",
    "versions": {
-    "child": "d837e4c07ceaa01127b01151d66c61d46c5db734d321572ad2da7d5a6e972183",
-    "youth": "be91a489ffe9cee14b01fb703de64d2655f7804f2e2d902e7abab74e1c9f38f2",
-    "teen": "a1c10c5a4f5935ee446ee4aab18a4fff8bf926fa647708aa3ecafe8578cab94a",
-    "adult": "920d7be0e3578798b27eb508f1fecda4060ed509bf685cf579e981bd9d4495a7",
-    "senior": "d8b4eb68ca90e9c2237504432bb55718af6a50460ca9511bfa0e89c1af5206fe"
+    "child": "3c58865d81139ad8f06fe9ea2f4116866dc70ed484f54d141349880029c5600d",
+    "youth": "db4d7fb28f094e08e26fa85567e858c2e339e6d8314cb368ebe851b6c59b2220",
+    "teen": "4cd4d0b71d8d520f2fe3f1efed094bced586f9d530d9d5fb97b0ebb8513571c1",
+    "adult": "54048028ebaf881e948a1884a4b91a71706cf0c0c91c6cf8249e14d99bc3f6e7",
+    "senior": "a058b138b6068d5f41a7ed605ce11262af3b1faac5b55b14743eadb189f08262"
    }
   },
   {
@@ -9947,11 +9947,11 @@
    "department": "Real Estate",
    "position": 2,
    "title": "Two sets of weights in one bag",
-   "contentSha": "8993c566ae54503c2ec4abfc6d65f8921988bccbf5ccfd5895c36feaca38dedf",
+   "contentSha": "e55935dc2a3ca34a75ed375c66d3d4e9ad76cbdc7ece2ac50b766bb171a1534c",
    "versions": {
-    "teen": "3a0825e09ed0dfcf20d3c25e1a2edf866f7b3080cd737943ac925f65813dbe62",
-    "adult": "e3fd40252405a39c67ba6a9f99950b64dd5575d49b0a936913c3e13fedd47d0b",
-    "senior": "a97da418e950912c04aee5bbd48f28732e2ded99ee99ee84ceb05dc75672e1c4"
+    "teen": "81a24bc14856aff298bf18bcad5b993b25c6083412b9ab0f5f3a46826d10bbcc",
+    "adult": "52a18c082200e85763c742ab97cbfb6070e52d5214d54fbdba733179cff76736",
+    "senior": "2224e1c705af46c2c119bba1a803405c6eb3ae0a502a5a9c7284e27ad49b89f0"
    }
   },
   {
@@ -12596,11 +12596,13 @@
    "department": "The Eternal Algorithms",
    "position": 1,
    "title": "Choose This Day (life and death set before you)",
-   "contentSha": "e7e52990a2ab3437e9b028c4b2de0cc5f939946a88c3ad41f2f83abad2dd4419",
+   "contentSha": "263bda48b82d400a4b5be66735c9fb8d7d87ece57f61d7bfbdf8e324e798e5cd",
    "versions": {
-    "teen": "766938d63c6c29f3313bfc11c17d399c7830df49351a094e1c23f60253abbd7b",
-    "adult": "ff6ed6a623e348eb0d19036f951e6f99fa2dfae43e44ff74e0f5070fb4d3fb1d",
-    "senior": "802fac15a97b44bf1facebc1aa37a08de0154ba64e27a082d7c7e512ca097348"
+    "child": "d29dd71d4cb85180c6e19bfbc7d45264704228f8586d8e8f6cd50d445de4f2e6",
+    "youth": "35cede6692fc2dcce8246420f822204c152f8ab7ce56bea9594f29d311dad42c",
+    "teen": "4e39d66891c341c0151e818f5e77d0fd74676d89f55fc7390d6b2b8b4d4deaf1",
+    "adult": "c637265784fb58182e88f60047df882f3c01ac5a525e838650feb9cbcfa4c6fd",
+    "senior": "0cefd18c21cb0cec51141f52bbb9e29b72753355ff63a3e33b74726db09f4bf1"
    }
   },
   {
@@ -12624,11 +12626,13 @@
    "department": "The Eternal Algorithms",
    "position": 3,
    "title": "The Blood on the Doorpost (when I see the blood)",
-   "contentSha": "4561ed5f714eca865b9fe7293f7b677ccaa1eafd572eb918f4dfc58730c472e6",
+   "contentSha": "44f13cf221b7454755769c3bec90934ce3a15978c26a837f086d5a1249647792",
    "versions": {
-    "teen": "c4413acbbe35a79857384c2d6b7488424dea7ad5e80d164c2f9c11335dab227b",
-    "adult": "c204cd54a4f166af24e6e4092faff63b7a6948633de551744d77411581c7c7f3",
-    "senior": "594cf6071d400eb9a0f6c964f5a02071eafdd01a050b2476cbe74005cdcdda4d"
+    "child": "52703693b52a8a503885f6b3c09a187113c91e5ac9c3a2217596182866794cf7",
+    "youth": "f65841fa9dcff355622705d3037eda1e73492d2998a9a9a72f2be9d16256b839",
+    "teen": "f3a22fcf97ba7c49d3206a0ba4421bdc18cee831792cdaf995b11158ff96a6dc",
+    "adult": "914a0c6c6f94974ca06e5c33fe0326086b034d5f4c771fcf09467189933fa13e",
+    "senior": "bb6a7c62fda761f18613d944e09476b6b0d56b51d0bd66084984d1cf5f5c0ff4"
    }
   },
   {
@@ -12637,11 +12641,13 @@
    "department": "The Eternal Algorithms",
    "position": 4,
    "title": "As For Me and My House",
-   "contentSha": "5409724e5c1fd04c988a4ec67965d200c4e30073de148bbf28b48e3761cfc028",
+   "contentSha": "1ca7f83a8a9a2bc2bf3b19ee3a8a27a86086ccb9f712e3cb5b190e41ca8394cd",
    "versions": {
-    "teen": "329924931cebe8b5c63dcd9d168d0bad06c4850d399f635933b0ae67831eefd0",
-    "adult": "d6bc47a5bb7c1c5ea58849cc8306a17c607b93f9fd37163931fc982c06221246",
-    "senior": "5f28b43069a85ce44c91099f8abab6f2aadd74474d2a7101be49322916624dc2"
+    "child": "43bdb239aa822d972c0e764742448699c7c87389f7126db05929fc6f2d0605bf",
+    "youth": "b628829513b684869e8a83e1e007d5acc742f69ca02cec6c5f9bfc2829576255",
+    "teen": "b6139a2803580002d85e0fb19dba7f852edb4dbc8a1fa8afc4d3a4e70b53cd50",
+    "adult": "e517b74d194e1cfde95cea913a4126f3ff29816fbd60141975f77fde20b4dab0",
+    "senior": "ea8184f1eff6b6e33a046c8189f7425567d7b96743116ded3834c2f2265374d1"
    }
   },
   {
@@ -12650,11 +12656,13 @@
    "department": "The Eternal Algorithms",
    "position": 5,
    "title": "The Joy of the LORD (your strength — and no man taketh it)",
-   "contentSha": "3ea74d25e6717ea427b965e15cea1b0085afa528e29a3f400a18ff136af08103",
+   "contentSha": "27f1998be87554e4398caeb74e866d8cf2b57e354227c2afe4eadf565e41591d",
    "versions": {
-    "teen": "73cc713eb37f9676c341f99c43f4c7690eab880754867c5c216498215394b501",
-    "adult": "69f9b6c09308a647d465b16a410bf63eadc502c1c4512b30269296ee530a9eb1",
-    "senior": "7beaf763032abee604eac49b6e9c5c98c31321c305fea805f60a2288861bb450"
+    "child": "6b747aa7c76fc344192ed629670549502b045e44b2111252c8c8fafe298bccdb",
+    "youth": "a952add707cfedbaa0f62834867ad49876003a280ca7eb7dc347d721b2fcc777",
+    "teen": "7c6a953191607119dff9b3d066baca1207ead1e98c4a8a737e0ca260ecea8e00",
+    "adult": "ddd0560adb0460f6449662156b8052564acf9dac11e9d82543b5a12fe17545bb",
+    "senior": "e1d987737f1348170a0588fa08356cf070425a2c515b9109ceed19d766ccc097"
    }
   },
   {
@@ -12693,11 +12701,13 @@
    "department": "The Eternal Algorithms",
    "position": 8,
    "title": "If My People Humble Themselves",
-   "contentSha": "1fd93a901e8e8d924467a8fdc714369249bdffe41f9d0e00bd8c650d2f4f4415",
+   "contentSha": "d99d6e6359b657e358957217d52526ba11f2e33fdb4e4c6c83c19999354ddda4",
    "versions": {
-    "teen": "762e6c90dda14f0d2aae360703eba100524225a2fde41fcc27bda843b733c99b",
-    "adult": "5e59ce440b4b091de6d533dd2353567946e5fa89ec0e36170725bb553578dd25",
-    "senior": "8c8b854d58c3e13dddb21b5eae79077d03a7611fbdc88ba04164b326590dc272"
+    "child": "8163c20d8b14d05bec8589425e844fb33d7a03a5227bf19400d5dbc84d4e00b8",
+    "youth": "f19d107257288d3ad4e218d51869a7f2ca9557579a62a04931cd4f55c6a758ba",
+    "teen": "15348cfd76d48ff735174e90032e9e59f68d3ac99559c40f5e49d36c08522d98",
+    "adult": "140a50f3801d39925f04fbe84102aa32a8ab5648a5a264774f943e012a3f70fd",
+    "senior": "458e324a381e907c4d323a4270e9b831e892d6fd721ff42af68699c2d6dbfd4b"
    }
   },
   {
@@ -12901,11 +12911,13 @@
    "department": "The Eternal Algorithms",
    "position": 1,
    "title": "Taste and See (the empirical invitation)",
-   "contentSha": "293bff24c608ed6ee06a3c769d63d0a62e5a50777eb8f657f24b489ce0b03f5a",
+   "contentSha": "30c78dd53d60e3042d302fd59d8c2ddcf32e91e004410c6646a40bd38e375d2a",
    "versions": {
-    "teen": "ff3e6a9b559510683c294c70e31548db1cb1761b65f47e54b1381ca42060ab08",
-    "adult": "a1219cf3ca7c0c2b4a0b1baae81893ee15b4a4dd194793d4ca9fc5133e567da6",
-    "senior": "bc81a080281dd65e2162b8835a37faa0116b8fb7beacf7fa983377838b3c7520"
+    "child": "bfa56a7cdaeb8ce23a7dc213cac5b5d2e68a62a2c2a3105d9d98811cfa1898a8",
+    "youth": "146ebd2be08ab728336eaf97ad594134aa08b9eb66bcf27e32ff5f0eaf9de5fe",
+    "teen": "0878ed6e386a7f335b7bfb0fd82f6ffe4b1e2d1c962d8b60354d3550fe39edf2",
+    "adult": "0da1c5a75096032b37290f8c60824af002b0756864c2d5f30819e47582f3237d",
+    "senior": "48feccf66cbd8677853c29309e45b5d4e9e115e54a275bb734c3b6a7af5217ba"
    }
   },
   {
@@ -12914,11 +12926,13 @@
    "department": "The Eternal Algorithms",
    "position": 2,
    "title": "Trust → Directed Paths",
-   "contentSha": "6bd0cec3cf7431741448c142fa64d44d0735191394c817cede4e35f8a019ef4e",
+   "contentSha": "30b47db6951e9f63e0aad07148c0ef6d235c4e71f0023ea88eff9f3b8a9fa800",
    "versions": {
-    "teen": "0ed98417043116721a16e39391b78a39d0eea7356c024ec7250f5c29b1d7e377",
-    "adult": "9482550e1866c4f443772a6f5c343783d5a8c09f303ac05105ff60643a84c06a",
-    "senior": "b3c6975662b8de6b9781c0b09ccfad6ace6d525efbeded559e50b3af424db709"
+    "child": "09a883f4101cc4242a0b19f767f13ebed6ae8320aad444bbe78a4de615a3450d",
+    "youth": "c2622452b506a4ecca21c6f07d5342639d8ee0062fcb64c5405a412d2471695d",
+    "teen": "021233a0531601ae87954071cd963fa8031bcee6e2b7e067e83965c8bc156a2e",
+    "adult": "1411501eee6b21d392513a4499ce749fca1d18d88842685febc47374050b8527",
+    "senior": "58b7978c14d3af0e7698f6c3788a9259fdea96919fe4f20c9b7b2d72e16acadc"
    }
   },
   {
@@ -12927,11 +12941,13 @@
    "department": "The Eternal Algorithms",
    "position": 3,
    "title": "The Tree by the Rivers (delight in the law)",
-   "contentSha": "0ad4d071f00b9b97face51564d537af014ed28b83dc62f39224e170d8fa03b91",
+   "contentSha": "dd1524ac9ed7382a856b74ecbd11e9548a0705d079a1f06a795c5302ee9e32f3",
    "versions": {
-    "teen": "8aed11d336090c4eb538552536728be1f576d3f43baa37a57715948799a574f6",
-    "adult": "e74b70ba8b117aece7c81e2757aa98d9fdc5294dbda3c5f0689e3bc4f9c087eb",
-    "senior": "15500b65ab91d8af971c7ebbaa021dc2ff022954bb29d673af87b4ec9b2c2344"
+    "child": "95c81e8a755ec5742d3de92771622f3912ad47fe0fb9e3a927a1e37dfcf6d0fd",
+    "youth": "257a547ff0abe765f2e4b9f696c371428e949b3c977c07b000900b2fe356a208",
+    "teen": "6980da5df9dd92fc6e0fcda93e634b3d46ae5806991190481dcf55abeb5347cd",
+    "adult": "cad135da6811a2c1f53bb00375fac7a2123c03c80e62d979c009062c8c83dc10",
+    "senior": "0cffe7c326aa1cf13d0c05528d2351a154d52c5621bcd59710ef30b97e116120"
    }
   },
   {
