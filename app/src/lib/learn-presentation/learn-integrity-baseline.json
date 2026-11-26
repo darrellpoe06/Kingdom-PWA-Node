@@ -1,5 +1,5 @@
 {
- "measuredAt": "2026-11-26T19:38:20.965Z",
+ "measuredAt": "2026-11-26T19:46:10.245Z",
  "counts": {
   "departments": 13,
   "courses": 51,
@@ -8307,13 +8307,13 @@
    "department": "The Word & The Way",
    "position": 4,
    "title": "The Kings and the Psalms",
-   "contentSha": "372749f2181571950f9f92c9948042d9f5b88e446379b0e10717a0db2db921a9",
+   "contentSha": "4c87b035b44f318b1a81467576dedf550e5dd19d019e54f359ee1d01343cd49e",
    "versions": {
-    "child": "225ccfbb0784235a3c0dc8b9a0fd76710fbc70327da0e8538ca5c52cc55fde29",
-    "youth": "694d0e6ad3caec5dc1d7db05c69a1c233c5ecd2fb93e0f94f3a8449fd55f5151",
-    "teen": "b7db4b9b809ac08145e5aaa3d428b6422ddac9d8e4bab4bf5d45061467defe6c",
-    "adult": "8cda9917017808e038f5ac521566b2efe2a5514425a2240b735481ab34cb20e6",
-    "senior": "88d0ac7efa6eccea37fb5880fc5065ca2ddbc6b4e6c69c75a6d64b71f0f03344"
+    "child": "1f97fb3f4bf46be109283c73d78bb55bb41eb806f3b3e08f0d58817311678a38",
+    "youth": "1e95a7e8460a3119955572c020f98bc322d5e530bb6a702171024013c3c1a60d",
+    "teen": "2a644743b790f755a2d2aea9976434bc14bfab1e6f3d61ef581f93f877418898",
+    "adult": "898c1afa29c1039be4cb25b6f06b214900cde6d32f296f8033e27af2dbed8496",
+    "senior": "b1d0944b0535acd83f8cce2c7a7772c8b5640465d5c3636148ef381cd170cf6a"
    }
   },
   {
