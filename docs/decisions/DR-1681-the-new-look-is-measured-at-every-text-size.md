@@ -16,13 +16,14 @@ The chrome probe measures the header and the classic reader at several text size
 
 A real-Chromium sweep on the built app at 390 px (Normal, A+, A++, A+++, Big Print 44) and 360 px (Big Print 44), on the Learn home, the Relationships section, a lesson's cover, Read and Study: 24 surfaces. Normal through A+++: no sideways scroll and no squeezed words anywhere. At Big Print 44, four findings:
 - The lesson cover title (`.ls-cover-title`) at 77 px on a 342 px column: 1,440 px tall, about four letters a line; the same for the lesson screen title (`.le-title`, 1,521 px).
-- At 360 px, every compact course row's title (`.ls-mini-title`) was squeezed to 175 px beside its 96 px thumbnail.
+- At 360 px, the course shelf cards (`.ls-mini-title`, fixed at 62% of the screen) squeezed each title to about 175 px, about four letters a line.
 
 ## Decision
 
 1. **Titles never run four letters a line**: the cover and lesson titles are capped at the larger of 1.15 rem and 9 vw. At normal sizes nothing changes; at big print a title stays a little above the body text.
 2. **Rows wrap at big text**: a compact row's words move below the thumbnail when there is no room beside it (`flex-wrap`, the body's basis 11em).
-3. **The sweep is a standing instrument**: `node scripts/learn-structures-probe.mjs [dist]` exits 1 on any sideways scroll or squeezed text block, at every text size.
+3. **A shelf card grows with the text** (`min(max(240px, 13em), 86%)`).
+4. **The sweep is a standing instrument**: `node scripts/learn-structures-probe.mjs [dist]` exits 1 on any sideways scroll or squeezed text block, at every text size.
 
 ## Impact
 
@@ -30,7 +31,7 @@ A real-Chromium sweep on the built app at 390 px (Normal, A+, A++, A+++, Big Pri
 
 ## Verification after merge
 
-- `learn-structures-probe.mjs` on the rebuilt app: re-run result recorded on this record when it lands.
+- Measured 2026-11-26 on the rebuilt app: `learn-structures-probe: 24 surface(s) measured across 6 size/width cases ... OK -- no sideways scroll, no squeezed words, at every text size.` (before: 4 findings at Big Print 44).
 - Live: Learn at A44 on a phone; the cover title reads in a few lines and the course rows show the title under the picture.
 
 `re-review: 2026-12-03`

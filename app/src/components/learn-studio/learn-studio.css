@@ -1119,7 +1119,8 @@
 .ls-mini-list--shelf {
   grid-auto-flow: column;
   grid-template-columns: none;
-  grid-auto-columns: min(240px, 62%);
+  /* A shelf card grows with the text size so its title is never a column of letters (DR-1681). */
+  grid-auto-columns: min(max(240px, 13em), 86%);
   overflow-x: auto;
   scroll-snap-type: x mandatory;
   scrollbar-width: none;
