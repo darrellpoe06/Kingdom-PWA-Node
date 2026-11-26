@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T07:00:23.300Z",
+ "measuredAt": "2026-11-26T07:05:17.350Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4390
+  "readings": 4392
  },
  "departments": [
   {
@@ -13740,11 +13740,13 @@
    "department": "The Eternal Algorithms",
    "position": 23,
    "title": "Not My Will but Thine (willing to suffer at the King's word)",
-   "contentSha": "e1b55e6793a47702f49882c1bd04d97b58a7052bac9a17f8913f8d4261391e42",
+   "contentSha": "ae3238a330d7441d90861867a9ce417ec5a342cd9b4b778bcb8805a3f252ded6",
    "versions": {
-    "teen": "ff8fa3d585d435aaa6d7a34a51d6159aeeca78e0e367c52b1c263bd8aa98c01c",
-    "adult": "f05d317e3383ec9f94ecb9f8344776114db712a5df6f3cbd056a91e8d9df7887",
-    "senior": "ba1946d52be12798f34bfcd497befea7ab78d8e1e2f0643fe6027069551dd3fc"
+    "child": "dc31eab77c1f2dcf8abe1b8bc9a6a41a24579e66442e062c326caa3cde0865af",
+    "youth": "56615bd01918747d9cf6bc6f905b4739a2e9a6ff0aa34b4fa650fded208080c1",
+    "teen": "813fae44d0958dc14db268909b3680894418f2541ec578531e646e17b9c8f52c",
+    "adult": "baf96c355e0d7bf9f965e4e3afc03adc204ee864ce3a6400b678b6ca0b34d677",
+    "senior": "e4ec0253284bf14d4f7d4f8a3ca87edb211a27d485ea28c802fd2e92763c12f1"
    }
   },
   {
