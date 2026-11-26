@@ -1,4 +1,4 @@
-// L345 — The Mirror: Your Relationship With Everything You Touch (DR-1694). Darrell
+// L345 — The Mirror: Your Relationship With Everything You Touch (DR-1692). Darrell
 // spoke this teaching into the app on 2026-11-26, the same day as L344 (How Relating
 // Works), then sent the one word Lesson. His words, rendered for meaning (DR-0331):
 // we have a relationship with everything we touch (learning, study, our moods, the
