@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T11:51:48.417Z",
+ "measuredAt": "2026-11-26T11:57:46.030Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4480
+  "readings": 4482
  },
  "departments": [
   {
@@ -14143,11 +14143,13 @@
    "department": "The Eternal Algorithms",
    "position": 10,
    "title": "Higher Priority Code (every thought brought into captivity)",
-   "contentSha": "d5aa10c256eed90021c1d5e6d1bfbc6a9c8786f775720cc236811ecf6de08398",
+   "contentSha": "9b96a0d5dfe4b507ace29fcedeb106ee40d88a36d6042818a4fe6bce077e1d68",
    "versions": {
-    "teen": "8656a0ee9dfed870f69317845863b68cc02451e2a886665005f2978d2b9f345c",
-    "adult": "b80974033f9560f0411c3c78e205a63902d6815f9a6114d6de16cc1de00f9e78",
-    "senior": "23013d3b71659347c7981ca7a1451690efbf8441120072951195e104ca01f480"
+    "child": "7ef20207c8c59f31411aa40a0d06972fcb8c18c8a6fddc93fdb92e82cc715046",
+    "youth": "d2a94cb126f2c360a806a50b3b3671e53efa7b9be5f1602763912314afe29511",
+    "teen": "d2b244baa30fd750bb1a3df9f5c7c1125bb4117956a5f25b356d3e74a6200073",
+    "adult": "faae63478712229ad65368c1f578b378e0e30275660726f32101264399487cc6",
+    "senior": "54f98508af5788379c147acae0b0d0ddd2aa2966efde2c8c5cff5316b13fa29d"
    }
   },
   {
