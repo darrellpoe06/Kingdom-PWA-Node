@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T08:37:58.520Z",
+ "measuredAt": "2026-11-26T09:17:20.693Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4432
+  "readings": 4440
  },
  "departments": [
   {
@@ -13096,11 +13096,13 @@
    "department": "The Eternal Algorithms",
    "position": 16,
    "title": "Searched and Known (every word before it is on your tongue)",
-   "contentSha": "a65adbfdeceeb2a666ef79028cf49acce546e5941c79628c8104c8b4f42e1f1b",
+   "contentSha": "60b6d453a0f0c37c577ea6bf8bcec7952e26f6ec7d6aeab924891b112e561085",
    "versions": {
-    "teen": "31882477ea9031a561e519f6555b89acefc76508481d7e4653a5591bae07b7f4",
-    "adult": "4d617327e77a04ad0fa4ae93211b6c7654413e41c9b6cb3b70cfdd08bd5bd32e",
-    "senior": "0d33fe5fa750dc76ed315b212055de5baf108c0f3345d6db628219be75341451"
+    "child": "dcd6c3569bd5dc45dee6999623e4412d1a21caba4c6d5acc8e7beb670932d104",
+    "youth": "85d863390a889385ae1c81a50c878b5802305701890cb434a0659a960a994c92",
+    "teen": "96ee012f2a7f3fa54cc0be6bad6546d89e14313aa75615cfcd313fa3f9b373d9",
+    "adult": "3a1422f0a38e259a968e5b62ee1f5eb4e5bc8fb84da443d7d7737afbc50e2690",
+    "senior": "0df9428abff283fdcc85f80522bf942eb86b72eb70076ccd300a566ff93e4107"
    }
   },
   {
@@ -13335,11 +13337,13 @@
    "department": "The Eternal Algorithms",
    "position": 10,
    "title": "Known Before You Were Formed (the purpose predates you)",
-   "contentSha": "917e9d59340adba3cdfc8b6072268d6ce374e7012aee7681da8edac95094a9a9",
+   "contentSha": "c1584a4392a4af0242b30ee9069fef374e7514f1ee3c22d36ed9ec867c53daa2",
    "versions": {
-    "teen": "b4bafac3841652392cb6755eade42f8d0ce2f1a03d347f20b369382ee01e1222",
-    "adult": "a75d84318f00e60bd8487a810eaf98378f2d4026922e3136ec1c0facee18b707",
-    "senior": "9f2cec986f72384a76b00e3856819cd0d54881c8e474b0e06e4f65eebd904adf"
+    "child": "a3e8ef3ae8d29fdb2512464600657444506b3f3c3c9876b853a9d364475374dc",
+    "youth": "ac8c7b5f9f71d945825cae0bf0f33685476dd7bfa821fee691b06d875b8f5e6b",
+    "teen": "3a082eb4589ba7bd4f513306dc12e13db98e9e49b19b464cc121a4b52be8a244",
+    "adult": "d532a81d363ca4fc4b8783282068668c3ceb4514dec6d0a657f71e97839800c2",
+    "senior": "38b206ab79c035ebfbfa276716bfd8c8fbbb4eb173626751100fc9d59169ce33"
    }
   },
   {
@@ -13678,11 +13682,13 @@
    "department": "The Eternal Algorithms",
    "position": 17,
    "title": "The Word Framed the Worlds (the Outside Agent before time)",
-   "contentSha": "eb8594f1e20db16477bc59dd4abb60a06fe5861a9a2eebffe7878040c4d550e4",
+   "contentSha": "782563538344575f18b04adf3c245031e1f5d97cc492b0170a120ca83e0cef7f",
    "versions": {
-    "teen": "7b64eabee25be3439c874b7b5b5f40112c0edeb737d4446d6d55d1bdf07dd4e6",
-    "adult": "3def014d92c2efb165b97b80d5acd56eac3e6dcee89805d2753bcdca8a1b4b31",
-    "senior": "76d8be706bb014af0f2408fc35c5c4778c806262b173c990439efaa0b2bc9b7e"
+    "child": "90329a80f6999ee1370a79838cea7f2c0563667e7f69baebf98398f0da53e8ba",
+    "youth": "9b04fa1a0385c6769f94c9221bf575a47c8bf369d01e90c20a22d543d01723df",
+    "teen": "3924680d55926ff4604825cc003402fb32ab68638ff72d869fd14e0b4c40e862",
+    "adult": "d331a4bf796ea199c3a920c6fcc7865d09c9604c8ac045876bb9f9c21b2dbc63",
+    "senior": "ae47ed9c4c56a48f5e85f1b99c58b682eabc5778803a3edb33cb2d81fbf12381"
    }
   },
   {
@@ -14298,11 +14304,13 @@
    "department": "The Eternal Algorithms",
    "position": 23,
    "title": "Clearly Seen, Without Excuse (they knew God and glorified Him not)",
-   "contentSha": "8217a7142e50c67d97de9b47e981a675b8e06c5ebbd1490b8240196a16a47bd0",
+   "contentSha": "4398c08b93daeb66a41d313554340cb1659a1d20e0a03d2f069724c7d88dee6a",
    "versions": {
-    "teen": "761f6cd010866dcb89411ac3d343ba250491d6fa0e099ff9e7babad9c45c22da",
-    "adult": "5a34196b8949db015dbbb60dd688fbeb24f73a74c22e7a6e381cd711443d62b4",
-    "senior": "93d96852415f687462ab9811ebef41b29633bb260cff2b68d3d57be9407d1bd1"
+    "child": "be1b3472b05a43bc207acde7a137b68d46ce679899a2b24c619ea03ae7737b95",
+    "youth": "8107c8d523f927c72e4d1f61c2df02adee10957c0804f94ab3796738d5d0cd4b",
+    "teen": "2d025649b712d861702e0826cd5a65c1ab5a84324f2e09702a1103ee19a4f6e7",
+    "adult": "134aba894e5333ca7b7bc657665e3b27713d45724d3b048739a83489ace6daa7",
+    "senior": "7fee94b3c47494a8001a122d138bb28f05c2097428fd57e7299e676371b11a2c"
    }
   },
   {
