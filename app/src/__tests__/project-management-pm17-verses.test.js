@@ -51,10 +51,10 @@ import { PROJECT_MANAGEMENT_MODULES, PROJECT_MANAGEMENT_META } from '../lib/proj
 import { fourBandFaults, fk, overlapOf, FOUR_BANDS } from './fixtures/four-band-ladder.js';
 import { hasAllThreeEverywhere, placesMissingDirections, missingDirections } from '../lib/talk-together.js';
 import { quotesTheWord, lessonBodies } from '../lib/lesson-completeness.js';
+import { processLanguage } from '../lib/process-language.js';
 
 const ID = 'pm17-can-two-walk-together';
 const THREAD = '1a1837bf55922f04';
-const REVIEW = 're-review: 2026-11-27';
 const M = PROJECT_MANAGEMENT_MODULES.find((m) => m.id === ID);
 
 /** EVERY string in the module, at any depth, with the path it sits at. */
@@ -315,16 +315,40 @@ describe('the adult lesson carries its own close, and so does every band (DR-073
   });
 });
 
-describe('the blocked road is named in every reader place, with its date (DR-0076 §8 / DR-0190)', () => {
-  it('every reader place says the article was not read and carries the re-review date', () => {
+describe('the article is taught from its own diagnosis, in every reader place (DR-1689 / DR-0190)', () => {
+  // 2026-11-26, DR-1689: Darrell 'I'm annoyed by lessons saying they didn't research' — the research was done; the pin is now the sourcing.
+  it('every reader place says what the article says: the CFO-CPO gap and its steps', () => {
     for (const [place, text] of Object.entries(READER_PLACES())) {
-      expect(text, `${place} has no blocked-road note`).toMatch(/WHAT WE (?:COULD NOT CHECK|DID NOT GET TO READ)/);
-      expect(text, `${place} has no dated re-review`).toContain(REVIEW);
+      expect(text, `${place} has no article note`).toMatch(/WHAT THE (?:ARTICLE|STORY) SAYS|THE ARTICLE ITSELF/);
     }
-    expect(M.bigIdea).toContain(REVIEW);
+    for (const place of ['lesson', 'teen', 'senior']) {
+      const text = READER_PLACES()[place];
+      expect(text, `${place} never names the publisher`).toMatch(/Supply Chain Connect/);
+      expect(text, `${place} drops the budget-planning step`).toMatch(/budget planning|into the budget/);
+      expect(text, `${place} drops the linked contracts and payables`).toMatch(/accounts payable|payables|the bills/);
+      expect(text, `${place} drops the separate scorecards`).toMatch(/separate scorecards|two scorecards/);
+    }
+    expect(M.lesson).toMatch(/shared KPIs that bridge negotiated savings and realized outcomes/);
+    expect(M.bigIdea).toMatch(/negotiated savings and realized financial results drift apart/);
+    expect(M.bigIdea).not.toMatch(/re-review: 2026-11-27/);
   });
 
-  it('the six steps are never taught, named or numbered anywhere in the module', () => {
+  it('no research-process language anywhere a reader meets (DR-1689)', () => {
+    expect(processLanguage({ id: M.id, bigIdea: M.bigIdea, lesson: M.lesson })).toEqual([]);
+    for (const [band, text] of Object.entries(M.levels)) {
+      expect(processLanguage({ id: M.id, levels: { [band]: text } }), band).toEqual([]);
+    }
+    expect(processLanguage(M)).toEqual([]);
+  });
+
+  it('PROVEN TO CATCH: stripping the article note from one band is caught', () => {
+    const stripped = M.levels.teen.replace(/WHAT THE ARTICLE SAYS\.[^\n]*/, '');
+    expect(stripped).not.toBe(M.levels.teen);
+    expect(/WHAT THE (?:ARTICLE|STORY) SAYS|THE ARTICLE ITSELF/.test(stripped)).toBe(false);
+    expect(processLanguage({ id: 'probe', levels: { teen: 'WHAT WE DID NOT CHECK. Nobody here opened the index documents.' } }).length).toBeGreaterThan(0);
+  });
+
+  it('the six steps are never numbered anywhere in the module', () => {
     // THE FIRST VERSION OF THIS CHECK WAS WRONG, and it is left recorded rather
     // than quietly corrected (DR-1467). It matched `the six steps are` and so
     // fired on the CHILD BAND'S REFUSAL — "we do not say what the six steps
@@ -347,11 +371,10 @@ describe('the blocked road is named in every reader place, with its date (DR-007
     expect(ENUMERATED.test('So we do not say what the six steps are. We do not know.')).toBe(false);
   });
 
-  it('the refusal itself is present, in the lesson’s own words, in every reader place', () => {
+  // 2026-11-26, DR-1689: Darrell 'I'm annoyed by lessons saying they didn't research' — the research was done; the pin is now the sourcing.
+  it('the six steps are named as six in every reader place', () => {
     for (const [place, text] of Object.entries(READER_PLACES())) {
-      expect(text, `${place} never refuses the unread article`).toMatch(
-        /(?:never read|did not read|not one of the six steps|none of the six steps|we do not teach the six steps|we do not say what the six steps are)/i
-      );
+      expect(text, `${place} never names the six steps`).toMatch(/six steps/i);
     }
   });
 
@@ -368,11 +391,10 @@ describe('Word first, and the frame is fixed before any figure from the send (DR
       const firstVerseAt = text.search(SPAN);
       const stepsAt = text.search(/six steps/i);
       expect(firstVerseAt, `${place} quotes no verse`).toBeGreaterThan(-1);
-      // The only mention of the article comes BEFORE the Word in the admission
-      // that it was never read — and that admission refuses it, it does not
-      // teach from it. What must never happen is a figure from the send
-      // standing between the admission and the first verse as if it were taught.
-      expect(stepsAt, `${place} never names what it could not read`).toBeGreaterThan(-1);
+      // 2026-11-26, DR-1689: Darrell 'I'm annoyed by lessons saying they didn't research' — the research was done; the pin is now the sourcing.
+      // The article is named once, as its own diagnosis, and then the hour
+      // turns to the Word, which is the authority on the premise under it.
+      expect(stepsAt, `${place} never names the article's six steps`).toBeGreaterThan(-1);
     }
   });
 
