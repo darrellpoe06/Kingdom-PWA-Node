@@ -1363,6 +1363,21 @@
       "notes": "From two screenshots: The Word tab and the Church tab"
     },
     {
+      "id": "relationships-shelf-audit-2026-11-26",
+      "date": "2026-11-26",
+      "task": "Relationships shelf: 996 lessons audited against the definition, 303 on the shelf, gate test",
+      "drs": [
+        "DR-1694"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1,
+      "estimateWithoutAiHours": 24,
+      "notes": "six parallel readers, one sixth of the catalog each"
+    },
+    {
       "id": "ll289-why-the-oppressed-still-call-on-him",
       "date": "2026-11-06",
       "task": "ll289: the fourth send of the evening, Garrison Hayes on why Black Americans still call themselves Christians; research pass, the Word asking the question first and answering it; a 55-case gate; a research row and three further rows filed for the lane",
