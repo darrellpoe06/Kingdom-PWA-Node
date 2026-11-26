@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T02:30:00.613Z",
+ "measuredAt": "2026-11-26T03:15:04.345Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4266
+  "readings": 4278
  },
  "departments": [
   {
@@ -12771,11 +12771,13 @@
    "department": "The Eternal Algorithms",
    "position": 14,
    "title": "El Elyon — the Most High, Possessor of heaven and earth",
-   "contentSha": "643a5cef789db28a5538d22a18866c5cd5f15f2a4562de8a307b36ae2723f0ee",
+   "contentSha": "6eb0627eb5e3feae2e12c78e166b398ec0cf31d3c8babf7d4c8f16adfaca4b05",
    "versions": {
-    "teen": "123643acf00bf6050b116be724c39543c3320799bb1c83d7cdab252504e0380c",
-    "adult": "d6bc64df6f2fdf2863d63f127a7f64f1609378e780089faeac626d4be552293d",
-    "senior": "d472c8c2127e0021cba22369eb879de1659ef63fbc5d707c68e405b5ec3cbc04"
+    "child": "1b1965a2c8edb9da98297eadf34c13c0bd8bf5760c5c2d51e690ff44ae2ac2f8",
+    "youth": "dd7ba80c2814db46011005cb7c0aeb7c826f7987b6b8bc9102472f14c8268c14",
+    "teen": "9a7a896f90a5276d3d905e5364308ec975542c7f972234cf026135bbb8a5ef0d",
+    "adult": "f690574cc44cd7a6b8f568ba93e4a49e6bd549b9ded0fa3f2bd2117da7218ff0",
+    "senior": "4f682798dbb9ca92875c734ef03f09189f8155743da7d8f0e51929851f1ffd42"
    }
   },
   {
@@ -12784,11 +12786,13 @@
    "department": "The Eternal Algorithms",
    "position": 15,
    "title": "El Shaddai — God Almighty, before the covenant name",
-   "contentSha": "c992f9852f316f031dd7fc8dd9c1694000c51fc5d5e9ab27249ec788368222ea",
+   "contentSha": "d0a48934f34d601122f5f477ad74a6b0ca264d71b8cf16b0c56897b28244889d",
    "versions": {
-    "teen": "f9d76ba28257e6b4da568d84b8694eb2d710ae8813249f6abcb5810cfc050ea5",
-    "adult": "d1adb500ee0251be47c45bad2d3efbb7cfa1d55c5358aa22a66fff4379cc1b46",
-    "senior": "62dd72f67032d9e22d25ba638c2e9f21b0508d10c55bffc1dc5afa474d1a94e8"
+    "child": "96a5d65c05f9bd538d985fb210842bf404c248aa206517cd1688d4a7a2f57960",
+    "youth": "2bc89ccf88cddf4b2a0aa27603119fe04ec120a245734c7dcee73b4748554356",
+    "teen": "6ad02d243084fcf78972993f2ffdc8d13d8044f6185ef84b5f7f5f7f7f3db9d4",
+    "adult": "9ce6da5fa4ec47ef6e2fa410b85f6def0e65e46efba1aa4cbd1bbdcdc20ab39c",
+    "senior": "efecc456f6fbf0178fd6225fd114039bb4ad5f7be50e8cc34d4767f30ba3acc4"
    }
   },
   {
@@ -13412,11 +13416,13 @@
    "department": "The Eternal Algorithms",
    "position": 1,
    "title": "I Am The Door (there is no other way in)",
-   "contentSha": "52c96c2dd03c6f0eddcfa786ea6f4c7ab90185549e799f0c0c177d84911fb2be",
+   "contentSha": "ee4111b7bbcd2ce7d794477798c162c73b998b3ff50c29515ac8d8f6f6891c78",
    "versions": {
-    "teen": "985984396fb9064ba14e74b0fbb28b5dd0984c367481f6f05c980943fde81081",
-    "adult": "8d6509a4f131b6ce1d3c89311d830e7bc15f8c25d5c0fc53ec43065ee55baa00",
-    "senior": "985ea7498291349e59b16f0417f268f5d113592b4569bb68f6aca8223f4a86cf"
+    "child": "440b96405549d834a2e00050e89dc60db0d326278ef2cb44e612900dff8b4753",
+    "youth": "f214c66c7a50349fed4e652acf5cf05b0718b3df92649fe31fa5e48fad06fd71",
+    "teen": "a335848dac72b9088d57e49cfa56af2d7d865bb34d9f97f6706a4a7614572817",
+    "adult": "0528a7007361eab2f6e0eb72119a91623d7bb32d797dabe526876181c79b8042",
+    "senior": "5da614fc050e9f2f1bdab2d43d429ab588a28dd71bf0804bb5da5b5690b77390"
    }
   },
   {
@@ -13906,11 +13912,13 @@
    "department": "The Eternal Algorithms",
    "position": 1,
    "title": "One Mediator (the traffic all goes through the Son)",
-   "contentSha": "ef71c7621d273e4634d808ed2fa2d4c39d1ea91d5f8d88ddb4b440dc3e2ab68d",
+   "contentSha": "5e11ed91bb4c4e0e00a6d098248a99745b87a897fe55531cb1025d058a09d96b",
    "versions": {
-    "teen": "d31280e788cda3e4f4361975db4f4402e30293f927ebf164f88c41d9ffd1d88f",
-    "adult": "23aea3bd5cd338c5f8e9db6b8c2b8293f138c3a77b216635beda498da945f64f",
-    "senior": "fafc7be2c557c3e7912486e72dd9a779fedd6636bcf744bfd5a37dc6409c2a7f"
+    "child": "5586d50691140329ec91b0530207a6e155a597d3528daea3f0459b4b74d887c7",
+    "youth": "715f0d2880e496dbdf9f4903e1455c5c21cfb96e1b8c6df827c0ae535b9f4fa6",
+    "teen": "9728c93efdfb67135a21279454ee0cba9661413e694e8f33cac7c8c8efc0a6d6",
+    "adult": "e0ac9bedab6b225df02563e1970d20a79877ae0d1128d22a2223af6f6cdf7865",
+    "senior": "4995ef83ea24efa06b138f3097078bc015fb3d8b7c753269d72828fee281ea60"
    }
   },
   {
@@ -13919,11 +13927,13 @@
    "department": "The Eternal Algorithms",
    "position": 2,
    "title": "His Spirit Bears Witness WITH Your Spirit (two, not one)",
-   "contentSha": "07b997b587859b271068314973a75bd32e35f681bcb1022afda9822b5bac4b01",
+   "contentSha": "e08c8b52732999eb9b242afe876c8c41cc12f0d432f2fc7a82b147ec55dcb27a",
    "versions": {
-    "teen": "c34829c21d783c27e32a491526a0e60849dd72e3ea334b7599d9bf6e6c6e41b5",
-    "adult": "892f3ac7483054c24af39ed1303db2d79c164a5936d19de7fc4ac0bcee42f969",
-    "senior": "6344db75b2e485cff85527b56cab5dcb6b94657c075d601f46b5458421aca3bf"
+    "child": "a234d5bff42cb18172b3aef29d3206f4d6efdda2ab4ed53711591c9dbfea6f83",
+    "youth": "62b5638f158b23b1561baee440bffee89724ebc0865cfdf0c8957e0de5f552c7",
+    "teen": "e5f787a151362507d1bb68a8dbc1c3946b718e6d736a530c9db3f423cff04a51",
+    "adult": "433cc8f47af8e7ddd145ef4782c530d544e48387b51fff56a1d4ded56bdfeb9f",
+    "senior": "4be8bb8c2a67fdf0c2d2648fb1b690cfab739669397754dfc2a7e3e3d93263c5"
    }
   },
   {
@@ -13932,11 +13942,13 @@
    "department": "The Eternal Algorithms",
    "position": 3,
    "title": "Whole: Spirit AND Soul AND Body (He keeps all three)",
-   "contentSha": "4186313f1fe65e09aa398b2df3714f1a2fd3a0ba8a981f502b279ec059afb84e",
+   "contentSha": "2d24a9abe426706dcaea844c7705c561c4aa703beec8c5cff17acff24e2f8271",
    "versions": {
-    "teen": "de69ef149b78761f42e199dc39e36d4639a8de0b4bba9d1a29eaf46b22da7edf",
-    "adult": "37a992f33c216695894a6ae9bd54d6f284200e76f5264a0ebcb79436ebab2eb4",
-    "senior": "d2a1122ba83970ded4f1cdd7ae7a2614da7a65392833b8d912308519ba842d32"
+    "child": "ac418848722ea8eef7471563bfd16b3c0abe519930eff6c4943880327470df2e",
+    "youth": "b2cd16883b2d2fd0f3f8a98b64ff3a5b636619e886e8b00a128fd6ce0b313107",
+    "teen": "7d7088495836ddb388e3266ca61b57ef5f6b18c1138c3f0dc430cccdbaf07572",
+    "adult": "736a6dbfa45e163f1bc3ec74eb18ecac1666c0c3851fcb7fbb0c97d7f5e45805",
+    "senior": "c38590bc6608d7ad7905c218816549048d4f3865d04ae7f8a46e99a8b919d3c6"
    }
   },
   {
