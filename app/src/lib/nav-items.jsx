@@ -220,6 +220,11 @@ export const NAV_GROUPS = [
  */
 export const NAV_QUICK_LINKS = [
   { key: 'learn', group: 'soul', view: 'church', churchView: 'learn', words: 'Learn', icon: 'pencil', title: 'Learn: lessons and courses' },
+  // ONE CLICK TO THE THEOLOGY SPACE (Darrell 2026-11-26: "Inside PoeTech make
+  // sure we can get to the learn and theology space with one click"). The
+  // Institute sat behind Church, then its tab; now it is a door of its own
+  // beside Learn, gated exactly as the Church section is.
+  { key: 'institute', group: 'soul', view: 'church', churchView: 'institute', words: 'Institute', icon: 'landmark', title: 'TLC Theological Institute' },
 ];
 
 /**
@@ -250,4 +255,9 @@ export const BOTTOM_NAV = [
   { key: 'bigpicture', view: 'overview', home: 'current', icon: 'chart', words: 'Big Picture' },
   { key: 'books',      view: 'books',    home: null,      icon: 'coins', words: 'Money' },
   { key: 'messages',   view: 'messages', home: null,      icon: 'chat',  words: 'Messages' },
+  // Learn and the Institute, one tap from anywhere inside PoeTech (Darrell
+  // 2026-11-26). Each opens the Church section on its own tab (churchView);
+  // the dock keeps it only where Church is in the reader's list.
+  { key: 'learn',      view: 'church',   home: null,      icon: 'pencil',   words: 'Learn',     churchView: 'learn' },
+  { key: 'institute',  view: 'church',   home: null,      icon: 'landmark', words: 'Institute', churchView: 'institute' },
 ];

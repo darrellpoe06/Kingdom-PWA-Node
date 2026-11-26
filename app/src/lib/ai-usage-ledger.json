@@ -3075,6 +3075,21 @@
       "notes": "Darrell's screenshots: Understood 5 of 47 beside Mastered 51 of 923"
     },
     {
+      "id": "one-tap-learn-institute",
+      "date": "2026-11-26",
+      "task": "Learn and the TLC Theological Institute one click inside PoeTech (phone bar, tablet strip, sidebar), and a browser walk of every Love Corner menu tile",
+      "drs": [
+        "DR-1704"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1,
+      "estimateWithoutAiHours": 4,
+      "notes": ""
+    },
+    {
       "id": "l340-wisdom-is-profitable-to-direct",
       "date": "2026-11-23",
       "task": "L340 Wisdom Is Profitable to Direct: Living Lesson from a forwarded finance newsletter (thread 1a2089ea14470e9a)",

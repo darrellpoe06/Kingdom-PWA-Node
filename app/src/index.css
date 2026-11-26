@@ -828,11 +828,12 @@ button.lc-tile{cursor:pointer}
    reader's slot share one row. On a 360px phone the labels need more than the row holds,
    so the tab group SCROLLS sideways inside the bar instead of wrapping under it (a wrapped
    bar would stand taller than the page's spacer and cover the last line). */
-.poe-dock-church{min-width:2.5rem!important;padding-left:.125rem!important;padding-right:.125rem!important}
-.poe-dock-church .poe-dock-label,.poe-dock-church span:last-child{font-size:.5rem!important;letter-spacing:0!important}
-.chrome-dock-row:has(.poe-dock-church){flex-wrap:nowrap}
-.chrome-dock-row:has(.poe-dock-church) [data-testid="dock-tabs"]{flex:1 1 auto;min-width:0;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
-.chrome-dock-row:has(.poe-dock-church) [data-testid="dock-tabs"]::-webkit-scrollbar{display:none}
+/* PoeTech's bar with Learn and the Institute (2026-11-26) shares the church bar's compact buttons so it stays one row at 360px. */
+.poe-dock-church,.poe-dock-compact{min-width:2.5rem!important;padding-left:.125rem!important;padding-right:.125rem!important}
+.poe-dock-church .poe-dock-label,.poe-dock-church span:last-child,.poe-dock-compact .poe-dock-label,.poe-dock-compact span:last-child{font-size:.5rem!important;letter-spacing:0!important}
+.chrome-dock-row:has(.poe-dock-church),.chrome-dock-row:has(.poe-dock-compact){flex-wrap:nowrap}
+.chrome-dock-row:has(.poe-dock-church) [data-testid="dock-tabs"],.chrome-dock-row:has(.poe-dock-compact) [data-testid="dock-tabs"]{flex:1 1 auto;min-width:0;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.chrome-dock-row:has(.poe-dock-church) [data-testid="dock-tabs"]::-webkit-scrollbar,.chrome-dock-row:has(.poe-dock-compact) [data-testid="dock-tabs"]::-webkit-scrollbar{display:none}
 /* NIGHT: black glass with a gold edge on every homepage tile */
 [data-theme="night"] .lc-q,[data-theme="night"] .lc-tile,[data-theme="night"] .lc-min,[data-theme="night"] .lc-feat,[data-theme="night"] .lc-card,[data-theme="night"] .lc-day,[data-theme="night"] .lc-trio-card,[data-theme="night"] .lc-prog,[data-theme="night"] .lc-course{background:linear-gradient(180deg,#2E2224,#140D0E);border-color:rgba(228,185,62,.4)}
 [data-theme="night"] .lc-q-ic{background:rgba(255,255,255,.08);color:#fff}
