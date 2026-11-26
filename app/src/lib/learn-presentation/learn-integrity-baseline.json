@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T00:28:35.348Z",
+ "measuredAt": "2026-11-26T01:30:53.833Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4258
+  "readings": 4260
  },
  "departments": [
   {
@@ -572,9 +572,9 @@
    "department": "Serve the House",
    "position": 3,
    "title": "Light — Isaiah and Coreyon make it seeable",
-   "contentSha": "67dec5fb66a567784abc5575fb6ee0c41913ddac6241f2a039997a221a8229e4",
+   "contentSha": "b95b21fb73024b09f2084c77d81da05c107817c56416cd599006afe8aa5b8221",
    "versions": {
-    "teen": "58792dc5a6e8c286ea890771a97137b31b8a712337b7e605c494b3ccbe76315e",
+    "teen": "c5ac1f8cb5609eb527bc3322c75bbde8bcd2b09a9aa59f83140f66c560572cce",
     "adult": "872e5dfaceaef026649be62afdea9c0b0f824c51299d325d4e4c93b151f95320",
     "senior": "d59e768940b2fb48d30f299ea75bfa4b7569d021fcd33c965776f8f7fcd1dd39"
    }
@@ -5595,9 +5595,9 @@
    "department": "Living Lessons",
    "position": 219,
    "title": "Owning the Light Instead of Renting It — Count the Cost, Carry the Risk Honestly, and Follow His Wisdom First",
-   "contentSha": "55429d8069f93d89634174539ec8d01c37aa8c2bc3a272b22f73c0778cba6df3",
+   "contentSha": "405c5a7d96df412c49080ac94443e6ef8e217b5fca4b225eaf4e07a0d9c35969",
    "versions": {
-    "child": "9d1ebd8588d9dbdf4b95dff662b34f1a466e2132b10b4365699a67d0330c9839",
+    "child": "3f1f17b442f5168ada2cd168a54aa3db84afd55ca17ab229ecfc724d9df2e1be",
     "youth": "1c0fd73c935d29e1de7edec71124a1765a4dd067b3fa4e4436aa153522206cee",
     "teen": "8771be3e8d2f0c07281f6e391173030851e5bd9ef902ea065506bdf42694a5e6",
     "adult": "8f6430ca26763de20791a27d66d9dc2c40553cc9739584edb79cad6d50db85db",
@@ -8006,12 +8006,12 @@
    "department": "The Word & The Way",
    "position": 2,
    "title": "The Young He Called",
-   "contentSha": "8d17863b9cf3cdaf3fab95b1ebf711c65743101e7305d09c36121379a3819b1b",
+   "contentSha": "0040b746924e4bf8d99b5797b66d6b8f1cd60a10759fd7e419e4f845b913f466",
    "versions": {
     "child": "764f297abf4490a30d611cdce8e95b9475f821c6bcdec3cf4842b9a5aee98264",
     "teen": "5f90d00b1b45556795840d1b255d9f71743b113594621f336fc5c5b685009b0e",
-    "adult": "650eea80350cf2a7f36cb943264249f30b0d5aa3cb1b2b48dce3e391dab03fba",
-    "senior": "73039cbe522f2cf8ddccd4c13c1c964e521513d6f55530dce993900caca6a407"
+    "adult": "a82b2a87044010db00a1f36e38d6a3dcd8fbedfb7a05764e1dc0639f95af3ec3",
+    "senior": "7499e2cc80435e4ef4a2b0e9b0eadae2b1d6361fa7ffbbd317a6d788de28c91b"
    }
   },
   {
@@ -12661,11 +12661,13 @@
    "department": "The Eternal Algorithms",
    "position": 6,
    "title": "Three Days, One Strength (the code that does not change when the day does)",
-   "contentSha": "04dc77d3ede23ed21f1b9b2276cc4be46bf12881a22ff2456d7e701c149e5d99",
+   "contentSha": "047ff056d2ae261bb369897fe88ac769e7bb5caea298b14e8c2696d39a0002ea",
    "versions": {
-    "teen": "85357d547ef9014a1e6ec5295c2d04d62799c8eee1fb63fe3b85a68e27d76a2a",
-    "adult": "16b42c5792ae2e42b9814574c42433cd4e3a430ae48708e3d78ef6624fe6f166",
-    "senior": "ce5052394fd0a75db800b62f41f29ce8122450ddeb120d228e67b4cef5011db6"
+    "child": "d023be9590ad762f86883adfff7c986175d14e7f83181ff8dcf04dc3fae6f0f4",
+    "youth": "cec69bce562f4e097979fdcaaae8d732105df140ad5c8202833669e71827decb",
+    "teen": "8edc16dd94872c8cda3e7c603adcf34b4f01c5f814ef2a5c03f424b8fdb6739c",
+    "adult": "98a17bae8cab34f83779809bd6df1f9c6c644558de3fb8ba72930b87308eb39b",
+    "senior": "2c7823212fcc1284ff0a8c2c21a801f0999b158804d3839236d7f2760070addb"
    }
   },
   {
