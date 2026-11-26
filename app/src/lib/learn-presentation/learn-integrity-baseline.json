@@ -12524,87 +12524,87 @@
    "department": "The Word & The Way",
    "position": 1,
    "title": "Dr. Frederick K.C. Price — \"Race, Religion & Racism\" (1997)",
-   "contentSha": "2f3a2ca7ec808b12ab98293f7501121b556aeb37a35383b87fd173ba2a658461",
+   "contentSha": "00386f02ef33b8b987696a20752d653821c6a9d3e35056a2e9564d6ffe84f626",
    "versions": {
-    "child": "587742b8ba1b69c2fbfc74592331167b731ab99e9929ea3759083f53c5cd4bdc",
-    "youth": "e91f650f0a7b33ce814781c1d619c9b993a76704f159d8dc48a5702b2b629a09",
-    "teen": "f6bf50f9ba21d70a7e7f60733994c6be7029532103d67c5b702a026d180cf306",
-    "adult": "bc3cf1a53b5cb857c580d5ce219d658ddbf19af72f12d53e0800831bb8ce48a9",
-    "senior": "6ff651d3ee8f7429b9f2456b72362f6268f45474ffae08d7d19ec2fca6dbdaa3"
+    "child": "9068305e4b7c203f5c43857bf4e5dce178e4e76331df724e537a37f1b6a9c403",
+    "youth": "88113dc462708f53e1326e7c3a3a4737e867c5d0127b142c27e4fad850ab20c5",
+    "teen": "39b75923563f0ee19c9a40f4bd7226af8ac221a74e9b2923243a8027d5a0cfcc",
+    "adult": "3e484590c3fcdca49a81a75d4ddd397376e5ecdf35a473520289faf795e4a225",
+    "senior": "9b6d8378cebde6c152c5728430f00155bf70b53d63cb02f9ee7294a4d2aabd86"
    }
   },
   {
    "id": "pv-darby",
    "course": "prophetic-voices",
    "department": "The Word & The Way",
-   "position": 2,
+   "position": 14,
    "title": "Pastor Stephen Darby — identity, the Church’s account, and the unseen realm",
-   "contentSha": "3c92f4790b577e655c70aba54351014b58aad65b5c479b928246664288081d41",
+   "contentSha": "27e95e5161ef2732bf929e599215a9282237706560f93dd4e0e15a78967a97c5",
    "versions": {
-    "child": "e7ac7b22c3df5a077c2ea0db7f5f1fc9b994cf60c72ed91c290975ea4df97d6c",
-    "youth": "4035ac4087e0edea1ff944fcb025a8cda97deb6278b10cd4a742c069409fabe1",
-    "teen": "b4147e99fef37c40f25c24859726d87871638a213c34b1d0e637e9e4bb3a12b1",
-    "adult": "3d501542dcae54fac2003b427bd5bd43d1e0945640490d9621058d24f64fe062",
-    "senior": "b5fa5f7e9d43fbc229ddcb1cea523a9ecfae36cf1c95808227018db5790e6863"
+    "child": "2c78bb84ff74949318a3baac300a2f90931ae48da603c47bc36759bd3be3be6f",
+    "youth": "9d4a21c3b179a0c833feabaca1dab27d2b92002e642f205ee49c44922c28771c",
+    "teen": "f0795c59950a19a621846da3ffe60929dc9eeb844ca27376b1be5daafe725c6d",
+    "adult": "f544c3bba0f7433c34ec7b76eb375dd773498ac216174e58cab9383268945ea8",
+    "senior": "63c19b04ad22bc565aa0fac8d360f8a6744cd8037d57a9815f72c61e2de2dfa8"
    }
   },
   {
    "id": "pv-diop",
    "course": "prophetic-voices",
    "department": "The Word & The Way",
-   "position": 3,
+   "position": 42,
    "title": "Dr. Cheikh Anta Diop — the scientist who put Kemet back in Africa",
-   "contentSha": "2918cc5c5dd0ae64d492c72af2a8b40b2e8e3985c57f98f4aff38217d2b775f1",
+   "contentSha": "7ff061aa518e854fe2baf441eddbb078aa4ffca577c206d973d1b90fd3b5f487",
    "versions": {
-    "child": "cf4f2e926405b70ada697f4f270be1e777c6064750b2aa76e04f0733a314a113",
-    "youth": "86cec8b64beaea63f7edc7cf00d272836e546db420f2322df5fa8ec122563cb0",
-    "teen": "771d4d847c02d2cfdf45a01ba6acbc823e6e87e7d62aae998301b22c2e173f15",
-    "adult": "51a79b9ae6ef0a732cd267060ac4ff8b4f6d623cc47fa36195b968494a2df5df",
-    "senior": "d9d5f8f82bc71e4fb2e41793babdfe9b665f4c81d619579264de8c73045b834f"
+    "child": "1b0f8d98695b51105117fcc01770b8b3ab59a2895d7aa51b4b0810a2f6da8638",
+    "youth": "f508e957d8e87ad8e8bb20053b4bb114a22d67dd36f284e4a4ee890ca65703ea",
+    "teen": "15453ac6c4ac2ca574b208c9df9444786df35df38f3090524de7104086c07bf3",
+    "adult": "a4eed9815ecc7b89bdbab161b9722d240129a22fd3f61bf7b164a73578fb13a2",
+    "senior": "69edcfd37ae302581c5f83d6c20dae03bd05c333bf9a3866e1feadc4725b5563"
    }
   },
   {
    "id": "pv-obenga",
    "course": "prophetic-voices",
    "department": "The Word & The Way",
-   "position": 4,
+   "position": 48,
    "title": "Dr. Théophile Obenga — the tongue that carried the truth",
-   "contentSha": "2a2cc7dc67d04a5e229a6fac37a9367d84492995cf1e124a0a73a3519628d411",
+   "contentSha": "bb6a534da7e174f402d410d88b08523c44f36cd2b456d7e293dd60eeac9fbc91",
    "versions": {
-    "child": "b36f4adcf91cce0ef17f982dfb3c330b14f5f59732d92891e5bbe45d2c23cd1b",
-    "youth": "b7e3d94bdc0d48afd88305348a176833e984a913f53bb4f45ccff5051fa93932",
-    "teen": "02106e5d98f78ac335f8451d2b7575fd64f6844be6bda6dcc0539bab1634cc12",
-    "adult": "50fc847f48165dd56725da8c8450f33c8ee2c440dede3b2cfd3ece221a52ee3f",
-    "senior": "0cb745bbad364cb7c8f1f7c4ae418c32726e2bf35e606d86c9a7ffc3bb021405"
+    "child": "03744c8609a578579ac42c94035284d6a4328f1b103350117761abf0ad73cb1f",
+    "youth": "adf1e56721074328385b8f6fbbe034c4bd8b9161a32e6cb59ded5aaea785736d",
+    "teen": "edc63859f99031f24f1c9c0fcf3fbe4751ced95622d8170074a663b9917413ca",
+    "adult": "4fcf506e212b4e8a522ab34117e3693daee0e8ed9b2726dd25b7c4c370277ce7",
+    "senior": "bdeaaa73a22d078ebaaeff0d636798aebeb4ddbf0211b6ad29a6a7c910562f89"
    }
   },
   {
    "id": "pv-williams",
    "course": "prophetic-voices",
    "department": "The Word & The Way",
-   "position": 5,
+   "position": 52,
    "title": "Dr. Chancellor Williams — the destruction, and the knowledge to rebuild",
-   "contentSha": "515f5da07d641740d4d3008791b1ca6e492a83ce5a3381c3fbec13916cf32ef3",
+   "contentSha": "9d962444b48c222b66e69856dd13ff7631854d9e9236043ccf506324b25ff62b",
    "versions": {
-    "child": "b817b6c8d3cdd1f1706a654e8fc5941adcc44cef686263f52c6ba91378a57c8d",
-    "youth": "3578aa487c5cabcd79d3065f6ebfd8a63421bcf875da980f1ab378b6ced2395b",
-    "teen": "ebbb1dd2aefc1ad98428159535afa48996e37fd563c83b1ac5d4c933080fdf9d",
-    "adult": "0afc3dc1540a57f2359f08757d6fad156c4ffdaaa231746c649fd371fc8c5a7f",
-    "senior": "b1d5649f819e7d43582ca562826d709321b2b91b842e3e6d54304f4a4af47d5e"
+    "child": "dabdcd50e27025add9cabc9539b04b20d3d28e6b142d9a89d4b3d6763a6f4fae",
+    "youth": "400e9accbee6bf08d556ae9bb5f9ebc475c2e3b1a87b2cc83273db9103fa56da",
+    "teen": "07bc8ac234948f54b1dde30a14b5703666be612a8f959f95fbad65d0ec9be3f1",
+    "adult": "aea9c964c18637dbb60b25add074eee89f547e4bb37971c20e815e935334fb90",
+    "senior": "bf7d355bc809e87ccb35bc648e7f8671769353c3a0b66a01537e6d965be99827"
    }
   },
   {
    "id": "pv-inventions",
    "course": "prophetic-voices",
    "department": "The Word & The Way",
-   "position": 6,
+   "position": 57,
    "title": "The stolen record — Black inventions and the theft of credit",
-   "contentSha": "3690d1bc709a9b91675ca715e04d9553a9ca8c752d112a4042b88893da8dfb78",
+   "contentSha": "58f92d97952a142843e0347fabdc14bc1ca92837e2b011583bfefd62c53371eb",
    "versions": {
     "child": "13b8d318b670aed98503339d5c918f4fe51a6ed232f796b7cc77f086b5d53752",
     "youth": "b5a0a224bae715db63001253d8d9650d92c0a438841b03274213304e5f7c1250",
     "teen": "fbe6e47b14eada5af4ab39ee2863251dde635630ae9052ce13dd9dd9f110b78b",
-    "adult": "6540c80c17cf41d9b4a096482e1c44c48dfa1d3c0e2c5e63367c26cfe211725a",
+    "adult": "68fdcc9123a6552b18f28fe3bf3427dc76987cafd6203ceba8b359daa29a02f2",
     "senior": "25d6fe8309da8c372b778c4116f724afb8850bcf9e247f849404e92a42b9e5a9"
    }
   },

@@ -185,7 +185,9 @@ const PINNED = {
   // alone to fix and the tool declines them rather than swap one fault class
   // for another.
   'made-in-time-course.js': 110,
-  'prophetic-voices.js': 5,
+  // prophetic-voices.js LEAVES THIS LIST ENTIRELY on 2026-11-26, 3 -> 0: the Price
+  // opener upgrade removed two ellipsis quotes, and Luke 8:17 in pv-inventions now
+  // reads as the verse does ("nothing is secret", not "there is nothing secret").
   // sound-board-class.js LEAVES THIS LIST ENTIRELY on 2026-10-20 (DR-1122),
   // 3 -> 0. Two of the three were abbreviated references ("1 Cor 14:40",
   // "2 Chr 5:13") that no resolver could reach, so the quotations under them
