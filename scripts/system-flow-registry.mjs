@@ -427,6 +427,19 @@ const NODES = [
     writes: [{ res: 'db:agent_inbox#lesson', token: 'row_for' }],
     seeds: ['lesson-builder'],
   }),
+  // DR-1653 (decided in DR-1622): the NAS's SECOND road out, a Cloudflare
+  // Tunnel it dials, so a lapsed Tailscale login is no longer a lockout. Off
+  // until the token Darrell's Cloudflare account mints is on the box.
+  rider('service:cf-tunnel', 'infra/nas-loops/loops/cf_tunnel.py', {
+    id: 'cf-tunnel', name: 'The second road out (Cloudflare Tunnel)',
+    purpose: 'Each services-sync cycle the NAS keeps one pinned cloudflared container running from its own token file, reaching the sovereign gateway on the host, and writes last-run.json; with no token it does nothing and says so. The app fails over to this road when the Funnel cannot be reached.',
+    reads: [
+      { res: 'nas:clock', token: 'services-sync' },
+      { res: 'nas:secret:cloudflared-token', token: 'cloudflared-token.txt' },
+    ],
+    writes: [{ res: 'nas:cf-tunnel', token: 'def start' }],
+    seeds: [],
+  }),
   // DR-1360: the NAS pulls each learn-presentation review artifact before it
   // expires and keeps the paid pictures; no runner pushes into the house.
   rider('service:learn-thumbs-pull', 'infra/nas-loops/learn-thumbs-pull.py', {
@@ -922,6 +935,15 @@ const NODES = [
     writes: [{ res: 'db:video_transcripts', token: 'video_transcripts' }],
     seeds: ['sermon-reader', 'harvest-ledger', 'harvest-health'],
   }),
+  // DR-1656: the downloads switch. The Governor flips it in Learn > Downloads;
+  // every download door reads it; closed until the database answers true.
+  app('app/src/lib/lesson-download-access.js', {
+    id: 'downloads-switch', name: 'The downloads switch (Governor only)',
+    purpose: 'The Governor opens or closes every download door in the app; everyone reads where it stands, and anything but the database\u2019s own true is closed.',
+    writes: [{ res: 'db:platform_switches', token: "rpc('set_downloads_open'" }],
+    reads: [{ res: 'db:platform_switches', token: "rpc('downloads_open')" }],
+    seeds: [],
+  }),
   app('app/src/lib/choir-sync.js', {
     id: 'sermon-store', name: 'Service record (sermons + songs)',
     purpose: 'Stewards add and correct services and songs by hand.',
@@ -1368,7 +1390,7 @@ const NODES = [
     id: 'kids-episode-narration', name: 'Kids episode narration (Kokoro voice render)',
     purpose: 'Speaks a Bible Adventures episode script (the KJV lines copied from the in-repo corpus) with the open Kokoro voice model on a runner, where its weights can be downloaded, one WAV per line plus timings, so the movie and its captions are timed to the voice (Jonah episode, 2026-11-19).',
     reads: [{ res: 'file:kids-episode-script', token: 'scripts/kids-episode/jonah.episode.json' }],
-    writes: [{ res: 'gh:artifact:jonah-narration', token: 'upload-artifact' }], seeds: [],
+    writes: [{ res: 'gh:branch:kids-episode-media', token: 'kids-episode-media' }], seeds: [],
   }),
   wf('church-site-probe.yml', {
     id: 'church-site-probe', name: 'Church site probe (read-only)',
@@ -1400,7 +1422,12 @@ const NODES = [
       { res: 'http:api.bfl.ai', file: 'app/scripts/learn-presentation/providers/image.mjs', token: 'BFL_API_KEY' },
       { res: 'http:api.anthropic.com', file: 'app/scripts/learn-presentation/providers/text.mjs', token: 'ANTHROPIC_API_KEY' },
     ],
-    writes: [{ res: 'gh:artifact:learn-presentation-review', token: 'learn-presentation-review-' }],
+    writes: [
+      { res: 'gh:artifact:learn-presentation-review', token: 'learn-presentation-review-' },
+      // Paid originals kept permanently, verified on a fresh clone; the storage gate reads its verdict back (owner 2026-11-25).
+      { res: 'gh:repo:poetech-learn-originals', file: 'app/scripts/learn-presentation/lib/originals-backup.mjs', token: 'poetech-learn-originals' },
+      { res: 'gh:pr', token: 'gh pr create' },
+    ],
     seeds: [],
   }),
   wf('live-link-probe.yml', {
@@ -2454,7 +2481,8 @@ const RESOURCES = {
   'db:agent_inbox#voice-transcript': { label: 'spoken lessons written down', proof: { ts: 'created_at', fresh: 30, where: "tags ? 'voice-transcript'", consumed: "tags ? 'mirrored'" } },
   'hosted:lesson-published': { label: 'a member\u2019s lesson marked published by the reader (DR-0639)' },
   'db:agent_inbox#lesson-published': { label: 'members\u2019 lessons published', proof: { ts: 'created_at', fresh: 30, where: "tags ? 'lesson-published'", consumed: "tags ? 'messaged:published'" } },
-  'gh:artifact:jonah-narration': { label: 'Episode narration render', sink: 'A person (or a session) downloads the run artifact to mix the episode; nothing else reads it, and it expires after 14 days.' },
+  'gh:repo:poetech-learn-originals': { label: 'the private repository of paid Learn picture originals', sink: 'Permanent storage the owner approved 2026-11-25; the storage gate in the same workflow reads its verdict.json back before any paid picture, and a person restores from it.' },
+  'gh:branch:kids-episode-media': { label: 'Episode narration lines (media branch)', sink: 'A session fetches the branch to mix the episode (the sandbox cannot reach Actions artifacts); nothing else reads it, and each run replaces it.' },
   'file:kids-episode-script': { label: 'Bible Adventures episode script', source: 'Written by hand into the repo (scripts/kids-episode/<id>.episode.json); every KJV line in it is copied from app/public/bible/kjv by the episode builder, never typed.' },
   'db:church_site_archive': { label: 'the church office\u2019s calendars, letters and flyers, kept', sink: 'Members of the church read it in the archive under Times, by year and month (DR-1596).' },
   'db:church_calendar_leads': { label: 'the unit leaders the church office names', sink: 'A named leader may add events for their unit; the office reads and changes the list under Times (DR-1644).' },
@@ -2538,6 +2566,8 @@ const RESOURCES = {
   'nas:learn-thumbs': { label: 'the paid Learn pictures kept on the NAS (masters + each run\u2019s ledger)', sink: 'The durable copy of pictures already paid for, kept because the GitHub artifact expires and the runner cache evicts in 7 days; a person reads it at /volume1/PoeTech/learn-thumbs, and a later publish or re-compose step reads the masters from here rather than paying again.' },
   'gh:artifact:learn-presentation-review': { label: 'the Learn thumbnail review package (records + composed images)', sink: 'The owner reviews it before approval; approved records are published to the Learn presentation store in a separate, approved step (migration 0343), never automatically.' },
   'http:api.anthropic.com': { label: 'Anthropic Messages API (lesson display titles)', source: 'An outside provider: writes the promotional title, headline and image prompt from the lesson text; every result is machine-validated and stays in review until a person approves.' },
+  'nas:secret:cloudflared-token': { label: 'the Cloudflare Tunnel token on the NAS (DR-1653)', source: 'Minted only in Darrell’s own Cloudflare account (Zero Trust, Tunnels) and placed on the box by his hand; nothing in this repository can mint or write it, and its absence is the tunnel’s off switch.' },
+  'nas:cf-tunnel': { label: 'the second road out: the cloudflared container and its ledger (DR-1653)', sink: 'The running tunnel IS the product: the app fails over to it (lib/sb-failover.js); loops-health reads /volume1/PoeTech/cf-tunnel/last-run.json so a down road is seen.' },
   'http:voice': { label: 'the reading voice studio', route: '/voice' },
   'http:voice-lite': { label: 'the NAS audio voice (Piper)', route: '/voice-lite' },
   'http:cams': { label: 'the family camera road on the NAS (go2rtc)', route: '/cams' },
@@ -2566,6 +2596,7 @@ const RESOURCES = {
   'nas:ytzero-inbox': { label: 'the chosen-channels inbox', sink: 'Darrell reads it himself at its LAN page (port 3701); it is a personal inbox by design, not data another workflow uses.' },
   'nas:wf18-bearer': { label: 'the n8n wf18 bearer', open: { blocker: 'Its only reader is n8n wf18, which leaves by Darrell’s decision (DR-0617, PR #1774). This workflow leaves with n8n once wf18’s replacement is proven.', reReview: '2026-10-01' } },
   'auth:users': { label: 'sign-in accounts' },
+  'db:platform_switches': { label: 'platform-wide switches the Governor flips (downloads, DR-1656)', sink: 'Read back by every download door in the app (downloads_open); the row is the switch, so its consumer is the app itself.' },
   'db:member_subscriptions': { label: "each PoeTech+ member's own paid tier (written only by the Stripe webhook)" },
   'db:book_conversations': { label: "each book's purchaser-gated conversation and reviews (0051, 0324)", source: 'Written by holders of the book through RLS (user_owns_book); the app reads the review summary through book_review_summary(), numbers only.' },
   'local:book-reviews': { label: "the device's own copy of the reviews it left (book-reviews.js)", sink: 'Read back by the Bookstore and the storefront on this device until the cloud row answers.' },

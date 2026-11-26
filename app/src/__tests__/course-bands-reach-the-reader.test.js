@@ -231,7 +231,8 @@ describe('His words, fetched not remembered', () => {
         }
       }
     }
-    expect(mod('bc3-light').levels.teen).toContain('Yahweh made light first');
+    // Darrell 2026-11-26: the light of day one was let shine, not made (Genesis 1:3).
+    expect(mod('bc3-light').levels.teen).toContain('Yahweh let the light shine');
   });
 });
 

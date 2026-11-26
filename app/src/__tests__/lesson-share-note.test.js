@@ -57,7 +57,7 @@ describe('the message: title, summary, link, and the how-to LAST', () => {
   it('says how to read it: no account, ▶ Play to hear it, download needs an account', () => {
     expect(SHARE_HOW_TO.church).toMatch(/no account needed/);
     expect(SHARE_HOW_TO.church).toMatch(/Press ▶ Play to hear it read aloud/);
-    expect(SHARE_HOW_TO.church).toMatch(/Downloading the lesson needs a free account/);
+    expect(SHARE_HOW_TO.church).toMatch(/Downloading the lesson is part of PoeTech\+ or a one-time Download Pass/);
   });
 
   it('never carries the lesson body, and never more than two sentences of the big idea', () => {

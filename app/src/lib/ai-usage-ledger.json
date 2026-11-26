@@ -456,6 +456,21 @@
       "notes": "One squash commit 17:40:55Z, merged 17:53:17Z: only the commit-to-merge span is measurable. Estimate entered by the Ways session for 10 files, +333/-47, not the authoring session's own."
     },
     {
+      "id": "learn-never-hands-back-live-player-moves",
+      "date": "2026-11-26",
+      "task": "The new Learn never hands the reader back to the classic page (All Courses, department chips), the tools panel drops duplicated classic controls, and the small live player drags and closes from itself",
+      "drs": [
+        "DR-1663"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.6,
+      "estimateWithoutAiHours": 6,
+      "notes": "16/16 Learn new-look, 25/25 live player; All Courses case proven to catch."
+    },
+    {
       "id": "sov92-the-voice-is-jacobs-voice",
       "date": "2026-11-18",
       "task": "Sovereign A.I. week 92 from one word over a forwarded IT Brew issue, Cheating the system: Word first on Genesis 27:22 and Ephesians 6:6, CheatBench taught as reported (honest work, honeypot, three kinds of cheating) with no rate and no ranking, four hand-written bands, every verse generator-filled from the KJV, and the house examined by its own files (test skips, the run-alone rule, the 25th ceiling raise, the verse fill).",
@@ -531,6 +546,23 @@
       "wallClockHours": 0.6,
       "estimateWithoutAiHours": 7,
       "notes": "Checked one teaching one lesson: the fall is taught in L310 and L319, so only the new teaching was built. Rival's quarter read back via search summaries of its 8-K; the rest tiered as reported. 123 quotations filled from the corpus; gate 9/9; shares first failed and were fixed."
+    },
+    {
+      "id": "learn-functions-in-new-look",
+      "date": "2026-11-26",
+      "task": "Every classic Learn function in the new look: Your Learning, Pick Up Next, courses and lessons as compact thumbnail rows with Sort / Show / View, read marks and ages, the whole classic page as Every Learn Tool, lessons opening in the new Experience",
+      "drs": [
+        "DR-1662"
+      ],
+      "prs": [
+        2901
+      ],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.2,
+      "estimateWithoutAiHours": 14,
+      "notes": "110 of 110 across the six suites after merging main; wiring test proven to catch."
     },
     {
       "id": "home-goes-home-and-the-menu-goes-where-it-says",
@@ -870,6 +902,21 @@
       "notes": "Measured 14:20Z to the commit on claude/integrity-lesson-n55fvt, inside the same session as DR-1353 and the five History Lesson links. Tokens and dollars null: no meter was exposed to this session. Estimate is this session's own for a pure catalog-and-reader module over 1,800 repository documents, an admin surface held to UX-PATTERNS 2e/2g and DR-0381, an 11-case suite on the real repository with two proven-to-catch cases, and a decision record."
     },
     {
+      "id": "every-course-option-institute-text-size",
+      "date": "2026-11-26",
+      "task": "Every classic course option in the new look (parts, divisions, folds, Play, Recently opened); the Institute at every text size; probes name the classic reader",
+      "drs": [
+        "DR-1667"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.8,
+      "estimateWithoutAiHours": 8,
+      "notes": "95/95 Learn, 83/83 Institute, layout probe exit 0 locally."
+    },
+    {
       "id": "too-old-to-patch-spm11",
       "date": "2026-11-06",
       "task": "spm11, the eleventh lesson of Software Project Management: an unsupported version cannot be patched on the day the patch arrives, built from a forwarded cPanel advisory",
@@ -994,6 +1041,21 @@
       "wallClockHours": 0.15,
       "estimateWithoutAiHours": 6,
       "notes": "Measured worktree creation (15:10:47Z, stat) to the single commit (15:19:33Z, git %cI) on claude/the-in-flight-view-has-an-age: 8m46s. What is NOT on that clock: the collision triage across #2565/#2566/#2567 that exposed the fault, the gh-api comparison that proved a pushed claim was invisible locally, and the 2.4 GB worktree cleanup that freed the builder slot -- all earlier in the session. Tokens and dollars null: no meter exposed. The estimate is this session's own for a human doing the same work by hand, not a measurement."
+    },
+    {
+      "id": "relationships-in-one-place",
+      "date": "2026-11-26",
+      "task": "A Relationships shelf on the Learn home: 19 hand-picked marriage, love, family and friendship lessons, with See All",
+      "drs": [
+        "DR-1666"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.4,
+      "estimateWithoutAiHours": 4,
+      "notes": "31/31; the id guard proven to catch."
     },
     {
       "id": "pm15-sat-where-they-sat",
@@ -1346,6 +1408,21 @@
       "notes": "Teen read above its 6.0 ceiling on first build; bands shortened by hand. Agency site and podcast refused by the proxy; reported tier held. re-review 2026-12-16."
     },
     {
+      "id": "downloads-switch-off",
+      "date": "2026-11-25",
+      "task": "Downloads were PoeTech+ or the pass; one switch now keeps every download door closed by default, with a copy request to the administration",
+      "drs": [
+        "DR-1655"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.4,
+      "estimateWithoutAiHours": 4,
+      "notes": "81 of 81 across the download suites; the paid rule stays tested with the switch on."
+    },
+    {
       "id": "dr-1384-read-by-any-road",
       "date": "2026-11-10",
       "task": "A passed exam, Done, or every part seen finishes the reading with its version so the list shows READ; a 4-case gate, proven to catch",
@@ -1406,6 +1483,36 @@
       "wallClockHours": 0.4,
       "estimateWithoutAiHours": 5,
       "notes": "Darrell 2026-11-13 from the live door; five cases proven to catch"
+    },
+    {
+      "id": "new-look-for-every-member",
+      "date": "2026-11-26",
+      "task": "The new Learn, Lesson Experience and Institute default on for every member, not two personas",
+      "drs": [
+        "DR-1664"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.2,
+      "estimateWithoutAiHours": 2,
+      "notes": "69/69; the every-member guard proven to catch."
+    },
+    {
+      "id": "lessons-in-order",
+      "date": "2026-11-25",
+      "task": "The Kids library listed Living Lessons newest first; it now opens at L1 with every order on a picker, plus measured contrast fixes",
+      "drs": [
+        "DR-1657"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.3,
+      "estimateWithoutAiHours": 2,
+      "notes": "17 of 17 Kids library tests."
     },
     {
       "id": "the-lesson-lane-says-why-it-is-asleep",
@@ -2198,6 +2305,21 @@
       "notes": "Darrell: How could I have 99% and not have read it"
     },
     {
+      "id": "wcag-statement-every-app",
+      "date": "2026-11-25",
+      "task": "No app named its accessibility standard; every door's Appearance & Accessibility sheet now states WCAG 2.1 AA with measured and unproven lines and a barrier report",
+      "drs": [
+        "DR-1660"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.8,
+      "estimateWithoutAiHours": 6,
+      "notes": "axe-core run on rendered pages; the first empty-page scan was caught and discarded."
+    },
+    {
       "id": "deploy-lock-one-job",
       "date": "2026-11-19",
       "task": "The deploy lock moves to the deploy job, which now runs the boot check; dispatches run outside it on the upload; measured from run 44476228421",
@@ -2211,6 +2333,36 @@
       "wallClockHours": 0.5,
       "estimateWithoutAiHours": 5,
       "notes": ""
+    },
+    {
+      "id": "every-lesson-new-look",
+      "date": "2026-11-25",
+      "task": "The Lesson Experience opened only for the ll338 prototype; every lesson now opens in it on the owner devices, age-only lessons included",
+      "drs": [
+        "DR-1654"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.4,
+      "estimateWithoutAiHours": 4,
+      "notes": "Measured 994 lessons, 37 age-only, 0 without words."
+    },
+    {
+      "id": "blessings-overtake-full-lesson",
+      "date": "2026-11-26",
+      "task": "Blessings That Overtake You: a full Word-first lesson on why blessings pursue and Who sends them, with four age versions",
+      "drs": [
+        "DR-1665"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.6,
+      "estimateWithoutAiHours": 8,
+      "notes": "45/45 teaching + course; 77 verses filled verbatim."
     },
     {
       "id": "dr-1419-course-list-standing",
@@ -2365,6 +2517,21 @@
       "wallClockHours": 0.9,
       "estimateWithoutAiHours": 10,
       "notes": "Darrell: Lesson (search note on Joel 2:28 and Acts 2:17)"
+    },
+    {
+      "id": "both-views-kids-adults",
+      "date": "2026-11-25",
+      "task": "Kids may use the new look with no community posts at young levels; grown-ups get a Kids Zone link; age alignment is a standing test",
+      "drs": [
+        "DR-1658"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.4,
+      "estimateWithoutAiHours": 3,
+      "notes": "955 of 955 Kids Zone rows open at their own age version; young-level rule proven to catch."
     },
     {
       "id": "dr-1425-pm16-divers-weights",
@@ -2689,6 +2856,21 @@
       "wallClockHours": 0.6,
       "estimateWithoutAiHours": 6,
       "notes": ""
+    },
+    {
+      "id": "cloudflare-tunnel-road",
+      "date": "2026-11-25",
+      "task": "The NAS had one road out (the Tailscale Funnel); built the second, a Cloudflare Tunnel the NAS dials, plus app failover, off until armed",
+      "drs": [
+        "DR-1653"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.5,
+      "estimateWithoutAiHours": 12,
+      "notes": "Not armed: token only from Darrell's Cloudflare account. Proven to catch: fallback replaced by a rethrow fails 2 cases."
     },
     {
       "id": "poetech-plus-on-pricing",
@@ -3192,6 +3374,21 @@
       "notes": "No token meter in this session; tokens and cost are null."
     },
     {
+      "id": "downloads-switch-in-app",
+      "date": "2026-11-25",
+      "task": "The downloads switch was one line in the app; it is now stored (0344) and flipped by the Governor in Learn > Downloads, closed until the database answers",
+      "drs": [
+        "DR-1656"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.6,
+      "estimateWithoutAiHours": 6,
+      "notes": "Smoke run on a bare Postgres 16, proven to catch a missing governor check."
+    },
+    {
       "id": "ministries-landing-2026-11-12",
       "date": "2026-11-12",
       "task": "Phase 3 of the Love Corner redesign: the Ministries landing, four families over the one registry at the top of the existing Ministries tab, the Youth Ministry linked to the Youth Zone",
@@ -3352,6 +3549,21 @@
       "notes": "Darrell, spoken: how can someone be good and do nothing at the same time?"
     },
     {
+      "id": "lessons-first-on-learn-home",
+      "date": "2026-11-26",
+      "task": "The new Learn home showed no lesson without scrolling; the lessons now list first, in order, one tap into the new look",
+      "drs": [
+        "DR-1661"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-2",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.4,
+      "estimateWithoutAiHours": 3,
+      "notes": "111 of 111 across the Learn home suites."
+    },
+    {
       "id": "dr-1627-app-map",
       "date": "2026-11-24",
       "task": "A map of where you can go in every app: one searchable sheet mounted in PoeTech, Poe Properties, Moore Divahs and TLC",
@@ -3395,6 +3607,21 @@
       "wallClockHours": 0.5,
       "estimateWithoutAiHours": 9,
       "notes": "Darrell, spoken: some say they are righteous and Yahweh says no"
+    },
+    {
+      "id": "no-lesson-says-it-twice",
+      "date": "2026-11-25",
+      "task": "The Kids bubble repeated section one (946 of 946) and Key Teaching repeated the text (40 of 337); each now shows only what the reading does not already say",
+      "drs": [
+        "DR-1659"
+      ],
+      "prs": [],
+      "model": "claude-opus-5-5",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.4,
+      "estimateWithoutAiHours": 3,
+      "notes": "The new test caught 3 title-is-first-line cases on its first run."
     },
     {
       "id": "dr-1465-ll305-search-me-heart",
@@ -3845,6 +4072,21 @@
       "wallClockHours": 0.4,
       "estimateWithoutAiHours": 5,
       "notes": "Found by landing four lessons in parallel: each landing reddened every other lesson branch. LANE_PUSH_TOKEN left for Darrell, re-review 2026-11-26."
+    },
+    {
+      "id": "lesson-downloads-are-paid",
+      "date": "2026-11-24",
+      "task": "Every way of taking a lesson away (offline download, Copy lesson, curriculum export) now needs PoeTech+ or the one-time Download Pass on the existing one-off checkout; reading and Play stay free",
+      "drs": [
+        "DR-1652"
+      ],
+      "prs": [],
+      "model": "unrecorded",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 1.3,
+      "estimateWithoutAiHours": 10,
+      "notes": "wallClockHours: base f31214c 21:05Z to head 716e899 22:26Z. Proven to catch: the gate line removed, lesson-downloads.test fails."
     },
     {
       "id": "ll310-the-hidden-life-and-the-empty-chair",

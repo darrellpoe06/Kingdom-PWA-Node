@@ -1,0 +1,1417 @@
+/* Lesson Experience — private prototype, styled to Darrell's approved
+   four-phone reference (2026-11-25): near-black chrome with deep-crimson
+   active pills (Watch, Listen), a cream illustrated book page (Read) and a
+   cream accordion study guide (Study). Same brand family as learn-studio.css.
+   Font sizes in rem throughout (DR-0276) so the app's text-size control
+   reaches every mode. Scripture callouts use GOLD, never red: true red in a
+   Scripture color code is reserved for the Blood (DR-0099). */
+.le-root {
+  --le-bg: #120c0d;
+  --le-panel: #1d1415;
+  --le-line: #33262a;
+  --le-text: #f6f2ee;
+  --le-dim: #c2b8b2;
+  --le-gold: #e7b23c;
+  --le-crimson: #a3141c;
+  --le-crimson-hi: #c41d25;
+  --le-paper: #f7efe1;
+  --le-paper-2: #efe3cc;
+  --le-ink: #23170f;
+  --le-ink-dim: #5d4a3c;
+  background: radial-gradient(120% 60% at 50% 0%, #2a1013 0%, var(--le-bg) 60%);
+  color: var(--le-text);
+  min-height: 100vh;
+  padding: 12px 16px 96px;
+  font-family: 'DM Sans', system-ui, sans-serif;
+  max-width: 900px;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+.le-root *,
+.le-root *::before,
+.le-root *::after {
+  box-sizing: border-box;
+}
+.le-root button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.le-root button:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+.le-icon {
+  flex: none;
+  vertical-align: -3px;
+}
+.le-spacer {
+  flex: 1;
+}
+
+/* ---- header ---- */
+.le-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.le-back {
+  background: none;
+  border: none;
+  color: var(--le-dim);
+  font-size: 0.9375rem;
+  padding: 6px 0;
+  min-height: 44px;
+}
+.le-proto-badge {
+  font-size: 0.6875rem;
+  letter-spacing: 0.06em;
+  color: var(--le-gold);
+  border: 1px solid rgba(231, 178, 60, 0.45);
+  border-radius: 999px;
+  padding: 3px 10px;
+  white-space: nowrap;
+}
+.le-title {
+  font-family: 'Fraunces', Georgia, serif;
+  font-weight: 700;
+  font-size: 1.625rem;
+  line-height: 1.12;
+  margin: 0;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.55);
+}
+.le-original {
+  font-size: 0.8125rem;
+  color: var(--le-dim);
+  margin: 10px 0 0;
+}
+.le-badge {
+  display: inline-block;
+  margin-top: 10px;
+  padding: 3px 14px;
+  border-radius: 999px;
+  background: var(--le-crimson);
+  border: 1px solid rgba(231, 178, 60, 0.55);
+  color: #fff;
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 0.9375rem;
+}
+
+/* ---- the four mode pills ---- */
+.le-modes {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin: 14px 0;
+}
+.le-mode {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 8px 6px;
+  border-radius: 10px;
+  border: 1px solid var(--le-line);
+  background: var(--le-panel);
+  font-size: 0.9375rem;
+  color: var(--le-text);
+}
+.le-mode.on {
+  background: linear-gradient(180deg, var(--le-crimson-hi), var(--le-crimson));
+  border-color: #d9454b;
+  font-weight: 700;
+  box-shadow: 0 4px 14px rgba(163, 20, 28, 0.45);
+}
+
+.le-levels {
+  display: flex;
+  gap: 6px;
+  margin: 0 0 14px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.le-level {
+  border: 1px solid var(--le-line);
+  background: transparent;
+  border-radius: 999px;
+  padding: 6px 12px;
+  min-height: 36px;
+  flex: none;
+  font-size: 0.8125rem;
+  color: var(--le-dim);
+}
+.le-level.on {
+  border-color: var(--le-gold);
+  color: var(--le-gold);
+}
+
+/* ---- shared progress + controls ---- */
+.le-progress {
+  position: relative;
+  height: 4px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.18);
+}
+.le-progress-fill {
+  height: 100%;
+  border-radius: 4px;
+  background: var(--le-crimson-hi);
+}
+.le-progress-dot {
+  position: absolute;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(196, 29, 37, 0.45);
+}
+.le-ctl {
+  background: none;
+  border: none;
+  font-size: 1.375rem;
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 50%;
+}
+.le-ctl--play {
+  width: 72px;
+  height: 72px;
+  font-size: 1.625rem;
+  background: radial-gradient(circle at 35% 30%, #e0353c, var(--le-crimson));
+  box-shadow:
+    0 0 0 6px rgba(163, 20, 28, 0.28),
+    0 8px 24px rgba(163, 20, 28, 0.5);
+}
+.le-chip {
+  border: 1px solid var(--le-line);
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 6px;
+  min-width: 40px;
+  min-height: 36px;
+  padding: 4px 8px;
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+.le-chip.on {
+  border-color: var(--le-text);
+}
+.le-tstamp {
+  font-variant-numeric: tabular-nums;
+  font-size: 0.75rem;
+}
+.le-resume-note {
+  font-size: 0.8125rem;
+  color: var(--le-gold);
+  margin: 8px 0;
+}
+
+/* ---- WATCH ---- */
+.le-stage {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  border-radius: 14px 14px 0 0;
+  overflow: hidden;
+  background: #000;
+  margin: 0 -16px;
+}
+@media (min-width: 640px) {
+  .le-stage {
+    margin: 0;
+  }
+}
+.le-stage-img,
+.le-img--empty {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+@keyframes le-kenburns {
+  0% {
+    transform: scale(1) translate(0, 0);
+  }
+  100% {
+    transform: scale(1.1) translate(-1.5%, -1.5%);
+  }
+}
+.le-kenburns {
+  animation: le-kenburns 22s ease-in-out infinite alternate;
+}
+.le-stage-scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0) 30%, rgba(0, 0, 0, 0.55) 100%), linear-gradient(180deg, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, 0.78) 100%);
+  pointer-events: none;
+}
+.le-stage-title {
+  position: absolute;
+  right: 16px;
+  top: 22%;
+  max-width: 62%;
+  text-align: right;
+}
+.le-caption {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  text-align: center;
+  font-size: 1.0625rem;
+  line-height: 1.4;
+  font-weight: 600;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.9);
+}
+.le-said {
+  color: var(--le-gold);
+}
+.le-unsaid {
+  color: #fff;
+}
+.le-player > .le-progress {
+  margin: 0 -16px;
+  border-radius: 0;
+}
+@media (min-width: 640px) {
+  .le-player > .le-progress {
+    margin: 0;
+  }
+}
+.le-playerbar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 0;
+}
+.le-ctl--bar {
+  font-size: 1.125rem;
+  min-width: 40px;
+}
+.le-playerbar .le-chip {
+  margin-left: 4px;
+}
+.le-time {
+  white-space: nowrap;
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--le-dim);
+}
+.le-subtabs {
+  display: flex;
+  border-bottom: 1px solid var(--le-line);
+  margin: 4px 0 12px;
+}
+.le-subtab {
+  flex: 1;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 10px 4px;
+  min-height: 44px;
+  font-size: 0.9375rem;
+  color: var(--le-dim);
+}
+.le-subtab.on {
+  color: var(--le-text);
+  font-weight: 700;
+  border-bottom-color: var(--le-gold);
+}
+.le-transcript {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  /* Its own scroll box: narration moves this list, never the page. */
+  position: relative;
+  /* Fits the screen under the pinned player (stage is 16:10 of the width,
+     plus progress and controls), so the whole box is visible at once. */
+  max-height: max(200px, calc(100vh - 62.5vw - 76px));
+  max-height: max(200px, calc(100dvh - 62.5vw - 76px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+/* The player (picture, progress, controls) stays pinned while you read on. */
+.le-player {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  margin: 0 -16px;
+  padding: 0 16px;
+  background: var(--le-bg);
+}
+/* The "Back to the current line" button floats over the list, so showing
+   it never pushes the transcript (no layout jump). */
+.le-transcript-wrap {
+  position: relative;
+}
+.le-follow {
+  position: absolute;
+  left: 50%;
+  bottom: 10px;
+  transform: translateX(-50%);
+  z-index: 2;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+  white-space: nowrap;
+  min-height: 36px;
+  padding: 4px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--le-gold);
+  background: var(--le-panel);
+  color: var(--le-gold);
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+.le-root .le-follow {
+  color: var(--le-gold);
+}
+/* Full screen: the cinematic stage and its captions fill the screen. */
+.le-stage.le-stage--full,
+.le-stage:fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  aspect-ratio: auto;
+  border-radius: 0;
+}
+.le-stage--full .le-caption,
+.le-stage:fullscreen .le-caption {
+  font-size: 1.375rem;
+  bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  left: 24px;
+  right: 24px;
+}
+.le-full-ctl {
+  position: absolute;
+  top: calc(12px + env(safe-area-inset-top, 0px));
+  right: 12px;
+  display: flex;
+  gap: 8px;
+}
+.le-full-ctl .le-chip {
+  min-width: 44px;
+  min-height: 44px;
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+}
+.le-tline {
+  margin: 0 0 6px;
+}
+.le-tline-btn {
+  display: grid;
+  grid-template-columns: 52px 1fr;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  padding: 10px 10px;
+}
+.le-tline-btn .le-tstamp {
+  align-self: start;
+  justify-self: start;
+  color: var(--le-dim);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.le-ttext {
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--le-dim);
+}
+.le-tline.on .le-tline-btn {
+  background: linear-gradient(90deg, rgba(163, 20, 28, 0.5), rgba(163, 20, 28, 0.28));
+  border-color: rgba(217, 69, 75, 0.55);
+}
+.le-tline.on .le-tstamp {
+  background: var(--le-crimson-hi);
+  color: #fff;
+}
+.le-tline.on .le-ttext {
+  color: #fff;
+}
+.le-points-big {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 1.0625rem;
+  line-height: 1.55;
+  margin: 0 0 12px;
+}
+.le-points-list,
+.le-verse-list {
+  margin: 0;
+  padding-left: 1.1em;
+  line-height: 1.55;
+}
+.le-points-list li,
+.le-verse-list li {
+  margin-bottom: 8px;
+}
+.le-verse-list {
+  list-style: none;
+  padding: 0;
+}
+.le-scrips-anchor {
+  margin: 0 0 8px;
+}
+.le-anchor {
+  margin: 0 0 12px;
+  padding-left: 1.2em;
+  line-height: 1.5;
+  font-size: 0.9375rem;
+}
+.le-anchor li {
+  margin-bottom: 6px;
+}
+
+/* Scripture callout -- the EXACT verse characters, framed in gold. */
+.le-verse {
+  display: block;
+  margin: 10px 0;
+  padding: 10px 14px;
+  border-left: 3px solid var(--le-gold);
+  background: rgba(231, 178, 60, 0.08);
+  border-radius: 0 8px 8px 0;
+  font-style: italic;
+}
+
+/* ---- READ: the illustrated book page ---- */
+.le-book {
+  --le-read-scale: 1;
+  background: linear-gradient(180deg, var(--le-paper), var(--le-paper-2));
+  color: var(--le-ink);
+  border-radius: 14px;
+  padding: 24px 22px 32px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+}
+.le-book-title {
+  font-family: 'Fraunces', Georgia, serif;
+  font-weight: 700;
+  font-size: 1.75rem;
+  line-height: 1.12;
+  text-align: center;
+  margin: 0;
+}
+.le-original--book {
+  color: var(--le-ink-dim);
+  text-align: center;
+  margin-top: 6px;
+}
+.le-book-rule {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 10px 0 14px;
+}
+.le-book-rule > span[aria-hidden] {
+  flex: 1;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #b8862a);
+}
+.le-book-rule > span[aria-hidden]:last-child {
+  background: linear-gradient(90deg, #b8862a, transparent);
+}
+.le-badge--book {
+  margin: 0;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 0.8125rem;
+}
+.le-read-hero {
+  margin: 0 -22px 14px;
+}
+.le-read-hero-img {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  display: block;
+}
+.le-wordfirst {
+  text-align: center;
+  margin: 0 0 12px;
+}
+.le-wordfirst-k {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #8e1219;
+}
+.le-wordfirst-ref {
+  font-family: 'Fraunces', Georgia, serif;
+  font-weight: 700;
+  font-size: 1.25rem;
+}
+.le-book-text {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: calc(1.125rem * var(--le-read-scale));
+  line-height: 1.78;
+  color: #2a1c12;
+  max-width: 36em;
+  margin: 0 auto;
+  hyphens: auto;
+  -webkit-hyphens: auto;
+}
+.le-book-p {
+  margin: 0 0 1.15em;
+  scroll-margin-top: 16px;
+}
+.le-book-p.marked {
+  box-shadow: -10px 0 0 -7px #b8862a;
+}
+.le-dropcap {
+  float: left;
+  font-size: 3.6em;
+  line-height: 0.82;
+  padding: 0.08em 0.1em 0 0;
+  color: #9a6b1c;
+  font-weight: 700;
+}
+/* A section lead ("FIRST, THE MASTER WHO WENT AWAY.") reads as the
+   section's heading. The characters are the lesson's own; only the display
+   changes. */
+.le-book-lead {
+  display: block;
+  margin: 0.4em 0 0.55em;
+  font-size: 1.12em;
+  line-height: 1.3;
+  letter-spacing: 0.05em;
+  color: #7d1016;
+}
+/* Scripture as a pull-quote inside the article: a gold rule and generous
+   italic, never a heavy box (gold, not red -- DR-0099). */
+.le-book .le-verse {
+  margin: 1em 0 1em 0.2em;
+  padding: 0.15em 0 0.15em 1em;
+  border-left: 3px solid #b8862a;
+  border-radius: 0;
+  background: none;
+  font-size: 1.04em;
+  line-height: 1.6;
+  color: #4a3220;
+}
+.le-ornament {
+  text-align: center;
+  color: #b8862a;
+  margin: 6px 0 14px;
+  letter-spacing: 0.5em;
+}
+.le-keyteach {
+  margin: 18px 0;
+  padding: 18px 16px 14px;
+  border-radius: 10px;
+  background: radial-gradient(120% 120% at 50% 0%, #f3e2bd, #e6cf9f);
+  border: 1px solid #c9a86a;
+  text-align: center;
+  position: relative;
+}
+.le-keyteach-k {
+  position: absolute;
+  top: -11px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--le-crimson);
+  color: #fff;
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 2px 10px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+.le-keyteach p {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.55;
+}
+.le-readdock {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  margin: 12px -16px 0;
+}
+.le-bookbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
+  background: var(--le-paper);
+  color: var(--le-ink);
+  border-top: 1px solid #d9c7a4;
+}
+.le-bb {
+  min-width: 44px;
+  min-height: 44px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  font-size: 1.0625rem;
+  font-weight: 700;
+}
+.le-root .le-bb {
+  color: var(--le-ink);
+}
+.le-bb.on {
+  color: #8e1219;
+}
+.le-bb--text {
+  font-size: 0.8125rem;
+  text-decoration: underline;
+}
+.le-root .le-bb--nav {
+  background: var(--le-crimson);
+  color: #fff;
+}
+/* The prominent Read Aloud button on the book page itself. */
+.le-aloud-cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 52px;
+  margin: 0 0 18px;
+  border-radius: 999px;
+  border: 2px solid #c9a86a;
+  background: linear-gradient(180deg, var(--le-crimson-hi), var(--le-crimson));
+  font-weight: 700;
+  font-size: 1.0625rem;
+  letter-spacing: 0.02em;
+  box-shadow: 0 6px 18px rgba(163, 20, 28, 0.35);
+}
+.le-root .le-aloud-cta {
+  color: #fff;
+}
+.le-aloud-cta.on {
+  background: #2a1a1c;
+  border-color: var(--le-gold);
+}
+.le-root .le-bb--aloud {
+  color: #8e1219;
+}
+/* The paragraph being read: a gold rule in the margin. The sentence itself is
+   painted by lib/read-follow.js with the house ::highlight(poe-read-seg)
+   rust -- never true red (DR-0099). */
+.le-book-p.narrating {
+  box-shadow: -12px 0 0 -8px #b8862a;
+}
+/* The compact narration bar: black and gold over the cream reading bar. */
+.le-narrate {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px 6px;
+  background: #160d0f;
+  color: #fff;
+  border-top: 1px solid rgba(231, 178, 60, 0.45);
+}
+.le-narrate-progress {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.12);
+}
+.le-narrate-progress > div {
+  height: 100%;
+  background: var(--le-gold);
+}
+.le-nb {
+  min-width: 44px;
+  min-height: 44px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  font-size: 1.25rem;
+}
+.le-nb--play {
+  background: radial-gradient(circle at 35% 30%, #e0353c, var(--le-crimson));
+  box-shadow: 0 0 0 3px rgba(231, 178, 60, 0.35);
+  font-size: 1rem;
+}
+.le-narrate-time {
+  white-space: nowrap;
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--le-dim);
+  margin-left: 4px;
+}
+.le-nchip {
+  min-height: 36px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  background: transparent;
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.le-nchip.on {
+  border-color: var(--le-gold);
+  color: var(--le-gold);
+}
+.le-bb-count {
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+  margin-right: 4px;
+}
+
+/* ---- LISTEN ---- */
+.le-listen {
+  text-align: center;
+}
+.le-listen-art {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  max-width: 420px;
+  margin: 4px auto 0;
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow:
+    0 0 0 1px rgba(217, 69, 75, 0.35),
+    0 18px 50px rgba(0, 0, 0, 0.6);
+}
+.le-listen-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.le-listen-art .le-stage-scrim {
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0) 35%, rgba(20, 4, 6, 0.9) 100%);
+}
+.le-listen-title {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 14px;
+}
+.le-wave {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  height: 28px;
+  margin-top: 12px;
+}
+.le-wave i {
+  display: block;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--le-gold);
+  opacity: 0.85;
+  transform-origin: center;
+}
+@keyframes le-wave {
+  0%,
+  100% {
+    transform: scaleY(0.45);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+.le-wave.on i {
+  animation: le-wave 0.9s ease-in-out infinite;
+}
+.le-listen-h {
+  font-size: 1.1875rem;
+  font-weight: 700;
+  margin: 14px 0 10px;
+}
+.le-listen .le-levels {
+  justify-content: safe center;
+}
+.le-listen-now {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 1.0625rem;
+  line-height: 1.5;
+  min-height: 3em;
+  margin: 0 0 14px;
+}
+.le-times {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8125rem;
+  color: var(--le-dim);
+  font-variant-numeric: tabular-nums;
+  margin-top: 8px;
+}
+.le-transport {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  margin: 10px 0 18px;
+}
+.le-listen-tools {
+  display: flex;
+  justify-content: center;
+  gap: 36px;
+}
+.le-tool {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  background: none;
+  border: none;
+  min-width: 64px;
+  min-height: 52px;
+}
+.le-tool strong {
+  font-size: 1.0625rem;
+}
+.le-tool span {
+  font-size: 0.8125rem;
+  color: var(--le-dim);
+}
+.le-chapters {
+  list-style: none;
+  padding: 0;
+  margin: 14px 0 0;
+  text-align: left;
+}
+.le-chapter {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--le-line);
+  border-radius: 10px;
+  background: var(--le-panel);
+  margin-bottom: 6px;
+  text-align: left;
+  font-size: 0.9375rem;
+}
+
+/* ---- STUDY ---- */
+.le-study-hero {
+  position: relative;
+  height: 150px;
+  border-radius: 14px 14px 0 0;
+  overflow: hidden;
+}
+.le-study-hero-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.le-study-hero-scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, rgba(18, 6, 8, 0.92) 0%, rgba(18, 6, 8, 0.5) 60%, rgba(18, 6, 8, 0.2) 100%);
+}
+.le-study-hero-text {
+  position: absolute;
+  left: 18px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.le-study-title {
+  font-family: 'Fraunces', Georgia, serif;
+  font-weight: 700;
+  font-size: 1.875rem;
+  margin: 0;
+}
+.le-study-sub {
+  margin: 4px 0 0;
+  font-size: 1.0625rem;
+  color: var(--le-dim);
+}
+.le-study-card {
+  background: linear-gradient(180deg, var(--le-paper), var(--le-paper-2));
+  color: var(--le-ink);
+  border-radius: 0 0 14px 14px;
+  padding: 6px 12px 12px;
+}
+.le-acc {
+  border-bottom: 1px solid #dccaa6;
+}
+.le-acc:last-child {
+  border-bottom: none;
+}
+.le-acc-sum {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  padding: 8px 4px;
+  list-style: none;
+  cursor: pointer;
+}
+.le-acc-sum::-webkit-details-marker {
+  display: none;
+}
+.le-acc-icon {
+  display: inline-flex;
+  color: #b8862a;
+}
+.le-acc-title {
+  flex: 1;
+  font-size: 1.0625rem;
+  font-weight: 700;
+}
+.le-acc-chev {
+  font-size: 1.25rem;
+  line-height: 1;
+}
+.le-acc[open] .le-acc-chev {
+  transform: rotate(180deg);
+}
+.le-acc-body {
+  padding: 0 4px 14px 36px;
+  line-height: 1.55;
+}
+.le-study-card .le-verse {
+  border-left-color: #b8862a;
+  background: rgba(184, 134, 42, 0.12);
+}
+.le-prompts {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.le-prompts li {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+.le-num {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #7d1016;
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.875rem;
+}
+.le-practice {
+  margin: 0;
+}
+.le-quiz {
+  margin: 0;
+  padding-left: 1.1em;
+}
+.le-quiz-q {
+  margin-bottom: 16px;
+}
+.le-quiz-prompt {
+  font-weight: 700;
+  margin: 0 0 8px;
+}
+.le-quiz-opts {
+  display: grid;
+  gap: 6px;
+}
+.le-quiz-opt {
+  text-align: left;
+  min-height: 44px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #cdb78e;
+  background: rgba(255, 255, 255, 0.55);
+}
+.le-root .le-quiz-opt {
+  color: var(--le-ink);
+}
+.le-quiz-opt[aria-disabled='true'] {
+  cursor: default;
+}
+.le-quiz-mark {
+  font-weight: 700;
+  text-decoration: none;
+  display: inline-block;
+}
+.le-quiz-record,
+.le-quiz-result {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #cdb78e;
+  background: rgba(255, 255, 255, 0.55);
+  color: var(--le-ink);
+}
+.le-quiz-result p {
+  margin: 0 0 8px;
+}
+.le-quiz-again {
+  min-height: 44px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid currentColor;
+  font-weight: 700;
+  color: var(--le-ink);
+  background: transparent;
+}
+.le-quiz-opt.correct {
+  border-color: #2f7d4f;
+  background: rgba(47, 125, 79, 0.14);
+  font-weight: 700;
+}
+.le-quiz-opt.wrong {
+  border-color: #7a6a5a;
+  background: rgba(0, 0, 0, 0.06);
+  text-decoration: line-through;
+}
+.le-quiz-explain {
+  margin: 8px 0 0;
+  font-style: italic;
+  color: var(--le-ink-dim);
+}
+.le-notes-label {
+  display: block;
+  font-size: 0.8125rem;
+  color: var(--le-ink-dim);
+  margin-bottom: 6px;
+}
+.le-notes {
+  width: 100%;
+  border: 1px solid #cdb78e;
+  border-radius: 8px;
+  padding: 10px;
+  font: inherit;
+  font-size: 1rem;
+  background: #fffaf0;
+  color: var(--le-ink);
+}
+
+/* ---- More Lessons: a YouTube-style grid of cards ---- */
+.le-more {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--le-line);
+}
+.le-more-h {
+  font-family: 'LS Display', sans-serif;
+  font-weight: 800;
+  font-size: 0.9375rem;
+  margin: 0 0 10px;
+  color: var(--le-dim);
+}
+.le-more-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+@media (min-width: 540px) {
+  .le-more-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+.le-more-card {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  background: none;
+  border: none;
+  padding: 0;
+  text-align: left;
+  border-radius: 10px;
+}
+.le-more-card:hover .le-more-thumb,
+.le-more-card:focus-visible .le-more-thumb {
+  filter: brightness(1.08);
+}
+.le-more-thumb {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: 10px;
+}
+.le-more-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--le-text);
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.le-more-meta {
+  font-size: 0.75rem;
+  color: var(--le-dim);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .le-kenburns,
+  .le-wave.on i {
+    animation: none;
+  }
+}
+
+/* Stories & Perspectives (the classic reader's community section, carried in). */
+.le-conversation {
+  margin-top: 28px;
+  padding: 16px 14px;
+  border-radius: 12px;
+  /* The classic component's own surface: its green and grey labels were
+     designed for #faf8f4 (5.3:1) and drop to 4.43:1 on the darker paper. */
+  background: #faf8f4;
+  border: 1px solid #dccaa6;
+}
+.le-acc .le-conversation {
+  margin-top: 0;
+}
+.le-conversation-title {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 1.375rem;
+  font-weight: 700;
+  color: var(--le-ink);
+  margin: 0 0 4px;
+}
+.le-conversation-sub {
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  color: #5a4a3a;
+  margin: 0 0 8px;
+}
+
+.le-fullpage {
+  display: block;
+  width: 100%;
+  margin: 14px 0 18px;
+  padding: 12px 14px;
+  min-height: 44px;
+  border-radius: 12px;
+  border: 1px solid #8a6d2f;
+  background: transparent;
+  color: var(--le-ink);
+  font-weight: 700;
+  font-size: 0.9375rem;
+  text-align: left;
+}
+
+/* Grown-ups' one tap into the Kids Zone (and kids' way back to it). */
+.le-kidslink {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(231, 178, 60, 0.7);
+  color: var(--le-gold);
+  font-weight: 700;
+  font-size: 0.875rem;
+  text-decoration: none;
+}
+
+/* ON A PHONE THE WORDS GET THE WIDTH (DR-1661). Darrell 2026-11-26: "the words
+   leave a lot of room around the edge of screens." The page, the card, the
+   Key Teaching box and the verse rule each added a side margin; together they
+   took about a quarter of a 390px screen. Auto-hyphenation then broke words
+   ("chas-ing", "hear-ken") to fit what was left. */
+.le-back {
+  white-space: nowrap;
+}
+.le-top {
+  flex-wrap: wrap;
+}
+@media (max-width: 539px) {
+  .le-root {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+  .le-book {
+    padding: 18px 12px 28px;
+  }
+  .le-keyteach {
+    padding: 16px 10px 12px;
+  }
+  .le-book .le-verse {
+    margin-left: 0;
+    padding-left: 0.7em;
+  }
+  .le-book-text {
+    hyphens: manual;
+    -webkit-hyphens: manual;
+    overflow-wrap: break-word;
+  }
+  .le-study-card {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+}
+
+/* THE DARK PAGE (Darrell 2026-11-25). One switch in the lesson's top bar. Additive: only the
+   page's own tokens and the surfaces painted with literal light colors change; every rule above
+   is untouched and the bright page is exactly what it was. Scripture callouts stay gold (DR-0099). */
+.le-root--darkpage {
+  --le-paper: #1b1314;
+  --le-paper-2: #261b1d;
+  --le-ink: #f1e9df;
+  --le-ink-dim: #c9bdb4;
+}
+.le-root--darkpage .le-keyteach {
+  background: radial-gradient(120% 120% at 50% 0%, #3a2a16, #2a1f12);
+  color: var(--le-ink);
+}
+.le-root--darkpage .le-notes,
+.le-root--darkpage .le-conversation {
+  background: #241a1b;
+  color: var(--le-ink);
+}
+.le-pagelight {
+  margin-left: auto;
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--le-line);
+  background: var(--le-panel);
+  color: var(--le-text);
+  font-weight: 700;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+.le-pagelight + .le-kidslink {
+  margin-left: 0;
+}
+.le-root--darkpage .le-conversation-sub {
+  color: var(--le-ink-dim);
+}
+/* The reading's hard-coded inks (the five dark text colors above, measured 2026-11-25) follow the
+   dark page too; the crimson leads lift to a warm light red so they stay readable on dark. */
+.le-root--darkpage .le-book-text {
+  color: var(--le-ink);
+}
+.le-root--darkpage .le-book .le-verse {
+  color: var(--le-ink-dim);
+}
+.le-root--darkpage .le-book-lead,
+.le-root--darkpage .le-wordfirst-k,
+.le-root--darkpage .le-bb.on,
+.le-root--darkpage .le-bb--aloud {
+  color: #f0a79c;
+}
+.le-root--darkpage .le-quiz-opt,
+.le-root--darkpage .le-quiz-record,
+.le-root--darkpage .le-quiz-result {
+  background: rgba(255, 255, 255, 0.06);
+}
+.le-root--darkpage .le-quiz-opt.correct {
+  border-color: #7fd0a0;
+  background: rgba(127, 208, 160, 0.16);
+}
+
+/* The highlighter pen: soft tints that keep the page's own ink readable on the bright page and
+   on the dark page alike (dark ink on a light tint, light ink on a dark tint). No true red. */
+.le-hl {
+  border-radius: 6px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  padding: 2px 6px;
+  margin-left: -6px;
+  margin-right: -6px;
+}
+.le-hl--gold {
+  background: rgba(231, 178, 60, 0.32);
+}
+.le-hl--green {
+  background: rgba(86, 168, 112, 0.3);
+}
+.le-hl--blue {
+  background: rgba(86, 140, 222, 0.3);
+}
+.le-hl-pick {
+  cursor: pointer;
+  outline: 1px dashed rgba(184, 134, 42, 0.55);
+  outline-offset: 4px;
+}
+.le-hl-hint {
+  font-size: 0.8125rem;
+  color: var(--le-ink-dim);
+}
+/* THE READ-ALONG HIGHLIGHT ON THE BRIGHT PAGE (Darrell 2026-11-25, screenshot on Midnight: the
+   sentence being read showed WHITE on a pale orange wash on the cream page). Midnight's own rule
+   (index.css, DR-0424) paints the spoken sentence white for its black background; the lesson's
+   bright page is cream, so the white vanished. On the bright page the highlight keeps the page's
+   dark ink under a rust wash, in every theme; the dark page keeps Midnight's light-on-dark. */
+.le-root:not(.le-root--darkpage) *::highlight(poe-read-seg) {
+  background-color: rgba(184, 88, 56, 0.28);
+  color: #23170f;
+}
+.le-root:not(.le-root--darkpage) *::highlight(poe-resume-mark) {
+  background-color: rgba(90, 110, 61, 0.3);
+  color: #23170f;
+}
+
+/* Previous / Next lesson (LessonNav.jsx): on the screen's own dark ground, below the page, so it
+   reads the same on the bright page and the dark page. */
+.le-nav {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
+  gap: 12px;
+  margin: 20px 0 8px;
+}
+.le-nav-btn {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 64px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  border: 1px solid var(--le-line);
+  background: var(--le-panel);
+  color: var(--le-text);
+  text-align: left;
+  cursor: pointer;
+}
+.le-nav-btn--next {
+  text-align: right;
+  border-color: rgba(231, 178, 60, 0.7);
+}
+.le-nav-k {
+  font-size: 0.8125rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--le-gold);
+}
+.le-nav-t {
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+.le-nav-none {
+  display: flex;
+  align-items: center;
+  min-height: 64px;
+  padding: 12px 16px;
+  color: var(--le-dim);
+  font-size: 0.9375rem;
+}
+
+/* THE PLAYER PINS BELOW THE APP'S HEADER, AND ITS CONTROLS STAY IN VIEW (useChromeTop.js). The picture
+   is capped so the picture, the progress bar and the control row always fit under the header together. */
+.le-player {
+  top: var(--le-chrome-top, 0px);
+}
+.le-player .le-stage:not(.le-stage--full):not(:fullscreen) {
+  max-height: max(160px, calc(100svh - var(--le-chrome-top, 0px) - 300px));
+}

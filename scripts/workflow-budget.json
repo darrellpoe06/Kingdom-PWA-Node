@@ -308,7 +308,35 @@
       "to": 23736,
       "dr": "DR-1650",
       "reason": "One line in loops-health.yml: the church-archive rider's own state/church-archive.out read in the dark-loop diagnosis, the content-sync pattern, so the loop is witnessed before its services.json entry is allowed (a-service-comes-home). The same PR re-froze the ceiling 27 lines lower when the runner road was retired, so this sits well under where main stood. Raised to the measured total, not above it."
+    },
+    {
+      "date": "2026-11-25",
+      "from": 23732,
+      "to": 23735,
+      "dr": "DR-1653",
+      "reason": "Three lines for the Cloudflare Tunnel road (DR-1653): one ledger read of cf-tunnel's own last-run.json in loops-health.yml, plus its where-the-install-stands diagnosis, so the new loop is witnessed before its services.json entry is allowed (a-service-comes-home); and VITE_SUPABASE_FALLBACK_URL in the deploy build env (with its two-line why), empty until the repo variable SB_TUNNEL_ORIGIN is set. Raised to the measured total, not above it."
+    },
+    {
+      "date": "2026-11-25",
+      "from": 23735,
+      "to": 23739,
+      "dr": "DR-1656",
+      "reason": "Four lines in rls-isolation.yml: the downloads-switch leg (its why line, feature, migrations 0237 + 0344, smoke), so the Governor-only wall on set_downloads_open is proven on every db-migrate dispatch. Raised to the measured total, not above it."
+    },
+    {
+      "date": "2026-11-25",
+      "from": 23739,
+      "to": 23762,
+      "dr": "DR-0076",
+      "reason": "learn-presentation-prepare.yml (+23): permanent storage for paid pictures in the private originals repo, which the owner approved 2026-11-25 (the originals token, an actions: read line for the artifact fallback, and each part of 50 backed up and verified on a fresh clone before the next part may buy, all folded into the existing steps), plus a 17-line publish job. The publish job commits ONLY new passing covers to claude/learn-covers-<run>, opens the PR and dispatches CI there, so finished covers reach the app without a hand. Raised to the measured total, not above it."
+    },
+    {
+      "date": "2026-11-25",
+      "from": 23762,
+      "to": 23765,
+      "dr": "DR-0076",
+      "reason": "learn-presentation-prepare.yml (+3): the stale-ledger incident (run 45625192907 restored a 20-lesson pilot ledger over the library's 176 paid pictures, then saved it as the newest cache). An artifact_id input and its ARTIFACT_ID env for the free only=ledger-restore mode (superset-only, lib/ledger-restore.mjs), and one folded line that runs ledger-check after every cache restore so a stale ledger stops before any spend. Raised to the measured total, not above it."
     }
   ],
-  "totalLines": 23732
+  "totalLines": 23765
 }

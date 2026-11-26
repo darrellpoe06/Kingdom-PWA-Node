@@ -41,6 +41,7 @@ const mountRaw = () => act(() => root.render(createElement(ChurchLearn, {
   progress: {}, toggleModule: () => {}, quizState: {}, recordQuiz: () => {},
   learnLevel: 'auto', setLearnLevel: () => {}, ageBand: 'adult', setAgeBand: () => {},
   extraCourses: buildSelfPacedDescriptors({}),
+  userTier: 'poetech-plus', // DR-1652: Copy lesson is PoeTech+ or the Download Pass
 })));
 // Learn opens on Latest (DR-1606): the reader's first tap is the Lessons tab.
 const mount = (...args) => {

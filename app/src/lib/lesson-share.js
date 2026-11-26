@@ -24,7 +24,7 @@
 //      cut at a sentence boundary, never the lesson body;
 //   3. the link, carrying a share token (`s=`);
 //   4. LAST, the how-to: open it with no account, press Play to hear it, and
-//      downloading needs a free account.
+//      downloading is part of PoeTech+ or a one-time Download Pass (DR-1652).
 //
 // PURE. No window, no DOM, no network: the message is built and asserted in a
 // plain test. Recording lives in lesson-share-record.js.
@@ -166,7 +166,7 @@ export function lessonSummary(module, { maxChars = SUMMARY_MAX_CHARS } = {}) {
  * guests there, and there is no lesson download), so it promises neither.
  */
 export const SHARE_HOW_TO = Object.freeze({
-  church: 'How to read it: open the link, no account needed. Press ▶ Play to hear it read aloud. Downloading the lesson needs a free account in the app.',
+  church: 'How to read it: open the link, no account needed. Press ▶ Play to hear it read aloud. Downloading the lesson is part of PoeTech+ or a one-time Download Pass in the app.',
   tlc: 'How to read it: open the link, no account needed. It opens on the lesson, free to read.',
 });
 

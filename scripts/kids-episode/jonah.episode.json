@@ -1,267 +1,608 @@
 {
- "id": "jonah",
- "title": "Jonah and the Great Fish",
- "translation": "KJV",
- "source": "app/public/bible/kjv/Jonah.json",
- "beats": [
-  {
-   "id": "intro",
-   "scene": "key-art",
-   "ambience": "harbor",
-   "lines": [
+  "id": "jonah",
+  "title": "Jonah and the Great Fish",
+  "translation": "KJV",
+  "source": "app/public/bible/kjv/Jonah.json",
+  "beats": [
     {
-     "kind": "narrator",
-     "ref": null,
-     "text": "The Love Corner Bible Adventures presents: Jonah and the Great Fish. A story from the Word of Yahweh, in the book of Jonah."
+      "id": "intro",
+      "scene": "key-art",
+      "ambience": "harbor",
+      "lines": [
+        {
+          "kind": "guide",
+          "who": "guide-girl",
+          "ref": null,
+          "text": "Hi, friends! Welcome to The Love Corner Bible Adventures."
+        },
+        {
+          "kind": "guide",
+          "who": "guide-boy",
+          "ref": null,
+          "text": "Today we are watching Jonah and the Great Fish, a true story from the Word of Yahweh."
+        }
+      ]
+    },
+    {
+      "id": "b1",
+      "scene": "jonah-1",
+      "ambience": "harbor",
+      "lines": [
+        {
+          "kind": "kjv",
+          "who": "narrator",
+          "ref": "Jonah 1:1",
+          "text": "Now the word of the LORD came unto Jonah the son of Amittai, saying,"
+        },
+        {
+          "kind": "kjv",
+          "who": "narrator",
+          "ref": "Jonah 1:2",
+          "text": "Arise, go to Nineveh, that great city, and cry against it; for their wickedness is come up before me."
+        },
+        {
+          "kind": "kjv",
+          "who": "narrator",
+          "ref": "Jonah 1:3",
+          "text": "But Jonah rose up to flee unto Tarshish from the presence of the LORD, and went down to Joppa; and he found a ship going to Tarshish: so he paid the fare thereof, and went down into it, to go with them unto Tarshish from the presence of the LORD."
+        },
+        {
+          "kind": "guide",
+          "who": "guide-girl",
+          "ref": null,
+          "text": "Yahweh told Jonah to go to Nineveh. Look which way Jonah is going! That is the wrong way."
+        }
+      ]
+    },
+    {
+      "id": "b2",
+      "scene": "jonah-2",
+      "ambience": "storm",
+      "lines": [
+        {
+          "kind": "kjv",
+          "who": "narrator",
+          "ref": "Jonah 1:4",
+          "text": "But the LORD sent out a great wind into the sea, and there was a mighty tempest in the sea, so that the ship was like to be broken."
+        },
+        {
+          "kind": "kjv",
+          "who": "narrator",
+          "ref": "Jonah 1:5",
+          "text": "Then the mariners were afraid, and cried every man unto his god, and cast forth the wares that were in the ship into the sea, to lighten it of them. But Jonah was gone down into the sides of the ship; and he lay, and was fast asleep."
+        },
+        {
+          "kind": "kjv",
+          "who": "narrator",
+          "ref": "Jonah 1:6",
+          "text": "So the shipmaster came to him, and said unto him,",
+          "part": 1
+        },
+        {
+          "kind": "kjv",
+          "who": "shipmaster",
+          "ref": "Jonah 1:6",
+          "text": "What meanest thou, O sleeper? arise, call upon thy God, if so be that God will think upon us, that we perish not.",
+          "part": 2
+        },
+        {
+          "kind": "guide",
+          "who": "guide-boy",
+          "ref": null,
+          "text": "Hold on tight! Yahweh sent a great wind, and the sailors were afraid."
+        }
+      ]
+    },
+    {
+      "id": "b3",
+      "scene": "jonah-2b",
+      "ambience": "storm-calm",
+      "lines": [
+        {
+          "kind": "kjv",
+          "who": "narrator",
+          "ref": "Jonah 1:7",
+          "text": "And they said every one to his fellow,",
+          "part": 1
+        },
+        {
+          "kind": "kjv",
+          "who": "mariners",
+          "ref": "Jonah 1:7",
+          "text": "Come, and let us cast lots, that we may know for whose cause this evil is upon us. So they cast lots, and the lot fell upon Jonah.",
+          "part": 2
+        },
+        {
+          "kind": "kjv",
+          "who": "narrator",
+          "ref": "Jonah 1:8",
+          "text": "Then said they unto him,",
+          "part": 1
+        },
+        {
+          "kind": "kjv",
+          "who": "mariners",
+          "ref": "Jonah 1:8",
+          "text": "Tell us, we pray thee, for whose cause this evil is upon us; What is thine occupation? and whence comest thou? what is thy country? and of what people art thou?",
+          "part": 2
+        },
+        {
+          "kind": "kjv",
+          "who": "narrator",
+          "ref": "Jonah 1:9",
+          "text": "And he said unto them,",
+          "part": 1
+        },
+        {
+          "kind": "kjv",
+          "who": "jonah",
+          "ref": "Jonah 1:9",
+          "text": "I am an Hebrew; and I fear the LORD, the God of heaven, which hath made the sea and the dry land.",
+          "part": 2
+        },
+        {
+          "kind": "kjv",
+          "who": "narrator",
+          "ref": "Jonah 1:12",
+          "text": "And he said unto them,",
+          "part": 1
+        },
+        {
+          "kind": "kjv",
+          "who": "jonah",
+          "ref": "Jonah 1:12",
+          "text": "Take me up, and cast me forth into the sea; so shall the sea be calm unto you: for I know that for my sake this great tempest is upon you.",
+          "part": 2
+        },
+        {
+          "kind": "kjv",
+          "who": "narrator",
+          "ref": "Jonah 1:14",
+          "text": "Wherefore they cried unto the LORD, and said,",
+          "part": 1
+        },
+        {
+          "kind": "kjv",
+          "who": "mariners",
+          "ref": "Jonah 1:14",
+          "text": "We beseech thee, O LORD, we beseech thee, let us not perish for this man’s life, and lay not upon us innocent blood: for thou, O LORD, hast done as it pleased thee.",
+          "part": 2
+        },
+        {
+          "kind": "kjv",
+          "who": "narrator",
+          "ref": "Jonah 1:15",
+          "text": "So they took up Jonah, and cast him forth into the sea: and the sea ceased from her raging."
+        }
+      ]
+    },
+    {
+      "id": "b4",
+      "scene": "jonah-3",
+      "ambience": "sea",
+      "lines": [
+        {
+          "kind": "kjv",
+          "who": "narrator",
+          "ref": "Jonah 1:17",
+          "text": "Now the LORD had prepared a great fish to swallow up Jonah. And Jonah was in the belly of the fish three days and three nights."
+        },
+        {
+          "kind": "guide",
+          "who": "guide-boy",
+          "ref": null,
+          "text": "Three days inside a fish! Yahweh had a plan for Jonah even there."
+        }
+      ]
+    },
+    {
+      "id": "b5",
+      "scene": "jonah-4",
+      "ambience": "underwater",
+      "lines": [
+        {
+          "kind": "kjv",
+          "who": "narrator",
+          "ref": "Jonah 2:1",
+          "text": "Then Jonah prayed unto the LORD his God out of the fish’s belly,"
+        },
+        {
+          "kind": "kjv",
+          "who": "narrator",
+          "ref": "Jonah 2:2",
+          "text": "And said,",
+          "part": 1
+        },
+        {
+          "kind": "kjv",
+          "who": "jonah",
+          "ref": "Jonah 2:2",
+          "text": "I cried by reason of mine affliction unto the LORD, and he heard me; out of the belly of hell cried I, and thou heardest my voice.",
+          "part": 2
+        },
+        {
+          "kind": "kjv",
+          "who": "jonah",
+          "ref": "Jonah 2:9",
+          "text": "But I will sacrifice unto thee with the voice of thanksgiving; I will pay that that I have vowed. Salvation is of the LORD."
+        },
+        {
+          "kind": "guide",
+          "who": "guide-girl",
+          "ref": null,
+          "text": "Even inside the fish, Jonah could pray. Yahweh hears us anywhere."
+        }
+      ]
+    },
+    {
+      "id": "b6",
+      "scene": "jonah-5",
+      "ambience": "shore",
+      "lines": [
+        {
+          "kind": "kjv",
+          "who": "narrator",
+          "ref": "Jonah 2:10",
+          "text": "And the LORD spake unto the fish, and it vomited out Jonah upon the dry land."
+        },
+        {
+          "kind": "guide",
+          "who": "guide-boy",
+          "ref": null,
+          "text": "Safe on dry land! Yahweh told the fish what to do, and it did."
+        }
+      ]
+    },
+    {
+      "id": "b7",
+      "scene": "jonah-6",
+      "ambience": "city",
+      "lines": [
+        {
+          "kind": "kjv",
+          "who": "narrator",
+          "ref": "Jonah 3:1",
+          "text": "And the word of the LORD came unto Jonah the second time, saying,"
+        },
+        {
+          "kind": "kjv",
+          "who": "narrator",
+          "ref": "Jonah 3:2",
+          "text": "Arise, go unto Nineveh, that great city, and preach unto it the preaching that I bid thee."
+        },
+        {
+          "kind": "kjv",
+          "who": "narrator",
+          "ref": "Jonah 3:3",
+          "text": "So Jonah arose, and went unto Nineveh, according to the word of the LORD. Now Nineveh was an exceeding great city of three days’ journey."
+        },
+        {
+          "kind": "kjv",
+          "who": "narrator",
+          "ref": "Jonah 3:4",
+          "text": "And Jonah began to enter into the city a day’s journey, and he cried, and said,",
+          "part": 1
+        },
+        {
+          "kind": "kjv",
+          "who": "jonah",
+          "ref": "Jonah 3:4",
+          "text": "Yet forty days, and Nineveh shall be overthrown.",
+          "part": 2
+        },
+        {
+          "kind": "guide",
+          "who": "guide-girl",
+          "ref": null,
+          "text": "This time Jonah went the right way. Nineveh was a very big city."
+        }
+      ]
+    },
+    {
+      "id": "b8",
+      "scene": "jonah-7",
+      "ambience": "hush",
+      "lines": [
+        {
+          "kind": "kjv",
+          "who": "narrator",
+          "ref": "Jonah 3:5",
+          "text": "So the people of Nineveh believed God, and proclaimed a fast, and put on sackcloth, from the greatest of them even to the least of them."
+        },
+        {
+          "kind": "kjv",
+          "who": "narrator",
+          "ref": "Jonah 3:6",
+          "text": "For word came unto the king of Nineveh, and he arose from his throne, and he laid his robe from him, and covered him with sackcloth, and sat in ashes."
+        },
+        {
+          "kind": "kjv",
+          "who": "narrator",
+          "ref": "Jonah 3:7",
+          "text": "And he caused it to be proclaimed and published through Nineveh by the decree of the king and his nobles, saying,",
+          "part": 1
+        },
+        {
+          "kind": "kjv",
+          "who": "king",
+          "ref": "Jonah 3:7",
+          "text": "Let neither man nor beast, herd nor flock, taste any thing: let them not feed, nor drink water:",
+          "part": 2
+        },
+        {
+          "kind": "kjv",
+          "who": "king",
+          "ref": "Jonah 3:8",
+          "text": "But let man and beast be covered with sackcloth, and cry mightily unto God: yea, let them turn every one from his evil way, and from the violence that is in their hands."
+        },
+        {
+          "kind": "kjv",
+          "who": "king",
+          "ref": "Jonah 3:9",
+          "text": "Who can tell if God will turn and repent, and turn away from his fierce anger, that we perish not?"
+        },
+        {
+          "kind": "guide",
+          "who": "guide-boy",
+          "ref": null,
+          "text": "The people listened and believed God. Even the king put on rough clothes to show he was sorry."
+        }
+      ]
+    },
+    {
+      "id": "b9",
+      "scene": "jonah-8",
+      "ambience": "morning",
+      "lines": [
+        {
+          "kind": "kjv",
+          "who": "narrator",
+          "ref": "Jonah 3:10",
+          "text": "And God saw their works, that they turned from their evil way; and God repented of the evil, that he had said that he would do unto them; and he did it not."
+        },
+        {
+          "kind": "guide",
+          "who": "guide-girl",
+          "ref": null,
+          "text": "Yahweh saw that they turned from doing wrong, and He showed them mercy. He is kind!"
+        }
+      ]
+    },
+    {
+      "id": "b10",
+      "scene": "jonah-8b",
+      "ambience": "evening",
+      "lines": [
+        {
+          "kind": "kjv",
+          "who": "narrator",
+          "ref": "Jonah 4:1",
+          "text": "But it displeased Jonah exceedingly, and he was very angry."
+        },
+        {
+          "kind": "kjv",
+          "who": "narrator",
+          "ref": "Jonah 4:2",
+          "text": "And he prayed unto the LORD, and said,",
+          "part": 1
+        },
+        {
+          "kind": "kjv",
+          "who": "jonah",
+          "ref": "Jonah 4:2",
+          "text": "I pray thee, O LORD, was not this my saying, when I was yet in my country? Therefore I fled before unto Tarshish: for I knew that thou art a gracious God, and merciful, slow to anger, and of great kindness, and repentest thee of the evil.",
+          "part": 2
+        },
+        {
+          "kind": "kjv",
+          "who": "jonah",
+          "ref": "Jonah 4:3",
+          "text": "Therefore now, O LORD, take, I beseech thee, my life from me; for it is better for me to die than to live."
+        },
+        {
+          "kind": "kjv",
+          "who": "narrator",
+          "ref": "Jonah 4:4",
+          "text": "Then said the LORD, Doest thou well to be angry?"
+        }
+      ]
+    },
+    {
+      "id": "b11",
+      "scene": "jonah-8b",
+      "ambience": "morning",
+      "lines": [
+        {
+          "kind": "kjv",
+          "who": "narrator",
+          "ref": "Jonah 4:5",
+          "text": "So Jonah went out of the city, and sat on the east side of the city, and there made him a booth, and sat under it in the shadow, till he might see what would become of the city."
+        },
+        {
+          "kind": "kjv",
+          "who": "narrator",
+          "ref": "Jonah 4:6",
+          "text": "And the LORD God prepared a gourd, and made it to come up over Jonah, that it might be a shadow over his head, to deliver him from his grief. So Jonah was exceeding glad of the gourd."
+        }
+      ]
+    },
+    {
+      "id": "b12",
+      "scene": "jonah-8b",
+      "ambience": "hush",
+      "music": "evening",
+      "lines": [
+        {
+          "kind": "kjv",
+          "who": "narrator",
+          "ref": "Jonah 4:7",
+          "text": "But God prepared a worm when the morning rose the next day, and it smote the gourd that it withered."
+        },
+        {
+          "kind": "kjv",
+          "who": "narrator",
+          "ref": "Jonah 4:8",
+          "text": "And it came to pass, when the sun did arise, that God prepared a vehement east wind; and the sun beat upon the head of Jonah, that he fainted, and wished in himself to die, and said,",
+          "part": 1
+        },
+        {
+          "kind": "kjv",
+          "who": "jonah",
+          "ref": "Jonah 4:8",
+          "text": "It is better for me to die than to live.",
+          "part": 2
+        },
+        {
+          "kind": "kjv",
+          "who": "narrator",
+          "ref": "Jonah 4:9",
+          "text": "And God said to Jonah, Doest thou well to be angry for the gourd? And he said,",
+          "part": 1
+        },
+        {
+          "kind": "kjv",
+          "who": "jonah",
+          "ref": "Jonah 4:9",
+          "text": "I do well to be angry, even unto death.",
+          "part": 2
+        }
+      ]
+    },
+    {
+      "id": "b13",
+      "scene": "jonah-6",
+      "ambience": "city",
+      "music": "mercy",
+      "lines": [
+        {
+          "kind": "kjv",
+          "who": "narrator",
+          "ref": "Jonah 4:10",
+          "text": "Then said the LORD, Thou hast had pity on the gourd, for the which thou hast not laboured, neither madest it grow; which came up in a night, and perished in a night:"
+        },
+        {
+          "kind": "kjv",
+          "who": "narrator",
+          "ref": "Jonah 4:11",
+          "text": "And should not I spare Nineveh, that great city, wherein are more than sixscore thousand persons that cannot discern between their right hand and their left hand; and also much cattle?"
+        },
+        {
+          "kind": "guide",
+          "who": "guide-boy",
+          "ref": null,
+          "text": "Jonah cared more about a plant than about people. But Yahweh cared about every person in that great city, and He cares about you too."
+        }
+      ]
+    },
+    {
+      "id": "outro",
+      "scene": "key-art",
+      "ambience": "theme",
+      "lines": [
+        {
+          "kind": "guide",
+          "who": "guide-girl",
+          "ref": null,
+          "text": "What did we learn from the story of Jonah?"
+        },
+        {
+          "kind": "guide",
+          "who": "guide-boy",
+          "ref": null,
+          "text": "Obey Yahweh, even when it is difficult. Jonah ran the wrong way, but Yahweh brought him back."
+        },
+        {
+          "kind": "guide",
+          "who": "guide-girl",
+          "ref": null,
+          "text": "Yahweh gives people the chance to turn around and say sorry, just like the people of Nineveh."
+        },
+        {
+          "kind": "guide",
+          "who": "guide-boy",
+          "ref": null,
+          "text": "And we should show mercy and compassion to others, because Yahweh is gracious and merciful to us."
+        },
+        {
+          "kind": "narrator",
+          "who": "narrator",
+          "ref": null,
+          "text": "Our memory verse is Jonah chapter 2, verse 9."
+        },
+        {
+          "kind": "kjv",
+          "who": "narrator",
+          "ref": "Jonah 2:9",
+          "text": "But I will sacrifice unto thee with the voice of thanksgiving; I will pay that that I have vowed. Salvation is of the LORD."
+        },
+        {
+          "kind": "kjv",
+          "who": "guides",
+          "ref": "Jonah 2:9",
+          "text": "Salvation is of the LORD.",
+          "part": "memory"
+        },
+        {
+          "kind": "guide",
+          "who": "guide-girl",
+          "ref": null,
+          "text": "Thank you for watching The Love Corner Bible Adventures!"
+        },
+        {
+          "kind": "guide",
+          "who": "guide-boy",
+          "ref": null,
+          "text": "Read the Jonah storybook and play the games. Goodbye, friends! See you next time!"
+        }
+      ]
+    },
+    {
+      "id": "credits",
+      "scene": "key-art",
+      "ambience": "theme",
+      "lines": [],
+      "minDur": 24
     }
-   ]
+  ],
+  "voices": {
+    "narrator": "deep, warm, expressive Black man; the storyteller; reads every word of Yahweh (Yahweh is never given a character voice)",
+    "jonah": "Black man, 30s; afraid in the storm, broken and sincere in the prayer, bold in Nineveh, sulking in chapter 4",
+    "shipmaster": "older Black man, gruff and urgent",
+    "mariners": "Black men, frightened, pleading",
+    "king": "Black man, regal and humbled",
+    "guide-girl": "Black girl about 8, bright and warm",
+    "guide-boy": "Black boy about 9, excited and kind",
+    "guides": "both guides together"
   },
-  {
-   "id": "b1",
-   "scene": "jonah-1",
-   "ambience": "harbor",
-   "lines": [
-    {
-     "kind": "kjv",
-     "ref": "Jonah 1:1",
-     "text": "Now the word of the LORD came unto Jonah the son of Amittai, saying,"
-    },
-    {
-     "kind": "kjv",
-     "ref": "Jonah 1:2",
-     "text": "Arise, go to Nineveh, that great city, and cry against it; for their wickedness is come up before me."
-    },
-    {
-     "kind": "kjv",
-     "ref": "Jonah 1:3",
-     "text": "But Jonah rose up to flee unto Tarshish from the presence of the LORD, and went down to Joppa; and he found a ship going to Tarshish: so he paid the fare thereof, and went down into it, to go with them unto Tarshish from the presence of the LORD."
-    },
-    {
-     "kind": "narrator",
-     "ref": null,
-     "text": "Yahweh told Jonah to go to Nineveh. Look which way Jonah is going! That is the wrong way."
-    }
-   ]
+  "cast": {
+    "narrator": "am_michael",
+    "jonah": "am_fenrir",
+    "shipmaster": "am_adam",
+    "mariners": "am_eric",
+    "king": "am_onyx",
+    "guide-girl": "af_heart",
+    "guide-boy": "am_puck",
+    "guides": ["af_heart", "am_puck"]
   },
-  {
-   "id": "b2",
-   "scene": "jonah-2",
-   "ambience": "storm",
-   "lines": [
-    {
-     "kind": "kjv",
-     "ref": "Jonah 1:4",
-     "text": "But the LORD sent out a great wind into the sea, and there was a mighty tempest in the sea, so that the ship was like to be broken."
-    },
-    {
-     "kind": "kjv",
-     "ref": "Jonah 1:5",
-     "text": "Then the mariners were afraid, and cried every man unto his god, and cast forth the wares that were in the ship into the sea, to lighten it of them. But Jonah was gone down into the sides of the ship; and he lay, and was fast asleep."
-    },
-    {
-     "kind": "narrator",
-     "ref": null,
-     "text": "Hold on tight! Yahweh sent a great wind, and the sailors were afraid."
-    }
-   ]
+  "childVoice": {
+    "guide-girl": 3.0,
+    "guide-boy": 4.0,
+    "guides": 3.0
   },
-  {
-   "id": "b3",
-   "scene": "jonah-2b",
-   "ambience": "storm-calm",
-   "lines": [
-    {
-     "kind": "kjv",
-     "ref": "Jonah 1:12",
-     "text": "And he said unto them, Take me up, and cast me forth into the sea; so shall the sea be calm unto you: for I know that for my sake this great tempest is upon you."
-    },
-    {
-     "kind": "kjv",
-     "ref": "Jonah 1:15",
-     "text": "So they took up Jonah, and cast him forth into the sea: and the sea ceased from her raging."
-    }
-   ]
-  },
-  {
-   "id": "b4",
-   "scene": "jonah-3",
-   "ambience": "sea",
-   "lines": [
-    {
-     "kind": "kjv",
-     "ref": "Jonah 1:17",
-     "text": "Now the LORD had prepared a great fish to swallow up Jonah. And Jonah was in the belly of the fish three days and three nights."
-    },
-    {
-     "kind": "narrator",
-     "ref": null,
-     "text": "Three days inside a fish! Yahweh had a plan for Jonah even there."
-    }
-   ]
-  },
-  {
-   "id": "b5",
-   "scene": "jonah-4",
-   "ambience": "underwater",
-   "lines": [
-    {
-     "kind": "kjv",
-     "ref": "Jonah 2:1",
-     "text": "Then Jonah prayed unto the LORD his God out of the fish’s belly,"
-    },
-    {
-     "kind": "kjv",
-     "ref": "Jonah 2:2",
-     "text": "And said, I cried by reason of mine affliction unto the LORD, and he heard me; out of the belly of hell cried I, and thou heardest my voice."
-    },
-    {
-     "kind": "kjv",
-     "ref": "Jonah 2:9",
-     "text": "But I will sacrifice unto thee with the voice of thanksgiving; I will pay that that I have vowed. Salvation is of the LORD."
-    },
-    {
-     "kind": "narrator",
-     "ref": null,
-     "text": "Even inside the fish, Jonah could pray. Yahweh hears us anywhere."
-    }
-   ]
-  },
-  {
-   "id": "b6",
-   "scene": "jonah-5",
-   "ambience": "shore",
-   "lines": [
-    {
-     "kind": "kjv",
-     "ref": "Jonah 2:10",
-     "text": "And the LORD spake unto the fish, and it vomited out Jonah upon the dry land."
-    },
-    {
-     "kind": "narrator",
-     "ref": null,
-     "text": "Safe on dry land! Yahweh told the fish what to do, and it did."
-    }
-   ]
-  },
-  {
-   "id": "b7",
-   "scene": "jonah-6",
-   "ambience": "city",
-   "lines": [
-    {
-     "kind": "kjv",
-     "ref": "Jonah 3:1",
-     "text": "And the word of the LORD came unto Jonah the second time, saying,"
-    },
-    {
-     "kind": "kjv",
-     "ref": "Jonah 3:2",
-     "text": "Arise, go unto Nineveh, that great city, and preach unto it the preaching that I bid thee."
-    },
-    {
-     "kind": "kjv",
-     "ref": "Jonah 3:3",
-     "text": "So Jonah arose, and went unto Nineveh, according to the word of the LORD. Now Nineveh was an exceeding great city of three days’ journey."
-    },
-    {
-     "kind": "kjv",
-     "ref": "Jonah 3:4",
-     "text": "And Jonah began to enter into the city a day’s journey, and he cried, and said, Yet forty days, and Nineveh shall be overthrown."
-    },
-    {
-     "kind": "narrator",
-     "ref": null,
-     "text": "This time Jonah went the right way. Nineveh was a very big city."
-    }
-   ]
-  },
-  {
-   "id": "b8",
-   "scene": "jonah-7",
-   "ambience": "hush",
-   "lines": [
-    {
-     "kind": "kjv",
-     "ref": "Jonah 3:5",
-     "text": "So the people of Nineveh believed God, and proclaimed a fast, and put on sackcloth, from the greatest of them even to the least of them."
-    },
-    {
-     "kind": "kjv",
-     "ref": "Jonah 3:6",
-     "text": "For word came unto the king of Nineveh, and he arose from his throne, and he laid his robe from him, and covered him with sackcloth, and sat in ashes."
-    },
-    {
-     "kind": "narrator",
-     "ref": null,
-     "text": "The people listened and believed God. Even the king put on rough clothes to show he was sorry."
-    }
-   ]
-  },
-  {
-   "id": "b9",
-   "scene": "jonah-8",
-   "ambience": "morning",
-   "lines": [
-    {
-     "kind": "kjv",
-     "ref": "Jonah 3:10",
-     "text": "And God saw their works, that they turned from their evil way; and God repented of the evil, that he had said that he would do unto them; and he did it not."
-    },
-    {
-     "kind": "narrator",
-     "ref": null,
-     "text": "Yahweh saw that they turned from doing wrong, and He showed them mercy. He is kind!"
-    }
-   ]
-  },
-  {
-   "id": "b10",
-   "scene": "jonah-8b",
-   "ambience": "evening",
-   "lines": [
-    {
-     "kind": "kjv",
-     "ref": "Jonah 4:1",
-     "text": "But it displeased Jonah exceedingly, and he was very angry."
-    },
-    {
-     "kind": "kjv",
-     "ref": "Jonah 4:2",
-     "text": "And he prayed unto the LORD, and said, I pray thee, O LORD, was not this my saying, when I was yet in my country? Therefore I fled before unto Tarshish: for I knew that thou art a gracious God, and merciful, slow to anger, and of great kindness, and repentest thee of the evil."
-    },
-    {
-     "kind": "kjv",
-     "ref": "Jonah 4:11",
-     "text": "And should not I spare Nineveh, that great city, wherein are more than sixscore thousand persons that cannot discern between their right hand and their left hand; and also much cattle?"
-    },
-    {
-     "kind": "narrator",
-     "ref": null,
-     "text": "Jonah was not glad when Yahweh forgave Nineveh. But Yahweh cared about every person in that great city, and He cares about you too."
-    }
-   ]
-  },
-  {
-   "id": "outro",
-   "scene": "key-art",
-   "ambience": "theme",
-   "lines": [
-    {
-     "kind": "narrator",
-     "ref": null,
-     "text": "Our memory verse is Jonah chapter 2, verse 9."
-    },
-    {
-     "kind": "kjv",
-     "ref": "Jonah 2:9",
-     "text": "But I will sacrifice unto thee with the voice of thanksgiving; I will pay that that I have vowed. Salvation is of the LORD."
-    },
-    {
-     "kind": "narrator",
-     "ref": null,
-     "text": "Thank you for watching The Love Corner Bible Adventures. Come back to read the storybook and play the Jonah games!"
-    }
-   ]
+  "pace": {
+    "intro": 1.05,
+    "b2": 1.08,
+    "b3": 1.06,
+    "b4": 0.97,
+    "b5": 0.92,
+    "b6": 1.04,
+    "b7": 1.03,
+    "b8": 0.97,
+    "b9": 1.0,
+    "b10": 0.97,
+    "b11": 1.0,
+    "b12": 0.95,
+    "b13": 0.95,
+    "outro": 1.0
   }
- ]
 }

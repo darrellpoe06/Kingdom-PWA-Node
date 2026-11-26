@@ -72,6 +72,30 @@ npx vite-node scripts/learn-presentation/cli.mjs export
 
 The ledger is append-only (`jobs.jsonl`), so a kill mid-run loses nothing already written.
 
+## Permanent storage and publishing (2026-11-25)
+
+- `originals-backup` (free): every paid original in the ledger is copied to the
+  private repo `darrellpoe06/poetech-learn-originals` at
+  `originals/<courseKey>/<lessonId>/<sha256>.<ext>`, listed in `manifest.json`, then
+  checked byte-for-byte on a FRESH clone; `verdict.json` records the result. Nothing
+  is overwritten or deleted. Needs `LEARN_ORIGINALS_TOKEN`; `--fallback-artifact ID`
+  restores missing pictures from a run artifact first (exit 5 = not all verified).
+- The storage gate opens on the NAS verdict OR this verdict (every paid sha verified
+  and in the manifest, under 72h old). The workflow backs up after every part of 50.
+- `publish-covers` (free): new passing covers (own composed image, no needsReview)
+  become a tree the workflow's publish job commits to `claude/learn-covers-<run>`;
+  an existing cover or record with a cover is never replaced.
+- `ledger-check` (free; exit 6 = stale): run after every cache restore and before
+  every paid step (text, images, art-v2) and every originals verdict. A ledger that
+  knows fewer paid pictures than the originals manifest or the NAS verdict's
+  `expected`, or whose spend is negative, stops (incident run 45625192907: a pilot
+  ledger restored over the library's 176 pictures, total -$8.22).
+- `ledger-restore --artifact ID` (free; exit 7 = refused; workflow `only=ledger-restore`):
+  replaces `state/`, `images/` and `composed/` with a run artifact's, only when its
+  ledger keeps every current job key (adjustment rows aside: they re-apply once from
+  git), has at least as many succeeded picture jobs, and every paid picture it names
+  is present with the paid bytes (lib/ledger-restore.mjs).
+
 ## What it checks automatically
 
 - **The app's own validator** (`validateRecords`) runs on every result. It checks:

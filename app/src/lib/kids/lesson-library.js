@@ -54,7 +54,19 @@ const fold = (t) =>
  * title and the big idea. Each row is a `pick` the Kids adventure opens
  * directly: { courseKey, lessonId, title, bigIdea, label, band }.
  */
-export function libraryLessons(ageKey, query = '', { living = LIVING_LESSONS_MODULES, little = LITTLE_LEARNERS_MODULES } = {}) {
+/**
+ * The orders a reader can pick (DR-1657). Darrell 2026-11-25: "Show lessons in
+ * chronological order as the default however let them be sorted in all options
+ * available... I want to read these in order especially the living lessons."
+ */
+export const LIBRARY_SORTS = Object.freeze([
+  { key: 'order', label: 'In order (first lesson first)' },
+  { key: 'newest', label: 'Newest first' },
+  { key: 'az', label: 'A to Z' },
+  { key: 'za', label: 'Z to A' },
+]);
+
+export function libraryLessons(ageKey, query = '', { living = LIVING_LESSONS_MODULES, little = LITTLE_LEARNERS_MODULES, sort = 'order' } = {}) {
   const age = LIBRARY_AGES.find((a) => a.key === ageKey) || LIBRARY_AGES[1];
   const source = age.courseKey === 'little-learners' ? little || [] : (living || []).filter((m) => m && m.levels && m.levels[age.depth]);
   const q = fold(query).trim();
@@ -69,9 +81,13 @@ export function libraryLessons(ageKey, query = '', { living = LIVING_LESSONS_MOD
       label: lessonLabel(m.id),
       band: age.band,
     }));
-  // Little Learners is a sequence (letters A, B, C come first), so it reads in order;
-  // Living Lessons reads newest first, as Learn does (DR-1606).
-  return age.courseKey === 'little-learners' ? rows : rows.reverse();
+  // Chronological is the default for every age (DR-1657): the course's own
+  // sequence, first lesson first. The other orders are the reader's choice.
+  if (sort === 'newest') return rows.reverse();
+  const byTitle = (a, b) => a.title.localeCompare(b.title, undefined, { sensitivity: 'base', numeric: true });
+  if (sort === 'az') return rows.sort(byTitle);
+  if (sort === 'za') return rows.sort((a, b) => byTitle(b, a));
+  return rows;
 }
 
 /** How many lessons each age holds — measured, shown on the age buttons. */

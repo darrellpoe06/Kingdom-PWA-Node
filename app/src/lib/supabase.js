@@ -24,6 +24,7 @@
 // =============================================================================
 
 import { createClient } from '@supabase/supabase-js';
+import { createFailoverFetch } from './sb-failover.js';
 import { resolveAuthSession, isPossibleLogout } from './auth-session-guard.js';
 import { resolveSupabaseConfig, currentHostname, purgePreviewForeignState } from './preview-isolation.js';
 
@@ -57,7 +58,12 @@ if (!SUPABASE_ISOLATED && (!SUPABASE_URL || !SUPABASE_ANON_KEY)) {
   );
 }
 
+// A second road (DR-1653): unset fallback -> the platform fetch, unchanged.
+const SB_FALLBACK_URL = (import.meta.env && import.meta.env.VITE_SUPABASE_FALLBACK_URL) || '';
+const failoverFetch = createFailoverFetch({ primary: SUPABASE_URL, fallback: SB_FALLBACK_URL });
+
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  ...(SB_FALLBACK_URL && failoverFetch ? { global: { fetch: failoverFetch } } : {}),
   auth: {
     // Persist the session so signed-in users stay signed in across reloads
     // and across PWA app launches. Family + church users sign in once.

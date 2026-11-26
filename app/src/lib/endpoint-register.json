@@ -4,7 +4,7 @@
     "functions": 31,
     "nasServices": 7,
     "nasRoutes": 35,
-    "tables": 331,
+    "tables": 332,
     "tablesWithoutRls": 1
   },
   "functions": [
@@ -1885,6 +1885,12 @@
       "definedIn": "infra/supabase/migrations-auto/0310-a-work-order-keeps-its-pictures-and-a-name-typed-once-is-offered-after.sql",
       "rls": true,
       "policies": 1
+    },
+    {
+      "table": "platform_switches",
+      "definedIn": "infra/supabase/migrations-auto/0344-downloads-open-only-on-darrells-word.sql",
+      "rls": true,
+      "policies": 0
     },
     {
       "table": "practice_ceu_entries",

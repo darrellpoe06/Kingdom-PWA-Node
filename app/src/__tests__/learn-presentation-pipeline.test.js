@@ -9,7 +9,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { mkdtempSync, existsSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { Ledger } from '../../scripts/learn-presentation/lib/ledger.mjs';
+import { Ledger, idempotencyKey } from '../../scripts/learn-presentation/lib/ledger.mjs';
 import { ProviderError, withTimeout, TokenBucket } from '../../scripts/learn-presentation/lib/limits.mjs';
 import { Budget, buildItems, coursesForValidation, runText, runImages, exportRecords, hamming } from '../../scripts/learn-presentation/lib/pipeline.mjs';
 import { parseCopy, userPrompt } from '../../scripts/learn-presentation/lib/prompts.mjs';
@@ -17,7 +17,8 @@ import { estimate } from '../../scripts/learn-presentation/lib/prices.mjs';
 import { anthropicText } from '../../scripts/learn-presentation/providers/text.mjs';
 import { bflImage } from '../../scripts/learn-presentation/providers/image.mjs';
 import { verifyRecovery } from '../../scripts/learn-presentation/lib/recovery.mjs';
-import { writeFileSync, rmSync } from 'node:fs';
+import { writeFileSync, rmSync, cpSync, mkdirSync } from 'node:fs';
+import { savePart, recoverPart } from '../../scripts/learn-presentation/lib/part.mjs';
 
 const deepFreeze = (o) => {
   if (o && typeof o === 'object' && !Object.isFrozen(o)) {
@@ -408,7 +409,12 @@ describe('pilot scope cannot be widened', () => {
   });
 
   it('the combined cap subtracts everything already spent, across runs', () => {
-    expect(scope.TOTAL_CAP_CENTS).toBe(1343 + 6000); // owner 2026-11-24: $60 more, combined
+    expect(scope.TOTAL_CAP_CENTS).toBe(1482 + 5800); // owner 2026-11-25: $58 of new spend over the 1482c the ledger held
+    expect(scope.TOTAL_CAP_CENTS).toBe(7282);
+    expect(scope.TOTAL_CAP_CENTS - scope.SPENT_AT_APPROVAL_CENTS).toBe(5800);
+    // A 200-lesson batch (~200 x 6c pictures + ~200 titles) fits in what is left; the run cap never passes it.
+    expect(scope.remainingCents(1600, scope.SPENT_AT_APPROVAL_CENTS)).toBe(1600);
+    expect(scope.remainingCents(1600, scope.TOTAL_CAP_CENTS - 900)).toBe(900);
     expect(scope.IMAGE_TOTAL_CAP_CENTS).toBe(1080 + 5500); // the $55 of BFL credits bought
     expect(scope.remainingCents(400, 0)).toBe(400);
     expect(scope.remainingCents(400, scope.TOTAL_CAP_CENTS - 200)).toBe(200);
@@ -822,5 +828,391 @@ describe('the provider says no: unbilled, and an empty account stops the run', (
     });
     expect(t.done).toBe(1);
     expect(l.spentCents()).toBe(12); // the billed failure + the success, not the refused 429
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Never pay for one picture twice (audit 2026-11-25): (a) a run killed after BFL
+// finished but before the ledger said so, (b) a lost runner whose end-of-run
+// ledger save never ran, (c) a poll timeout that led to a fresh submit. Each
+// test below fails on the code before the fix.
+// ---------------------------------------------------------------------------
+describe('a picture BFL already accepted is never bought again', () => {
+  const goodRecord = (l, it) =>
+    l.putRecord({
+      courseKey: it.courseKey,
+      lessonId: it.lessonId,
+      status: 'review',
+      contentSha: it.contentSha,
+      visual: { prompt: 'A bright daylight photograph of a smiling Black family.', alt: 'a' },
+      image: null,
+    });
+  // A BFL that counts submits; poll(url, n, signal) answers each poll.
+  const fakeBfl = (poll) => {
+    const seen = { submits: 0, polls: [] };
+    const fetchImpl = async (url, opts = {}) => {
+      if (url.endsWith('/flux-pro-1.1-ultra')) {
+        seen.submits += 1;
+        return { ok: true, status: 200, json: async () => ({ id: `job${seen.submits}`, polling_url: `https://poll/job${seen.submits}` }) };
+      }
+      if (url.startsWith('https://poll/')) {
+        seen.polls.push(url);
+        return poll(url, seen.polls.length, opts.signal);
+      }
+      return { ok: true, status: 200, headers: { get: () => 'image/jpeg' }, arrayBuffer: async () => new Uint8Array([7, 7, 7]).buffer };
+    };
+    return { seen, fetchImpl };
+  };
+  const ready = { ok: true, status: 200, json: async () => ({ status: 'Ready', result: { sample: 'https://cdn/x.jpg' } }) };
+  const pending = { ok: true, status: 200, json: async () => ({ status: 'Pending' }) };
+  const keyOf = (it) => `b|${it.courseKey}|${it.lessonId}|image|${it.contentSha}`;
+
+  it('the spend and the BFL job id are on the ledger the moment BFL accepts the submit', async () => {
+    const l = ledger();
+    const [a] = items;
+    goodRecord(l, a);
+    let atFirstPoll = null;
+    const { seen, fetchImpl } = fakeBfl(() => {
+      if (!atFirstPoll) atFirstPoll = { spent: l.spentCents(), job: l.jobs.get(keyOf(a)) };
+      return ready;
+    });
+    const t = await runImages({
+      items: [a],
+      ledger: l,
+      provider: bflImage({ apiKey: 'k', fetchImpl, sleep: noSleep }),
+      outDir: join(dir, 'img'),
+      batchId: 'b',
+      sleep: noSleep,
+    });
+    expect(t.done).toBe(1);
+    expect(seen.submits).toBe(1);
+    expect(atFirstPoll.spent).toBe(6);
+    expect(atFirstPoll.job.submitted).toMatchObject({ id: 'job1', pollingUrl: 'https://poll/job1' });
+    expect(l.spentCents()).toBe(6);
+  });
+
+  it('(a) a run killed after BFL returned the picture is replayed by polling the same job, not by buying it again', async () => {
+    const l = ledger();
+    const [a] = items;
+    goodRecord(l, a);
+    const killed = join(dir, 'killed');
+    // Run 1: BFL finishes; the runner dies before the ledger records success.
+    const run1 = fakeBfl(() => {
+      rmSync(killed, { recursive: true, force: true });
+      cpSync(join(dir, 'state'), killed, { recursive: true });
+      return ready;
+    });
+    await runImages({
+      items: [a],
+      ledger: l,
+      provider: bflImage({ apiKey: 'k', fetchImpl: run1.fetchImpl, sleep: noSleep }),
+      outDir: join(dir, 'img'),
+      batchId: 'b',
+      sleep: noSleep,
+    });
+    // Run 2 opens the ledger as the kill left it, after the 10-minute lease.
+    const l2 = new Ledger(killed, { clock: () => Date.now() + 11 * 60 * 1000 });
+    const run2 = fakeBfl(() => ready);
+    const t = await runImages({
+      items: [a],
+      ledger: l2,
+      provider: bflImage({ apiKey: 'k', fetchImpl: run2.fetchImpl, sleep: noSleep }),
+      outDir: join(dir, 'img2'),
+      batchId: 'b',
+      sleep: noSleep,
+    });
+    expect(t.done).toBe(1);
+    expect(run2.seen.submits).toBe(0);
+    expect(run2.seen.polls).toEqual(['https://poll/job1']);
+    expect(l2.spentCents()).toBe(6);
+  });
+
+  it('(c) a poll that times out resumes the same BFL job id on the retry, with no second submit', async () => {
+    const l = ledger();
+    const [a] = items;
+    goodRecord(l, a);
+    const { seen, fetchImpl } = fakeBfl((url, n, signal) =>
+      n === 1 ? new Promise((_, reject) => signal.addEventListener('abort', () => reject(new Error('aborted')))) : ready
+    );
+    const t = await runImages({
+      items: [a],
+      ledger: l,
+      provider: bflImage({ apiKey: 'k', fetchImpl, sleep: noSleep }),
+      outDir: join(dir, 'img'),
+      batchId: 'b',
+      timeoutMs: 30,
+      sleep: noSleep,
+    });
+    expect(t.done).toBe(1);
+    expect(seen.submits).toBe(1);
+    expect(seen.polls).toEqual(['https://poll/job1', 'https://poll/job1']);
+    expect(l.spentCents()).toBe(6);
+  });
+
+  it('(c) the poll limit is a retry of the same job too, and a later run resumes it', async () => {
+    const l = ledger();
+    const [a] = items;
+    goodRecord(l, a);
+    const { seen, fetchImpl } = fakeBfl(() => pending);
+    const t = await runImages({
+      items: [a],
+      ledger: l,
+      provider: bflImage({ apiKey: 'k', fetchImpl, sleep: noSleep, maxPolls: 2 }),
+      outDir: join(dir, 'img'),
+      batchId: 'b',
+      sleep: noSleep,
+    });
+    expect(t.failed).toBe(1);
+    expect(seen.submits).toBe(1);
+    expect(new Set(seen.polls)).toEqual(new Set(['https://poll/job1']));
+    expect(l.spentCents()).toBe(6);
+    const next = fakeBfl(() => ready);
+    const t2 = await runImages({
+      items: [a],
+      ledger: l,
+      provider: bflImage({ apiKey: 'k', fetchImpl: next.fetchImpl, sleep: noSleep }),
+      outDir: join(dir, 'img'),
+      batchId: 'b',
+      sleep: noSleep,
+    });
+    expect(t2.done).toBe(1);
+    expect(next.seen.submits).toBe(0);
+    expect(l.spentCents()).toBe(6);
+  });
+
+  it('only an EXPIRED job is bought anew, and the earlier charge still counts', async () => {
+    const l = ledger();
+    const [a] = items;
+    goodRecord(l, a);
+    l.write({
+      batchId: 'b',
+      courseKey: a.courseKey,
+      lessonId: a.lessonId,
+      kind: 'image',
+      contentSha: a.contentSha,
+      idempotencyKey: keyOf(a),
+      state: 'failed',
+      attempts: 1,
+      costCents: 6,
+      submitted: { id: 'old', pollingUrl: 'https://poll/old' },
+    });
+    const { seen, fetchImpl } = fakeBfl((url) => (url === 'https://poll/old' ? { ok: false, status: 404, text: async () => 'Task not found' } : ready));
+    const t = await runImages({
+      items: [a],
+      ledger: l,
+      provider: bflImage({ apiKey: 'k', fetchImpl, sleep: noSleep }),
+      outDir: join(dir, 'img'),
+      batchId: 'b',
+      sleep: noSleep,
+    });
+    expect(t.done).toBe(1);
+    expect(seen.polls[0]).toBe('https://poll/old');
+    expect(seen.submits).toBe(1);
+    expect(l.spentCents()).toBe(12);
+  });
+
+  it('(b) a lost runner: the newest part save is merged over an older full ledger, never over a newer one', () => {
+    const root = join(dir, 'lp');
+    const put = (p, s) => {
+      mkdirSync(join(root, p, '..'), { recursive: true });
+      writeFileSync(join(root, p), s);
+    };
+    put('state/jobs.jsonl', 'old\n');
+    put('outbox/c/x.jpg', 'X');
+    savePart(root, 200);
+    put('state/jobs.jsonl', 'older-full\n');
+    rmSync(join(root, 'outbox'), { recursive: true });
+    expect(recoverPart(root, 'learn-presentation-ledger-100')).toMatchObject({ recovered: true, partRun: 200, ledgerRun: 100 });
+    expect(readFileSync(join(root, 'state/jobs.jsonl'), 'utf8')).toBe('old\n');
+    expect(readFileSync(join(root, 'images/c/x.jpg'), 'utf8')).toBe('X');
+    expect(readFileSync(join(root, 'outbox/c/x.jpg'), 'utf8')).toBe('X');
+    expect(existsSync(join(root, 'part'))).toBe(false);
+    savePart(root, 200);
+    put('state/jobs.jsonl', 'full-200\n');
+    expect(recoverPart(root, 'learn-presentation-ledger-200').recovered).toBe(false);
+    expect(readFileSync(join(root, 'state/jobs.jsonl'), 'utf8')).toBe('full-200\n');
+  });
+});
+
+// Owner 2026-11-25: six generated titles were flagged needs-review (drafts, so no
+// picture was ever bought). The owner decided their titles; title-decisions.json
+// makes those decisions authoritative without buying a new title.
+describe('the owner title decisions are authoritative (title-decisions.json)', () => {
+  const DECISIONS_PATH = join(process.cwd(), 'scripts/learn-presentation/title-decisions.json');
+  let dec;
+  let file;
+  let realItems;
+  let realCourses;
+  beforeEach(async () => {
+    dec = await import('../../scripts/learn-presentation/lib/decisions.mjs');
+    file = JSON.parse(readFileSync(DECISIONS_PATH, 'utf8'));
+    const { learnInventory } = await import('../lib/learn-presentation/integrity.js');
+    const inventory = learnInventory();
+    realCourses = coursesForValidation(inventory);
+    const want = new Set(file.decisions.map((d) => `${d.courseKey}::${d.lessonId}`));
+    realItems = buildItems(inventory).filter((it) => want.has(`${it.courseKey}::${it.lessonId}`));
+  });
+
+  // The ledger as the library run left it: each lesson a flagged draft with its
+  // text job parked needs-review (2c already spent on it).
+  const seedDrafts = (l) => {
+    for (const it of realItems) {
+      const inf8 = it.lessonId === 'inf8-church-stack';
+      const ll88 = it.lessonId.startsWith('ll88-');
+      l.putRecord({
+        lessonId: it.lessonId,
+        courseKey: it.courseKey,
+        originalTitleAtApproval: it.originalTitle,
+        displayTitle: `Generated title for ${it.lessonId}`,
+        thumbHeadline: 'GENERATED HEADLINE',
+        promoDescription: inf8 ? 'How The Church of the Living God gets its own stack, a gift from Yahweh.' : 'What the lesson teaches about Yahweh.',
+        visual: {
+          prompt: ll88
+            ? 'A Black woman in a sunlit garden sifting dark, crumbly soil, bright natural daylight.'
+            : 'A bright daylight photograph of a smiling Black family at a sunny kitchen table.',
+          alt: 'A smiling Black family.',
+        },
+        image: null,
+        status: 'draft',
+        featured: false,
+        validation: ['flagged'],
+        contentSha: it.contentSha,
+      });
+      l.write({
+        batchId: 'library-v1',
+        courseKey: it.courseKey,
+        lessonId: it.lessonId,
+        kind: 'text',
+        contentSha: it.contentSha,
+        idempotencyKey: idempotencyKey({ batchId: 'library-v1', ...it, kind: 'text' }),
+        state: 'needs-review',
+        attempts: 1,
+        costCents: 2,
+        leaseUntil: null,
+        lastError: 'flagged',
+      });
+    }
+  };
+
+  it('the file is valid, names the six real lessons, and their original titles are unchanged', () => {
+    expect(dec.validateDecisions(file)).toEqual([]);
+    expect(file.decisions).toHaveLength(6);
+    expect(realItems).toHaveLength(6);
+    for (const d of file.decisions) {
+      const it = realItems.find((x) => x.lessonId === d.lessonId);
+      expect(d.originalTitle).toBe(it.originalTitle);
+    }
+  });
+
+  it('the decided titles are used verbatim, the records pass as review, and the export carries no needsReview', () => {
+    const l = ledger();
+    seedDrafts(l);
+    const out = dec.applyDecisions(l, file, { courses: realCourses });
+    expect(out).toEqual({ applied: file.decisions.map(dec.decisionKey), held: [], waiting: [] });
+    for (const d of file.decisions) {
+      const r = l.getRecord(d.courseKey, d.lessonId);
+      expect(r.displayTitle).toBe(d.displayTitle);
+      expect(r.thumbHeadline).toBe(d.thumbHeadline);
+      expect(r.status).toBe('review');
+      expect(r.validation).toEqual([]);
+      expect(r.decision).toMatchObject({ by: file.owner, date: '2026-11-25' });
+    }
+    const rec = (id) => Object.values(l.records).find((r) => r.lessonId.startsWith(id));
+    expect(rec('ll27-').promoDescription).not.toMatch(/\bGod\b/);
+    expect(rec('ll73-').promoDescription).not.toMatch(/\bGod\b/);
+    expect(rec('inf8-').promoDescription).toMatch(/The Church of the Living God/); // the church's proper name stays
+    expect(rec('ll88-').visual.prompt).not.toMatch(/\bdark\b/);
+    const exported = exportRecords(l).records;
+    expect(exported).toHaveLength(6);
+    for (const r of exported) {
+      expect(r.status).toBe('review');
+      expect(r.needsReview).toBeUndefined();
+    }
+  });
+
+  it('no title is bought for a decided lesson, and its picture is bought in the normal batch', async () => {
+    const l = ledger();
+    seedDrafts(l);
+    dec.applyDecisions(l, file, { courses: realCourses });
+    const spentBefore = l.spentCents();
+    const p = mockText(() => {
+      throw new Error('a decided lesson must never reach the text provider');
+    });
+    const t = await runText({
+      items: realItems,
+      ledger: l,
+      provider: p,
+      courses: realCourses,
+      batchId: 'library-v1',
+      concurrency: 1,
+      sleep: noSleep,
+      decided: dec.decidedKeys(file),
+    });
+    expect(p.calls.length).toBe(0);
+    expect(t).toMatchObject({ decided: 6, done: 0, failed: 0 });
+    expect(l.spentCents()).toBe(spentBefore); // closing the text job carries its 2c, adds nothing
+    // Without the decided set the ledger still says the title is finished.
+    const t2 = await runText({ items: realItems, ledger: l, provider: p, courses: realCourses, batchId: 'library-v1', concurrency: 1, sleep: noSleep });
+    expect(p.calls.length).toBe(0);
+    expect(t2.skipped).toBe(6);
+    const { nextLibraryBatch } = await import('../../scripts/learn-presentation/lib/scope.mjs');
+    expect(nextLibraryBatch(realItems, l, 200)).toHaveLength(6); // only the pictures remain
+    const img = mockImage();
+    const ti = await runImages({
+      items: realItems,
+      ledger: l,
+      provider: img,
+      outDir: mkdtempSync(join(tmpdir(), 'img-')),
+      batchId: 'library-v1',
+      concurrency: 1,
+      sleep: noSleep,
+    });
+    expect(img.calls).toBe(6);
+    expect(ti).toMatchObject({ done: 6, waiting: 0 });
+    expect(nextLibraryBatch(realItems, l, 200)).toHaveLength(0);
+  });
+
+  it('re-applying is a no-op on the ledger', () => {
+    const l = ledger();
+    seedDrafts(l);
+    dec.applyDecisions(l, file, { courses: realCourses });
+    const rows = l.seq;
+    const records = JSON.stringify(l.records);
+    dec.applyDecisions(l, file, { courses: realCourses });
+    expect(l.seq).toBe(rows);
+    expect(JSON.stringify(l.records)).toBe(records);
+  });
+
+  it('a decision never clears a duplicate title or a picture-prompt rule (proven to catch)', () => {
+    const l = ledger();
+    seedDrafts(l);
+    const d0 = file.decisions[0];
+    l.putRecord({ lessonId: 'other', courseKey: 'other', displayTitle: d0.displayTitle, status: 'review' });
+    const dark = { ...file, decisions: file.decisions.map((d) => (d.lessonId.startsWith('ll88-') ? { ...d, imagePrompt: 'A Black woman at night.' } : d)) };
+    const out = dec.applyDecisions(l, dark, { courses: realCourses });
+    expect(out.held).toEqual([dec.decisionKey(d0), dec.decisionKey(dark.decisions.find((d) => d.lessonId.startsWith('ll88-')))]);
+    expect(l.getRecord(d0.courseKey, d0.lessonId)).toMatchObject({ status: 'draft' });
+    expect(l.getRecord(d0.courseKey, d0.lessonId).validation.join(' ')).toMatch(/duplicate-display-title/);
+    expect(
+      dec.validateDecisions({ ...file, decisions: [{ ...d0, overrides: [{ code: 'duplicate-display-title', field: 'displayTitle', reason: 'x' }] }] }).join(' ')
+    ).toMatch(/cannot be overridden/);
+    // Without its override, inf8's proper church name is still flagged (the override is what clears it).
+    const bare = { ...file, decisions: file.decisions.map((d) => ({ ...d, overrides: [] })) };
+    const l2 = new Ledger(join(dir, 'state2'));
+    seedDrafts(l2);
+    const inf8 = dec.decisionKey(file.decisions.find((d) => d.lessonId === 'inf8-church-stack'));
+    expect(dec.applyDecisions(l2, bare, { courses: realCourses }).held).toEqual([inf8]);
+    expect(l2.getRecord('infrastructure', 'inf8-church-stack').validation.join(' ')).toMatch(/generic-god \(promoDescription/);
+  });
+
+  it('the committed presentation records carry the decided text for inf1, inf8 and ll27', () => {
+    const committed = JSON.parse(readFileSync(join(process.cwd(), 'src/lib/learn-presentation/presentation-records.json'), 'utf8')).records;
+    for (const id of ['inf1-what-is-sovereign', 'inf8-church-stack', 'll27-the-god-who-documents-his-grief']) {
+      const d = file.decisions.find((x) => x.lessonId === id);
+      const r = committed.find((x) => x.lessonId === id);
+      expect(r).toMatchObject({ displayTitle: d.displayTitle, thumbHeadline: d.thumbHeadline, status: 'review' });
+      if (d.promoDescription) expect(r.promoDescription).toBe(d.promoDescription);
+      expect(r.needsReview).toBeUndefined();
+    }
   });
 });

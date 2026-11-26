@@ -4585,7 +4585,7 @@ ${THEME_CSS}
             submitClassInterest={submitClassInterest}
             classRoster={classRoster}
             isGovernor={isGov}
-            learnStudioDefaultOn={['darrell', 'christina'].includes(personaOf(authSession?.user?.email))}
+            learnStudioDefaultOn /* the new look for EVERY member (DR-1664; it was Darrell and Christina only) */
             currentUserName={authSession?.user?.email || ''}
             onLaunch={(t) => { if (!t) return; if (t.view) setView(t.view); if (t.churchView) { setChurchView(t.churchView); if (t.churchView === 'home') setChurchHomeSection(t.churchSection || null); } }}
             broadcast={broadcastCourse}
@@ -4600,7 +4600,7 @@ ${THEME_CSS}
             setAgeBand={setLearnAgeBand}
             onEngagement={onLearnEngagement}
             submitHelper={submitHelper}
-            initialDept={churchView === 'eternal-algorithms' ? 'the-eternal-algorithms' : null} /* the retired Church route opens Learn on its department (DR-0432) */ eternalStudyProps={{ email: authSession?.user?.email, view, churchView, setView, setChurchView }} signedIn={!!authSession} /* DR-0698: downloads ask a signed-out reader for an account */
+            initialDept={churchView === 'eternal-algorithms' ? 'the-eternal-algorithms' : null} /* the retired Church route opens Learn on its department (DR-0432) */ eternalStudyProps={{ email: authSession?.user?.email, view, churchView, setView, setChurchView }} signedIn={!!authSession} /* DR-0698: downloads ask a signed-out reader for an account */ userTier={data.userTier} /* DR-1652: downloads are PoeTech+ or the Download Pass */
           />;
         })()}
         {view === 'church' && churchView === 'conference' && (
@@ -4632,7 +4632,7 @@ ${THEME_CSS}
         )}
         {view === 'church' && churchView === 'ministries' && <ChurchMinistriesTab onOpen={(s) => s && s.sub && setChurchView(s.sub)} onFeedback={(k) => setFeedbackOpen(k)} />}
         {view === 'church' && churchView === 'bus' && <BusMinistry church={data.church} />}
-        {view === 'church' && churchView === 'institute' && <ChurchInstitute church={data.church} setChurchView={setChurchView} instanceId={churchAccess.instanceId} myUserId={authSession?.user?.id || null} isOffice={!reviewerMode && ['owner','admin'].includes(churchAccess.role)} />}
+        {view === 'church' && churchView === 'institute' && <ChurchInstitute church={data.church} setChurchView={setChurchView} instanceId={churchAccess.instanceId} myUserId={authSession?.user?.id || null} isOffice={!reviewerMode && ['owner','admin'].includes(churchAccess.role)} studioDefaultOn /* the new Institute for every member (DR-1664) */ studentName={personaName(personaOf(authSession?.user?.email)) || authSession?.user?.user_metadata?.full_name || null} learnerRecords={learnerRecords} quizState={data.classQuiz || {}} progress={data.classProgress || {}} />}
         {view === 'church' && churchView === 'youth' && <YouthZone church={data.church} signedIn={!!authSession} setChurchView={setChurchView} />}
         {view === 'church' && churchView === 'members' && <ChurchMembers />}
         {view === 'church' && churchView === 'giving-book' && !reviewerMode && isChurchOfficeRole(churchAccess.role) ? <ChurchGivingBook churchName={data.church?.name || ''} instanceId={churchAccess.instanceId} church={data.church || {}} /> : view === 'church' && churchView === 'giving-book' ? <LockedSurface surface={surfaceById['giving-book']} viewer={surfaceViewer} instanceId={churchAccess.instanceId} what="The church's giving record, kept by the office." /> : null}

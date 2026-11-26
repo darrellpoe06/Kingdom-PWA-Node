@@ -9,6 +9,7 @@
 // before); reading speed is tts.js's own RATE_STEPS and prefs. Reset returns
 // this device to the church's look and Normal text. Your choice is yours
 // alone: it never changes the church's colors for anyone else.
+import AccessibilityStatement from './AccessibilityStatement.jsx';
 import React, { useEffect, useState } from 'react';
 import Modal from '../Modal.jsx';
 import TextSizeControl from '../TextSizeControl.jsx';
@@ -144,6 +145,7 @@ export default function PersonalizeSheet({ open, onClose, theme, setTheme, isOwn
             </button>
           </div>
         </section>
+        <AccessibilityStatement />
       </div>
     </Modal>
   );

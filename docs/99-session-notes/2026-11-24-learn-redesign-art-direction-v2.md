@@ -72,3 +72,7 @@ The integrity baseline (994 lessons, 994 original titles, 4,258 age readings) pa
 - **Remaining 974 lessons:** not generated. `FULL_LIBRARY_ENABLED = false` and `TOTAL_CAP_CENTS = 500` stay until the owner approves the visual direction. At 6¢: about $58.44 (owner reports ~$70 of BFL credits; not verified from here).
 - **Publishing:** LearnStudio is not mounted in ChurchLearn; PR #2852 is on `hold`.
 - **Free perpetual road:** the church GPU node (2× RTX 4070, `infra/gpu-scheduler`, inert) with an open-weight model through the existing `local` ComfyUI provider. Research note: `2026-11-24-free-sovereign-image-generation-research.md`. Running it on a schedule is Tier C (budget, lock, auto-pause). re-review: 2026-12-08.
+
+## 2026-11-25 — compose throughput fix (batch 1, run 45631665336)
+
+Paid batch 1 bought and backed up all four parts by 14:26Z, then sat in the free compose step for over an hour against the 90-minute job limit. Measured cause: sharp runs ONE libvips thread on glibc Linux without jemalloc (the GitHub runner), and AVIF at effort 4 took ~27 s for the 1920 px frame alone (~42 s per lesson worst case). `compose.mjs` now sets `sharp.concurrency(availableParallelism())` — measured 42 s -> 13.7 s per lesson, same encoder settings — and the prepare job limit is 180 minutes. Nothing paid is ever at risk here: every part is cached and backed up before compose starts.

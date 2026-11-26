@@ -59,6 +59,26 @@ export function segmentWords(seg) {
   return typeof seg === 'string' ? seg : (seg && (seg.text || seg.body)) || '';
 }
 
+const squash = (t) =>
+  String(t || '')
+    .replace(/\s+/g, ' ')
+    .trim();
+/**
+ * Is the opening already the start of the reading right below it? Measured
+ * 2026-11-25: 946 of 946 Kids/Youth/Teen lessons showed the same first words
+ * twice (the bubble, then section one). Darrell: "the first few paragraphs of
+ * the lessons are repeated... why?" Pure.
+ */
+export function openingRepeats(opening, firstSection) {
+  const o = squash(opening);
+  return !!o && squash(firstSection).startsWith(o.slice(0, Math.min(o.length, 80)));
+}
+
+/** What the bubble says: the first of opening / title / big idea that the reading does not already begin with, or nothing. */
+export function bubbleFor(opening, title, bigIdea, firstSection) {
+  return [opening, title, bigIdea].find((t) => squash(t) && !openingRepeats(t, firstSection)) || '';
+}
+
 /** The first reference of an anchor like "1 Thessalonians 5:21; Proverbs 25:2". */
 export function firstRef(anchor) {
   return String((anchor && anchor.ref) || '')
@@ -218,13 +238,18 @@ export default function KidsAdventure({
     }
   };
   const segmentText = plan.segments[Math.min(step, plan.segments.length - 1)];
+  const bubble = bubbleFor(opening, (pick && pick.title) || module.title, module.bigIdea, segmentWords(plan.segments[0]));
   const wholeLesson = plan.segments.map(segmentWords).filter(Boolean).join('\n\n');
   const speakable = scroll ? wholeLesson || opening : segmentWords(segmentText) || opening;
   return (
     <div className="kz-adventure" data-testid="kids-adventure" data-lesson={module.id} data-band={band}>
-      <div className="kz-bubble-big" data-testid="adventure-opening">
-        {opening || module.bigIdea}
-      </div>
+      {/* The bubble greets with the lesson's name when the reading below already
+          begins with the opening, so no child reads the same words twice. */}
+      {bubble && (
+        <div className="kz-bubble-big" data-testid="adventure-opening">
+          {bubble}
+        </div>
+      )}
       {ref && (
         <div className="kz-verse" data-testid="adventure-verse">
           {verse === null

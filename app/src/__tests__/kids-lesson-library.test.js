@@ -30,9 +30,14 @@ describe('every lesson is offered, at the right age', () => {
     expect(libraryLessons('child', '', { living }).map((r) => r.lessonId)).toEqual(['ll1-a']);
     expect(libraryLessons('teen', '', { living }).map((r) => r.lessonId)).toEqual(['ll2-b']);
   });
-  it('Living Lessons read newest first; Little Learners keep teaching order; each row opens at its band', () => {
+  // DR-1657: chronological by default (first lesson first), every order on offer.
+  it('Living Lessons read in order by default; Little Learners keep teaching order; each row opens at its band', () => {
     const kids = libraryLessons('child');
-    expect(kids[0].lessonId).toBe([...LIVING_LESSONS_MODULES].reverse().find((m) => m.levels && m.levels.child).id);
+    expect(kids[0].lessonId).toBe(LIVING_LESSONS_MODULES.find((m) => m.levels && m.levels.child).id);
+    expect(libraryLessons('child', '', { sort: 'newest' })[0].lessonId).toBe([...LIVING_LESSONS_MODULES].reverse().find((m) => m.levels && m.levels.child).id);
+    const az = libraryLessons('child', '', { sort: 'az' }).map((r) => r.title);
+    expect(az.slice(0, 5)).toEqual([...az].slice(0, 5).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base', numeric: true })));
+    expect(libraryLessons('child', '', { sort: 'za' })[0].title).toBe(az[az.length - 1]);
     expect(kids.every((r) => r.courseKey === 'living-lessons' && r.band === 'child')).toBe(true);
     const little = libraryLessons('little');
     expect(little[0].lessonId).toBe(LITTLE_LEARNERS_MODULES[0].id);
@@ -52,5 +57,27 @@ describe('every lesson is offered, at the right age', () => {
     expect(lessonLabel('ll341-whoso')).toBe('L341');
     expect(lessonLabel('lil3-big')).toBe('Little 3');
     expect(lessonLabel('other')).toBeNull();
+  });
+});
+
+// Darrell 2026-11-25: "make sure the lesson is align with the age demographics."
+// Measured: every row of every age opens at THAT age's own authored version.
+import { bandOpening } from '../lib/learn-framework.js';
+import { LITTLE_LEARNERS_MODULES as LITTLE_ALL } from '../lib/little-learners-class.js';
+import { LIVING_LESSONS_MODULES as LIVING_ALL } from '../lib/living-lessons-class.js';
+describe('every lesson opens at its age (DR-1657)', () => {
+  const byId = new Map([...LIVING_ALL, ...LITTLE_ALL].map((m) => [m.id, m]));
+  it('Kids, Youth and Teen each open at their own written version; Little Ones at the little course', () => {
+    for (const a of LIBRARY_AGES) {
+      const off = libraryLessons(a.key)
+        .map((r) => ({ r, o: bandOpening(byId.get(r.lessonId), r.band) }))
+        .filter(({ o }) => !o.own || (a.courseKey === 'living-lessons' && o.levelId !== a.depth))
+        .map(({ r, o }) => `${a.key}:${r.lessonId}:${o.levelId}`);
+      expect(off).toEqual([]);
+    }
+  });
+  it('proven to catch: a Kids row opened at the Teen band reads the Teen words, not the Kids words', () => {
+    const r = libraryLessons('child')[0];
+    expect(bandOpening(byId.get(r.lessonId), 'teen').levelId).not.toBe('child');
   });
 });

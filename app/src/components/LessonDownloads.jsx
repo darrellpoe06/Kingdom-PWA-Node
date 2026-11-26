@@ -17,20 +17,48 @@
 //   5. Remove downloads for the same scope.
 // Downloading needs a signed-in account (DR-0698): a signed-out reader gets
 // the same sign-in prompt every download uses.
+// DR-1652 (2026-11-24): downloading is now PAID: PoeTech+ or the one-time
+// Download Pass (components/DownloadAccess.jsx). A signed-in reader without
+// either meets the purchase prompt at the door; reading and Play stay free.
 // =============================================================================
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import DownloadNeedsAccount from './DownloadNeedsAccount.jsx';
+import { useDownloadAccess, DownloadNeedsPurchase } from './DownloadAccess.jsx';
+import { ACCESS } from '../lib/lesson-download-access.js';
 import {
-  LEVEL_BANDS, bandLabel, lessonVersions, normalizeChoice, choiceWords, loadChoice, saveChoice,
-  planDownload, runDownload, removeDownloads, checkRoom, deviceSpace, askToKeep, heldVoiceBytes,
-  formatBytes, reasonWords, readRegistry, subscribeDownloads, savedLevels, savedVoiceBand,
-  loadJob, saveJob, courseContext, SPACE_MARGIN, paceWords, DOWNLOAD_STREAMS,
+  LEVEL_BANDS,
+  bandLabel,
+  lessonVersions,
+  normalizeChoice,
+  choiceWords,
+  loadChoice,
+  saveChoice,
+  planDownload,
+  runDownload,
+  removeDownloads,
+  checkRoom,
+  deviceSpace,
+  askToKeep,
+  heldVoiceBytes,
+  formatBytes,
+  reasonWords,
+  readRegistry,
+  subscribeDownloads,
+  savedLevels,
+  savedVoiceBand,
+  loadJob,
+  saveJob,
+  courseContext,
+  SPACE_MARGIN,
+  paceWords,
+  DOWNLOAD_STREAMS,
 } from '../lib/lesson-downloads.js';
 import { loadCapMb, saveCapMb, deviceClipCache } from '../lib/clip-cache.js';
 import { useScreenAwake } from '../lib/screen-awake.js';
 
 const MB = 1024 * 1024;
-const BTN = 'text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]';
+const BTN =
+  'text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]';
 const BTN_DARK = `${BTN} focus:outline focus:outline-2 focus:outline-[#B85838] border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white`;
 const SERIF = { fontFamily: '"Fraunces", serif' };
 const MONO = { fontFamily: '"JetBrains Mono", monospace' };
@@ -51,14 +79,17 @@ export function useOnline() {
     const up = () => setOn(read());
     window.addEventListener('online', up);
     window.addEventListener('offline', up);
-    return () => { window.removeEventListener('online', up); window.removeEventListener('offline', up); };
+    return () => {
+      window.removeEventListener('online', up);
+      window.removeEventListener('offline', up);
+    };
   }, []);
   return on;
 }
 
 /** The small "Saved" mark in a lesson list. */
 export function SavedMark({ lessonId, reg = null }) {
-  const levels = reg ? ((reg.lessons[lessonId] && reg.lessons[lessonId].levels) || {}) : savedLevels(lessonId);
+  const levels = reg ? (reg.lessons[lessonId] && reg.lessons[lessonId].levels) || {} : savedLevels(lessonId);
   const ids = Object.keys(levels);
   if (!ids.length) return null;
   const withVoice = ids.filter((id) => levels[id].voice);
@@ -91,8 +122,8 @@ export function OfflineLevelNote({ module, ageBand }) {
   return (
     <p data-testid="offline-level-note" role="status" className="mt-2 pl-2 border-l-2 border-[#B85838] text-[0.75rem] text-[#1A1815]" style={SERIF}>
       You are offline. The {bandLabel(ageBand)} reading voice for this lesson is not saved on this device
-      {voiced.length ? `; saved here: ${voiced.map(bandLabel).join(', ')}` : '; only its words are saved'}.
-      {' '}The words are all here, and the phone’s own voice can read them.
+      {voiced.length ? `; saved here: ${voiced.map(bandLabel).join(', ')}` : '; only its words are saved'}. The words are all here, and the phone’s own voice
+      can read them.
     </p>
   );
 }
@@ -104,7 +135,11 @@ function ChoiceRow({ id, checked, onPick, title, sub, size, testid }) {
       <span className="text-[0.75rem] text-[#1A1815]" style={SERIF}>
         <strong>{title}</strong>
         {sub ? <span className="text-[#5A5751]"> · {sub}</span> : null}
-        {size ? <span className="block text-[0.6875rem] text-[#5A5751]" style={MONO} data-testid={`${testid}-size`}>{size}</span> : null}
+        {size ? (
+          <span className="block text-[0.6875rem] text-[#5A5751]" style={MONO} data-testid={`${testid}-size`}>
+            {size}
+          </span>
+        ) : null}
       </span>
     </label>
   );
@@ -179,7 +214,7 @@ export function DownloadPanel({ items, scope, what, removeWhich, deps = null, on
   const [plans, setPlans] = useState({});
   const [room, setRoom] = useState(null);
   const [capMb, setCapMb] = useState(() => loadCapMb());
-  const [run, setRun] = useState(null);       // live progress
+  const [run, setRun] = useState(null); // live progress
   const [summary, setSummary] = useState(null);
   const [removed, setRemoved] = useState(null);
   const signalRef = useRef(null);
@@ -188,7 +223,10 @@ export function DownloadPanel({ items, scope, what, removeWhich, deps = null, on
   const running = !!run && !run.finished;
   useScreenAwake(running && !paused, 'lesson-download');
   // An unfinished download of this scope, read fresh each render (a few bytes).
-  const pending = (() => { const j = loadJob(); return j && j.scope === scope ? j : null; })();
+  const pending = (() => {
+    const j = loadJob();
+    return j && j.scope === scope ? j : null;
+  })();
 
   const c = normalizeChoice(choice);
   const key = (x) => (typeof x === 'string' ? x : `pick:${x.pick.join(',')}`);
@@ -200,11 +238,18 @@ export function DownloadPanel({ items, scope, what, removeWhich, deps = null, on
   const itemsRef = useRef(items);
   itemsRef.current = items;
   const itemsSig = `${scope}:${items.length}`;
-  const savedSig = running ? 'running' : Object.values(reg.lessons).reduce((n, l) => n + Object.keys(l.levels || {}).length + Object.values(l.levels || {}).filter((x) => x.voice).length, 0);
+  const savedSig = running
+    ? 'running'
+    : Object.values(reg.lessons).reduce((n, l) => n + Object.keys(l.levels || {}).length + Object.values(l.levels || {}).filter((x) => x.voice).length, 0);
   useEffect(() => {
     let live = true;
     const items = itemsRef.current;
-    const want = [['adult', true], ['all', true], ['adult', false], ['all', false]];
+    const want = [
+      ['adult', true],
+      ['all', true],
+      ['adult', false],
+      ['all', false],
+    ];
     if (typeof c !== 'string') want.push([c, true], [c, false]);
     (async () => {
       for (const [ch, v] of want) {
@@ -214,37 +259,50 @@ export function DownloadPanel({ items, scope, what, removeWhich, deps = null, on
         setPlans((s) => ({ ...s, [k]: p }));
       }
     })();
-    return () => { live = false; };
+    return () => {
+      live = false;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [itemsSig, key(c), savedSig]);
 
   // The room for the chosen plan.
   useEffect(() => {
     let live = true;
-    if (!current) { setRoom(null); return undefined; }
+    if (!current) {
+      setRoom(null);
+      return undefined;
+    }
     (async () => {
-      const [held, space] = await Promise.all([heldVoiceBytes((deps && deps.cache) || undefined), (deps && deps.space) ? deps.space() : deviceSpace()]);
+      const [held, space] = await Promise.all([heldVoiceBytes((deps && deps.cache) || undefined), deps && deps.space ? deps.space() : deviceSpace()]);
       if (live) setRoom(checkRoom(current, { capMb, heldBytes: held, space }));
     })();
-    return () => { live = false; };
+    return () => {
+      live = false;
+    };
   }, [current, capMb, deps]);
 
   const pickChoice = (id) => {
     const next = id === 'pick' ? { pick } : id;
-    setChoiceState(next); saveChoice(next);
+    setChoiceState(next);
+    saveChoice(next);
   };
   const togglePick = (id) => {
     const next = pick.includes(id) ? pick.filter((x) => x !== id) : [...pick, id];
     const safe = next.length ? next : [id];
     setPick(safe);
-    const ch = { pick: safe }; setChoiceState(ch); saveChoice(ch);
+    const ch = { pick: safe };
+    setChoiceState(ch);
+    saveChoice(ch);
   };
-  const raiseCap = (mb) => { setCapMb(saveCapMb(mb)); };
+  const raiseCap = (mb) => {
+    setCapMb(saveCapMb(mb));
+  };
 
   const start = async ({ voice = withVoice } = {}) => {
     if (running) return;
-    setSummary(null); setRemoved(null);
-    const plan = plans[`${key(c)}|${voice}`] || await planDownload(items, { choice: c, withVoice: voice });
+    setSummary(null);
+    setRemoved(null);
+    const plan = plans[`${key(c)}|${voice}`] || (await planDownload(items, { choice: c, withVoice: voice }));
     if (!voice && withVoice) setWithVoice(false);
     askToKeep();
     saveJob({ scope, choice: key(c), withVoice: voice, at: Date.now() });
@@ -262,7 +320,7 @@ export function DownloadPanel({ items, scope, what, removeWhich, deps = null, on
         cache,
         roomFor: async (need) => {
           if (held + need > loadCapMb() * MB) return 'cap';
-          const space = (deps && deps.space) ? await deps.space() : await deviceSpace();
+          const space = deps && deps.space ? await deps.space() : await deviceSpace();
           if (space && need > space.free - SPACE_MARGIN) return 'space';
           held += need;
           return null;
@@ -273,27 +331,62 @@ export function DownloadPanel({ items, scope, what, removeWhich, deps = null, on
     setSummary(res);
     setRun({ ...res, finished: true });
   };
-  const pause = () => { if (signalRef.current) { signalRef.current.paused = true; setPaused(true); } };
-  const resume = () => { if (signalRef.current) { signalRef.current.paused = false; setPaused(false); } };
-  const stop = () => { if (signalRef.current) { signalRef.current.aborted = true; signalRef.current.paused = false; setPaused(false); } };
+  const pause = () => {
+    if (signalRef.current) {
+      signalRef.current.paused = true;
+      setPaused(true);
+    }
+  };
+  const resume = () => {
+    if (signalRef.current) {
+      signalRef.current.paused = false;
+      setPaused(false);
+    }
+  };
+  const stop = () => {
+    if (signalRef.current) {
+      signalRef.current.aborted = true;
+      signalRef.current.paused = false;
+      setPaused(false);
+    }
+  };
   const remove = async () => {
     const r = await removeDownloads({ which: removeWhich, deps: deps || {} });
     saveJob(null);
-    setRemoved(r); setSummary(null); setRun(null);
+    setRemoved(r);
+    setSummary(null);
+    setRun(null);
   };
 
   const savedHere = Object.entries(reg.lessons).filter(([lessonId, l]) => removeWhich({ lessonId, course: l.course })).length;
-  const versionsNote = items.length === 1
-    ? lessonVersions(items[0].module).map((v) => v.label).join(', ')
-    : LEVEL_BANDS.map((b) => b.label).join(', ');
+  const versionsNote =
+    items.length === 1
+      ? lessonVersions(items[0].module)
+          .map((v) => v.label)
+          .join(', ')
+      : LEVEL_BANDS.map((b) => b.label).join(', ');
   const short = withVoice && room && !room.fits;
   const wordsOnlyPlan = plans[`${key(c)}|false`];
 
   return (
-    <div data-testid="lesson-download-panel" role="group" aria-label={`Download ${what}`} className="basis-full w-full border border-[#1A1815] bg-[#FAF8F4] p-3 mt-1">
+    <div
+      data-testid="lesson-download-panel"
+      role="group"
+      aria-label={`Download ${what}`}
+      className="basis-full w-full border border-[#1A1815] bg-[#FAF8F4] p-3 mt-1"
+    >
       <div className="flex items-baseline justify-between gap-2">
         <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold">Download {what}</div>
-        {onClose && <button type="button" onClick={onClose} className="text-[0.75rem] min-h-[36px] min-w-[36px] text-[#5A5751] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]" aria-label="Close the download panel">✕</button>}
+        {onClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-[0.75rem] min-h-[36px] min-w-[36px] text-[#5A5751] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]"
+            aria-label="Close the download panel"
+          >
+            ✕
+          </button>
+        )}
       </div>
       <p className="text-[0.6875rem] text-[#5A5751] mb-2" style={SERIF}>
         Saved lessons open and read aloud with no connection. Reading levels {items.length === 1 ? 'this lesson has' : 'in these lessons'}: {versionsNote}.
@@ -301,12 +394,32 @@ export function DownloadPanel({ items, scope, what, removeWhich, deps = null, on
 
       {!running && (
         <div role="radiogroup" aria-label="Which reading levels to save">
-          <ChoiceRow id="adult" checked={c === 'adult'} onPick={pickChoice} testid="download-choice-adult"
-            title="Adult only" sub="the smallest; for readers without children" size={sizeLine(plans[`adult|${withVoice}`], withVoice)} />
-          <ChoiceRow id="all" checked={c === 'all'} onPick={pickChoice} testid="download-choice-all"
-            title="All reading levels" sub="every age version written (Child, Youth, Teen, Adult, Senior); for families with children" size={sizeLine(plans[`all|${withVoice}`], withVoice)} />
-          <ChoiceRow id="pick" checked={typeof c !== 'string'} onPick={pickChoice} testid="download-choice-pick"
-            title="Pick levels" size={typeof c !== 'string' ? sizeLine(current, withVoice) : ''} />
+          <ChoiceRow
+            id="adult"
+            checked={c === 'adult'}
+            onPick={pickChoice}
+            testid="download-choice-adult"
+            title="Adult only"
+            sub="the smallest; for readers without children"
+            size={sizeLine(plans[`adult|${withVoice}`], withVoice)}
+          />
+          <ChoiceRow
+            id="all"
+            checked={c === 'all'}
+            onPick={pickChoice}
+            testid="download-choice-all"
+            title="All reading levels"
+            sub="every age version written (Child, Youth, Teen, Adult, Senior); for families with children"
+            size={sizeLine(plans[`all|${withVoice}`], withVoice)}
+          />
+          <ChoiceRow
+            id="pick"
+            checked={typeof c !== 'string'}
+            onPick={pickChoice}
+            testid="download-choice-pick"
+            title="Pick levels"
+            size={typeof c !== 'string' ? sizeLine(current, withVoice) : ''}
+          />
           {typeof c !== 'string' && (
             <div className="flex flex-wrap gap-x-3 gap-y-1 pl-6 mb-1">
               {LEVEL_BANDS.map((b) => (
@@ -325,11 +438,16 @@ export function DownloadPanel({ items, scope, what, removeWhich, deps = null, on
       )}
 
       {!running && short && (
-        <div data-testid="download-room-short" role="status" className="mt-2 p-2 border-l-2 border-[#B85838] bg-white text-[0.75rem] text-[#1A1815]" style={SERIF}>
+        <div
+          data-testid="download-room-short"
+          role="status"
+          className="mt-2 p-2 border-l-2 border-[#B85838] bg-white text-[0.75rem] text-[#1A1815]"
+          style={SERIF}
+        >
           {room.short === 'space'
             ? `This needs ${formatBytes(room.needBytes)}, and this device has ${formatBytes(room.freeBytes)} free.`
-            : `With the reading voice this needs ${formatBytes(room.heldBytes + (current ? current.voiceBytes : 0))} of reading voice, over the ${formatBytes(room.capBytes)} limit you set for this device.`}
-          {' '}Nothing you saved on purpose is cleared to make room.
+            : `With the reading voice this needs ${formatBytes(room.heldBytes + (current ? current.voiceBytes : 0))} of reading voice, over the ${formatBytes(room.capBytes)} limit you set for this device.`}{' '}
+          Nothing you saved on purpose is cleared to make room.
           <div className="flex flex-wrap gap-2 mt-2">
             <button type="button" onClick={() => start({ voice: false })} data-testid="download-words-only" className={BTN_DARK}>
               Save the words only{wordsOnlyPlan ? ` (${formatBytes(wordsOnlyPlan.wordsBytes)})` : ''}
@@ -353,10 +471,14 @@ export function DownloadPanel({ items, scope, what, removeWhich, deps = null, on
             className={`${BTN} font-semibold border-2 border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white disabled:opacity-50`}
           >
             {pending && run == null ? 'Resume the download' : 'Download'}
-            {current && current.toSave ? ` ${current.toSave} ${current.toSave === 1 ? 'lesson' : 'lessons'} · ${formatBytes(current.wordsBytes + (withVoice ? current.voiceBytes : 0))}` : ''}
+            {current && current.toSave
+              ? ` ${current.toSave} ${current.toSave === 1 ? 'lesson' : 'lessons'} · ${formatBytes(current.wordsBytes + (withVoice ? current.voiceBytes : 0))}`
+              : ''}
           </button>
           {current && current.already > 0 && (
-            <span className="text-[0.6875rem] text-[#5A5751]" style={MONO}>{current.already} already on this device</span>
+            <span className="text-[0.6875rem] text-[#5A5751]" style={MONO}>
+              {current.already} already on this device
+            </span>
           )}
         </div>
       )}
@@ -379,9 +501,8 @@ export function DownloadPanel({ items, scope, what, removeWhich, deps = null, on
           two at a time, on the church computer — never the bytes. */}
       {running && withVoice && run && run.pieces && run.pieces.total > 0 && (
         <p className="text-[0.6875rem] text-[#5A5751] mt-1" style={SERIF} data-testid="download-why-slow">
-          Not a download: each of these {run.pieces.total} pieces is a sentence the church computer
-          speaks out loud, {DOWNLOAD_STREAMS} at a time. The megabytes are small because speech is
-          small; the time is the making.
+          Not a download: each of these {run.pieces.total} pieces is a sentence the church computer speaks out loud, {DOWNLOAD_STREAMS} at a time. The megabytes
+          are small because speech is small; the time is the making.
         </p>
       )}
 
@@ -391,7 +512,11 @@ export function DownloadPanel({ items, scope, what, removeWhich, deps = null, on
             <span className="text-[0.6875rem] text-[#1A1815]" style={MONO} aria-live="polite" data-testid="download-progress-text">
               {progressText(run, { paused, running, now: Date.now() })}
             </span>
-            {running && run.current && <span className="text-[0.6875rem] text-[#5A5751] truncate min-w-0 flex-1 text-right" style={SERIF}>{run.current}</span>}
+            {running && run.current && (
+              <span className="text-[0.6875rem] text-[#5A5751] truncate min-w-0 flex-1 text-right" style={SERIF}>
+                {run.current}
+              </span>
+            )}
           </div>
           {/* THE BAR MOVES BY THE PIECE (DR-0746): a lesson with every level
               and the voice is hundreds of pieces, and a bar that waits for the
@@ -399,21 +524,38 @@ export function DownloadPanel({ items, scope, what, removeWhich, deps = null, on
           {(() => {
             const bar = progressFraction(run);
             return (
-              <div className="h-2 bg-[#E8E4DC]" role="progressbar" data-testid="download-progress" aria-label="Download progress"
-                aria-valuemin={0} aria-valuemax={bar.max} aria-valuenow={bar.now}>
+              <div
+                className="h-2 bg-[#E8E4DC]"
+                role="progressbar"
+                data-testid="download-progress"
+                aria-label="Download progress"
+                aria-valuemin={0}
+                aria-valuemax={bar.max}
+                aria-valuenow={bar.now}
+              >
                 <div className="h-full bg-[#5A6E3D]" style={{ width: `${Math.round(bar.fraction * 100)}%` }} />
               </div>
             );
           })()}
           {running && stallWords(run, Date.now()) && (
-            <p className="text-[0.6875rem] text-[#B85838] mt-1" style={SERIF} role="status" data-testid="download-stall">{stallWords(run, Date.now())}</p>
+            <p className="text-[0.6875rem] text-[#B85838] mt-1" style={SERIF} role="status" data-testid="download-stall">
+              {stallWords(run, Date.now())}
+            </p>
           )}
           {running && (
             <div className="flex flex-wrap gap-2 mt-2">
-              {paused
-                ? <button type="button" onClick={resume} data-testid="download-resume" className={`${BTN_DARK} focus:outline focus:outline-2`}>Resume</button>
-                : <button type="button" onClick={pause} data-testid="download-pause" className={`${BTN_DARK} focus:outline focus:outline-2`}>Pause</button>}
-              <button type="button" onClick={stop} data-testid="download-stop" className={`${BTN} border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815]`}>Stop</button>
+              {paused ? (
+                <button type="button" onClick={resume} data-testid="download-resume" className={`${BTN_DARK} focus:outline focus:outline-2`}>
+                  Resume
+                </button>
+              ) : (
+                <button type="button" onClick={pause} data-testid="download-pause" className={`${BTN_DARK} focus:outline focus:outline-2`}>
+                  Pause
+                </button>
+              )}
+              <button type="button" onClick={stop} data-testid="download-stop" className={`${BTN} border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815]`}>
+                Stop
+              </button>
             </div>
           )}
           {running && (
@@ -436,7 +578,9 @@ export function DownloadPanel({ items, scope, what, removeWhich, deps = null, on
           {summary.failed.length > 0 && (
             <ul className="mt-1 list-disc pl-5" data-testid="download-failures">
               {summary.failed.slice(0, 20).map((f) => (
-                <li key={f.lessonId}>{f.title}: {reasonWords(f.reason, { capMb: loadCapMb() })}</li>
+                <li key={f.lessonId}>
+                  {f.title}: {reasonWords(f.reason, { capMb: loadCapMb() })}
+                </li>
               ))}
               {summary.failed.length > 20 && <li>and {summary.failed.length - 20} more.</li>}
             </ul>
@@ -446,24 +590,37 @@ export function DownloadPanel({ items, scope, what, removeWhich, deps = null, on
 
       {!running && savedHere > 0 && (
         <div className="mt-2 flex flex-wrap items-center gap-2">
-          <button type="button" onClick={remove} data-testid="download-remove" className={`${BTN} border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white`}>
+          <button
+            type="button"
+            onClick={remove}
+            data-testid="download-remove"
+            className={`${BTN} border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white`}
+          >
             Remove downloads ({savedHere} saved)
           </button>
         </div>
       )}
       {removed && (
         <p data-testid="download-removed" role="status" className="mt-1 text-[0.6875rem] text-[#5A6E3D]" style={SERIF}>
-          Removed {removed.lessons} {removed.lessons === 1 ? 'lesson' : 'lessons'}{removed.freed ? `, ${formatBytes(removed.freed)} freed` : ''}.
+          Removed {removed.lessons} {removed.lessons === 1 ? 'lesson' : 'lessons'}
+          {removed.freed ? `, ${formatBytes(removed.freed)} freed` : ''}.
         </p>
       )}
-      <p className="mt-2 text-[0.625rem] text-[#5A5751]" style={SERIF}>Your choice of levels is remembered for next time: {choiceWords(c)}.</p>
+      <p className="mt-2 text-[0.625rem] text-[#5A5751]" style={SERIF}>
+        Your choice of levels is remembered for next time: {choiceWords(c)}.
+      </p>
     </div>
   );
 }
 
 function Door({ signedIn, label, openLabel, testid, panel, savedBadge = false }) {
   const [open, setOpen] = useState(false);
-  if (!signedIn) return <DownloadNeedsAccount compact label="Download" />;
+  const { access } = useDownloadAccess();
+  // DR-1655: switched off, the door is closed for everyone and offers a copy request.
+  if (access === ACCESS.CLOSED) return <DownloadNeedsPurchase compact label="Download" />;
+  if (!signedIn || access === ACCESS.SIGN_IN) return <DownloadNeedsAccount compact label="Download" />;
+  // DR-1652: a download is PoeTech+ or the one-time Download Pass.
+  if (access !== ACCESS.ALLOWED) return <DownloadNeedsPurchase compact label="Download" />;
   return (
     <>
       <button
@@ -495,8 +652,7 @@ export function LessonDownloadButton({ module, course, signedIn = true }) {
       openLabel={saved ? '✓ Saved' : '⤓ Download'}
       savedBadge={saved}
       panel={(close) => (
-        <DownloadPanel items={items} scope={`lesson:${module.id}`} what="this lesson" onClose={close}
-          removeWhich={({ lessonId }) => lessonId === module.id} />
+        <DownloadPanel items={items} scope={`lesson:${module.id}`} what="this lesson" onClose={close} removeWhich={({ lessonId }) => lessonId === module.id} />
       )}
     />
   );
@@ -504,10 +660,7 @@ export function LessonDownloadButton({ module, course, signedIn = true }) {
 
 /** On a course: Download this course (N lessons). */
 export function CourseDownloadButton({ course, signedIn = true }) {
-  const items = useMemo(
-    () => ((course && course.schedule) || []).map((m) => ({ module: m, ctx: courseContext(course) })),
-    [course],
-  );
+  const items = useMemo(() => ((course && course.schedule) || []).map((m) => ({ module: m, ctx: courseContext(course) })), [course]);
   const key = courseContext(course).courseKey;
   return (
     <Door
@@ -515,29 +668,21 @@ export function CourseDownloadButton({ course, signedIn = true }) {
       testid="download-course-open"
       label="Keep every lesson of this course on this device"
       openLabel={`⤓ Download this course (${items.length} lessons)`}
-      panel={(close) => (
-        <DownloadPanel items={items} scope={`course:${key}`} what="this course" onClose={close}
-          removeWhich={({ course: c }) => c === key} />
-      )}
+      panel={(close) => <DownloadPanel items={items} scope={`course:${key}`} what="this course" onClose={close} removeWhich={({ course: c }) => c === key} />}
     />
   );
 }
 
 /** On Learn: Download every lesson (N). */
 export function AllDownloadButton({ courses, signedIn = true }) {
-  const items = useMemo(
-    () => (courses || []).flatMap((c) => (c.schedule || []).map((m) => ({ module: m, ctx: courseContext(c) }))),
-    [courses],
-  );
+  const items = useMemo(() => (courses || []).flatMap((c) => (c.schedule || []).map((m) => ({ module: m, ctx: courseContext(c) }))), [courses]);
   return (
     <Door
       signedIn={signedIn}
       testid="download-all-open"
       label="Keep every lesson on this device"
       openLabel={`⤓ Download every lesson (${items.length})`}
-      panel={(close) => (
-        <DownloadPanel items={items} scope="all" what="every lesson" onClose={close} removeWhich={() => true} />
-      )}
+      panel={(close) => <DownloadPanel items={items} scope="all" what="every lesson" onClose={close} removeWhich={() => true} />}
     />
   );
 }

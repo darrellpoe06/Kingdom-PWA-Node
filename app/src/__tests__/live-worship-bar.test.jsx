@@ -9,13 +9,13 @@
 //   • off-window → nothing renders (no fabricated live bar).
 //   • no channel → nothing renders (never a dead frame).
 //   • dismiss    → it stays gone for the session.
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { createElement } from 'react';
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { LiveWorshipBar, livePlayerSrc } from '../components/LiveWorshipBar.jsx';
 import { COLG_DEFAULT_CHURCH } from '../lib/default-church.js';
-import { __resetLivePlayerPrefs, setLivePlayerScale, setLiveBarCollapsed, LIVE_PLAYER_SCALE_KEY, barFrameStyle } from '../lib/live-player-prefs.js';
+import { setLiveBarMini, __resetLivePlayerPrefs, setLivePlayerScale, setLiveBarCollapsed, LIVE_PLAYER_SCALE_KEY, barFrameStyle } from '../lib/live-player-prefs.js';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -106,14 +106,36 @@ describe('LiveWorshipBar — honest service-window gate', () => {
 // the device, with no tap. Proven-to-catch: the frame's style is read from the
 // rendered DOM, not asserted from the store.
 // -----------------------------------------------------------------------------
-describe('LiveWorshipBar — the viewer\'s remembered choice is honoured on the automatic first open', () => {
+// 2026-11-25 (Darrell: "Watching the latest message shouldn't interfere with using the app... we
+// should be able to do both"): the bar now opens as a SMALL FLOATING player. The remembered size
+// (2026-09-09) is honoured the moment the viewer presses Wide; it is no longer the first open.
+describe('LiveWorshipBar — small floating by default; the remembered size is honoured when the viewer goes Wide', () => {
   const frame = () => container.querySelector('[data-live-scale]');
+  const wide = () => act(() => setLiveBarMini(false));
 
-  it('opens in FULL VIEW on first mount when the device remembers Large — no interaction needed', () => {
+  it('opens small and floating, out of the page flow, and one press makes it wide and back without a remount', () => {
+    mount({ now: IN_WINDOW });
+    const before = container.querySelector('iframe');
+    expect(frame().style.position).toBe('fixed');
+    expect(frame().style.width).toBe('min(46vw, 20rem)');
+    const btn = container.querySelector('[data-testid="live-bar-mini"]');
+    expect(btn.getAttribute('aria-pressed')).toBe('true');
+    expect(btn.textContent).toBe('Wide');
+    act(() => btn.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+    expect(frame().style.position).toBe('');
+    expect(frame().style.maxWidth).toBe('56rem');
+    expect(container.querySelector('[data-testid="live-bar-mini"]').textContent).toBe('Small');
+    act(() => container.querySelector('[data-testid="live-bar-mini"]').dispatchEvent(new MouseEvent('click', { bubbles: true })));
+    expect(frame().style.position).toBe('fixed');
+    expect(container.querySelector('iframe')).toBe(before); // same frame: the stream never restarted
+  });
+
+  it('goes to FULL VIEW when the device remembers Large and the viewer presses Wide', () => {
     try { localStorage.setItem(LIVE_PLAYER_SCALE_KEY, 'l'); } catch (_) { /* ignore */ }
     // A fresh session reads the device on module load; simulate that read.
     setLivePlayerScale('l');
     mount({ now: IN_WINDOW });
+    wide();
     expect(frame()).toBeTruthy();
     expect(frame().getAttribute('data-live-scale')).toBe('l');
     expect(frame().style.width).toBe('100%');
@@ -121,8 +143,9 @@ describe('LiveWorshipBar — the viewer\'s remembered choice is honoured on the 
     expect(frame().style.maxHeight).toBe('60vh');
   });
 
-  it('keeps the original medium shape when nothing was chosen', () => {
+  it('Wide keeps the original medium shape when nothing was chosen', () => {
     mount({ now: IN_WINDOW });
+    wide();
     expect(frame().getAttribute('data-live-scale')).toBe('m');
     expect(frame().style.maxWidth).toBe('56rem');
     expect(frame().style.maxHeight).toBe('45vh');
@@ -130,6 +153,7 @@ describe('LiveWorshipBar — the viewer\'s remembered choice is honoured on the 
 
   it('a choice made on the Church home player changes the pinned bar live, with no remount', () => {
     mount({ now: IN_WINDOW });
+    wide();
     const before = container.querySelector('iframe');
     act(() => setLivePlayerScale('l'));
     expect(frame().style.maxHeight).toBe('60vh');
@@ -194,10 +218,67 @@ describe('LiveWorshipBar — the viewer\'s remembered choice is honoured on the 
     expect(document.documentElement.getAttribute('data-live-bar')).toBeNull();
   });
 
+  it('publishes the DRAWN height, not the layout height, so the header meets the bar at a larger text size', () => {
+    // Chromium 158 at zoom 0.8333: offsetHeight 60, drawn 49.98. The header pins at --lwb-h.
+    const rect = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ height: 49.98, width: 300, top: 0, left: 0, right: 300, bottom: 49.98 });
+    const off = vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(60);
+    mount({ now: IN_WINDOW });
+    expect(document.documentElement.style.getPropertyValue('--lwb-h')).toBe('49px');
+    rect.mockRestore();
+    off.mockRestore();
+  });
+
   it('barFrameStyle: large is full width; small is capped narrow; medium is the original', () => {
     expect(barFrameStyle('l')).toMatchObject({ width: '100%', maxHeight: '60vh' });
     expect(barFrameStyle('l').maxWidth).toBeUndefined();
     expect(barFrameStyle('s')).toMatchObject({ maxWidth: '28rem' });
     expect(barFrameStyle('m')).toMatchObject({ maxWidth: '56rem', maxHeight: '45vh' });
+  });
+});
+
+// Darrell 2026-11-26, on his phone: "Should be able to move the hovering video...
+// also close it from itself to not just top right corner".
+describe('the small floating player moves, and closes from itself', () => {
+  const grip = () => container.querySelector('[data-testid="live-mini-grip"]');
+  const frameEl = () => container.querySelector('[data-testid="live-frame"]');
+  const ptr = (node, type, x, y) =>
+    act(() => {
+      const e = new MouseEvent(type, { bubbles: true, cancelable: true, clientX: x, clientY: y });
+      Object.defineProperty(e, 'pointerId', { value: 1 });
+      node.dispatchEvent(e);
+    });
+
+  it('clampMiniOffset keeps the whole frame on screen', async () => {
+    const { clampMiniOffset } = await import('../lib/live-player-prefs.js');
+    const base = { left: 200, top: 500, width: 180, height: 100 }; // default bottom-right corner on a 390x700 screen
+    expect(clampMiniOffset({ dx: -100, dy: -200 }, base, 390, 700)).toEqual({ dx: -100, dy: -200 });
+    expect(clampMiniOffset({ dx: -999, dy: -999 }, base, 390, 700)).toEqual({ dx: -196, dy: -496 }); // stops at the top-left margin
+    expect(clampMiniOffset({ dx: 999, dy: 999 }, base, 390, 700)).toEqual({ dx: 6, dy: 96 }); // stops at the bottom-right margin
+    expect(clampMiniOffset({ dx: 5, dy: 5 }, null, 390, 700)).toEqual({ dx: 0, dy: 0 });
+  });
+
+  it('the grip drags the frame; the stream is the same frame (never restarted); the place holds for the session', () => {
+    mount({ now: IN_WINDOW });
+    const iframe = container.querySelector('iframe');
+    expect(grip()).toBeTruthy();
+    frameEl().getBoundingClientRect = () => ({ left: 200, top: 500, width: 180, height: 100, right: 380, bottom: 600 });
+    Object.defineProperty(window, 'innerWidth', { value: 390, configurable: true });
+    Object.defineProperty(window, 'innerHeight', { value: 700, configurable: true });
+    ptr(grip(), 'pointerdown', 300, 510);
+    ptr(grip(), 'pointermove', 200, 310);
+    ptr(grip(), 'pointerup', 200, 310);
+    expect(frameEl().style.transform).toBe('translate(-100px, -200px)');
+    expect(container.querySelector('iframe')).toBe(iframe);
+    expect(JSON.parse(sessionStorage.getItem('poe.liveWorshipBar.miniPosSession'))).toEqual({ dx: -100, dy: -200 });
+  });
+
+  it('× on the player closes it; Wide on the player puts it across the top', () => {
+    mount({ now: IN_WINDOW });
+    act(() => container.querySelector('[data-testid="live-mini-wide"]').dispatchEvent(new MouseEvent('click', { bubbles: true })));
+    expect(frameEl().style.position).toBe('');
+    expect(grip()).toBeNull(); // the grip belongs to the small player only
+    act(() => container.querySelector('[data-testid="live-bar-mini"]').dispatchEvent(new MouseEvent('click', { bubbles: true })));
+    act(() => container.querySelector('[data-testid="live-mini-close"]').dispatchEvent(new MouseEvent('click', { bubbles: true })));
+    expect(container.querySelector('iframe')).toBeNull();
   });
 });

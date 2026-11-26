@@ -37,11 +37,14 @@ mkdirSync(OUT, { recursive: true });
 // retired must make this FAIL loudly rather than quietly assert nothing — a
 // stale link opening "Learn normally" is correct product behaviour but useless
 // as a probe, so `expectHeading` pins the course that must have rendered.
+// learnStudio=0 (DR-1664): every member now opens Learn in the new look; these cases probe the CLASSIC
+// reader's DOM (#learn-h, #learn-lesson-<id>, the level bodies), so they ask for it by name. The new
+// look's link landing is walked on every push by scripts/e2e/app-journeys.mjs (lesson-link-lands).
 const CASES = [
   {
     name: '1-lesson-link',
     label: 'Lesson link — the exact shape the Share button produces',
-    query: '?view=church&sub=learn&course=healthy-living&lesson=hl-w3-therapeutic-fasting',
+    query: '?view=church&sub=learn&course=healthy-living&lesson=hl-w3-therapeutic-fasting&learnStudio=0',
     expectTab: 'Learn',
     expectHeadingIncludes: 'Healthy Living',
     expectLessonId: 'hl-w3-therapeutic-fasting',
@@ -50,7 +53,7 @@ const CASES = [
   {
     name: '2-course-link',
     label: 'Whole-course link',
-    query: '?view=church&sub=learn&course=world-issues',
+    query: '?view=church&sub=learn&course=world-issues&learnStudio=0',
     expectTab: 'Learn',
     expectHeadingIncludes: 'World Issues',
     expectLessonId: null,
@@ -68,7 +71,7 @@ const CASES = [
     // the code).
     name: '4-level-switch',
     label: 'Level switch — does picking a band change the LESSON BODY on the live site?',
-    query: '?view=church&sub=learn&course=made-in-time&lesson=mit5-those-who-know-their-god',
+    query: '?view=church&sub=learn&course=made-in-time&lesson=mit5-those-who-know-their-god&learnStudio=0',
     expectTab: 'Learn',
     expectHeadingIncludes: 'Made in Time',
     expectLessonId: 'mit5-those-who-know-their-god',

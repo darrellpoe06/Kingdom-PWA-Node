@@ -69,7 +69,7 @@
   border: 0;
   outline: 0;
   color: var(--ls-text);
-  font-size: 15px;
+  font-size: 0.9375rem;
 }
 .ls-search-ico {
   width: 15px;
@@ -115,7 +115,10 @@
   color: #111 !important;
 }
 .ls-btn--ghost {
-  background: rgba(255, 255, 255, 0.22);
+  /* Dark glass, not white glass: white text on white-tinted glass failed over
+     bright photos (2.5:1 measured 2026-11-25). */
+  background: rgba(0, 0, 0, 0.55);
+  border-color: rgba(255, 255, 255, 0.7);
   backdrop-filter: blur(6px);
   color: #fff;
 }
@@ -125,7 +128,7 @@
   gap: 10px;
   border: 2px solid #fff;
   padding: 6px 22px 6px 6px;
-  background: rgba(0, 0, 0, 0.28);
+  background: rgba(0, 0, 0, 0.55);
   backdrop-filter: blur(6px);
   color: #fff;
 }
@@ -162,7 +165,7 @@
   background: linear-gradient(135deg, #3a2a2c, #6b2a22);
 }
 .ls-pic--empty span {
-  font-size: 10px;
+  font-size: 0.625rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   background: rgba(0, 0, 0, 0.35);
@@ -182,8 +185,13 @@
   line-height: 0.98;
   letter-spacing: -0.01em;
   color: #fff;
+  /* A tight dark edge (the first three) keeps the headline 4.5:1+ over any
+     photo, bright sky included; measured 2026-11-25 at ~2:1 with the soft
+     shadow alone (WCAG 2.1 AA 1.4.3). The look is the same headline. */
   text-shadow:
-    0 2px 0 rgba(0, 0, 0, 0.35),
+    0 0 2px rgba(0, 0, 0, 0.9),
+    0 0 1px rgba(0, 0, 0, 0.95),
+    0 1px 3px rgba(0, 0, 0, 0.85),
     0 4px 14px rgba(0, 0, 0, 0.55);
   pointer-events: none;
 }
@@ -210,7 +218,7 @@
   top: 50%;
   transform: translateY(-50%);
   max-width: 54%;
-  font-size: clamp(17px, 2.05vw, 27px);
+  font-size: clamp(1.0625rem, 2.05vw, 1.6875rem);
 }
 /* Legibility without darkening the picture: a soft scrim on the text side only
    (the art direction keeps the subject on the right, open space on the left). */
@@ -228,13 +236,13 @@
   left: 4%;
   bottom: 10%;
   max-width: 55%;
-  font-size: clamp(28px, 5vw, 64px);
+  font-size: clamp(1.75rem, 5vw, 4rem);
 }
 .ls-headline--hero {
   position: static;
   align-items: flex-start;
   text-align: left;
-  font-size: clamp(24px, 3.2vw, 48px);
+  font-size: clamp(1.5rem, 3.2vw, 3rem);
   max-width: 100%;
 }
 .ls-headline--hero .ls-hl-line,
@@ -311,18 +319,18 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  font-size: 22px;
+  font-size: 1.375rem;
   margin: 0;
   flex: 1;
 }
 .ls-note {
   color: var(--ls-dim);
-  font-size: 13px;
+  font-size: 0.8125rem;
 }
 .ls-see {
   background: none;
   border: 0;
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-weight: 700;
 }
 .ls-ico {
@@ -342,7 +350,7 @@
   display: grid;
   place-items: center;
   color: #1a1012;
-  font-size: 16px;
+  font-size: 1rem;
 }
 .ls-ico--play {
   background: var(--ls-red);
@@ -374,6 +382,13 @@
 .ls-scroller--one {
   grid-auto-columns: min(460px, 100%);
 }
+/* A full page of lessons (a course, or a topic's See All): every card on the
+   page, wrapping -- not one card and a sliver beside empty space. */
+.ls-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(260px, 100%), 1fr));
+  gap: 22px 18px;
+}
 .ls-card {
   background: none;
   border: 0;
@@ -396,20 +411,20 @@
   right: 8px;
   bottom: 8px;
   background: rgba(0, 0, 0, 0.78);
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 700;
   padding: 3px 7px;
   border-radius: 6px;
 }
 .ls-card-title {
   font-weight: 700;
-  font-size: 15px;
+  font-size: 0.9375rem;
   line-height: 1.3;
   margin-top: 10px;
 }
 .ls-card-meta {
   color: var(--ls-dim);
-  font-size: 12px;
+  font-size: 0.75rem;
   margin-top: 4px;
 }
 
@@ -447,11 +462,11 @@
 }
 .ls-topic-label {
   font-weight: 800;
-  font-size: 15px;
+  font-size: 0.9375rem;
   text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6);
 }
 .ls-topic-sub {
-  font-size: 10px;
+  font-size: 0.625rem;
   color: #eee;
 }
 
@@ -467,7 +482,7 @@
   background: none;
   border-radius: 999px;
   padding: 6px 14px;
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-weight: 600;
 }
 .ls-chip--dept {
@@ -489,7 +504,7 @@
   border: 0;
   color: var(--ls-gold) !important;
   font-weight: 700;
-  font-size: 14px;
+  font-size: 0.875rem;
   padding: 4px 0 12px;
 }
 .ls-cover-art {
@@ -505,7 +520,7 @@
 }
 .ls-cover-title {
   font-family: 'Fraunces', Georgia, serif;
-  font-size: clamp(28px, 4vw, 48px);
+  font-size: clamp(1.75rem, 4vw, 3rem);
   line-height: 1.1;
   margin: 22px 0 6px;
   max-width: 900px;
@@ -514,21 +529,21 @@
   font-family: 'Fraunces', Georgia, serif;
   font-style: italic;
   color: var(--ls-gold);
-  font-size: clamp(17px, 2vw, 24px);
+  font-size: clamp(1.0625rem, 2vw, 1.5rem);
   margin: 0 0 14px;
   max-width: 900px;
 }
 .ls-cover-meta {
   text-transform: uppercase;
   letter-spacing: 0.14em;
-  font-size: 13px;
+  font-size: 0.8125rem;
   color: var(--ls-dim);
   margin: 0 0 12px;
 }
 .ls-cover-desc {
   max-width: 900px;
   line-height: 1.6;
-  font-size: 16px;
+  font-size: 1rem;
 }
 .ls-cover-actions {
   display: flex;
@@ -546,11 +561,11 @@
   width: 100%;
   text-transform: uppercase;
   letter-spacing: 0.14em;
-  font-size: 12px;
+  font-size: 0.75rem;
   color: var(--ls-dim);
 }
 .ls-handoff {
-  font-size: 13px;
+  font-size: 0.8125rem;
   color: var(--ls-dim);
   margin: 16px 0 26px;
 }
@@ -580,7 +595,7 @@
   .ls-headline--hero {
     align-items: center;
     text-align: center;
-    font-size: clamp(21px, 6.6vw, 34px);
+    font-size: clamp(1.3125rem, 6.6vw, 2.125rem);
   }
   .ls-headline--hero .ls-hl-line {
     white-space: normal; /* a phone is too narrow to hold a long title on one line */
@@ -595,17 +610,17 @@
     grid-auto-columns: 82%;
   }
   .ls-headline--card {
-    font-size: clamp(19px, 5.8vw, 28px);
+    font-size: clamp(1.1875rem, 5.8vw, 1.75rem);
   }
   .ls-cover-art {
     aspect-ratio: 16 / 10;
   }
   .ls-headline--cover {
-    font-size: clamp(26px, 8vw, 40px);
+    font-size: clamp(1.625rem, 8vw, 2.5rem);
     max-width: 70%;
   }
   .ls-row-head h2 {
-    font-size: 19px;
+    font-size: 1.1875rem;
   }
 }
 
@@ -649,7 +664,7 @@
   top: 8px;
   left: 8px;
   z-index: 2;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 800;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -692,4 +707,517 @@
 .ls-hero .ls-interim {
   position: absolute;
   inset: 0;
+}
+
+/* The lessons themselves, first on the page, in order (DR-1661). Solid panel,
+   light text: 15.6:1 on --ls-panel; the number chip is dark on gold (9.9:1). */
+.ls-inorder {
+  margin: 0 0 18px;
+  padding: 12px;
+  border-radius: 16px;
+  background: var(--ls-panel);
+  border: 1px solid var(--ls-line);
+}
+.ls-inorder-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.ls-inorder-head h2 {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 800;
+  color: var(--ls-text);
+}
+.ls-inorder-picks {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.ls-inorder-picks label {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.ls-inorder-picks select {
+  width: 100%;
+  min-height: 44px;
+  border-radius: 10px;
+  border: 1px solid #5a4c4f;
+  background: var(--ls-bg);
+  color: var(--ls-text);
+  padding: 0 10px;
+  font: inherit;
+  font-size: 0.9375rem;
+}
+.ls-inorder-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.ls-inorder-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 48px;
+  padding: 6px 10px;
+  border-radius: 12px;
+  border: 1px solid var(--ls-line);
+  background: var(--ls-bg);
+  color: var(--ls-text);
+  text-align: left;
+  font: inherit;
+}
+.ls-inorder-n {
+  flex: none;
+  min-width: 2.25rem;
+  padding: 4px 6px;
+  border-radius: 8px;
+  background: var(--ls-gold);
+  color: #1a1416;
+  font-weight: 800;
+  font-size: 0.875rem;
+  text-align: center;
+}
+.ls-inorder-t {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  line-height: 1.3;
+}
+.ls-inorder-go {
+  flex: none;
+  color: var(--ls-gold);
+}
+.ls-inorder-more {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+/* ====================================================================   DR-1662 — every classic Learn function, in the new look.
+   Compact rows: the smallest thumbnail with the whole title beside it
+   (Darrell 2026-11-26: "the smallest thumbnails with the titles showing so it
+   will be very inviting"), and one Sort · Show · View bar per list. Meters are
+   gold: true red is reserved (Color Theology, DR-0099).
+   =========================================================================== */
+.ls-mini-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(340px, 100%), 1fr));
+  gap: 8px 14px;
+}
+.ls-mini-list--two {
+  margin-top: 14px;
+}
+.ls-mini {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 72px;
+  padding: 8px;
+  border-radius: 12px;
+  border: 1px solid var(--ls-line);
+  background: var(--ls-panel);
+  color: var(--ls-text);
+  text-align: left;
+}
+.ls-mini:hover {
+  border-color: #7c6431;
+}
+.ls-mini-thumb {
+  position: relative;
+  flex: none;
+  width: 96px;
+  aspect-ratio: 16 / 9;
+  border-radius: 8px;
+  overflow: hidden;
+  background: linear-gradient(135deg, #2c2326, #1a1416);
+  display: grid;
+  place-items: center;
+}
+.ls-mini-thumb img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.ls-mini-code {
+  color: var(--ls-gold);
+  font-weight: 800;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  padding: 0 4px;
+  text-align: center;
+}
+.ls-mini-body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  flex: 1;
+}
+.ls-mini-kicker {
+  color: var(--ls-gold);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.ls-mini-title {
+  font-weight: 700;
+  font-size: 0.9375rem;
+  line-height: 1.3;
+}
+.ls-mini-meta {
+  color: var(--ls-dim);
+  font-size: 0.75rem;
+}
+.ls-meter {
+  display: block;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--ls-line);
+  overflow: hidden;
+  margin-top: 2px;
+}
+.ls-meter > span {
+  display: block;
+  height: 100%;
+  background: var(--ls-gold);
+}
+.ls-meter--big {
+  height: 8px;
+  margin: 12px 0 14px;
+}
+.ls-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+.ls-stat {
+  background: var(--ls-panel);
+  border: 1px solid var(--ls-line);
+  border-radius: 12px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+}
+.ls-stat strong {
+  font-size: 1.5rem;
+  color: var(--ls-gold);
+  line-height: 1.1;
+}
+.ls-stat span {
+  color: var(--ls-dim);
+  font-size: 0.75rem;
+}
+.ls-tools-strip,
+.ls-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.ls-controls {
+  margin: 12px 0;
+  gap: 10px 16px;
+}
+.ls-chip {
+  min-height: 40px;
+}
+.ls-chip--dept.is-on {
+  background: var(--ls-gold);
+  border-color: var(--ls-gold);
+  color: #1a1012;
+}
+.ls-depts + .ls-controls {
+  margin-top: 14px;
+}
+.ls-sort {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.75rem;
+  color: var(--ls-dim);
+}
+.ls-sort select {
+  min-height: 40px;
+  border-radius: 10px;
+  border: 1px solid var(--ls-line);
+  background: var(--ls-panel);
+  color: var(--ls-text);
+  padding: 6px 10px;
+  font: inherit;
+  font-size: 0.875rem;
+}
+.ls-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.ls-toggle-label {
+  color: var(--ls-dim);
+  font-size: 0.75rem;
+  margin-right: 4px;
+}
+.ls-toggle-btn {
+  min-height: 40px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--ls-line);
+  background: var(--ls-panel);
+  color: var(--ls-text);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+.ls-toggle-btn[aria-pressed='true'] {
+  background: var(--ls-gold);
+  border-color: var(--ls-gold);
+  color: #1a1012;
+}
+.ls-more {
+  margin-top: 14px;
+  min-height: 44px;
+}
+.ls-month {
+  list-style: none;
+  color: var(--ls-gold);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 10px 2px 2px;
+}
+.ls-read-mark {
+  color: var(--ls-gold);
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.ls-inorder-row .ls-mini-thumb {
+  width: 80px;
+}
+/* Cards view: the same rows as tiles, picture on top, title under it. */
+.ls-mini-list--pictures {
+  grid-template-columns: repeat(auto-fill, minmax(min(200px, 46%), 1fr));
+}
+.ls-mini-list--pictures .ls-mini,
+.ls-inorder-list--pictures .ls-inorder-row {
+  flex-direction: column;
+  align-items: stretch;
+}
+.ls-mini-list--pictures .ls-mini-thumb,
+.ls-inorder-list--pictures .ls-mini-thumb {
+  width: 100%;
+}
+.ls-inorder-list--pictures {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(200px, 46%), 1fr));
+  gap: 10px;
+}
+.ls-inorder-list--pictures .ls-month {
+  grid-column: 1 / -1;
+}
+.ls-inorder-list--pictures .ls-inorder-go {
+  display: none;
+}
+@media (max-width: 640px) {
+  .ls-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .ls-mini-thumb {
+    width: 84px;
+  }
+}
+.ls-read-mark {
+  display: block;
+  margin-top: 2px;
+  letter-spacing: 0.04em;
+}
+.ls-ages-mini {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 6px 0 4px 92px;
+}
+.ls-age-chip {
+  min-height: 36px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  border: 1px solid #7c6431;
+  background: none;
+  color: #e9c766;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.ls-inorder-list--pictures .ls-ages-mini {
+  padding-left: 0;
+}
+/* The classic tools (Record, Downloads, Find...) wear the new look's panels. */
+.ls-full-tools details,
+.ls-full-tools nav[data-testid='course-lessons-first'] {
+  border-radius: 14px;
+  overflow: hidden;
+}
+.ls-full-tools summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+@media (max-width: 640px) {
+  .ls-ages-mini {
+    padding-left: 0;
+  }
+}
+/* Course page: Pictures | List switch beside the order picker (CourseLessonsView.jsx). */
+.ls-courseview-picks {
+  align-items: center;
+  margin: 10px 0 12px;
+}
+.ls-courseview-switch {
+  display: inline-flex;
+  border: 1px solid #5a4c4f;
+  border-radius: 10px;
+  overflow: hidden;
+  flex: 0 0 auto;
+}
+.ls-courseview-btn {
+  min-height: 44px;
+  padding: 0 16px;
+  border: 0;
+  background: var(--ls-bg);
+  color: var(--ls-text);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.ls-courseview-btn[aria-pressed='true'] {
+  background: var(--ls-text);
+  color: var(--ls-bg);
+}
+
+/* Pictures first (DR-1662 follow-up): the course shelf swipes; the tools stay condensed until opened. */
+.ls-mini-list--shelf {
+  grid-auto-flow: column;
+  grid-template-columns: none;
+  grid-auto-columns: min(240px, 62%);
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  padding-bottom: 6px;
+}
+.ls-mini-list--shelf > * {
+  scroll-snap-align: start;
+}
+.ls-inorder-pictures {
+  margin-top: 4px;
+}
+.ls-tools-summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  cursor: pointer;
+  list-style: none;
+  padding: 6px 0;
+}
+.ls-tools-summary::-webkit-details-marker {
+  display: none;
+}
+.ls-tools-title {
+  font-size: 1.375rem;
+  font-weight: 700;
+  flex: 1;
+}
+.ls-tools-open {
+  border: 1px solid #7c6431;
+  color: #e9c766;
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.ls-full-tools[open] .ls-tools-open {
+  visibility: hidden;
+}
+.ls-tools-body {
+  padding-top: 10px;
+}
+
+/* The featured picture turns on a sideways swipe; up/down still scrolls the page. */
+.ls-hero {
+  touch-action: pan-y;
+}
+/* On a phone a row's note drops under its title instead of squeezing it to one word a line. */
+@media (max-width: 640px) {
+  .ls-row-head {
+    flex-wrap: wrap;
+  }
+  .ls-row-head h2 {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .ls-row-head .ls-note {
+    flex-basis: 100%;
+  }
+}
+
+/* Every option of the classic course page (DR-1667): the course's head, its parts, Recently opened, folds. */
+.ls-course-head {
+  margin: 4px 0 12px;
+}
+.ls-course-tagline {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  margin: 0 0 4px;
+}
+.ls-course-complete {
+  color: var(--ls-gold);
+  font-size: 0.8125rem;
+  margin: 4px 0 0;
+}
+.ls-course-parts {
+  margin: 8px 0 12px;
+}
+.ls-recent {
+  margin: 8px 0 14px;
+  display: grid;
+  gap: 6px;
+}
+.ls-month-btn {
+  background: none;
+  border: 0;
+  color: var(--ls-gold);
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 8px 2px;
+  min-height: 40px;
+  cursor: pointer;
+}
+.ls-fold-all {
+  min-height: 40px;
+  margin: 0 0 10px;
+}
+.ls-play-chip {
+  margin: 4px 0 4px 92px;
+}
+@media (max-width: 640px) {
+  .ls-play-chip {
+    margin-left: 0;
+  }
 }

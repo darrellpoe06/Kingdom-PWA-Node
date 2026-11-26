@@ -175,6 +175,21 @@ export function allLessons(courses) {
   return out;
 }
 
+/**
+ * Find and present ONE lesson anywhere in the full catalog, by id -- not only
+ * among a home screen's curated picks (discover/featured/shelves), which a
+ * link or an "open lesson X" request must not be limited to. Returns the same
+ * { lesson, course, p } shape studioHome's lists use, or null.
+ */
+export function findPresentedLesson(courses, index, lessonId, { preview = false } = {}) {
+  if (!lessonId) return null;
+  const hit = allLessons(courses).find((x) => x.lesson.id === lessonId);
+  if (!hit) return null;
+  const p = presentLesson(hit.lesson, hit.course, index, { preview });
+  if (!p) return null;
+  return { ...hit, p };
+}
+
 // Discovery shelves group DEPARTMENTS; they never reorganize courses (spec §7).
 // A department not listed here still appears in Explore by Topic.
 export const SHELVES = Object.freeze([
@@ -185,6 +200,45 @@ export const SHELVES = Object.freeze([
   { id: 'tech', label: 'A.I. & Technology', departments: ['A.I. The Way', 'Development', 'Serve the House'] },
   { id: 'discover', label: 'History & Mathematics', departments: ['History', 'Mathematics'] },
 ]);
+
+/**
+ * RELATIONSHIPS, IN ONE PLACE (Darrell 2026-11-26: "We need the relationships lessons in one
+ * place... my wife says ladies will want those most"). Lessons carry no topic tags and
+ * relationship teaching runs across courses, so this shelf is a hand-picked list of real lesson
+ * ids, each read for marriage, love and hard conversations, family, or friendship (a lesson that
+ * only mentions a wife or a marriage in passing is not on it). A test fails the build if any id
+ * stops resolving to a mounted lesson. In reading order: marriage, love, family, friendship.
+ */
+export const RELATIONSHIP_LESSONS = Object.freeze([
+  'll230-competence-before-submission-the-study-skills-and-doing-skills-of-a-wife-and-a-husband-with-the-word-answering-first',
+  'll231-does-yahweh-rank-a-wife-over-a-woman-covenant-the-proverbs-31-woman-and-the-order-with-the-word-answering-first',
+  'll122-does-she-feel-like-your-favorite-person-preferring-one-another-and-the-first-works',
+  'll114-what-makes-having-you-better-covenant-not-contract-and-the-value-a-paycheck-cannot-cover',
+  'll121-know-your-own-post-her-provision-her-guard-and-the-beam-in-the-pointing-eye',
+  'll115-meek-and-quiet-strength-the-ornament-of-great-price-and-why-jael-is-not-the-blueprint',
+  'll123-would-you-sign-that-contract-the-answer-the-qualification-and-the-manner-that-forfeited-it',
+  'll319-what-the-trust-could-not-keep',
+  'll157-what-is-love-in-depth-and-in-range-action-based-word-first',
+  'll167-be-a-g-about-it-execute-the-fourteen-love-verbs-high-or-low-because-it-is-not-about-how-you-feel',
+  'll16-rule-your-spirit-repair-the-bond',
+  'll291-fruits-meet-for-repentance',
+  'll151-the-tongue-death-and-life-in-a-little-member-and-the-knowledge-that-governs-it',
+  'll46-ye-fathers-provoke-to-good-works',
+  'll117-no-two-children-grow-up-in-the-same-house-why-siblings-differ-and-the-one-parent-who-is-the-same',
+  'll313-children-are-a-heritage-when-the-school-closes-the-house',
+  'll100-guard-the-little-ones-children-the-millstone-and-mastery-over-the-tools',
+  'll205-talk-about-it-together-parents-children-friends-until-we-see-yahweh-has-been-right',
+  'ea-gh-truth-love',
+]);
+
+/** The Relationships shelf: each listed lesson from the mounted catalog, in the list's order. Pure. */
+export function relationshipShelf(courses, index, { preview = false } = {}) {
+  const at = new Map(allLessons(courses).map((x) => [x.lesson.id, x]));
+  return RELATIONSHIP_LESSONS.map((id) => at.get(id))
+    .filter(Boolean)
+    .map((x) => full(x, index, preview))
+    .filter((x) => x.p);
+}
 
 /** The Explore-by-Topic shelf a department belongs to (its approved cover art). */
 export function shelfForDepartment(department) {
@@ -250,6 +304,7 @@ export function studioHome(courses, index, { places = [], progress = {}, preview
     discover: presented.filter((x) => !x.p.featured).slice(0, 12),
     recentlyAdded,
     shelves,
+    relationships: relationshipShelf(courses, index, { preview }),
     topics,
     totals: { lessons: lessons.length, presented: presented.length, completed },
   };

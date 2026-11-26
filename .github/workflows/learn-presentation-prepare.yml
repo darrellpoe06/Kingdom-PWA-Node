@@ -1,14 +1,16 @@
 # Learn presentation: prepare a title + cinematic thumbnail for each new lesson, for APPROVAL only (never edits a lesson, never publishes).
-# Brakes: $73.43 combined, pictures $65.80 (spent at approval + the $60 / $55 the owner approved), both read from the ledger, retries included (lib/scope.mjs); per-run cap (titles <= 20%); batches of 200; one run at a time; OFF unless vars.LEARN_PRESENTATION_AUTOPREP == 'on'. Detail: docs/99-session-notes/2026-11-24-learn-redesign-art-direction-v2.md Manual (dispatch) only: the full library (approved 2026-11-24) runs batch by batch. Paid work is saved (cache + artifact) even when a later step fails; the NAS pulls each batch (learn-thumbs-pull, DR-1360). Storage first: no paid picture until the NAS has verified every one already paid for (owner 2026-11-24).
+# Brakes: $72.82 combined, pictures $65.80 (spent at approval + the $58 / $55 the owner approved), both read from the ledger, retries included (lib/scope.mjs); per-run cap (titles <= 20%); batches of 200; one run at a time; OFF unless vars.LEARN_PRESENTATION_AUTOPREP == 'on'. Detail: docs/99-session-notes/2026-11-24-learn-redesign-art-direction-v2.md Manual (dispatch) only: the full library (approved 2026-11-24) runs batch by batch. Paid work is saved (cache + artifact) even when a later step fails, and after every part of 50 pictures (a lost runner; lib/part.mjs); the NAS pulls each batch (learn-thumbs-pull, DR-1360). Storage first: no paid picture until the NAS OR the private originals repo (lib/originals-backup.mjs) has verified every one already paid for (owner 2026-11-24/25); each part of 50 is backed up and verified before the next may buy. Passing covers reach main through the claude/* lane (publish job). A stale restored ledger stops before any spend and names only=ledger-restore (lib/ledger-restore.mjs; incident run 45625192907).
 name: Learn presentation — prepare new lessons
 on:
   workflow_dispatch:
     inputs:
-      only: { description: '"backup" = free, every stored picture into one artifact for the NAS. "all" = the next batch of 200 unfinished library lessons (approved 2026-11-24; caps in lib/scope.mjs). "seed" = the 20 pilot lessons. "art:..." = art-direction-v2.json entries', required: true, default: 'seed' }
-      budget_cents: { description: 'Hard spend cap for this whole run, in cents', required: false, default: '500' }
+      only: { description: '"ledger-restore" = free, put the authoritative ledger + pictures back from artifact_id (only as a superset of the restored one), back them up, cache them as the newest ledger. "originals-backup" = free, every paid original into the private originals repo, verified on a fresh clone (nothing bought). "backup" = free, every stored picture into one artifact for the NAS. "all" = the next batch of 200 unfinished library lessons (approved 2026-11-24; caps in lib/scope.mjs). "seed" = the 20 pilot lessons. "art:..." = art-direction-v2.json entries', required: true, default: 'seed' }
+      budget_cents: { description: 'Hard spend cap for this whole run, in cents (1600 fits a 200-lesson batch; never more than the combined cap left, lib/scope.mjs)', required: false, default: '1600' }
+      artifact_id: { description: 'ledger-restore only: the learn-presentation-review artifact holding the authoritative ledger (14954205836 = run 45461834765, 176 paid pictures)', required: false, default: '14954205836' }
       fresh_ledger: { description: 'Type "yes" ONLY for a first run with no saved ledger (a missing ledger otherwise stops the run before any spend)', required: false, default: 'no' }
 permissions:
   contents: read
+  actions: read # ledger-restore and originals-backup's fallback read a run artifact
 concurrency:
   group: learn-presentation-prepare
   cancel-in-progress: false
@@ -16,45 +18,50 @@ jobs:
   prepare:
     if: vars.LEARN_PRESENTATION_AUTOPREP == 'on'
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 180
     defaults: { run: { working-directory: app } }
     env:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
       BFL_API_KEY: ${{ secrets.BFL_API_KEY }}
       LEARN_BFL_RAW: '1'
-      LEARN_THUMBS_RECONCILED: ${{ vars.LEARN_THUMBS_RECONCILED }} # the NAS's verified-backup verdict; paid pictures PAUSE without it (lib/storage-gate.mjs)
-      CAP: ${{ github.event.inputs.budget_cents || vars.LEARN_PRESENTATION_RUN_CAP_CENTS || '500' }}
+      LEARN_THUMBS_RECONCILED: ${{ vars.LEARN_THUMBS_RECONCILED }} # the NAS's verified-backup verdict; paid pictures PAUSE without it or the originals repo's (lib/storage-gate.mjs)
+      LEARN_ORIGINALS_TOKEN: ${{ secrets.LEARN_ORIGINALS_TOKEN }} # contents r/w on darrellpoe06/poetech-learn-originals only; GitHub masks it, the CLI never prints it
+      GITHUB_TOKEN: ${{ github.token }}
+      CAP: ${{ github.event.inputs.budget_cents || vars.LEARN_PRESENTATION_RUN_CAP_CENTS || '1600' }}
       ONLY: ${{ github.event.inputs.only || 'seed' }}
+      ARTIFACT_ID: ${{ github.event.inputs.artifact_id || '14954205836' }}
       CLI: npx vite-node scripts/learn-presentation/cli.mjs
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
-        with: { node-version: 22 }
+      - { uses: actions/setup-node@v7, with: { node-version: 22 } }
       - run: npm ci --ignore-scripts --no-audit --no-fund && (cd scripts/learn-thumbs && npm ci --no-audit --no-fund && npm test) # compositor proven before any paid call
-      - id: ledger
-        uses: actions/cache/restore@v4
-        with: { path: app/.learn-presentation, key: 'learn-presentation-ledger-${{ github.run_id }}', restore-keys: learn-presentation-ledger- }
-      - name: A saved ledger is required (no double spend, no regeneration)
-        if: steps.ledger.outputs.cache-matched-key == '' && github.event.inputs.fresh_ledger != 'yes'
-        run: echo "::error::No saved ledger was restored; stopping before any spend. Type yes in fresh_ledger only for a first run." && exit 1
-      - name: The author's lessons are intact before anything runs
-        run: npx vitest run src/__tests__/learn-integrity-baseline.test.js
+      - { id: ledger, uses: actions/cache/restore@v4, with: { path: app/.learn-presentation, key: 'learn-presentation-ledger-${{ github.run_id }}', restore-keys: learn-presentation-ledger- } }
+      - { uses: actions/cache/restore@v4, with: { path: app/.learn-presentation/part, key: 'learn-presentation-part-${{ github.run_id }}', restore-keys: learn-presentation-part- } } # the newest per-part save; a LOST runner never reaches the end-of-run save (lib/part.mjs)
+      - { name: 'A saved ledger is required (no double spend, no regeneration)', if: "steps.ledger.outputs.cache-matched-key == '' && github.event.inputs.fresh_ledger != 'yes' && github.event.inputs.only != 'ledger-restore'", run: 'echo "::error::No saved ledger was restored; stopping before any spend. Type yes in fresh_ledger only for a first run." && exit 1' }
+      - { name: The author's lessons are intact before anything runs, run: npx vitest run src/__tests__/learn-integrity-baseline.test.js }
       - name: Titles and images (one cap for the whole run; resumes, never redoes finished work)
         run: |
           set -euo pipefail; rm -rf .learn-presentation/outbox # each run's artifact carries only its own new pictures (the NAS pulls them, DR-1360)
+          $CLI part-recover --ledger-key '${{ steps.ledger.outputs.cache-matched-key }}' # a lost run's pictures come back, never re-bought
+          if [ "$ONLY" = ledger-restore ]; then $CLI ledger-restore --artifact "$ARTIFACT_ID"; $CLI originals-backup; $CLI status; exit 0; fi; $CLI ledger-check --ledger-key '${{ steps.ledger.outputs.cache-matched-key }}' # restore: free, superset only; check: a stale restored ledger (run 45625192907) stops here, naming only=ledger-restore
+          if [ "$ONLY" = originals-backup ]; then $CLI originals-backup --fallback-artifact 14954205836; $CLI status; exit 0; fi # free; buys nothing
           SCOPE="--only ${ONLY/#art:*/seed}"; TEXT_CAP=$(( CAP / 5 )); IMAGE_CAP=$(( CAP - TEXT_CAP )); echo "cap ${CAP}c = text ${TEXT_CAP}c + images ${IMAGE_CAP}c"
           $CLI status; [ "${{ github.event.inputs.fresh_ledger }}" = yes ] || $CLI verify-resume --min-cents 98 --min-text 10 --min-images 10 # recovery proven before any spend; scope validated in code (<= 20, never all)
-          case "$ONLY" in backup) mkdir -p .learn-presentation/outbox && cp -r .learn-presentation/images/. .learn-presentation/outbox/ && echo "backup: every stored picture is in this artifact for the NAS (free)" ;; art:*) $CLI art-v2 --only "${ONLY#art:}" --budget-cents "$CAP" ;; *) $CLI text $SCOPE --budget-cents "$TEXT_CAP"; $CLI images $SCOPE --provider bfl --budget-cents "$IMAGE_CAP" --concurrency 6 --per-minute 30 ;; esac
+          case "$ONLY" in backup) mkdir -p .learn-presentation/outbox && cp -r .learn-presentation/images/. .learn-presentation/outbox/ && echo "backup: every stored picture is in this artifact for the NAS (free)" ;; art:*) $CLI originals-backup; $CLI art-v2 --only "${ONLY#art:}" --budget-cents "$CAP" ;; *) $CLI originals-backup; $CLI text $SCOPE --budget-cents "$TEXT_CAP"; echo "PICS=$CLI images $SCOPE --provider bfl --budget-cents $IMAGE_CAP --run-mark $RUNNER_TEMP/lp-mark --max-new 50 --save-part --concurrency 6 --per-minute 30" >> "$GITHUB_ENV" ;; esac
+      - { name: Pictures part 1 of 4 (then back up + verify; a failure stops all buying), if: "env.PICS != ''", run: $PICS && $CLI originals-backup } # four parts of 50, the ledger cached after each: a lost runner loses at most one part's record
+      - { uses: actions/cache/save@v4, if: "always() && env.PICS != ''", with: { path: app/.learn-presentation/part, key: 'learn-presentation-part-${{ github.run_id }}-${{ github.run_attempt }}-1' } }
+      - { name: Pictures part 2 of 4 (then back up + verify; a failure stops all buying), if: "env.PICS != ''", run: $PICS && $CLI originals-backup }
+      - { uses: actions/cache/save@v4, if: "always() && env.PICS != ''", with: { path: app/.learn-presentation/part, key: 'learn-presentation-part-${{ github.run_id }}-${{ github.run_attempt }}-2' } }
+      - { name: Pictures part 3 of 4 (then back up + verify; a failure stops all buying), if: "env.PICS != ''", run: $PICS && $CLI originals-backup }
+      - { uses: actions/cache/save@v4, if: "always() && env.PICS != ''", with: { path: app/.learn-presentation/part, key: 'learn-presentation-part-${{ github.run_id }}-${{ github.run_attempt }}-3' } }
+      - { name: Pictures part 4 of 4 (then back up + verify; a failure stops all buying), if: "env.PICS != ''", run: $PICS && $CLI originals-backup }
+      - { uses: actions/cache/save@v4, if: "always() && env.PICS != ''", with: { path: app/.learn-presentation/part, key: 'learn-presentation-part-${{ github.run_id }}-${{ github.run_attempt }}-4' } }
       - name: Compose thumbnails (free; a failure here never loses paid work)
         if: always()
         continue-on-error: true
-        run: 'if [ "$ONLY" = all ] || [ "$ONLY" = backup ]; then echo "library batch, compose runs as a separate free step"; else $CLI compose --only "${ONLY/#art:*/seed}"; fi'
-      - name: Export the review package
-        if: always()
-        run: $CLI export --to .learn-presentation/review-export.json && $CLI status
-      - uses: actions/cache/save@v4
-        if: always()
-        with: { path: app/.learn-presentation, key: 'learn-presentation-ledger-${{ github.run_id }}' }
+        run: 'case "$ONLY" in *backup|ledger-restore) echo "nothing to compose";; *) $CLI compose --only "${ONLY/#art:*/seed}";; esac' # "all" composes its batch too: the publish job needs it
+      - { name: Export the review package, if: always(), run: rm -rf .learn-presentation/part .learn-presentation/publish && $CLI export --to .learn-presentation/review-export.json && $CLI publish-covers && $CLI status } # part/ is in its own cache
+      - { uses: actions/cache/save@v4, if: always(), with: { path: app/.learn-presentation, key: 'learn-presentation-ledger-${{ github.run_id }}' } }
       - name: The author's lessons are still intact
         if: always()
         run: npx vitest run src/__tests__/learn-integrity-baseline.test.js
@@ -68,3 +75,22 @@ jobs:
             app/.learn-presentation/outbox/
             app/.learn-presentation/state/
           retention-days: 14
+      - { uses: actions/upload-artifact@v4, if: always(), with: { name: 'learn-covers-${{ github.run_id }}', path: app/.learn-presentation/publish/, if-no-files-found: ignore, retention-days: 7 } }
+  publish: # new passing covers only (lib/publish-covers.mjs) -> claude/learn-covers-<run> -> PR; the claude/* lane auto-merges on green
+    needs: prepare
+    if: always() && needs.prepare.result != 'skipped' && !endsWith(github.event.inputs.only, 'backup') && github.event.inputs.only != 'ledger-restore'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions: { contents: write, pull-requests: write, actions: write } # push the branch, open the PR, dispatch CI on it
+    steps:
+      - { uses: actions/checkout@v7, with: { ref: main } } # main as it is NOW: a covers PR cut from the dispatch commit conflicts once an earlier batch's covers land (#2887)
+      - { id: get, uses: actions/download-artifact@v4, continue-on-error: true, with: { name: 'learn-covers-${{ github.run_id }}', path: . } }
+      - name: Commit the new covers and open the PR (a GITHUB_TOKEN push fires no CI, so CI is dispatched on the branch, as keep-prs-current does)
+        if: steps.get.outcome == 'success'
+        env: { GH_TOKEN: '${{ github.token }}', BR: 'claude/learn-covers-${{ github.run_id }}' }
+        run: |
+          set -euo pipefail; git add app/public/learn-thumbs app/src/lib/learn-presentation/presentation-records.json
+          if git diff --cached --quiet; then echo "no new passing covers"; exit 0; fi
+          git -c user.name=learn-presentation -c user.email=actions@users.noreply.github.com commit -qm "Learn covers: new passing covers from run ${GITHUB_RUN_ID}" && git push -q origin "HEAD:refs/heads/$BR"
+          gh pr create --base main --head "$BR" --title "Learn covers: new passing covers (run ${GITHUB_RUN_ID})" --body "New covers that passed their checks (own image, no needsReview). No existing cover or record is replaced (lib/publish-covers.mjs). Label hold to keep it out of the lane."
+          gh workflow run ci.yml --ref "$BR"; gh pr merge "$BR" --auto --squash || echo "::warning::auto-merge not armed; auto-merge.yml's sweep picks it up"

@@ -10,12 +10,24 @@
 // directly under the new display title — visible text, never a tooltip.
 // =============================================================================
 import React, { useMemo, useState, useEffect } from 'react';
-import { studioHome, searchPresented, presentLesson, SHELVES, shelfForDepartment, interimHeadline } from '../../lib/learn-presentation/presentation.js';
+import {
+  studioHome,
+  searchPresented,
+  presentLesson,
+  SHELVES,
+  shelfForDepartment,
+  interimHeadline,
+  findPresentedLesson,
+} from '../../lib/learn-presentation/presentation.js';
 import { READING_VERSIONS } from '../../lib/learn-organize.js';
+import { lessonUrl } from '../../lib/lesson-links.js';
 
 const versionLabel = (id) => (READING_VERSIONS.find((b) => b.id === id) || { label: id }).label;
 // A keyboard user must SEE where they are (ui-standards focus-ring). Gold, never red (red is reserved, DR-0099).
 const RING = 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2';
+import LessonsInOrder from './LessonsInOrder.jsx';
+import { scrollToStudioTools } from '../../lib/learn-studio-bridge.js';
+import CourseLessonsView from './CourseLessonsView.jsx';
 import './learn-studio.css';
 
 /** 2–3 balanced lines, the same rule the thumbnail compositor uses. */
@@ -121,7 +133,7 @@ function Card({ x, onOpen }) {
   );
 }
 
-function Row({ icon = 'play', title, note, items, onOpen, onSeeAll }) {
+function Row({ icon = 'play', title, note, items, onOpen, onSeeAll, grid = false }) {
   if (!items || !items.length) return null;
   return (
     <section className="ls-row">
@@ -137,7 +149,7 @@ function Row({ icon = 'play', title, note, items, onOpen, onSeeAll }) {
           </button>
         )}
       </header>
-      <div className="ls-scroller">
+      <div className={grid ? 'ls-grid ts-grid-collapse' : 'ls-scroller'}>
         {items.map((x) => (
           <Card key={`${x.p.courseKey}::${x.p.lessonId}`} x={x} onOpen={onOpen} />
         ))}
@@ -146,17 +158,56 @@ function Row({ icon = 'play', title, note, items, onOpen, onSeeAll }) {
   );
 }
 
+/** A horizontal swipe of at least this many px, more sideways than up/down, turns the slide. */
+export const SWIPE_PX = 40;
+/** -1 (back), 1 (forward) or 0 for a touch that moved from (x0, y0) to (x1, y1). Pure. */
+export function swipeStep(x0, y0, x1, y1) {
+  const dx = x1 - x0;
+  const dy = y1 - y0;
+  if (Math.abs(dx) < SWIPE_PX || Math.abs(dx) <= Math.abs(dy)) return 0;
+  return dx < 0 ? 1 : -1;
+}
+
 function Hero({ slides, onOpen, onListen }) {
   const [i, setI] = useState(0);
+  // A swipe or a dot restarts the clock, so the slide just chosen is not turned away a moment later.
+  const [moved, setMoved] = useState(0);
+  const start = React.useRef(null);
   useEffect(() => {
     if (slides.length < 2) return undefined;
     const t = setInterval(() => setI((n) => (n + 1) % slides.length), 7000);
     return () => clearInterval(t);
-  }, [slides.length]);
+  }, [slides.length, moved]);
   if (!slides.length) return null;
   const x = slides[i % slides.length];
+  const go = (n) => {
+    setI(((n % slides.length) + slides.length) % slides.length);
+    setMoved((m) => m + 1);
+  };
+  // SWIPING THE PICTURE MOVES IT (Darrell 2026-11-26, on his phone: "Swiping there pictures of
+  // lessons should move it"). Only the dots turned it before.
+  const onTouchStart = (e) => {
+    const t = e.touches && e.touches[0];
+    start.current = t ? { x: t.clientX, y: t.clientY } : null;
+  };
+  const onTouchEnd = (e) => {
+    const t = e.changedTouches && e.changedTouches[0];
+    const s0 = start.current;
+    start.current = null;
+    if (!t || !s0 || slides.length < 2) return;
+    const step = swipeStep(s0.x, s0.y, t.clientX, t.clientY);
+    if (step) go((i % slides.length) + step);
+  };
   return (
-    <section className="ls-hero" aria-roledescription="carousel" aria-label="Featured lessons">
+    <section
+      className="ls-hero"
+      aria-roledescription="carousel"
+      aria-label="Featured lessons"
+      onTouchStart={onTouchStart}
+      onTouchEnd={onTouchEnd}
+      data-testid="ls-hero"
+      data-slide={i % slides.length}
+    >
       <Art p={x.p} eager sizes="100vw" />
       <div className="ls-hero-body">
         <Headline text={x.p.displayTitle} size="hero" align="right" />
@@ -176,11 +227,32 @@ function Hero({ slides, onOpen, onListen }) {
             type="button"
             aria-label={`Show featured lesson ${n + 1}`}
             className={`${n === i % slides.length ? 'on' : ''} ${RING}`}
-            onClick={() => setI(n)}
+            onClick={() => go(n)}
           />
         ))}
       </div>
     </section>
+  );
+}
+
+/**
+ * Every classic Learn tool, CONDENSED BY DEFAULT (Darrell 2026-11-26: "this functionality is
+ * great however by default it should be condensed"). One tap opens it; a tool or department
+ * chip opens it and scrolls to it (scrollToStudioTools). Its contents stay mounted while closed.
+ */
+function ToolsPanel({ title, note, children }) {
+  return (
+    <details className="ls-row ls-full-tools" id="ls-full-tools" data-testid="ls-full-tools">
+      <summary className={`ls-tools-summary ${RING}`}>
+        <span className="ls-ico ls-ico--star" aria-hidden="true" />
+        <span className="ls-tools-title">{title}</span>
+        {note && <span className="ls-note">{note}</span>}
+        <span className="ls-tools-open" aria-hidden="true">
+          Open ▾
+        </span>
+      </summary>
+      <div className="ls-tools-body">{children}</div>
+    </details>
   );
 }
 
@@ -193,7 +265,7 @@ function TopicGrid({ topics, covers, onPick }) {
           Explore by Topic
         </h2>
       </header>
-      <div className="ls-topics">
+      <div className="ls-topics ts-grid-collapse">
         {topics.map((t) => {
           const c = covers && covers[t.id];
           return (
@@ -214,8 +286,16 @@ function TopicGrid({ topics, covers, onPick }) {
 export function LessonCover({ x, next, onBack, onRead, onListen, onVersion, onOpen }) {
   const { p } = x;
   const [shared, setShared] = useState(false);
+  // Darrell, 2026-11-25: "our share links do/should go to each lesson... the
+  // new look needs to do that also... currently it doesn't." This used to
+  // share window.location.href -- the generic Learn page, no course/lesson at
+  // all, since Learn Studio never pushes a URL as it navigates. lessonUrl() is
+  // the SAME real deep-link builder the classic reader's own Share uses
+  // (?course=...&lesson=...), so a link shared from here opens exactly this
+  // lesson for anyone, and (via ChurchLearn's deepLink -> initialLessonId)
+  // lands back in this same new look for the owner's device.
   const share = async () => {
-    const url = typeof window !== 'undefined' ? window.location.href : '';
+    const url = lessonUrl({ courseKey: p.courseKey, lessonId: p.lessonId, course: x.course });
     try {
       if (navigator.share) await navigator.share({ title: p.displayTitle, url });
       else await navigator.clipboard.writeText(url);
@@ -300,6 +380,7 @@ export function LessonCover({ x, next, onBack, onRead, onListen, onVersion, onOp
 const NO_PLACES = Object.freeze([]);
 const NO_PROGRESS = Object.freeze({});
 const NO_COVERS = Object.freeze({});
+const NO_DONE = new Set();
 const CoversContext = React.createContext(NO_COVERS);
 
 export default function LearnStudio({
@@ -314,21 +395,83 @@ export default function LearnStudio({
   onVersion,
   onExit,
   initialLesson = null,
+  initialCourse = null,
+  // DR-1662: every classic Learn function in the new look.
+  dashboard = null, // node: Your Learning, Pick Up Next, Courses (LearnDashboard)
+  tools = null, // node: the full classic tools (Record, Downloads, Find by verse...), in this page
+  done = NO_DONE, // Set of lesson ids on the reader's record
+  onCourse = null, // (courseKey) a course page opened: the tools follow it
+  onDepartment = null, // (label) -> true when the tools took the department
+  courseRequest = null, // { key, nonce }: open this course page (from the dashboard)
+  markFor = null, // (lesson, courseKey) -> "✓ READ ×3 · Adult" or ''
 }) {
   const home = useMemo(() => studioHome(courses, index, { places, progress, preview }), [courses, index, places, progress, preview]);
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(null);
   const [shelf, setShelf] = useState(null);
+  // A COURSE PAGE IN THE NEW LOOK (Darrell, 2026-11-25, on a course link like
+  // ?course=healthy-living: "Fix it"). Every lesson in the course, as a grid --
+  // a lesson without its own picture wears its department's approved art (the
+  // existing Art fallback), so nothing new is generated and nothing is hidden.
+  const [courseKey, setCourseKey] = useState(null);
+  const [allCoursesTick, setAllCoursesTick] = useState(0);
+  useEffect(() => {
+    if (!allCoursesTick) return;
+    const el = typeof document !== 'undefined' && document.querySelector('[data-testid="ls-courses"]');
+    if (el && el.scrollIntoView) el.scrollIntoView({ block: 'start' });
+  }, [allCoursesTick]);
+  const courseOpened = React.useRef(false);
+  // With a lesson in the link too, the lesson's cover shows first and Back
+  // lands on its course; a stale lesson id still lands on the course.
+  useEffect(() => {
+    if (!initialCourse || courseOpened.current) return;
+    courseOpened.current = true;
+    setCourseKey(initialCourse);
+  }, [initialCourse]);
+  useEffect(() => {
+    if (!courseRequest || !courseRequest.key) return;
+    setShelf(null);
+    setQuery('');
+    setOpen(null);
+    setCourseKey(courseRequest.key);
+    try {
+      window.scrollTo(0, 0);
+    } catch {
+      /* no window (tests) */
+    }
+  }, [courseRequest]);
+  useEffect(() => {
+    if (courseKey && onCourse) onCourse(courseKey);
+    // onCourse is a fresh closure each parent render; the course is what matters
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [courseKey]);
+  const pickedCourse = useMemo(() => {
+    if (!courseKey) return null;
+    const c = (courses || []).find((k) => (k.key || (k.meta && k.meta.key)) === courseKey);
+    if (!c) return null;
+    const items = (c.schedule || [])
+      .filter((l) => l && l.id)
+      .map((l) => ({ lesson: l, course: c, p: presentLesson(l, c, index, { preview }) }))
+      .filter((x) => x.p);
+    return { title: (c.meta && c.meta.title) || courseKey, items };
+  }, [courseKey, courses, index, preview]);
   const all = useMemo(() => [...home.discover, ...home.featuredAll, ...home.shelves.flatMap((s) => s.items)], [home]);
   const opened = React.useRef(null);
   useEffect(() => {
     if (!initialLesson || opened.current === initialLesson) return;
-    const hit = all.find((x) => x.p.lessonId === initialLesson);
+    // A DEEP LINK MUST OPEN ANY PRESENTED LESSON, NOT ONLY A HOME-CURATED ONE
+    // (Darrell, 2026-11-25: "our share links do/should go to each lesson...
+    // the new look needs to do that also"). `all` is only the home screen's
+    // picks (discover/featured/shelves) -- a real lesson absent from every
+    // pick (reachable today only via search) silently failed to open. Fall
+    // back to the full catalog, the same lookup search already uses.
+    const inHome = all.find((x) => x.p.lessonId === initialLesson);
+    const hit = inHome || findPresentedLesson(courses, index, initialLesson, { preview });
     if (hit) {
       opened.current = initialLesson; // open once; Back to Learn must stay back
       setOpen(hit);
     }
-  }, [initialLesson, all]);
+  }, [initialLesson, all, courses, index, preview]);
   const results = useMemo(() => (query.trim() ? searchPresented(courses, index, query, { preview }) : []), [courses, index, query, preview]);
   const read = (x, mode) => onRead && onRead(x.lesson, x.course, mode);
   const listen = (x) => onListen && onListen(x.lesson, x.course);
@@ -357,7 +500,8 @@ export default function LearnStudio({
   }
 
   const heroSlides = (home.featuredAll.length ? home.featuredAll : home.discover).slice(0, 4);
-  const pickedShelf = shelf && home.shelves.find((s) => s.id === shelf);
+  const pickedShelf =
+    shelf === 'relationships' ? { id: 'relationships', label: 'Relationships', items: home.relationships } : shelf && home.shelves.find((s) => s.id === shelf);
   return (
     <CoversContext.Provider value={topicCovers}>
       <div className="ls-root">
@@ -372,7 +516,21 @@ export default function LearnStudio({
               aria-label="Search lessons, titles or courses"
             />
           </label>
-          <button type="button" className={`ls-btn ls-btn--outline ls-all ${RING}`} onClick={onExit}>
+          {/* ALL COURSES STAYS IN THE NEW LOOK (Darrell 2026-11-26, sent the classic page:
+              "How is this still a view?"). It opened the classic page; with the courses here it
+              goes to them. Only a page without the dashboard still leaves. */}
+          <button
+            type="button"
+            className={`ls-btn ls-btn--outline ls-all ${RING}`}
+            data-testid="ls-all-courses"
+            onClick={() => {
+              if (!dashboard) return onExit && onExit();
+              setQuery('');
+              setShelf(null);
+              setCourseKey(null);
+              setAllCoursesTick((n) => n + 1);
+            }}
+          >
             All Courses
           </button>
         </div>
@@ -395,15 +553,79 @@ export default function LearnStudio({
               No lesson matches “{query.trim()}”. Search reads new titles, original titles, courses and lesson numbers; try a word from the original title.
             </p>
           )
+        ) : pickedCourse ? (
+          <>
+            <button type="button" className={`ls-back ${RING}`} onClick={() => setCourseKey(null)}>
+              ‹ Back to Learn
+            </button>
+            <CourseLessonsView
+              title={pickedCourse.title}
+              items={pickedCourse.items}
+              onOpen={openLesson}
+              renderPictures={(rows) => <Row title={pickedCourse.title} note={`${rows.length} lessons`} items={rows} onOpen={openLesson} grid />}
+              // DR-1662: List is the compact-thumbnail list (read marks, ages, Show), in the order chosen above.
+              course={(courses || []).find((k) => (k.key || (k.meta && k.meta.key)) === courseKey) || null}
+              onResume={(x) => read(x)}
+              renderList={(order, partIds) => (
+                <LessonsInOrder
+                  courses={courses}
+                  index={index}
+                  preview={preview}
+                  onOpen={(x) => read(x)}
+                  done={done}
+                  fixedCourse={courseKey}
+                  order={order}
+                  onlyIds={partIds}
+                  onListen={listen}
+                  listTestId="course-list"
+                  markFor={markFor}
+                  onVersion={version}
+                />
+              )}
+            />
+            {tools && (
+              <ToolsPanel title={`${pickedCourse.title}: every tool`} note="record, downloads, share, ages">
+                {tools}
+              </ToolsPanel>
+            )}
+          </>
         ) : pickedShelf ? (
           <>
             <button type="button" className={`ls-back ${RING}`} onClick={() => setShelf(null)}>
               ‹ Back to Learn
             </button>
-            <Row title={pickedShelf.label} items={pickedShelf.items} onOpen={openLesson} />
+            <Row title={pickedShelf.label} items={pickedShelf.items} onOpen={openLesson} grid />
           </>
         ) : (
           <>
+            <LessonsInOrder
+              courses={courses}
+              index={index}
+              preview={preview}
+              onOpen={(x) => read(x)}
+              done={done}
+              markFor={markFor}
+              onVersion={version}
+              renderPictures={(rows, { grid }) => (
+                <div className={grid ? 'ls-grid ts-grid-collapse' : 'ls-scroller'}>
+                  {rows.map((x) => (
+                    <Card key={`${x.p.courseKey}::${x.p.lessonId}`} x={x} onOpen={openLesson} />
+                  ))}
+                </div>
+              )}
+            />
+            {/* RELATIONSHIPS, IN ONE PLACE (Darrell 2026-11-26: "my wife says ladies will want those most"). */}
+            <div data-testid="ls-relationships">
+              <Row
+                icon="star"
+                title="Relationships"
+                note="Marriage, love, family and friendship"
+                items={home.relationships}
+                onOpen={openLesson}
+                onSeeAll={() => setShelf('relationships')}
+              />
+            </div>
+            {dashboard}
             <Hero slides={heroSlides} onOpen={openLesson} onListen={listen} />
             <Row icon="play" title="Continue Learning" items={home.continueLearning} onOpen={openLesson} />
             <Row icon="star" title="Discover Something New" note="Hand-picked lessons" items={home.discover} onOpen={openLesson} />
@@ -422,12 +644,27 @@ export default function LearnStudio({
               </header>
               <div className="ls-depts">
                 {home.topics.map((t) => (
-                  <button key={t.label} type="button" className={`ls-chip ls-chip--dept ${RING}`} onClick={onExit}>
+                  <button
+                    key={t.label}
+                    type="button"
+                    className={`ls-chip ls-chip--dept ${RING}`}
+                    onClick={() => {
+                      // The department opens in the tools on this page; only a department the tools do not know leaves for All Courses.
+                      // Never back to the classic page: the department opens in the tools on this page.
+                      if (onDepartment) onDepartment(t.label);
+                      scrollToStudioTools();
+                    }}
+                  >
                     {t.label} · {t.lessons}
                   </button>
                 ))}
               </div>
             </section>
+            {tools && (
+              <ToolsPanel title="Every Learn Tool" note="Continue, Latest, Browse, Find, Record, Downloads">
+                {tools}
+              </ToolsPanel>
+            )}
           </>
         )}
       </div>

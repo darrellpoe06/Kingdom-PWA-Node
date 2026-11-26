@@ -42,7 +42,7 @@
 // the SAME 16px baseline (text-[10px] -> text-[0.625rem]): pixel-identical at Normal,
 // but scaling to ~1.5x at Largest. New reading text here uses rem, never px.
 import React, { useState, useRef, useMemo, useCallback } from 'react';
-import { LEARN_LANDING_AREA, useLearnLanding } from '../lib/learn-landing.js';
+import { LEARN_LANDING_AREA, useLearnLanding, takeLearnAreaHint } from '../lib/learn-landing.js';
 import {
   CLASS_META, PROPOSED_COHORT_START, SESSION_FLOW,
   buildSchedule, progressSummary, exportCurriculumMarkdown, formatClassDate,
@@ -71,6 +71,7 @@ import { markArrivalsSeen, SCREEN_KINDS } from '../lib/arrivals.js';
 import { newShareToken } from '../lib/lesson-share.js';
 import { recordLessonShare, pendingShareToken, reportShareLanded, waitForElement } from '../lib/lesson-share-record.js';
 import DownloadNeedsAccount from './DownloadNeedsAccount.jsx';
+import { withDownloadAccess, DownloadGate, DownloadsSwitch } from './DownloadAccess.jsx';
 import LessonShareLedger from './LessonShareLedger.jsx';
 import { LessonDownloadButton, CourseDownloadButton, AllDownloadButton, SavedMark, OfflineLevelNote, useDownloads, useOnline } from './LessonDownloads.jsx';
 import { savedReadingFor } from '../lib/lesson-downloads.js';
@@ -131,6 +132,7 @@ import { recordUse, recentUsed } from '../lib/ux-signals.js';
 import { noteUse } from '../lib/usage-events.js';
 import { getPlace, getPlaceFor, listPlaces, placeInProgress, placeWhere, recordPlace, finishPlace, clearPlace, getTimeFit, recordTimeFit, refreshPlace, placeIsFinished, placeFinishes, versionsRead, PLACE_FINISHED_EVENT, readingIsFresh } from '../lib/learn-resume.js';
 import { versionRead, deckVersion, bandVersion } from '../lib/lesson-read-mark.js';
+import { studioRecord, studioMarkFor, scrollToStudioTools } from '../lib/learn-studio-bridge.js';
 import { unitLabels } from '../lib/learn-units.js';
 import { ContinueOffer, ContinueChip, RowContinue, resolvePlaces } from './LessonContinue.jsx';
 import LatestLessons from './LatestLessons.jsx';
@@ -165,6 +167,7 @@ import PoeTechShowcase from './PoeTechShowcase.jsx'; // DR-1428: a PoeTech subje
 import LessonVideo from './LessonVideo.jsx'; // DR-1448: the lesson's walk-through, when one is recorded
 import { LESSON_DIAGRAMS } from './lesson-diagrams.jsx'; // DR-1611: lesson figures authored outside this file
 import LearnStudioPreview, { isLearnStudioOn } from './learn-studio/LearnStudioPreview.jsx'; // the redesigned Learn: owner preview, this device only
+import LessonExperienceDoor, { isExperienceLesson } from './learn-studio/LessonExperienceDoor.jsx'; import { experienceTools } from './learn-studio/LessonExperienceTools.jsx'; // the four-mode look for lessons with their own approved cover; the classic space's own tools travel with it
 
 const fmtDate = formatClassDate;
 
@@ -2005,6 +2008,7 @@ function CourseView({
   // in BOTH directions. Opening a lesson records the resume place, so even a
   // reload lands one "Resume →" tap from the same spot.
   const [focusId, setFocusId] = useState(null);
+  const [experienceId, setExperienceId] = useState(null); // the lesson open in the four-mode look (its own approved cover only)
   useHistoryValue(focusId, setFocusId, { base: null, key: 'learn-lesson-focus' });
 
   // THE EXACT LOCATION IS KEPT AND RESTORED (Darrell 2026-09-14: "Lessons keep
@@ -2557,6 +2561,14 @@ function CourseView({
       />
     );
   }
+  const recordQuizWithIntegrity = (id, r) => { // ONE quiz record, two screens: the lesson page and the lesson screen file the same attempt the same way.
+    // DR-1386: every attempt carries how it was taken; a pass credits READ only with evidence of reading.
+    const paced = r ? recordPacedAttempt({ lessonId: id, at: r.at, pct: r.pct, passed: r.passed }) : null;
+    const integrity = { ...attemptIntegrity({ reached: readingReached(getPlaceFor(course.key, id)), ms: r && r.ms, questions: r && r.questions }), ...(paced ? { eyesWpm: paced.eyesWpm, earsWpm: paced.earsWpm, firstTry: paced.firstTry } : {}) };
+    if (recordQuiz) recordQuiz(id, { ...r, integrity });
+    if (r && r.passed) finishRead(id);
+    return integrity; };
+  if (focusModule && experienceId === focusModule.id && isExperienceLesson(focusModule, course)) return <LessonExperienceDoor key={`${focusModule.id}:${ageBand}:${levelOverride || ''}`} lesson={focusModule} course={course} onExit={() => setExperienceId(null)} onOpen={(k, id) => { openLesson(id); setExperienceId(id); }} onFullPage={() => setExperienceId(null)} initialLevel={versionRead(focusModule, ageBand, levelOverride) || 'adult'} lessonTools={experienceTools({ module: focusModule, course, signedIn, ageBand, levelOverride, learnLevel, setAgeBand, setLearnLevel, LevelControl: LessonLevelControl, versionCount: lessonVersionCount(focusModule), savePlace, awake, touchDevice, quizSaved: quizState[focusModule.id] || null, quizSaves: !!recordQuiz, onRecordQuiz: (id, r) => { const back = recordQuizWithIntegrity(id, r); if (onEngagement) onEngagement(r.passed ? 'quiz-passed' : 'quiz-failed', id); return back; } })} />;
   if (teaching) {
     return <Presenter presentable={coursePresentable(course)} initialAge={AGEBAND_TO_PRESENT_AGE[ageBand] || 'teen'} onClose={() => setTeaching(false)} />;
   }
@@ -3062,6 +3074,7 @@ function CourseView({
             <>
               {/* Actions: start the week (tutor + launch), and mark done */}
               <div className="flex flex-wrap gap-2 mt-3 items-center" data-testid={head ? 'lesson-head-row' : 'lesson-foot-row'} data-folded={headFolded ? 'true' : 'false'}>
+                {head && isExperienceLesson(m, course) && <button type="button" data-testid="open-lesson-experience" onClick={() => setExperienceId(m.id)} className="px-3 py-1.5 rounded-full text-sm font-semibold bg-[#A3141C] text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2">▶ Watch · Read · Listen · Study</button>}
                 {tutorOpen && (
                   <>
                     <button
@@ -3131,18 +3144,13 @@ function CourseView({
                   })}
                   onShared={recordLessonShare}
                 />
-                {/* The lesson's FULL text is a download: it needs a free
-                    account (DR-0698). Reading and listening never do. */}
-                {signedIn ? (
-                  <CopyButton
-                    label="Copy lesson"
-                    copiedLabel="Lesson copied ✓"
-                    title="Copy this lesson's text, with its anchor and a link back to it"
-                    text={() => lessonCopyBlock(m, { url: lessonUrl({ courseKey: course.meta.key, lessonId: m.id, course }), level: learnLevel === 'auto' ? 'standard' : learnLevel })}
-                  />
-                ) : (
-                  <DownloadNeedsAccount compact label="Copy lesson" />
-                )}
+                {/* The full text is a download: an account (DR-0698), then PoeTech+ or the pass (DR-1652). */}
+                <DownloadGate compact label="Copy lesson"><CopyButton
+                  label="Copy lesson"
+                  copiedLabel="Lesson copied ✓"
+                  title="Copy this lesson's text, with its anchor and a link back to it"
+                  text={() => lessonCopyBlock(m, { url: lessonUrl({ courseKey: course.meta.key, lessonId: m.id, course }), level: learnLevel === 'auto' ? 'standard' : learnLevel })}
+                /></DownloadGate>
                 <CopyButton
                   label="Copy link"
                   copiedLabel="Link copied ✓"
@@ -3840,14 +3848,7 @@ function CourseView({
                     onEngagement={onEngagement}
                     venueAware={venueAware}
                     quizSaved={quizState[m.id] || null}
-                    onRecordQuiz={(id, r) => {
-                      // DR-1386: every attempt carries how it was taken; a pass credits READ only with evidence of reading.
-                      const paced = r ? recordPacedAttempt({ lessonId: id, at: r.at, pct: r.pct, passed: r.passed }) : null;
-                      const integrity = { ...attemptIntegrity({ reached: readingReached(getPlaceFor(course.key, id)), ms: r && r.ms, questions: r && r.questions }), ...(paced ? { eyesWpm: paced.eyesWpm, earsWpm: paced.earsWpm, firstTry: paced.firstTry } : {}) };
-                      if (recordQuiz) recordQuiz(id, { ...r, integrity });
-                      if (r && r.passed) finishRead(id);
-                      return integrity;
-                    }}
+                    onRecordQuiz={recordQuizWithIntegrity}
                     unitNoun={U.noun}
                     sessionFlow={sessionFlow}
                     onPlace={savePlace}
@@ -4075,12 +4076,13 @@ function CourseView({
       {/* Export — Darrell trusts paper; same source as the screen */}
       <div className="bg-[#FAF8F4] border border-[#E8E4DC] p-3 mb-4">
         <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold mb-2">Teach from paper — export the whole curriculum</div>
-        {/* Downloading needs a free account (DR-0698); reading never does. */}
+        {/* Downloading needs an account (DR-0698), then PoeTech+ or the Download Pass (DR-1652); reading never does. */}
         {!signedIn ? <DownloadNeedsAccount label="Download the curriculum" /> : (
         <div className="flex flex-wrap gap-2">
+          <DownloadGate label="Download the curriculum">
           <button type="button" onClick={copyCurriculum} className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">Copy markdown</button>
           <button type="button" onClick={downloadCurriculum} className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">Download .md</button>
-          <button type="button" onClick={printCurriculum} className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">Print</button>
+          <button type="button" onClick={printCurriculum} className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">Print</button></DownloadGate>
           {/* THE COLORING BOOK — the whole course, one sheet a page (DR-0866).
               It is a COURSE-scope control, so it stands here with the course's
               own Copy / Download / Print, never above one open lesson
@@ -4316,7 +4318,8 @@ function LessonPreviewBadge({ prUrl }) {
   );
 }
 
-export default function ChurchLearn({
+// DR-1652: every download door inside reads one access answer (withDownloadAccess).
+function ChurchLearn({
   cohortStart = PROPOSED_COHORT_START,
   cohortConfirmed = false,
   setCohortStart = null,
@@ -4344,7 +4347,7 @@ export default function ChurchLearn({
   signedIn = true,            // DR-0698: the shell passes !!authSession; a signed-out visitor reads and listens, and a download asks for an account
   learnerRecords = null,      // DR-0754: every learner record this account may read (his own, or every learner's for the Governor)
   currentUserId = null,       // which of those records is mine
-  learnStudioDefaultOn = false, // redesigned Learn defaults ON here with no URL (owner-only; never isGovernor -- every facilitator has that)
+  learnStudioDefaultOn = false, // the redesigned Learn defaults ON with no URL; the shell passes it for every member (DR-1664)
 }) {
   const [interestSent, setInterestSent] = useState({}); // keyed by course key
   const [helped, setHelped] = useState({}); // keyed by course key
@@ -4384,7 +4387,7 @@ export default function ChurchLearn({
   // using subtabs not long scrolling". One area on screen at a time; Lessons is
   // the one that scrolls. Navigation only: every block keeps its place, gated
   // by its area.
-  const [learnArea, setLearnAreaState] = useState(LEARN_LANDING_AREA); // opens on Latest (DR-1606)
+  const [learnArea, setLearnAreaState] = useState(() => takeLearnAreaHint() || LEARN_LANDING_AREA); // opens on Latest (DR-1606), or on the area a link asked for once
   const findFocusPending = React.useRef(false);
   const setLearnArea = (id) => { setLearnAreaState(id); };
   React.useEffect(() => {
@@ -4429,6 +4432,7 @@ export default function ChurchLearn({
   // The nonce makes a second tap on the same title work.
   const [presentRequest, setPresentRequest] = useState(null);
   const playLesson = (courseKey, lessonId) => {
+    if (viaStudio(courseKey, lessonId, { mode: 'listen' })) return;
     setActiveKey(courseKey);
     // The course's own view answers a Play request, and it is mounted only on
     // the Lessons area (DR-1183). From Latest (DR-1251) the area has to come
@@ -4624,6 +4628,7 @@ export default function ChurchLearn({
   // catalog mounts; never while signed out (the record is his account's).
   const [devicePlaces, setDevicePlaces] = useState(() => listPlaces());
   React.useEffect(() => { setDevicePlaces(listPlaces()); }, [placesTick]);
+  const studioRec = React.useMemo(() => studioRecord(devicePlaces, progress), [devicePlaces, progress]); // the new look reads the SAME record (DR-1662)
   const recordHead = React.useMemo(() => {
     if (!signedIn) return null;
     const rows = (Array.isArray(learnerRecords) ? learnerRecords : []).filter((r) => r && (!currentUserId || r.userId === currentUserId));
@@ -4797,6 +4802,7 @@ export default function ChurchLearn({
   // own "Show the text", pressed WHILE the reader is reading. Arming a read in
   // there would restart the reading that just asked to be shown.
   const continueAndRead = (place) => {
+    if (place && viaStudio(place.courseKey, place.lessonId, { mode: 'read' })) return;
     resumeNow(place);
     if (place && place.lessonId) requestRead(place.lessonId);
   };
@@ -4842,13 +4848,19 @@ export default function ChurchLearn({
   }, [courses]);
   const readVersion = (courseKey, lessonId, versionId) => {
     if (typeof setAgeBand === 'function' && versionId) setAgeBand(versionId);
+    if (viaStudio(courseKey, lessonId, { mode: 'read', level: versionId })) return;
     if (learnLevel && learnLevel !== 'auto' && typeof setLearnLevel === 'function') setLearnLevel('auto');
     resumeNow({ courseKey, lessonId });
     requestRead(lessonId, { startSentence: 0 });
   };
   // DR-1481: the Latest list's lesson door, named once and shared with the record's course folds; the course door is DR-1233's.
   const leaveDeptFor = (k) => { if (dept && !visibleCourses.some((c) => c.key === k)) setDeptId('all'); };
-  const openLessonFromList = (k, id) => { leaveDeptFor(k); setActiveKey(k); setResumeOpenGuide(false); setResumeLessonId(id); setResumeNonce((n) => n + 1); setLearnArea('lessons'); };
+  const openLessonClassic = (k, id) => { leaveDeptFor(k); setActiveKey(k); setResumeOpenGuide(false); setResumeLessonId(id); setResumeNonce((n) => n + 1); setLearnArea('lessons'); };
+  // EVERY CLASSIC FUNCTION LIVES IN THE NEW LOOK (DR-1662): while it shows, a lesson chosen in these tools opens in its Experience
+  // through the opener it registers; with none (classic view, or a lesson it cannot open) the classic path runs exactly as before.
+  const studioOpenRef = React.useRef(null);
+  const viaStudio = (courseKey, lessonId, opts) => !!(studioOpenRef.current && courseKey && lessonId && studioOpenRef.current(courseKey, lessonId, opts || {}));
+  const openLessonFromList = (k, id) => { if (!viaStudio(k, id, { mode: 'read' })) openLessonClassic(k, id); };
   const openCourseFromRecord = (k) => { setResumeLessonId(null); setResumeOpenGuide(false); leaveDeptFor(k); openCourseKey(k); setLearnArea('lessons'); };
   const resumeNowRef = React.useRef(resumeNow);
   resumeNowRef.current = resumeNow;
@@ -4899,23 +4911,22 @@ export default function ChurchLearn({
 
   // FULL WIDTH, LIKE EVERY OTHER PAGE (Darrell 2026-09-14: "the lessons are
   // supposed to be the full width of the window... like all pages").
-  const [studioFlag] = useState(() => isLearnStudioOn({ defaultOn: learnStudioDefaultOn })), [studio, setStudio] = useState(studioFlag); // owner preview: on by default for the owner's device (no URL needed in the native app), opt-in elsewhere
-  if (studio) return <LearnStudioPreview courses={courses} onOpenLesson={(k, id) => { setStudio(false); openLessonFromList(k, id); }} onExit={() => setStudio(false)} />;
+  const [studioFlag] = useState(() => isLearnStudioOn({ defaultOn: learnStudioDefaultOn })), [studio, setStudio] = useState(studioFlag); // on by default for every member (DR-1664); ?learnStudio=0 still turns it off on a device
   // MEASURED in a real browser at 1440px rather than guessed: window 1440,
   // <main> 1440, and the lesson card 768 -- constrained by exactly this one
   // `max-w-3xl` on the section below. It was the ONLY limiter in the whole
   // ancestor chain, so that single class was the entire cause.
-  return (
-    <section className="w-full" aria-labelledby="learn-h">
+  const classicLearn = (
+    <section className="w-full" aria-labelledby="learn-h" data-testid={studio ? 'learn-studio-tools' : undefined}>
       <div className="print:hidden">
-        <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">Church · Learn</div>
-        {studioFlag && <button type="button" onClick={() => setStudio(true)} className="mt-2 text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border-2 border-[#1A1815] text-white bg-[#1A1815] hover:bg-[#3a352f] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">‹ New Learn (preview)</button>}
+        {!studio && <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">Church · Learn</div>}
+        {studioFlag && !studio && <button type="button" onClick={() => setStudio(true)} className="mt-2 text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border-2 border-[#1A1815] text-white bg-[#1A1815] hover:bg-[#3a352f] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">‹ New Learn (preview)</button>}
         {/* THE DEPARTMENTS (DR-0432). One row of sliding tabs over the whole
             program: Courses (everything, as usual) and one tab per department
             derived from the catalog's own categories — so it reads like a
             school's catalog and not a pile. Counts are counted from the live
             schedules, never typed. Hidden while a lesson is in focus. */}
-        {courses.length > 1 && !lessonFocus && (
+        {courses.length > 1 && !lessonFocus && !studio /* the new look has its own departments, courses, sorts and standing (DR-1663) */ && (
           <div className="mt-1 mb-4" data-testid="learn-departments">
             <div className="text-[0.6875rem] text-[#5A5751] mb-1" style={{ fontFamily: '"Fraunces", serif' }}>
               One program · {departments.length} departments · {courses.length} courses · {totalLessons} lessons
@@ -5012,7 +5023,7 @@ export default function ChurchLearn({
             lessons were the first thing on the tab. The dropdown is the
             department's choice control; it renders whenever the department has
             a course at all (DR-0598). */}
-        {visibleCourses.length >= 1 && !lessonFocus && (
+        {visibleCourses.length >= 1 && !lessonFocus && !studio && (
           <div className="flex flex-wrap items-end gap-3 mb-5 border-b border-[#E8E4DC] pb-3">
             {/* THE COURSES ARE QUICK LINKS TOO (DR-1233). Darrell 2026-10-27, from
                 his phone on Learn: "Need the courses options to be quick links
@@ -5785,6 +5796,7 @@ export default function ChurchLearn({
             />
           </div>
         )}
+        {learnArea === 'downloads' && isGovernor && !lessonFocus && <DownloadsSwitch />}
         {/* DOWNLOAD THIS COURSE (DR-0722) — every lesson, at the levels chosen.
             In the Downloads area beside the catalog's download (DR-1190). */}
         {learnArea === 'downloads' && courseOpen && !lessonFocus && (
@@ -5792,7 +5804,6 @@ export default function ChurchLearn({
             <CourseDownloadButton course={active} signedIn={signedIn} />
           </div>
         )}
-
 
         {/* Derived catalog line — counted LIVE from the mounted courses (never a
             hand-typed number, DR-0121). The >= 40-lesson floor is machine-held
@@ -6011,4 +6022,16 @@ export default function ChurchLearn({
       )}
     </section>
   );
+  // A shared lesson link lands in the new look too (Darrell 2026-11-25): deepLink threads through as initialLessonId / initialCourseKey.
+  if (studio) {
+    const onDepartment = (label) => { const d = departments.find((x) => x.label === label); if (!d) return false; setResumeLessonId(null); setResumeOpenGuide(false); setDeptId(d.id); setLearnAreaState('lessons'); return true; };
+    const onTool = (area) => { setResumeLessonId(null); setResumeOpenGuide(false); setDeptId('all'); setLearnArea(area); scrollToStudioTools(); };
+    return <LearnStudioPreview courses={courses} onOpenLesson={(k, id) => { setStudio(false); openLessonClassic(k, id); }} onExit={() => setStudio(false)} ownerDevice={learnStudioDefaultOn}
+      initialLessonId={deepLink && deepLink.lessonId} initialCourseKey={deepLink && deepLink.courseKey} tools={classicLearn} ctx={studioRec.ctx} places={studioRec.begun} done={studioRec.done}
+      continueCount={inProgress.length} recordCount={recordHead ? recordHead.lessonsRead : 0} markFor={studioMarkFor({ places: devicePlaces, recordFor: myRecordFor, ageBand })}
+      onTool={onTool} registerOpener={(fn) => { studioOpenRef.current = fn; }} onCourse={(k) => { if (k) openCourseFromRecord(k); }} onDepartment={onDepartment} />;
+  }
+  return classicLearn;
 }
+
+export default withDownloadAccess(ChurchLearn);

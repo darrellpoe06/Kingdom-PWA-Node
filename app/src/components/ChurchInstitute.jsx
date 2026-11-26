@@ -25,7 +25,7 @@
 // large print scales it (UX-PATTERNS 2b); 36px+ targets with a focus ring
 // (2g); in-place opens, no scroll flight (2e); a surface never goes blank, it
 // says what it sees and what is missing (P15).
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import SectionTabs from './SectionTabs.jsx';
 import {
   INSTITUTE_META,
@@ -42,6 +42,14 @@ import {
 import * as defaultSync from '../lib/church-institute-sync.js';
 import { lessonUrl } from '../lib/lesson-links.js';
 import { resolveChurch } from '../lib/resolve-church.js';
+import InstituteStudio from './institute/InstituteStudio.jsx';
+import InstituteCourseCards from './institute/InstituteCourseCards.jsx';
+import { listPlaces } from '../lib/learn-resume.js';
+import { motionBehavior } from '../lib/gentle-motion.js';
+import { isInstituteStudioOn, courseCovers } from '../lib/institute-studio.js';
+import { myAccomplishments, lessonIndex } from '../lib/institute-record.js';
+import { setLearnAreaHint } from '../lib/learn-landing.js';
+import { LEARN_CATALOG } from '../lib/learn-catalog.js';
 
 const FOCUS = 'focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]';
 const STATUS_WORD = Object.freeze({ applied: 'Applied', accepted: 'Accepted', withdrawn: 'Withdrawn', completed: 'Completed' });
@@ -105,20 +113,18 @@ function PopulationPaths({ paths, testid = 'institute-by-age' }) {
   return (
     <div className="mt-2" data-testid={testid}>
       <p className="lc-small">
-        <b>By age, young to seniors.</b> Each lesson carries its own words for each age.
+        <b>By age, young to seniors.</b> Each row opens one course written for that age, and counts that course only: Living Lessons from the Word, and Little
+        Learners for the little ones. The Institute's other courses are listed above.
       </p>
       <ul className="lc-ages mt-1" aria-label="Lessons by age">
         {paths.map((r) => (
           <li key={r.key}>
-            <a
-              href={lessonUrl({ courseKey: r.courseKey })}
-              className={`lc-age ${FOCUS}`}
-              data-testid={`institute-age-${r.key}`}
-              data-count={r.count}
-            >
+            <a href={lessonUrl({ courseKey: r.courseKey })} className={`lc-age ${FOCUS}`} data-testid={`institute-age-${r.key}`} data-count={r.count}>
               <b>{r.label}</b>
               <small>ages {r.range}</small>
-              <small>{r.count} lessons ›</small>
+              <small>
+                {r.count} {r.courseKey === 'living-lessons' ? 'Living Lessons' : 'Little Learners lessons'} ›
+              </small>
             </a>
           </li>
         ))}
@@ -456,12 +462,33 @@ export default function ChurchInstitute({
   myUserId = null,
   isOffice = false,
   sync = defaultSync,
+  studioDefaultOn = false, // the approved redesign: owner-device preview (lib/institute-studio.js)
+  studentName = null,
+  learnerRecords = null, // the student's own class record rows, the shell's quiz and progress maps:
+  quizState = null, //   what the studio's Your Record acknowledges (lib/institute-record.js)
+  progress = null,
 }) {
   const c = resolveChurch(church);
-  const programs = useMemo(
-    () => PROGRAMS.map((p) => ({ ...p, status: programStatus(p), courses: programCourses(p), list: programCourseList(p) })),
-    []
-  );
+  const [studio] = useState(() => isInstituteStudioOn({ defaultOn: studioDefaultOn }));
+  // Course covers for the studio's photographic cards: the lesson-art records load
+  // only when the studio is on (owner device), so the public Institute never pays for them.
+  const [covers, setCovers] = useState(() => new Map());
+  useEffect(() => {
+    if (!studio) return undefined;
+    let on = true;
+    import('../lib/learn-presentation/presentation-records.json')
+      .then((m) => {
+        if (on) setCovers(courseCovers((m.default || m).records, { preview: true }));
+      })
+      .catch(() => {
+        /* no covers: the cards fall back to the program photograph */
+      });
+    return () => {
+      on = false;
+    };
+  }, [studio]);
+  const started = useMemo(() => new Set(studio ? listPlaces({ inProgress: true }).map((x) => x.courseKey) : []), [studio]);
+  const programs = useMemo(() => PROGRAMS.map((p) => ({ ...p, status: programStatus(p), courses: programCourses(p), list: programCourseList(p) })), []);
   const open = useMemo(() => availableCourses(), []);
   const paths = useMemo(() => populationPaths(), []);
   /** "also in <program>" for a course a second program names, so a shared course reads where else it lives. */
@@ -484,6 +511,29 @@ export default function ChurchInstitute({
   const [only, setOnly] = useState('all'); // the Courses tab's program filter
   const goLearn = () => {
     if (setChurchView) setChurchView('learn');
+  };
+  const lessonTitles = useMemo(() => (studio && myUserId ? lessonIndex(LEARN_CATALOG) : null), [studio, myUserId]);
+  const myRecord = useMemo(
+    () => (lessonTitles ? myAccomplishments({ records: learnerRecords || [], quizState: quizState || {}, progress: progress || {}, index: lessonTitles, userId: myUserId }) : null),
+    [lessonTitles, myUserId, learnerRecords, quizState, progress]
+  );
+  const catalog = useMemo(() => new Map(programs.flatMap((p) => p.list.map(({ course }) => [course.key, course]))), [programs]);
+  // A studio button OPENS a section AND TAKES THE READER TO IT (Darrell 2026-11-25, from the
+  // live preview: "Buttons don't go anywhere for anything on this screen"). The sections sit
+  // below a tall home, so switching the tab alone changed nothing the reader could see.
+  const sectionsRef = useRef(null);
+  const openSection = (id, programKey = null) => {
+    if (programKey) setOnly(programKey);
+    else if (id === 'courses') setOnly('all');
+    setActive(id);
+    const go = () => {
+      const el = sectionsRef.current;
+      if (!el) return;
+      if (el.scrollIntoView) el.scrollIntoView({ behavior: motionBehavior(), block: 'start' });
+      if (el.focus) el.focus({ preventScroll: true });
+    };
+    if (typeof requestAnimationFrame === 'function') requestAnimationFrame(go);
+    else go();
   };
 
   useEffect(() => {
@@ -558,7 +608,18 @@ export default function ChurchInstitute({
                   <p className="lc-p">{p.blurb}</p>
                   <Status kind={p.status} />
                   {p.list.length > 0 && (
-                    <details className="lc-inst-more mt-2" data-testid={`institute-program-more-${p.key}`}>
+                    <details
+                      className="lc-inst-more mt-2"
+                      data-testid={`institute-program-more-${p.key}`}
+                      // In the studio every program opens with its course cards showing (Darrell 2026-11-25:
+                      // "Should be open by default... looks better"); the reader can still fold one away.
+                      ref={(el) => {
+                        if (el && studio && !el.dataset.opened) {
+                          el.dataset.opened = '1';
+                          el.open = true;
+                        }
+                      }}
+                    >
                       <summary className={`lc-btn lc-btn-gold ${FOCUS}`} data-testid={`institute-program-count-${p.key}`}>
                         Explore {p.list.length} courses
                       </summary>
@@ -566,11 +627,22 @@ export default function ChurchInstitute({
                         {p.courses.length} required for the certificate · {p.list.length - p.courses.length} more for open study
                         {p.byAge ? ' · lessons for every age, young to seniors' : ''}
                       </p>
-                      <ul className="lc-stack mt-2" aria-label={`${p.title} courses`} data-testid={`institute-program-courses-${p.key}`}>
-                        {p.list.map(({ course, required }) => (
-                          <CourseRow key={course.key} course={course} required={required} testid={`institute-program-${p.key}-course-${course.key}`} />
-                        ))}
-                      </ul>
+                      {studio ? (
+                        <InstituteCourseCards
+                          items={p.list}
+                          covers={covers}
+                          started={started}
+                          programKey={p.key}
+                          label={`${p.title} courses`}
+                          testid={`institute-program-cards-${p.key}`}
+                        />
+                      ) : (
+                        <ul className="lc-stack mt-2" aria-label={`${p.title} courses`} data-testid={`institute-program-courses-${p.key}`}>
+                          {p.list.map(({ course, required }) => (
+                            <CourseRow key={course.key} course={course} required={required} testid={`institute-program-${p.key}-course-${course.key}`} />
+                          ))}
+                        </ul>
+                      )}
                       {p.byAge && <PopulationPaths paths={paths} testid={`institute-by-age-${p.key}`} />}
                     </details>
                   )}
@@ -613,27 +685,36 @@ export default function ChurchInstitute({
             // Filtered to one program, it lists EVERY course that program names (shared ones included);
             // "All programs" lists each course once, under the first program that names it.
             const mine =
-              only === 'all'
-                ? open.filter((x) => x.program.key === p.key)
-                : p.list.map(({ course, required }) => ({ course, program: p, required }));
+              only === 'all' ? open.filter((x) => x.program.key === p.key) : p.list.map(({ course, required }) => ({ course, program: p, required }));
             if (mine.length === 0) return null;
             return (
               <section key={p.key} aria-labelledby={`inst-courses-${p.key}`} data-testid={`institute-courses-${p.key}`}>
                 <h4 id={`inst-courses-${p.key}`} className="lc-prog-t mb-1">
                   {p.title}
                 </h4>
-                <ol className="lc-stack" aria-label={`${p.title} courses`}>
-                  {mine.map(({ course, required }) => (
-                    <CourseRow
-                      key={course.key}
-                      course={course}
-                      required={required}
-                      n={only === 'all' ? open.findIndex((x) => x.course.key === course.key) + 1 : null}
-                      testid={`institute-course-${course.key}`}
-                      note={alsoIn(course.key, p.key)}
-                    />
-                  ))}
-                </ol>
+                {studio ? (
+                  <InstituteCourseCards
+                    items={mine.map(({ course, required }) => ({ course, required, note: alsoIn(course.key, p.key) }))}
+                    covers={covers}
+                    started={started}
+                    programKey={p.key}
+                    label={`${p.title} courses`}
+                    testid={`institute-course-cards-${p.key}`}
+                  />
+                ) : (
+                  <ol className="lc-stack" aria-label={`${p.title} courses`}>
+                    {mine.map(({ course, required }) => (
+                      <CourseRow
+                        key={course.key}
+                        course={course}
+                        required={required}
+                        n={only === 'all' ? open.findIndex((x) => x.course.key === course.key) + 1 : null}
+                        testid={`institute-course-${course.key}`}
+                        note={alsoIn(course.key, p.key)}
+                      />
+                    ))}
+                  </ol>
+                )}
                 {p.byAge && <PopulationPaths paths={paths} testid={`institute-courses-by-age-${p.key}`} />}
               </section>
             );
@@ -762,6 +843,36 @@ export default function ChurchInstitute({
       ),
     },
   ];
+  if (studio) {
+    sections.push({
+      id: 'resources',
+      label: 'Resources',
+      icon: 'folder',
+      render: () => (
+        <div className="lc-stack" data-testid="institute-resources">
+          <h3 className="lc-h3">Academic Resources</h3>
+          <div className="lc-tiles">
+            <button type="button" onClick={goLearn} className={`lc-tile ${FOCUS}`}>
+              <b>Course materials</b>
+              <small>Every Institute course in Learn: watch, read, listen and study, with print and read-aloud</small>
+            </button>
+            <button type="button" onClick={() => setChurchView && setChurchView('scripture')} className={`lc-tile ${FOCUS}`}>
+              <b>The Bible</b>
+              <small>Read the Word in the church's Bible reader</small>
+            </button>
+            <button type="button" onClick={() => setActive('certificates')} className={`lc-tile ${FOCUS}`}>
+              <b>Verify a certificate</b>
+              <small>Check any Institute certificate by its verify code</small>
+            </button>
+            <button type="button" onClick={() => setActive('enrollment')} className={`lc-tile ${FOCUS}`}>
+              <b>How enrollment works</b>
+              <small>The steps from application to certificate</small>
+            </button>
+          </div>
+        </div>
+      ),
+    });
+  }
   if (isOffice && instanceId) {
     sections.push({
       id: 'office',
@@ -772,19 +883,40 @@ export default function ChurchInstitute({
   }
 
   return (
-    <div className="lc-home" data-testid="church-institute">
-      <section className="lc-band lc-band-institute" aria-labelledby="inst-h">
-        <div className="lc-eyebrow lc-eyebrow-gold">{INSTITUTE_META.of}</div>
-        <h2 id="inst-h" className="lc-h1 ts-chrome-region">
-          {INSTITUTE_META.name}
-        </h2>
-        <p className="lc-tagline">{INSTITUTE_META.tagline}</p>
-        <p className="lc-band-p">Study the Word deeply, in the house, with the people who serve it. For adults, young adults, and those called to lead.</p>
-        <span className="lc-inst-art" aria-hidden="true">
-          <InstituteArt />
-        </span>
-      </section>
-      <SectionTabs sections={sections} ariaLabel="Institute sections" idBase="institute" variant="sub" activeId={active} onActiveChange={setActive} />
+    <div className={`lc-home${studio ? ' is-root' : ''}`} data-testid="church-institute">
+      {studio ? (
+        <InstituteStudio
+          programs={programs}
+          catalog={catalog}
+          mine={mine}
+          standing={standing}
+          creds={creds}
+          signedIn={!!myUserId}
+          studentName={studentName}
+          onOpen={openSection}
+          onExplore={goLearn}
+          record={myRecord}
+          onOpenRecord={() => {
+            setLearnAreaHint('record');
+            goLearn();
+          }}
+        />
+      ) : (
+        <section className="lc-band lc-band-institute" aria-labelledby="inst-h">
+          <div className="lc-eyebrow lc-eyebrow-gold">{INSTITUTE_META.of}</div>
+          <h2 id="inst-h" className="lc-h1 ts-chrome-region">
+            {INSTITUTE_META.name}
+          </h2>
+          <p className="lc-tagline">{INSTITUTE_META.tagline}</p>
+          <p className="lc-band-p">Study the Word deeply, in the house, with the people who serve it. For adults, young adults, and those called to lead.</p>
+          <span className="lc-inst-art" aria-hidden="true">
+            <InstituteArt />
+          </span>
+        </section>
+      )}
+      <div ref={sectionsRef} tabIndex={-1} className="is-sections" data-testid="institute-sections">
+        <SectionTabs sections={sections} ariaLabel="Institute sections" idBase="institute" variant="sub" activeId={active} onActiveChange={setActive} />
+      </div>
     </div>
   );
 }

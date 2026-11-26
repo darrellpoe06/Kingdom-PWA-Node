@@ -56,7 +56,32 @@ describe('Learn content integrity baseline', () => {
     expect(now.counts.lessons).toBeGreaterThanOrEqual(base.counts.lessons);
     expect(now.counts.readings).toBeGreaterThanOrEqual(base.counts.readings);
   });
-  it('the baseline is the measured Phase 1 catalog (13 / 51 / 994 / 4,258)', () => {
-    expect(base.counts).toEqual({ departments: 13, courses: 51, lessons: 994, readings: 4258 });
+  // 4,258 readings at Phase 1; +2 each as an Eternal pattern becomes a full lesson
+  // with child and youth versions it never had (Darrell 2026-11-26): joy-three-days,
+  // genesis-holds-the-whole-plan, spirit-formed-and-returns, eyes-opened-by-prayer, the-door, one-mediator, spirit-bears-witness-with,
+  // whole-spirit-soul-body, el-elyon-possessor, el-shaddai-almighty,
+  // i-am-that-i-am, babel-make-us-a-name, nations-divided-portion,
+  // borrowed-crown, they-that-make-them, inscription-that-asked-eternity,
+  // before-abraham-i-am, name-that-saves, all-power-is-his,
+  // without-me-nothing, triumph-already-public, will-worship-frees-no-one,
+  // jesus-i-know-who-are-ye, presence-is-the-liberty, submit-then-resist,
+  // not-bondage-again, obedience-blessing (#2905), credit-vs-worship,
+  // yahweh-gets-both, glory-refused-or-taken, keep-yourself-by-the-word,
+  // knowledge-and-sin, conviction-vs-condemnation, mind-of-christ-in-the-hidden-part,
+  // word-is-4d-fact, justice-rationed-at-the-gate, remedy-that-arrives-on-a-calendar,
+  // fruit-no-law, god-not-colorblind, own-your-faith, made-in-his-image,
+  // thief-targets-identity, testing-not-temptation, pray-for-protection,
+  // see-father-in-son, he-already-knew, strengthen-your-brethren,
+  // all-things-work-together, admit-wrong-to-grow, god-beyond-dimension,
+  // two-courts, judgment-committed-to-son, hear-believe-no-condemnation,
+  // word-judges-last-day, appointed-day-ordained-judge, judgment-seat-of-christ,
+  // vacate-the-seat, saints-judge-with-him, judge-comes-with-reward,
+  // peace-peace, call-evil-good, suppress-the-truth, word-of-testimony,
+  // word-written-on-the-heart, sheep-and-goats, wheat-and-tares,
+  // not-my-will-but-thine, friendship-world-enmity, handling-word-deceitfully,
+  // spirits-seek-a-body, angels-left-their-estate, sons-of-god-and-giants,
+  // only-he-knows-the-heart, enemy-injects-thoughts.
+  it('the baseline is the measured Phase 1 catalog (13 / 51 / 994 / 4,406)', () => {
+    expect(base.counts).toEqual({ departments: 13, courses: 51, lessons: 994, readings: 4406 });
   });
 });
