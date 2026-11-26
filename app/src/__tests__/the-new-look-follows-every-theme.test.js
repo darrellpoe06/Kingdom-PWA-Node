@@ -57,4 +57,3 @@ describe('words on dark themes: Soft light or Bright white, the member chooses',
     expect(document.documentElement.getAttribute('data-dark-ink')).toBe('soft');
   });
 });
-
