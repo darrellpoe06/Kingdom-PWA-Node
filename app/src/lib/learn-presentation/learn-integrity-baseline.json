@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T14:25:13.622Z",
+ "measuredAt": "2026-11-26T14:28:57.161Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4544
+  "readings": 4546
  },
  "departments": [
   {
@@ -12992,11 +12992,13 @@
    "department": "The Eternal Algorithms",
    "position": 8,
    "title": "Wait on the LORD → Renewed Strength",
-   "contentSha": "70635514763572c3832c1d558c37d4eda46d1f8584da49b53286c0c649305207",
+   "contentSha": "111ffcd9ea6a6f0412cd1d46a09558f104f9f133a664990f15204205cb1766c5",
    "versions": {
-    "teen": "0a51e52c0197b858c6d0c1a034eb8cddf9b1f66dbbd1a456a8975baffb2a7a1a",
-    "adult": "887bf38b242e6c033cd9eaaabecda596c62b40e762ba180eeee6593b7b03b0f4",
-    "senior": "ae0603511eb28e3e8c972d500b2829194373cef7d83dde355b020a22842d4ae3"
+    "child": "7c04c1fe85f19f0a989799c75a177c2d0a5034d9b06ccab42a8c955b168f85fe",
+    "youth": "8bc770273b8f5bf835a8d8642cde305b17a0305e685d889f5f084b0589df4424",
+    "teen": "47cf353e1138f2f9000d8268b50fd6fd6daaa0cdb3503f30454bffae0176edf1",
+    "adult": "68df28685a8cc856bb6aa934e9c73bb8d4d6c5f771b1af74e56302722d436e53",
+    "senior": "fd7cdcfff390172691236e9a06803ce8fdb72a0ef731dc70a37bd3b961c31f7a"
    }
   },
   {
