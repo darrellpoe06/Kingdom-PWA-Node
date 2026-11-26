@@ -15,6 +15,10 @@ Darrell, 2026-11-26: "I'm annoyed by lessons saying they didn't research!!!!" �
 
 The principal's regex over the mounted catalog (catalog descriptors + Eternal Algorithms courses; honestNote, lesson, levels.*), 2026-11-26: 151 lessons, 414 sentences — sovereign-ai 56, living-lessons 52, project-management 4, development 3, datasystems 3, and 1–2 in eleven more courses. Triage (`docs/99-session-notes/2026-11-26-lessons-process-language-triage.md`) split them: teaching sentences that use the same words (the house doctrine "under-claiming a verified truth is as much a failure of truth as over-claiming an unverified one"; 1 Timothy 5:19's unverified accusation; a buyer's list of what remains unverified; a disputed attribution named as knowledge) stay. Process admissions are debt.
 
+## Impact
+
+A reader meets the subject, attributed to whoever made each claim, and no longer reads our errand. New lessons cannot ship it; the 118 still carrying it are a visible, shrink-only worklist.
+
 ## Decision
 
 1. **Do the research, then state what the record shows.** Attribute each claim to the party that makes it. A genuine dispute is named with who holds it — knowledge, not an excuse. What cannot be supported after research is left out, silently.
@@ -27,8 +31,13 @@ The principal's regex over the mounted catalog (catalog descriptors + Eternal Al
 
 bank9, dsi15, dsi17, wm9, wm10, pm13, pm14, pm15, pm17, rto2, wi-the-way-was-45, mgmt9, legacy8 — each researched and rewritten; what each now says is in the triage note. wi-45's premise was reversed by the record (the 2026-09-01 Tarrant vote cut UTA's early-voting site) and it was rewritten whole. Test pins that REQUIRED the old not-checked wording now pin the sourcing and run `processLanguage()` on every band. Re-measured: debt list 118 lessons (sovereign-ai 62, living-lessons 51, pm 2, 1619 1, kingdom-economics 1, prophetic-voices 1 — includes lessons main landed today); third-pile GAP 39 → 34, CHECKED 6 → 7; Learn integrity baseline spliced for exactly the 13 lessons.
 
+## Verification
+
+The gate's proven-to-catch block (six process shapes named, four teaching shapes passed); every rewritten lesson's own test file runs `processLanguage()` on the adult text and every band; Learn integrity baseline spliced for exactly the changed lessons; third-pile pins re-measured; CI on the PR head. On merge: deploy run on main's head.
+
 ## Limits
 
 - hr1 (the 1619 course) is built around Rolfe's letter being unreached. The record is now reached — Kingsbury, *Records of the Virginia Company of London*, vol. 3, p. 243, archive.org `recordsofvirgini03virg` ("He brought not any thing but 20. and odd Negroes, w<sup>ch</sup> the Governo<sup>r</sup> and Cape Marchant bought for victualls") — and its rewrite leads batch 2.
 - sovereign-ai and living-lessons hold most of the debt; their videos go through the NAS caption route (`source-transcript-nas.yml`).
+- pm15 keeps its approved title ("…and the video we never saw") so its approved cover stays live; the title and the cover's promo text still describe the video as unseen and wait on the Governor's re-review of that record.
 - re-review: 2026-12-10 — the debt list's length, and whether TEACHING_RE has let a process sentence through.
