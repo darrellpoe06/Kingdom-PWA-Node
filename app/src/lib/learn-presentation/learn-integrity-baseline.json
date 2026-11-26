@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T04:13:42.214Z",
+ "measuredAt": "2026-11-26T04:17:54.951Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4312
+  "readings": 4314
  },
  "departments": [
   {
@@ -13387,11 +13387,13 @@
    "department": "The Eternal Algorithms",
    "position": 16,
    "title": "Credit vs. Worship (two different debts, one Owner)",
-   "contentSha": "1ad4a1b3ad5b67c4e7f02af951e128225bd4c6130c4bc75139bca4474396dc17",
+   "contentSha": "1713900cae6fd9f85d30c248f1da4fd9f6f39a72abb468e5a8eae527478e3aa9",
    "versions": {
-    "teen": "16a0952c60524827c8bfdc5beefa7de228ebc5caa67ea03ca73386a195942d99",
-    "adult": "87f28944321fe6811ac7383e1525609345e69606aa5cfd316e691ef0715324f6",
-    "senior": "c2aadcade8548fb859a853e54d3bae95ea6eedec50cd845be33896b5ca6e6492"
+    "child": "0ef7bb94e8dd3a1fa7fe0c8bd1eedfe7309bca271db606fec357cb220cc8c4d4",
+    "youth": "2e6c1a83093ab66c44ff3d0c522e96319f71893a46b4339d6655b13e81e0ab81",
+    "teen": "19be64177042a083b09f42b96fed53cad183bf7dd804bfe390fc3a753a39cbf8",
+    "adult": "41e169745a2524adde3ffd0d0df548bfcda59280ff823050ffb73cd388aa53e4",
+    "senior": "e12c652c85685758a06f014399ae6d6aed31d7f3e25efaba701249947a697c27"
    }
   },
   {
