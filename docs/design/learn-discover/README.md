@@ -70,7 +70,7 @@ include one.
 | History & Understanding Our World | 175 | 60 | 115 |
 | Technology, AI & Innovation | 184 | 170 | 14 |
 
-924 of 995 lessons sit in at least one category; 507 sit in two or more. Marriage is the thinnest:
+(Superseded 2026-11-26: after reading the unplaced lessons by hand, 992 of 995 sit in at least one category; see NEXT.md.) 924 of 995 lessons sat in at least one category; 507 sat in two or more. Marriage is the thinnest:
 28 lessons, 16 of them dedicated to it, spread across 14 courses that touch it. That is real
 content, not a rule that is too strict, but it is the category a new lesson would help most.
 

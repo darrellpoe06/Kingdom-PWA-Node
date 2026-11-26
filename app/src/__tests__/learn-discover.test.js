@@ -17,6 +17,7 @@ import { buildLessonIndex } from '../lib/learn-organize.js';
 import { plainWordsFor, COURSE_PLAIN_WORDS } from '../lib/learn-plain-words.js';
 import { prepareIndex, discoverSearch, correctQuery, RESULT_LIMIT } from '../lib/learn-discover-search.js';
 import { CATEGORIES, categoryMembers, MIN_SHOWN } from '../lib/learn-discover-categories.js';
+import { REVIEWED, UNPLACED } from '../lib/learn-discover-reviewed.js';
 import { CATEGORY_PHOTO, HERO_LESSON } from '../lib/learn-discover-photos.js';
 import { RELATIONSHIP_LESSONS } from '../lib/learn-presentation/presentation.js';
 import { parsePassage, wordCandidates, todaysWord } from '../lib/learn-discover-word.js';
@@ -188,6 +189,21 @@ describe('the discovery categories are supported by the real curriculum', () => 
       for (const id of ids) { expect(P.byId.has(id), id).toBe(true); per.set(id, (per.get(id) || 0) + 1); }
     }
     expect([...per.values()].some((n) => n > 1)).toBe(true);
+  });
+  it('places lessons that were read by hand, each prefix resolving to exactly one lesson', () => {
+    const prefixes = new Set([...Object.values(REVIEWED).flat(), ...UNPLACED]);
+    for (const pre of prefixes) {
+      const hits = INDEX.lessons.filter((l) => l.i.startsWith(pre));
+      expect(hits.length, `${pre} must match exactly one lesson`).toBe(1);
+    }
+    for (const id of Object.keys(REVIEWED)) expect(CATEGORIES.some((c) => c.id === id), id).toBe(true);
+  });
+  it('leaves only a handful of lessons in no category, and never forces one in', () => {
+    const placed = new Set();
+    for (const c of CATEGORIES) M.get(c.id).lessonIds.forEach((i) => placed.add(i));
+    const none = INDEX.lessons.filter((l) => !placed.has(l.i)).map((l) => l.i);
+    expect(none.length).toBeLessThanOrEqual(UNPLACED.length + 2);
+    for (const pre of UNPLACED) expect(none.some((i) => i.startsWith(pre)), `${pre} was reviewed and has no fit`).toBe(true);
   });
   it('names real courses only', () => {
     const keys = new Set(INDEX.courses.map((c) => c.k));

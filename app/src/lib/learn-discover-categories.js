@@ -22,6 +22,7 @@
 // =============================================================================
 import { stems } from './learn-discover-text.js';
 import { RELATIONSHIP_LESSONS } from './learn-presentation/presentation.js';
+import { REVIEWED } from './learn-discover-reviewed.js';
 
 export const MIN_SHOWN = 12;
 // A lesson is STRONGLY in a category when its course is the category's own, or its title/theme/description
@@ -77,11 +78,13 @@ export function categoryMembers(P) {
   for (const cat of CATEGORIES) {
     const home = new Set(cat.courses);
     const picked = new Set(cat.ids || []);
+    const reviewed = REVIEWED[cat.id] || [];
     const terms = new Set(cat.terms);
     const rows = [];
     let viaCourse = 0;
     let viaWords = 0;
     for (const L of P.lessons) {
+      if (reviewed.some((pre) => L.raw.i.startsWith(pre)) && !picked.has(L.raw.i) && !home.has(L.course.k)) { rows.push([L.raw.i, 60, L.order]); viaWords += 1; continue; }
       if (picked.has(L.raw.i)) { rows.push([L.raw.i, 100, L.order]); viaCourse += 1; continue; }
       if (home.has(L.course.k)) { rows.push([L.raw.i, 100, L.order]); viaCourse += 1; continue; }
       let head = 0;

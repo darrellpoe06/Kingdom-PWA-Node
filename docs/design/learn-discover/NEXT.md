@@ -20,7 +20,7 @@ in its top ten).
 
 ## To do (approved by Darrell; visual revision waits for his review of COMPARISON.md)
 1. Manual relevance review of queries 11 to 60 (held out from tuning) into `SEARCH-EVALUATION.md`; re-review the nine named questions after the latest ranking changes. Target: at least 8 of 10 genuinely relevant for the three weak questions.
-2. Review the 71 lessons in no category (the others, 924 of 995, are placed). Do not force a category.
+2. DONE 2026-11-26: the 78 lessons then in no category were read one by one (`app/src/lib/learn-discover-reviewed.js`). 75 were placed by hand (mostly Living Lessons that quote Scripture without a category's own words); 3 (ll287, ll317, ll341) fit no category and are deliberately left out. 992 of 995 now sit in at least one category.
 3. Minimal `ChurchLearn.jsx` change (line ~4390: widen `takeLearnAreaHint` allow-list) for All Courses, All Departments, Study Tools, Downloads deep links, with regression tests (existing `church-learn-*` and `learn-*` tests). Check how Learn Studio (on by default, DR-1664) handles each hint.
 4. Page changes: heading "What are you facing today?", suggested questions, Featured Series, Trending only if real activity data exists (none found; use Featured, no invented statistics), All Courses.
 5. Screenshots for review: full-page mobile, desktop, all twelve category cards, category browsing, the nine questions' results, the 60-query results, Continue with real progress logic, navigation into the existing Learn, comparison with the mockup.
