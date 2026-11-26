@@ -1,0 +1,189 @@
+{
+  "at": "2026-11-26T11:38:40.449Z",
+  "origin": "https://poetech.us",
+  "relays": [
+    "390px 200 /api/church-site?page=letters-from-bg",
+    "390px 200 /api/church-recent?channel=UC821pJh7YR5llBNnWUJj-ZA",
+    "390px 200 /api/church-site?page=calendar",
+    "390px 200 /api/church-site?page=home",
+    "390px 200 /api/church-site?page=current-events",
+    "390px 200 /api/church-site?asset=%2Fuploads%2F6%2F0%2F6%2F7%2F6067835%2Fsenior-assistant-pastor-james-harden-1.jpg",
+    "768px 200 /api/church-site?page=letters-from-bg",
+    "768px 200 /api/church-site?page=home",
+    "768px 200 /api/church-recent?channel=UC821pJh7YR5llBNnWUJj-ZA",
+    "768px 200 /api/church-site?page=calendar",
+    "768px 200 /api/church-site?page=current-events",
+    "768px 200 /api/church-site?asset=%2Fuploads%2F6%2F0%2F6%2F7%2F6067835%2Fsenior-assistant-pastor-james-harden-1.jpg",
+    "1440px 200 /api/church-site?page=calendar",
+    "1440px 200 /api/church-site?page=home",
+    "1440px 200 /api/church-site?page=letters-from-bg",
+    "1440px 200 /api/church-recent?channel=UC821pJh7YR5llBNnWUJj-ZA",
+    "1440px 200 /api/church-site?page=current-events",
+    "1440px 200 /api/church-site?asset=%2Fuploads%2F6%2F0%2F6%2F7%2F6067835%2Fsenior-assistant-pastor-james-harden-1.jpg"
+  ],
+  "sections": {
+    "390": {
+      "fixtureText": false,
+      "messages": [
+        "11- 25 -26 Bishop Gwin WHAT GOD HAS PLACED INSIDE OF YOU IS GREATER THAN WHAT'S HAPPENING AROUND YOU",
+        "11-18 -2026 Bishop Lloyd E. Gwin Wednesday Bible Study \"GOD IS ABLE!\"",
+        "\"God Is Able!\" - Bishop Lloyd E. Gwin",
+        "11 - 11 - 2026 Bishop Lloyd E. Gwin \"I CAN DO ALL THINGS THROUGH JESUS CHRIST WHO STRENGTHEN ME!\"",
+        "\"I Can Do All Things Through Christ Who Strenghthens Me!\" - Bishop Lloyd E. Gwin"
+      ],
+      "thumbs": [
+        {
+          "src": "https://i.ytimg.com/vi/QAKWNh6OBpE/mqdefault.jpg",
+          "ok": true
+        },
+        {
+          "src": "https://i.ytimg.com/vi/jiqAXOEcK0Q/mqdefault.jpg",
+          "ok": true
+        },
+        {
+          "src": "",
+          "ok": false
+        },
+        {
+          "src": "",
+          "ok": false
+        },
+        {
+          "src": "",
+          "ok": false
+        }
+      ],
+      "events": [
+        "Senior Assistant Pastor James Harden"
+      ],
+      "eventImages": [
+        {
+          "src": "6%2F7%2F6067835%2Fsenior-assistant-pastor-james-harden-1.jpg",
+          "ok": true
+        }
+      ],
+      "eventsLink": "View All Events →",
+      "officeCard": "November 2026 calendar · October 2026 letter · 1 current flyer",
+      "kidsArt": [
+        {
+          "src": "173/poetech-app/lovecorner/kids/bible-adventures-key-art.jpg",
+          "ok": true
+        }
+      ]
+    },
+    "768": {
+      "fixtureText": false,
+      "messages": [
+        "11- 25 -26 Bishop Gwin WHAT GOD HAS PLACED INSIDE OF YOU IS GREATER THAN WHAT'S HAPPENING AROUND YOU",
+        "11-18 -2026 Bishop Lloyd E. Gwin Wednesday Bible Study \"GOD IS ABLE!\"",
+        "\"God Is Able!\" - Bishop Lloyd E. Gwin",
+        "11 - 11 - 2026 Bishop Lloyd E. Gwin \"I CAN DO ALL THINGS THROUGH JESUS CHRIST WHO STRENGTHEN ME!\"",
+        "\"I Can Do All Things Through Christ Who Strenghthens Me!\" - Bishop Lloyd E. Gwin"
+      ],
+      "thumbs": [
+        {
+          "src": "https://i.ytimg.com/vi/QAKWNh6OBpE/mqdefault.jpg",
+          "ok": true
+        },
+        {
+          "src": "https://i.ytimg.com/vi/jiqAXOEcK0Q/mqdefault.jpg",
+          "ok": true
+        },
+        {
+          "src": "https://i.ytimg.com/vi/Y-QJ1_bEgsU/mqdefault.jpg",
+          "ok": true
+        },
+        {
+          "src": "",
+          "ok": false
+        },
+        {
+          "src": "",
+          "ok": false
+        }
+      ],
+      "events": [
+        "Senior Assistant Pastor James Harden"
+      ],
+      "eventImages": [
+        {
+          "src": "6%2F7%2F6067835%2Fsenior-assistant-pastor-james-harden-1.jpg",
+          "ok": true
+        }
+      ],
+      "eventsLink": "View All Events →",
+      "officeCard": "November 2026 calendar · October 2026 letter · 1 current flyer",
+      "kidsArt": [
+        {
+          "src": "173/poetech-app/lovecorner/kids/bible-adventures-key-art.jpg",
+          "ok": true
+        }
+      ]
+    },
+    "1440": {
+      "fixtureText": false,
+      "messages": [
+        "11- 25 -26 Bishop Gwin WHAT GOD HAS PLACED INSIDE OF YOU IS GREATER THAN WHAT'S HAPPENING AROUND YOU",
+        "11-18 -2026 Bishop Lloyd E. Gwin Wednesday Bible Study \"GOD IS ABLE!\"",
+        "\"God Is Able!\" - Bishop Lloyd E. Gwin",
+        "11 - 11 - 2026 Bishop Lloyd E. Gwin \"I CAN DO ALL THINGS THROUGH JESUS CHRIST WHO STRENGTHEN ME!\"",
+        "\"I Can Do All Things Through Christ Who Strenghthens Me!\" - Bishop Lloyd E. Gwin"
+      ],
+      "thumbs": [
+        {
+          "src": "https://i.ytimg.com/vi/QAKWNh6OBpE/mqdefault.jpg",
+          "ok": true
+        },
+        {
+          "src": "https://i.ytimg.com/vi/jiqAXOEcK0Q/mqdefault.jpg",
+          "ok": true
+        },
+        {
+          "src": "https://i.ytimg.com/vi/Y-QJ1_bEgsU/mqdefault.jpg",
+          "ok": true
+        },
+        {
+          "src": "https://i.ytimg.com/vi/hnfyIgrJUWo/mqdefault.jpg",
+          "ok": true
+        },
+        {
+          "src": "https://i.ytimg.com/vi/iVmQ0ioX6Bc/mqdefault.jpg",
+          "ok": true
+        }
+      ],
+      "events": [
+        "Senior Assistant Pastor James Harden"
+      ],
+      "eventImages": [
+        {
+          "src": "6%2F7%2F6067835%2Fsenior-assistant-pastor-james-harden-1.jpg",
+          "ok": true
+        }
+      ],
+      "eventsLink": "View All Events →",
+      "officeCard": "November 2026 calendar · October 2026 letter · 1 current flyer",
+      "kidsArt": [
+        {
+          "src": "173/poetech-app/lovecorner/kids/bible-adventures-key-art.jpg",
+          "ok": true
+        }
+      ]
+    },
+    "office": {
+      "calendar": [
+        true
+      ],
+      "letter": [
+        true
+      ],
+      "flyers": [
+        true
+      ],
+      "caption": [
+        "November 2026 · the month's calendar",
+        "Letters from BG · October 2026 letter",
+        "Senior Assistant Pastor James Harden"
+      ]
+    }
+  }
+}

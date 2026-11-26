@@ -23,6 +23,8 @@ on:
     paths:
       - '.github/workflows/home-studio-live-proof.yml'
       - 'scripts/home-studio-probe.mjs'
+      - 'app/src/components/lovecorner/studio/**'
+      - 'app/src/lib/home-studio.js'
   workflow_dispatch: {}
 
 permissions:

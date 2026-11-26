@@ -219,13 +219,15 @@ export default function HomeStudio({ church = null, setChurchView = null, now = 
                 data-testid={i === 0 ? 'hs-latest' : `hs-msg-${v.videoId}`}
                 aria-label={`${i === 0 ? (status.live ? 'Watch live' : 'Play the latest message') : 'Play'}: ${v.title || 'Message'}`}
               >
-                <img src={v.thumbnail || hqThumb(v.videoId)} alt="" loading="lazy" />
-                <span className="hs-cine-t">{v.title || 'Message'}</span>
-                {i === 0 && <span className="hs-cine-k">{status.live ? 'Live now' : 'Latest'}</span>}
-                <span className="hs-play" aria-hidden="true">
-                  ▶
+                <span className="hs-cine-pic">
+                  <img src={v.thumbnail || hqThumb(v.videoId)} alt="" loading="eager" />
+                  {i === 0 && <span className="hs-cine-k">{status.live ? 'Live now' : 'Latest'}</span>}
+                  {messageDate(v.published) && <small className="hs-cine-d">{messageDate(v.published)}</small>}
+                  <span className="hs-play" aria-hidden="true">
+                    ▶
+                  </span>
                 </span>
-                <small className="hs-cine-d">{messageDate(v.published)}</small>
+                <span className="hs-cine-t">{v.title || 'Message'}</span>
               </button>
             ))}
           </div>
@@ -290,9 +292,11 @@ export default function HomeStudio({ church = null, setChurchView = null, now = 
           <div className="hs-rail" role="region" aria-label="Events, swipe for more" data-testid="hs-events">
             {happening.map((e) => (
               <button key={e.id} type="button" className={`hs-cine hs-cine-ev ${FOCUS}`} data-testid="hs-event" onClick={() => (e.flyer ? setPicture(e.flyer) : open('home', 'times'))} aria-label={e.flyer ? `${e.name}: open the flyer` : `${e.name}: open events`}>
-                <img src={e.src || EVENT_ART} alt="" loading="lazy" />
+                <span className="hs-cine-pic">
+                  <img src={e.src || EVENT_ART} alt="" loading="eager" />
+                  {e.when && <small className="hs-cine-d hs-cine-chip">{e.when}</small>}
+                </span>
                 <span className="hs-cine-t">{e.name}</span>
-                {e.when && <small className="hs-cine-d hs-cine-chip">{e.when}</small>}
               </button>
             ))}
           </div>
