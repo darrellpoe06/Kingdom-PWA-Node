@@ -1,5 +1,5 @@
 {
- "measuredAt": "2026-11-26T20:08:16.049Z",
+ "measuredAt": "2026-11-26T20:13:31.334Z",
  "counts": {
   "departments": 13,
   "courses": 51,
@@ -8397,13 +8397,13 @@
    "department": "The Word & The Way",
    "position": 10,
    "title": "His Witnesses in Acts",
-   "contentSha": "45906773d0a73897633b640d56812bd88e6e60501bc876827511ae75a36b5e19",
+   "contentSha": "09cd4de242b67235103979a00a2a83b0bf54fe7891dcd873df429f49d4ccf768",
    "versions": {
-    "child": "685c506cef39f49bee860e627808b6936f31264b67f89cf355133180391cd9e2",
-    "youth": "3cf8b7bdec10022120800ff5c72868255175f75497bafb6b92a1b625d283f60a",
-    "teen": "9aaffe57b73a2ac9cbbc28584fe21a0f065e81f6f45c0ac2c2e8ca8d6eb8fad7",
-    "adult": "6802560f4c27dc66828d1a1ca813b72fb1bcc75849a3e8f35fd5562f184a8f8d",
-    "senior": "cee7bc89e1823c640f9836c640add4f5a4cb6adc02d3379e5cd394b5a17b8984"
+    "child": "b8d8ef2f0ffc0af4a2f33152b3f1398215607904c340ab51518486cd412d0ea6",
+    "youth": "13d89aeeb2e97aa1e7a3bbf976e212c38df6d6aaea8870a51496e75d66e2115e",
+    "teen": "49c5535affa75818ed869ac1ca4c20afea17cc4fbc7e0482465d5ade05bdd14c",
+    "adult": "ea8889955e41f6523d45acf28abe2735c43a5fea09fd225be4d19cf7080671f8",
+    "senior": "51556ffd05d110c3f24e5172d05519d1eb3cefe0bf7d8a6a33a8b74b04a19549"
    }
   },
   {
