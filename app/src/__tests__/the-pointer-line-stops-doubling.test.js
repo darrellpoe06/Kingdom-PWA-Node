@@ -157,7 +157,7 @@ describe('the ledger pointer line cannot double itself again', () => {
 // unionAnnotations was never the bug. SEVEN of the 48 segments — every one of
 // them individually BALANCED — could not be recovered from the joined line,
 // because once the line as a whole is unbalanced the tail is re-split only on
-// `(DR-1689 = ` markers, and a segment beginning `(DR-1272, ` (a comma, not
+// `(DR-NNNN = ` markers, and a segment beginning `(DR-1272, ` (a comma, not
 // ` = `) has no marker to be found by. One side held
 // `(DR-1279 = …) (DR-1272, …)` as ONE segment and the other held it as TWO;
 // the union rightly kept both strings, and the re-parse collapsed the pair

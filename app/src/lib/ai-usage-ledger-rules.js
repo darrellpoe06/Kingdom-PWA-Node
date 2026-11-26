@@ -12,7 +12,7 @@ export function validateEntry(e) {
   if (!e || typeof e !== 'object') return ['entry is not an object'];
   for (const k of ['id', 'date', 'task', 'model']) if (!e[k] || typeof e[k] !== 'string') out.push(`${e.id || '?'}: ${k} is required`);
   if (e.date && !/^\d{4}-\d{2}-\d{2}$/.test(e.date)) out.push(`${e.id}: date must be YYYY-MM-DD`);
-  if (!Array.isArray(e.drs) || !e.drs.length || !e.drs.every((d) => /^DR-\d{4}$/.test(d))) out.push(`${e.id}: drs must name at least one DR-1689`);
+  if (!Array.isArray(e.drs) || !e.drs.length || !e.drs.every((d) => /^DR-\d{4}$/.test(d))) out.push(`${e.id}: drs must name at least one DR-NNNN`);
   if (!(typeof e.wallClockHours === 'number' && e.wallClockHours > 0)) out.push(`${e.id}: wallClockHours must be a positive number measured from commits`);
   if (!(typeof e.estimateWithoutAiHours === 'number' && e.estimateWithoutAiHours > 0)) out.push(`${e.id}: estimateWithoutAiHours must be a positive number`);
   if (!(e.tokens === null || (e.tokens && typeof e.tokens.in === 'number' && typeof e.tokens.out === 'number')))

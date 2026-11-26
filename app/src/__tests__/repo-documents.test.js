@@ -64,7 +64,7 @@ describe('the catalog is the repository, grouped by its own folders', () => {
     // NOT COVERED BY forward-safe-gate-guard, and said plainly rather than
     // claimed: that guard looks for a bare integer appended to a course's own
     // *MODULES list. A detector for THIS shape (`[0]` beside a literal
-    // `DR-1689`) matches 15 lines in this suite and 14 of them are correct —
+    // `DR-NNNN`) matches 15 lines in this suite and 14 of them are correct —
     // they assert on their own fixtures, where the literal IS the fixture's
     // value. A scanner cannot tell fixture data from a live-repo read, and one
     // that cried wolf 14 times would be worse than this comment.
