@@ -414,6 +414,12 @@ export default function LearnStudio({
   // a lesson without its own picture wears its department's approved art (the
   // existing Art fallback), so nothing new is generated and nothing is hidden.
   const [courseKey, setCourseKey] = useState(null);
+  const [allCoursesTick, setAllCoursesTick] = useState(0);
+  useEffect(() => {
+    if (!allCoursesTick) return;
+    const el = typeof document !== 'undefined' && document.querySelector('[data-testid="ls-courses"]');
+    if (el && el.scrollIntoView) el.scrollIntoView({ block: 'start' });
+  }, [allCoursesTick]);
   const courseOpened = React.useRef(false);
   // With a lesson in the link too, the lesson's cover shows first and Back
   // lands on its course; a stale lesson id still lands on the course.
@@ -509,7 +515,21 @@ export default function LearnStudio({
               aria-label="Search lessons, titles or courses"
             />
           </label>
-          <button type="button" className={`ls-btn ls-btn--outline ls-all ${RING}`} onClick={onExit}>
+          {/* ALL COURSES STAYS IN THE NEW LOOK (Darrell 2026-11-26, sent the classic page:
+              "How is this still a view?"). It opened the classic page; with the courses here it
+              goes to them. Only a page without the dashboard still leaves. */}
+          <button
+            type="button"
+            className={`ls-btn ls-btn--outline ls-all ${RING}`}
+            data-testid="ls-all-courses"
+            onClick={() => {
+              if (!dashboard) return onExit && onExit();
+              setQuery('');
+              setShelf(null);
+              setCourseKey(null);
+              setAllCoursesTick((n) => n + 1);
+            }}
+          >
             All Courses
           </button>
         </div>
@@ -614,8 +634,9 @@ export default function LearnStudio({
                     className={`ls-chip ls-chip--dept ${RING}`}
                     onClick={() => {
                       // The department opens in the tools on this page; only a department the tools do not know leaves for All Courses.
-                      if (onDepartment && onDepartment(t.label)) scrollToStudioTools();
-                      else onExit();
+                      // Never back to the classic page: the department opens in the tools on this page.
+                      if (onDepartment) onDepartment(t.label);
+                      scrollToStudioTools();
                     }}
                   >
                     {t.label} · {t.lessons}

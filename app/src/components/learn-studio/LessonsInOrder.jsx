@@ -121,7 +121,11 @@ export default function LessonsInOrder({
   listTestId = null,
   renderPictures = null, // (rows, { grid }) => the full-image cards; without it the list is the only look
 }) {
-  const list = useMemo(() => (Array.isArray(courses) ? courses : []).filter((c) => keyOf(c) && (c.schedule || []).length), [courses]);
+  // One row per course key: a catalog that mounts a course twice must not list it twice (or repeat a React key).
+  const list = useMemo(() => {
+    const seen = new Set();
+    return (Array.isArray(courses) ? courses : []).filter((c) => keyOf(c) && (c.schedule || []).length && !seen.has(keyOf(c)) && seen.add(keyOf(c)));
+  }, [courses]);
   const first = useMemo(
     () => (list.find((c) => keyOf(c) === 'living-lessons') || list[0] ? keyOf(list.find((c) => keyOf(c) === 'living-lessons') || list[0]) : ''),
     [list]

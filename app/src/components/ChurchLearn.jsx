@@ -4919,14 +4919,14 @@ function ChurchLearn({
   const classicLearn = (
     <section className="w-full" aria-labelledby="learn-h" data-testid={studio ? 'learn-studio-tools' : undefined}>
       <div className="print:hidden">
-        <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">Church · Learn</div>
+        {!studio && <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">Church · Learn</div>}
         {studioFlag && !studio && <button type="button" onClick={() => setStudio(true)} className="mt-2 text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border-2 border-[#1A1815] text-white bg-[#1A1815] hover:bg-[#3a352f] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">‹ New Learn (preview)</button>}
         {/* THE DEPARTMENTS (DR-0432). One row of sliding tabs over the whole
             program: Courses (everything, as usual) and one tab per department
             derived from the catalog's own categories — so it reads like a
             school's catalog and not a pile. Counts are counted from the live
             schedules, never typed. Hidden while a lesson is in focus. */}
-        {courses.length > 1 && !lessonFocus && (
+        {courses.length > 1 && !lessonFocus && !studio /* the new look has its own departments, courses, sorts and standing (DR-1663) */ && (
           <div className="mt-1 mb-4" data-testid="learn-departments">
             <div className="text-[0.6875rem] text-[#5A5751] mb-1" style={{ fontFamily: '"Fraunces", serif' }}>
               One program · {departments.length} departments · {courses.length} courses · {totalLessons} lessons
@@ -5023,7 +5023,7 @@ function ChurchLearn({
             lessons were the first thing on the tab. The dropdown is the
             department's choice control; it renders whenever the department has
             a course at all (DR-0598). */}
-        {visibleCourses.length >= 1 && !lessonFocus && (
+        {visibleCourses.length >= 1 && !lessonFocus && !studio && (
           <div className="flex flex-wrap items-end gap-3 mb-5 border-b border-[#E8E4DC] pb-3">
             {/* THE COURSES ARE QUICK LINKS TOO (DR-1233). Darrell 2026-10-27, from
                 his phone on Learn: "Need the courses options to be quick links

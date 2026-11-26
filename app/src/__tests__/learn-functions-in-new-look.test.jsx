@@ -243,3 +243,31 @@ describe('the featured picture turns on a swipe', () => {
     expect($('ls-hero').getAttribute('data-slide')).toBe(String(dots - 1)); // wraps to the last
   });
 });
+
+// Darrell 2026-11-26, sent the classic page from his phone: "How is this still a view?... we
+// should be able to keep the functions and make it look better" (DR-1663).
+describe('the new look never hands the reader back to the classic page', () => {
+  it('All Courses and a department chip stay in the new look (onExit is never called)', async () => {
+    const onExit = vi.fn();
+    const tools = <div data-testid="learn-areas">classic tools</div>;
+    act(() =>
+      root.render(<LearnStudioPreview courses={COURSES} onOpenLesson={vi.fn()} onExit={onExit} ownerDevice tools={tools} ctx={CTX} onDepartment={() => true} />)
+    );
+    click($('ls-all-courses'));
+    expect(onExit).not.toHaveBeenCalled();
+    expect($('ls-courses')).toBeTruthy();
+    const dept = container.querySelector('.ls-depts .ls-chip--dept:not([data-testid])');
+    click(dept);
+    expect(onExit).not.toHaveBeenCalled();
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 5)); // the tools open after React paints
+    });
+    expect($('ls-full-tools').open).toBe(true); // the department opened the tools on this page
+  });
+
+  it('inside the new look the tools leave out the classic controls the new look already gives', () => {
+    const src = SRC('ChurchLearn.jsx');
+    expect(src).toMatch(/courses\.length > 1 && !lessonFocus && !studio[^\n]*\n\s*<div className="mt-1 mb-4" data-testid="learn-departments">/);
+    expect(src).toMatch(/visibleCourses\.length >= 1 && !lessonFocus && !studio && \(/);
+  });
+});
