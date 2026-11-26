@@ -42,7 +42,6 @@ const words = (t) =>
 
 // The recorded debt (2026-11-26). Shrink-only.
 const SHORT_DEBT = [
-  'ai/wk7-guard-heart-time',
   'ai/wk8-teach-next',
   'broadcast/bc1-the-whole-chain',
   'broadcast/bc2-camera-and-image',
