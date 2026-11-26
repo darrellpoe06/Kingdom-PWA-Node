@@ -1,5 +1,5 @@
 {
- "measuredAt": "2026-11-26T19:26:16.482Z",
+ "measuredAt": "2026-11-26T19:32:18.734Z",
  "counts": {
   "departments": 13,
   "courses": 51,
@@ -921,13 +921,13 @@
    "department": "A.I. The Way",
    "position": 7,
    "title": "The five local-A.I. opportunities — the strategy",
-   "contentSha": "8f85b4ca94707da157951780bea0f71aaae1281a8c45891300f98375426ff7d5",
+   "contentSha": "5bc8f6af9312b31d0b927933a04a6e2544cdd096d231e93eb7f1463a5169b86b",
    "versions": {
-    "child": "68ee5d64573e3f7dc194adead6bcc0b87b1bccc91e79591d9c9826e13d91f051",
-    "youth": "976219a539e7550944c4900c785012438d907f1585ff203607cb1a665f382d9b",
-    "teen": "0dd0a9e4ecd57b694a481ffd214b76b223e87efbf1f383410eb47bca3fe5899a",
-    "adult": "d557343c93ea0f05394d2ca5b810ffe50f376a119e89696e76ebf59b58da6d9d",
-    "senior": "020dc069a0e3ac323dee3e37ed0f8cc4ceb2536e5bdb130b7637803f486e5509"
+    "child": "437fdb4148b2d633ae1449ec382248a010fc6d19f71c8893357a127667b62cad",
+    "youth": "ddec949593af3b650d7e32e1067e7b44e848476acf36fbecadc77788592be9c0",
+    "teen": "8841381f2a829df01cb763dd3e1d126233733d97d5859b234f4b3f9aa14bbbb6",
+    "adult": "b25d5157f99604807adac0196a927c7c2dcf6e02c18f162a0e403f99720118f7",
+    "senior": "fbb356553fdca1371b859d3d6c1069375e91ae621eba026870ce78c9b174bafb"
    }
   },
   {
