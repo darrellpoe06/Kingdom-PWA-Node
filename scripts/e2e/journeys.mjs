@@ -45,6 +45,13 @@ export const JOURNEYS = Object.freeze([
     what: 'from the Church door a reader taps Learn, taps a course, taps its first lesson, and the lesson opens',
   },
   {
+    id: 'institute-buttons-by-taps',
+    runner: 'app-journeys',
+    family: 'church',
+    status: 'active',
+    what: 'every tile and counter on the redesigned Institute, tapped, brings the section it names onto the screen (the 2026-11-25 dead-buttons miss)',
+  },
+  {
     id: 'top-tabs-by-taps',
     runner: 'app-journeys',
     family: 'top',
