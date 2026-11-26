@@ -41,5 +41,9 @@ export function placeParagraph({ lessonId, courseKey, segments, segPara }) {
 export function recordReadPlace({ lessonId, courseKey, segments, sentence }) {
   const course = courseFor(lessonId, courseKey);
   if (!lessonId || !course || !segments || !(sentence >= 0) || sentence >= segments.length) return;
+  // A finished reading is not moved by a scroll: a move would start a new reading and clear
+  // the finish just credited (DR-1386). The same guard as ChurchLearn's eye-scroll writer.
+  const own = getPlaceFor(course, lessonId);
+  if (own && own.done) return;
   recordPlace({ courseKey: course, lessonId, sentence, sentenceKey: sentenceKeyOf(segments[sentence]) });
 }
