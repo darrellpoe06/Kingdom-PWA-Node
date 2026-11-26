@@ -10,7 +10,7 @@
 
 ## Context
 
-His words, rendered: he does not like relationships where people cannot grow past a point; after one, two, three years of the same cycle he wants to move on, and he named that as the longsuffering he still needs. He learns by doing; faith matters to him as substance and evidence, a place to rest while he tastes and sees. He will not be loyal to what will not grow; Yahweh is his loyalty, always right and never wrong, so worth changing for and worth the rigor. He called his impatience a possible weakness and asked what the Word says first.
+His words, rendered: he does not like relationships where people cannot grow past a point; after one, two, three years of the same cycle he wants to move on, and he named that as the longsuffering he still needs. He learns by doing; faith matters to him as substance and evidence, a place to rest while he tastes and sees. He will not be loyal to what will not grow; Yahweh is his loyalty, always right and never wrong, so worth changing for and worth the rigor. He called his impatience a possible weakness and asked what the Word says first. Two sharpenings the same day: slow growth is not no growth (slow growth is measurable and gets every support, even systems; his lesson is the person who has every support and still decides against growth), and what is the difference between leaving a door open and seeking someone out again and again?
 
 One teaching, one lesson (DR-0610): not built before (`one-teaching-one-lesson-guard` 0 pairs). Honest both ways, as he asked: his growth-mindset is affirmed from the Word, and his named weakness is weighed by the Word too. No family member or private person is named.
 
@@ -19,25 +19,31 @@ One teaching, one lesson (DR-0610): not built before (`one-teaching-one-lesson-g
 | what | measured |
 | --- | --- |
 | the source | his spoken words, read in full; rendered for meaning, never quoted |
-| verses | 164 quoted spans, every one filled by `fill-verses.mjs` from `app/public/bible/kjv`; 0 verse faults |
-| length | adult prose 1,225 words |
-| band shares | child 0.54, youth 0.64, teen 0.64, senior 0.70 (first build: child 0.43, youth 0.49, teen 0.48; each gained taught sections) |
-| reading ladder | child 0.8, youth 3.1, teen 5.3, senior 6.6 |
-| band overlap | worst pair 0.02 (ceiling 0.5) |
+| verses | 206 quoted spans, every one filled by `fill-verses.mjs` from `app/public/bible/kjv`; 0 verse faults |
+| length | adult prose 1,607 words |
+| band shares | child 0.53, youth 0.64, teen 0.63, senior 0.73 (first build: child 0.43, youth 0.49, teen 0.48; each gained taught sections) |
+| reading ladder | child 0.7, youth 3.2, teen 5.4, senior 7.0 |
+| band overlap | worst pair 0.03 (ceiling 0.5) |
 | UNCHECKED | no claim outside Scripture and his words; the texts that give distance are taught in their own setting (`re-review: 2026-12-10`) |
+
+## Impact
+
+A reader weary of a relationship stuck in the same cycle is given the Word's measure for it: slow growth is still growth and gets every support, the test is how correction is received, the fig tree gets its fourth year, distance is only for the refusal, and the lost are sought while the one who walked out finds the door open. One lesson file, its test, one shelf id; no shared behavior changed.
 
 ## Decision
 
-`ll347-he-is-worth-the-rigor-growing-longsuffering-and-the-one`, ORDER 347, ADDED 2026-11-26, ten movements (the anchor theme lists every reference):
+`ll347-he-is-worth-the-rigor-growing-longsuffering-and-the-one`, ORDER 347, ADDED 2026-11-26, twelve movements:
 
 1. **Faith is tested by doing** (Hebrews 11:1; Psalms 34:8; John 7:17; James 1:22, 25; James 2:17).
 2. **He is worth changing for** (Numbers 23:19; Psalms 18:30; Malachi 3:6; Hebrews 13:8; Romans 12:2; 2 Corinthians 3:18).
 3. **Grow up, by use** (2 Peter 3:18; Hebrews 5:12-14; Hebrews 6:1; 1 Peter 2:2; Proverbs 4:18).
 4. **Whom you walk with shapes you** (Proverbs 13:20; Proverbs 27:17; 1 Corinthians 15:33; Proverbs 22:24-25; Psalms 1:3).
 5. **Falling is not the cycle; refusing to rise is** (Proverbs 24:16; Proverbs 26:11; Proverbs 1:7).
+5b. **Slow growth is not no growth**, judged by response to correction (Matthew 7:16, 20; Proverbs 9:8-9; Proverbs 12:1; Proverbs 29:1).
 6. **The longsuffering check on our own side** (1 Corinthians 13:4, 7; Romans 15:1; Galatians 6:1; 1 Thessalonians 5:14; Matthew 18:22; Mark 4:28).
-7. **Three years, and one more with digging** (Luke 13:6-9; Galatians 6:9), which answers his one, two, three years from the parable.
-8. **Where the Word gives distance, and how** (2 Thessalonians 3:6, 15; Titus 3:10; Proverbs 22:24), taught only in its setting, with no enmity.
+7. **Three years, and one more with digging** (Luke 13:6-9; Galatians 6:9), which answers his one, two, three years; the fourth year of digging and dung is his supports and systems.
+8. **Where the Word gives distance, and how** (2 Thessalonians 3:6, 15; Titus 3:10; Proverbs 22:24), and Matthew 10:14: distance is for the refusal, never for the person.
+8b. **Seeking, or an open door** (Luke 15:4, 12-13, 17, 20; Galatians 6:1; Matthew 23:37; Revelation 3:20): seek the lost; keep the door open for the one who walked out; run the moment they turn.
 9. **Loyal to the person, not to the cycle** (Ruth 1:16; Colossians 3:13; Romans 15:5).
 10. **The one loyalty** (Joshua 24:15; John 6:68; Deuteronomy 7:9; Hebrews 11:6; Philippians 1:6; John 1:29; John 3:16; Hebrews 1:8).
 
