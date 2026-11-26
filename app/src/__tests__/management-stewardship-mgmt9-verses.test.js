@@ -441,7 +441,7 @@ describe('the source is said out loud, and said where the reader is', () => {
     const pins = {
       adult: 'Every word above about the column is Ms Woody’s, as the SmartBrief edition carried it',
       youth: 'Everything said here about the column is Ms Woody’s report, as the SmartBrief digest carried it',
-      teen: 'Everything said above about the column is Ms Woody’s account, as the digest carried it',
+      teen: 'Everything said above about the column is Ms Woody’s account, as the SmartBrief digest carried it',
       senior: 'Every claim about the column is Ms Woody’s, as the digest carried it',
     };
     for (const [place, pin] of Object.entries(pins)) {
@@ -611,7 +611,7 @@ describe('PROVEN-TO-CATCH: each check was watched to fail on the live text', () 
   it('deleting the attribution from ONE band is caught, and by that band’s name', () => {
     // UPDATED 2026-11-26: the pin is now the band's attribution of the column,
     // which replaced the research-process narration.
-    const pin = 'Everything said above about the column is Ms Woody’s account, as the digest carried it';
+    const pin = 'Everything said above about the column is Ms Woody’s account, as the SmartBrief digest carried it';
     expect(L.levels.teen).toContain(pin);
     const stripped = { ...L, levels: { ...L.levels, teen: L.levels.teen.replace(pin, '') } };
     const texts = { adult: stripped.lesson, ...Object.fromEntries(BANDS.map((b) => [b, stripped.levels[b]])) };
