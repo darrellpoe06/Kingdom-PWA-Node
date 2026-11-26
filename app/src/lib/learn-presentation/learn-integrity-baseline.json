@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T11:30:16.349Z",
+ "measuredAt": "2026-11-26T11:33:49.998Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4470
+  "readings": 4472
  },
  "departments": [
   {
@@ -14208,11 +14208,13 @@
    "department": "The Eternal Algorithms",
    "position": 15,
    "title": "The Good Fight (joy is strength — happiness is weather)",
-   "contentSha": "b2ddd280090c0f06463545fe2468e9c475bec4cca8a654e53d2fea26a40609d5",
+   "contentSha": "2cfadb129ca212656ef396e7a76841ee97b0709a9a12393c5565068f1f695333",
    "versions": {
-    "teen": "99b779b58ba14c7af27e5a50f43c1111a990c752955a57a907a55d84740ad40d",
-    "adult": "bff5130280da3650d0fc551b155e98821527842c9cbc7998345288f9748fbd0f",
-    "senior": "4951177c7a90447174d6e5cf58e5367b10e4c7a8e5a93976b50fa309388a997d"
+    "child": "e37587214e5c666554417b756524ab9462d70480d76315a53fb4d244d439585c",
+    "youth": "41928a1b28492662a59f68d3f509b5df1303008500b6c9670ac6802bf69e8ec9",
+    "teen": "693713631082c3fa8d85dc8496c7ce9ac2edc61c5b85585d7507a821584a33b7",
+    "adult": "59bd336e458e41d5fbce04f13fe6161a7212405a0b5f02ba6b15fb905f37d705",
+    "senior": "547f41ef26ed5aa33cf522673e83a57e243b5c9166e2438a877aabd5ec341477"
    }
   },
   {
