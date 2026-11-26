@@ -4,7 +4,7 @@
 **Status:** Accepted (reader shipped and proven; the first spoken lesson in his voice waits on the NAS clone answering, below)
 **Tier:** B (reader behaviour; no schema, no money, no new door)
 **Type:** fix + spec-conformance trace (DR-0219)
-**Area:** `app/src/lib/chosen-voice-narrator.js` (new), `app/src/components/learn-studio/LessonExperience.jsx`, `LessonExperienceDoor.jsx`, `app/src/__tests__/new-look-reads-in-my-voice.test.jsx` (new)
+**Area:** `app/src/lib/chosen-voice-narrator.js` (new), `app/src/components/learn-studio/LessonExperience.jsx`, `LessonExperienceDoor.jsx`, `LessonExperienceTools.jsx` (`VoiceNote`), `app/src/__tests__/new-look-reads-in-my-voice.test.jsx` (new)
 **Pairs with:** DR-0721 (my voice reads or the reader says why), DR-1538 (my voice made on the NAS), DR-1555 (the voice's own answer), DR-1482 (one reading, one voice), DR-0720 (enrollment for who spoke), DR-1159 (roads to a NAS value), DR-0076
 
 ## Context

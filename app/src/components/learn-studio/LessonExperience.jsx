@@ -33,7 +33,7 @@ import { storiesTextFor, HIGHLIGHT_KEY, HIGHLIGHT_PENS, nextPen, readHighlights,
 export { storiesTextFor, HIGHLIGHT_KEY, HIGHLIGHT_PENS, nextPen, readHighlights };
 import LessonFigures from '../LessonFigures.jsx';
 import StudyQuiz from './StudyQuiz.jsx';
-import { ExperienceToolsContext, resumable, pacedFraction } from './LessonExperienceTools.jsx';
+import { ExperienceToolsContext, resumable, pacedFraction, VoiceNote } from './LessonExperienceTools.jsx';
 import './lesson-experience.css';
 import { useLanding } from './lesson-landing.js';
 import { renderWithVerses, verseParts, VERSE_RE } from './lesson-verses.jsx';
@@ -415,8 +415,7 @@ export default function LessonExperience({
   const [boundary, setBoundary] = useState({ seg: -1, offset: 0 });
   const [resumedFrom, setResumedFrom] = useState(0);
   const [rate, setRateState] = useState(1);
-  // Whose voice reads, said in one line when it is the listener's own (DR-1685).
-  const [voiceNote, setVoiceNote] = useState('');
+  const [voiceNote, setVoiceNote] = useState(''); // whose voice reads, when it is the listener's own (DR-1685)
   const [captions, setCaptions] = useState(true);
   const [watchTab, setWatchTab] = useState('transcript');
   const [showChapters, setShowChapters] = useState(false);
@@ -665,7 +664,7 @@ export default function LessonExperience({
   const speedLabel = (SPEEDS.find((s) => s.value === rate) || SPEEDS[1]).label;
   // Where you left off, said plainly, with the choice to start over (also after a pause something else ended).
   const leftAt = resumedFrom > 0 ? resumedFrom : idx > 0 && idx < segments.length - 1 ? idx : 0;
-  const resumeNote = leftAt > 0 && status === 'idle' && (
+  const leftNote = leftAt > 0 && status === 'idle' && (
     <p className="le-resume-note" data-testid="le-resume-note">
       Paused at ~{clock(starts[leftAt] || 0)}. Tap play to continue where you left off.{' '}
       <button type="button" className={`le-start-over ${RING}`} onClick={startOver} data-testid="le-start-over">
@@ -674,11 +673,12 @@ export default function LessonExperience({
     </p>
   );
 
-  const voiceLine = voiceNote ? (
-    <p className="le-resume-note" role="status" data-testid="le-voice-note">
-      {voiceNote}
-    </p>
-  ) : null;
+  const resumeNote = (
+    <>
+      <VoiceNote line={voiceNote} />
+      {leftNote}
+    </>
+  );
 
   const playBtn = (cls) => (
     <button type="button" className={`le-ctl ${cls} ${RING}`} onClick={isPlaying ? pause : play} aria-label={isPlaying ? 'Pause' : 'Play'}>
@@ -792,7 +792,6 @@ export default function LessonExperience({
                     </div>
                     <p className="le-original">{lesson.title}</p>
                     <ModePills mode={mode} setMode={setMode} />
-                    {voiceLine}
                     {resumeNote}
                     <div className="le-subtabs" role="tablist" aria-label="Lesson details">
                       {[
@@ -874,12 +873,7 @@ export default function LessonExperience({
                       jumpTo,
                       skip,
                       cycleSpeed,
-                      note: (
-                        <>
-                          {voiceLine}
-                          {resumeNote}
-                        </>
-                      ),
+                      note: resumeNote,
                     }}
                   />
                 )}
@@ -920,7 +914,6 @@ export default function LessonExperience({
                         ⏭
                       </button>
                     </div>
-                    {voiceLine}
                     {resumeNote}
                     <div className="le-listen-tools">
                       <button type="button" className={`le-tool ${RING}`} onClick={cycleSpeed}>

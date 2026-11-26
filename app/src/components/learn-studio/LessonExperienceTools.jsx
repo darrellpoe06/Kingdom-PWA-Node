@@ -116,3 +116,12 @@ export function pacedFraction({ raw, from, words, startedAt, now = Date.now() })
 }
 
 export const ExperienceToolsContext = React.createContext(null);
+
+/** Whose voice reads, in one line, when it is the listener's own (DR-1685). */
+export function VoiceNote({ line }) {
+  return line ? (
+    <p className="le-resume-note" role="status" data-testid="le-voice-note">
+      {line}
+    </p>
+  ) : null;
+}
