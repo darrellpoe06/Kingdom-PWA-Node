@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T14:58:26.706Z",
+ "measuredAt": "2026-11-26T15:05:06.894Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4558
+  "readings": 4560
  },
  "departments": [
   {
@@ -12901,11 +12901,13 @@
    "department": "The Eternal Algorithms",
    "position": 1,
    "title": "Taste and See (the empirical invitation)",
-   "contentSha": "293bff24c608ed6ee06a3c769d63d0a62e5a50777eb8f657f24b489ce0b03f5a",
+   "contentSha": "30c78dd53d60e3042d302fd59d8c2ddcf32e91e004410c6646a40bd38e375d2a",
    "versions": {
-    "teen": "ff3e6a9b559510683c294c70e31548db1cb1761b65f47e54b1381ca42060ab08",
-    "adult": "a1219cf3ca7c0c2b4a0b1baae81893ee15b4a4dd194793d4ca9fc5133e567da6",
-    "senior": "bc81a080281dd65e2162b8835a37faa0116b8fb7beacf7fa983377838b3c7520"
+    "child": "bfa56a7cdaeb8ce23a7dc213cac5b5d2e68a62a2c2a3105d9d98811cfa1898a8",
+    "youth": "146ebd2be08ab728336eaf97ad594134aa08b9eb66bcf27e32ff5f0eaf9de5fe",
+    "teen": "0878ed6e386a7f335b7bfb0fd82f6ffe4b1e2d1c962d8b60354d3550fe39edf2",
+    "adult": "0da1c5a75096032b37290f8c60824af002b0756864c2d5f30819e47582f3237d",
+    "senior": "48feccf66cbd8677853c29309e45b5d4e9e115e54a275bb734c3b6a7af5217ba"
    }
   },
   {
