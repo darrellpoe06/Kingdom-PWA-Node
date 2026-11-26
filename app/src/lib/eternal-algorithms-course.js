@@ -26,6 +26,7 @@
 // =============================================================================
 import { GODHEAD_SECTIONS, GODHEAD_ALGORITHMS, godheadVerse } from './godhead-study.js';
 import ETERNAL_STORIES from './eternal-algorithms-stories.json';
+import ETERNAL_TEACHING from './eternal-algorithms-teaching.js';
 import { progressSummaryFor, exportCurriculumMarkdownFor } from './church-classes.js';
 import { datedSchedule } from './lesson-dates.js';
 
@@ -134,14 +135,24 @@ export function moduleFromAlgorithm(alg, catalog = GODHEAD_ALGORITHMS) {
   // TWO STORIES TO A LESSON (DR-0215 / DR-0855), kept beside the catalog by
   // pattern id so the catalog the study renders stays untouched.
   const stories = Array.isArray(alg.stories) && alg.stories.length ? alg.stories : (ETERNAL_STORIES[alg.id] || null);
+  // A FULL LESSON WHERE ONE IS WRITTEN (Darrell 2026-11-26: "no short one
+  // minute lessons"). eternal-algorithms-teaching.js holds the authored adult
+  // lesson and four age versions for a pattern; without one, the card-built
+  // text below is used exactly as before.
+  // The Word still reads first (Darrell 2026-10-21): every anchor verse, whole,
+  // opens the authored lesson and each authored band.
+  const own = ETERNAL_TEACHING[alg.id];
+  const levels = own
+    ? Object.fromEntries([['standard', own.lesson], ...Object.entries(own.levels)].map(([k, v]) => [k, withWord([v])]))
+    : null;
   return {
     id: `ea-${alg.id}`,
     title: alg.name,
     // WORD FIRST: the big idea opens with the references + Yahweh's own
     // conditional and consequence — His knowledge before any practice.
     bigIdea: `${refs} — IF ${alg.condition} THEN ${alg.consequence}`,
-    lesson: standard,
-    levels: {
+    lesson: own ? withWord([own.lesson]) : standard,
+    levels: levels || {
       standard,
       // Teen — the shortest true read: the Word's own IF and the win, plain.
       teen: withWord([
