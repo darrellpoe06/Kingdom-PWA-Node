@@ -1,5 +1,5 @@
 {
- "measuredAt": "2026-11-26T18:52:19.014Z",
+ "measuredAt": "2026-11-26T19:00:01.572Z",
  "counts": {
   "departments": 13,
   "courses": 51,
@@ -846,13 +846,13 @@
    "department": "A.I. The Way",
    "position": 2,
    "title": "What a model costs to run — size, capability, hardware",
-   "contentSha": "7dcd77fe7461ce7c947d47de11426841d64c0bd57e391ccabcf50c423a8c6a69",
+   "contentSha": "a5c48030f01557cc6364007f057a421a762359ec33a28bfa1178348d2f817eaf",
    "versions": {
-    "child": "2dfebc695b964a0940e96fbe7e5b561cd989302358e047f94de333423a2709ed",
-    "youth": "5f1a96b400fcd0ede2ba0fe11500aa3e07471c5f8f2d5bbea46512a9a4864ab9",
-    "teen": "df6879b71cabafd47fe3d486653303d0268b788a29c349f6604f30952c6b282a",
-    "adult": "0f568e99aeb6a5736cf0a6998849f082b337453f6e3d8d6b1d3b3821f5d37a30",
-    "senior": "9c2452cc847b7e4ed2223893df8b26656efa136f08d0a076f4ec5bbfdf96e594"
+    "child": "c0a2e697e70d7a2f85f46ed520608e1cdd5a85015d1e9a22c8a8be352b0cffa2",
+    "youth": "4a0483167f1b5365f36ece035c0d2e223084193e77a9b4e0be9fd0d9df13af84",
+    "teen": "3c37b17f57f07b0dd0ecb136fe5c76ff5362b92bff1c6b139549ceda4a33173a",
+    "adult": "35e0f2a69aa2c53d60142bd4df88189c8e1a6331cce61c774a38f0f98d138666",
+    "senior": "d62e2db0fcefdbb3c665c1b248df05e58b8bb260f8b9ee4d2ec1d9b146120181"
    }
   },
   {
