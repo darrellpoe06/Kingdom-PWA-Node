@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T12:24:00.039Z",
+ "measuredAt": "2026-11-26T12:28:46.997Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4494
+  "readings": 4496
  },
  "departments": [
   {
@@ -13604,11 +13604,13 @@
    "department": "The Eternal Algorithms",
    "position": 11,
    "title": "Believe on the Son → Everlasting Life",
-   "contentSha": "6d217508b28855e60428d0f672d4f20d3898616e64429ad758eb603f69a1e1ec",
+   "contentSha": "94a761f2540189118a9e8d1ce10b5412f6461a1fffa89a88efb5e2b187a337f0",
    "versions": {
-    "teen": "8954cafb243d294f3d6b8d7eb2652847c50691636fd524e04126c644b0bc1064",
-    "adult": "f7374506bb9da6bb5ac922b88b23f536e5b858f1860eaad4116415b73ae68e42",
-    "senior": "418f99e5506d06e437ef5fe5c455757680402f1577082eddda03a86e8d1becc4"
+    "child": "6f01ea2ac3188d312932596ada7bc82b3588c60d7a32bbf237c5dadb79efbc62",
+    "youth": "a471eecbacabb4ca987210d57864ef8ce4c3a6eb0281af957ffcf1255cc276fa",
+    "teen": "1f51f49f719307c08b080dc3375f52295de4aaa4e0c6d078ed6ea9fbbe3d3c7a",
+    "adult": "8a6c83d40d0a717d2aa5a68b7c63b4718dbf0fe0254808f56d60a02315b09320",
+    "senior": "a0a4c14c0ff5021bcddf76216cd6c784c4b1b31cc13eba24aabf332f964b360a"
    }
   },
   {
