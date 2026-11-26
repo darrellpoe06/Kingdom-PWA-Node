@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T13:50:36.182Z",
+ "measuredAt": "2026-11-26T13:54:06.740Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4530
+  "readings": 4532
  },
  "departments": [
   {
@@ -13057,11 +13057,13 @@
    "department": "The Eternal Algorithms",
    "position": 13,
    "title": "Judge the Poor Faithfully → the Throne Established",
-   "contentSha": "d631abb85da1ee3dd59d5c67f8c4d780962153a60c460c387f7f649a5522a805",
+   "contentSha": "071aa8b6f80d30851e60d48c341a7c3099f97cc7b7378bd13a000969be7c7287",
    "versions": {
-    "teen": "0228d425b1de2cd930a31496975f4ef0a0aa0205ccee2fd9740f364080e2aa57",
-    "adult": "d8c275c73d7751ea6ee0dd278889e9b7d4f7aa4b691ae3d65db8aea97f791624",
-    "senior": "99897e770fe2e0edea238808b480b93acad44216eccfebd0f78775a763f8d218"
+    "child": "ce916983206ec796547d6137d3db534f1cbf5f9aea3152717e1a0bdb1ab5e87b",
+    "youth": "da5c7a526d898e28beb4c3dde269ac8affe8b869d09869a8b0b74466e3ee7d6b",
+    "teen": "5db6b2f785e063ebf3be767d456e2219bad3490f8dca035dc9dc7a21af2e44f2",
+    "adult": "5950d4e4dcf9fc34116c6a731f2b5041fe100e5b465e48e52ffcaa3883d27ee4",
+    "senior": "0f52c3d9813ec98cfaf7db953b83003d6f17b0e0c1f4dd81dacfeac787d3dfd5"
    }
   },
   {
