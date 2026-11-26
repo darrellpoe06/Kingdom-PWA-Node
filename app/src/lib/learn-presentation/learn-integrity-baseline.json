@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T06:55:46.176Z",
+ "measuredAt": "2026-11-26T07:00:23.300Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4388
+  "readings": 4390
  },
  "departments": [
   {
@@ -13753,11 +13753,13 @@
    "department": "The Eternal Algorithms",
    "position": 24,
    "title": "Let Both Grow Together (the field is mixed until the harvest)",
-   "contentSha": "3ab913d06c6d1df5e24ca659f60fd390a9a97e285b7b983512e785b8ec25cabf",
+   "contentSha": "bd7ec794abbbaaac20a62d0d25e9d3ba713e0f40cd5a5c2d1509d0e83b693e5a",
    "versions": {
-    "teen": "02d06577abf81fb6075901e4ab83410404de45d2e67e9f6bf3521c9c1c4dc3a2",
-    "adult": "babd2a3bd4ef8e29488c82a6b3d7d57d06dd720c152c4b8186ef4f61dd842fbd",
-    "senior": "205429592f8433414db4347063973073c8b3d38d4c72017180da8b9415838687"
+    "child": "5283acc92d50c0df4a03500f4be5b395ed8ce87a2927b5128343c1de7caa6f83",
+    "youth": "34e74101913542c2520d60d5d397d98733356b0d513559a758b66f52c64a194d",
+    "teen": "45edd530bc2c7c464b68bf4057045a4e404e982b700de685fd222299d782e035",
+    "adult": "ed264783089ec224e1d84ee092bb53510127c87e5718786a07d5778c80a9bd62",
+    "senior": "358674682f8d5d03697ab70ae99678a12e6b69e0388c72043177749a4fccc94f"
    }
   },
   {

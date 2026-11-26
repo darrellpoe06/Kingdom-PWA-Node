@@ -77,8 +77,8 @@ describe('Learn content integrity baseline', () => {
   // word-judges-last-day, appointed-day-ordained-judge, judgment-seat-of-christ,
   // vacate-the-seat, saints-judge-with-him, judge-comes-with-reward,
   // peace-peace, call-evil-good, suppress-the-truth, word-of-testimony,
-  // word-written-on-the-heart, sheep-and-goats.
-  it('the baseline is the measured Phase 1 catalog (13 / 51 / 994 / 4,388)', () => {
-    expect(base.counts).toEqual({ departments: 13, courses: 51, lessons: 994, readings: 4388 });
+  // word-written-on-the-heart, sheep-and-goats, wheat-and-tares.
+  it('the baseline is the measured Phase 1 catalog (13 / 51 / 994 / 4,390)', () => {
+    expect(base.counts).toEqual({ departments: 13, courses: 51, lessons: 994, readings: 4390 });
   });
 });
