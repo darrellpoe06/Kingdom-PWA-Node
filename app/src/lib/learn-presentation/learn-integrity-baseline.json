@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T04:45:44.088Z",
+ "measuredAt": "2026-11-26T04:49:24.876Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4328
+  "readings": 4330
  },
  "departments": [
   {
@@ -13421,11 +13421,13 @@
    "department": "The Eternal Algorithms",
    "position": 18,
    "title": "Turned Aside at the Gate (when justice must be bought, only the rich get it)",
-   "contentSha": "a672fe457494e3a2154870019df4ca845becfbb4dc75dab9a0376805298e6449",
+   "contentSha": "6cc33dd57ca0b6fcc96169e719e176601010257cc22390224a246d49bff3b13c",
    "versions": {
-    "teen": "58af42bcf35b27f2c336c1c14b121fb15d207752c7fdd4c2ff11385d427757a9",
-    "adult": "b82a5e69ba575f9ad4a5e96b70fe527365bd4807ee79459b6e7405a11e79a6f6",
-    "senior": "e370feab914f51e559b7f424e6df75dc1c4b68d45cdd1846076215a852d1d486"
+    "child": "1edbadeb61e2b1b44cbb91c29f70067e3cb98a07cc3b21fb2d3ac5202749d5aa",
+    "youth": "33d29a0c535159c78c531f8a87f9fad280508a29116d7ab52b77a792b6f7398b",
+    "teen": "c8de8fb76f12cf55798a8a8b402c073bae13929a32d27ef8850f1e40afba55f8",
+    "adult": "a6bc97606121d74297412343e1c0697bc57440e6fb4677370bfba2f08ab49851",
+    "senior": "d815441d7bfa89a888cb981a735550ab05e1d1a5826a87dda55fe72eb79d943c"
    }
   },
   {
