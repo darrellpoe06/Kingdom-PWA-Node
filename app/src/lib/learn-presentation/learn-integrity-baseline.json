@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T14:19:10.588Z",
+ "measuredAt": "2026-11-26T14:47:28.290Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4542
+  "readings": 4554
  },
  "departments": [
   {
@@ -12940,11 +12940,13 @@
    "department": "The Eternal Algorithms",
    "position": 4,
    "title": "Shapen in Iniquity → Truth in the Inward Parts",
-   "contentSha": "869c85c1423728c8f7c61531f0d4c6cb9f69164cfc109c675aa59650c689197a",
+   "contentSha": "6a03f7b5b605521bd776bb9b528425c02071abdad8d04c5438dd75719210897e",
    "versions": {
-    "teen": "d5a9ac184925b044613f8c705c256aa81d354b616ff068a045ac4361c732085b",
-    "adult": "58119dea1a49d42ca6ad686481206f73546a040ba9885e81ace0d61dc7427105",
-    "senior": "5bb31a243a6cf8fb730a44ebbebf99576eb5b77180c96549d979b44ceeb242ad"
+    "child": "8ee0d99712b32fac50c205b96ff3b42b099df5b9ee68cf4d022e392f16a1b065",
+    "youth": "1d50b6c053568a01783d47953e14995dbd80f460d2fc3055185cb7e2e5c4c26a",
+    "teen": "7f16be289b22e549d2dadafcdad49385b79c534702b49a2e1db09680e9b99f08",
+    "adult": "fcf5adb6026e57abeb7f1588a956ae7bb50bcbd90295d520e5ae58fef415f9f6",
+    "senior": "38aa4fe419a21195f14e8349747a0b27cb5363a7f66df66ed31fff1928551b7f"
    }
   },
   {
@@ -12953,11 +12955,13 @@
    "department": "The Eternal Algorithms",
    "position": 5,
    "title": "Delight → Desires",
-   "contentSha": "56860e3f9e49ac9dd7f8faaf8056bc4170a37d9c6e26c2ac44837b3477396c64",
+   "contentSha": "a4b876c49f6cbfee99cbcbdfa5968e1799d69f3ef5c7c3bb26839da6c161d5fd",
    "versions": {
-    "teen": "9a8637cb3fa977512687a52b7a5d2bb94a57a2aeca2578e98c53bcbf125e0d2a",
-    "adult": "46ff15943c4ee913944627674ef5bd13f3133335ccd5dae95770db9d1c570dcc",
-    "senior": "8ed14969f28be0ba64343ab2ef2ad8e38ade9d51a49f10f88087ff2b7f916c20"
+    "child": "fffe3b3a0a17d805c4e1f571330dbef15b1b747d827283b3bfb77f9a68e5b074",
+    "youth": "de4e89d550cf19adcebca44256681589844aec88e5c2478299825c6b20aed9f0",
+    "teen": "7646819be60bb1a705607b6f6b521d018ffff636f1a7fa47281ba86d1c8d8732",
+    "adult": "d48dfd63da85ceee6b6c9e11f292d1101c46df746c5c528d185450e0506ecae7",
+    "senior": "dfbce756178a10bb36c0356657eaaa4d475796ac20a87749f2b3285ff2535589"
    }
   },
   {
@@ -12966,11 +12970,13 @@
    "department": "The Eternal Algorithms",
    "position": 6,
    "title": "The Meek Inherit (strength under the General)",
-   "contentSha": "293ee085cbcfd4d70e054550db419776b37c0fbcc8e92cb291e60a5238c44154",
+   "contentSha": "d72ef78aa2d390ff45fd89c57bed89ec5fb2b31aed38f6a89f4af81863f8c12c",
    "versions": {
-    "teen": "d2225423564a2c5e0c6be4e2981c4e7b8276544f028543a57b58ad45402ef1e4",
-    "adult": "bc9e8305a00f30d4be45e985b8da9d01756286efa63730a22d3f56b16f518c35",
-    "senior": "88aa985b521753c7efc0e6f75a536ba17d64a9ac0c929a4caf80d01a29ac0126"
+    "child": "59f66859c012db75d1e5f600afdbf0f30925d81fcb7251c2f831b72b1d755c23",
+    "youth": "28c26090e213222057a640ab9b2c014e8421e6e0198c437d30d5fcbea1ed07d0",
+    "teen": "c1594ea3d2047e30d85c9fde99e0d5b0cb5ce9e3af0b470595cef9e1832a2e00",
+    "adult": "a271c2a20aab133701e8f2309e65a4402826e165ae944490f1e84de741174bc1",
+    "senior": "f64bea846ee91a051f2bdfeebd64ab4da90ba52e8e486b50a21177c675c02225"
    }
   },
   {
@@ -12979,11 +12985,13 @@
    "department": "The Eternal Algorithms",
    "position": 7,
    "title": "Pride → Destruction · Humility → Honour",
-   "contentSha": "d2704c8dc4278f2d555dafb0d70fd802e7449491373661b85109986311f1d1a5",
+   "contentSha": "d12da6e7a8f4b4aaa0da77a1c49c9d6756571b2e2b6d082a5efb5581a7282660",
    "versions": {
-    "teen": "45d1b5be4f8a0731d9cd5421f296f32afd1c36d3b3519320a6cc7f4a12003ca0",
-    "adult": "9eb1192add84d10384b20df3a3cb110af2353bbe9f220a5cd81e70966284aefd",
-    "senior": "0b34e52c3534b73036e6dbc06413ac3254825b0e6a5afcb2118e43d3b8433eb5"
+    "child": "a2bd19c3e92f87c8f5db0ec46556847e9276686394c415371f9c6fe0c1cb69e7",
+    "youth": "d2494b4604e40c840a99f6b1d2922f2982aca7a1364fd13bda076126826cf31b",
+    "teen": "2d3d99682e49f5cd1aa4ae465086fb6ac33ed0d2e517d8035ac3b4df16952665",
+    "adult": "e5b2d24160913394664d221d044da1a16af49b1dd2d19477598d7dce27925e35",
+    "senior": "4af8ff3ff583288eb4037dd9f0e12c0e51e86d76d6af45b6233bc9d1a4a23aad"
    }
   },
   {
@@ -12992,11 +13000,13 @@
    "department": "The Eternal Algorithms",
    "position": 8,
    "title": "Wait on the LORD → Renewed Strength",
-   "contentSha": "70635514763572c3832c1d558c37d4eda46d1f8584da49b53286c0c649305207",
+   "contentSha": "111ffcd9ea6a6f0412cd1d46a09558f104f9f133a664990f15204205cb1766c5",
    "versions": {
-    "teen": "0a51e52c0197b858c6d0c1a034eb8cddf9b1f66dbbd1a456a8975baffb2a7a1a",
-    "adult": "887bf38b242e6c033cd9eaaabecda596c62b40e762ba180eeee6593b7b03b0f4",
-    "senior": "ae0603511eb28e3e8c972d500b2829194373cef7d83dde355b020a22842d4ae3"
+    "child": "7c04c1fe85f19f0a989799c75a177c2d0a5034d9b06ccab42a8c955b168f85fe",
+    "youth": "8bc770273b8f5bf835a8d8642cde305b17a0305e685d889f5f084b0589df4424",
+    "teen": "47cf353e1138f2f9000d8268b50fd6fd6daaa0cdb3503f30454bffae0176edf1",
+    "adult": "68df28685a8cc856bb6aa934e9c73bb8d4d6c5f771b1af74e56302722d436e53",
+    "senior": "fd7cdcfff390172691236e9a06803ce8fdb72a0ef731dc70a37bd3b961c31f7a"
    }
   },
   {
@@ -13005,11 +13015,13 @@
    "department": "The Eternal Algorithms",
    "position": 9,
    "title": "A Soft Answer Turneth Away Wrath",
-   "contentSha": "4e91a2b9637857440ef381dc20f0d198d7f9906a60b73599e24690a176a21d58",
+   "contentSha": "9d83eddfb6d75022cf9b5224c689cb6a5a78689b98d5bde67e01a42f528ba983",
    "versions": {
-    "teen": "0cf89fd8ea6cf540f9e98c0e19224cfc8358a53ae4dd2a8f924f931c94d1f340",
-    "adult": "70c52c64c43b8d297742165ddf84c5a11e9c1600faecda6b9318e15b0c483c40",
-    "senior": "bcf61c0fa357a964f1ab68b0e4f6d5d0453a952643626e0a5a3ad6e832b17346"
+    "child": "e0148b2b660244f3c2baead0bfbe9f1696a01a5f506da054c62a1bfaafdad5e7",
+    "youth": "fdb3dfec6b0c7fcf7eeead44a61b4faec4c0b198c3369a608c79b4e1b2f6a340",
+    "teen": "eff8ae54162094f8dab9209009c55a4eb10c7798a87451d5167892df8d5e0173",
+    "adult": "a92494c6e7145affa0cfdefdff03c352fca811fbd8c5069dbf94778d8925e388",
+    "senior": "5f65bfc13e83b955b2b228757fdf58227c8ba36da0223ddf3de4a7f8da662f13"
    }
   },
   {
