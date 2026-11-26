@@ -9,7 +9,7 @@
 //   • off-window → nothing renders (no fabricated live bar).
 //   • no channel → nothing renders (never a dead frame).
 //   • dismiss    → it stays gone for the session.
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { createElement } from 'react';
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -216,6 +216,16 @@ describe('LiveWorshipBar — small floating by default; the remembered size is h
     expect(document.documentElement.getAttribute('data-live-bar')).toBe('open');
     mount({ now: OFF_WINDOW });
     expect(document.documentElement.getAttribute('data-live-bar')).toBeNull();
+  });
+
+  it('publishes the DRAWN height, not the layout height, so the header meets the bar at a larger text size', () => {
+    // Chromium 158 at zoom 0.8333: offsetHeight 60, drawn 49.98. The header pins at --lwb-h.
+    const rect = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ height: 49.98, width: 300, top: 0, left: 0, right: 300, bottom: 49.98 });
+    const off = vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(60);
+    mount({ now: IN_WINDOW });
+    expect(document.documentElement.style.getPropertyValue('--lwb-h')).toBe('49px');
+    rect.mockRestore();
+    off.mockRestore();
   });
 
   it('barFrameStyle: large is full width; small is capped narrow; medium is the original', () => {
