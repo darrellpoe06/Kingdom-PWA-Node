@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T14:28:57.161Z",
+ "measuredAt": "2026-11-26T14:33:41.222Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4546
+  "readings": 4548
  },
  "departments": [
   {
@@ -12979,11 +12979,13 @@
    "department": "The Eternal Algorithms",
    "position": 7,
    "title": "Pride → Destruction · Humility → Honour",
-   "contentSha": "d2704c8dc4278f2d555dafb0d70fd802e7449491373661b85109986311f1d1a5",
+   "contentSha": "d12da6e7a8f4b4aaa0da77a1c49c9d6756571b2e2b6d082a5efb5581a7282660",
    "versions": {
-    "teen": "45d1b5be4f8a0731d9cd5421f296f32afd1c36d3b3519320a6cc7f4a12003ca0",
-    "adult": "9eb1192add84d10384b20df3a3cb110af2353bbe9f220a5cd81e70966284aefd",
-    "senior": "0b34e52c3534b73036e6dbc06413ac3254825b0e6a5afcb2118e43d3b8433eb5"
+    "child": "a2bd19c3e92f87c8f5db0ec46556847e9276686394c415371f9c6fe0c1cb69e7",
+    "youth": "d2494b4604e40c840a99f6b1d2922f2982aca7a1364fd13bda076126826cf31b",
+    "teen": "2d3d99682e49f5cd1aa4ae465086fb6ac33ed0d2e517d8035ac3b4df16952665",
+    "adult": "e5b2d24160913394664d221d044da1a16af49b1dd2d19477598d7dce27925e35",
+    "senior": "4af8ff3ff583288eb4037dd9f0e12c0e51e86d76d6af45b6233bc9d1a4a23aad"
    }
   },
   {
