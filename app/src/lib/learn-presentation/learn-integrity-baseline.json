@@ -1,10 +1,10 @@
 {
- "measuredAt": "2026-11-26T05:28:29.754Z",
+ "measuredAt": "2026-11-26T05:45:28.824Z",
  "counts": {
   "departments": 13,
   "courses": 51,
   "lessons": 994,
-  "readings": 4348
+  "readings": 4356
  },
  "departments": [
   {
@@ -13155,11 +13155,13 @@
    "department": "The Eternal Algorithms",
    "position": 21,
    "title": "Confess and Forsake (admitting you are wrong opens the correction)",
-   "contentSha": "be65257b7353652dbbcca1fbc32dacb2765dfb1bcadcf78d15e8ff42828679ce",
+   "contentSha": "65f2454ecc1ce6555742d3a9a5f29e7e56525413975dced222ca2d5c7b4a1d95",
    "versions": {
-    "teen": "c6f9e1d29270d190f400c3e4bc577e6d850402f340e390f769e1734503c42474",
-    "adult": "c18f369b414ffa7d939efd695d266bfb4e810c1521d6249c648410c385c9c281",
-    "senior": "91152741a6a8224642383391e2665c7bd284826bb49a92226607aae50b8b6919"
+    "child": "86cab40995dee721d0c1e1e7665265292d195494c5fca01196282a1ba7d42ca3",
+    "youth": "2c5b32e4b2f3f07aa41cd38dedc1cee22001ee1f2f216f033822da4cb9ef3feb",
+    "teen": "dc2566ba777bd68b4708fbdaaaf5238ea63cc9ce403de5181d7051ac3e5355c2",
+    "adult": "0e89d27abe3b60a7a032c86c8c4349b3e8f39bc73a3ad3b6e240c7f710a44145",
+    "senior": "c848443a925aba2f29f382d46e4980420bf46173a668d45975ff2d053acdce64"
    }
   },
   {
@@ -13853,11 +13855,13 @@
    "department": "The Eternal Algorithms",
    "position": 32,
    "title": "He Said This to Prove Him (the test He already knew the answer to)",
-   "contentSha": "241d54b526f00486c7ea6ae527650e214e2f8ee3b7eb6caeb3f4dff2180dde7e",
+   "contentSha": "acbba3847bfdff67127165d0125ffae89c5c54c598ba31d6eefc001e967ea7d8",
    "versions": {
-    "teen": "8457c28a14ca9baef0bb83331d4f37804e651ea09f14fe7d64eadc62e49b6c97",
-    "adult": "4c918c0f350eab5e89f101437f860159e9b787dd3f1cf7e301617c842d109014",
-    "senior": "b44c674ab8dbce93fd1f8b6cc26d03f9fc08b48a49eb37614671496bc576d94a"
+    "child": "787ee877302e97a7f7100ed6702e5fd183f7b173df8c3482db610e098bcfeb4c",
+    "youth": "acccd42f66d9bcf2f4fbe985fdce37528b2152c1a73c85c9d58fa5c6e0de3b41",
+    "teen": "7c0ed54c5204d005cff9bcc29b74d72c68cc1a504d0d942469d6df4e904fa46d",
+    "adult": "2bdc90120f4996be52343dcf2fe794c5a71a8e2e477a295324d1250b27978db2",
+    "senior": "dd1a7091545e374260f9edebb40bb3c2ef20c6569eccdcb0df0d2b192e626d2b"
    }
   },
   {
@@ -13866,11 +13870,13 @@
    "department": "The Eternal Algorithms",
    "position": 33,
    "title": "When Thou Art Converted, Strengthen Thy Brethren (the growth is spent outward)",
-   "contentSha": "2427754210272e333e7ff22de8508925df667781e2d2b6be5f1f9994069f2e3e",
+   "contentSha": "f6c166ca2bd125085778b2fb64ef14873a42e0287554a2ff11f59b1584c6ff20",
    "versions": {
-    "teen": "60c85d0a97e8ad8b3ef5cf990195cac3548079adc6964209a4b19667eb82b8b8",
-    "adult": "0ef9c2598f24a37839ae6bc7a03eb99d1ebaf0cdf075d00b145e493318e4d56d",
-    "senior": "95941c06832d81f555d738ae96e4745a3679f629d547380ce3c7f06f18c722d8"
+    "child": "a177f831b51fd817489a8b877b1112ba14c541efe09c5d48d05ae68ead1fd05b",
+    "youth": "7b1618227e22e70a0e7f46aa5eb464b246d97c1c1bc040e01e3590c93e007705",
+    "teen": "9a685fdac1b41f99020e9428deb96f9cff6791d25dde8e6f9d4bc4ad3dc58bd2",
+    "adult": "5ff7a878c81ffcf90e73b7187752f6df340377f46b48146c87b19b80334c943e",
+    "senior": "3824b2c8afd9c7b7694c0bcfe3f3350a9573dd6a7a8f77096e738790ff11fa73"
    }
   },
   {
@@ -14430,11 +14436,13 @@
    "department": "The Eternal Algorithms",
    "position": 37,
    "title": "All Things Work Together for Good (the outcome is already rigged)",
-   "contentSha": "c981da0b537c2c71509c902754a5f3324a0982fc5a9aae1e29793caa5ad3803d",
+   "contentSha": "cc031daecbec8de08d896153eabfc991633b5d195789788b186f40acd12e408b",
    "versions": {
-    "teen": "3a2fc370933135b5aff2b4633363b878fdf5dbeb441960dfda0fc3f0dacb2ab2",
-    "adult": "e2e93470624e23e1b0f875a316e26682a64d33cec1652e7eb0924fed3b84dc2d",
-    "senior": "f2948b7fa7f8ec153970eaa0ba97d8055d9d608a13d568a7aac4cd53a4cc6b08"
+    "child": "ecf09407df0370f16ffd806dee5de7a116575b97d240aeb168e080df3d8ae052",
+    "youth": "98faf733e1f31abc01651af78a2be3b7e794ddd9877452589969531b48978e11",
+    "teen": "2a2e66e62a94ac294e2ef3fb2d5f58daacc679e8ccd871952a95c41127802612",
+    "adult": "b6b020ab1dea083710c3a9a38c88667017f3b6e45f523695134b809ad0fd3cb7",
+    "senior": "c00caaac172bb46c64cabec0445dab1ed3912eb85acaa3a13e2d355cc971c49b"
    }
   },
   {
