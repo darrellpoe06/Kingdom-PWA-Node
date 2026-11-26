@@ -1221,3 +1221,10 @@
     margin-left: 0;
   }
 }
+
+/* Relationships, a section of its own (DR-1675). */
+.ls-section-title {
+  margin: 0.5rem 0 0.25rem;
+  font-size: 1.375rem;
+  line-height: 1.25;
+}

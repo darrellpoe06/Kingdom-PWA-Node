@@ -3280,6 +3280,21 @@
       "notes": "Measured first: the curriculum export inflates every course by facilitator notes, quiz and age rewrites (2.55M words against 1.98M of book body); counting it would have overstated every answer. Found that the ledger counted book sales while grant_book_entitlement was called nowhere, and that the seam read metadata.productId while the server wrote metadata.product. The Acrobat share link Darrell sent could not be reached from this sandbox (host outside the allowlist; the allow request was declined), so that document is listed as awaiting its source, with no product painted over it."
     },
     {
+      "id": "relationships-section-reviewed",
+      "date": "2026-11-26",
+      "task": "Relationships as a section in four parts (19 to 44 lessons) by full-text measurement and judgment, with a review gate and Pictures | List",
+      "drs": [
+        "DR-1675"
+      ],
+      "prs": [],
+      "model": "claude-fable-5-1",
+      "tokens": null,
+      "costUsd": null,
+      "wallClockHours": 0.6,
+      "estimateWithoutAiHours": 8,
+      "notes": "gate proven to catch"
+    },
+    {
       "id": "worker-my-work-orders-and-bell",
       "date": "2026-11-19",
       "task": "1099 workers see every job sent to them: My work orders across every door (my_assigned_work_orders), Fixed / Not fixed / a picture from the list, and a job-new arrival on the bell; watcher test proven to catch",

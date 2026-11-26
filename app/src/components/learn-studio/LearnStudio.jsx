@@ -26,7 +26,7 @@ import { lessonUrl } from '../../lib/lesson-links.js';
 const versionLabel = (id) => (READING_VERSIONS.find((b) => b.id === id) || { label: id }).label;
 // A keyboard user must SEE where they are (ui-standards focus-ring). Gold, never red (red is reserved, DR-0099).
 const RING = 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2';
-import LessonsInOrder from './LessonsInOrder.jsx';
+import LessonsInOrder, { MiniThumb, Toggle, VIEWS, remembered, remember } from './LessonsInOrder.jsx';
 import { shippedSrcSet } from '../../lib/institute-studio.js';
 import { scrollToStudioTools } from '../../lib/learn-studio-bridge.js';
 import CourseLessonsView from './CourseLessonsView.jsx';
@@ -137,7 +137,7 @@ function Card({ x, onOpen }) {
   );
 }
 
-function Row({ icon = 'play', title, note, items, onOpen, onSeeAll, grid = false }) {
+function Row({ icon = 'play', title, note, items, onOpen, onSeeAll, grid = false, view = 'pictures' }) {
   if (!items || !items.length) return null;
   return (
     <section className="ls-row">
@@ -153,11 +153,28 @@ function Row({ icon = 'play', title, note, items, onOpen, onSeeAll, grid = false
           </button>
         )}
       </header>
-      <div className={grid ? 'ls-grid ts-grid-collapse' : 'ls-scroller'}>
-        {items.map((x) => (
-          <Card key={`${x.p.courseKey}::${x.p.lessonId}`} x={x} onOpen={onOpen} />
-        ))}
-      </div>
+      {view === 'list' ? (
+        // The compact rows every lesson list offers (Pictures | List, DR-1662): same picture, full title.
+        <ol className="ls-inorder-list ls-inorder-list--list">
+          {items.map((x) => (
+            <li key={`${x.p.courseKey}::${x.p.lessonId}`}>
+              <button type="button" className={`ls-inorder-row ${RING}`} onClick={() => onOpen(x)} data-testid={`row-${x.p.lessonId}`}>
+                <MiniThumb image={x.p.image} label={x.p.code || ''} />
+                <span className="ls-inorder-t">{x.p.displayTitle}</span>
+                <span className="ls-inorder-go" aria-hidden="true">
+                  ▶
+                </span>
+              </button>
+            </li>
+          ))}
+        </ol>
+      ) : (
+        <div className={grid ? 'ls-grid ts-grid-collapse' : 'ls-scroller'}>
+          {items.map((x) => (
+            <Card key={`${x.p.courseKey}::${x.p.lessonId}`} x={x} onOpen={onOpen} />
+          ))}
+        </div>
+      )}
     </section>
   );
 }
@@ -419,6 +436,17 @@ export default function LearnStudio({
   // existing Art fallback), so nothing new is generated and nothing is hidden.
   const [courseKey, setCourseKey] = useState(null);
   const [allCoursesTick, setAllCoursesTick] = useState(0);
+  const [relView, setRelViewState] = useState(() =>
+    remembered(
+      'relationship-view',
+      'pictures',
+      VIEWS.map((o) => o.key)
+    )
+  );
+  const setRelView = (v) => {
+    setRelViewState(v);
+    remember('relationship-view', v);
+  };
   // THE PHONE'S BACK GOES TO THE LAST PAGE (Darrell 2026-11-26: "Back button should go to the last
   // page the user was on!!!" -- "Not close the app or start over"). A course page, a shelf and a
   // lesson's cover each take one history step when they open, so Back closes the one on top and
@@ -609,7 +637,18 @@ export default function LearnStudio({
             <button type="button" className={`ls-back ${RING}`} onClick={() => setShelf(null)}>
               ‹ Back to Learn
             </button>
-            <Row title={pickedShelf.label} items={pickedShelf.items} onOpen={openLesson} grid />
+            {pickedShelf.id === 'relationships' && home.relationshipGroups && home.relationshipGroups.length ? (
+              // Relationships is a section of its own, in four parts (DR-1675).
+              <div data-testid="ls-relationship-sections">
+                <h2 className="ls-section-title">Relationships · {pickedShelf.items.length} lessons</h2>
+                <Toggle label="View" options={VIEWS} value={relView} onChange={setRelView} testid="ls-relationship-view" />
+                {home.relationshipGroups.map((g) => (
+                  <Row key={g.id} title={`${g.label} · ${g.items.length}`} items={g.items} onOpen={openLesson} grid view={relView} />
+                ))}
+              </div>
+            ) : (
+              <Row title={pickedShelf.label} items={pickedShelf.items} onOpen={openLesson} grid />
+            )}
           </>
         ) : (
           <>

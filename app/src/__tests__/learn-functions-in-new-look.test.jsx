@@ -305,6 +305,13 @@ describe('Relationships, in one place', () => {
     expect(shelf.compareDocumentPosition(hero) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     click([...shelf.querySelectorAll('button')].find((b) => b.textContent.includes('See All')));
     expect(container.querySelectorAll('.ls-grid button.ls-card').length).toBe(RELATIONSHIP_LESSONS.length);
+    // A section of its own, in four parts (DR-1675), with every way to view a list: Pictures | List.
+    const sections = $('ls-relationship-sections');
+    expect(sections.textContent).toMatch(new RegExp(`Relationships · ${RELATIONSHIP_LESSONS.length} lessons`));
+    for (const part of ['Marriage & Love', 'Family & Children', 'Friends, Neighbors & the Church', 'Hard Conversations, Offense & Forgiveness']) expect(sections.textContent).toContain(part);
+    click([...$('ls-relationship-view').querySelectorAll('button')].find((b) => b.textContent.includes('List')));
+    expect(sections.querySelectorAll('button.ls-inorder-row').length).toBe(RELATIONSHIP_LESSONS.length);
+    expect(sections.querySelectorAll('button.ls-card').length).toBe(0);
   });
 });
 
