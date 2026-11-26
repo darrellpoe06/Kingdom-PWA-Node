@@ -1,5 +1,5 @@
 {
- "measuredAt": "2026-11-26T20:29:23.638Z",
+ "measuredAt": "2026-11-26T20:35:31.101Z",
  "counts": {
   "departments": 13,
   "courses": 51,
@@ -8457,13 +8457,13 @@
    "department": "The Word & The Way",
    "position": 14,
    "title": "For Ever",
-   "contentSha": "8db8778e1b12b501c439bd6c7695aba72b586f123f7e033119cb4373d2ebc262",
+   "contentSha": "0495af39f506e4d42c4dc59e10f37eb798c4b5d65bf0a6c994db69099b550b48",
    "versions": {
-    "child": "dd40f336a7aca5a9c377f2020d6f24edeb4cdc15155525e25fa1706c4acfd67a",
-    "youth": "51a68fdd6b9b321692aa34e77acb19da13718e2940dad6f668038db1dc15ca55",
-    "teen": "d0d61a5822e7d9f9c05255e927d638eb30e2c5d8c8a286c28c86404cbfadecc2",
-    "adult": "fe2e47f47201229bf0f4ffb8d341fcf90edb1d34e6ce837dabf37e2f807b6045",
-    "senior": "d67cfeed90d0b5584e41aa760e47a899cf5adefe7b58fe1946a89fa34f89b7cf"
+    "child": "08851f6370a0268c95753bfbbe0c352b29be4f1f3d08225d8ed0058c7fa5dab2",
+    "youth": "9abe5a8e2e4427da0cf61d78945491222027375f8ab68ebf01b7042cb2639d68",
+    "teen": "61e2470378bce374b0b80746a262537153129b4245ba22e9b5d9d747fcd6b1c3",
+    "adult": "d5eca3bf54bddcca149d43065da2a6846edec1500f1a0a442e0b376108b4a0a1",
+    "senior": "7598cee551ad774f0be83f3079896ef3373acb4e6d802a6885a10ce407e8fbdf"
    }
   },
   {
